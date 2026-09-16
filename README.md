@@ -606,6 +606,141 @@ Bild-Icon mit dem Alt-Text "Errate das Bild". Behoben: `promptType` wird
 jetzt einmal beim Rundenstart in `room.runtime.promptType` abgelegt und von
 dort für jedes Element im Broadcast verwendet.
 
+## 7g. Bugfix: Bild erraten zeigte das Bild am Anfang kurz unverschwommen
+
+Das `#guessImage`-Element wurde beim Rendern zunächst OHNE Weichzeichner
+erzeugt – die Unschärfe wurde erst im ersten Tick des Countdown-Timers
+(`startGuessTicker()`, alle 100ms) gesetzt. In der kurzen Lücke dazwischen
+war das Bild/Emoji kurz komplett scharf zu sehen. Behoben: Startunschärfe
+(`filter: blur(18px)`) steht jetzt direkt inline im initialen HTML in
+`renderPartyGuessItem()`, `public/index.html`.
+
+## 7h. Einordnen: komplett neuer, gleichzeitiger Einzelspieler-Modus
+
+Größter Umbau dieser Session: "Einordnen" ist nicht mehr rundenbasiert
+(Teams abwechselnd am Zug), sondern jeder Spieler bekommt sein **eigenes**
+1..N-Positionsraster mit denselben Elementen, eigene 3 Leben, und alle
+platzieren **gleichzeitig**, ohne Rundenwechsel. Chronologie und Mehr oder
+Weniger sind davon unberührt und laufen weiterhin über die alte,
+rundenbasierte Engine (`startRankingRound()`/`handleRankPlace()` usw.).
+
+- **Neue, eigenständige Engine** in `server.js`: `startOrderingSimultaneousRound()`,
+  `handleOrderingPlace()`, `isOrderingSlotCorrect()`, `validOrderingSlots()`,
+  `broadcastOrderingState()` (personalisiert – jeder Spieler sieht nur sein
+  eigenes Raster/Pool, dazu eine Mini-Bestenliste mit dem FORTSCHRITT der
+  anderen, nicht deren Antworten), `finalizeOrderingRound()`,
+  `scheduleBotOrderingPlays()`. Neue Nachrichtentypen: `orderingState`,
+  `orderingHurry`, `orderingFinalReveal`. Client: `renderPartyOrdering()`,
+  `renderPartyOrderingFinal()` in `public/index.html`.
+- **Erster und letzter Tipp automatisch richtig:** ergibt sich automatisch
+  aus der Nachbar-Prüfung in `isOrderingSlotCorrect()` (kein Sonderfall-Code
+  nötig) – beim ersten Tipp gibt es noch keinen Nachbarn zum Vergleichen,
+  beim letzten verbleibenden Element/Slot ist die Position rechnerisch
+  zwangsläufig die einzig mögliche.
+- **Konstanten** (ganz oben im Abschnitt "RUNDE: orderingGame" in
+  `server.js`): `ORDERING_LIVES` (3), `ORDERING_HURRY_MS` (30000 – Restzeit
+  für alle anderen, sobald jemand PERFEKT fertig ist, also alle Elemente
+  richtig UND kein Leben verloren), `ORDERING_ROUND_CAP_MS` (160000 –
+  absolute Obergrenze für die ganze Runde, greift z.B. wenn nur eliminiert
+  statt perfekt abgeschlossen wird), `ORDERING_POINTS_PER_CORRECT` (10,
+  Team-Punkte je korrekt platziertem Element, aufsummiert aus allen
+  Team-Mitgliedern).
+- **Rang am Rundenende:** fertige Spieler (auch mit Fehlern unterwegs) vor
+  allen anderen; unter den fertigen zählen zuerst mehr verbliebene Leben,
+  dann höhere Geschwindigkeit (frühere Abschlusszeit); unter den übrigen
+  (eliminiert oder Zeit abgelaufen) zählen mehr korrekt platzierte Elemente.
+  Logik in `finalizeOrderingRound()`.
+- **Bots** spielen jetzt ebenfalls unabhängig auf ihrem eigenen Raster mit
+  (`scheduleBotOrderingPlays()`), nicht mehr an einen Rundenwechsel
+  gebunden.
+- Mit echten Server-Läufen geprüft: erster/letzter Punkt frei, perfekte
+  Fertigstellung löst den 30s-Eile-Timer beim jeweils anderen Spieler aus
+  (Zeitmessung bestätigt ca. 30,3s bis Rundenende), Elimination/unperfekte
+  Fertigstellung löst ihn NICHT aus (anderer Spieler behält die vollen
+  ~160s), Rangfolge bei gemischtem Ausgang, Bot-Teilnahme.
+- `test/run-test.js`/`test/run-bot-test.js` auf das neue `orderingState`-
+  Protokoll umgestellt und deren interne Timeouts erhöht (200s bzw. 300s),
+  da eine einzelne Einordnen-Runde jetzt bis zu 160s dauern kann – rein
+  testinfrastrukturell, das Spiel-Timing selbst ist unverändert wie
+  gewünscht.
+
+## 7i. Neue Kategorie "Musik raten" (YouTube-Audio-Rateduell)
+
+Analog zu "Bild erraten", aber mit einem YouTube-Clip statt einem Bild.
+Genau wie Stadt Land Fluss ist "Musik raten" **zusätzlich** ein eigener
+Hauptmenüpunkt (Solo/Multiplayer) – bleibt aber, anders als Stadt Land
+Fluss, auch weiterhin als normale Kategorie im gemischten Rundenpool wählbar
+(Solo-Party, lokaler Multiplayer, Online-Party), wie gewünscht.
+
+**Songdaten** in `shared/partyDatasets.json`, neuer Bereich `guessMusic`,
+zwei Kategorien:
+- `musik_demo`: 2 Beispielsongs (Queen – Bohemian Rhapsody, Toto – Africa)
+- `musik_kernliste`: 43 Songs aus der geschickten Liste, mit recherchierten,
+  echten YouTube-Video-IDs (offizielle Kanäle geprüft)
+
+Jeder Eintrag: `youtubeId`, `startSeconds`, `clipSeconds`, `title`, `artist`,
+`year`, `genre`, `cover` (aktuell überall `null` – optionales Cover-Bild-URL
+für die Auflösung, du kannst welche ergänzen). **Wichtig:** `startSeconds`
+steht bei allen 43 Songs pauschal auf **45 Sekunden** (geschätzt, nicht
+exakt geprüft) – ich kann nicht Probehören, ob dort wirklich der Refrain
+läuft. Zum Feintunen einfach die Zahl je Song in der JSON-Datei anpassen,
+nachdem du reingehört hast.
+
+**Nicht gefundene/nicht zuordenbare Titel aus deiner Liste** (fehlen daher
+aktuell in `musik_kernliste`, siehe auch Chat-Nachrichten für Details):
+Capital Bra: *400 PS* (nur eine Zeile im Song "Rolli von Pablo", kein
+eigener Titel), *Kuchen*; Samra: *Bahama Mama*, *Toxic (mit Farid Bang)*,
+*Girl Gang (mit Loredana)*; Apache 207: *Advanced Chemistry* (das ist eine
+andere, unabhängige alte Rap-Gruppe), *Belly Dancer* (ist tatsächlich von
+Imanbek & BYOR, nicht Apache 207), *Nika*, *Liebe Sonne* (evtl. "Capri
+Sonne" gemeint?); Bushido: *Vergissmeinnicht* (Titel existiert als
+Sampler-Track, aber kein eigenes offizielles Musikvideo gefunden); Cro:
+*Melodie* (nur MTV-Unplugged-/Interview-Videos gefunden, kein Original-
+Studio-Musikvideo). Einfach sagen, ob's andere/korrigierte Titel sein
+sollen, oder sie bleiben weg.
+
+**Server** (`server.js`, Abschnitt "RUNDE: guessMusic"): eigene, zu "Bild
+erraten" analoge Engine – `startGuessMusicRound()`, `nextMusicItem()`,
+`handleMusicSubmit()`, `resolveMusicItem()`, `scheduleBotMusicGuesses()`.
+Gestaffelte Punkte wie bei Bild erraten (`MUSIC_TIERS = [5,3,2,1]`), aber
+bezogen auf die tatsächliche `clipSeconds`-Dauer des jeweiligen Songs statt
+einer festen globalen Dauer. **Songtitel UND Interpret zählen beide als
+richtige Antwort** (Freitext, tippfehlertolerant – dieselbe
+`isGuessCorrect()`-Logik wie bei Bild erraten). Server kennt nur
+Video-ID/Zeitstempel/Dauer, keine Wiedergabe selbst – die läuft komplett
+im Client.
+
+**Buzzer-Logik**: der erste Rateversuch bei einem Song (egal ob richtig
+oder falsch) löst serverseitig einen `musicStop`-Broadcast aus, der die
+Wiedergabe bei **allen** Spielern sofort stoppt – man hört den Clip also
+nur einmal an, unabhängig davon wer zuerst tippt. Nach Ablauf der Zeit ohne
+jeden Versuch stoppt sie ebenfalls automatisch.
+
+**Client** (`public/index.html`): YouTube IFrame API wird bei Bedarf einmalig
+nachgeladen (`loadYouTubeApi()`), der Player läuft unsichtbar (1×1 Pixel,
+per CSS versteckt) mit einem Overlay (🎵-Symbol) darüber, damit Titel/Cover
+im eingebetteten Player die Antwort nicht verraten. Rate- und
+Auflösungsbildschirm (`renderPartyMusicItem()`, `renderPartyMusicResolved()`)
+nutzen bewusst dieselben Eingabefeld-/Anzeige-Elemente wie "Bild erraten"
+(`guessInput`, `guessAttemptsFeed`, `submitPartyGuess()`), damit nichts
+doppelt gepflegt werden muss – Punktevergabe und Buzzer-Verhalten folgen
+also exakt dem bestehenden System, wie gefordert.
+
+**Fallback bei nicht verfügbarem Video:** `onError`-Event des YouTube-Players
+zeigt "Video nicht verfügbar" an, die Runde läuft aber ganz normal weiter
+(Timeout greift wie gewohnt, niemand bekommt automatisch Punkte für diesen
+Song). **Autoplay-Hinweis:** manche Browser blockieren Ton-Autoplay ohne
+vorherige Nutzerinteraktion – in dem Fall erscheint automatisch ein
+"▶ Ton abspielen"-Button.
+
+**Wichtige Einschränkung:** Ich konnte die eigentliche YouTube-Wiedergabe im
+Browser hier nicht selbst testen (keine echte Browser-Umgebung in meiner
+Werkstatt) – nur den Server-Ablauf (Rundenwechsel, Zufallsauswahl,
+Punktevergabe, Auflösung mit echten Songdaten) mit echten Serverläufen.
+Der Player-Code folgt dem offiziellen, etablierten YouTube-IFrame-API-Muster,
+aber probier ihn bitte einmal live aus, bevor du dich darauf verlässt –
+insbesondere den Autoplay-Fall auf dem Handy.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

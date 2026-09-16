@@ -141,6 +141,9 @@ function buildRoundDefPool() {
   Object.entries(DATASETS.guessPicture || {}).forEach(([key, ds]) => {
     pool.push({ id: "guess_" + key, kind: "guessPicture", label: ds.label, datasetGroup: "guessPicture", datasetKey: key, germanOnly: !!ds.germanOnly });
   });
+  Object.entries(DATASETS.guessMusic || {}).forEach(([key, ds]) => {
+    pool.push({ id: "music_" + key, kind: "guessMusic", label: ds.label, datasetGroup: "guessMusic", datasetKey: key, germanOnly: !!ds.germanOnly });
+  });
   return pool;
 }
 const ROUND_DEF_POOL = buildRoundDefPool();
@@ -149,9 +152,18 @@ const ROUND_DEF_POOL = buildRoundDefPool();
 // Kategorien aus SLF_PARTY_CATEGORIES). "Eigene Kategorien" ist kein
 // Pool-Eintrag, sondern wird interaktiv über setSlfCustomRoundDef gebaut.
 const SLF_ROUND_DEF_POOL = [slfBuildRoundDef(null, null), slfBuildRoundDef(null, "party")];
-function findRoundDef(id) { return ROUND_DEF_POOL.find(r => r.id === id) || SLF_ROUND_DEF_POOL.find(r => r.id === id); }
+// Eigener Pool nur für den Musik-raten-Modus: alle guessMusic-Kategorien aus
+// shared/partyDatasets.json (identisch zu den music_*-Einträgen im normalen
+// Pool oben – "Musik raten" bleibt bewusst AUCH im normalen Mix verfügbar,
+// anders als Stadt Land Fluss, siehe Anforderung).
+const MUSIC_ROUND_DEF_POOL = ROUND_DEF_POOL.filter(r => r.kind === "guessMusic");
+function findRoundDef(id) {
+  return ROUND_DEF_POOL.find(r => r.id === id)
+    || SLF_ROUND_DEF_POOL.find(r => r.id === id)
+    || MUSIC_ROUND_DEF_POOL.find(r => r.id === id);
+}
 function roundDefPoolForLanguage(language, gameMode) {
-  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : ROUND_DEF_POOL;
+  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : (gameMode === "music" ? MUSIC_ROUND_DEF_POOL : ROUND_DEF_POOL);
   return language === "de" ? base : base.filter(r => !r.germanOnly);
 }
 
@@ -184,8 +196,9 @@ function createRoom(hostWs, hostName, language, gameMode) {
     roundDefs: [],
     language: SUPPORTED_LANGS.includes(language) ? language : "de",
     // 'mixed' (Standard, alle Rundentypen außer Stadt Land Fluss) oder 'slf'
-    // (eigenständiger Stadt-Land-Fluss-Modus, siehe SLF_ROUND_DEF_POOL).
-    gameMode: gameMode === "slf" ? "slf" : "mixed",
+    // (eigenständiger Stadt-Land-Fluss-Modus) oder 'music' (eigenständiger
+    // Musik-raten-Modus, bleibt zusätzlich auch im normalen Mix verfügbar).
+    gameMode: gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed"),
     currentRoundIndex: -1,
     phase: "lobby", // lobby | roundIntro | playing | roundResult | gameEnd
     runtime: null
@@ -481,19 +494,23 @@ function advanceQuizQuestion(room) {
 }
 
 /* ------------------------------------------------------------------------ */
-/* RUNDE: orderingGame & higherLowerGame (gemeinsame Engine)                 */
+/* RUNDE: chronologyGame & higherLowerGame (gemeinsame Engine, rundenbasiert)*/
 /* Unterschied: higherLower startet mit einem bekannten Referenzelement und  */
-/* deckt Werte direkt nach jedem Zug auf; ordering deckt Werte erst am Ende  */
-/* der Runde auf (Auflösung). Siehe Punkt 4-12 der Anforderung.             */
+/* deckt Werte direkt nach jedem Zug auf; Chronologie deckt Werte erst am    */
+/* Ende der Runde auf (Auflösung). Teams sind hier abwechselnd am Zug.       */
+/* Einordnen (orderingGame) hat seit dem großen Umbau eine EIGENE, komplett  */
+/* gleichzeitige Engine (jeder Spieler für sich, eigenes Raster, eigene      */
+/* Leben, kein Rundenwechsel) – siehe Abschnitt "RUNDE: orderingGame" weiter */
+/* unten, NICHT diese Funktion hier.                                        */
 /* ------------------------------------------------------------------------ */
 function startRankingRound(room, def) {
   const group = def.datasetGroup;
   const dsRaw = DATASETS[group][def.datasetKey];
   const revealOnTurn = group === "higherLower";
-  // Einordnen (orderingGame): alle Elemente liegen von Anfang an offen sichtbar
-  // im Pool, das aktive Team wählt selbst, welches Element es als Nächstes
-  // versucht. Mehr oder Weniger (higherLowerGame): weiterhin ein zufällig
-  // gezogenes Element pro Zug, dafür wird der Wert direkt aufgedeckt.
+  // Chronologie: alle Elemente liegen von Anfang an offen sichtbar im Pool,
+  // das aktive Team wählt selbst, welches Element es als Nächstes versucht.
+  // Mehr oder Weniger (higherLowerGame): weiterhin ein zufällig gezogenes
+  // Element pro Zug, dafür wird der Wert direkt aufgedeckt.
   const freeChoice = !revealOnTurn;
 
   // Manche Kategorien enthalten deutlich mehr als MAX_ROUND_ITEMS Elemente
@@ -539,13 +556,9 @@ function startRankingRound(room, def) {
     order: dsRaw.order, // 'desc' oder 'asc'
     revealOnTurn,
     freeChoice,
-    pool,               // bei Einordnen: sichtbare, noch nicht platzierte Elemente
+    pool,               // bei Chronologie: sichtbare, noch nicht platzierte Elemente
                         // bei Mehr-oder-Weniger: verdeckter Nachziehstapel
-    placed,             // bestätigte Elemente in wahrer Reihenfolge (Chronologie & Mehr-oder-Weniger)
-    // Einordnen (orderingGame) bekommt ein festes Positionsraster 1..N (N = Rundengröße):
-    // slots[i] ist entweder null (noch offen) oder das dort bestätigte Element.
-    // Position 1 = niedrigster Wert (bzw. höchster bei order:"desc"), Position N = das Gegenteil.
-    slots: def.kind === "orderingGame" ? new Array(pool.length).fill(null) : null,
+    placed,             // bestätigte Elemente in wahrer Reihenfolge
     currentItem: null,  // nur bei Mehr-oder-Weniger genutzt
     turnOrder: teamIds,
     turnPointer: 0,
@@ -599,40 +612,10 @@ function correctInsertIndexFor(rt, value) {
   return idx;
 }
 
-// Einordnen (orderingGame): prüft, ob das Einsortieren an slotIndex im festen
-// 1..N-Positionsraster korrekt ist. Verglichen wird nur mit den jeweils
-// nächsten bereits befüllten Nachbarslots (leere Slots dazwischen werden
-// übersprungen) – noch leere Slots links/rechts vom Spielfeldrand gelten
-// als "kein Widerspruch". Dadurch ist der allererste Tipp automatisch immer
-// richtig, egal auf welche Position getippt wird (kein Nachbar vorhanden).
-function isSlotPlacementCorrect(rt, value, slotIndex) {
-  const desc = rt.order === "desc";
-  let beforeVal = null, afterVal = null;
-  for (let i = slotIndex - 1; i >= 0; i--) {
-    if (rt.slots[i]) { beforeVal = rt.slots[i].value; break; }
-  }
-  for (let i = slotIndex + 1; i < rt.slots.length; i++) {
-    if (rt.slots[i]) { afterVal = rt.slots[i].value; break; }
-  }
-  const okBefore = beforeVal === null || (desc ? value <= beforeVal : value >= beforeVal);
-  const okAfter = afterVal === null || (desc ? value >= afterVal : value <= afterVal);
-  return okBefore && okAfter;
-}
-
-// Liefert alle aktuell noch offenen Slots, die für den gegebenen Wert im
-// Moment gültig wären (für Bot-Entscheidungen: "richtig raten" braucht eine
-// tatsächlich zulässige Position, keine feste Einzellösung).
-function validSlotsFor(rt, value) {
-  const valid = [];
-  for (let i = 0; i < rt.slots.length; i++) {
-    if (rt.slots[i] === null && isSlotPlacementCorrect(rt, value, i)) valid.push(i);
-  }
-  return valid;
-}
-
 // Lässt einen Bot automatisch ziehen, wenn das gerade aktive Team
 // ausschließlich aus Bots besteht (ein menschliches Teammitglied zieht
-// weiterhin immer selbst).
+// weiterhin immer selbst). Gilt nur für Chronologie & Mehr-oder-Weniger
+// (rundenbasiert) – Einordnen hat eine eigene Bot-Funktion, siehe unten.
 function scheduleBotRankMove(room) {
   const rt = room.runtime;
   if (!rt) return;
@@ -664,29 +647,12 @@ function scheduleBotRankMove(room) {
     }
 
     const correct = Math.random() < tier.prob;
-    let insertIndex;
-    if (rt.kind === "orderingGame") {
-      // Einordnen: Bot sucht sich unter den aktuell offenen Slots einen
-      // tatsächlich gültigen (bzw. bei Absicht "falsch" einen ungültigen) aus.
-      const emptySlots = [];
-      for (let i = 0; i < rt.slots.length; i++) if (rt.slots[i] === null) emptySlots.push(i);
-      const validSlots = validSlotsFor(rt, targetItem.value);
-      if (correct && validSlots.length) {
-        insertIndex = validSlots[Math.floor(Math.random() * validSlots.length)];
-      } else {
-        const wrongSlots = emptySlots.filter(i => !validSlots.includes(i));
-        insertIndex = wrongSlots.length
-          ? wrongSlots[Math.floor(Math.random() * wrongSlots.length)]
-          : (validSlots.length ? validSlots[Math.floor(Math.random() * validSlots.length)] : emptySlots[0]);
-      }
-    } else {
-      const trueIndex = correctInsertIndexFor(rt, targetItem.value);
-      insertIndex = trueIndex;
-      if (!correct) {
-        const wrongOptions = [];
-        for (let i = 0; i <= rt.placed.length; i++) if (i !== trueIndex) wrongOptions.push(i);
-        insertIndex = wrongOptions.length ? wrongOptions[Math.floor(Math.random() * wrongOptions.length)] : trueIndex;
-      }
+    const trueIndex = correctInsertIndexFor(rt, targetItem.value);
+    let insertIndex = trueIndex;
+    if (!correct) {
+      const wrongOptions = [];
+      for (let i = 0; i <= rt.placed.length; i++) if (i !== trueIndex) wrongOptions.push(i);
+      insertIndex = wrongOptions.length ? wrongOptions[Math.floor(Math.random() * wrongOptions.length)] : trueIndex;
     }
     handleRankPlace(room, bot.id, targetItem.id, insertIndex);
   }, delayMs);
@@ -702,10 +668,6 @@ function broadcastRankState(room) {
     order: rt.order,
     freeChoice: rt.freeChoice,
     placed: rt.placed.map(it => ({ id: it.id, name: it.name, value: it.revealed ? it.value : undefined })),
-    // Einordnen (orderingGame): festes 1..N-Positionsraster, null = noch offener Slot.
-    slots: rt.kind === "orderingGame"
-      ? rt.slots.map(s => s ? { id: s.id, name: s.name, value: s.revealed ? s.value : undefined } : null)
-      : undefined,
     currentItem: (!rt.freeChoice && rt.currentItem) ? { id: rt.currentItem.id, name: rt.currentItem.name } : null,
     pool: rt.freeChoice ? rt.pool.map(it => ({ id: it.id, name: it.name })) : undefined,
     turnTeamId: rt.turnOrder[rt.turnPointer],
@@ -732,20 +694,11 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
   if (!rt) return;
   const player = room.players.get(playerId);
   if (!player || player.teamId !== rt.turnOrder[rt.turnPointer]) return; // nur das Team am Zug darf ziehen
-  if (typeof insertIndex !== "number") return;
-
-  const isOrdering = rt.kind === "orderingGame";
-  if (isOrdering) {
-    // Festes Positionsraster: insertIndex ist hier der Slot-Index (0 = Position 1).
-    // Muss innerhalb des Rasters liegen und der Slot muss noch frei sein.
-    if (insertIndex < 0 || insertIndex >= rt.slots.length || rt.slots[insertIndex] !== null) return;
-  } else {
-    if (insertIndex < 0 || insertIndex > rt.placed.length) return;
-  }
+  if (typeof insertIndex !== "number" || insertIndex < 0 || insertIndex > rt.placed.length) return;
 
   let item;
   if (rt.freeChoice) {
-    // Einordnen: freie Auswahl aus dem sichtbaren Pool
+    // Chronologie: freie Auswahl aus dem sichtbaren Pool
     const idx = rt.pool.findIndex(p => p.id === itemId);
     if (idx === -1) return;
     item = rt.pool[idx];
@@ -757,17 +710,10 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
   }
 
   const teamId = player.teamId;
-  const correct = isOrdering
-    ? isSlotPlacementCorrect(rt, item.value, insertIndex)
-    : isPlacementCorrect(rt, item.value, insertIndex);
+  const correct = isPlacementCorrect(rt, item.value, insertIndex);
 
   if (correct) {
-    if (isOrdering) {
-      // Direkt in den gewählten, festen Slot einsortieren (Position = insertIndex+1).
-      rt.slots[insertIndex] = { ...item, revealed: false };
-    } else {
-      rt.placed.splice(insertIndex, 0, { ...item, revealed: false });
-    }
+    rt.placed.splice(insertIndex, 0, { ...item, revealed: false });
     rt.correctCount.set(teamId, (rt.correctCount.get(teamId) || 0) + 1);
     rt.roundPointsByTeam.set(teamId, (rt.roundPointsByTeam.get(teamId) || 0) + 10);
   } else {
@@ -776,14 +722,12 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
     applyMistakePenalty(room, teamId);
     if (rt.lives.get(teamId) <= 0) rt.eliminated.add(teamId);
 
-    // Bei falscher Antwort wird NICHTS einsortiert – weder bei Einordnen
-    // noch bei Mehr oder Weniger. Das Element bleibt unplatziert und
-    // stellt sich hinten wieder in den Nachziehstapel/Pool an, sodass
-    // beim nächsten Zug automatisch das nächste (andere) Element dran
-    // ist. Das falsch geratene Element kann später erneut versucht
+    // Bei falscher Antwort wird NICHTS einsortiert – das Element bleibt
+    // unplatziert und stellt sich hinten wieder in den Nachziehstapel/Pool
+    // an, sodass beim nächsten Zug automatisch das nächste (andere) Element
+    // dran ist. Das falsch geratene Element kann später erneut versucht
     // werden (bei Mehr oder Weniger: erneutes Ziehen vom Stapelanfang,
-    // sobald es wieder vorne ansteht; bei Einordnen: erneute freie Wahl,
-    // auch auf denselben Slot).
+    // sobald es wieder vorne ansteht; bei Chronologie: erneute freie Wahl).
     rt.pool.push(item);
   }
   rt.currentItem = null;
@@ -801,10 +745,8 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
 
 function finishRankingRound(room) {
   const rt = room.runtime;
-  // Endauflösung: alle Werte aufdecken (wichtig für orderingGame, wo Werte
-  // bislang verborgen waren) und Restpunkte je Team ausweisen.
-  const confirmedItems = rt.kind === "orderingGame" ? rt.slots.filter(Boolean) : rt.placed;
-  const fullyRevealed = [...confirmedItems, ...rt.pool].sort((a, b) => rt.order === "desc" ? b.value - a.value : a.value - b.value);
+  // Endauflösung: alle Werte aufdecken und Restpunkte je Team ausweisen.
+  const fullyRevealed = [...rt.placed, ...rt.pool].sort((a, b) => rt.order === "desc" ? b.value - a.value : a.value - b.value);
 
   broadcast(room, {
     type: "rankReveal",
@@ -817,6 +759,276 @@ function finishRankingRound(room) {
   });
 
   setTimeout(() => finishRoundEngine(room, rt.roundPointsByTeam), 2600);
+}
+
+/* ------------------------------------------------------------------------ */
+/* RUNDE: orderingGame ("Einordnen") – EIGENE, komplett gleichzeitige Engine */
+/* Jeder Spieler (nicht Team!) bekommt sein eigenes, unabhängiges 1..N-      */
+/* Positionsraster mit denselben Elementen und eigene 3 Leben. Alle Spieler  */
+/* platzieren gleichzeitig, ohne Rundenwechsel. Der erste UND der letzte     */
+/* Tipp sind automatisch immer richtig (beim ersten gibt es noch keinen      */
+/* Nachbarn zum Vergleichen; beim letzten bleibt rechnerisch zwangsläufig    */
+/* nur noch das passende Element für den letzten freien Slot übrig) – beides */
+/* ergibt sich automatisch aus der Nachbar-Prüfung unten, ohne Sonderfall.   */
+/* Sobald jemand ALLE Elemente korrekt UND ohne ein Leben zu verlieren       */
+/* geschafft hat, bekommen alle anderen nur noch ORDERING_HURRY_MS Zeit.     */
+/* Eine Obergrenze ORDERING_ROUND_CAP_MS gilt in jedem Fall für die ganze    */
+/* Runde. Rang am Ende: fertige Spieler vor allen anderen; unter den         */
+/* fertigen zählen zuerst mehr verbliebene Leben, dann höhere Geschwindig-   */
+/* keit; unter den übrigen (eliminiert oder Zeit abgelaufen) zählen mehr     */
+/* korrekt platzierte Elemente.                                             */
+/* ------------------------------------------------------------------------ */
+const ORDERING_LIVES = 3;
+const ORDERING_HURRY_MS = 30000;       // Restzeit für alle anderen, sobald jemand PERFEKT fertig ist
+const ORDERING_ROUND_CAP_MS = 160000;  // absolute Obergrenze für die ganze Runde
+const ORDERING_POINTS_PER_CORRECT = 10;
+
+function startOrderingSimultaneousRound(room, def) {
+  const dsRaw = DATASETS.ordering[def.datasetKey];
+  const MAX_ROUND_ITEMS = 10;
+  const allItems = dsRaw.items.map(it => ({ ...it }));
+  const selected = allItems.length <= MAX_ROUND_ITEMS
+    ? allItems.sort(() => Math.random() - 0.5)
+    : allItems.sort(() => Math.random() - 0.5).slice(0, MAX_ROUND_ITEMS);
+
+  const perPlayer = new Map();
+  room.players.forEach(p => {
+    perPlayer.set(p.id, {
+      slots: new Array(selected.length).fill(null),
+      pool: selected.map(it => ({ ...it })), // eigene, unabhängige Kopie je Spieler
+      lives: ORDERING_LIVES,
+      mistakes: 0,
+      correctCount: 0,
+      finished: false,        // alle Elemente platziert (mit oder ohne Fehler unterwegs)
+      finishedPerfect: false, // alle Elemente platziert UND 0 Fehler (alle 3 Leben noch da)
+      eliminated: false,      // 0 Leben, konnte nicht fertig werden
+      finishedAt: null        // Date.now() bei Abschluss (Geschwindigkeits-Tiebreak)
+    });
+  });
+
+  room.runtime = {
+    kind: "orderingGame",
+    label: dsRaw.label,
+    unit: dsRaw.unit,
+    order: dsRaw.order,
+    totalItems: selected.length,
+    perPlayer,
+    startedAt: Date.now(),
+    hurryDeadline: null,
+    roundDeadline: Date.now() + ORDERING_ROUND_CAP_MS,
+    timer: null,
+    finalized: false
+  };
+
+  room.runtime.timer = setTimeout(() => finalizeOrderingRound(room), ORDERING_ROUND_CAP_MS + 400);
+  broadcastOrderingState(room);
+  scheduleBotOrderingPlays(room);
+}
+
+// Prüft, ob das Einsortieren an slotIndex im festen 1..N-Positionsraster
+// EINES Spielers korrekt ist. Verglichen wird nur mit den jeweils nächsten
+// bereits befüllten Nachbarslots (leere Slots dazwischen werden
+// übersprungen) – noch leere Slots links/rechts vom Spielfeldrand gelten
+// als "kein Widerspruch". Dadurch ist der allererste Tipp automatisch immer
+// richtig (kein Nachbar vorhanden), und der letzte verbleibende Tipp bei nur
+// noch einem freien Slot ist es rechnerisch zwangsläufig ebenfalls.
+function isOrderingSlotCorrect(slots, order, value, slotIndex) {
+  const desc = order === "desc";
+  let beforeVal = null, afterVal = null;
+  for (let i = slotIndex - 1; i >= 0; i--) {
+    if (slots[i]) { beforeVal = slots[i].value; break; }
+  }
+  for (let i = slotIndex + 1; i < slots.length; i++) {
+    if (slots[i]) { afterVal = slots[i].value; break; }
+  }
+  const okBefore = beforeVal === null || (desc ? value <= beforeVal : value >= beforeVal);
+  const okAfter = afterVal === null || (desc ? value >= afterVal : value <= afterVal);
+  return okBefore && okAfter;
+}
+
+// Liefert alle aktuell noch offenen Slots, die für den gegebenen Wert im
+// Moment gültig wären (für Bot-Entscheidungen).
+function validOrderingSlots(slots, order, value) {
+  const valid = [];
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i] === null && isOrderingSlotCorrect(slots, order, value, i)) valid.push(i);
+  }
+  return valid;
+}
+
+function handleOrderingPlace(room, playerId, itemId, slotIndex) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "orderingGame" || rt.finalized) return;
+  const st = rt.perPlayer.get(playerId);
+  if (!st || st.finished || st.eliminated) return;
+  if (typeof slotIndex !== "number" || slotIndex < 0 || slotIndex >= st.slots.length || st.slots[slotIndex] !== null) return;
+
+  const idx = st.pool.findIndex(p => p.id === itemId);
+  if (idx === -1) return;
+  const item = st.pool[idx];
+  st.pool.splice(idx, 1);
+
+  const correct = isOrderingSlotCorrect(st.slots, rt.order, item.value, slotIndex);
+
+  if (correct) {
+    st.slots[slotIndex] = { ...item, revealed: false };
+    st.correctCount++;
+  } else {
+    st.mistakes++;
+    st.lives = Math.max(0, st.lives - 1);
+    const player = room.players.get(playerId);
+    if (player && player.teamId) applyMistakePenalty(room, player.teamId);
+    st.pool.push(item); // zurück in den eigenen Pool, später erneut versuchbar
+    if (st.lives <= 0) {
+      st.eliminated = true;
+      st.finishedAt = Date.now();
+    }
+  }
+
+  if (!st.eliminated && st.pool.length === 0) {
+    st.finished = true;
+    st.finishedAt = Date.now();
+    st.finishedPerfect = st.mistakes === 0;
+    if (st.finishedPerfect && !rt.hurryDeadline) {
+      rt.hurryDeadline = Date.now() + ORDERING_HURRY_MS;
+      const effectiveDeadline = Math.min(rt.hurryDeadline, rt.roundDeadline);
+      clearTimeout(rt.timer);
+      rt.timer = setTimeout(() => finalizeOrderingRound(room), Math.max(0, effectiveDeadline - Date.now()) + 300);
+      broadcast(room, { type: "orderingHurry", remainingMs: ORDERING_HURRY_MS });
+    }
+  }
+
+  broadcastOrderingState(room);
+
+  const stillActive = Array.from(rt.perPlayer.values()).some(s => !s.finished && !s.eliminated);
+  if (!stillActive) {
+    clearTimeout(rt.timer);
+    finalizeOrderingRound(room);
+  }
+}
+
+// Personalisierter Zustand: jeder Spieler sieht nur sein eigenes Raster/Pool,
+// dazu eine Mini-Bestenliste mit dem FORTSCHRITT (nicht den Antworten) der
+// anderen für das Wettrennen-Gefühl.
+function broadcastOrderingState(room) {
+  const rt = room.runtime;
+  const leaderboard = Array.from(room.players.values()).map(p => {
+    const st = rt.perPlayer.get(p.id);
+    if (!st) return null;
+    return {
+      playerId: p.id, name: p.name, isBot: p.isBot,
+      lives: st.lives, correctCount: st.correctCount,
+      finished: st.finished, finishedPerfect: st.finishedPerfect, eliminated: st.eliminated
+    };
+  }).filter(Boolean);
+
+  room.players.forEach(p => {
+    if (p.isBot || !p.ws) return;
+    const st = rt.perPlayer.get(p.id);
+    if (!st) return;
+    send(p.ws, {
+      type: "orderingState",
+      label: rt.label, unit: rt.unit, order: rt.order, totalItems: rt.totalItems,
+      slots: st.slots.map(s => s ? { id: s.id, name: s.name } : null),
+      pool: st.pool.map(it => ({ id: it.id, name: it.name })),
+      lives: st.lives, correctCount: st.correctCount,
+      finished: st.finished, finishedPerfect: st.finishedPerfect, eliminated: st.eliminated,
+      hurryActive: !!rt.hurryDeadline,
+      remainingMs: Math.max(0, (rt.hurryDeadline || rt.roundDeadline) - Date.now()),
+      leaderboard
+    });
+  });
+}
+
+function finalizeOrderingRound(room) {
+  const rt = room.runtime;
+  if (!rt || rt.finalized) return;
+  rt.finalized = true;
+  clearTimeout(rt.timer);
+
+  const results = Array.from(rt.perPlayer.entries()).map(([playerId, st]) => ({ playerId, ...st }));
+
+  // Rang: fertige Spieler (auch mit Fehlern) vor allen anderen. Unter den
+  // fertigen: mehr Leben zuerst, dann schneller (frühere finishedAt) zuerst.
+  // Unter den übrigen (eliminiert oder Zeit abgelaufen): mehr korrekt
+  // platzierte Elemente zuerst.
+  results.sort((a, b) => {
+    if (a.finished !== b.finished) return a.finished ? -1 : 1;
+    if (a.finished) {
+      if (a.lives !== b.lives) return b.lives - a.lives;
+      return (a.finishedAt || Infinity) - (b.finishedAt || Infinity);
+    }
+    return b.correctCount - a.correctCount;
+  });
+  results.forEach((r, i) => { r.rank = i + 1; });
+
+  // Endauflösung je Spieler: platzierte + noch offene Elemente in wahrer Reihenfolge
+  const fullOrderByPlayer = {};
+  rt.perPlayer.forEach((st, pid) => {
+    const items = [...st.slots.filter(Boolean), ...st.pool];
+    fullOrderByPlayer[pid] = items
+      .sort((a, b) => rt.order === "desc" ? b.value - a.value : a.value - b.value)
+      .map(it => ({ id: it.id, name: it.name, value: it.value }));
+  });
+
+  const roundPointsByTeam = new Map(Array.from(room.teams.keys()).map(id => [id, 0]));
+  rt.perPlayer.forEach((st, pid) => {
+    const player = room.players.get(pid);
+    if (!player || !player.teamId) return;
+    roundPointsByTeam.set(player.teamId, (roundPointsByTeam.get(player.teamId) || 0) + st.correctCount * ORDERING_POINTS_PER_CORRECT);
+  });
+
+  broadcast(room, {
+    type: "orderingFinalReveal",
+    label: rt.label,
+    results: results.map(r => ({
+      playerId: r.playerId, rank: r.rank, lives: r.lives, correctCount: r.correctCount,
+      totalItems: rt.totalItems, finished: r.finished, finishedPerfect: r.finishedPerfect, eliminated: r.eliminated
+    })),
+    fullOrderByPlayer,
+    players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, teamId: p.teamId }))
+  });
+
+  setTimeout(() => finishRoundEngine(room, roundPointsByTeam), 2600);
+}
+
+// Bots spielen unabhängig auf ihrem eigenen Raster mit, ohne Rundenwechsel:
+// nach jeder eigenen (verzögerten) Platzierung wird gleich der nächste Zug
+// eingeplant, bis der Bot fertig, eliminiert ist oder die Runde endet.
+function scheduleBotOrderingPlays(room) {
+  const rt = room.runtime;
+  Array.from(room.players.values()).filter(p => p.isBot).forEach(bot => {
+    const tier = BOT_TIERS[bot.botTier] || BOT_TIERS[DEFAULT_BOT_TIER];
+    scheduleNextBotOrderingMove(room, rt, bot, tier);
+  });
+}
+function scheduleNextBotOrderingMove(room, rt, bot, tier) {
+  if (room.runtime !== rt || rt.finalized) return;
+  const st = rt.perPlayer.get(bot.id);
+  if (!st || st.finished || st.eliminated) return;
+  const delayMs = randRange(tier.rankDelayMin, tier.rankDelayMax);
+  setTimeout(() => {
+    if (room.runtime !== rt || rt.finalized) return;
+    const st2 = rt.perPlayer.get(bot.id);
+    if (!st2 || st2.finished || st2.eliminated || st2.pool.length === 0) return;
+
+    const targetItem = st2.pool[Math.floor(Math.random() * st2.pool.length)];
+    const correct = Math.random() < tier.prob;
+    const emptySlots = [];
+    for (let i = 0; i < st2.slots.length; i++) if (st2.slots[i] === null) emptySlots.push(i);
+    const valid = validOrderingSlots(st2.slots, rt.order, targetItem.value);
+    let slotIndex;
+    if (correct && valid.length) {
+      slotIndex = valid[Math.floor(Math.random() * valid.length)];
+    } else {
+      const wrongSlots = emptySlots.filter(i => !valid.includes(i));
+      slotIndex = wrongSlots.length
+        ? wrongSlots[Math.floor(Math.random() * wrongSlots.length)]
+        : (valid.length ? valid[Math.floor(Math.random() * valid.length)] : emptySlots[0]);
+    }
+    handleOrderingPlace(room, bot.id, targetItem.id, slotIndex);
+    scheduleNextBotOrderingMove(room, rt, bot, tier);
+  }, delayMs);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -963,6 +1175,150 @@ function scheduleBotGuesses(room) {
         const pts = currentGuessTierPoints(rt);
         broadcast(room, { type: "guessAttempt", teamId: p.teamId, playerName: p.name, text: rt.current.answer, correct: true });
         resolveGuessItem(room, p.teamId, pts);
+      }
+    }, delayMs);
+  });
+}
+
+/* ------------------------------------------------------------------------ */
+/* RUNDE: guessMusic ("Musik raten")                                         */
+/* Ein YouTube-Clip spielt ab einem festen Zeitstempel für einige Sekunden.  */
+/* Wie bei "Bild erraten": Freitext, tippfehlertolerant, je früher richtig   */
+/* geraten wird desto mehr Punkte (gestaffelt über die Clip-Dauer). Akzeptiert*/
+/* wird sowohl der Songtitel als auch der Interpret. Die Wiedergabe stoppt   */
+/* automatisch nach Ablauf der Zeit ODER sobald jemand einen Versuch abgibt  */
+/* (erster "Buzzer"), rein clientseitig gesteuert über die YouTube IFrame    */
+/* API – der Server kennt nur Video-ID/Zeitstempel/Dauer, keine Wiedergabe.  */
+/* ------------------------------------------------------------------------ */
+const MUSIC_TIERS = [5, 3, 2, 1];          // Punkte je Stufe, gleiche Staffelung wie Bild erraten
+const MUSIC_DEFAULT_CLIP_SECONDS = 10;     // Standard-Clipdauer, falls im Song nicht einzeln gesetzt
+
+function currentMusicTierPoints(rt) {
+  const elapsed = Date.now() - rt.currentStartedAt;
+  const tierMs = rt.currentDurationMs / MUSIC_TIERS.length;
+  const tierIdx = Math.min(Math.floor(elapsed / tierMs), MUSIC_TIERS.length - 1);
+  return MUSIC_TIERS[Math.max(0, tierIdx)];
+}
+
+function startGuessMusicRound(room, def) {
+  const dsRaw = DATASETS.guessMusic[def.datasetKey];
+  const items = [...dsRaw.items].sort(() => Math.random() - 0.5).slice(0, 10);
+  const teamIds = Array.from(room.teams.keys());
+  room.runtime = {
+    kind: "guessMusic",
+    label: dsRaw.label,
+    items,
+    index: -1,
+    current: null,
+    currentStartedAt: 0,
+    currentDurationMs: 0,
+    currentResolved: false,
+    buzzedIn: false,       // true, sobald der erste Rateversuch bei diesem Song abgegeben wurde
+    timer: null,
+    roundPointsByTeam: new Map(teamIds.map(id => [id, 0]))
+  };
+  nextMusicItem(room);
+}
+
+function nextMusicItem(room) {
+  const rt = room.runtime;
+  clearTimeout(rt.timer);
+  rt.index++;
+  if (rt.index >= rt.items.length) {
+    return finishRoundEngine(room, rt.roundPointsByTeam);
+  }
+  rt.current = rt.items[rt.index];
+  rt.currentStartedAt = Date.now();
+  rt.currentResolved = false;
+  rt.buzzedIn = false;
+  const clipSeconds = rt.current.clipSeconds || MUSIC_DEFAULT_CLIP_SECONDS;
+  const durationMs = clipSeconds * 1000;
+  rt.currentDurationMs = durationMs;
+
+  broadcast(room, {
+    type: "musicItem",
+    index: rt.index,
+    total: rt.items.length,
+    label: rt.label,
+    youtubeId: rt.current.youtubeId,
+    startSeconds: rt.current.startSeconds || 0,
+    clipSeconds,
+    durationMs,
+    tierMs: durationMs / MUSIC_TIERS.length,
+    tiers: MUSIC_TIERS,
+    startedAt: rt.currentStartedAt
+  });
+
+  rt.timer = setTimeout(() => resolveMusicItem(room, null, 0), durationMs + 400);
+  scheduleBotMusicGuesses(room, durationMs);
+}
+
+function handleMusicSubmit(room, playerId, text) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "guessMusic" || rt.currentResolved || !rt.current) return;
+  const player = room.players.get(playerId);
+  if (!player) return;
+
+  // Erster Rateversuch bei diesem Song = "Buzzer": Wiedergabe stoppt für
+  // alle sofort, unabhängig davon ob die Antwort richtig oder falsch ist.
+  if (!rt.buzzedIn) {
+    rt.buzzedIn = true;
+    broadcast(room, { type: "musicStop" });
+  }
+
+  // Songtitel UND Interpret zählen beide als richtige Antwort.
+  const correct = isGuessCorrect(text, { answer: rt.current.title, alt: [rt.current.artist, ...(rt.current.alt || [])] });
+  broadcast(room, { type: "guessAttempt", teamId: player.teamId, playerName: player.name, text: (text || "").slice(0, 40), correct });
+  if (correct) {
+    const pts = currentMusicTierPoints(rt);
+    resolveMusicItem(room, player.teamId, pts);
+  }
+}
+
+function resolveMusicItem(room, winnerTeamId, points) {
+  const rt = room.runtime;
+  if (!rt || rt.currentResolved) return;
+  rt.currentResolved = true;
+  clearTimeout(rt.timer);
+  if (!rt.buzzedIn) {
+    // Zeit einfach abgelaufen, ohne dass irgendwer geraten hat -> auch für
+    // alle die Wiedergabe stoppen (Client hätte sie ohnehin selbst nach
+    // clipSeconds gestoppt, das hier ist nur ein zusätzlicher Broadcast zur
+    // Sicherheit, z.B. falls der lokale Timer minimal abweicht).
+    broadcast(room, { type: "musicStop" });
+  }
+  if (winnerTeamId) {
+    rt.roundPointsByTeam.set(winnerTeamId, (rt.roundPointsByTeam.get(winnerTeamId) || 0) + points);
+  }
+  broadcast(room, {
+    type: "musicResolved",
+    title: rt.current.title,
+    artist: rt.current.artist,
+    cover: rt.current.cover || null,
+    year: rt.current.year || null,
+    genre: rt.current.genre || null,
+    winnerTeamId: winnerTeamId || null,
+    points: points || 0
+  });
+  setTimeout(() => nextMusicItem(room), 3400);
+}
+
+// Bots raten wie bei "Bild erraten" mit schwierigkeitsabhängiger Verzögerung
+// und Trefferquote – die Verzögerung wird auf die tatsächliche Clip-Dauer
+// dieses Songs bezogen (kürzere Clips -> Bots antworten entsprechend früher).
+// Der eigentliche Rateversuch läuft über handleMusicSubmit(), damit Bots
+// exakt denselben Weg (inkl. Buzzer-Stop-Broadcast) wie echte Spieler nehmen.
+function scheduleBotMusicGuesses(room, durationMs) {
+  const rt = room.runtime;
+  const itemAtSchedule = rt.index;
+  room.players.forEach(p => {
+    if (!p.isBot) return;
+    const tier = BOT_TIERS[p.botTier] || BOT_TIERS[DEFAULT_BOT_TIER];
+    const delayMs = Math.max(400, randRange(tier.quizMinPct, tier.quizMaxPct) * durationMs);
+    setTimeout(() => {
+      if (!room.runtime || room.runtime !== rt || rt.index !== itemAtSchedule || rt.currentResolved) return;
+      if (Math.random() < tier.prob) {
+        handleMusicSubmit(room, p.id, rt.current.title);
       }
     }, delayMs);
   });
@@ -1323,7 +1679,9 @@ function startNextRound(room) {
   setTimeout(() => {
     if (def.kind === "knowledgeQuiz") startQuizRound(room);
     else if (def.kind === "guessPicture") startGuessPictureRound(room, def);
+    else if (def.kind === "guessMusic") startGuessMusicRound(room, def);
     else if (def.kind === "stadtLandFluss") startStadtLandFlussRound(room, def);
+    else if (def.kind === "orderingGame") startOrderingSimultaneousRound(room, def);
     else startRankingRound(room, def);
   }, 1800);
 }
@@ -1671,10 +2029,18 @@ wss.on("connection", (ws) => {
         handleQuizAnswer(room, ws.playerId, msg.selectedIndex);
         break;
       case "rankPlace":
-        handleRankPlace(room, ws.playerId, msg.itemId, msg.insertIndex);
+        if (room.runtime && room.runtime.kind === "orderingGame") {
+          handleOrderingPlace(room, ws.playerId, msg.itemId, msg.insertIndex);
+        } else {
+          handleRankPlace(room, ws.playerId, msg.itemId, msg.insertIndex);
+        }
         break;
       case "guessSubmit":
-        handleGuessSubmit(room, ws.playerId, msg.text);
+        if (room.runtime && room.runtime.kind === "guessMusic") {
+          handleMusicSubmit(room, ws.playerId, msg.text);
+        } else {
+          handleGuessSubmit(room, ws.playerId, msg.text);
+        }
         break;
       case "slfSubmit":
         handleSlfSubmit(room, ws.playerId, msg.answers);
