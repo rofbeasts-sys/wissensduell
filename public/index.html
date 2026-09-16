@@ -225,8 +225,15 @@
   .rank-slot{ height:6px; }
   .rank-item-row{ display:flex; align-items:center; justify-content:space-between; background:var(--bg-alt); border:1px solid var(--line); border-radius:12px; padding:12px 16px; font-weight:700; }
   .rank-item-row .val{ color:var(--accent-2); font-weight:800; }
-  .insert-btn{ width:100%; background:transparent; border:1.5px dashed var(--line); border-radius:10px; padding:8px; color:var(--text-dim); font-size:12px; font-weight:700; cursor:pointer; }
+  .insert-btn{ width:100%; background:transparent; border:1.5px dashed var(--line); border-radius:10px; padding:8px; color:var(--text-dim); font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; }
   .insert-btn:hover{ border-color:var(--accent); color:var(--text); }
+  .insert-num{ width:20px; height:20px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; }
+  .slot-row{ display:flex; align-items:center; gap:10px; background:var(--bg-alt); border:1.5px dashed var(--line); border-radius:12px; padding:8px 12px; min-height:42px; }
+  .slot-row.filled{ border-style:solid; }
+  .slot-row .insert-num{ flex-shrink:0; }
+  .slot-name{ font-weight:700; flex:1; }
+  .slot-empty{ color:var(--text-dim); font-size:12px; flex:1; }
+  .slot-row .insert-btn{ flex:1; width:auto; padding:6px 8px; }
   .current-item-card{ text-align:center; padding:22px; background:var(--bg-alt); border:1.5px solid var(--accent); border-radius:14px; margin-bottom:16px; }
   .guess-points-badge{ text-align:center; font-size:22px; font-weight:800; color:var(--accent-2); margin-bottom:10px; }
   .guess-image-wrap{ display:flex; align-items:center; justify-content:center; background:var(--bg-alt); border:1.5px solid var(--line); border-radius:16px; padding:30px; margin-bottom:14px; min-height:160px; }
@@ -1133,6 +1140,11 @@ function renderMainMenu(){
         <h3>${t('menu_party_title')}</h3>
         <p>${t('menu_party_desc')}</p>
       </div>
+      <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'startSlfMenu()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
+        <div class="icon">🗺️</div>
+        <h3>Stadt Land Fluss</h3>
+        <p>${currentLang!=='de' ? 'Nur auf Deutsch verfügbar' : 'Eigener Modus – Solo oder mit Freunden'}</p>
+      </div>
     </div>
     <div class="menu-secondary">
       <button class="btn btn-ghost" onclick="renderRanking()">${t('menu_ranking')}</button>
@@ -1250,6 +1262,29 @@ function pickerCreateNew(){
    ============================================================================ */
 let solo = null;
 
+function startSlfMenu(){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">STADT LAND FLUSS</div>
+      <div class="picker-sub">Wähle, wie du spielen möchtest.</div>
+      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
+        <div class="mode-card" onclick="startSoloPartyFlow('slf')">
+          <div class="icon">🎲</div>
+          <h3>Solo</h3>
+          <p>Allein gegen die Uhr, in deinem Tempo.</p>
+        </div>
+        <div class="mode-card" onclick="startPartyFlow('slf')">
+          <div class="icon">🌐</div>
+          <h3>Multiplayer</h3>
+          <p>Raum erstellen oder einem Raum beitreten.</p>
+        </div>
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
 function startSoloMenu(){
   const quizLocked = currentLang !== "de";
   renderApp(`
@@ -1680,7 +1715,10 @@ function wsUrl(){
   return proto + "//" + location.host;
 }
 
-function startPartyFlow(){
+let pendingCreateGameMode = "mixed";
+function startPartyFlow(gameMode){
+  pendingCreateGameMode = gameMode === "slf" ? "slf" : "mixed";
+  const backTarget = pendingCreateGameMode === "slf" ? "startSlfMenu()" : "renderMainMenu()";
   if(location.protocol !== "http:" && location.protocol !== "https:"){
     renderApp(`
       <div class="panel">
@@ -1694,7 +1732,7 @@ function startPartyFlow(){
           (z.B. <code>http://192.168.1.23:3000</code>) – nicht die Datei selbst.
         </div>
         <div class="actions-row" style="margin-top:18px;">
-          <button class="btn btn-ghost" onclick="renderMainMenu()">ZURÜCK</button>
+          <button class="btn btn-ghost" onclick="${backTarget}">ZURÜCK</button>
         </div>
       </div>
     `);
@@ -1702,7 +1740,7 @@ function startPartyFlow(){
   }
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${t('party_entry_title')}</div>
+      <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : t('party_entry_title')}</div>
       <div class="picker-sub">${t('party_entry_sub')}</div>
       <div class="picker-form" style="margin-bottom:14px;">
         <input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20">
@@ -1717,7 +1755,7 @@ function startPartyFlow(){
         <button id="partyJoinBtn" class="btn btn-primary" onclick="partyJoinRoom()">${t('party_join')}</button>
       </div>
       <div class="actions-row" style="margin-top:18px;">
-        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+        <button class="btn btn-ghost" onclick="${backTarget}">${t('btn_back')}</button>
       </div>
     </div>
   `);
@@ -1781,6 +1819,15 @@ function renderPartyDisconnected(wasSolo){
     </div>
   `);
 }
+function renderPartyKicked(){
+  renderApp(`
+    <div class="panel party-waiting">
+      <h2 style="color:var(--text); margin-bottom:8px;">Aus dem Raum entfernt</h2>
+      <p>Der Host hat dich aus dem Warteraum entfernt.</p>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="renderMainMenu()">ZUM HAUPTMENÜ</button>
+    </div>
+  `);
+}
 
 function partyCreateRoom(){
   const name = partyGetName();
@@ -1789,7 +1836,7 @@ function partyCreateRoom(){
   const box = document.getElementById("partyEntryError");
   if(box) box.classList.add("hidden");
   partyConnect(
-    () => party.ws.send(JSON.stringify({ action:"createRoom", name, language: currentLang })),
+    () => { party.gameMode = pendingCreateGameMode; party.ws.send(JSON.stringify({ action:"createRoom", name, language: currentLang, gameMode: pendingCreateGameMode })); },
     (msg) => partyShowEntryError(msg)
   );
 }
@@ -1808,20 +1855,21 @@ function partyJoinRoom(){
 }
 function partySend(msg){ if(party && party.ws) party.ws.send(JSON.stringify(msg)); }
 function partyLeave(){ if(party && party.ws) party.ws.close(); party = null; renderMainMenu(); }
-function restartSoloParty(){ if(party && party.ws) party.ws.close(); party = null; startSoloPartyFlow(); }
+function restartSoloParty(){ const gm = party && party.gameMode; if(party && party.ws) party.ws.close(); party = null; startSoloPartyFlow(gm); }
 function partySetLanguage(lang){ currentLang = lang; try{ localStorage.setItem("wq_lang", lang); }catch(e){} partySend({action:'setLanguage', language: lang}); }
 
 /* ---------- Solo-Party (Party-Engine allein gespielt, ohne Lobby/Bots) ---------- */
-function startSoloPartyFlow(){
+function startSoloPartyFlow(gameMode){
+  const gm = gameMode === "slf" ? "slf" : "mixed";
   partyConnect(
-    () => { party.soloMode = true; party.ws.send(JSON.stringify({ action:"createRoom", name:"Du", language: currentLang })); },
+    () => { party.soloMode = true; party.gameMode = gm; party.ws.send(JSON.stringify({ action:"createRoom", name:"Du", language: currentLang, gameMode: gm })); },
     (msg) => {
       renderApp(`
         <div class="panel">
-          <div class="picker-title">${t('solo_party_title')}</div>
+          <div class="picker-title">${gm==='slf' ? 'STADT LAND FLUSS – SOLO' : t('solo_party_title')}</div>
           <div class="explanation" style="border-color:var(--danger); color:var(--text);">${msg}</div>
           <div class="actions-row" style="margin-top:18px;">
-            <button class="btn btn-ghost" onclick="startSoloMenu()">${t('btn_back')}</button>
+            <button class="btn btn-ghost" onclick="${gm==='slf' ? 'startSlfMenu()' : 'startSoloMenu()'}">${t('btn_back')}</button>
           </div>
         </div>
       `);
@@ -1872,7 +1920,7 @@ function renderSoloPartyConfig(){
   const room = party.room;
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${t('solo_party_title')}</div>
+      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS – SOLO' : t('solo_party_title')}</div>
       <div class="picker-sub">${t('solo_party_config_sub')}</div>
 
       <div class="settings-row">
@@ -1909,6 +1957,11 @@ function partyHandleMessage(msg){
       break;
     case "error":
       alert(msg.message);
+      break;
+    case "kicked":
+      if(party && party.ws) party.ws.close();
+      renderPartyKicked();
+      party = null;
       break;
     case "roomUpdate":
       party.room = msg;
@@ -1966,6 +2019,9 @@ function partyHandleMessage(msg){
       party.slfSubmitted = false;
       renderSlfAnswering(msg);
       break;
+    case "slfHurryUp":
+      handleSlfHurryUp(msg);
+      break;
     case "slfReveal":
       renderSlfReveal(msg);
       break;
@@ -1995,11 +2051,13 @@ function renderPartyLobby(){
 
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${t('lobby_title')}</div>
+      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS' : t('lobby_title')}</div>
       <div class="picker-sub">${t('lobby_sub')}</div>
       <div class="code-display">${room.code}</div>
 
-      ${isHost ? `
+      ${room.gameMode === 'slf' ? `
+        <div class="settings-row"><span class="label">${t('lang_picker_label')}</span><span>Deutsch (fest, Sprachspiel)</span></div>
+      ` : (isHost ? `
         <div class="settings-row">
           <span class="label">${t('lang_picker_label')}</span>
           <div class="chip-group">
@@ -2008,7 +2066,7 @@ function renderPartyLobby(){
         </div>
       ` : `
         <div class="settings-row"><span class="label">${t('lang_picker_label')}</span><span>${(AVAILABLE_LANGS.find(l=>l.code===room.language)||{}).name || room.language}</span></div>
-      `}
+      `)}
 
       <div class="settings-row"><span class="label">${t('lobby_participants')}</span><span>${room.players.length} / ${room.maxParticipants}</span></div>
 
@@ -2023,7 +2081,9 @@ function renderPartyLobby(){
                 ${room.botTierOptions.map(o=>`<option value="${o.id}" ${o.id===p.botTier?'selected':''}>${o.label}</option>`).join("")}
               </select>
               <button class="bot-remove-btn" onclick="partyRemoveBot('${p.id}')" title="Bot entfernen">✕</button>
-            ` : ``}
+            ` : (isHost && !p.isBot && p.id !== room.hostId ? `
+              <button class="bot-remove-btn" onclick="partyKickPlayer('${p.id}')" title="Spieler aus dem Raum werfen">✕</button>
+            ` : ``)}
           </div>
         `).join("")}
       </div>
@@ -2051,6 +2111,7 @@ function renderPartyLobby(){
 }
 function partyAddBot(){ partySend({action:'addBot', tier:'schlau'}); }
 function partyRemoveBot(botId){ partySend({action:'removeBot', botId}); }
+function partyKickPlayer(playerId){ partySend({action:'kickPlayer', playerId}); }
 function partySetBotTier(botId, tier){ partySend({action:'setBotTier', botId, tier}); }
 
 
@@ -2164,7 +2225,7 @@ function renderRoundBuilder(){
     ? room.availableRoundDefs.filter(d => d.kind === b.selectedKind && builderCategoryLabel(d).toLowerCase().includes(catQuery))
     : [];
 
-  const slfReady = isSlf && (b.selectedDefId === "slf_original" || (b.slfMode === "custom" && b.slfCategories.length > 0));
+  const slfReady = isSlf && (b.selectedDefId === "slf_original" || b.selectedDefId === "slf_party" || (b.slfMode === "custom" && b.slfCategories.length > 0));
   const atCapacity = b.editingIndex === null && b.rounds.length >= b.targetCount;
   const missingCategory = (needsCategory && !b.selectedDefId) || (isSlf && !slfReady);
   const addDisabled = !b.selectedKind || missingCategory || atCapacity;
@@ -2199,6 +2260,7 @@ function renderRoundBuilder(){
           <span class="label">Kategorien-Auswahl</span>
           <div class="chip-group" style="margin-top:8px;">
             <div class="chip-btn ${b.selectedDefId==='slf_original'?'active':''}" onclick="builderSlfChooseOriginal()">🎲 Original (${SLF_DEFAULT_CATEGORIES_CLIENT.join(', ')})</div>
+            <div class="chip-btn ${b.selectedDefId==='slf_party'?'active':''}" onclick="builderSlfChoosePartyMix()">🎉 Party-Mix (10 zufällige Kategorien)</div>
             <div class="chip-btn ${b.slfMode==='custom'?'active':''}" onclick="builderSlfChooseCustom()">✏️ Eigene Kategorien</div>
           </div>
           ${b.slfMode === 'custom' ? `
@@ -2266,6 +2328,14 @@ function builderSlfChooseOriginal(){
   b.slfCategories = [];
   const orig = party.room.availableRoundDefs.find(d => d.id === "slf_original");
   b.selectedDefId = orig ? orig.id : "slf_original";
+  renderRoundBuilder();
+}
+function builderSlfChoosePartyMix(){
+  const b = party.roundBuilder;
+  b.slfMode = null;
+  b.slfCategories = [];
+  const partyDef = party.room.availableRoundDefs.find(d => d.id === "slf_party");
+  b.selectedDefId = partyDef ? partyDef.id : "slf_party";
   renderRoundBuilder();
 }
 function builderSlfChooseCustom(){
@@ -2437,6 +2507,10 @@ function renderPartyQuizReveal(msg){
         `).join("")}
       </div>
       ${msg.explanation ? `<div class="explanation">${msg.explanation}</div>` : ``}
+      ${party.isHost
+        ? `<button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="partySend({action:'continue'})">WEITER</button>`
+        : `<p style="color:var(--text-dim); text-align:center; margin-top:14px;">${t('lobby_waiting_host')}</p>`
+      }
     </div>
   `);
 }
@@ -2497,14 +2571,28 @@ function renderPartyRank(msg){
       ` : ``}
 
       <div class="rank-board">
-        ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', 0)">Hier einordnen (an erster Stelle)</button>` : ``}
-        ${msg.placed.map((item, i) => `
-          <div class="rank-item-row">
-            <span>${item.name}</span>
-            ${item.value !== undefined ? `<span class="val">${item.value}</span>` : ``}
-          </div>
-          ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', ${i+1})">Hier einordnen</button>` : ``}
-        `).join("")}
+        ${msg.kind === 'orderingGame' ? `
+          ${msg.slots.map((s,i) => `
+            <div class="slot-row ${s ? 'filled':''}">
+              <span class="insert-num">${i+1}</span>
+              ${s
+                ? `<span class="slot-name">${s.name}</span>`
+                : (myTurn && activeItem
+                    ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', ${i})">Hier platzieren</button>`
+                    : `<span class="slot-empty">– noch offen –</span>`)
+              }
+            </div>
+          `).join("")}
+        ` : `
+          ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', 0)"><span class="insert-num">1</span> Position 1</button>` : ``}
+          ${msg.placed.map((item, i) => `
+            <div class="rank-item-row">
+              <span>${item.name}</span>
+              ${item.value !== undefined ? `<span class="val">${item.value}</span>` : ``}
+            </div>
+            ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', ${i+1})"><span class="insert-num">${i+2}</span> Position ${i+2}</button>` : ``}
+          `).join("")}
+        `}
       </div>
       ${myTurn && msg.freeChoice && activeItem ? `<button class="btn btn-ghost" style="margin-top:10px;" onclick="partySelectRankItem(null)">Andere Auswahl</button>` : ``}
 
@@ -2650,6 +2738,7 @@ function renderSlfAnswering(msg){
         <div class="timer-bar"><div id="slfTimerFill" class="timer-fill" style="width:100%"></div></div>
         <div id="slfTimerNum" class="timer-num">${Math.ceil(msg.durationMs/1000)}s</div>
       </div>
+      <div id="slfHurryNote" class="explanation hidden" style="border-color:var(--accent);">⏱ Jemand ist fertig — nur noch 15 Sekunden für alle!</div>
       <div class="picker-form" style="flex-direction:column; gap:10px; margin-top:14px;">
         ${msg.categories.map((cat,i) => `
           <div>
@@ -2676,6 +2765,17 @@ function startSlfTicker(msg){
     if(num) num.textContent = Math.ceil(remaining/1000) + "s";
     if(remaining <= 0){ clearInterval(party.slfTickerId); submitSlfAnswers(true); }
   }, 150);
+}
+// Jemand hat mit ALLEN Feldern ausgefüllt abgegeben -- der Server verkürzt die
+// Restzeit für alle anderen auf msg.remainingMs. Lokalen Timer entsprechend
+// neu starten (ab jetzt, nicht ab dem ursprünglichen Rundenstart) und
+// Hinweis einblenden, damit die verkürzte Zeit nicht überraschend wirkt.
+function handleSlfHurryUp(msg){
+  if(!party.slfMsg) return;
+  party.slfMsg = { ...party.slfMsg, durationMs: msg.remainingMs };
+  startSlfTicker(party.slfMsg);
+  const note = document.getElementById("slfHurryNote");
+  if(note) note.classList.remove("hidden");
 }
 function submitSlfAnswers(){
   if(party.slfSubmitted) return;
