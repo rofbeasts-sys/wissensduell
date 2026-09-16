@@ -705,10 +705,55 @@
    "germanOnly": true
   },
   "trashtv_dschungelcamp_sieger": {
-   "label": "Einordnen: Ich bin ein Star (Sieger, Staffel 10-19)",
+   "label": "Einordnen: Ich bin ein Star (Sieger nach Staffel)",
    "unit": "Staffel-Nr.",
    "order": "asc",
    "items": [
+    {
+     "id": "ibes_s1",
+     "name": "👑 Costa Cordalis",
+     "value": 1
+    },
+    {
+     "id": "ibes_s2",
+     "name": "👑 Désirée Nick",
+     "value": 2
+    },
+    {
+     "id": "ibes_s3",
+     "name": "👑 Ross Antony",
+     "value": 3
+    },
+    {
+     "id": "ibes_s4",
+     "name": "👑 Ingrid van Bergen",
+     "value": 4
+    },
+    {
+     "id": "ibes_s5",
+     "name": "👑 Peer Kusmagk",
+     "value": 5
+    },
+    {
+     "id": "ibes_s6",
+     "name": "👑 Brigitte Nielsen",
+     "value": 6
+    },
+    {
+     "id": "ibes_s7",
+     "name": "👑 Joey Heindle",
+     "value": 7
+    },
+    {
+     "id": "ibes_s8",
+     "name": "👑 Melanie Müller",
+     "value": 8
+    },
+    {
+     "id": "ibes_s9",
+     "name": "👑 Maren Gilzer",
+     "value": 9
+    },
     {
      "id": "ibes_s10",
      "name": "👑 Menderes Bagci",
