@@ -108,12 +108,45 @@ test/                   Ein automatisierter End-to-End-Test (optional, `npm test
   jeder Frage bleibt die "Wusstest du...?"-Erklärung außerdem so lange offen
   stehen, bis man selbst auf "WEITER" tippt – kein automatisches
   Weiterspringen mehr, siehe `handleSoloAnswer()`/`soloNextQuestion()`.
+- Mehr oder Weniger – falsche Antwort: eine falsch geratene Karte wird nicht
+  mehr heimlich an ihrer wahren Position einsortiert, sondern stellt sich
+  wieder hinten im Nachziehstapel an (`handleRankPlace()` in `server.js`,
+  identisch zum Verhalten bei Einordnen). Der nächste Zug zieht direkt die
+  nächste Karte; die falsch geratene kann später erneut drankommen.
+- Einordnen – festes Positionsraster: statt relativer Einfüge-Lücken gibt es
+  jetzt ein festes Raster von Position 1 bis N (N = Rundengröße, z.B. 8 oder
+  10). Man wählt ein Element aus dem sichtbaren Pool und tippt danach direkt
+  die gewünschte Position an. Der allererste Tipp ist automatisch richtig
+  (freier Punkt, da noch kein Nachbar zum Vergleichen da ist); jeder weitere
+  Tipp wird gegen die jeweils nächsten bereits befüllten Nachbar-Positionen
+  geprüft. Bei falscher Antwort passiert nichts – die Karte bleibt im Pool,
+  der Slot bleibt offen. Server: neues Feld `rt.slots` (fester Array,
+  `null` = offen) plus `isSlotPlacementCorrect()`/`validSlotsFor()` in
+  `server.js`, nur für `kind === "orderingGame"` – Chronologie und Mehr oder
+  Weniger nutzen weiterhin die alte, relative `rt.placed`-Logik unverändert.
+  Client: `renderPartyRank()` in `public/index.html` zeigt bei Einordnen das
+  feste Raster (`msg.slots`) statt der wachsenden Positions-Buttons.
+  Design-Hinweis: ein unglücklich gesetzter "freier" erster Tipp kann eine
+  Position für später gezogene Elemente blockieren (bewusst so gewünscht,
+  macht auch die erste Platzierung taktisch relevant) – die Runde endet in
+  dem Fall wie gewohnt über Leben-Verlust/Elimination, sobald ein Team keine
+  Leben mehr hat.
 
 ## 5. Ränge ändern
 
 Weiterhin im Client in `public/index.html`, Array `RANKS` (gilt für Solo-
 Profile; der Party-Modus verwendet eigene, sitzungsbasierte
 Team-Punktestände ohne Rangsystem).
+
+### Kategorie "Ich bin ein Star" (Einordnen) vervollständigt
+
+`shared/partyDatasets.json`, Eintrag `trashtv_dschungelcamp_sieger`: enthielt
+nur die Sieger der Staffeln 10-19, jetzt vollständig 1-19 (Costa Cordalis bis
+Gil Ofarim, recherchiert und mit mehreren Quellen abgeglichen). Label
+entsprechend auf "Sieger nach Staffel" angepasst. Da die Kategorie jetzt mehr
+als `MAX_ROUND_ITEMS` (10) Elemente hat, greift beim Rundenstart automatisch
+die Zufallsauswahl aus `startRankingRound()` in `server.js` – wie bei anderen
+großen Kategorien (Häuser, Dinosaurier, Größenvergleich).
 
 ## 6. Bots im Party-Raum
 
@@ -450,6 +483,128 @@ Mehr-oder-Weniger keinerlei "Hier einordnen"-Buttons an – das Spiel wirkte
 komplett eingefroren, obwohl serverseitig alles korrekt funktionierte.
 Behoben durch einen zusätzlichen `roomUpdate`-Broadcast direkt nach der
 Team-Zuweisung in `startGame`, noch bevor die erste Runde beginnt.
+
+## 7c. Wissenstest-Auflösung ohne Auto-Weiterschalten & Host kann Spieler kicken
+
+- **Party-Wissenstest, kein automatisches Weiterspringen mehr:** Nach der
+  Auflösung jeder Frage sprang der Server bisher nach 3,2 Sekunden von selbst
+  zur nächsten Frage (`resolveQuizQuestion()` in `server.js`). Jetzt wartet
+  er auf eine explizite `continue`-Aktion des Hosts (neues Flag
+  `rt.awaitingContinue`, ausgewertet in `advanceQuizQuestion()`) – genau wie
+  es beim Rundenende bereits der Fall war. Client: `renderPartyQuizReveal()`
+  zeigt jetzt einen "WEITER"-Button (nur für den Host; alle anderen sehen
+  "Warte auf den Host …", identisch zum bestehenden Muster bei
+  `renderPartyRoundEnd()`).
+- **Host kann Mitspieler aus dem Wartezimmer werfen:** Neue Aktion
+  `kickPlayer` (nur im Lobby-Zustand, nur durch den Host, Host kann sich
+  nicht selbst kicken, gilt nur für menschliche Spieler – Bots weiterhin
+  über den bestehenden "Bot entfernen"-Button). Funktion `kickPlayer()` in
+  `server.js`, analog zu `removeBot()`: entfernt aus `room.players` und aus
+  allen Team-Zuordnungen, baut bei "Alle gegen alle" die Teams neu auf.
+  Der betroffene Spieler bekommt zusätzlich eine eigene `kicked`-Nachricht
+  und einen Hinweisbildschirm ("Aus dem Raum entfernt"), bevor seine
+  Verbindung serverseitig geschlossen wird – Client: neuer Fall `"kicked"`
+  in `partyHandleMessage()`, Funktion `renderPartyKicked()`. Sichtbar in der
+  Lobby als "✕"-Button neben jedem menschlichen Mitspieler (außer dem Host),
+  nur für den Host selbst.
+
+## 7d. Stadt Land Fluss als eigenständiger Modus (nicht mehr Teil des Mixes)
+
+Stadt Land Fluss ist kein Rundentyp mehr innerhalb des normalen (gemischten)
+Solo-Party-/Multiplayer-Rundenpools, sondern ein eigener Hauptmenüpunkt mit
+eigenem Solo- und Multiplayer-Einstieg – genau wie "Solo" und "Multiplayer"
+eigene Menüpunkte sind.
+
+- **Hauptmenü:** dritte Kachel "Stadt Land Fluss" (`renderMainMenu()` in
+  `public/index.html`), für nicht-deutsche UI-Sprache ausgegraut, da das
+  Spiel ein reines Wortspiel auf Deutsch ist. Führt zu `startSlfMenu()` mit
+  den Unterpunkten "Solo" (`startSoloPartyFlow('slf')`) und "Multiplayer"
+  (`startPartyFlow('slf')`) – beide nutzen dieselbe bestehende Lobby-/
+  Rundenbau-Infrastruktur wie der normale Party-Modus, nur mit auf Stadt
+  Land Fluss beschränktem Rundenpool.
+- **Server:** jeder Raum hat jetzt ein Feld `room.gameMode` ("mixed" oder
+  "slf", gesetzt beim `createRoom` über `msg.gameMode`). Der normale
+  Rundenpool (`buildRoundDefPool()`/`ROUND_DEF_POOL`) enthält Stadt Land
+  Fluss nicht mehr; stattdessen gibt es einen eigenen, kleinen
+  `SLF_ROUND_DEF_POOL` (Original + Party-Mix), der nur Räumen mit
+  `gameMode:"slf"` angezeigt wird (`roundDefPoolForLanguage(language,
+  gameMode)`). "Eigene Kategorien" bleibt wie gehabt über die interaktive
+  Aktion `setSlfCustomRoundDef` erreichbar (nicht Teil des Pools). Die
+  Sprache lässt sich in einem SLF-Raum nicht umschalten (`case
+  "setLanguage"` ignoriert das für `gameMode==="slf"`), sonst würde der
+  Kategorien-Pool leerlaufen, da alle SLF-Einträge `germanOnly` sind.
+- **Neuer Modus "Party-Mix":** zieht bei jedem tatsächlichen Rundenstart
+  (nicht schon beim Zusammenstellen der Runde) 10 zufällige, unterschiedliche
+  Kategorien aus dem neuen Pool `SLF_PARTY_CATEGORIES` (~50 Einträge, u.a.
+  Promi, Musiktitel, Superkraft, Zaubertrick, Serientitel, Videospiel,
+  Fastfood-Gericht, Fabelwesen, Ausrede, Karnevalskostüm – gemischt mit ein
+  paar der klassischen Original-Kategorien). Funktionen `slfBuildRoundDef()`
+  (jetzt mit drittem Modus `"party"`, Flag `slfPartyMix:true`) und
+  `pickRandomSlfPartyCategories()` in `server.js`; Auflösung der Kategorien
+  passiert in `startStadtLandFlussRound()`. Weitere/andere Kategorien für
+  den Party-Mix-Pool: einfach `SLF_PARTY_CATEGORIES`-Array in `server.js`
+  erweitern oder anpassen, `SLF_PARTY_ROUND_SIZE` ändert die Anzahl pro
+  Runde (aktuell 10).
+- **Rundenbau (Client):** dritter Button "🎉 Party-Mix" neben "🎲 Original"
+  und "✏️ Eigene Kategorien" in `renderRoundBuilder()`, Funktion
+  `builderSlfChoosePartyMix()`.
+
+## 7e. Stadt Land Fluss: Bots, Eile-Timer, neue Wertung & Tippfehler-Erkennung
+
+- **Bots schreiben jetzt mit:** vorher haben Bots bei Stadt Land Fluss gar
+  nichts abgegeben. Jetzt gibt es `SLF_BOT_WORDS` in `server.js` – ein
+  bewusst kleiner, verlässlicher Wortschatz NUR für die 7 klassischen
+  Original-Kategorien (Stadt/Land/Fluss/Name/Tier/Beruf/Pflanze), je
+  Buchstabe, so weit sinnvoll möglich. Für den 50-Kategorien-Party-Mix-Pool
+  oder unbekannte Buchstabe/Kategorie-Kombinationen bleibt das Feld leer –
+  ein vollständiges Wörterbuch über alle 50 Kategorien wäre nicht seriös
+  leistbar gewesen. Funktion `scheduleBotSlfAnswers()`, aufgerufen am Ende
+  von `startStadtLandFlussRound()`: jeder Bot "tippt" mit zufälliger
+  Verzögerung (25–80 % der Schreibzeit) und trifft ein bekanntes Wort nur
+  mit der Erfolgswahrscheinlichkeit seiner Bot-Stufe (`tier.prob`, wie auch
+  bei Wissenstest/Einordnen). Weitere Wörter ergänzen: einfach
+  `SLF_BOT_WORDS` erweitern.
+- **Eile-Timer (15 Sekunden):** sobald jemand mit ALLEN Feldern ausgefüllt
+  abgegeben hat, bekommen alle anderen nur noch `SLF_HURRY_MS` (15000ms)
+  Zeit statt der vollen 80 Sekunden – aber nur, wenn wirklich jedes Feld
+  befüllt war (eine unvollständige Abgabe löst das nicht aus). Logik in
+  `handleSlfSubmit()` in `server.js`, neue Broadcast-Nachricht
+  `slfHurryUp`. Client: `handleSlfHurryUp()` in `public/index.html` startet
+  den lokalen Countdown neu (ab jetzt, nicht ab Rundenbeginn) und blendet
+  den Hinweis "⏱ Jemand ist fertig — nur noch 15 Sekunden für alle!" ein.
+- **Neue Wertung (statt eindeutig=20/doppelt=10):** pro Kategorie unter
+  allen gültigen Antworten –
+  gleiches Wort wie mind. 1 anderer Spieler → **5** Punkte,
+  eigenes (anderes) Wort, aber mind. 1 anderer Spieler hat ebenfalls eine
+  gültige Antwort in der Kategorie → **10** Punkte,
+  als einzige/r überhaupt eine gültige Antwort in der Kategorie → **20**
+  Punkte. Logik in `slfComputeScores()` in `server.js`.
+- **Tippfehler-Erkennung:** zwei unterschiedliche Wörter in derselben
+  Kategorie mit Editierdistanz 1 (z.B. "Berlin"/"Berln" – ein Buchstabe
+  Unterschied) gelten als vermuteter Tippfehler desselben Wortes; beiden
+  Beteiligten werden zusätzlich 5 Punkte von der jeweiligen Grundwertung
+  abgezogen (nie unter 0). Neue Funktion `levenshteinDistance()` in
+  `server.js`.
+- **Anfechtung wirkt sich kaskadierend auf die Wertung aus:** wird eine
+  Antwort per Anfechtung für ungültig erklärt, wird sie bei der Neuberechnung
+  der Wertung komplett ausgeschlossen – dadurch kann z.B. aus "10 Punkte, da
+  noch jemand anderes gültig war" nach einer erfolgreichen Anfechtung gegen
+  genau diese Konkurrenz-Antwort automatisch "20 Punkte, da jetzt einzige
+  gültige Antwort" werden. War schon strukturell in `slfComputeScores()`
+  angelegt (Parameter `invalidPlayerCatPairs`), jetzt mit Tests abgesichert.
+
+## 7f. Bugfix: Bilder bei "Bild erraten" wurden nicht angezeigt
+
+`promptType` ("emoji" oder "image") steht in `shared/partyDatasets.json`
+nur einmal auf Ebene des ganzen Datensatzes (`dsRaw.promptType`), nicht bei
+jedem einzelnen Element. `nextGuessItem()` in `server.js` hat aber
+fälschlich `rt.current.promptType` (vom einzelnen Element, existiert dort
+gar nicht → `undefined`) an den Client gesendet statt des tatsächlichen
+Werts. Der Client interpretierte dadurch das Emoji als Bild-URL
+(`<img src="🦁">`), was natürlich nicht lädt – sichtbar als leeres
+Bild-Icon mit dem Alt-Text "Errate das Bild". Behoben: `promptType` wird
+jetzt einmal beim Rundenstart in `room.runtime.promptType` abgelegt und von
+dort für jedes Element im Broadcast verwendet.
 
 ## 8. Bekannte Grenzen dieser ersten Version
 

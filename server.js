@@ -64,10 +64,40 @@ const SUPPORTED_LANGS = ["de", "en", "ja", "zh", "fr", "it", "es"];
 const SLF_DEFAULT_CATEGORIES = ["Stadt", "Land", "Fluss", "Name", "Tier", "Beruf", "Pflanze"];
 const SLF_LETTERS = "ABCDEFGHIJKLMNOPRSTUVWZ".split(""); // Q, X, Y ausgelassen (zu schwer für flüssiges Spiel)
 const SLF_ANSWER_MS = 80000;      // Zeit zum Schreiben
+const SLF_HURRY_MS = 15000;       // Verkürzte Restzeit, sobald jemand ALLE Felder ausgefüllt abgegeben hat
 const SLF_CHALLENGE_MS = 30000;   // Zeit zum Anfechten nach der Auflösung
 const SLF_VOTE_MS = 20000;        // Zeit zum Abstimmen über eine einzelne Anfechtung
+const SLF_PARTY_ROUND_SIZE = 10;  // Anzahl Kategorien pro Party-Mix-Runde
+
+// Großer Kategorien-Pool für den Party-Mix-Modus von Stadt Land Fluss:
+// bunt gemischt, enthält auch einige der klassischen Original-Kategorien
+// (siehe SLF_DEFAULT_CATEGORIES) sowie die bisherigen Vorschläge, damit
+// gelegentlich auch mal ein "normales" Feld dabei ist.
+const SLF_PARTY_CATEGORIES = [
+  "Stadt", "Land", "Fluss", "Name", "Tier", "Beruf", "Pflanze",
+  "Farbe", "Automarke", "Filmtitel", "Promi", "Getränk", "Sportart",
+  "Musiktitel", "Superkraft", "Zaubertrick", "Serientitel", "Videospiel",
+  "Comicfigur", "Superheld", "Zeichentrickfigur", "Fastfood-Gericht",
+  "Süßigkeit", "Musikinstrument", "Handymarke", "Kleidungsstück", "Frisur",
+  "Influencer", "App", "Brettspiel", "Kartenspiel", "Cocktail", "Insel",
+  "Reiseziel", "Hauptstadt", "Sprache", "Feiertag", "Käsesorte",
+  "Gemüsesorte", "Obstsorte", "Fabelwesen", "Dinosaurierart", "Zeitschrift",
+  "Fernsehsender", "Kochshow", "Partymotto", "Karnevalskostüm",
+  "Weihnachtsgeschenk", "Ausrede", "Fußballverein"
+];
 
 function randRange(min, max) { return min + Math.random() * (max - min); }
+
+// Zieht `count` zufällige, unterschiedliche Kategorien aus SLF_PARTY_CATEGORIES.
+function pickRandomSlfPartyCategories(count) {
+  const pool = [...SLF_PARTY_CATEGORIES];
+  const picked = [];
+  while (picked.length < count && pool.length > 0) {
+    const idx = Math.floor(Math.random() * pool.length);
+    picked.push(pool.splice(idx, 1)[0]);
+  }
+  return picked;
+}
 
 function pickBotName(room) {
   const used = new Set(Array.from(room.players.values()).filter(p => p.isBot).map(p => p.name));
@@ -77,12 +107,28 @@ function pickBotName(room) {
   return "Bot" + Math.floor(Math.random() * 1000);
 }
 
+// Bot-Wortschatz für Stadt Land Fluss: NUR für die 7 klassischen
+// Original-Kategorien (fest, überschaubar) – für den 50-Kategorien-
+// Party-Mix-Pool wäre ein vollständiges, verlässliches Wörterbuch über alle
+// Buchstaben kein seriös leistbarer Umfang. Bots lassen ein Feld einfach
+// leer, wenn sie für Buchstabe+Kategorie kein Wort kennen.
+const SLF_BOT_WORDS = {
+  Stadt: { A:"Aachen", B:"Berlin", C:"Chemnitz", D:"Dresden", E:"Essen", F:"Frankfurt", G:"Göttingen", H:"Hamburg", I:"Ingolstadt", J:"Jena", K:"Köln", L:"Leipzig", M:"München", N:"Nürnberg", O:"Offenbach", P:"Potsdam", R:"Rostock", S:"Stuttgart", T:"Trier", U:"Ulm", V:"Villingen", W:"Wien", Z:"Zürich" },
+  Land: { A:"Argentinien", B:"Brasilien", C:"Chile", D:"Dänemark", E:"Ecuador", F:"Frankreich", G:"Griechenland", H:"Holland", I:"Italien", J:"Jamaika", K:"Kanada", L:"Litauen", M:"Mexiko", N:"Norwegen", O:"Österreich", P:"Polen", R:"Russland", S:"Spanien", T:"Türkei", U:"Ungarn", V:"Vietnam", W:"Wales", Z:"Zypern" },
+  Fluss: { A:"Amazonas", D:"Donau", E:"Elbe", G:"Ganges", I:"Inn", J:"Jordan", L:"Lech", M:"Mississippi", N:"Nil", O:"Oder", R:"Rhein", S:"Saale", T:"Themse", V:"Volga", W:"Weser" },
+  Name: { A:"Anna", B:"Ben", C:"Clara", D:"David", E:"Emma", F:"Felix", G:"Greta", H:"Hannah", I:"Ida", J:"Julia", K:"Karl", L:"Lukas", M:"Maria", N:"Nina", O:"Oskar", P:"Paul", R:"Rosa", S:"Sarah", T:"Tim", U:"Uwe", V:"Vera", W:"Willi", Z:"Zoe" },
+  Tier: { A:"Adler", B:"Bär", D:"Delfin", E:"Elefant", F:"Fuchs", G:"Giraffe", H:"Hase", I:"Iltis", J:"Jaguar", K:"Katze", L:"Löwe", M:"Maus", N:"Nashorn", O:"Otter", P:"Panda", R:"Reh", S:"Schwein", T:"Tiger", U:"Uhu", W:"Wolf", Z:"Ziege" },
+  Beruf: { A:"Arzt", B:"Bäcker", D:"Dolmetscher", E:"Elektriker", F:"Friseur", G:"Gärtner", H:"Hebamme", I:"Ingenieur", J:"Journalist", K:"Koch", L:"Lehrer", M:"Maler", N:"Notar", O:"Optiker", P:"Pilot", R:"Richter", S:"Sänger", T:"Tischler", V:"Verkäufer", W:"Winzer", Z:"Zahnarzt" },
+  Pflanze: { B:"Buche", C:"Calla", D:"Distel", E:"Eiche", F:"Farn", G:"Gänseblümchen", H:"Hortensie", J:"Jasmin", K:"Kaktus", L:"Lavendel", M:"Minze", N:"Narzisse", O:"Olive", P:"Palme", R:"Rose", S:"Sonnenblume", T:"Tulpe", V:"Veilchen", W:"Weide", Z:"Zypresse" }
+};
+
 /* ------------------------------------------------------------------------ */
 /* Verfügbare Rundentypen (modular, leicht erweiterbar – Punkt 15)           */
+/* Stadt Land Fluss ist EIGENSTÄNDIGER Modus (eigener Menüpunkt, eigenes    */
+/* Solo & Multiplayer) und steht daher NICHT mehr im normalen Mix-Pool.     */
 /* ------------------------------------------------------------------------ */
 function buildRoundDefPool() {
   const pool = [{ id: "quiz", kind: "knowledgeQuiz", label: "Wissenstest", germanOnly: true }];
-  pool.push(slfBuildRoundDef(null, false)); // "Stadt Land Fluss: Original"
   Object.entries(DATASETS.ordering).forEach(([key, ds]) => {
     pool.push({ id: "order_" + key, kind: "orderingGame", label: ds.label, datasetGroup: "ordering", datasetKey: key, germanOnly: !!ds.germanOnly });
   });
@@ -98,9 +144,15 @@ function buildRoundDefPool() {
   return pool;
 }
 const ROUND_DEF_POOL = buildRoundDefPool();
-function findRoundDef(id) { return ROUND_DEF_POOL.find(r => r.id === id); }
-function roundDefPoolForLanguage(language) {
-  return language === "de" ? ROUND_DEF_POOL : ROUND_DEF_POOL.filter(r => !r.germanOnly);
+// Eigener, kleiner Pool nur für den Stadt-Land-Fluss-Modus: Original (feste
+// 7 Kategorien) und Party-Mix (bei jedem Rundenstart frisch gezogene 10
+// Kategorien aus SLF_PARTY_CATEGORIES). "Eigene Kategorien" ist kein
+// Pool-Eintrag, sondern wird interaktiv über setSlfCustomRoundDef gebaut.
+const SLF_ROUND_DEF_POOL = [slfBuildRoundDef(null, null), slfBuildRoundDef(null, "party")];
+function findRoundDef(id) { return ROUND_DEF_POOL.find(r => r.id === id) || SLF_ROUND_DEF_POOL.find(r => r.id === id); }
+function roundDefPoolForLanguage(language, gameMode) {
+  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : ROUND_DEF_POOL;
+  return language === "de" ? base : base.filter(r => !r.germanOnly);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -117,7 +169,7 @@ function makeRoomCode() {
   return code;
 }
 
-function createRoom(hostWs, hostName, language) {
+function createRoom(hostWs, hostName, language, gameMode) {
   const code = makeRoomCode();
   const hostId = "pl_" + Math.random().toString(36).slice(2, 9);
   const room = {
@@ -131,6 +183,9 @@ function createRoom(hostWs, hostName, language) {
     roundMode: "random", // 'random' | 'custom'
     roundDefs: [],
     language: SUPPORTED_LANGS.includes(language) ? language : "de",
+    // 'mixed' (Standard, alle Rundentypen außer Stadt Land Fluss) oder 'slf'
+    // (eigenständiger Stadt-Land-Fluss-Modus, siehe SLF_ROUND_DEF_POOL).
+    gameMode: gameMode === "slf" ? "slf" : "mixed",
     currentRoundIndex: -1,
     phase: "lobby", // lobby | roundIntro | playing | roundResult | gameEnd
     runtime: null
@@ -162,6 +217,21 @@ function removeBot(room, botId) {
   room.players.delete(botId);
   room.teams.forEach(t => { t.memberIds = t.memberIds.filter(id => id !== botId); });
   if (room.teamMode === "ffa") rebuildFfaTeams(room);
+}
+
+// Host wirft einen menschlichen Mitspieler aus dem Wartezimmer. Der Host
+// selbst und Bots (dafür gibt es removeBot) können nicht gekickt werden.
+function kickPlayer(room, playerId) {
+  const player = room.players.get(playerId);
+  if (!player || player.isBot || playerId === room.hostId) return false;
+  room.players.delete(playerId);
+  room.teams.forEach(t => { t.memberIds = t.memberIds.filter(id => id !== playerId); });
+  if (room.teamMode === "ffa") rebuildFfaTeams(room);
+  if (player.ws) {
+    send(player.ws, { type: "kicked" });
+    try { player.ws.close(); } catch (e) { /* Verbindung ggf. schon zu */ }
+  }
+  return true;
 }
 
 function assignNewParticipantToSmallestTeam(room, participant) {
@@ -209,8 +279,9 @@ function roomStateForClient(room) {
     pointSystem: room.pointSystem,
     roundCount: room.roundCount,
     roundMode: room.roundMode,
+    gameMode: room.gameMode,
     roundDefs: room.roundDefs.map(r => r ? ({ id: r.id, kind: r.kind, label: r.label, categories: r.categories }) : null),
-    availableRoundDefs: roundDefPoolForLanguage(room.language).map(r => ({ id: r.id, kind: r.kind, label: r.label })),
+    availableRoundDefs: roundDefPoolForLanguage(room.language, room.gameMode).map(r => ({ id: r.id, kind: r.kind, label: r.label })),
     language: room.language,
     botTierOptions: BOT_TIER_ORDER.map(key => ({ id: key, label: BOT_TIERS[key].label })),
     maxParticipants: MAX_PARTICIPANTS,
@@ -224,7 +295,7 @@ function pushRoomState(room) { broadcast(room, roomStateForClient(room)); }
 /* Rundenauswahl                                                             */
 /* ------------------------------------------------------------------------ */
 function randomizeRoundDefs(room) {
-  const availablePool = roundDefPoolForLanguage(room.language);
+  const availablePool = roundDefPoolForLanguage(room.language, room.gameMode);
   const defs = [];
   for (let i = 0; i < room.roundCount; i++) {
     const def = availablePool[Math.floor(Math.random() * availablePool.length)];
@@ -390,14 +461,23 @@ function resolveQuizQuestion(room) {
     results
   });
 
-  setTimeout(() => {
-    rt.qIndex++;
-    if (rt.qIndex >= rt.questions.length) {
-      finishRoundEngine(room, rt.roundPointsByTeam);
-    } else {
-      sendNextQuizQuestion(room);
-    }
-  }, 3200);
+  // Kein automatisches Weiterspringen mehr: der Host muss über die
+  // "WEITER"-Aktion (case "continue") explizit bestätigen, siehe dort.
+  rt.awaitingContinue = true;
+}
+
+// Wird vom Host über action "continue" ausgelöst, wenn eine Frage aufgelöst
+// ist und auf Bestätigung wartet (siehe resolveQuizQuestion).
+function advanceQuizQuestion(room) {
+  const rt = room.runtime;
+  if (!rt || !rt.awaitingContinue) return;
+  rt.awaitingContinue = false;
+  rt.qIndex++;
+  if (rt.qIndex >= rt.questions.length) {
+    finishRoundEngine(room, rt.roundPointsByTeam);
+  } else {
+    sendNextQuizQuestion(room);
+  }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -461,7 +541,11 @@ function startRankingRound(room, def) {
     freeChoice,
     pool,               // bei Einordnen: sichtbare, noch nicht platzierte Elemente
                         // bei Mehr-oder-Weniger: verdeckter Nachziehstapel
-    placed,             // bestätigte Elemente in wahrer Reihenfolge
+    placed,             // bestätigte Elemente in wahrer Reihenfolge (Chronologie & Mehr-oder-Weniger)
+    // Einordnen (orderingGame) bekommt ein festes Positionsraster 1..N (N = Rundengröße):
+    // slots[i] ist entweder null (noch offen) oder das dort bestätigte Element.
+    // Position 1 = niedrigster Wert (bzw. höchster bei order:"desc"), Position N = das Gegenteil.
+    slots: def.kind === "orderingGame" ? new Array(pool.length).fill(null) : null,
     currentItem: null,  // nur bei Mehr-oder-Weniger genutzt
     turnOrder: teamIds,
     turnPointer: 0,
@@ -515,6 +599,37 @@ function correctInsertIndexFor(rt, value) {
   return idx;
 }
 
+// Einordnen (orderingGame): prüft, ob das Einsortieren an slotIndex im festen
+// 1..N-Positionsraster korrekt ist. Verglichen wird nur mit den jeweils
+// nächsten bereits befüllten Nachbarslots (leere Slots dazwischen werden
+// übersprungen) – noch leere Slots links/rechts vom Spielfeldrand gelten
+// als "kein Widerspruch". Dadurch ist der allererste Tipp automatisch immer
+// richtig, egal auf welche Position getippt wird (kein Nachbar vorhanden).
+function isSlotPlacementCorrect(rt, value, slotIndex) {
+  const desc = rt.order === "desc";
+  let beforeVal = null, afterVal = null;
+  for (let i = slotIndex - 1; i >= 0; i--) {
+    if (rt.slots[i]) { beforeVal = rt.slots[i].value; break; }
+  }
+  for (let i = slotIndex + 1; i < rt.slots.length; i++) {
+    if (rt.slots[i]) { afterVal = rt.slots[i].value; break; }
+  }
+  const okBefore = beforeVal === null || (desc ? value <= beforeVal : value >= beforeVal);
+  const okAfter = afterVal === null || (desc ? value >= afterVal : value <= afterVal);
+  return okBefore && okAfter;
+}
+
+// Liefert alle aktuell noch offenen Slots, die für den gegebenen Wert im
+// Moment gültig wären (für Bot-Entscheidungen: "richtig raten" braucht eine
+// tatsächlich zulässige Position, keine feste Einzellösung).
+function validSlotsFor(rt, value) {
+  const valid = [];
+  for (let i = 0; i < rt.slots.length; i++) {
+    if (rt.slots[i] === null && isSlotPlacementCorrect(rt, value, i)) valid.push(i);
+  }
+  return valid;
+}
+
 // Lässt einen Bot automatisch ziehen, wenn das gerade aktive Team
 // ausschließlich aus Bots besteht (ein menschliches Teammitglied zieht
 // weiterhin immer selbst).
@@ -549,12 +664,29 @@ function scheduleBotRankMove(room) {
     }
 
     const correct = Math.random() < tier.prob;
-    const trueIndex = correctInsertIndexFor(rt, targetItem.value);
-    let insertIndex = trueIndex;
-    if (!correct) {
-      const wrongOptions = [];
-      for (let i = 0; i <= rt.placed.length; i++) if (i !== trueIndex) wrongOptions.push(i);
-      insertIndex = wrongOptions.length ? wrongOptions[Math.floor(Math.random() * wrongOptions.length)] : trueIndex;
+    let insertIndex;
+    if (rt.kind === "orderingGame") {
+      // Einordnen: Bot sucht sich unter den aktuell offenen Slots einen
+      // tatsächlich gültigen (bzw. bei Absicht "falsch" einen ungültigen) aus.
+      const emptySlots = [];
+      for (let i = 0; i < rt.slots.length; i++) if (rt.slots[i] === null) emptySlots.push(i);
+      const validSlots = validSlotsFor(rt, targetItem.value);
+      if (correct && validSlots.length) {
+        insertIndex = validSlots[Math.floor(Math.random() * validSlots.length)];
+      } else {
+        const wrongSlots = emptySlots.filter(i => !validSlots.includes(i));
+        insertIndex = wrongSlots.length
+          ? wrongSlots[Math.floor(Math.random() * wrongSlots.length)]
+          : (validSlots.length ? validSlots[Math.floor(Math.random() * validSlots.length)] : emptySlots[0]);
+      }
+    } else {
+      const trueIndex = correctInsertIndexFor(rt, targetItem.value);
+      insertIndex = trueIndex;
+      if (!correct) {
+        const wrongOptions = [];
+        for (let i = 0; i <= rt.placed.length; i++) if (i !== trueIndex) wrongOptions.push(i);
+        insertIndex = wrongOptions.length ? wrongOptions[Math.floor(Math.random() * wrongOptions.length)] : trueIndex;
+      }
     }
     handleRankPlace(room, bot.id, targetItem.id, insertIndex);
   }, delayMs);
@@ -570,6 +702,10 @@ function broadcastRankState(room) {
     order: rt.order,
     freeChoice: rt.freeChoice,
     placed: rt.placed.map(it => ({ id: it.id, name: it.name, value: it.revealed ? it.value : undefined })),
+    // Einordnen (orderingGame): festes 1..N-Positionsraster, null = noch offener Slot.
+    slots: rt.kind === "orderingGame"
+      ? rt.slots.map(s => s ? { id: s.id, name: s.name, value: s.revealed ? s.value : undefined } : null)
+      : undefined,
     currentItem: (!rt.freeChoice && rt.currentItem) ? { id: rt.currentItem.id, name: rt.currentItem.name } : null,
     pool: rt.freeChoice ? rt.pool.map(it => ({ id: it.id, name: it.name })) : undefined,
     turnTeamId: rt.turnOrder[rt.turnPointer],
@@ -596,7 +732,16 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
   if (!rt) return;
   const player = room.players.get(playerId);
   if (!player || player.teamId !== rt.turnOrder[rt.turnPointer]) return; // nur das Team am Zug darf ziehen
-  if (typeof insertIndex !== "number" || insertIndex < 0 || insertIndex > rt.placed.length) return;
+  if (typeof insertIndex !== "number") return;
+
+  const isOrdering = rt.kind === "orderingGame";
+  if (isOrdering) {
+    // Festes Positionsraster: insertIndex ist hier der Slot-Index (0 = Position 1).
+    // Muss innerhalb des Rasters liegen und der Slot muss noch frei sein.
+    if (insertIndex < 0 || insertIndex >= rt.slots.length || rt.slots[insertIndex] !== null) return;
+  } else {
+    if (insertIndex < 0 || insertIndex > rt.placed.length) return;
+  }
 
   let item;
   if (rt.freeChoice) {
@@ -612,10 +757,17 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
   }
 
   const teamId = player.teamId;
-  const correct = isPlacementCorrect(rt, item.value, insertIndex);
+  const correct = isOrdering
+    ? isSlotPlacementCorrect(rt, item.value, insertIndex)
+    : isPlacementCorrect(rt, item.value, insertIndex);
 
   if (correct) {
-    rt.placed.splice(insertIndex, 0, { ...item, revealed: false });
+    if (isOrdering) {
+      // Direkt in den gewählten, festen Slot einsortieren (Position = insertIndex+1).
+      rt.slots[insertIndex] = { ...item, revealed: false };
+    } else {
+      rt.placed.splice(insertIndex, 0, { ...item, revealed: false });
+    }
     rt.correctCount.set(teamId, (rt.correctCount.get(teamId) || 0) + 1);
     rt.roundPointsByTeam.set(teamId, (rt.roundPointsByTeam.get(teamId) || 0) + 10);
   } else {
@@ -630,7 +782,8 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
     // beim nächsten Zug automatisch das nächste (andere) Element dran
     // ist. Das falsch geratene Element kann später erneut versucht
     // werden (bei Mehr oder Weniger: erneutes Ziehen vom Stapelanfang,
-    // sobald es wieder vorne ansteht; bei Einordnen: erneute freie Wahl).
+    // sobald es wieder vorne ansteht; bei Einordnen: erneute freie Wahl,
+    // auch auf denselben Slot).
     rt.pool.push(item);
   }
   rt.currentItem = null;
@@ -650,7 +803,8 @@ function finishRankingRound(room) {
   const rt = room.runtime;
   // Endauflösung: alle Werte aufdecken (wichtig für orderingGame, wo Werte
   // bislang verborgen waren) und Restpunkte je Team ausweisen.
-  const fullyRevealed = [...rt.placed, ...rt.pool].sort((a, b) => rt.order === "desc" ? b.value - a.value : a.value - b.value);
+  const confirmedItems = rt.kind === "orderingGame" ? rt.slots.filter(Boolean) : rt.placed;
+  const fullyRevealed = [...confirmedItems, ...rt.pool].sort((a, b) => rt.order === "desc" ? b.value - a.value : a.value - b.value);
 
   broadcast(room, {
     type: "rankReveal",
@@ -724,6 +878,7 @@ function startGuessPictureRound(room, def) {
   room.runtime = {
     kind: "guessPicture",
     label: dsRaw.label,
+    promptType: dsRaw.promptType, // Datensatz-weit ("emoji" oder "image"), nicht pro Element
     items,
     index: -1,
     current: null,
@@ -751,7 +906,7 @@ function nextGuessItem(room) {
     index: rt.index,
     total: rt.items.length,
     label: rt.label,
-    promptType: rt.current.promptType,
+    promptType: rt.promptType,
     promptValue: rt.current.promptValue,
     durationMs: GUESS_TOTAL_MS,
     tierMs: GUESS_TIER_MS,
@@ -822,12 +977,27 @@ function scheduleBotGuesses(room) {
 /* /Abstimmungsphase, in der alle anderen Spieler über strittige Antworten  */
 /* abstimmen können, bevor die Runde final gewertet wird.                   */
 /* ------------------------------------------------------------------------ */
-function slfBuildRoundDef(categories, isCustom) {
+function slfBuildRoundDef(categories, mode) {
+  // mode: null/undefined = Original (feste 7 Kategorien), "custom" = vom Host
+  // gewählte eigene Kategorien, "party" = Party-Mix (10 zufällige Kategorien,
+  // frisch gezogen bei jedem tatsächlichen Rundenstart, siehe
+  // startStadtLandFlussRound()).
+  if (mode === "party") {
+    return {
+      id: "slf_party",
+      kind: "stadtLandFluss",
+      label: "Stadt Land Fluss: Party-Mix (10 zufällige Kategorien)",
+      germanOnly: true,
+      slfPartyMix: true,
+      categories: null
+    };
+  }
   const cats = (categories && categories.length ? categories : SLF_DEFAULT_CATEGORIES).slice(0, 8);
   return {
-    id: isCustom ? "slf_custom" : "slf_original",
+    id: mode === "custom" ? "slf_custom" : "slf_original",
     kind: "stadtLandFluss",
-    label: "Stadt Land Fluss: " + (isCustom ? "Eigene Kategorien (" + cats.join(", ") + ")" : "Original"),
+    label: "Stadt Land Fluss: " + (mode === "custom" ? "Eigene Kategorien (" + cats.join(", ") + ")" : "Original"),
+    germanOnly: true,
     categories: cats
   };
 }
@@ -838,7 +1008,11 @@ function normalizeSlfWord(s) {
 }
 
 function startStadtLandFlussRound(room, def) {
-  const categories = def.categories && def.categories.length ? def.categories : SLF_DEFAULT_CATEGORIES;
+  // Party-Mix: Kategorien werden JETZT frisch zufällig gezogen (nicht schon
+  // beim Zusammenstellen der Runde), damit jede Party-Mix-Runde neu mischt.
+  const categories = def.slfPartyMix
+    ? pickRandomSlfPartyCategories(SLF_PARTY_ROUND_SIZE)
+    : (def.categories && def.categories.length ? def.categories : SLF_DEFAULT_CATEGORIES);
   const letter = SLF_LETTERS[Math.floor(Math.random() * SLF_LETTERS.length)];
   const teamIds = Array.from(room.teams.keys());
   room.runtime = {
@@ -849,6 +1023,7 @@ function startStadtLandFlussRound(room, def) {
     phase: "answering",
     answers: new Map(),      // playerId -> { category: text }
     submitted: new Set(),
+    hurryStarted: false,     // wird true, sobald jemand mit ALLEN Feldern ausgefüllt abgegeben hat
     challenges: new Map(),   // challengeId -> { playerId, category, votes: Map(playerId->bool), resolved, invalidated }
     challengeCounter: 0,
     timer: null,
@@ -856,10 +1031,30 @@ function startStadtLandFlussRound(room, def) {
   };
   broadcast(room, { type: "slfRoundStart", categories, letter, durationMs: SLF_ANSWER_MS });
   room.runtime.timer = setTimeout(() => slfFinishAnswering(room), SLF_ANSWER_MS + 400);
-  // Hinweis: Bots beteiligen sich an Stadt-Land-Fluss bewusst nicht aktiv am
-  // Schreiben (echte, sinnvolle Wörter je Buchstabe/Kategorie zu generieren
-  // würde ein riesiges, fest hinterlegtes Wörterbuch erfordern) – sie liefern
-  // hier keine Antworten ab und tragen für diese Runde 0 Punkte bei.
+  scheduleBotSlfAnswers(room);
+}
+
+// Bots "tippen" mit realistischer, unterschiedlicher Verzögerung mit. Sie
+// kennen nur für die 7 klassischen Original-Kategorien (SLF_BOT_WORDS)
+// überhaupt mögliche Wörter; für alle anderen (z.B. Party-Mix-Kategorien)
+// oder wenn ihnen für den gezogenen Buchstaben kein Wort bekannt ist, bzw.
+// laut Bot-Stufe "danebengreifen", bleibt das Feld leer.
+function scheduleBotSlfAnswers(room) {
+  const rt = room.runtime;
+  const letterUpper = rt.letter.toUpperCase();
+  Array.from(room.players.values()).filter(p => p.isBot).forEach(bot => {
+    const tier = BOT_TIERS[bot.botTier] || BOT_TIERS[DEFAULT_BOT_TIER];
+    const delay = randRange(SLF_ANSWER_MS * 0.25, SLF_ANSWER_MS * 0.8);
+    setTimeout(() => {
+      if (room.runtime !== rt || rt.phase !== "answering") return;
+      const answers = {};
+      rt.categories.forEach(cat => {
+        const word = (SLF_BOT_WORDS[cat] || {})[letterUpper];
+        answers[cat] = (word && Math.random() < (tier.prob || 0.7)) ? word : "";
+      });
+      handleSlfSubmit(room, bot.id, answers);
+    }, delay);
+  });
 }
 
 function handleSlfSubmit(room, playerId, answers) {
@@ -870,10 +1065,22 @@ function handleSlfSubmit(room, playerId, answers) {
   rt.categories.forEach(cat => { clean[cat] = (answers && typeof answers[cat] === "string") ? answers[cat].slice(0, 40) : ""; });
   rt.answers.set(playerId, clean);
   rt.submitted.add(playerId);
+
   const allSubmitted = Array.from(room.players.keys())
     .filter(pid => !room.players.get(pid).isBot)
     .every(pid => rt.submitted.has(pid));
-  if (allSubmitted) { clearTimeout(rt.timer); slfFinishAnswering(room); }
+  if (allSubmitted) { clearTimeout(rt.timer); slfFinishAnswering(room); return; }
+
+  // Sobald jemand ALLE Felder ausgefüllt abgegeben hat, bekommen alle
+  // anderen nur noch SLF_HURRY_MS Zeit (einmalig verkürzt, kein erneutes
+  // Zurücksetzen bei weiteren vollständigen Abgaben danach).
+  const allFieldsFilled = rt.categories.every(cat => clean[cat] && clean[cat].trim().length > 0);
+  if (allFieldsFilled && !rt.hurryStarted) {
+    rt.hurryStarted = true;
+    clearTimeout(rt.timer);
+    rt.timer = setTimeout(() => slfFinishAnswering(room), SLF_HURRY_MS + 400);
+    broadcast(room, { type: "slfHurryUp", remainingMs: SLF_HURRY_MS });
+  }
 }
 
 function slfIsValidLetter(word, letter) {
@@ -881,31 +1088,84 @@ function slfIsValidLetter(word, letter) {
   return n.length > 0 && n[0].toUpperCase() === letter.toUpperCase();
 }
 
-// Berechnet die (vorläufige oder finale) Punkte je Spieler und Kategorie:
-// eindeutige gültige Antwort = 20, mehrfach vorhandene gültige Antwort = 10,
-// leer/ungültig (falscher Anfangsbuchstabe) = 0. `invalidPlayerCatPairs`
-// enthält per Anfechtung für ungültig erklärte Antworten und wird wie eine
-// leere Antwort behandelt.
+// Einfache Levenshtein-Distanz (Editierdistanz) für die Tippfehler-Erkennung
+// in slfComputeScores() weiter unten.
+function levenshteinDistance(a, b) {
+  const m = a.length, n = b.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+  return dp[m][n];
+}
+
+// Berechnet die (vorläufige oder finale) Punkte je Spieler und Kategorie.
+// Grundwertung, pro Kategorie unter allen gültigen (richtiger Anfangsbuchstabe,
+// nicht per Anfechtung für ungültig erklärten) Antworten:
+//  - gleiches Wort wie mind. 1 anderer Spieler:                     5 Punkte
+//  - eigenes Wort einzigartig, aber mind. 1 anderer Spieler hat
+//    ebenfalls eine gültige (andere) Antwort in dieser Kategorie:  10 Punkte
+//  - als einzige/r überhaupt eine gültige Antwort in der Kategorie: 20 Punkte
+//  - ungültig / leer / angefochten:                                  0 Punkte
+// Zusätzlich: vermuteter Schreibfehler. Wenn zwei unterschiedliche, aber sich
+// nur in einem Buchstaben unterscheidende Wörter (Editierdistanz 1) in
+// derselben Kategorie auftauchen, ist das sehr wahrscheinlich dasselbe
+// gemeinte Wort mit einem Tippfehler – dann ziehen wir beiden Beteiligten
+// 5 Punkte von der jeweiligen Grundwertung ab (nie unter 0).
+// `invalidPlayerCatPairs` enthält per Anfechtung für ungültig erklärte
+// Antworten (Set aus "playerId|kategorie") und wird wie eine leere Antwort
+// behandelt – dadurch wirkt sich eine erfolgreiche Anfechtung automatisch auf
+// die Wertung der ÜBRIGEN Antworten in derselben Kategorie aus (z.B. wird aus
+// "10 Punkte, da noch jemand anders gültig war" wieder "20 Punkte, da jetzt
+// einzige gültige Antwort", sobald die Konkurrenz-Antwort wegfällt).
 function slfComputeScores(rt, invalidPlayerCatPairs) {
   const scores = new Map(); // playerId -> {category: points}
   const playerIds = Array.from(rt.answers.keys());
   playerIds.forEach(pid => scores.set(pid, {}));
 
   rt.categories.forEach(cat => {
-    const wordCount = new Map(); // normalisiertes Wort -> Anzahl
+    const entries = []; // { pid, norm } nur gültige, nicht angefochtene Antworten
     playerIds.forEach(pid => {
       const word = rt.answers.get(pid)[cat];
       const invalidated = invalidPlayerCatPairs && invalidPlayerCatPairs.has(pid + "|" + cat);
       if (invalidated || !slfIsValidLetter(word, rt.letter)) return;
-      const norm = normalizeSlfWord(word);
-      wordCount.set(norm, (wordCount.get(norm) || 0) + 1);
+      entries.push({ pid, norm: normalizeSlfWord(word) });
     });
+
+    const wordCount = new Map();
+    entries.forEach(e => wordCount.set(e.norm, (wordCount.get(e.norm) || 0) + 1));
+    const validCount = entries.length;
+
+    // Tippfehler-Verdacht: zwei unterschiedliche Wörter mit Editierdistanz 1.
+    const typoFlag = new Set();
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        if (entries[i].norm === entries[j].norm) continue;
+        if (levenshteinDistance(entries[i].norm, entries[j].norm) === 1) {
+          typoFlag.add(entries[i].pid);
+          typoFlag.add(entries[j].pid);
+        }
+      }
+    }
+
     playerIds.forEach(pid => {
       const word = rt.answers.get(pid)[cat];
       const invalidated = invalidPlayerCatPairs && invalidPlayerCatPairs.has(pid + "|" + cat);
       if (invalidated || !slfIsValidLetter(word, rt.letter)) { scores.get(pid)[cat] = 0; return; }
       const norm = normalizeSlfWord(word);
-      scores.get(pid)[cat] = wordCount.get(norm) === 1 ? 20 : 10;
+      let points;
+      if (wordCount.get(norm) > 1) points = 5;
+      else if (validCount > 1) points = 10;
+      else points = 20;
+      if (typoFlag.has(pid)) points = Math.max(0, points - 5);
+      scores.get(pid)[cat] = points;
     });
   });
   return scores;
@@ -1243,7 +1503,7 @@ wss.on("connection", (ws) => {
     try { msg = JSON.parse(raw); } catch (e) { return; }
 
     if (msg.action === "createRoom") {
-      const room = createRoom(ws, msg.name || "Host", msg.language);
+      const room = createRoom(ws, msg.name || "Host", msg.language, msg.gameMode);
       send(ws, { type: "joined", roomCode: room.code, playerId: ws.playerId, isHost: true });
       pushRoomState(room);
       return;
@@ -1308,7 +1568,7 @@ wss.on("connection", (ws) => {
           if (msg.index >= 0 && msg.index < room.roundCount && Array.isArray(msg.categories) && msg.categories.length > 0) {
             const cleanCats = msg.categories.map(c => (c || "").toString().trim().slice(0, 20)).filter(Boolean).slice(0, 8);
             if (cleanCats.length > 0) {
-              room.roundDefs[msg.index] = slfBuildRoundDef(cleanCats, true);
+              room.roundDefs[msg.index] = slfBuildRoundDef(cleanCats, "custom");
               pushRoomState(room);
             }
           }
@@ -1345,14 +1605,17 @@ wss.on("connection", (ws) => {
         if (isHost && room.phase === "lobby") { room.pointSystem = [1, 2, 3].includes(msg.system) ? msg.system : 1; pushRoomState(room); }
         break;
       case "setLanguage":
-        if (isHost && room.phase === "lobby") {
+        // Stadt Land Fluss ist ein reines Sprachspiel auf Deutsch – die Sprache
+        // lässt sich in einem SLF-Raum daher nicht umschalten (der Kategorien-Pool
+        // wäre sonst leer, da alle SLF-Rundendefinitionen germanOnly sind).
+        if (isHost && room.phase === "lobby" && room.gameMode !== "slf") {
           room.language = SUPPORTED_LANGS.includes(msg.language) ? msg.language : "de";
           if (room.roundMode === "random") {
             randomizeRoundDefs(room);
           } else {
             // Bereits gewählte Runden, die mit der neuen Sprache nicht mehr
             // verfügbar sind (germanOnly), zurück auf "nicht gewählt" setzen.
-            const availableIds = new Set(roundDefPoolForLanguage(room.language).map(d => d.id));
+            const availableIds = new Set(roundDefPoolForLanguage(room.language, room.gameMode).map(d => d.id));
             room.roundDefs = room.roundDefs.map(r => (r && availableIds.has(r.id)) ? r : null);
           }
           pushRoomState(room);
@@ -1370,6 +1633,11 @@ wss.on("connection", (ws) => {
         if (isHost && room.phase === "lobby") {
           removeBot(room, msg.botId);
           pushRoomState(room);
+        }
+        break;
+      case "kickPlayer":
+        if (isHost && room.phase === "lobby") {
+          if (kickPlayer(room, msg.playerId)) pushRoomState(room);
         }
         break;
       case "setBotTier":
@@ -1397,6 +1665,7 @@ wss.on("connection", (ws) => {
         break;
       case "continue":
         if (isHost && room.phase === "roundResult") startNextRound(room);
+        else if (isHost && room.runtime && room.runtime.awaitingContinue) advanceQuizQuestion(room);
         break;
       case "quizAnswer":
         handleQuizAnswer(room, ws.playerId, msg.selectedIndex);
