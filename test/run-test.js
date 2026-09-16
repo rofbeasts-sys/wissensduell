@@ -61,13 +61,17 @@ setTimeout(() => {
     } else if (msg.type === "quizQuestion") {
       setTimeout(() => host.send({ action: "quizAnswer", selectedIndex: 0 }), 50);
     }
-    if (msg.type === "rankState" && msg.currentItem) {
-      // Host ist immer am Zug (FFA, 2 Spieler abwechselnd) -> nur senden wenn wir dran sind
-      if (msg.turnTeamId) {
-        setTimeout(() => host.send({ action: "rankPlace", insertIndex: 0 }), 30);
+    if (msg.type === "rankState") {
+      // Mehr oder Weniger/Chronologie: automatisch gezogenes currentItem direkt
+      // verwenden, relative Lücke 0 ist dort immer ein gültiger Index.
+      // Einordnen (orderingGame, festes Positionsraster): erster freier Slot.
+      const target = msg.currentItem || (msg.pool && msg.pool.length ? msg.pool[0] : null);
+      const idx = msg.kind === "orderingGame" ? msg.slots.findIndex((s) => s === null) : 0;
+      if (target && msg.turnTeamId && idx !== -1) {
+        setTimeout(() => host.send({ action: "rankPlace", itemId: target.id, insertIndex: idx }), 30);
       }
     }
-    if (msg.type === "roundEnd" && !msg.isLastRound) {
+    if (msg.type === "roundEnd") {
       setTimeout(() => host.send({ action: "continue" }), 100);
     }
     if (msg.type === "gameEnd") {
@@ -81,8 +85,10 @@ setTimeout(() => {
     if (msg.type === "quizQuestion") {
       setTimeout(() => guest.send({ action: "quizAnswer", selectedIndex: 1 }), 60);
     }
-    if (msg.type === "rankState" && msg.currentItem && msg.turnTeamId) {
-      setTimeout(() => guest.send({ action: "rankPlace", insertIndex: 0 }), 40);
+    if (msg.type === "rankState" && msg.turnTeamId) {
+      const target = msg.currentItem || (msg.pool && msg.pool.length ? msg.pool[0] : null);
+      const idx = msg.kind === "orderingGame" ? msg.slots.findIndex((s) => s === null) : 0;
+      if (target && idx !== -1) setTimeout(() => guest.send({ action: "rankPlace", itemId: target.id, insertIndex: idx }), 40);
     }
   });
 
@@ -92,5 +98,5 @@ setTimeout(() => {
     host.close(); guest.close();
     server.kill();
     process.exit(sawGameEnd && roundsSeen === 5 ? 0 : 1);
-  }, 60000);
+  }, 120000);
 }, 700);

@@ -50,7 +50,10 @@ setTimeout(() => {
       console.log(`>>> Runde ${msg.roundNumber}/${msg.totalRounds}: ${msg.kind} (${msg.label})`);
     }
     if (msg.type === "rankState" && msg.freeChoice) {
-      console.log(`   Pool sichtbar (${msg.pool.length}): ${msg.pool.map(p=>p.name).join(", ")} | platziert: ${msg.placed.map(p=>p.name).join(" -> ") || "(leer)"}`);
+      const placedDesc = msg.kind === "orderingGame"
+        ? msg.slots.map(s => s ? s.name : "·").join(" | ")
+        : (msg.placed.map(p=>p.name).join(" -> ") || "(leer)");
+      console.log(`   Pool sichtbar (${msg.pool.length}): ${msg.pool.map(p=>p.name).join(", ")} | Raster: ${placedDesc}`);
     }
     if (msg.type === "quizQuestion") {
       // Host antwortet bewusst nicht sofort, um zu sehen, dass die Bots trotzdem termingerecht handeln
@@ -65,7 +68,8 @@ setTimeout(() => {
     if (msg.type === "rankState" && msg.turnTeamId && !msg.turnTeamId.startsWith("bot_")) {
       // Der Host ist an der Reihe (kein Bot-Team) -> Testclient zieht ebenfalls, damit die Runde weiterläuft
       if (msg.freeChoice && msg.pool && msg.pool.length > 0) {
-        setTimeout(() => host.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: 0 }), 200);
+        const idx = msg.kind === "orderingGame" ? msg.slots.findIndex((s) => s === null) : 0;
+        if (idx !== -1) setTimeout(() => host.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: idx }), 200);
       } else if (!msg.freeChoice && msg.currentItem) {
         setTimeout(() => host.send({ action: "rankPlace", itemId: msg.currentItem.id, insertIndex: 0 }), 200);
       }
@@ -86,5 +90,5 @@ setTimeout(() => {
     host.close();
     server.kill();
     process.exit(sawGameEnd ? 0 : 1);
-  }, 40000);
+  }, 90000);
 }, 700);
