@@ -238,6 +238,10 @@
   .guess-points-badge{ text-align:center; font-size:22px; font-weight:800; color:var(--accent-2); margin-bottom:10px; }
   .guess-image-wrap{ display:flex; align-items:center; justify-content:center; background:var(--bg-alt); border:1.5px solid var(--line); border-radius:16px; padding:30px; margin-bottom:14px; min-height:160px; }
   .guess-image{ transition:filter 0.15s linear; }
+  .music-player-wrap{ display:flex; align-items:center; justify-content:center; background:var(--bg-alt); border:1.5px solid var(--line); border-radius:16px; padding:30px; margin-bottom:14px; min-height:140px; position:relative; overflow:hidden; }
+  .music-overlay{ text-align:center; }
+  .music-note-icon{ font-size:48px; animation:musicPulse 1.4s ease-in-out infinite; }
+  @keyframes musicPulse{ 0%,100%{ transform:scale(1); opacity:.85; } 50%{ transform:scale(1.12); opacity:1; } }
   .guess-image img{ max-width:100%; max-height:220px; border-radius:10px; display:block; }
   .guess-emoji{ font-size:110px; line-height:1; }
   .guess-attempts-feed{ display:flex; flex-direction:column; gap:6px; margin-top:14px; }
@@ -1145,6 +1149,11 @@ function renderMainMenu(){
         <h3>Stadt Land Fluss</h3>
         <p>${currentLang!=='de' ? 'Nur auf Deutsch verfügbar' : 'Eigener Modus – Solo oder mit Freunden'}</p>
       </div>
+      <div class="mode-card" onclick="startMusicMenu()">
+        <div class="icon">🎵</div>
+        <h3>Musik raten</h3>
+        <p>Eigener Modus – Solo oder mit Freunden</p>
+      </div>
     </div>
     <div class="menu-secondary">
       <button class="btn btn-ghost" onclick="renderRanking()">${t('menu_ranking')}</button>
@@ -1274,6 +1283,29 @@ function startSlfMenu(){
           <p>Allein gegen die Uhr, in deinem Tempo.</p>
         </div>
         <div class="mode-card" onclick="startPartyFlow('slf')">
+          <div class="icon">🌐</div>
+          <h3>Multiplayer</h3>
+          <p>Raum erstellen oder einem Raum beitreten.</p>
+        </div>
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+function startMusicMenu(){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">MUSIK RATEN</div>
+      <div class="picker-sub">Wähle, wie du spielen möchtest.</div>
+      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
+        <div class="mode-card" onclick="startSoloPartyFlow('music')">
+          <div class="icon">🎧</div>
+          <h3>Solo</h3>
+          <p>Allein gegen die Uhr, in deinem Tempo.</p>
+        </div>
+        <div class="mode-card" onclick="startPartyFlow('music')">
           <div class="icon">🌐</div>
           <h3>Multiplayer</h3>
           <p>Raum erstellen oder einem Raum beitreten.</p>
@@ -1717,8 +1749,8 @@ function wsUrl(){
 
 let pendingCreateGameMode = "mixed";
 function startPartyFlow(gameMode){
-  pendingCreateGameMode = gameMode === "slf" ? "slf" : "mixed";
-  const backTarget = pendingCreateGameMode === "slf" ? "startSlfMenu()" : "renderMainMenu()";
+  pendingCreateGameMode = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed");
+  const backTarget = pendingCreateGameMode === "slf" ? "startSlfMenu()" : (pendingCreateGameMode === "music" ? "startMusicMenu()" : "renderMainMenu()");
   if(location.protocol !== "http:" && location.protocol !== "https:"){
     renderApp(`
       <div class="panel">
@@ -1740,7 +1772,7 @@ function startPartyFlow(gameMode){
   }
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : t('party_entry_title')}</div>
+      <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : (pendingCreateGameMode==='music' ? 'MUSIK RATEN – MULTIPLAYER' : t('party_entry_title'))}</div>
       <div class="picker-sub">${t('party_entry_sub')}</div>
       <div class="picker-form" style="margin-bottom:14px;">
         <input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20">
@@ -1920,7 +1952,7 @@ function renderSoloPartyConfig(){
   const room = party.room;
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS – SOLO' : t('solo_party_title')}</div>
+      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS – SOLO' : (room.gameMode === 'music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'))}</div>
       <div class="picker-sub">${t('solo_party_config_sub')}</div>
 
       <div class="settings-row">
@@ -2005,6 +2037,15 @@ function partyHandleMessage(msg){
     case "rankReveal":
       renderPartyRankReveal(msg);
       break;
+    case "orderingState":
+      renderPartyOrdering(msg);
+      break;
+    case "orderingHurry":
+      handleOrderingHurry(msg);
+      break;
+    case "orderingFinalReveal":
+      renderPartyOrderingFinal(msg);
+      break;
     case "guessItem":
       party.guessAttempts = [];
       renderPartyGuessItem(msg);
@@ -2014,6 +2055,16 @@ function partyHandleMessage(msg){
       break;
     case "guessResolved":
       renderPartyGuessResolved(msg);
+      break;
+    case "musicItem":
+      party.guessAttempts = [];
+      renderPartyMusicItem(msg);
+      break;
+    case "musicStop":
+      stopMusicPlayback();
+      break;
+    case "musicResolved":
+      renderPartyMusicResolved(msg);
       break;
     case "slfRoundStart":
       party.slfSubmitted = false;
@@ -2051,7 +2102,7 @@ function renderPartyLobby(){
 
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS' : t('lobby_title')}</div>
+      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS' : (room.gameMode === 'music' ? 'MUSIK RATEN' : t('lobby_title'))}</div>
       <div class="picker-sub">${t('lobby_sub')}</div>
       <div class="code-display">${room.code}</div>
 
@@ -2571,28 +2622,14 @@ function renderPartyRank(msg){
       ` : ``}
 
       <div class="rank-board">
-        ${msg.kind === 'orderingGame' ? `
-          ${msg.slots.map((s,i) => `
-            <div class="slot-row ${s ? 'filled':''}">
-              <span class="insert-num">${i+1}</span>
-              ${s
-                ? `<span class="slot-name">${s.name}</span>`
-                : (myTurn && activeItem
-                    ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', ${i})">Hier platzieren</button>`
-                    : `<span class="slot-empty">– noch offen –</span>`)
-              }
-            </div>
-          `).join("")}
-        ` : `
-          ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', 0)"><span class="insert-num">1</span> Position 1</button>` : ``}
-          ${msg.placed.map((item, i) => `
-            <div class="rank-item-row">
-              <span>${item.name}</span>
-              ${item.value !== undefined ? `<span class="val">${item.value}</span>` : ``}
-            </div>
-            ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', ${i+1})"><span class="insert-num">${i+2}</span> Position ${i+2}</button>` : ``}
-          `).join("")}
-        `}
+        ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', 0)"><span class="insert-num">1</span> Position 1</button>` : ``}
+        ${msg.placed.map((item, i) => `
+          <div class="rank-item-row">
+            <span>${item.name}</span>
+            ${item.value !== undefined ? `<span class="val">${item.value}</span>` : ``}
+          </div>
+          ${myTurn && activeItem ? `<button class="insert-btn" onclick="partyRankPlace('${activeItem.id}', ${i+1})"><span class="insert-num">${i+2}</span> Position ${i+2}</button>` : ``}
+        `).join("")}
       </div>
       ${myTurn && msg.freeChoice && activeItem ? `<button class="btn btn-ghost" style="margin-top:10px;" onclick="partySelectRankItem(null)">Andere Auswahl</button>` : ``}
 
@@ -2632,6 +2669,130 @@ function renderPartyRankReveal(msg){
   `);
 }
 
+/* ---------- Einordnen (gleichzeitiges Einzelspieler-Wettrennen) ---------- */
+function renderPartyOrdering(msg){
+  party.orderingMsg = msg;
+  const hearts = Array.from({length:3}).map((_,i)=>`<span class="heart ${i<msg.lives?'on':''}">❤</span>`).join("");
+  const activeItem = party.selectedOrderingItemId
+    ? (msg.pool || []).find(it => it.id === party.selectedOrderingItemId) || null
+    : null;
+  if(party.selectedOrderingItemId && !activeItem) party.selectedOrderingItemId = null;
+  const done = msg.finished || msg.eliminated;
+
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">${msg.label}</div>
+      <div class="picker-sub">${msg.unit} · ${msg.order === 'desc' ? 'Höchster Wert zuerst' : 'Niedrigster Wert zuerst'}</div>
+
+      <div class="lives-row"><span>Deine Leben</span><div class="hearts">${hearts}</div></div>
+
+      <div class="timer-wrap" style="margin-top:8px;">
+        <div class="timer-bar"><div id="orderingTimerFill" class="timer-fill" style="width:100%"></div></div>
+        <div id="orderingTimerNum" class="timer-num">${Math.ceil(msg.remainingMs/1000)}s</div>
+      </div>
+      <div id="orderingHurryNote" class="explanation ${msg.hurryActive?'':'hidden'}" style="border-color:var(--accent); margin-top:8px;">⏱ Jemand ist fertig — nur noch 30 Sekunden für alle!</div>
+
+      ${done ? `
+        <div class="explanation" style="margin-top:14px;">
+          ${msg.eliminated ? 'Keine Leben mehr übrig – du wartest jetzt auf die anderen …' : 'Fertig! Du wartest jetzt auf die anderen …'}
+        </div>
+      ` : `
+        ${!activeItem ? `
+          <div style="color:var(--text-dim); font-size:12px; margin:10px 0 8px;">Wähle ein Element aus, das du einordnen willst:</div>
+          <div class="chip-group" style="margin-bottom:14px;">
+            ${(msg.pool || []).map(it => `<div class="chip-btn" onclick="partySelectOrderingItem('${it.id}')">${it.name}</div>`).join("")}
+          </div>
+        ` : `
+          <div class="current-item-card">
+            <div style="color:var(--text-dim); font-size:12px;">Ausgewähltes Element</div>
+            <div class="name">${activeItem.name}</div>
+          </div>
+        `}
+
+        <div class="rank-board">
+          ${msg.slots.map((s,i) => `
+            <div class="slot-row ${s ? 'filled':''}">
+              <span class="insert-num">${i+1}</span>
+              ${s
+                ? `<span class="slot-name">${s.name}</span>`
+                : (activeItem
+                    ? `<button class="insert-btn" onclick="partyOrderingPlace('${activeItem.id}', ${i})">Hier platzieren</button>`
+                    : `<span class="slot-empty">– noch offen –</span>`)
+              }
+            </div>
+          `).join("")}
+        </div>
+        ${activeItem ? `<button class="btn btn-ghost" style="margin-top:10px;" onclick="partySelectOrderingItem(null)">Andere Auswahl</button>` : ``}
+      `}
+
+      <div class="picker-sub" style="margin-top:18px;">Mitspieler</div>
+      <div class="party-players">
+        ${msg.leaderboard.filter(p=>p.playerId!==party.playerId).map(p => `
+          <div class="party-player-row">
+            <span>${p.isBot?'🤖':'👤'} ${p.name}</span>
+            <span style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim);">
+              ${p.correctCount}/${msg.totalItems}
+              ${Array.from({length:3}).map((_,i)=>`<span class="heart ${i<p.lives?'on':''}" style="font-size:12px;">❤</span>`).join("")}
+              ${p.finished ? (p.finishedPerfect?' 🏆':' ✅') : (p.eliminated?' ❌':'')}
+            </span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `);
+  startOrderingTicker(msg);
+}
+function partySelectOrderingItem(itemId){
+  party.selectedOrderingItemId = itemId;
+  if(party.orderingMsg) renderPartyOrdering(party.orderingMsg);
+}
+function partyOrderingPlace(itemId, slotIndex){
+  document.querySelectorAll(".insert-btn").forEach(b=>b.disabled = true);
+  party.selectedOrderingItemId = null;
+  partySend({action:'rankPlace', itemId, insertIndex: slotIndex});
+}
+function startOrderingTicker(msg){
+  if(party.orderingTickerId) clearInterval(party.orderingTickerId);
+  const startedAt = Date.now();
+  const totalMs = Math.max(1, msg.remainingMs);
+  party.orderingTickerId = setInterval(() => {
+    const elapsed = Date.now() - startedAt;
+    const remaining = Math.max(0, totalMs - elapsed);
+    const fill = document.getElementById("orderingTimerFill");
+    const num = document.getElementById("orderingTimerNum");
+    if(fill){ fill.style.width = Math.max(0,(remaining/totalMs)*100) + "%"; fill.classList.toggle("warn", remaining < totalMs*0.2); }
+    if(num) num.textContent = Math.ceil(remaining/1000) + "s";
+    if(remaining <= 0) clearInterval(party.orderingTickerId);
+  }, 150);
+}
+// Sobald jemand PERFEKT fertig ist, bekommen alle anderen nur noch 30s –
+// der direkt danach folgende orderingState-Broadcast bringt die neue
+// remainingMs mit und rendert (inkl. Timer) automatisch neu; hier wird nur
+// sofort der Hinweis eingeblendet, damit es nicht überraschend wirkt.
+function handleOrderingHurry(msg){
+  const note = document.getElementById("orderingHurryNote");
+  if(note) note.classList.remove("hidden");
+}
+function renderPartyOrderingFinal(msg){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">AUFLÖSUNG</div>
+      <div class="picker-sub">${msg.label}</div>
+      <div class="party-players" style="margin-top:10px;">
+        ${msg.results.map(r => {
+          const player = msg.players.find(p=>p.id===r.playerId);
+          return `
+            <div class="party-player-row">
+              <span>#${r.rank} ${player ? player.name : ''}${r.finishedPerfect?' 🏆':''}</span>
+              <span style="font-size:12px; color:var(--text-dim);">${r.correctCount}/${r.totalItems} · ${r.lives} ❤</span>
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `);
+}
+
 /* ---------- Bild erraten ---------- */
 function renderPartyGuessItem(msg){
   party.guessMsg = msg;
@@ -2645,7 +2806,7 @@ function renderPartyGuessItem(msg){
       </div>
       <div class="guess-points-badge" id="guessPointsBadge">5 Punkte</div>
       <div class="guess-image-wrap">
-        <div class="guess-image ${msg.promptType==='emoji' ? 'guess-emoji' : ''}" id="guessImage">
+        <div class="guess-image ${msg.promptType==='emoji' ? 'guess-emoji' : ''}" id="guessImage" style="filter: blur(18px);">
           ${msg.promptType === 'emoji' ? msg.promptValue : `<img src="${msg.promptValue}" alt="Errate das Bild">`}
         </div>
       </div>
@@ -2719,6 +2880,128 @@ function renderPartyGuessResolved(msg){
     <div class="panel confirm-card">
       <div class="points-badge ${team?'pos':'neg'}">${msg.correctAnswer}</div>
       <p style="margin-top:10px; font-weight:700;">${team ? `${team.name} hatte es zuerst richtig (+${msg.points})` : 'Niemand hat es rechtzeitig erraten'}</p>
+    </div>
+  `);
+}
+
+/* ---------- Musik raten (YouTube IFrame API) ---------- */
+// Wird einmalig geladen; mehrere Songs in Folge nutzen denselben Player neu.
+let ytApiReady = false;
+let ytApiLoadingPromise = null;
+function loadYouTubeApi(){
+  if(ytApiReady && window.YT && window.YT.Player) return Promise.resolve();
+  if(ytApiLoadingPromise) return ytApiLoadingPromise;
+  ytApiLoadingPromise = new Promise((resolve) => {
+    if(window.YT && window.YT.Player){ ytApiReady = true; resolve(); return; }
+    const prevCallback = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { ytApiReady = true; if(prevCallback) prevCallback(); resolve(); };
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+  });
+  return ytApiLoadingPromise;
+}
+
+let ytPlayer = null;
+let ytStopTimer = null;
+
+function renderPartyMusicItem(msg){
+  party.musicMsg = msg;
+  party.guessAnswered = false; // dieselbe Sperre wie bei Bild erraten: eigenes Team schon richtig -> keine weiteren Versuche
+  party.musicManualStartShown = false;
+  renderApp(`
+    <div class="panel">
+      <div class="qmeta">
+        <div class="qcount">${msg.index+1} von ${msg.total}</div>
+        <div class="qcat">${msg.label}</div>
+      </div>
+      <div class="guess-points-badge" id="guessPointsBadge">${msg.tiers[0]} Punkte</div>
+      <div class="music-player-wrap">
+        <div id="musicPlayerHost" style="width:1px; height:1px; overflow:hidden; position:absolute;"></div>
+        <div class="music-overlay">
+          <div class="music-note-icon">🎵</div>
+          <div id="musicStatusText" style="font-size:12px; color:var(--text-dim); margin-top:8px;">Lädt …</div>
+        </div>
+      </div>
+      <div class="timer-wrap">
+        <div class="timer-bar"><div id="guessTimerFill" class="timer-fill" style="width:100%"></div></div>
+      </div>
+      <div class="picker-form" style="margin-top:14px;">
+        <input type="text" id="guessInput" class="builder-search" style="margin-top:0;" placeholder="Interpret oder Songtitel" autocomplete="off" onkeydown="if(event.key==='Enter')submitPartyGuess()">
+        <button class="btn btn-primary" onclick="submitPartyGuess()">RATEN</button>
+      </div>
+      <div id="guessAttemptsFeed" class="guess-attempts-feed"></div>
+    </div>
+  `);
+  startMusicPlayback(msg);
+  startGuessTicker(msg); // dieselbe Punkte-/Zeitbalken-Logik wie bei Bild erraten, nur ohne Blur-Bild
+}
+
+function startMusicPlayback(msg){
+  loadYouTubeApi().then(() => {
+    // Falls der Screen inzwischen gewechselt hat (z.B. schneller Buzzer), nicht mehr eingreifen.
+    if(!party.musicMsg || party.musicMsg.index !== msg.index) return;
+    const statusEl = document.getElementById("musicStatusText");
+    const host = document.getElementById("musicPlayerHost");
+    if(!host) return;
+    if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
+    if(ytStopTimer){ clearTimeout(ytStopTimer); ytStopTimer = null; }
+
+    ytPlayer = new YT.Player(host, {
+      height: '1', width: '1',
+      videoId: msg.youtubeId,
+      playerVars: { autoplay: 1, controls: 0, start: msg.startSeconds || 0, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1 },
+      events: {
+        onReady: (e) => {
+          try{
+            e.target.seekTo(msg.startSeconds || 0, true);
+            e.target.playVideo();
+          }catch(err){}
+          ytStopTimer = setTimeout(() => stopMusicPlayback(), (msg.clipSeconds||10)*1000);
+        },
+        onError: () => {
+          if(statusEl) statusEl.textContent = "Video nicht verfügbar – trotzdem raten oder auf die Auflösung warten.";
+        },
+        onStateChange: (e) => {
+          if(statusEl && e.data === YT.PlayerState.PLAYING) statusEl.textContent = "";
+          // Manche Browser blockieren Autoplay mit Ton, bis der Nutzer interagiert hat.
+          // Wenn der Player nach dem Laden direkt wieder pausiert dasteht, Hinweis + manueller Start.
+          if(statusEl && e.data === YT.PlayerState.PAUSED && !party.musicManualStartShown){
+            party.musicManualStartShown = true;
+            statusEl.innerHTML = `<button class="btn btn-primary" style="margin-top:6px; padding:6px 14px;" onclick="manualStartMusic()">▶ Ton abspielen</button>`;
+          }
+        }
+      }
+    });
+  });
+}
+function manualStartMusic(){
+  if(ytPlayer){ try{ ytPlayer.playVideo(); }catch(e){} }
+  const statusEl = document.getElementById("musicStatusText");
+  if(statusEl) statusEl.textContent = "";
+}
+// Stoppt die Wiedergabe – nach Ablauf der Zeit ODER sobald irgendwer einen
+// Rateversuch abgibt (Server broadcastet dafür "musicStop" an alle).
+function stopMusicPlayback(){
+  if(ytStopTimer){ clearTimeout(ytStopTimer); ytStopTimer = null; }
+  if(ytPlayer){ try{ ytPlayer.pauseVideo(); }catch(e){} }
+}
+
+function renderPartyMusicResolved(msg){
+  if(party.guessTickerId) clearInterval(party.guessTickerId);
+  stopMusicPlayback();
+  const team = msg.winnerTeamId ? party.room.teams.find(t=>t.id===msg.winnerTeamId) : null;
+  renderApp(`
+    <div class="panel confirm-card">
+      <div class="points-badge ${team?'pos':'neg'}">${team ? `+${msg.points}` : 'Niemand hat es geschafft'}</div>
+      <div style="margin-top:14px; display:flex; align-items:center; gap:12px; justify-content:center;">
+        ${msg.cover ? `<img src="${msg.cover}" alt="" style="width:64px; height:64px; border-radius:10px; object-fit:cover;">` : ''}
+        <div style="text-align:left;">
+          <div style="font-weight:800; font-size:17px;">${msg.title}</div>
+          <div style="color:var(--text-dim);">${msg.artist}${msg.year?' · '+msg.year:''}</div>
+        </div>
+      </div>
+      ${team ? `<p style="margin-top:10px; font-weight:700;">${team.name} hatte es zuerst richtig!</p>` : ``}
     </div>
   `);
 }
