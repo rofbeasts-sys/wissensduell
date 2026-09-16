@@ -50,10 +50,7 @@ setTimeout(() => {
       console.log(`>>> Runde ${msg.roundNumber}/${msg.totalRounds}: ${msg.kind} (${msg.label})`);
     }
     if (msg.type === "rankState" && msg.freeChoice) {
-      const placedDesc = msg.kind === "orderingGame"
-        ? msg.slots.map(s => s ? s.name : "·").join(" | ")
-        : (msg.placed.map(p=>p.name).join(" -> ") || "(leer)");
-      console.log(`   Pool sichtbar (${msg.pool.length}): ${msg.pool.map(p=>p.name).join(", ")} | Raster: ${placedDesc}`);
+      console.log(`   Pool sichtbar (${msg.pool.length}): ${msg.pool.map(p=>p.name).join(", ")} | Raster: ${msg.placed.map(p=>p.name).join(" -> ") || "(leer)"}`);
     }
     if (msg.type === "quizQuestion") {
       // Host antwortet bewusst nicht sofort, um zu sehen, dass die Bots trotzdem termingerecht handeln
@@ -68,11 +65,30 @@ setTimeout(() => {
     if (msg.type === "rankState" && msg.turnTeamId && !msg.turnTeamId.startsWith("bot_")) {
       // Der Host ist an der Reihe (kein Bot-Team) -> Testclient zieht ebenfalls, damit die Runde weiterläuft
       if (msg.freeChoice && msg.pool && msg.pool.length > 0) {
-        const idx = msg.kind === "orderingGame" ? msg.slots.findIndex((s) => s === null) : 0;
-        if (idx !== -1) setTimeout(() => host.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: idx }), 200);
+        setTimeout(() => host.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: 0 }), 200);
       } else if (!msg.freeChoice && msg.currentItem) {
         setTimeout(() => host.send({ action: "rankPlace", itemId: msg.currentItem.id, insertIndex: 0 }), 200);
       }
+    }
+    if (msg.type === "orderingState") {
+      // Einordnen (gleichzeitiger Modus, eigenes Raster/eigene Leben je Spieler,
+      // auch für Bots): Host spielt ebenfalls mit, erster freier Slot.
+      console.log(`   [Einordnen] eigene Leben: ${msg.lives} | richtig: ${msg.correctCount}/${msg.totalItems} | fertig=${msg.finished} eliminiert=${msg.eliminated}`);
+      if (!msg.finished && !msg.eliminated) {
+        const idx = msg.slots.findIndex((s) => s === null);
+        if (msg.pool && msg.pool.length && idx !== -1) {
+          setTimeout(() => host.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: idx }), 200);
+        }
+      }
+    }
+    if (msg.type === "orderingHurry") {
+      console.log("   [Einordnen] Eile-Timer ausgelöst, remainingMs:", msg.remainingMs);
+    }
+    if (msg.type === "orderingFinalReveal") {
+      console.log("   [Einordnen] Endergebnis:", msg.results.map(r => {
+        const p = msg.players.find(pl => pl.id === r.playerId);
+        return `${p ? p.name : r.playerId}:#${r.rank}(${r.correctCount}/${r.totalItems},${r.lives}❤)`;
+      }).join(" "));
     }
     if (msg.type === "roundEnd" && !msg.isLastRound) {
       setTimeout(() => host.send({ action: "continue" }), 150);
@@ -90,5 +106,5 @@ setTimeout(() => {
     host.close();
     server.kill();
     process.exit(sawGameEnd ? 0 : 1);
-  }, 90000);
+  }, 300000);
 }, 700);

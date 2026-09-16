@@ -64,11 +64,16 @@ setTimeout(() => {
     if (msg.type === "rankState") {
       // Mehr oder Weniger/Chronologie: automatisch gezogenes currentItem direkt
       // verwenden, relative Lücke 0 ist dort immer ein gültiger Index.
-      // Einordnen (orderingGame, festes Positionsraster): erster freier Slot.
       const target = msg.currentItem || (msg.pool && msg.pool.length ? msg.pool[0] : null);
-      const idx = msg.kind === "orderingGame" ? msg.slots.findIndex((s) => s === null) : 0;
-      if (target && msg.turnTeamId && idx !== -1) {
-        setTimeout(() => host.send({ action: "rankPlace", itemId: target.id, insertIndex: idx }), 30);
+      if (target && msg.turnTeamId) {
+        setTimeout(() => host.send({ action: "rankPlace", itemId: target.id, insertIndex: 0 }), 30);
+      }
+    }
+    if (msg.type === "orderingState" && !msg.finished && !msg.eliminated) {
+      // Einordnen (gleichzeitiger Modus): erstes Pool-Element auf den ersten freien Slot.
+      const idx = msg.slots.findIndex((s) => s === null);
+      if (msg.pool && msg.pool.length && idx !== -1) {
+        setTimeout(() => host.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: idx }), 30);
       }
     }
     if (msg.type === "roundEnd") {
@@ -87,8 +92,13 @@ setTimeout(() => {
     }
     if (msg.type === "rankState" && msg.turnTeamId) {
       const target = msg.currentItem || (msg.pool && msg.pool.length ? msg.pool[0] : null);
-      const idx = msg.kind === "orderingGame" ? msg.slots.findIndex((s) => s === null) : 0;
-      if (target && idx !== -1) setTimeout(() => guest.send({ action: "rankPlace", itemId: target.id, insertIndex: idx }), 40);
+      if (target) setTimeout(() => guest.send({ action: "rankPlace", itemId: target.id, insertIndex: 0 }), 40);
+    }
+    if (msg.type === "orderingState" && !msg.finished && !msg.eliminated) {
+      const idx = msg.slots.findIndex((s) => s === null);
+      if (msg.pool && msg.pool.length && idx !== -1) {
+        setTimeout(() => guest.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: idx }), 40);
+      }
     }
   });
 
@@ -98,5 +108,5 @@ setTimeout(() => {
     host.close(); guest.close();
     server.kill();
     process.exit(sawGameEnd && roundsSeen === 5 ? 0 : 1);
-  }, 120000);
+  }, 200000);
 }, 700);
