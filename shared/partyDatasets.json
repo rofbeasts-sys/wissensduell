@@ -3154,5 +3154,512 @@
     }
    ]
   }
+ },
+ "guessMusic": {
+  "musik_demo": {
+   "label": "Musik raten: Demo-Auswahl",
+   "items": [
+    {
+     "id": "bohemian_rhapsody",
+     "youtubeId": "fJ9rUzIMcZQ",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Bohemian Rhapsody",
+     "artist": "Queen",
+     "year": 1975,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "africa_toto",
+     "youtubeId": "FTQbiNvZqaY",
+     "startSeconds": 15,
+     "clipSeconds": 10,
+     "title": "Africa",
+     "artist": "Toto",
+     "year": 1982,
+     "genre": "Pop",
+     "cover": null
+    }
+   ]
+  },
+  "musik_kernliste": {
+   "label": "Musik raten: Kernliste (Charts & Deutschrap)",
+   "items": [
+    {
+     "id": "mj_billiejean",
+     "youtubeId": "Zi_XLOBDo_Y",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Billie Jean",
+     "artist": "Michael Jackson",
+     "year": 1983,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_thriller",
+     "youtubeId": "sOnqjkJTMaA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Thriller",
+     "artist": "Michael Jackson",
+     "year": 1982,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_beatit",
+     "youtubeId": "oRdxUFDoQe0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Beat It",
+     "artist": "Michael Jackson",
+     "year": 1983,
+     "genre": "Rock/Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_smoothcriminal",
+     "youtubeId": "sFvENQBc-F8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Smooth Criminal",
+     "artist": "Michael Jackson",
+     "year": 1988,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_maninthemirror",
+     "youtubeId": "PivWY9wn5ps",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Man in the Mirror",
+     "artist": "Michael Jackson",
+     "year": 1988,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "em_loseyourself",
+     "youtubeId": "_Yhyp-_hX2s",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Lose Yourself",
+     "artist": "Eminem",
+     "year": 2002,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_withoutme",
+     "youtubeId": "YVkUvmDQ3HY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Without Me",
+     "artist": "Eminem",
+     "year": 2002,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_realslimshady",
+     "youtubeId": "eJO5HU_7_1w",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "The Real Slim Shady",
+     "artist": "Eminem",
+     "year": 2000,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_stan",
+     "youtubeId": "gOMhN-hfMtY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Stan",
+     "artist": "Eminem feat. Dido",
+     "year": 2000,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_notafraid",
+     "youtubeId": "j5-yKhDd64s",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Not Afraid",
+     "artist": "Eminem",
+     "year": 2010,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "jb_sorry",
+     "youtubeId": "fRh_vgS2dFE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Sorry",
+     "artist": "Justin Bieber",
+     "year": 2015,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "jb_baby",
+     "youtubeId": "kffacxfA7G4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Baby",
+     "artist": "Justin Bieber feat. Ludacris",
+     "year": 2010,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "jb_loveyourself",
+     "youtubeId": "oyEuk8j8imI",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Love Yourself",
+     "artist": "Justin Bieber",
+     "year": 2015,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "jb_peaches",
+     "youtubeId": "tQ0yjYUFKAE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Peaches",
+     "artist": "Justin Bieber feat. Daniel Caesar & Giveon",
+     "year": 2021,
+     "genre": "Pop/R&B",
+     "cover": null
+    },
+    {
+     "id": "jb_whatdoyoumean",
+     "youtubeId": "DK_0jXPuIr0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "What Do You Mean?",
+     "artist": "Justin Bieber",
+     "year": 2015,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "dr_godsplan",
+     "youtubeId": "xpVfcZ0ZcFM",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "God's Plan",
+     "artist": "Drake",
+     "year": 2018,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "dr_onedance",
+     "youtubeId": "u4RFOL9lKUI",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "One Dance",
+     "artist": "Drake feat. Wizkid & Kyla",
+     "year": 2016,
+     "genre": "Pop/Dancehall",
+     "cover": null
+    },
+    {
+     "id": "dr_hotlinebling",
+     "youtubeId": "uxpDa-c-4Mc",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Hotline Bling",
+     "artist": "Drake",
+     "year": 2015,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "dr_inmyfeelings",
+     "youtubeId": "DRS_PpOrUZ4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "In My Feelings",
+     "artist": "Drake",
+     "year": 2018,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "dr_startedfromthebottom",
+     "youtubeId": "RubBzkZzpUA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Started From the Bottom",
+     "artist": "Drake",
+     "year": 2013,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "rh_umbrella",
+     "youtubeId": "CvBfHwUxHIk",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Umbrella",
+     "artist": "Rihanna feat. Jay-Z",
+     "year": 2007,
+     "genre": "Pop/R&B",
+     "cover": null
+    },
+    {
+     "id": "rh_diamonds",
+     "youtubeId": "lWA2pjMjpBs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Diamonds",
+     "artist": "Rihanna",
+     "year": 2012,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "rh_work",
+     "youtubeId": "HL1UzIK-flA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Work",
+     "artist": "Rihanna feat. Drake",
+     "year": 2016,
+     "genre": "Pop/Dancehall",
+     "cover": null
+    },
+    {
+     "id": "rh_wefoundlove",
+     "youtubeId": "HxKAPkzI4o8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "We Found Love",
+     "artist": "Rihanna feat. Calvin Harris",
+     "year": 2011,
+     "genre": "Pop/EDM",
+     "cover": null
+    },
+    {
+     "id": "rh_stay",
+     "youtubeId": "JF8BRvqGCNs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Stay",
+     "artist": "Rihanna feat. Mikky Ekko",
+     "year": 2013,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "cb_nurnochgucci",
+     "youtubeId": "G-iwLoyH6ZE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Nur noch Gucci",
+     "artist": "Capital Bra",
+     "year": 2017,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "cb_tilidin",
+     "youtubeId": "bY6059rr7BU",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Tilidin",
+     "artist": "Capital Bra feat. Samra",
+     "year": 2019,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "cb_onenightstand",
+     "youtubeId": "P-_iVRTAFQ8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "One Night Stand",
+     "artist": "Capital Bra",
+     "year": 2018,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "sa_skandal",
+     "youtubeId": "cDJO-A_2Xzs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Skandal",
+     "artist": "Samra feat. AK Ausserkontrolle",
+     "year": 2023,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "ap_roller",
+     "youtubeId": "Fo3DAhiNKQo",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Roller",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_astronaut",
+     "youtubeId": "xyno53dCO7Q",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Astronaut",
+     "artist": "Sido feat. Andreas Bourani",
+     "year": 2015,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "si_meinblock",
+     "youtubeId": "H4odG4d_88g",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Mein Block",
+     "artist": "Sido",
+     "year": 2004,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_schlechtesvorbild",
+     "youtubeId": "9jjvlT78pU4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Schlechtes Vorbild",
+     "artist": "Sido",
+     "year": 2006,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_bilderimkopf",
+     "youtubeId": "RveIJFR7LV4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Bilder im Kopf",
+     "artist": "Sido",
+     "year": 2012,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_augenauf",
+     "youtubeId": "i5-NnEGU29I",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Augen auf",
+     "artist": "Sido",
+     "year": 2008,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_allesverloren",
+     "youtubeId": "kU_x44EhOSw",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Alles verloren",
+     "artist": "Bushido",
+     "year": 2007,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_alleswirdgut",
+     "youtubeId": "Sa5fqBVISmU",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Alles wird gut",
+     "artist": "Bushido",
+     "year": 2010,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_sonnenbankflavour",
+     "youtubeId": "Pp0yxAkclGY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Sonnenbank Flavour",
+     "artist": "Bushido",
+     "year": 2006,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_fuerimmerjung",
+     "youtubeId": "kxRRRkXNRcY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Für immer jung",
+     "artist": "Bushido feat. Karel Gott",
+     "year": 2008,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "cr_easy",
+     "youtubeId": "4wOoLLDXbDY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Easy",
+     "artist": "Cro",
+     "year": 2012,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "cr_traum",
+     "youtubeId": "8WQMBv2deYQ",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Traum",
+     "artist": "Cro",
+     "year": 2014,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "cr_whatever",
+     "youtubeId": "vGrfFzagzHs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Whatever",
+     "artist": "Cro",
+     "year": 2013,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "cr_badchick",
+     "youtubeId": "PySC3RGhZJU",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Bad Chick",
+     "artist": "Cro",
+     "year": 2014,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    }
+   ]
+  }
  }
 }
