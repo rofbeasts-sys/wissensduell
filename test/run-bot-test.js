@@ -90,6 +90,13 @@ setTimeout(() => {
         return `${p ? p.name : r.playerId}:#${r.rank}(${r.correctCount}/${r.totalItems},${r.lives}❤)`;
       }).join(" "));
     }
+    if (msg.type === "musicItem") {
+      console.log(`   [Musik raten] Song ${msg.index+1}/${msg.total}, bis zu ${msg.fieldMaxPoints} Punkte/Feld, ${msg.maxReplays} Wiederholungen möglich`);
+      setTimeout(() => host.send({ action: "guessSubmit", answers: { artist: "x", title: "x", year: "2000" } }), 200);
+    }
+    if (msg.type === "musicResolved") {
+      console.log(`   [Musik raten] Auflösung: "${msg.title}" von ${msg.artist} (${msg.year}) –`, msg.results.map(r => `${r.name}:+${r.total}`).join(" "));
+    }
     if (msg.type === "roundEnd" && !msg.isLastRound) {
       setTimeout(() => host.send({ action: "continue" }), 150);
     }

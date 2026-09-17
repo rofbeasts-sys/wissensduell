@@ -76,6 +76,11 @@ setTimeout(() => {
         setTimeout(() => host.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: idx }), 30);
       }
     }
+    if (msg.type === "musicItem") {
+      // Musik raten: sofort (irgendetwas) abgeben, damit die Runde zügig weiterläuft
+      // (Inhalt egal – der Test prüft hier nur den Spielfluss, nicht die Wertung).
+      setTimeout(() => host.send({ action: "guessSubmit", answers: { artist: "x", title: "x", year: "2000" } }), 30);
+    }
     if (msg.type === "roundEnd") {
       setTimeout(() => host.send({ action: "continue" }), 100);
     }
@@ -100,6 +105,9 @@ setTimeout(() => {
         setTimeout(() => guest.send({ action: "rankPlace", itemId: msg.pool[0].id, insertIndex: idx }), 40);
       }
     }
+    if (msg.type === "musicItem") {
+      setTimeout(() => guest.send({ action: "guessSubmit", answers: { artist: "y", title: "y", year: "2000" } }), 40);
+    }
   });
 
   setTimeout(() => {    console.log("\n=== TESTZUSAMMENFASSUNG ===");
@@ -108,5 +116,5 @@ setTimeout(() => {
     host.close(); guest.close();
     server.kill();
     process.exit(sawGameEnd && roundsSeen === 5 ? 0 : 1);
-  }, 200000);
+  }, 300000);
 }, 700);
