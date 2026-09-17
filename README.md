@@ -699,47 +699,110 @@ Sampler-Track, aber kein eigenes offizielles Musikvideo gefunden); Cro:
 Studio-Musikvideo). Einfach sagen, ob's andere/korrigierte Titel sein
 sollen, oder sie bleiben weg.
 
-**Server** (`server.js`, Abschnitt "RUNDE: guessMusic"): eigene, zu "Bild
-erraten" analoge Engine – `startGuessMusicRound()`, `nextMusicItem()`,
-`handleMusicSubmit()`, `resolveMusicItem()`, `scheduleBotMusicGuesses()`.
-Gestaffelte Punkte wie bei Bild erraten (`MUSIC_TIERS = [5,3,2,1]`), aber
-bezogen auf die tatsächliche `clipSeconds`-Dauer des jeweiligen Songs statt
-einer festen globalen Dauer. **Songtitel UND Interpret zählen beide als
-richtige Antwort** (Freitext, tippfehlertolerant – dieselbe
-`isGuessCorrect()`-Logik wie bei Bild erraten). Server kennt nur
-Video-ID/Zeitstempel/Dauer, keine Wiedergabe selbst – die läuft komplett
-im Client.
+**Server** (`server.js`, Abschnitt "RUNDE: guessMusic"): `startGuessMusicRound()`,
+`nextMusicItem()`, `handleMusicReplay()`, `handleMusicSubmit()`,
+`resolveMusicItem()`, `scheduleBotMusicGuesses()`. Server kennt nur
+Video-ID/Zeitstempel/Dauer, keine Wiedergabe selbst – die läuft komplett im
+Client.
 
-**Buzzer-Logik**: der erste Rateversuch bei einem Song (egal ob richtig
-oder falsch) löst serverseitig einen `musicStop`-Broadcast aus, der die
-Wiedergabe bei **allen** Spielern sofort stoppt – man hört den Clip also
-nur einmal an, unabhängig davon wer zuerst tippt. Nach Ablauf der Zeit ohne
-jeden Versuch stoppt sie ebenfalls automatisch.
+**Rate-Mechanik (nach Rückfrage so festgelegt):** alle hören den Clip
+gemeinsam/gleichzeitig, geben aber einzeln drei Antworten ab – Künstler,
+Titel, Jahr. Jedes Feld zählt für sich (schon ein richtiges Feld gibt
+Punkte, mehrere richtige Felder addieren sich). Punkte je richtigem Feld =
+`MUSIC_FIELD_MAX_POINTS` (3) minus Anzahl der bis zur EIGENEN Abgabe
+genutzten Wiederholungen (nie unter 1) – wer sofort abgibt, ohne dass die
+Gruppe eine Wiederholung angefordert hat, bekommt also bis zu 3 Punkte pro
+Feld (9 gesamt bei allen dreien), nach einer Wiederholung nur noch bis zu 2
+(6 gesamt), nach zwei Wiederholungen bis zu 1 (3 gesamt). Jede/r Spieler/in
+kann jederzeit "Nochmal hören" anfordern (max. `MUSIC_MAX_REPLAYS` = 2 pro
+Song, geteilt für den ganzen Raum) – der Clip läuft dabei **ab der
+Stopp-Stelle weiter** (nicht von vorne), jeweils weitere `clipSeconds`.
+Wichtig: die Punkte-Obergrenze wird für jede Abgabe genau in dem Moment
+festgeschrieben, in dem abgegeben wird – gibt jemand ab, BEVOR die Gruppe
+eine Wiederholung nutzt, bleibt sein Ergebnis bei einer späteren
+Wiederholung durch andere unverändert (mit echtem Serverlauf verifiziert:
+früh + richtig abgegeben = 9, blieb nach einer späteren Wiederholung durch
+eine andere Person bei 9). Jahr wird exakt verglichen, Künstler/Titel
+tippfehlertolerant über dieselbe `isGuessCorrect()`-Logik wie bei Bild
+erraten. Songtitel und Interpret sind unabhängige Felder (nicht wie zuvor
+eine einzelne Buzzer-Antwort).
 
 **Client** (`public/index.html`): YouTube IFrame API wird bei Bedarf einmalig
 nachgeladen (`loadYouTubeApi()`), der Player läuft unsichtbar (1×1 Pixel,
 per CSS versteckt) mit einem Overlay (🎵-Symbol) darüber, damit Titel/Cover
-im eingebetteten Player die Antwort nicht verraten. Rate- und
-Auflösungsbildschirm (`renderPartyMusicItem()`, `renderPartyMusicResolved()`)
-nutzen bewusst dieselben Eingabefeld-/Anzeige-Elemente wie "Bild erraten"
-(`guessInput`, `guessAttemptsFeed`, `submitPartyGuess()`), damit nichts
-doppelt gepflegt werden muss – Punktevergabe und Buzzer-Verhalten folgen
-also exakt dem bestehenden System, wie gefordert.
+im eingebetteten Player die Antwort nicht verraten. Rate-Bildschirm
+(`renderPartyMusicItem()`) zeigt drei Eingabefelder (Künstler/Titel/Jahr),
+einen "🔁 Nochmal hören"-Button mit Live-Anzeige der verbleibenden
+Wiederholungen und der aktuellen Punkte-Obergrenze, sowie einen Feed, wer
+bereits abgegeben hat. Auflösung (`renderPartyMusicResolved()`) zeigt
+Titel/Interpret/Jahr/Cover sowie je Spieler/in, welche Felder richtig waren
+und wie viele Punkte es gab.
 
 **Fallback bei nicht verfügbarem Video:** `onError`-Event des YouTube-Players
 zeigt "Video nicht verfügbar" an, die Runde läuft aber ganz normal weiter
-(Timeout greift wie gewohnt, niemand bekommt automatisch Punkte für diesen
-Song). **Autoplay-Hinweis:** manche Browser blockieren Ton-Autoplay ohne
-vorherige Nutzerinteraktion – in dem Fall erscheint automatisch ein
-"▶ Ton abspielen"-Button.
+(Zeit-Obergrenze `MUSIC_ROUND_CAP_MS` greift wie gewohnt). **Autoplay-Hinweis:**
+manche Browser blockieren Ton-Autoplay ohne vorherige Nutzerinteraktion – in
+dem Fall erscheint automatisch ein "▶ Ton abspielen"-Button.
 
 **Wichtige Einschränkung:** Ich konnte die eigentliche YouTube-Wiedergabe im
 Browser hier nicht selbst testen (keine echte Browser-Umgebung in meiner
-Werkstatt) – nur den Server-Ablauf (Rundenwechsel, Zufallsauswahl,
-Punktevergabe, Auflösung mit echten Songdaten) mit echten Serverläufen.
-Der Player-Code folgt dem offiziellen, etablierten YouTube-IFrame-API-Muster,
-aber probier ihn bitte einmal live aus, bevor du dich darauf verlässt –
-insbesondere den Autoplay-Fall auf dem Handy.
+Werkstatt) – nur den Server-Ablauf (Rundenwechsel, Zufallsauswahl, geteilter
+Wiederholungszähler mit Fortsetzung ab Stopp-Stelle, Feld-für-Feld-Wertung,
+Punkte-Obergrenze wird korrekt bei Abgabe festgeschrieben) mit echten
+Serverläufen samt echten Songdaten. Der Player-Code folgt dem offiziellen,
+etablierten YouTube-IFrame-API-Muster, aber probier ihn bitte einmal live
+aus, bevor du dich darauf verlässt – insbesondere den Autoplay-Fall auf dem
+Handy.
+
+## 7j. Solo-Einstieg korrigiert: 1 Runde mit Kategorie-Auswahl (nicht 5 automatisch)
+
+Korrektur zu 7j (die erste Fassung startete automatisch 5 zufällige Runden –
+das war ein Missverständnis meinerseits, jetzt richtiggestellt):
+
+Bugfix nebenbei: `startSoloPartyFlow()` kannte den Modus `"music"` bisher
+gar nicht (fiel fälschlich auf den gemischten Modus zurück) – behoben.
+
+Alle drei Solo-Einstiege (Stadt Land Fluss – Solo, Musik raten – Solo, der
+gemischte Solo-Modus) laufen jetzt so: Name bestätigen (Karte im Stil des
+Wissenstest-Bestätigungsbildschirms) → Kategorie-Auswahl-Bildschirm
+(`renderSoloCategoryPicker()`) mit "🎲 Zufällig" plus einer Kachel pro
+verfügbarer Kategorie **im jeweiligen Modus** (bei Stadt Land Fluss/Musik
+raten also nur deren eigene Kategorien, beim gemischten Modus alle
+Rundentypen inkl. Wissenstest/Einordnen/Chronologie/Mehr-oder-Weniger/Bild
+erraten/Musik raten einzeln wählbar) → danach genau **1 Runde** dieser
+Kategorie (nicht mehr 5). Umgesetzt über `chooseSoloCategory()`: setzt
+`roundCount` auf 1 (Server erlaubt das jetzt explizit, `allowed = [1, 5, 10,
+15, 20]` in `case "setRoundCount"`), bei konkreter Auswahl zusätzlich
+`roundMode:'custom'` + `setRoundDef` auf genau diese eine Kategorie, sonst
+`roundMode:'random'`. Ein Flag `party.soloPickerDone` verhindert, dass der
+Auswahlbildschirm während der folgenden Zwischen-`roomUpdate`s (ausgelöst
+durch die einzelnen `setRoundCount`/`setRoundMode`/`setRoundDef`-Aktionen)
+nochmal aufblitzt. Nach der einen Runde: Abschlussbildschirm mit "Noch eine
+Runde" (→ wieder zur Kategorie-Auswahl, Name bleibt gemerkt) oder "Zum
+Hauptmenü" (komplett raus) – wie gewünscht.
+
+Mit echten Serverläufen für alle drei Modi verifiziert: Kategorie-Auswahl
+zeigt die richtige, modus-eigene Liste; `roundCount` wird korrekt auf 1
+gesetzt; die Runde läuft genau einmal; `gameEnd` wird direkt danach erreicht
+(nicht erst nach 5 Runden); eine explizit gewählte Kategorie (getestet:
+Stadt Land Fluss "Original") wird auch tatsächlich verwendet.
+
+## 7k. "Solo" = direkt WissensDuell, "Solo-Party" (gemischt) entfernt
+
+Der gemischte "Solo-Party"-Modus war nur ein internes Test-Werkzeug des
+Nutzers, kein für Mitspieler gedachtes Feature, und wurde daher aus der
+Navigation entfernt. Die Hauptmenü-Kachel "Solo" heißt jetzt "WISSENSDUELL"
+(Übersetzungsschlüssel `menu_solo_title`) und führt weiterhin direkt zum
+klassischen Wissenstest (`startSoloFlow()`) – daran hat sich strukturell
+nichts geändert, nur die Beschriftung. Die frühere Zwischenauswahl
+"Wissenstest vs. Solo-Party" (`startSoloMenu()`) war im Hauptmenü ohnehin
+schon nicht mehr verlinkt; die Funktion ist jetzt eine reine Weiterleitung
+auf `renderMainMenu()`, damit die drei bestehenden Verweise darauf (als
+"Zurück"-Ziel bei Verbindungsfehlern) weiter funktionieren, ohne dass an
+drei Stellen im Code etwas geändert werden musste. Stadt Land Fluss – Solo
+und Musik raten – Solo sind davon nicht betroffen (nutzen weiterhin
+`startSoloPartyFlow('slf')` bzw. `('music')`, jetzt mit dem in 7j
+beschriebenen 1-Runden-Ablauf).
 
 ## 8. Bekannte Grenzen dieser ersten Version
 

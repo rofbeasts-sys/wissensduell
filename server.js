@@ -61,7 +61,7 @@ const SUPPORTED_LANGS = ["de", "en", "ja", "zh", "fr", "it", "es"];
 
 // Stadt-Land-Fluss-Konstanten (hier oben, da schon beim Aufbau des
 // Rundenpools benötigt – siehe buildRoundDefPool()/slfBuildRoundDef()).
-const SLF_DEFAULT_CATEGORIES = ["Stadt", "Land", "Fluss", "Name", "Tier", "Beruf", "Pflanze"];
+const SLF_DEFAULT_CATEGORIES = ["Stadt", "Land", "Fluss", "Name", "Tier", "Beruf", "Pflanze", "Farbe", "Automarke", "Promi"];
 const SLF_LETTERS = "ABCDEFGHIJKLMNOPRSTUVWZ".split(""); // Q, X, Y ausgelassen (zu schwer für flüssiges Spiel)
 const SLF_ANSWER_MS = 80000;      // Zeit zum Schreiben
 const SLF_HURRY_MS = 15000;       // Verkürzte Restzeit, sobald jemand ALLE Felder ausgefüllt abgegeben hat
@@ -1182,23 +1182,22 @@ function scheduleBotGuesses(room) {
 
 /* ------------------------------------------------------------------------ */
 /* RUNDE: guessMusic ("Musik raten")                                         */
-/* Ein YouTube-Clip spielt ab einem festen Zeitstempel für einige Sekunden.  */
-/* Wie bei "Bild erraten": Freitext, tippfehlertolerant, je früher richtig   */
-/* geraten wird desto mehr Punkte (gestaffelt über die Clip-Dauer). Akzeptiert*/
-/* wird sowohl der Songtitel als auch der Interpret. Die Wiedergabe stoppt   */
-/* automatisch nach Ablauf der Zeit ODER sobald jemand einen Versuch abgibt  */
-/* (erster "Buzzer"), rein clientseitig gesteuert über die YouTube IFrame    */
-/* API – der Server kennt nur Video-ID/Zeitstempel/Dauer, keine Wiedergabe.  */
+/* Ein YouTube-Clip spielt für alle gemeinsam/synchron (geteilte Wiedergabe).*/
+/* Jede/r kann bis zu MUSIC_MAX_REPLAYS mal "Nochmal hören" anfordern – der  */
+/* Clip spielt dabei ab der Stopp-Stelle weiter (nicht von vorne). Das senkt */
+/* die maximal erreichbare Punktzahl je Feld für ALLE Spieler (geteilte      */
+/* Entscheidung, da alle dasselbe hören). Jede/r gibt unabhängig von den     */
+/* anderen drei Antworten ab: Künstler, Titel, Jahr – jedes Feld zählt       */
+/* einzeln (schon ein richtiges Feld gibt Punkte, mehr richtige Felder geben */
+/* entsprechend mehr). Punkte je richtigem Feld = MUSIC_FIELD_MAX_POINTS     */
+/* minus Anzahl der bis zur EIGENEN Abgabe bereits genutzten Wiederholungen  */
+/* (mindestens 1). Freitext bei Künstler/Titel ist tippfehlertolerant        */
+/* (dieselbe isGuessCorrect()-Logik wie bei Bild erraten), Jahr exakt.       */
 /* ------------------------------------------------------------------------ */
-const MUSIC_TIERS = [5, 3, 2, 1];          // Punkte je Stufe, gleiche Staffelung wie Bild erraten
-const MUSIC_DEFAULT_CLIP_SECONDS = 10;     // Standard-Clipdauer, falls im Song nicht einzeln gesetzt
-
-function currentMusicTierPoints(rt) {
-  const elapsed = Date.now() - rt.currentStartedAt;
-  const tierMs = rt.currentDurationMs / MUSIC_TIERS.length;
-  const tierIdx = Math.min(Math.floor(elapsed / tierMs), MUSIC_TIERS.length - 1);
-  return MUSIC_TIERS[Math.max(0, tierIdx)];
-}
+const MUSIC_FIELD_MAX_POINTS = 3;      // Punkte je richtigem Feld ohne genutzte Wiederholung
+const MUSIC_MAX_REPLAYS = 2;           // max. "Nochmal hören"-Anfragen pro Song (geteilt, für alle)
+const MUSIC_DEFAULT_CLIP_SECONDS = 10; // Länge je Hördurchgang (erster Durchgang + jede Wiederholung)
+const MUSIC_ROUND_CAP_MS = 60000;      // Sicherheits-Obergrenze je Song, falls jemand nie abgibt
 
 function startGuessMusicRound(room, def) {
   const dsRaw = DATASETS.guessMusic[def.datasetKey];
@@ -1210,10 +1209,8 @@ function startGuessMusicRound(room, def) {
     items,
     index: -1,
     current: null,
-    currentStartedAt: 0,
-    currentDurationMs: 0,
-    currentResolved: false,
-    buzzedIn: false,       // true, sobald der erste Rateversuch bei diesem Song abgegeben wurde
+    replaysUsed: 0,     // geteilter Zähler für den aktuellen Song (0..MUSIC_MAX_REPLAYS)
+    perPlayer: new Map(), // playerId -> { submitted, answers:{artist,title,year}, points:{artist,title,year} }
     timer: null,
     roundPointsByTeam: new Map(teamIds.map(id => [id, 0]))
   };
@@ -1228,13 +1225,13 @@ function nextMusicItem(room) {
     return finishRoundEngine(room, rt.roundPointsByTeam);
   }
   rt.current = rt.items[rt.index];
-  rt.currentStartedAt = Date.now();
-  rt.currentResolved = false;
-  rt.buzzedIn = false;
-  const clipSeconds = rt.current.clipSeconds || MUSIC_DEFAULT_CLIP_SECONDS;
-  const durationMs = clipSeconds * 1000;
-  rt.currentDurationMs = durationMs;
+  rt.replaysUsed = 0;
+  rt.perPlayer = new Map();
+  room.players.forEach(p => {
+    rt.perPlayer.set(p.id, { submitted: false, answers: null, points: null });
+  });
 
+  const clipSeconds = rt.current.clipSeconds || MUSIC_DEFAULT_CLIP_SECONDS;
   broadcast(room, {
     type: "musicItem",
     index: rt.index,
@@ -1243,83 +1240,141 @@ function nextMusicItem(room) {
     youtubeId: rt.current.youtubeId,
     startSeconds: rt.current.startSeconds || 0,
     clipSeconds,
-    durationMs,
-    tierMs: durationMs / MUSIC_TIERS.length,
-    tiers: MUSIC_TIERS,
-    startedAt: rt.currentStartedAt
+    maxReplays: MUSIC_MAX_REPLAYS,
+    fieldMaxPoints: MUSIC_FIELD_MAX_POINTS
   });
 
-  rt.timer = setTimeout(() => resolveMusicItem(room, null, 0), durationMs + 400);
-  scheduleBotMusicGuesses(room, durationMs);
+  rt.timer = setTimeout(() => resolveMusicItem(room), MUSIC_ROUND_CAP_MS);
+  scheduleBotMusicGuesses(room);
 }
 
-function handleMusicSubmit(room, playerId, text) {
+// Jede/r Spieler/in kann das anfordern (nicht nur der Host) – wirkt sich auf
+// ALLE aus, da die Wiedergabe geteilt ist. Läuft ab der Stopp-Stelle weiter.
+function handleMusicReplay(room, playerId) {
   const rt = room.runtime;
-  if (!rt || rt.kind !== "guessMusic" || rt.currentResolved || !rt.current) return;
+  if (!rt || rt.kind !== "guessMusic" || !rt.current) return;
+  if (rt.replaysUsed >= MUSIC_MAX_REPLAYS) return;
+  const player = room.players.get(playerId);
+  if (!player) return;
+  rt.replaysUsed++;
+  const clipSeconds = rt.current.clipSeconds || MUSIC_DEFAULT_CLIP_SECONDS;
+  const continueFromSeconds = (rt.current.startSeconds || 0) + clipSeconds * rt.replaysUsed;
+  broadcast(room, {
+    type: "musicReplayGranted",
+    startSeconds: continueFromSeconds,
+    clipSeconds,
+    replaysUsed: rt.replaysUsed,
+    maxReplays: MUSIC_MAX_REPLAYS,
+    fieldMaxPoints: Math.max(1, MUSIC_FIELD_MAX_POINTS - rt.replaysUsed),
+    requestedBy: player.name
+  });
+}
+
+function currentMusicFieldCap(rt) {
+  return Math.max(1, MUSIC_FIELD_MAX_POINTS - rt.replaysUsed);
+}
+
+function handleMusicSubmit(room, playerId, answers) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "guessMusic" || !rt.current) return;
+  const st = rt.perPlayer.get(playerId);
+  if (!st || st.submitted) return;
   const player = room.players.get(playerId);
   if (!player) return;
 
-  // Erster Rateversuch bei diesem Song = "Buzzer": Wiedergabe stoppt für
-  // alle sofort, unabhängig davon ob die Antwort richtig oder falsch ist.
-  if (!rt.buzzedIn) {
-    rt.buzzedIn = true;
-    broadcast(room, { type: "musicStop" });
+  // Punkte-Obergrenze je Feld wird JETZT festgeschrieben (Stand der bis zu
+  // diesem Zeitpunkt genutzten Wiederholungen) – spätere Wiederholungen durch
+  // andere Spieler wirken sich nicht mehr rückwirkend auf diese Abgabe aus.
+  const cap = currentMusicFieldCap(rt);
+  const clean = {
+    artist: ((answers && answers.artist) || "").toString().slice(0, 60),
+    title: ((answers && answers.title) || "").toString().slice(0, 60),
+    year: ((answers && answers.year) || "").toString().slice(0, 10)
+  };
+  const artistCorrect = isGuessCorrect(clean.artist, { answer: rt.current.artist, alt: [] });
+  const titleCorrect = isGuessCorrect(clean.title, { answer: rt.current.title, alt: [] });
+  const yearCorrect = clean.year.trim() !== "" && parseInt(clean.year, 10) === rt.current.year;
+
+  const points = {
+    artist: artistCorrect ? cap : 0,
+    title: titleCorrect ? cap : 0,
+    year: yearCorrect ? cap : 0
+  };
+  const total = points.artist + points.title + points.year;
+
+  st.submitted = true;
+  st.answers = clean;
+  st.points = points;
+
+  if (total > 0 && player.teamId) {
+    rt.roundPointsByTeam.set(player.teamId, (rt.roundPointsByTeam.get(player.teamId) || 0) + total);
   }
 
-  // Songtitel UND Interpret zählen beide als richtige Antwort.
-  const correct = isGuessCorrect(text, { answer: rt.current.title, alt: [rt.current.artist, ...(rt.current.alt || [])] });
-  broadcast(room, { type: "guessAttempt", teamId: player.teamId, playerName: player.name, text: (text || "").slice(0, 40), correct });
-  if (correct) {
-    const pts = currentMusicTierPoints(rt);
-    resolveMusicItem(room, player.teamId, pts);
-  }
+  broadcast(room, {
+    type: "musicPlayerSubmitted",
+    playerId,
+    playerName: player.name,
+    total,
+    correct: { artist: artistCorrect, title: titleCorrect, year: yearCorrect }
+  });
+
+  const allSubmitted = Array.from(room.players.keys())
+    .filter(pid => !room.players.get(pid).isBot)
+    .every(pid => rt.perPlayer.get(pid) && rt.perPlayer.get(pid).submitted);
+  if (allSubmitted) { clearTimeout(rt.timer); resolveMusicItem(room); }
 }
 
-function resolveMusicItem(room, winnerTeamId, points) {
+function resolveMusicItem(room) {
   const rt = room.runtime;
-  if (!rt || rt.currentResolved) return;
-  rt.currentResolved = true;
+  if (!rt || !rt.current) return;
   clearTimeout(rt.timer);
-  if (!rt.buzzedIn) {
-    // Zeit einfach abgelaufen, ohne dass irgendwer geraten hat -> auch für
-    // alle die Wiedergabe stoppen (Client hätte sie ohnehin selbst nach
-    // clipSeconds gestoppt, das hier ist nur ein zusätzlicher Broadcast zur
-    // Sicherheit, z.B. falls der lokale Timer minimal abweicht).
-    broadcast(room, { type: "musicStop" });
-  }
-  if (winnerTeamId) {
-    rt.roundPointsByTeam.set(winnerTeamId, (rt.roundPointsByTeam.get(winnerTeamId) || 0) + points);
-  }
+
+  const results = Array.from(rt.perPlayer.entries()).map(([pid, st]) => {
+    const player = room.players.get(pid);
+    return {
+      playerId: pid,
+      name: player ? player.name : "?",
+      submitted: st.submitted,
+      answers: st.answers,
+      points: st.points,
+      total: st.points ? (st.points.artist + st.points.title + st.points.year) : 0
+    };
+  });
+
   broadcast(room, {
     type: "musicResolved",
     title: rt.current.title,
     artist: rt.current.artist,
-    cover: rt.current.cover || null,
     year: rt.current.year || null,
+    cover: rt.current.cover || null,
     genre: rt.current.genre || null,
-    winnerTeamId: winnerTeamId || null,
-    points: points || 0
+    results
   });
-  setTimeout(() => nextMusicItem(room), 3400);
+
+  rt.current = null;
+  setTimeout(() => nextMusicItem(room), 3800);
 }
 
-// Bots raten wie bei "Bild erraten" mit schwierigkeitsabhängiger Verzögerung
-// und Trefferquote – die Verzögerung wird auf die tatsächliche Clip-Dauer
-// dieses Songs bezogen (kürzere Clips -> Bots antworten entsprechend früher).
-// Der eigentliche Rateversuch läuft über handleMusicSubmit(), damit Bots
-// exakt denselben Weg (inkl. Buzzer-Stop-Broadcast) wie echte Spieler nehmen.
-function scheduleBotMusicGuesses(room, durationMs) {
+// Bots geben wie bei anderen Modi mit schwierigkeitsabhängiger Verzögerung
+// und Trefferquote ab – über denselben handleMusicSubmit()-Weg wie Menschen,
+// damit sie exakt denselben Regeln (inkl. aktuellem Wiederholungs-Stand)
+// unterliegen. Bots fordern selbst keine Wiederholungen an.
+function scheduleBotMusicGuesses(room) {
   const rt = room.runtime;
   const itemAtSchedule = rt.index;
+  const clipSeconds = (rt.current.clipSeconds || MUSIC_DEFAULT_CLIP_SECONDS);
   room.players.forEach(p => {
     if (!p.isBot) return;
     const tier = BOT_TIERS[p.botTier] || BOT_TIERS[DEFAULT_BOT_TIER];
-    const delayMs = Math.max(400, randRange(tier.quizMinPct, tier.quizMaxPct) * durationMs);
+    const delayMs = Math.max(600, randRange(tier.quizMinPct, tier.quizMaxPct) * clipSeconds * 1000);
     setTimeout(() => {
-      if (!room.runtime || room.runtime !== rt || rt.index !== itemAtSchedule || rt.currentResolved) return;
-      if (Math.random() < tier.prob) {
-        handleMusicSubmit(room, p.id, rt.current.title);
-      }
+      if (!room.runtime || room.runtime !== rt || rt.index !== itemAtSchedule || !rt.current) return;
+      const knowsIt = Math.random() < tier.prob;
+      handleMusicSubmit(room, p.id, {
+        artist: knowsIt ? rt.current.artist : "",
+        title: knowsIt ? rt.current.title : "",
+        year: knowsIt ? String(rt.current.year || "") : ""
+      });
     }, delayMs);
   });
 }
@@ -1348,7 +1403,7 @@ function slfBuildRoundDef(categories, mode) {
       categories: null
     };
   }
-  const cats = (categories && categories.length ? categories : SLF_DEFAULT_CATEGORIES).slice(0, 8);
+  const cats = (categories && categories.length ? categories : SLF_DEFAULT_CATEGORIES).slice(0, 10);
   return {
     id: mode === "custom" ? "slf_custom" : "slf_original",
     kind: "stadtLandFluss",
@@ -1888,7 +1943,7 @@ wss.on("connection", (ws) => {
       case "setRoundCount":
         if (isHost && room.phase === "lobby") {
           const n = parseInt(msg.count, 10);
-          const allowed = [5, 10, 15, 20];
+          const allowed = [1, 5, 10, 15, 20];
           room.roundCount = allowed.includes(n) ? n : 5;
           if (room.roundMode === "custom") {
             // Bereits getroffene Auswahl beibehalten, nur auf neue Länge anpassen
@@ -2037,10 +2092,13 @@ wss.on("connection", (ws) => {
         break;
       case "guessSubmit":
         if (room.runtime && room.runtime.kind === "guessMusic") {
-          handleMusicSubmit(room, ws.playerId, msg.text);
+          handleMusicSubmit(room, ws.playerId, msg.answers);
         } else {
           handleGuessSubmit(room, ws.playerId, msg.text);
         }
+        break;
+      case "musicReplay":
+        handleMusicReplay(room, ws.playerId);
         break;
       case "slfSubmit":
         handleSlfSubmit(room, ws.playerId, msg.answers);
