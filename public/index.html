@@ -1051,7 +1051,7 @@ const I18N = {
   app_tagline: {de:"Beweise dein Wissen. 5 Fragen. Immer schwieriger. Immer schneller.", en:"Prove your knowledge. 5 questions. Ever harder. Ever faster.", ja:"あなたの知識を証明しよう。5問。どんどん難しく、どんどん速く。", zh:"证明你的知识。5道题。越来越难，越来越快。", fr:"Prouve tes connaissances. 5 questions. Toujours plus difficile. Toujours plus rapide.", it:"Dimostra la tua cultura. 5 domande. Sempre più difficile. Sempre più veloce.", es:"Demuestra tus conocimientos. 5 preguntas. Cada vez más difícil. Cada vez más rápido."},
   lang_picker_label: {de:"Sprache", en:"Language", ja:"言語", zh:"语言", fr:"Langue", it:"Lingua", es:"Idioma"},
 
-  menu_solo_title: {de:"SOLO", en:"SOLO", ja:"ソロ", zh:"单人", fr:"SOLO", it:"SOLO", es:"SOLO"},
+  menu_solo_title: {de:"WISSENSDUELL", en:"WISSENSDUELL", ja:"WISSENSDUELL", zh:"WISSENSDUELL", fr:"WISSENSDUELL", it:"WISSENSDUELL", es:"WISSENSDUELL"},
   menu_solo_desc: {de:"Spiele allein und verbessere deinen eigenen Punktestand und Rang.", en:"Play alone and improve your own score and rank.", ja:"一人でプレイして、自分のスコアとランクを上げよう。", zh:"独自游戏，提升你自己的分数和段位。", fr:"Joue seul et améliore ton propre score et ton rang.", it:"Gioca da solo e migliora il tuo punteggio e il tuo grado.", es:"Juega solo y mejora tu propia puntuación y rango."},
   menu_party_title: {de:"PARTY (WLAN)", en:"PARTY (WIFI)", ja:"パーティー（Wi-Fi）", zh:"聚会模式（WiFi）", fr:"SOIRÉE (WIFI)", it:"PARTY (WIFI)", es:"FIESTA (WIFI)"},
   menu_party_desc: {de:"Bis zu 6 Spieler auf eigenen Geräten im selben WLAN, mit Teams und mehreren Spielmodi.", en:"Up to 6 players on their own devices on the same network, with teams and multiple game modes.", ja:"同じネットワーク上で最大6人がそれぞれの端末で参加。チームと複数のゲームモード。", zh:"最多6名玩家在同一网络下用各自设备游玩，支持组队和多种模式。", fr:"Jusqu'à 6 joueurs sur leurs propres appareils sur le même réseau, avec équipes et plusieurs modes de jeu.", it:"Fino a 6 giocatori sui propri dispositivi nella stessa rete, con squadre e più modalità di gioco.", es:"Hasta 6 jugadores en sus propios dispositivos en la misma red, con equipos y varios modos de juego."},
@@ -1134,10 +1134,10 @@ function renderMainMenu(){
       <p>${t('app_tagline')}</p>
     </div>
     <div class="menu-grid">
-      <div class="mode-card" onclick="startSoloMenu()">
+      <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'startSoloFlow()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
         <div class="icon">🎯</div>
         <h3>${t('menu_solo_title')}</h3>
-        <p>${t('menu_solo_desc')}</p>
+        <p>${currentLang!=='de' ? t('solo_quiz_locked') : t('menu_solo_desc')}</p>
       </div>
       <div class="mode-card" onclick="startPartyFlow()">
         <div class="icon">🌐</div>
@@ -1317,34 +1317,17 @@ function startMusicMenu(){
     </div>
   `);
 }
+// Solo-Party (der gemischte gemeinsame Modus) war nur ein internes Test-Tool
+// und wird nicht mehr angeboten – "Solo" im Hauptmenü ist jetzt direkt
+// WissensDuell (startSoloFlow). Diese Funktion bleibt als reine Weiterleitung
+// bestehen, damit vorhandene "zurück"-Verweise weiterhin funktionieren.
 function startSoloMenu(){
-  const quizLocked = currentLang !== "de";
-  renderApp(`
-    <div class="panel">
-      <div class="picker-title">${t('solo_menu_title')}</div>
-      <div class="picker-sub">${t('solo_menu_sub')}</div>
-      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
-        <div class="mode-card" style="${quizLocked?'opacity:.45; cursor:default;':''}" onclick="${quizLocked?'':'startSoloFlow()'}">
-          <div class="icon">🎯</div>
-          <h3>${t('solo_quiz_title')}</h3>
-          <p>${quizLocked ? t('solo_quiz_locked') : t('solo_quiz_desc')}</p>
-        </div>
-        <div class="mode-card" onclick="startSoloPartyFlow()">
-          <div class="icon">🎲</div>
-          <h3>${t('solo_party_title')}</h3>
-          <p>${t('solo_party_desc')}</p>
-        </div>
-      </div>
-      <div class="actions-row" style="margin-top:18px;">
-        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
-      </div>
-    </div>
-  `);
+  renderMainMenu();
 }
 
 function startSoloFlow(){
   if(account){ beginSolo(accountAsProfile()); return; }
-  renderProfilePicker("WER SPIELT?", "Wähle dein Profil für den Solo-Modus.", [], beginSolo, "startSoloMenu");
+  renderProfilePicker("WER SPIELT?", "Wähle dein Profil für den Solo-Modus.", [], beginSolo, "renderMainMenu");
 }
 
 function beginSolo(profile){
@@ -1847,7 +1830,7 @@ function renderPartyDisconnected(wasSolo){
     <div class="panel party-waiting">
       <h2 style="color:var(--text); margin-bottom:8px;">Verbindung verloren</h2>
       <p>Die Verbindung zum ${wasSolo ? 'Server' : 'Party-Server'} wurde unterbrochen.</p>
-      <button class="btn btn-primary" style="margin-top:16px;" onclick="${wasSolo ? 'startSoloMenu()' : 'startPartyFlow()'}">${wasSolo ? 'ZURÜCK ZU SOLO' : 'ZURÜCK ZUR PARTY-AUSWAHL'}</button>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="${wasSolo ? 'renderMainMenu()' : 'startPartyFlow()'}">${wasSolo ? 'ZURÜCK ZUM MENÜ' : 'ZURÜCK ZUR PARTY-AUSWAHL'}</button>
     </div>
   `);
 }
@@ -1887,26 +1870,94 @@ function partyJoinRoom(){
 }
 function partySend(msg){ if(party && party.ws) party.ws.send(JSON.stringify(msg)); }
 function partyLeave(){ if(party && party.ws) party.ws.close(); party = null; renderMainMenu(); }
-function restartSoloParty(){ const gm = party && party.gameMode; if(party && party.ws) party.ws.close(); party = null; startSoloPartyFlow(gm); }
+function restartSoloParty(){ const gm = party && party.gameMode; if(party && party.ws) party.ws.close(); party = null; connectSoloPartyToPicker(gm, lastSoloPartyName); }
 function partySetLanguage(lang){ currentLang = lang; try{ localStorage.setItem("wq_lang", lang); }catch(e){} partySend({action:'setLanguage', language: lang}); }
 
 /* ---------- Solo-Party (Party-Engine allein gespielt, ohne Lobby/Bots) ---------- */
+// Genau wie beim klassischen Wissenstest: kurz den Namen bestätigen, dann
+// eine Kategorie wählen (oder zufällig) – kein Konfigurationsbildschirm mit
+// Sprache/Rundenzahl/Rundenmodus/Rundenbau mehr. Es ist immer genau EINE
+// Runde (der klassische Wissenstest bleibt mit seinen 5 Fragen unverändert,
+// das betrifft nur Stadt Land Fluss / Musik raten / den gemischten Modus).
+let lastSoloPartyName = "Du";
 function startSoloPartyFlow(gameMode){
-  const gm = gameMode === "slf" ? "slf" : "mixed";
+  const gm = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed");
+  const title = gm==='slf' ? 'STADT LAND FLUSS – SOLO' : (gm==='music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'));
+  const backFn = gm==='slf' ? 'startSlfMenu' : (gm==='music' ? 'startMusicMenu' : 'startSoloMenu');
+  renderApp(`
+    <div class="panel pass-card">
+      <div class="avatar-big" style="background:${avatarColor(lastSoloPartyName)}">${initials(lastSoloPartyName)}</div>
+      <div class="picker-title" style="margin-top:10px;">${title}</div>
+      <p>Wie heißt du?</p>
+      <div class="picker-form">
+        <input id="soloPartyName" type="text" placeholder="Dein Name" maxlength="20" value="${lastSoloPartyName}" onkeydown="if(event.key==='Enter')confirmSoloPartyName('${gm}')">
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="confirmSoloPartyName('${gm}')">WEITER</button>
+      <button class="btn btn-ghost" style="margin-top:8px;" onclick="${backFn}()">${t('btn_back')}</button>
+    </div>
+  `);
+}
+function confirmSoloPartyName(gm){
+  const input = document.getElementById("soloPartyName");
+  const name = ((input && input.value) || "Du").trim().slice(0,20) || "Du";
+  connectSoloPartyToPicker(gm, name);
+}
+function connectSoloPartyToPicker(gameMode, name){
+  const gm = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed");
+  lastSoloPartyName = name || "Du";
   partyConnect(
-    () => { party.soloMode = true; party.gameMode = gm; party.ws.send(JSON.stringify({ action:"createRoom", name:"Du", language: currentLang, gameMode: gm })); },
+    () => {
+      party.soloMode = true;
+      party.gameMode = gm;
+      party.soloPickerDone = false; // steuert im roomUpdate-Handler die Kategorie-Auswahl
+      party.ws.send(JSON.stringify({ action:"createRoom", name: lastSoloPartyName, language: currentLang, gameMode: gm }));
+    },
     (msg) => {
+      const title = gm==='slf' ? 'STADT LAND FLUSS – SOLO' : (gm==='music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'));
+      const backFn = gm==='slf' ? 'startSlfMenu' : (gm==='music' ? 'startMusicMenu' : 'startSoloMenu');
       renderApp(`
         <div class="panel">
-          <div class="picker-title">${gm==='slf' ? 'STADT LAND FLUSS – SOLO' : t('solo_party_title')}</div>
+          <div class="picker-title">${title}</div>
           <div class="explanation" style="border-color:var(--danger); color:var(--text);">${msg}</div>
           <div class="actions-row" style="margin-top:18px;">
-            <button class="btn btn-ghost" onclick="${gm==='slf' ? 'startSlfMenu()' : 'startSoloMenu()'}">${t('btn_back')}</button>
+            <button class="btn btn-ghost" onclick="${backFn}()">${t('btn_back')}</button>
           </div>
         </div>
       `);
     }
   );
+}
+// Auswahl für die eine Solo-Runde: zufällig, oder eine bestimmte Kategorie
+// aus dem für diesen gameMode verfügbaren Pool (bei Stadt Land Fluss/Musik
+// raten also nur deren eigene Kategorien, beim gemischten Modus alle).
+function renderSoloCategoryPicker(){
+  const room = party.room;
+  const title = room.gameMode==='slf' ? 'STADT LAND FLUSS – SOLO' : (room.gameMode==='music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'));
+  const backFn = room.gameMode==='slf' ? 'startSlfMenu' : (room.gameMode==='music' ? 'startMusicMenu' : 'startSoloMenu');
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">${title}</div>
+      <div class="picker-sub">Eine Runde – zufällig oder eine bestimmte Kategorie wählen.</div>
+      <div class="chip-group" style="margin-top:10px;">
+        <div class="chip-btn" onclick="chooseSoloCategory(null)">🎲 Zufällig</div>
+        ${room.availableRoundDefs.map(d => `<div class="chip-btn" onclick="chooseSoloCategory('${d.id}')">${d.label}</div>`).join("")}
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="partyLeave()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+function chooseSoloCategory(defId){
+  party.soloPickerDone = true; // weitere roomUpdates waehrend des Startvorgangs nicht mehr als Auswahlbildschirm zeigen
+  partySend({action:'setRoundCount', count:1});
+  if(defId){
+    partySend({action:'setRoundMode', mode:'custom'});
+    partySend({action:'setRoundDef', index:0, defId});
+  } else {
+    partySend({action:'setRoundMode', mode:'random'});
+  }
+  partySend({action:'startGame'});
 }
 
 /* ---------- Wiederverwendbare Bausteine: Rundenanzahl & Rundenplan ---------- */
@@ -1948,36 +1999,7 @@ function roundPlanReady(room){
   return room.roundMode !== 'custom' || (room.roundDefs.length === room.roundCount && room.roundDefs.every(Boolean));
 }
 
-function renderSoloPartyConfig(){
-  const room = party.room;
-  renderApp(`
-    <div class="panel">
-      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS – SOLO' : (room.gameMode === 'music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'))}</div>
-      <div class="picker-sub">${t('solo_party_config_sub')}</div>
 
-      <div class="settings-row">
-        <span class="label">${t('lang_picker_label')}</span>
-        <div class="chip-group">
-          ${AVAILABLE_LANGS.map(l => `<div class="chip-btn ${room.language===l.code?'active':''}" onclick="partySetLanguage('${l.code}')">${l.label}</div>`).join("")}
-        </div>
-      </div>
-      ${roundCountChipsHtml(room)}
-      <div class="settings-row">
-        <span class="label">${t('lobby_round_selection')}</span>
-        <div class="chip-group">
-          <div class="chip-btn ${room.roundMode==='random'?'active':''}" onclick="partySetRoundMode('random')">${t('lobby_random')}</div>
-          <div class="chip-btn ${room.roundMode==='custom'?'active':''}" onclick="partySetRoundMode('custom')">${t('lobby_custom')}</div>
-        </div>
-      </div>
-      ${roundPlanBlockHtml(room, 'renderSoloPartyConfig')}
-
-      <button class="btn btn-primary btn-block" style="margin-top:18px;" onclick="partySend({action:'startGame'})" ${roundPlanReady(room)?'':'disabled'}>${t('lets_go')}</button>
-      <div class="actions-row" style="margin-top:10px;">
-        <button class="btn btn-ghost" onclick="partyLeave()">${t('btn_cancel')}</button>
-      </div>
-    </div>
-  `);
-}
 
 function partyHandleMessage(msg){
   if(!party) return;
@@ -1998,8 +2020,15 @@ function partyHandleMessage(msg){
     case "roomUpdate":
       party.room = msg;
       if(msg.phase === "lobby"){
-        if(party.soloMode) renderSoloPartyConfig();
-        else renderPartyLobby();
+        if(party.soloMode){
+          // Zwischen-roomUpdates während des Startvorgangs (setRoundCount/
+          // setRoundMode/setRoundDef, ausgelöst von chooseSoloCategory)
+          // ignorieren, sobald die Auswahl einmal getroffen wurde – sonst
+          // würde kurz wieder der Auswahlbildschirm aufblitzen.
+          if(!party.soloPickerDone) renderSoloCategoryPicker();
+        } else {
+          renderPartyLobby();
+        }
       }
       break;
     case "roundStart":
@@ -2057,11 +2086,13 @@ function partyHandleMessage(msg){
       renderPartyGuessResolved(msg);
       break;
     case "musicItem":
-      party.guessAttempts = [];
       renderPartyMusicItem(msg);
       break;
-    case "musicStop":
-      stopMusicPlayback();
+    case "musicReplayGranted":
+      handleMusicReplayGranted(msg);
+      break;
+    case "musicPlayerSubmitted":
+      handlePartyMusicSubmitted(msg);
       break;
     case "musicResolved":
       renderPartyMusicResolved(msg);
@@ -2355,7 +2386,7 @@ function renderRoundBuilder(){
     </div>
   `);
 }
-const SLF_DEFAULT_CATEGORIES_CLIENT = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze"];
+const SLF_DEFAULT_CATEGORIES_CLIENT = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Promi"];
 
 function builderSetModeSearch(v){ party.roundBuilder.modeSearch = v; renderRoundBuilder(); }
 function builderSetCategorySearch(v){ party.roundBuilder.categorySearch = v; renderRoundBuilder(); }
@@ -2907,15 +2938,17 @@ let ytStopTimer = null;
 
 function renderPartyMusicItem(msg){
   party.musicMsg = msg;
-  party.guessAnswered = false; // dieselbe Sperre wie bei Bild erraten: eigenes Team schon richtig -> keine weiteren Versuche
+  party.musicSubmitted = false;
   party.musicManualStartShown = false;
+  party.musicReplaysUsed = 0;
+  party.musicSubmittedFeed = [];
   renderApp(`
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">${msg.index+1} von ${msg.total}</div>
         <div class="qcat">${msg.label}</div>
       </div>
-      <div class="guess-points-badge" id="guessPointsBadge">${msg.tiers[0]} Punkte</div>
+      <div class="guess-points-badge" id="musicCapBadge">bis zu ${msg.fieldMaxPoints} Punkte pro Feld</div>
       <div class="music-player-wrap">
         <div id="musicPlayerHost" style="width:1px; height:1px; overflow:hidden; position:absolute;"></div>
         <div class="music-overlay">
@@ -2924,37 +2957,51 @@ function renderPartyMusicItem(msg){
         </div>
       </div>
       <div class="timer-wrap">
-        <div class="timer-bar"><div id="guessTimerFill" class="timer-fill" style="width:100%"></div></div>
+        <div class="timer-bar"><div id="musicTimerFill" class="timer-fill" style="width:100%"></div></div>
       </div>
-      <div class="picker-form" style="margin-top:14px;">
-        <input type="text" id="guessInput" class="builder-search" style="margin-top:0;" placeholder="Interpret oder Songtitel" autocomplete="off" onkeydown="if(event.key==='Enter')submitPartyGuess()">
-        <button class="btn btn-primary" onclick="submitPartyGuess()">RATEN</button>
+      <div style="text-align:center; margin-top:10px;">
+        <button id="musicReplayBtn" class="btn btn-ghost" onclick="requestMusicReplay()">🔁 Nochmal hören (${msg.maxReplays} übrig, -1 Punkt/Feld)</button>
       </div>
-      <div id="guessAttemptsFeed" class="guess-attempts-feed"></div>
+      <div class="picker-form" style="flex-direction:column; gap:10px; margin-top:14px;">
+        <input type="text" id="musicArtistInput" class="builder-search" style="margin-top:0;" placeholder="Künstler" autocomplete="off">
+        <input type="text" id="musicTitleInput" class="builder-search" style="margin-top:0;" placeholder="Titel" autocomplete="off">
+        <input type="text" id="musicYearInput" class="builder-search" style="margin-top:0;" placeholder="Jahr" autocomplete="off" inputmode="numeric" onkeydown="if(event.key==='Enter')submitPartyMusicGuess()">
+        <button class="btn btn-primary" id="musicSubmitBtn" onclick="submitPartyMusicGuess()">ABGEBEN</button>
+      </div>
+      <div id="musicSubmittedFeed" class="guess-attempts-feed"></div>
+      <div id="musicWaitNote" class="explanation hidden" style="margin-top:10px;">Abgegeben! Warte auf die anderen …</div>
     </div>
   `);
-  startMusicPlayback(msg);
-  startGuessTicker(msg); // dieselbe Punkte-/Zeitbalken-Logik wie bei Bild erraten, nur ohne Blur-Bild
+  startMusicPlayback(msg, msg.startSeconds || 0);
+  startMusicItemTicker(msg.clipSeconds || 10);
 }
 
-function startMusicPlayback(msg){
+function startMusicPlayback(msg, startSeconds){
   loadYouTubeApi().then(() => {
-    // Falls der Screen inzwischen gewechselt hat (z.B. schneller Buzzer), nicht mehr eingreifen.
     if(!party.musicMsg || party.musicMsg.index !== msg.index) return;
     const statusEl = document.getElementById("musicStatusText");
     const host = document.getElementById("musicPlayerHost");
     if(!host) return;
-    if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
     if(ytStopTimer){ clearTimeout(ytStopTimer); ytStopTimer = null; }
+
+    if(ytPlayer){
+      // Player existiert schon (Wiederholung eines laufenden Songs) -> nur neu anspringen.
+      try{
+        ytPlayer.seekTo(startSeconds, true);
+        ytPlayer.playVideo();
+      }catch(e){}
+      ytStopTimer = setTimeout(() => stopMusicPlayback(), (msg.clipSeconds||10)*1000);
+      return;
+    }
 
     ytPlayer = new YT.Player(host, {
       height: '1', width: '1',
       videoId: msg.youtubeId,
-      playerVars: { autoplay: 1, controls: 0, start: msg.startSeconds || 0, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1 },
+      playerVars: { autoplay: 1, controls: 0, start: startSeconds, disablekb: 1, fs: 0, modestbranding: 1, playsinline: 1 },
       events: {
         onReady: (e) => {
           try{
-            e.target.seekTo(msg.startSeconds || 0, true);
+            e.target.seekTo(startSeconds, true);
             e.target.playVideo();
           }catch(err){}
           ytStopTimer = setTimeout(() => stopMusicPlayback(), (msg.clipSeconds||10)*1000);
@@ -2965,7 +3012,6 @@ function startMusicPlayback(msg){
         onStateChange: (e) => {
           if(statusEl && e.data === YT.PlayerState.PLAYING) statusEl.textContent = "";
           // Manche Browser blockieren Autoplay mit Ton, bis der Nutzer interagiert hat.
-          // Wenn der Player nach dem Laden direkt wieder pausiert dasteht, Hinweis + manueller Start.
           if(statusEl && e.data === YT.PlayerState.PAUSED && !party.musicManualStartShown){
             party.musicManualStartShown = true;
             statusEl.innerHTML = `<button class="btn btn-primary" style="margin-top:6px; padding:6px 14px;" onclick="manualStartMusic()">▶ Ton abspielen</button>`;
@@ -2980,28 +3026,109 @@ function manualStartMusic(){
   const statusEl = document.getElementById("musicStatusText");
   if(statusEl) statusEl.textContent = "";
 }
-// Stoppt die Wiedergabe – nach Ablauf der Zeit ODER sobald irgendwer einen
-// Rateversuch abgibt (Server broadcastet dafür "musicStop" an alle).
 function stopMusicPlayback(){
   if(ytStopTimer){ clearTimeout(ytStopTimer); ytStopTimer = null; }
   if(ytPlayer){ try{ ytPlayer.pauseVideo(); }catch(e){} }
 }
 
+// Rein optischer Fortschrittsbalken für den AKTUELLEN Hördurchgang (Erst-
+// oder Wiederholungs-Durchgang); die eigentliche Stopp-Zeitsteuerung läuft
+// separat über ytStopTimer.
+function startMusicItemTicker(clipSeconds){
+  if(party.musicTickerId) clearInterval(party.musicTickerId);
+  const startedAt = Date.now();
+  const durationMs = clipSeconds*1000;
+  party.musicTickerId = setInterval(() => {
+    const elapsed = Date.now() - startedAt;
+    const remaining = Math.max(0, durationMs - elapsed);
+    const fill = document.getElementById("musicTimerFill");
+    if(fill) fill.style.width = Math.max(0,(remaining/durationMs)*100) + "%";
+    if(remaining <= 0) clearInterval(party.musicTickerId);
+  }, 150);
+}
+
+function requestMusicReplay(){
+  const btn = document.getElementById("musicReplayBtn");
+  if(btn) btn.disabled = true;
+  partySend({action:'musicReplay'});
+}
+// Server broadcastet das an ALLE (geteilte Wiedergabe) – auch an alle, die
+// selbst keine Wiederholung angefordert haben; wirkt sich auf deren
+// Punkte-Obergrenze für die eigene (noch ausstehende) Abgabe aus.
+function handleMusicReplayGranted(msg){
+  party.musicReplaysUsed = msg.replaysUsed;
+  const badge = document.getElementById("musicCapBadge");
+  if(badge) badge.textContent = `bis zu ${msg.fieldMaxPoints} Punkte pro Feld`;
+  const remaining = msg.maxReplays - msg.replaysUsed;
+  const btn = document.getElementById("musicReplayBtn");
+  if(btn){
+    if(remaining > 0){
+      btn.disabled = false;
+      btn.textContent = `🔁 Nochmal hören (${remaining} übrig, -1 Punkt/Feld)`;
+    } else {
+      btn.style.display = "none";
+    }
+  }
+  if(!party.musicSubmitted && party.musicMsg){
+    startMusicPlayback(party.musicMsg, msg.startSeconds);
+    startMusicItemTicker(msg.clipSeconds || 10);
+  }
+}
+
+function submitPartyMusicGuess(){
+  if(party.musicSubmitted) return;
+  party.musicSubmitted = true;
+  const artist = (document.getElementById("musicArtistInput")||{}).value || "";
+  const title = (document.getElementById("musicTitleInput")||{}).value || "";
+  const year = (document.getElementById("musicYearInput")||{}).value || "";
+  partySend({action:'guessSubmit', answers:{artist, title, year}});
+  ["musicArtistInput","musicTitleInput","musicYearInput"].forEach(id => { const el=document.getElementById(id); if(el) el.disabled = true; });
+  const submitBtn = document.getElementById("musicSubmitBtn");
+  if(submitBtn) submitBtn.disabled = true;
+  const replayBtn = document.getElementById("musicReplayBtn");
+  if(replayBtn) replayBtn.disabled = true;
+  const note = document.getElementById("musicWaitNote");
+  if(note) note.classList.remove("hidden");
+}
+
+function handlePartyMusicSubmitted(msg){
+  if(!party.musicSubmittedFeed) party.musicSubmittedFeed = [];
+  party.musicSubmittedFeed.unshift(msg);
+  party.musicSubmittedFeed = party.musicSubmittedFeed.slice(0,6);
+  const feed = document.getElementById("musicSubmittedFeed");
+  if(feed){
+    feed.innerHTML = party.musicSubmittedFeed.map(m => `
+      <div class="resolve-row" style="padding:8px 14px;">
+        <span>${m.playerName}</span>
+        <span class="mark ${m.total>0?'ok':'bad'}">+${m.total}</span>
+      </div>
+    `).join("");
+  }
+}
+
 function renderPartyMusicResolved(msg){
-  if(party.guessTickerId) clearInterval(party.guessTickerId);
+  if(party.musicTickerId) clearInterval(party.musicTickerId);
   stopMusicPlayback();
-  const team = msg.winnerTeamId ? party.room.teams.find(t=>t.id===msg.winnerTeamId) : null;
+  if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
   renderApp(`
     <div class="panel confirm-card">
-      <div class="points-badge ${team?'pos':'neg'}">${team ? `+${msg.points}` : 'Niemand hat es geschafft'}</div>
-      <div style="margin-top:14px; display:flex; align-items:center; gap:12px; justify-content:center;">
+      <div style="display:flex; align-items:center; gap:12px; justify-content:center;">
         ${msg.cover ? `<img src="${msg.cover}" alt="" style="width:64px; height:64px; border-radius:10px; object-fit:cover;">` : ''}
         <div style="text-align:left;">
           <div style="font-weight:800; font-size:17px;">${msg.title}</div>
           <div style="color:var(--text-dim);">${msg.artist}${msg.year?' · '+msg.year:''}</div>
         </div>
       </div>
-      ${team ? `<p style="margin-top:10px; font-weight:700;">${team.name} hatte es zuerst richtig!</p>` : ``}
+      <div class="party-players" style="margin-top:16px;">
+        ${msg.results.map(r => `
+          <div class="party-player-row">
+            <span>${r.name}${r.submitted ? '' : ' (nicht abgegeben)'}</span>
+            <span style="font-size:12px; color:var(--text-dim);">
+              ${r.points ? `👤${r.points.artist>0?'✓':'✕'} 🎵${r.points.title>0?'✓':'✕'} 📅${r.points.year>0?'✓':'✕'} · +${r.total}` : '+0'}
+            </span>
+          </div>
+        `).join("")}
+      </div>
     </div>
   `);
 }
