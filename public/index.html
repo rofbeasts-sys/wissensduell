@@ -1154,6 +1154,11 @@ function renderMainMenu(){
         <h3>Musik raten</h3>
         <p>Eigener Modus – Solo oder mit Freunden</p>
       </div>
+      <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'startNennsBlitzMenu()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
+        <div class="icon">⚡</div>
+        <h3>Nenn's Blitz</h3>
+        <p>${currentLang!=='de' ? 'Nur auf Deutsch verfügbar' : 'Eigener Modus – Solo oder mit Freunden'}</p>
+      </div>
     </div>
     <div class="menu-secondary">
       <button class="btn btn-ghost" onclick="renderRanking()">${t('menu_ranking')}</button>
@@ -1306,6 +1311,29 @@ function startMusicMenu(){
           <p>Allein gegen die Uhr, in deinem Tempo.</p>
         </div>
         <div class="mode-card" onclick="startPartyFlow('music')">
+          <div class="icon">🌐</div>
+          <h3>Multiplayer</h3>
+          <p>Raum erstellen oder einem Raum beitreten.</p>
+        </div>
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+function startNennsBlitzMenu(){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">NENN'S BLITZ</div>
+      <div class="picker-sub">Wähle, wie du spielen möchtest.</div>
+      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
+        <div class="mode-card" onclick="startSoloPartyFlow('blitz')">
+          <div class="icon">🎧</div>
+          <h3>Solo</h3>
+          <p>Allein gegen die Uhr, in deinem Tempo.</p>
+        </div>
+        <div class="mode-card" onclick="startPartyFlow('blitz')">
           <div class="icon">🌐</div>
           <h3>Multiplayer</h3>
           <p>Raum erstellen oder einem Raum beitreten.</p>
@@ -1732,8 +1760,8 @@ function wsUrl(){
 
 let pendingCreateGameMode = "mixed";
 function startPartyFlow(gameMode){
-  pendingCreateGameMode = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed");
-  const backTarget = pendingCreateGameMode === "slf" ? "startSlfMenu()" : (pendingCreateGameMode === "music" ? "startMusicMenu()" : "renderMainMenu()");
+  pendingCreateGameMode = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : (gameMode === "blitz" ? "blitz" : "mixed"));
+  const backTarget = pendingCreateGameMode === "slf" ? "startSlfMenu()" : (pendingCreateGameMode === "music" ? "startMusicMenu()" : (pendingCreateGameMode === "blitz" ? "startNennsBlitzMenu()" : "renderMainMenu()"));
   if(location.protocol !== "http:" && location.protocol !== "https:"){
     renderApp(`
       <div class="panel">
@@ -1755,7 +1783,7 @@ function startPartyFlow(gameMode){
   }
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : (pendingCreateGameMode==='music' ? 'MUSIK RATEN – MULTIPLAYER' : t('party_entry_title'))}</div>
+      <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : (pendingCreateGameMode==='music' ? 'MUSIK RATEN – MULTIPLAYER' : (pendingCreateGameMode==='blitz' ? 'NENN\'S BLITZ – MULTIPLAYER' : t('party_entry_title')))}</div>
       <div class="picker-sub">${t('party_entry_sub')}</div>
       <div class="picker-form" style="margin-bottom:14px;">
         <input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20">
@@ -1881,9 +1909,9 @@ function partySetLanguage(lang){ currentLang = lang; try{ localStorage.setItem("
 // das betrifft nur Stadt Land Fluss / Musik raten / den gemischten Modus).
 let lastSoloPartyName = "Du";
 function startSoloPartyFlow(gameMode){
-  const gm = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed");
-  const title = gm==='slf' ? 'STADT LAND FLUSS – SOLO' : (gm==='music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'));
-  const backFn = gm==='slf' ? 'startSlfMenu' : (gm==='music' ? 'startMusicMenu' : 'startSoloMenu');
+  const gm = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : (gameMode === "blitz" ? "blitz" : "mixed"));
+  const title = gm==='slf' ? 'STADT LAND FLUSS – SOLO' : (gm==='music' ? 'MUSIK RATEN – SOLO' : (gm==='blitz' ? 'NENN\'S BLITZ – SOLO' : t('solo_party_title')));
+  const backFn = gm==='slf' ? 'startSlfMenu' : (gm==='music' ? 'startMusicMenu' : (gm==='blitz' ? 'startNennsBlitzMenu' : 'startSoloMenu'));
   renderApp(`
     <div class="panel pass-card">
       <div class="avatar-big" style="background:${avatarColor(lastSoloPartyName)}">${initials(lastSoloPartyName)}</div>
@@ -1903,7 +1931,7 @@ function confirmSoloPartyName(gm){
   connectSoloPartyToPicker(gm, name);
 }
 function connectSoloPartyToPicker(gameMode, name){
-  const gm = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed");
+  const gm = gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : (gameMode === "blitz" ? "blitz" : "mixed"));
   lastSoloPartyName = name || "Du";
   partyConnect(
     () => {
@@ -1913,8 +1941,8 @@ function connectSoloPartyToPicker(gameMode, name){
       party.ws.send(JSON.stringify({ action:"createRoom", name: lastSoloPartyName, language: currentLang, gameMode: gm }));
     },
     (msg) => {
-      const title = gm==='slf' ? 'STADT LAND FLUSS – SOLO' : (gm==='music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'));
-      const backFn = gm==='slf' ? 'startSlfMenu' : (gm==='music' ? 'startMusicMenu' : 'startSoloMenu');
+      const title = gm==='slf' ? 'STADT LAND FLUSS – SOLO' : (gm==='music' ? 'MUSIK RATEN – SOLO' : (gm==='blitz' ? 'NENN\'S BLITZ – SOLO' : t('solo_party_title')));
+      const backFn = gm==='slf' ? 'startSlfMenu' : (gm==='music' ? 'startMusicMenu' : (gm==='blitz' ? 'startNennsBlitzMenu' : 'startSoloMenu'));
       renderApp(`
         <div class="panel">
           <div class="picker-title">${title}</div>
@@ -1932,14 +1960,16 @@ function connectSoloPartyToPicker(gameMode, name){
 // raten also nur deren eigene Kategorien, beim gemischten Modus alle).
 function renderSoloCategoryPicker(){
   const room = party.room;
-  const title = room.gameMode==='slf' ? 'STADT LAND FLUSS – SOLO' : (room.gameMode==='music' ? 'MUSIK RATEN – SOLO' : t('solo_party_title'));
-  const backFn = room.gameMode==='slf' ? 'startSlfMenu' : (room.gameMode==='music' ? 'startMusicMenu' : 'startSoloMenu');
+  const title = room.gameMode==='slf' ? 'STADT LAND FLUSS – SOLO' : (room.gameMode==='music' ? 'MUSIK RATEN – SOLO' : (room.gameMode==='blitz' ? 'NENN\'S BLITZ – SOLO' : t('solo_party_title')));
+  const backFn = room.gameMode==='slf' ? 'startSlfMenu' : (room.gameMode==='music' ? 'startMusicMenu' : (room.gameMode==='blitz' ? 'startNennsBlitzMenu' : 'startSoloMenu'));
   renderApp(`
     <div class="panel">
       <div class="picker-title">${title}</div>
-      <div class="picker-sub">Eine Runde – zufällig oder eine bestimmte Kategorie wählen.</div>
+      <div class="picker-sub">Rundenzahl und Kategorie wählen.</div>
+      ${roundCountChipsHtml(room)}
+      <div class="picker-sub" style="margin-top:14px;">Kategorie – zufällig/gemischt oder eine bestimmte wählen.</div>
       <div class="chip-group" style="margin-top:10px;">
-        <div class="chip-btn" onclick="chooseSoloCategory(null)">🎲 Zufällig</div>
+        <div class="chip-btn" onclick="chooseSoloCategory(null)">🎲 Zufällig / Gemischt</div>
         ${room.availableRoundDefs.map(d => `<div class="chip-btn" onclick="chooseSoloCategory('${d.id}')">${d.label}</div>`).join("")}
       </div>
       <div class="actions-row" style="margin-top:18px;">
@@ -1950,10 +1980,12 @@ function renderSoloCategoryPicker(){
 }
 function chooseSoloCategory(defId){
   party.soloPickerDone = true; // weitere roomUpdates waehrend des Startvorgangs nicht mehr als Auswahlbildschirm zeigen
-  partySend({action:'setRoundCount', count:1});
+  // Rundenzahl wurde bereits über die Chips oben eingestellt (party.room.roundCount) –
+  // hier nur noch die Kategorie(n) für genau diese Rundenzahl festlegen.
+  const count = party.room.roundCount || 5;
   if(defId){
     partySend({action:'setRoundMode', mode:'custom'});
-    partySend({action:'setRoundDef', index:0, defId});
+    for(let i=0;i<count;i++) partySend({action:'setRoundDef', index:i, defId});
   } else {
     partySend({action:'setRoundMode', mode:'random'});
   }
@@ -1962,11 +1994,16 @@ function chooseSoloCategory(defId){
 
 /* ---------- Wiederverwendbare Bausteine: Rundenanzahl & Rundenplan ---------- */
 function roundCountChipsHtml(room){
+  // "1 Runde" zusätzlich anbieten bei eigenständigen Modi (Stadt Land Fluss,
+  // Musik raten, künftige weitere) – dort ergibt eine einzelne, schnelle
+  // Runde mit gezielter Kategorie-Wahl (Zufällig oder Eigene Runde direkt
+  // darunter) mehr Sinn als im normal gemischten Modus.
+  const counts = room.gameMode && room.gameMode !== 'mixed' ? [1,5,10,15,20] : [5,10,15,20];
   return `
     <div class="settings-row">
       <span class="label">${t('lobby_rounds_label')}</span>
       <div class="chip-group">
-        ${[5,10,15,20].map(n=>`<div class="chip-btn ${room.roundCount===n?'active':''}" onclick="partySetRoundCount(${n})">${n}</div>`).join("")}
+        ${counts.map(n=>`<div class="chip-btn ${room.roundCount===n?'active':''}" onclick="partySetRoundCount(${n})">${n}</div>`).join("")}
       </div>
     </div>
   `;
@@ -2155,7 +2192,7 @@ function renderPartyLobby(){
 
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS' : (room.gameMode === 'music' ? 'MUSIK RATEN' : t('lobby_title'))}</div>
+      <div class="picker-title">${room.gameMode === 'slf' ? 'STADT LAND FLUSS' : (room.gameMode === 'music' ? 'MUSIK RATEN' : (room.gameMode === 'blitz' ? 'NENN\'S BLITZ' : t('lobby_title')))}</div>
       <div class="picker-sub">${t('lobby_sub')}</div>
       <div class="code-display">${room.code}</div>
 
@@ -2998,6 +3035,67 @@ function renderPartyMusicItem(msg){
   startMusicItemTicker(msg.clipSeconds || 10);
 }
 
+// Bestmögliche Gegenmaßnahme gegen das Ablesen des Songnamens über die
+// System-Mediensteuerung des Handys (Sperrbildschirm/Kontrollzentrum beim
+// Herunterziehen): dort werden Metadaten aus der Media Session API gezeigt.
+// Das eingebettete YouTube-iframe läuft in einem FREMDEN Origin (youtube.com)
+// und setzt seine eigene Media Session dort selbst – darauf hat unsere Seite
+// keinen Zugriff (Cross-Origin-Beschränkung des Browsers), kann sie also
+// nicht direkt überschreiben. Diese Funktion setzt stattdessen auf UNSERER
+// EIGENEN Seite bewusst harmlose Platzhalter-Metadaten; auf welche Media
+// Session (iframe oder Hauptseite) das Betriebssystem letztlich zugreift,
+// ist browser-/geräteabhängig unterschiedlich und nicht garantiert
+// vollständig zu kontrollieren – das ist eine echte technische Grenze von
+// eingebetteten Cross-Origin-Playern, keine unvollständige Umsetzung.
+function suppressMusicMediaSession(){
+  try{
+    if(!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: '🎵 ???',
+      artist: 'Rate mit!',
+      album: 'WissensDuell – Musik raten'
+    });
+    ['play','pause','stop','seekbackward','seekforward','previoustrack','nexttrack','seekto'].forEach(action => {
+      try{ navigator.mediaSession.setActionHandler(action, () => {}); }catch(e){}
+    });
+  }catch(e){}
+}
+function clearMusicMediaSession(){
+  try{
+    if(!('mediaSession' in navigator)) return;
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+  }catch(e){}
+}
+let ytMediaSessionGuardId = null;
+let ytOriginalDocTitle = null;
+// Schummel-Schutz: der YouTube-Player läuft in einem eigenen (Cross-Origin-)
+// iframe, das seinerseits versucht, DESSEN eigene Metadaten (echter
+// Songtitel/Interpret/Thumbnail) in die Media Session zu schreiben – das ist
+// genau das, was auf dem Handy z.B. im Sperrbildschirm oder beim Herunter-
+// ziehen der Benachrichtigungsleiste sichtbar werden kann, selbst wenn der
+// Player auf der Seite selbst unsichtbar/überdeckt ist. Einmaliges Über-
+// schreiben reicht oft nicht, weil der iframe seine eigenen Daten jederzeit
+// danach erneut setzen kann – daher wird hier alle 400ms erneut überschrieben,
+// solange ein Hördurchgang läuft. Das ist eine Abwehrmaßnahme, keine
+// Garantie: je nach Browser/Betriebssystem kann die Media Session dem
+// tatsächlich Audio abspielenden Kontext (dem iframe) zugeordnet sein und
+// sich dadurch nicht vollständig von der Elternseite aus überschreiben
+// lassen. Zusätzlich wird der Browser-Tab-Titel während des Hördurchgangs
+// maskiert und danach wiederhergestellt.
+function startMusicMediaSessionGuard(){
+  suppressMusicMediaSession();
+  if(ytOriginalDocTitle === null) ytOriginalDocTitle = document.title;
+  document.title = "🎵 Musik raten – WissensDuell";
+  if(ytMediaSessionGuardId) clearInterval(ytMediaSessionGuardId);
+  ytMediaSessionGuardId = setInterval(suppressMusicMediaSession, 400);
+}
+function stopMusicMediaSessionGuard(){
+  if(ytMediaSessionGuardId){ clearInterval(ytMediaSessionGuardId); ytMediaSessionGuardId = null; }
+  clearMusicMediaSession();
+  if(ytOriginalDocTitle !== null){ document.title = ytOriginalDocTitle; ytOriginalDocTitle = null; }
+}
+
 function startMusicPlayback(msg, startSeconds){
   loadYouTubeApi().then(() => {
     if(!party.musicMsg || party.musicMsg.index !== msg.index) return;
@@ -3012,6 +3110,7 @@ function startMusicPlayback(msg, startSeconds){
         ytPlayer.seekTo(startSeconds, true);
         ytPlayer.playVideo();
       }catch(e){}
+      startMusicMediaSessionGuard();
       ytStopTimer = setTimeout(() => stopMusicPlayback(), (msg.clipSeconds||10)*1000);
       return;
     }
@@ -3026,13 +3125,14 @@ function startMusicPlayback(msg, startSeconds){
             e.target.seekTo(startSeconds, true);
             e.target.playVideo();
           }catch(err){}
+          startMusicMediaSessionGuard();
           ytStopTimer = setTimeout(() => stopMusicPlayback(), (msg.clipSeconds||10)*1000);
         },
         onError: () => {
           if(statusEl) statusEl.textContent = "Video nicht verfügbar – trotzdem raten oder auf die Auflösung warten.";
         },
         onStateChange: (e) => {
-          if(statusEl && e.data === YT.PlayerState.PLAYING) statusEl.textContent = "";
+          if(statusEl && e.data === YT.PlayerState.PLAYING){ statusEl.textContent = ""; startMusicMediaSessionGuard(); }
           // Manche Browser blockieren Autoplay mit Ton, bis der Nutzer interagiert hat.
           if(statusEl && e.data === YT.PlayerState.PAUSED && !party.musicManualStartShown){
             party.musicManualStartShown = true;
@@ -3045,12 +3145,14 @@ function startMusicPlayback(msg, startSeconds){
 }
 function manualStartMusic(){
   if(ytPlayer){ try{ ytPlayer.playVideo(); }catch(e){} }
+  startMusicMediaSessionGuard();
   const statusEl = document.getElementById("musicStatusText");
   if(statusEl) statusEl.textContent = "";
 }
 function stopMusicPlayback(){
   if(ytStopTimer){ clearTimeout(ytStopTimer); ytStopTimer = null; }
   if(ytPlayer){ try{ ytPlayer.pauseVideo(); }catch(e){} }
+  stopMusicMediaSessionGuard();
 }
 
 // Rein optischer Fortschrittsbalken für den AKTUELLEN Hördurchgang (Erst-
