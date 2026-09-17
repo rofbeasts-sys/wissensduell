@@ -144,6 +144,12 @@ function buildRoundDefPool() {
   Object.entries(DATASETS.guessMusic || {}).forEach(([key, ds]) => {
     pool.push({ id: "music_" + key, kind: "guessMusic", label: ds.label, datasetGroup: "guessMusic", datasetKey: key, germanOnly: !!ds.germanOnly });
   });
+  Object.entries(DATASETS.nennsBlitz || {}).forEach(([key, ds]) => {
+    // Reine Freitext-Kategorie ohne Lösungsliste (siehe Abschnitt "RUNDE:
+    // nennsBlitz" weiter unten) – germanOnly, da alle Kategorien deutsch-
+    // sprachig ausgerichtet sind (Bundesländer, Bundesliga, etc.).
+    pool.push({ id: "blitz_" + key, kind: "nennsBlitz", label: "Nenn's Blitz: " + ds.label, datasetGroup: "nennsBlitz", datasetKey: key, germanOnly: true });
+  });
   return pool;
 }
 const ROUND_DEF_POOL = buildRoundDefPool();
@@ -1380,8 +1386,175 @@ function scheduleBotMusicGuesses(room) {
 }
 
 /* ------------------------------------------------------------------------ */
+/* RUNDE: nennsBlitz ("Nenn's Blitz")                                        */
+/* Alle Spieler tippen gleichzeitig frei Begriffe zu einer Kategorie – kein  */
+/* Buzzer, keine feste Lösungsliste. Jede neu getippte, im eigenen Feld noch */
+/* nicht genannte Antwort zählt vorläufig. Nach Ablauf der Antwortzeit folgt */
+/* eine Anfechtungsphase (Mechanik direkt von Stadt Land Fluss übernommen:   */
+/* Anfechten + Mitspieler-Abstimmung), erst danach steht die Wertung fest.   */
+/* WICHTIG (Stand dieser Umsetzung): Nur der Solo-Modus ist vollständig nach */
+/* Vorgabe fertig (15s, 1 Punkt/Antwort). Der eigentliche "Duell-Modus" mit  */
+/* Elimination/Zeitverkürzung 30->15/Finalrunden 7s bzw. 10s war zum         */
+/* Umsetzungszeitpunkt noch nicht final geklärt – Mehrspieler läuft daher    */
+/* vorerst als einfache gemeinsame 30s-Runde (alle gleichzeitig, gleiche     */
+/* Zeit für alle), bis das Turnier-/Elimination-Design steht.               */
 /* ------------------------------------------------------------------------ */
-/* RUNDE: stadtLandFluss                                                     */
+const NENNSBLITZ_SOLO_MS = 15000;
+const NENNSBLITZ_DUELL_MS = 30000;      // vorläufig, bis Duell-Zeitregeln final stehen
+const NENNSBLITZ_CHALLENGE_MS = 30000;  // Zeitfenster, in dem überhaupt angefochten werden kann
+const NENNSBLITZ_VOTE_MS = 20000;       // Abstimmzeit je einzelner Anfechtung (an SLF angelehnt)
+
+function normalizeNennsBlitzText(text) {
+  return (text || "").trim().toLowerCase().replace(/[^a-zäöüß0-9 ]/gi, "").replace(/\s+/g, " ").trim();
+}
+
+function startNennsBlitzRound(room, def) {
+  const ds = DATASETS.nennsBlitz[def.datasetKey];
+  const teamIds = Array.from(room.teams.keys());
+  // Solo-Party-Räume bestehen strukturell immer aus genau 1 menschlichen
+  // Spieler:in (keine Bots, kein Warten auf weitere Beitritte) – daher
+  // ist "genau 1 Spieler im Raum" hier ein zuverlässiges Solo-Kriterium.
+  // (Ein eigenes room.soloMode-Flag existiert serverseitig bislang nicht,
+  // nur clientseitig als party.soloMode.)
+  const isSolo = room.players.size === 1;
+  const durationMs = isSolo ? NENNSBLITZ_SOLO_MS : NENNSBLITZ_DUELL_MS;
+  const perPlayer = new Map();
+  room.players.forEach(p => { perPlayer.set(p.id, { answers: [] }); }); // {id, text}
+
+  room.runtime = {
+    kind: "nennsBlitz",
+    label: ds.label,
+    phase: "answering",
+    perPlayer,
+    answerCounter: 0,
+    challengeCounter: 0,
+    challenges: new Map(),
+    startedAt: Date.now(),
+    durationMs,
+    timer: null,
+    roundPointsByTeam: new Map(teamIds.map(id => [id, 0]))
+  };
+
+  broadcast(room, { type: "nennsBlitzStart", label: ds.label, durationMs });
+  room.runtime.timer = setTimeout(() => resolveNennsBlitzAnswering(room), durationMs + 400);
+}
+
+function handleNennsBlitzSubmit(room, playerId, text) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "answering") return;
+  const st = rt.perPlayer.get(playerId);
+  if (!st) return;
+  const trimmed = (text || "").trim().slice(0, 60);
+  if (!trimmed) return;
+  const norm = normalizeNennsBlitzText(trimmed);
+  if (!norm) return;
+  if (st.answers.some(a => normalizeNennsBlitzText(a.text) === norm)) return; // im eigenen Feld schon genannt
+  const id = "a" + (++rt.answerCounter);
+  st.answers.push({ id, text: trimmed });
+  const player = room.players.get(playerId);
+  if (player && player.ws) send(player.ws, { type: "nennsBlitzOwnUpdate", answers: st.answers });
+}
+
+function resolveNennsBlitzAnswering(room) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "answering") return;
+  rt.phase = "challenge";
+  clearTimeout(rt.timer);
+
+  broadcast(room, {
+    type: "nennsBlitzReveal",
+    label: rt.label,
+    players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, teamId: p.teamId, isBot: p.isBot })),
+    answers: Object.fromEntries(Array.from(rt.perPlayer.entries()).map(([pid, st]) => [pid, st.answers])),
+    challengeWindowMs: NENNSBLITZ_CHALLENGE_MS
+  });
+
+  rt.timer = setTimeout(() => finalizeNennsBlitzRound(room), NENNSBLITZ_CHALLENGE_MS + 400);
+}
+
+function handleNennsBlitzChallenge(room, challengerId, targetPlayerId, answerId) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "challenge") return;
+  if (targetPlayerId === challengerId) return; // eigene Antwort nicht anfechtbar
+  const targetSt = rt.perPlayer.get(targetPlayerId);
+  if (!targetSt) return;
+  const answer = targetSt.answers.find(a => a.id === answerId);
+  if (!answer) return;
+  const already = Array.from(rt.challenges.values()).some(c => c.playerId === targetPlayerId && c.answerId === answerId && !c.resolved);
+  if (already) return;
+
+  const challengeId = "c" + (++rt.challengeCounter);
+  const votes = new Map();
+  votes.set(challengerId, false); // Anfechter stimmt implizit "ungültig"
+  const challenge = { id: challengeId, playerId: targetPlayerId, answerId, answerText: answer.text, votes, resolved: false };
+  rt.challenges.set(challengeId, challenge);
+  broadcastNennsBlitzChallenges(room);
+  setTimeout(() => resolveNennsBlitzChallenge(room, challengeId), NENNSBLITZ_VOTE_MS + 300);
+}
+
+function handleNennsBlitzVote(room, voterId, challengeId, valid) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "challenge") return;
+  const challenge = rt.challenges.get(challengeId);
+  if (!challenge || challenge.resolved || voterId === challenge.playerId) return;
+  challenge.votes.set(voterId, !!valid);
+  const eligibleVoters = Array.from(room.players.keys()).filter(pid => pid !== challenge.playerId && !room.players.get(pid).isBot);
+  if (eligibleVoters.length && eligibleVoters.every(pid => challenge.votes.has(pid))) resolveNennsBlitzChallenge(room, challenge.id);
+  else broadcastNennsBlitzChallenges(room);
+}
+
+function resolveNennsBlitzChallenge(room, challengeId) {
+  const rt = room.runtime;
+  if (!rt) return;
+  const challenge = rt.challenges.get(challengeId);
+  if (!challenge || challenge.resolved) return;
+  challenge.resolved = true;
+  const votes = Array.from(challenge.votes.values());
+  const invalidVotes = votes.filter(v => v === false).length;
+  const validVotes = votes.filter(v => v === true).length;
+  challenge.invalidated = invalidVotes > validVotes; // bei Gleichstand bleibt die Antwort gültig
+  broadcastNennsBlitzChallenges(room);
+}
+
+function broadcastNennsBlitzChallenges(room) {
+  const rt = room.runtime;
+  broadcast(room, {
+    type: "nennsBlitzChallengeUpdate",
+    challenges: Array.from(rt.challenges.values()).map(c => ({
+      id: c.id, playerId: c.playerId, answerId: c.answerId, answerText: c.answerText,
+      resolved: c.resolved, invalidated: c.invalidated, voteCount: c.votes.size
+    }))
+  });
+}
+
+function finalizeNennsBlitzRound(room) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase === "done") return;
+  rt.phase = "done";
+  clearTimeout(rt.timer);
+
+  const invalidatedIds = new Set();
+  rt.challenges.forEach(c => { if (c.resolved && c.invalidated) invalidatedIds.add(c.playerId + "|" + c.answerId); });
+
+  const results = [];
+  rt.perPlayer.forEach((st, pid) => {
+    const player = room.players.get(pid);
+    const validCount = st.answers.filter(a => !invalidatedIds.has(pid + "|" + a.id)).length;
+    results.push({ playerId: pid, name: player ? player.name : "?", total: validCount });
+    if (player && player.teamId) {
+      // Solo: 1 Punkt pro korrekter Antwort. Mehrspieler (vorläufig, bis
+      // Duell-Punktelogik final steht): ebenfalls 1 Punkt pro gültiger
+      // Antwort, aufsummiert je Team.
+      rt.roundPointsByTeam.set(player.teamId, (rt.roundPointsByTeam.get(player.teamId) || 0) + validCount);
+    }
+  });
+  results.sort((a, b) => b.total - a.total);
+
+  broadcast(room, { type: "nennsBlitzFinal", label: rt.label, results });
+  setTimeout(() => finishRoundEngine(room, rt.roundPointsByTeam), 2600);
+}
+
+
 /* Alle Spieler schreiben gleichzeitig zu einem zufälligen Buchstaben Wörter */
 /* je Kategorie. Nach Ablauf der Zeit: Auflösung mit vorläufiger Wertung     */
 /* (eindeutig=20, mehrfach=10, ungültig/leer=0), danach eine Anfechtungs-   */
@@ -1737,6 +1910,7 @@ function startNextRound(room) {
     else if (def.kind === "guessMusic") startGuessMusicRound(room, def);
     else if (def.kind === "stadtLandFluss") startStadtLandFlussRound(room, def);
     else if (def.kind === "orderingGame") startOrderingSimultaneousRound(room, def);
+    else if (def.kind === "nennsBlitz") startNennsBlitzRound(room, def);
     else startRankingRound(room, def);
   }, 1800);
 }
@@ -2099,6 +2273,15 @@ wss.on("connection", (ws) => {
         break;
       case "musicReplay":
         handleMusicReplay(room, ws.playerId);
+        break;
+      case "nennsBlitzSubmit":
+        handleNennsBlitzSubmit(room, ws.playerId, msg.text);
+        break;
+      case "nennsBlitzChallenge":
+        handleNennsBlitzChallenge(room, ws.playerId, msg.targetPlayerId, msg.answerId);
+        break;
+      case "nennsBlitzVote":
+        handleNennsBlitzVote(room, ws.playerId, msg.challengeId, msg.valid);
         break;
       case "slfSubmit":
         handleSlfSubmit(room, ws.playerId, msg.answers);
