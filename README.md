@@ -921,6 +921,71 @@ tippen) bestätigt, globale Duplikat-Erkennung bestätigt, Solo-Modus
 weiterhin unverändert korrekt, Standard-Regressionstest (andere
 Rundentypen) läuft unverändert sauber durch.
 
+## 7m. Solo-Kategorie-Picker: jetzt mit Rundenzahl-Auswahl (nicht mehr fest 1)
+
+Korrektur zu 7j: der Solo-Einstieg für Stadt Land Fluss, Musik raten (und
+künftige weitere eigenständige Modi) zeigt jetzt zusätzlich zur Kategorie-
+Auswahl auch die Rundenzahl-Chips (1/5/10/15/20, `roundCountChipsHtml()` –
+existierte als wiederverwendbarer Baustein bereits, war hier nur noch nicht
+eingebunden). Wählt man eine bestimmte Kategorie, wird sie für die gewählte
+Rundenzahl mehrfach gesetzt (`setRoundDef` je Slot); bei "Zufällig/Gemischt"
+übernimmt weiterhin `roundMode:'random'` die Auswahl automatisch. Mit
+echtem Serverlauf bestätigt (roundCount=5 gewählt → tatsächlich 5 Runden
+derselben Kategorie gespielt, nicht mehr fest 1) sowie einer Simulation der
+Client-Logik (roundCount=10 gewählt → exakt 10 `setRoundDef`-Aufrufe mit
+derselben Kategorie, dann `startGame`).
+
+## 7n. Musik raten: Demo-Kategorie entfernt, Schummel-Schutz verstärkt, ein kaputter Song ersetzt
+
+- **Demo-Kategorie entfernt**: `musik_demo` (die 2 Beispielsongs) gibt es
+  nicht mehr, `guessMusic` enthält nur noch `musik_kernliste` (107 Songs).
+- **Schummel-Schutz verstärkt** (wichtiger Hinweis: über die Handy-
+  Benachrichtigungsleiste/Sperrbildschirm ließ sich der echte Songtitel
+  über die Media-Session-Anzeige des Betriebssystems sehen, obwohl der
+  Player auf der Seite selbst unsichtbar ist): Es gab bereits einen Ansatz
+  dafür (`suppressMusicMediaSession()`, einmaliges Überschreiben der
+  Metadaten), der aber nicht ausreichte. Grund: der YouTube-Player läuft in
+  einem eigenen Cross-Origin-iframe, das jederzeit erneut SEINE eigenen
+  (echten) Metadaten in die Media Session schreiben kann – ein einmaliges
+  Überschreiben von der Elternseite aus wird dadurch potenziell wieder
+  überschrieben. Neu: `startMusicMediaSessionGuard()`/
+  `stopMusicMediaSessionGuard()` wiederholen das Überschreiben jetzt alle
+  400ms, solange ein Hördurchgang läuft, und maskieren zusätzlich kurzzeitig
+  den Browser-Tab-Titel. **Ehrliche Einschränkung, die ich nicht verschweigen
+  will**: das ist eine Abwehrmaßnahme, keine Garantie – je nach Browser/
+  Betriebssystem kann die Media Session dem tatsächlich audioproduzierenden
+  Kontext (dem iframe) zugeordnet sein und sich dadurch nicht vollständig
+  von der Elternseite aus kontrollieren lassen. Ich kann das mangels echter
+  mobiler Browser-Umgebung hier nicht selbst nachstellen/verifizieren –
+  bitte auf dem Handy erneut prüfen (Benachrichtigung runterziehen während
+  ein Song läuft) und melden, ob es jetzt besser aussieht.
+- **Die Ärzte – Westerland reparaturversucht**: die alte Video-ID
+  (`tIFFfP87Ooc`, offizieller Sony-Music-Audio-Upload) hat laut Rückmeldung
+  nicht funktioniert (vermutlich Embedding gesperrt oder nicht mehr
+  verfügbar). Ersetzt durch eine andere, als offizielles Musikvideo
+  gelistete Quelle (`KdeBMhXyX6w`). Ich kann Embedding-Fähigkeit nicht
+  selbst testen (kein Browser hier) – bitte erneut ausprobieren; falls
+  wieder nicht abspielbar, einfach Bescheid geben, dann probiere ich die
+  nächste Alternative.
+
+## 7o. "Nenn's Blitz" jetzt auch eigener Hauptmenüpunkt (wie Stadt Land Fluss/Musik raten)
+
+Vierte Kachel im Hauptmenü, analog zu den anderen beiden eigenständigen
+Modi: eigenes Untermenü `startNennsBlitzMenu()` mit Solo/Multiplayer,
+neuer `gameMode:"blitz"` serverseitig (`NENNSBLITZ_ROUND_DEF_POOL`, nur die
+22 Nenn's-Blitz-Kategorien). Bleibt wie Musik raten bewusst **zusätzlich**
+auch im normalen gemischten Rundenpool wählbar (anders als Stadt Land
+Fluss, das dort nicht mehr auftaucht). Da alle Kategorien deutschsprachig
+sind, ist die Hauptmenü-Kachel wie bei Stadt Land Fluss für nicht-deutsche
+Sprache gesperrt. Alle `gameMode`-Verzweigungen (Solo-Namenseingabe,
+Kategorie-Picker mit Rundenzahl-Auswahl aus 7m, Lobby-/Multiplayer-Titel)
+entsprechend erweitert.
+
+Mit echtem Serverlauf bestätigt (`gameMode:"blitz"` liefert ausschließlich
+die 22 `nennsBlitz`-Kategorien, Solo-Erkennung funktioniert) sowie einer
+kompletten Simulation der Client-Navigation (Hauptmenü-Karte → Untermenü →
+Solo-Namenseingabe → korrekter `createRoom`-Aufruf mit `gameMode:"blitz"`).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

@@ -163,13 +163,21 @@ const SLF_ROUND_DEF_POOL = [slfBuildRoundDef(null, null), slfBuildRoundDef(null,
 // Pool oben – "Musik raten" bleibt bewusst AUCH im normalen Mix verfügbar,
 // anders als Stadt Land Fluss, siehe Anforderung).
 const MUSIC_ROUND_DEF_POOL = ROUND_DEF_POOL.filter(r => r.kind === "guessMusic");
+// Eigener Pool nur für den Nenn's-Blitz-Modus: alle nennsBlitz-Kategorien
+// aus shared/partyDatasets.json (identisch zu den blitz_*-Einträgen im
+// normalen Pool oben – bleibt wie Musik raten bewusst AUCH im normalen Mix
+// verfügbar).
+const NENNSBLITZ_ROUND_DEF_POOL = ROUND_DEF_POOL.filter(r => r.kind === "nennsBlitz");
 function findRoundDef(id) {
   return ROUND_DEF_POOL.find(r => r.id === id)
     || SLF_ROUND_DEF_POOL.find(r => r.id === id)
-    || MUSIC_ROUND_DEF_POOL.find(r => r.id === id);
+    || MUSIC_ROUND_DEF_POOL.find(r => r.id === id)
+    || NENNSBLITZ_ROUND_DEF_POOL.find(r => r.id === id);
 }
 function roundDefPoolForLanguage(language, gameMode) {
-  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : (gameMode === "music" ? MUSIC_ROUND_DEF_POOL : ROUND_DEF_POOL);
+  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL
+    : (gameMode === "music" ? MUSIC_ROUND_DEF_POOL
+    : (gameMode === "blitz" ? NENNSBLITZ_ROUND_DEF_POOL : ROUND_DEF_POOL));
   return language === "de" ? base : base.filter(r => !r.germanOnly);
 }
 
@@ -202,9 +210,10 @@ function createRoom(hostWs, hostName, language, gameMode) {
     roundDefs: [],
     language: SUPPORTED_LANGS.includes(language) ? language : "de",
     // 'mixed' (Standard, alle Rundentypen außer Stadt Land Fluss) oder 'slf'
-    // (eigenständiger Stadt-Land-Fluss-Modus) oder 'music' (eigenständiger
-    // Musik-raten-Modus, bleibt zusätzlich auch im normalen Mix verfügbar).
-    gameMode: gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : "mixed"),
+    // (eigenständiger Stadt-Land-Fluss-Modus) oder 'music'/'blitz'
+    // (eigenständiger Musik-raten- bzw. Nenn's-Blitz-Modus, bleiben
+    // zusätzlich auch im normalen Mix verfügbar).
+    gameMode: gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : (gameMode === "blitz" ? "blitz" : "mixed")),
     currentRoundIndex: -1,
     phase: "lobby", // lobby | roundIntro | playing | roundResult | gameEnd
     runtime: null
