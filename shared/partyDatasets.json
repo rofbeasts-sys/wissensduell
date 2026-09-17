@@ -3156,33 +3156,6 @@
   }
  },
  "guessMusic": {
-  "musik_demo": {
-   "label": "Musik raten: Demo-Auswahl",
-   "items": [
-    {
-     "id": "bohemian_rhapsody",
-     "youtubeId": "fJ9rUzIMcZQ",
-     "startSeconds": 30,
-     "clipSeconds": 10,
-     "title": "Bohemian Rhapsody",
-     "artist": "Queen",
-     "year": 1975,
-     "genre": "Rock",
-     "cover": null
-    },
-    {
-     "id": "africa_toto",
-     "youtubeId": "FTQbiNvZqaY",
-     "startSeconds": 15,
-     "clipSeconds": 10,
-     "title": "Africa",
-     "artist": "Toto",
-     "year": 1982,
-     "genre": "Pop",
-     "cover": null
-    }
-   ]
-  },
   "musik_kernliste": {
    "label": "Musik raten: Kernliste (Charts & Deutschrap)",
    "items": [
@@ -3980,7 +3953,7 @@
     },
     {
      "id": "diearzte_westerland",
-     "youtubeId": "Acq4odTvLQs",
+     "youtubeId": "KdeBMhXyX6w",
      "startSeconds": 45,
      "clipSeconds": 10,
      "title": "Westerland",
