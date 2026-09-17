@@ -4365,5 +4365,73 @@
     }
    ]
   }
+ },
+ "nennsBlitz": {
+  "laender_allgemein": {
+   "label": "Länder: Allgemein (weltweit)"
+  },
+  "laender_europa": {
+   "label": "Länder: Europa"
+  },
+  "laender_nichteuropa": {
+   "label": "Länder: Nicht-Europa (Asien, Afrika, Amerika, Ozeanien)"
+  },
+  "laender_bundeslaender": {
+   "label": "Bundesländer (Deutschland)"
+  },
+  "laender_bundeslaender_hauptstaedte": {
+   "label": "Bundesländer-Hauptstädte (Deutschland)"
+  },
+  "tiere_rassen_allgemein": {
+   "label": "Tierrassen: Allgemein"
+  },
+  "tiere_hunde": {
+   "label": "Tierrassen: Hunde"
+  },
+  "tiere_katzen": {
+   "label": "Tierrassen: Katzen"
+  },
+  "tiere_fische": {
+   "label": "Tierarten: Fische"
+  },
+  "tiere_voegel": {
+   "label": "Tierarten: Vögel"
+  },
+  "marvel_charaktere": {
+   "label": "Marvel-Charaktere"
+  },
+  "disney_charaktere": {
+   "label": "Disney-Charaktere"
+  },
+  "dc_charaktere": {
+   "label": "DC-Charaktere"
+  },
+  "dschungelcamp_kandidaten": {
+   "label": "Ich bin ein Star – Kandidat:innen"
+  },
+  "promibb_kandidaten": {
+   "label": "Promi Big Brother – Kandidat:innen"
+  },
+  "naruto_charaktere": {
+   "label": "Naruto-Charaktere"
+  },
+  "onepiece_charaktere": {
+   "label": "One Piece – Charaktere"
+  },
+  "dragonball_charaktere": {
+   "label": "Dragonball-Charaktere"
+  },
+  "streamer_twitch_1mio": {
+   "label": "Twitch-Streamer mit über 1 Mio. Followern"
+  },
+  "fussball_mannschaften_allgemein": {
+   "label": "Fußball: Mannschaften (Bundesliga, LaLiga, usw.)"
+  },
+  "fussball_championssieger": {
+   "label": "Fußball: Champions-League-Sieger"
+  },
+  "fussball_beidfuessig": {
+   "label": "Fußball: Spieler, die beidfüßig sind"
+  }
  }
 }
