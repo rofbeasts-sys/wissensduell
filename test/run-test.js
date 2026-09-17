@@ -81,6 +81,14 @@ setTimeout(() => {
       // (Inhalt egal – der Test prüft hier nur den Spielfluss, nicht die Wertung).
       setTimeout(() => host.send({ action: "guessSubmit", answers: { artist: "x", title: "x", year: "2000" } }), 30);
     }
+    if (msg.type === "joined") { host.__playerId = msg.playerId; }
+    if (msg.type === "nennsBlitzStart") {
+      // Solo-Fall (nur 1 Spieler im Raum) – Host tippt direkt etwas ein.
+      setTimeout(() => host.send({ action: "nennsBlitzSubmit", text: "Antwort" }), 30);
+    }
+    if (msg.type === "nennsBlitzTurn" && msg.activePlayerId === host.__playerId) {
+      setTimeout(() => host.send({ action: "nennsBlitzSubmit", text: "Antwort-" + msg.turnIndex }), 30);
+    }
     if (msg.type === "roundEnd") {
       setTimeout(() => host.send({ action: "continue" }), 100);
     }
@@ -92,6 +100,7 @@ setTimeout(() => {
 
   guest.on("message", (raw) => {
     const msg = JSON.parse(raw);
+    if (msg.type === "joined") { guest.__playerId = msg.playerId; }
     if (msg.type === "quizQuestion") {
       setTimeout(() => guest.send({ action: "quizAnswer", selectedIndex: 1 }), 60);
     }
@@ -107,6 +116,9 @@ setTimeout(() => {
     }
     if (msg.type === "musicItem") {
       setTimeout(() => guest.send({ action: "guessSubmit", answers: { artist: "y", title: "y", year: "2000" } }), 40);
+    }
+    if (msg.type === "nennsBlitzTurn" && msg.activePlayerId === guest.__playerId) {
+      setTimeout(() => guest.send({ action: "nennsBlitzSubmit", text: "GastAntwort-" + msg.turnIndex }), 40);
     }
   });
 

@@ -97,6 +97,20 @@ setTimeout(() => {
     if (msg.type === "musicResolved") {
       console.log(`   [Musik raten] Auflösung: "${msg.title}" von ${msg.artist} (${msg.year}) –`, msg.results.map(r => `${r.name}:+${r.total}`).join(" "));
     }
+    if (msg.type === "joined") { host.__playerId = msg.playerId; }
+    if (msg.type === "nennsBlitzStart") {
+      console.log(`   [Nenn's Blitz] Solo-Runde, ${msg.durationMs}ms`);
+      setTimeout(() => host.send({ action: "nennsBlitzSubmit", text: "Antwort" }), 200);
+    }
+    if (msg.type === "nennsBlitzTurn") {
+      console.log(`   [Nenn's Blitz] Zug ${msg.turnIndex+1}/${msg.turnCount} (${msg.stage}): ${msg.activePlayerName}, ${msg.durationMs}ms`);
+      if (msg.activePlayerId === host.__playerId) {
+        setTimeout(() => host.send({ action: "nennsBlitzSubmit", text: "Antwort-" + msg.turnIndex }), 200);
+      }
+    }
+    if (msg.type === "nennsBlitzFinal") {
+      console.log(`   [Nenn's Blitz] Endergebnis:`, msg.results.map(r => `${r.name}:${r.total}`).join(" "));
+    }
     if (msg.type === "roundEnd" && !msg.isLastRound) {
       setTimeout(() => host.send({ action: "continue" }), 150);
     }
