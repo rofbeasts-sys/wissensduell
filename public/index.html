@@ -2114,6 +2114,22 @@ function partyHandleMessage(msg){
     case "slfFinalReveal":
       renderSlfFinal(msg);
       break;
+    case "nennsBlitzStart":
+      renderNennsBlitzAnswering(msg);
+      break;
+    case "nennsBlitzOwnUpdate":
+      handleNennsBlitzOwnUpdate(msg);
+      break;
+    case "nennsBlitzReveal":
+      renderNennsBlitzReveal(msg);
+      break;
+    case "nennsBlitzChallengeUpdate":
+      party.nennsBlitzChallenges = msg.challenges;
+      updateNennsBlitzChallengeUI();
+      break;
+    case "nennsBlitzFinal":
+      renderNennsBlitzFinal(msg);
+      break;
     case "roundEnd":
       renderPartyRoundEnd(msg);
       break;
@@ -3284,6 +3300,138 @@ function renderSlfFinal(msg){
           const total = Object.values(catScores).reduce((a,b)=>a+b,0);
           return `<div class="round-plan-item"><span style="flex:1;">${p.name}</span><span class="val">${total} P.</span></div>`;
         }).join("")}
+      </div>
+    </div>
+  `);
+}
+
+/* ---------- Nenn's Blitz (Freitext-Kategorie, Anfechten-Mechanik wie SLF) ---------- */
+function renderNennsBlitzAnswering(msg){
+  party.nennsBlitzMsg = msg;
+  party.nennsBlitzOwnAnswers = [];
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">${msg.label}</div>
+      <div class="picker-sub">Nenn so viele richtige Begriffe wie möglich!</div>
+      <div class="timer-wrap" style="margin-top:10px;">
+        <div class="timer-bar"><div id="blitzTimerFill" class="timer-fill" style="width:100%"></div></div>
+        <div id="blitzTimerNum" class="timer-num">${Math.ceil(msg.durationMs/1000)}s</div>
+      </div>
+      <div class="picker-form" style="margin-top:14px;">
+        <input type="text" id="blitzInput" class="builder-search" style="margin-top:0;" placeholder="Antwort eintippen …" autocomplete="off" autofocus onkeydown="if(event.key==='Enter')submitNennsBlitzAnswer()">
+        <button class="btn btn-primary" onclick="submitNennsBlitzAnswer()">+</button>
+      </div>
+      <div class="picker-sub" style="margin-top:16px;">Deine Antworten (<span id="blitzOwnCount">0</span>)</div>
+      <div id="blitzOwnList" class="round-plan-list" style="margin-top:6px;"></div>
+    </div>
+  `);
+  startNennsBlitzTicker(msg);
+  setTimeout(() => { const el = document.getElementById("blitzInput"); if(el) el.focus(); }, 50);
+}
+function submitNennsBlitzAnswer(){
+  const input = document.getElementById("blitzInput");
+  const text = (input && input.value || "").trim();
+  if(!text) return;
+  partySend({action:'nennsBlitzSubmit', text});
+  if(input){ input.value = ""; input.focus(); }
+}
+function startNennsBlitzTicker(msg){
+  if(party.blitzTickerId) clearInterval(party.blitzTickerId);
+  const startedAt = Date.now();
+  const totalMs = Math.max(1, msg.durationMs);
+  party.blitzTickerId = setInterval(() => {
+    const remaining = Math.max(0, totalMs - (Date.now() - startedAt));
+    const fill = document.getElementById("blitzTimerFill");
+    const num = document.getElementById("blitzTimerNum");
+    if(fill){ fill.style.width = Math.max(0,(remaining/totalMs)*100) + "%"; fill.classList.toggle("warn", remaining < totalMs*0.3); }
+    if(num) num.textContent = Math.ceil(remaining/1000) + "s";
+    if(remaining <= 0) clearInterval(party.blitzTickerId);
+  }, 100);
+}
+function handleNennsBlitzOwnUpdate(msg){
+  party.nennsBlitzOwnAnswers = msg.answers;
+  const countEl = document.getElementById("blitzOwnCount");
+  const listEl = document.getElementById("blitzOwnList");
+  if(countEl) countEl.textContent = msg.answers.length;
+  if(listEl){
+    listEl.innerHTML = msg.answers.slice().reverse().map(a => `<div class="round-plan-item"><span>${a.text}</span></div>`).join("");
+  }
+}
+
+function renderNennsBlitzReveal(msg){
+  party.nennsBlitzRevealMsg = msg;
+  party.nennsBlitzChallenges = [];
+  if(party.blitzTickerId) clearInterval(party.blitzTickerId);
+  const myId = party.playerId;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">AUFLÖSUNG: ${msg.label}</div>
+      <div class="picker-sub">Vorläufige Punkte – noch anfechtbar (${Math.ceil(msg.challengeWindowMs/1000)}s Zeit)</div>
+      ${msg.players.map(p => {
+        const answers = msg.answers[p.id] || [];
+        return `
+          <div style="margin-top:16px;">
+            <div style="font-weight:800; font-size:14px; margin-bottom:6px; color:var(--accent-2);">${p.name} (${answers.length})</div>
+            <div class="round-plan-list">
+              ${answers.length === 0 ? `<div class="round-plan-item"><span style="color:var(--text-dim);">(keine Antworten)</span></div>` : answers.map(a => {
+                const challenge = (party.nennsBlitzChallenges||[]).find(c => c.playerId===p.id && c.answerId===a.id);
+                const canChallenge = p.id !== myId && !challenge;
+                const challengeNote = challenge ? (challenge.resolved
+                  ? (challenge.invalidated ? ' <span style="font-size:11px; color:var(--danger);">❌ angefochten – ungültig</span>' : ' <span style="font-size:11px; color:var(--accent-2);">✓ angefochten – bleibt gültig</span>')
+                  : ' <span style="font-size:11px; color:var(--warn);">⏳ wird angefochten …</span>') : '';
+                return `
+                  <div class="round-plan-item" style="align-items:center;">
+                    <span style="flex:1;">${a.text}${challengeNote}</span>
+                    ${canChallenge ? `<button class="bot-remove-btn" style="border-color:var(--warn); color:var(--warn);" onclick="raiseNennsBlitzChallenge('${p.id}', '${a.id}')" title="Anfechten">⚑</button>` : ``}
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        `;
+      }).join("")}
+      <div id="blitzVotePanel"></div>
+    </div>
+  `);
+  renderNennsBlitzVotePanel();
+}
+function renderNennsBlitzVotePanel(){
+  const panel = document.getElementById("blitzVotePanel");
+  if(!panel) return;
+  const myId = party.playerId;
+  const activeChallenges = (party.nennsBlitzChallenges||[]).filter(c => !c.resolved && c.playerId !== myId);
+  if(activeChallenges.length === 0){ panel.innerHTML = ""; return; }
+  panel.innerHTML = `
+    <div class="panel" style="margin-top:16px; border-color:var(--warn);">
+      <div class="picker-title" style="font-size:15px;">Abstimmen: Ist diese Antwort gültig?</div>
+      ${activeChallenges.map(c => `
+        <div class="resolve-row" style="margin-top:8px;"><span>"${c.answerText}"</span></div>
+        <div class="actions-row" style="margin-top:6px; margin-bottom:14px;">
+          <button class="btn btn-primary" style="flex:1;" onclick="voteNennsBlitzChallenge('${c.id}', true)">✓ Gültig</button>
+          <button class="btn btn-ghost" style="flex:1; border-color:var(--danger); color:var(--danger);" onclick="voteNennsBlitzChallenge('${c.id}', false)">✕ Ungültig</button>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+function updateNennsBlitzChallengeUI(){
+  if(party.nennsBlitzRevealMsg) renderNennsBlitzReveal(party.nennsBlitzRevealMsg);
+}
+function raiseNennsBlitzChallenge(targetPlayerId, answerId){
+  partySend({action:'nennsBlitzChallenge', targetPlayerId, answerId});
+}
+function voteNennsBlitzChallenge(challengeId, valid){
+  partySend({action:'nennsBlitzVote', challengeId, valid});
+  const panel = document.getElementById("blitzVotePanel");
+  if(panel) panel.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:10px;">Stimme abgegeben, warte auf die anderen …</p>';
+}
+function renderNennsBlitzFinal(msg){
+  party.nennsBlitzChallenges = [];
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">ENDGÜLTIGE WERTUNG: ${msg.label}</div>
+      <div class="round-plan-list" style="margin-top:10px;">
+        ${msg.results.map(r => `<div class="round-plan-item"><span style="flex:1;">${r.name}</span><span class="val">${r.total} P.</span></div>`).join("")}
       </div>
     </div>
   `);
