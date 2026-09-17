@@ -675,19 +675,21 @@ Fluss, auch weiterhin als normale Kategorie im gemischten Rundenpool wählbar
 **Songdaten** in `shared/partyDatasets.json`, neuer Bereich `guessMusic`,
 zwei Kategorien:
 - `musik_demo`: 2 Beispielsongs (Queen – Bohemian Rhapsody, Toto – Africa)
-- `musik_kernliste`: 43 Songs aus der geschickten Liste, mit recherchierten,
-  echten YouTube-Video-IDs (offizielle Kanäle geprüft)
+- `musik_kernliste`: **107 Songs** über zwei Nachrichten hinweg zusammengetragen
+  (Liste 1 + Liste 2 – Erweiterung), mit recherchierten, echten YouTube-Video-IDs
+  (offizielle Kanäle geprüft, teils Charts/Mainstream, teils Deutschrap,
+  Schlager, Ballermann, deutscher & internationaler Rock, Oldies/Klassiker)
 
 Jeder Eintrag: `youtubeId`, `startSeconds`, `clipSeconds`, `title`, `artist`,
 `year`, `genre`, `cover` (aktuell überall `null` – optionales Cover-Bild-URL
 für die Auflösung, du kannst welche ergänzen). **Wichtig:** `startSeconds`
-steht bei allen 43 Songs pauschal auf **45 Sekunden** (geschätzt, nicht
+steht bei allen 107 Songs pauschal auf **45 Sekunden** (geschätzt, nicht
 exakt geprüft) – ich kann nicht Probehören, ob dort wirklich der Refrain
 läuft. Zum Feintunen einfach die Zahl je Song in der JSON-Datei anpassen,
 nachdem du reingehört hast.
 
-**Nicht gefundene/nicht zuordenbare Titel aus deiner Liste** (fehlen daher
-aktuell in `musik_kernliste`, siehe auch Chat-Nachrichten für Details):
+**Nicht gefundene/nicht zuordenbare Titel aus Liste 1** (fehlen daher
+aktuell in `musik_kernliste`):
 Capital Bra: *400 PS* (nur eine Zeile im Song "Rolli von Pablo", kein
 eigener Titel), *Kuchen*; Samra: *Bahama Mama*, *Toxic (mit Farid Bang)*,
 *Girl Gang (mit Loredana)*; Apache 207: *Advanced Chemistry* (das ist eine
@@ -696,8 +698,28 @@ Imanbek & BYOR, nicht Apache 207), *Nika*, *Liebe Sonne* (evtl. "Capri
 Sonne" gemeint?); Bushido: *Vergissmeinnicht* (Titel existiert als
 Sampler-Track, aber kein eigenes offizielles Musikvideo gefunden); Cro:
 *Melodie* (nur MTV-Unplugged-/Interview-Videos gefunden, kein Original-
-Studio-Musikvideo). Einfach sagen, ob's andere/korrigierte Titel sein
-sollen, oder sie bleiben weg.
+Studio-Musikvideo). Auf Wunsch des Nutzers bewusst weggelassen statt
+geraten.
+
+**Nicht gefundene/nicht zuordenbare Titel aus Liste 2 – Erweiterung** (ebenfalls
+bewusst weggelassen): Kollegah: *Bruder*, *Zuhältertape* (ist eine
+Albumreihe, kein Songtitel); Farid Bang: *Sadopoli*; Kay One: alle 3 Titel
+(*Ohne mein Team* ist tatsächlich Bonez MC & RAF Camora – dort korrekt
+enthalten; *Nie mehr Männer*, *Boomerang* nicht gefunden); RAF Camora: *55*
+(stattdessen "Anthrazit Forever" 2024 als nächstliegender echter Song
+aufgenommen, da das Original "Anthrazit" ohne klares offizielles Video);
+257ers: *Hoodie*, *Erwin*, *Neuer Toyota* (keiner gefunden); Marteria:
+*Sonnendeck* (ist von PeterLicht, nicht Marteria); Samra: *Catala* (evtl.
+"Cataleya" gemeint, nur Remix-Video gefunden), *Berlin lebt 2* (ist der
+Albumname – stattdessen Titeltrack "Berlin lebt wie nie zuvor"
+aufgenommen); Micky Krause *Layla* – **bewusst nicht aufgenommen**: der Song
+ist tatsächlich von DJ Robin & Schürze (nicht Micky Krause) und war 2022
+wegen sexistischer Texte an mehreren Orten verboten; Vanessa Mai *Bianca*
+(kein solcher Titel in ihrer Diskografie); Wackelkontakt/Achim Petry –
+keine konkreten Songtitel, zu unklar. "Monsun" und "Durch den Monsun" sind
+derselbe Tokio-Hotel-Song, nur einmal aufgenommen. "From Fall to Spring"
+(deutsche Metalcore-Band aus dem Saarland) wurde vollständig bestätigt –
+alle 4 genannten Songs sind real.
 
 **Server** (`server.js`, Abschnitt "RUNDE: guessMusic"): `startGuessMusicRound()`,
 `nextMusicItem()`, `handleMusicReplay()`, `handleMusicSubmit()`,
