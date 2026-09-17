@@ -1387,22 +1387,33 @@ function scheduleBotMusicGuesses(room) {
 
 /* ------------------------------------------------------------------------ */
 /* RUNDE: nennsBlitz ("Nenn's Blitz")                                        */
-/* Alle Spieler tippen gleichzeitig frei Begriffe zu einer Kategorie – kein  */
-/* Buzzer, keine feste Lösungsliste. Jede neu getippte, im eigenen Feld noch */
-/* nicht genannte Antwort zählt vorläufig. Nach Ablauf der Antwortzeit folgt */
-/* eine Anfechtungsphase (Mechanik direkt von Stadt Land Fluss übernommen:   */
-/* Anfechten + Mitspieler-Abstimmung), erst danach steht die Wertung fest.   */
-/* WICHTIG (Stand dieser Umsetzung): Nur der Solo-Modus ist vollständig nach */
-/* Vorgabe fertig (15s, 1 Punkt/Antwort). Der eigentliche "Duell-Modus" mit  */
-/* Elimination/Zeitverkürzung 30->15/Finalrunden 7s bzw. 10s war zum         */
-/* Umsetzungszeitpunkt noch nicht final geklärt – Mehrspieler läuft daher    */
-/* vorerst als einfache gemeinsame 30s-Runde (alle gleichzeitig, gleiche     */
-/* Zeit für alle), bis das Turnier-/Elimination-Design steht.               */
+/* Freitext, keine feste Lösungsliste – jede neu getippte, global (über alle */
+/* Spieler:innen dieser Runde hinweg) noch nicht genannte Antwort zählt      */
+/* vorläufig. Nach Abschluss folgt eine Anfechtungsphase (Mechanik von Stadt */
+/* Land Fluss übernommen: Anfechten + Mitspieler-Abstimmung, 30s Fenster,    */
+/* 20s je Einzelabstimmung), erst danach steht die Wertung fest.            */
+/*                                                                          */
+/* Solo: einfache freie 15s-Runde (alle Antworten sofort eintippbar).       */
+/* Duell (2+ Spieler): reihum, NICHT gleichzeitig – Zugreihenfolge wechselt */
+/* zwischen den Teams durch (2v2 mit Team1=[A,B]/Team2=[C,D] -> A,C,B,D).   */
+/* Hauptrunde: jede Person hat ihren EIGENEN Zug mit eigener Zeit – wer in  */
+/* der ersten Hälfte der Zugreihenfolge dran ist, bekommt 30s, die zweite   */
+/* Hälfte nur noch 15s (kein Rundenzeit-Countdown der mittendrin sinkt,     */
+/* sondern: später dran = von vornherein weniger Zeit). Danach Finalrunde   */
+/* mit derselben Zugreihenfolge, aber stark verkürzt: 7s je Zug bei 1       */
+/* Spieler/Team, 10s bei 2 Spielern/Team (bei größeren Teams verallgemeinert*/
+/* auf 12s – vom Nutzer nicht explizit vorgegeben). Danach identische       */
+/* Anfechtungs-/Wertungs-Pipeline wie Solo. Punkte: 1 pro gültiger Antwort, */
+/* je Team aufsummiert (analog Solo, wie vom Nutzer bestätigt).            */
 /* ------------------------------------------------------------------------ */
 const NENNSBLITZ_SOLO_MS = 15000;
-const NENNSBLITZ_DUELL_MS = 30000;      // vorläufig, bis Duell-Zeitregeln final stehen
-const NENNSBLITZ_CHALLENGE_MS = 30000;  // Zeitfenster, in dem überhaupt angefochten werden kann
-const NENNSBLITZ_VOTE_MS = 20000;       // Abstimmzeit je einzelner Anfechtung (an SLF angelehnt)
+const NENNSBLITZ_HAUPT_FIRST_MS = 30000;   // erste Hälfte der Zugreihenfolge (Hauptrunde)
+const NENNSBLITZ_HAUPT_SECOND_MS = 15000;  // zweite Hälfte der Zugreihenfolge (Hauptrunde)
+const NENNSBLITZ_FINAL_1V1_MS = 7000;      // Finalrunde, 1 Spieler pro Team
+const NENNSBLITZ_FINAL_2V2_MS = 10000;     // Finalrunde, 2 Spieler pro Team
+const NENNSBLITZ_FINAL_LARGER_MS = 12000;  // Finalrunde, 3+ Spieler pro Team (Verallgemeinerung)
+const NENNSBLITZ_CHALLENGE_MS = 30000;     // Zeitfenster, in dem überhaupt angefochten werden kann
+const NENNSBLITZ_VOTE_MS = 20000;          // Abstimmzeit je einzelner Anfechtung (an SLF angelehnt)
 
 function normalizeNennsBlitzText(text) {
   return (text || "").trim().toLowerCase().replace(/[^a-zäöüß0-9 ]/gi, "").replace(/\s+/g, " ").trim();
@@ -1414,50 +1425,179 @@ function startNennsBlitzRound(room, def) {
   // Solo-Party-Räume bestehen strukturell immer aus genau 1 menschlichen
   // Spieler:in (keine Bots, kein Warten auf weitere Beitritte) – daher
   // ist "genau 1 Spieler im Raum" hier ein zuverlässiges Solo-Kriterium.
-  // (Ein eigenes room.soloMode-Flag existiert serverseitig bislang nicht,
-  // nur clientseitig als party.soloMode.)
   const isSolo = room.players.size === 1;
-  const durationMs = isSolo ? NENNSBLITZ_SOLO_MS : NENNSBLITZ_DUELL_MS;
   const perPlayer = new Map();
   room.players.forEach(p => { perPlayer.set(p.id, { answers: [] }); }); // {id, text}
 
   room.runtime = {
     kind: "nennsBlitz",
     label: ds.label,
-    phase: "answering",
+    phase: isSolo ? "answering" : "turns",
     perPlayer,
     answerCounter: 0,
     challengeCounter: 0,
     challenges: new Map(),
-    startedAt: Date.now(),
-    durationMs,
     timer: null,
     roundPointsByTeam: new Map(teamIds.map(id => [id, 0]))
   };
 
-  broadcast(room, { type: "nennsBlitzStart", label: ds.label, durationMs });
-  room.runtime.timer = setTimeout(() => resolveNennsBlitzAnswering(room), durationMs + 400);
+  if (isSolo) {
+    room.runtime.startedAt = Date.now();
+    room.runtime.durationMs = NENNSBLITZ_SOLO_MS;
+    broadcast(room, { type: "nennsBlitzStart", label: ds.label, durationMs: NENNSBLITZ_SOLO_MS });
+    room.runtime.timer = setTimeout(() => resolveNennsBlitzAnswering(room), NENNSBLITZ_SOLO_MS + 400);
+    return;
+  }
+
+  // Zugreihenfolge über alle Teams hinweg interleaved (Team-Index 0 aller
+  // Teams zuerst, dann Team-Index 1 aller Teams, usw.) – ergibt bei 2v2 mit
+  // Team1=[A,B]/Team2=[C,D] genau die gewünschte Reihenfolge A, C, B, D.
+  const teamsArr = Array.from(room.teams.values()).map(t => t.memberIds.filter(id => room.players.has(id)));
+  const teamSize = Math.max(0, ...teamsArr.map(t => t.length));
+  const turnOrder = [];
+  for (let i = 0; i < teamSize; i++) {
+    teamsArr.forEach(members => { if (members[i]) turnOrder.push(members[i]); });
+  }
+  const finalMs = teamSize <= 1 ? NENNSBLITZ_FINAL_1V1_MS : (teamSize === 2 ? NENNSBLITZ_FINAL_2V2_MS : NENNSBLITZ_FINAL_LARGER_MS);
+
+  room.runtime.turnOrder = turnOrder;
+  room.runtime.turnIndex = 0;
+  room.runtime.stage = "haupt"; // "haupt" | "final"
+  room.runtime.finalMs = finalMs;
+
+  startNennsBlitzTurn(room);
+}
+
+// Liefert alle bislang (über sämtliche bisherigen Züge hinweg) akzeptierten
+// Antworttexte dieser Runde – für die "schon genannt"-Anzeige und die
+// globale Duplikat-Prüfung im Duell-Modus.
+function nennsBlitzAllAnswers(rt) {
+  const list = [];
+  rt.perPlayer.forEach(st => st.answers.forEach(a => list.push(a.text)));
+  return list;
+}
+
+function nennsBlitzTurnDuration(rt) {
+  if (rt.stage === "final") return rt.finalMs;
+  const n = rt.turnOrder.length;
+  const firstHalfCount = Math.floor(n / 2);
+  return rt.turnIndex < firstHalfCount ? NENNSBLITZ_HAUPT_FIRST_MS : NENNSBLITZ_HAUPT_SECOND_MS;
+}
+
+function startNennsBlitzTurn(room) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "turns") return;
+  clearTimeout(rt.timer);
+  const playerId = rt.turnOrder[rt.turnIndex];
+  const durationMs = nennsBlitzTurnDuration(rt);
+  rt.activeTurnPlayerId = playerId;
+  rt.turnStartedAt = Date.now();
+  rt.turnDurationMs = durationMs;
+
+  const player = room.players.get(playerId);
+  broadcast(room, {
+    type: "nennsBlitzTurn",
+    label: rt.label,
+    stage: rt.stage,
+    turnIndex: rt.turnIndex,
+    turnCount: rt.turnOrder.length,
+    activePlayerId: playerId,
+    activePlayerName: player ? player.name : "?",
+    durationMs,
+    takenAnswers: nennsBlitzAllAnswers(rt)
+  });
+
+  rt.timer = setTimeout(() => advanceNennsBlitzTurn(room), durationMs + 300);
+  scheduleNennsBlitzBotTurn(room, playerId, durationMs);
+}
+
+function advanceNennsBlitzTurn(room) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "turns") return;
+  rt.turnIndex++;
+  if (rt.turnIndex >= rt.turnOrder.length) {
+    if (rt.stage === "haupt") {
+      rt.stage = "final";
+      rt.turnIndex = 0;
+      startNennsBlitzTurn(room);
+    } else {
+      resolveNennsBlitzAnswering(room);
+    }
+  } else {
+    startNennsBlitzTurn(room);
+  }
+}
+
+// Lässt einen Bot während seines eigenen Zugs ein paar Platzhalter-Antworten
+// abgeben (schwierigkeitsabhängige Trefferquote/Tempo aus BOT_TIERS). Da
+// die Validierung bewusst freitextbasiert ist (keine feste Lösungsliste),
+// kennen Bots keine "echten" Kategorie-Begriffe – sie tragen trotzdem zum
+// Tempo/Ablauf bei, zählen aber inhaltlich nicht als realistische Antworten.
+function scheduleNennsBlitzBotTurn(room, playerId, durationMs) {
+  const rt = room.runtime;
+  const player = room.players.get(playerId);
+  if (!player || !player.isBot) return;
+  const tier = BOT_TIERS[player.botTier] || BOT_TIERS[DEFAULT_BOT_TIER];
+  const stageSnapshot = rt.stage, turnSnapshot = rt.turnIndex;
+
+  const attempt = (n) => {
+    const delay = randRange(500, Math.max(700, durationMs * 0.6));
+    setTimeout(() => {
+      if (!room.runtime || room.runtime !== rt) return;
+      if (rt.stage !== stageSnapshot || rt.turnIndex !== turnSnapshot) return; // Zug ist vorbei
+      if (rt.activeTurnPlayerId !== playerId) return;
+      if (Math.random() < tier.prob) {
+        handleNennsBlitzSubmit(room, playerId, `Antwort ${player.name} ${n}`);
+      }
+      if (n < 6) attempt(n + 1);
+    }, delay);
+  };
+  attempt(1);
 }
 
 function handleNennsBlitzSubmit(room, playerId, text) {
   const rt = room.runtime;
-  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "answering") return;
-  const st = rt.perPlayer.get(playerId);
-  if (!st) return;
+  if (!rt || rt.kind !== "nennsBlitz") return;
   const trimmed = (text || "").trim().slice(0, 60);
   if (!trimmed) return;
   const norm = normalizeNennsBlitzText(trimmed);
   if (!norm) return;
-  if (st.answers.some(a => normalizeNennsBlitzText(a.text) === norm)) return; // im eigenen Feld schon genannt
-  const id = "a" + (++rt.answerCounter);
-  st.answers.push({ id, text: trimmed });
-  const player = room.players.get(playerId);
-  if (player && player.ws) send(player.ws, { type: "nennsBlitzOwnUpdate", answers: st.answers });
+
+  if (rt.phase === "answering") {
+    // Solo: Duplikat-Prüfung im eigenen Feld genügt (nur 1 Spieler:in).
+    const st = rt.perPlayer.get(playerId);
+    if (!st) return;
+    if (st.answers.some(a => normalizeNennsBlitzText(a.text) === norm)) return;
+    const id = "a" + (++rt.answerCounter);
+    st.answers.push({ id, text: trimmed });
+    const player = room.players.get(playerId);
+    if (player && player.ws) send(player.ws, { type: "nennsBlitzOwnUpdate", answers: st.answers });
+    return;
+  }
+
+  if (rt.phase === "turns") {
+    if (rt.activeTurnPlayerId !== playerId) return; // nur die Person am Zug darf tippen
+    const st = rt.perPlayer.get(playerId);
+    if (!st) return;
+    // Duplikat-Prüfung jetzt GLOBAL über alle bisherigen Züge/Spieler:innen
+    // hinweg, da im Duell-Modus alle nacheinander einen gemeinsamen
+    // Begriffs-Pool füllen – ein bereits genannter Begriff zählt nicht
+    // nochmal, egal von wem er zuerst kam.
+    let dup = false;
+    rt.perPlayer.forEach(otherSt => { if (otherSt.answers.some(a => normalizeNennsBlitzText(a.text) === norm)) dup = true; });
+    if (dup) return;
+    const id = "a" + (++rt.answerCounter);
+    st.answers.push({ id, text: trimmed });
+    broadcast(room, { type: "nennsBlitzTurnUpdate", playerId, allTaken: nennsBlitzAllAnswers(rt) });
+  }
 }
 
 function resolveNennsBlitzAnswering(room) {
   const rt = room.runtime;
-  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "answering") return;
+  // Wird sowohl am Ende der Solo-Antwortzeit ("answering") als auch am Ende
+  // der Duell-Zugreihenfolge (Hauptrunde+Finalrunde abgeschlossen, "turns")
+  // aufgerufen – beide Phasen führen in dieselbe Anfechtungsphase.
+  if (!rt || rt.kind !== "nennsBlitz" || (rt.phase !== "answering" && rt.phase !== "turns")) return;
   rt.phase = "challenge";
   clearTimeout(rt.timer);
 
@@ -1542,9 +1682,8 @@ function finalizeNennsBlitzRound(room) {
     const validCount = st.answers.filter(a => !invalidatedIds.has(pid + "|" + a.id)).length;
     results.push({ playerId: pid, name: player ? player.name : "?", total: validCount });
     if (player && player.teamId) {
-      // Solo: 1 Punkt pro korrekter Antwort. Mehrspieler (vorläufig, bis
-      // Duell-Punktelogik final steht): ebenfalls 1 Punkt pro gültiger
-      // Antwort, aufsummiert je Team.
+      // 1 Punkt pro gültiger Antwort, je Team aufsummiert – für Solo wie
+      // Duell gleichermaßen (vom Nutzer bestätigt).
       rt.roundPointsByTeam.set(player.teamId, (rt.roundPointsByTeam.get(player.teamId) || 0) + validCount);
     }
   });

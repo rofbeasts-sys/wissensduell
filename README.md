@@ -826,82 +826,100 @@ und Musik raten – Solo sind davon nicht betroffen (nutzen weiterhin
 `startSoloPartyFlow('slf')` bzw. `('music')`, jetzt mit dem in 7j
 beschriebenen 1-Runden-Ablauf).
 
-## 7l. Neuer Modus "Nenn's Blitz" (Freitext-Kategorien, Solo fertig)
+## 7l. Neuer Modus "Nenn's Blitz" (Freitext-Kategorien, jetzt mit reihum-Duell)
 
-Neue Rundenart: Spieler tippen innerhalb einer Zeitvorgabe frei so viele
-richtige Begriffe zu einer Kategorie wie möglich (kein Buzzer). **Wichtig:
-nur der Solo-Modus ist vollständig nach Vorgabe fertig** – der eigentliche
-Duell-Modus (Elimination, 30→15s-Umschaltung, Finalrunden mit 7s/1v1 bzw.
-10s/2v2) war beim Bauen noch nicht final geklärt (mehrere Rückfragen dazu
-blieben mehrdeutig). Mehrspieler läuft daher vorerst als einfache
-gemeinsame 30-Sekunden-Runde (alle gleichzeitig, gleiche Zeit für alle) –
-funktioniert und ist getestet, ist aber noch nicht die geplante
-Turnier-/Elimination-Variante. Sobald das Duell-Design steht, baue ich das
-gezielt drauf (die Grundmechanik – Tippen, Anfechten, Wertung – bleibt
-dabei unverändert wiederverwendbar).
+Neue Rundenart: Spieler tippen frei so viele richtige Begriffe zu einer
+Kategorie wie möglich (kein Buzzer, kein mündliches Nennen). Nach mehreren
+Rückfragen zum Duell-Design (Zeit-Umschaltung, Zugreihenfolge) so
+finalisiert:
 
-**Validierung** (nach Rückfrage so festgelegt): bewusst **kein**
-Lösungslisten-System. Jede getippte Antwort zählt sofort vorläufig; nach
-Rundenende (Antwortzeit abgelaufen) folgt eine Anfechtungsphase, in der
-andere Spieler einzelne Antworten anderer Spieler:innen anfechten können
-(nicht die eigenen) – Mitspieler stimmen dann ab, ob die Antwort gültig
-bleibt. Diese Anfechten-Mechanik ist direkt von Stadt Land Fluss übernommen
-(gleiches Muster: `SLF_CHALLENGE_MS`/`SLF_VOTE_MS` → hier
-`NENNSBLITZ_CHALLENGE_MS` (30s, Fenster zum Anfechten) /
-`NENNSBLITZ_VOTE_MS` (20s, Abstimmzeit je einzelner Anfechtung, an SLF
-angelehnt, da "30 Sekunden zum Prüfen" nicht eindeutig zuordenbar war ob
-Fenster oder Abstimmzeit gemeint ist)). Mehrheitsentscheid, bei Gleichstand
-bleibt die Antwort gültig.
+**Validierung**: bewusst **kein** Lösungslisten-System (nach Rückfrage so
+festgelegt). Jede getippte Antwort zählt sofort vorläufig; nach Rundenende
+folgt eine Anfechtungsphase (direkt von Stadt Land Fluss übernommenes
+Muster: Anfechten + Mitspieler-Abstimmung, Mehrheitsentscheid, bei
+Gleichstand bleibt die Antwort gültig). `NENNSBLITZ_CHALLENGE_MS` = 30s
+(Fenster zum Anfechten), `NENNSBLITZ_VOTE_MS` = 20s (Abstimmzeit je
+einzelner Anfechtung, an SLF angelehnt).
 
-**Zeiten** (`server.js`, Konstanten `NENNSBLITZ_SOLO_MS`/`NENNSBLITZ_DUELL_MS`):
-Solo = 15.000ms (fest nach Vorgabe), Mehrspieler = 30.000ms (vorläufiger
-Platzhalter, siehe oben). Solo-Erkennung serverseitig über
-`room.players.size === 1` (ein echtes `room.soloMode`-Flag existiert
-serverseitig bisher nicht, nur clientseitig).
+**Ablauf Solo**: einfache freie 15-Sekunden-Runde, alle Antworten sofort
+eintippbar (`NENNSBLITZ_SOLO_MS`). Unverändert seit der ersten Fassung.
 
-**Duplikat-Schutz**: dieselbe Antwort (tippfehlertolerant über Klein-
-schreibung/Sonderzeichen normalisiert, `normalizeNennsBlitzText()`) zählt im
-eigenen Feld nur einmal. Dieselbe Antwort von ZWEI VERSCHIEDENEN Spielern
-zählt für beide (kein "wer zuerst"-Wettrennen, jede/r sammelt unabhängig).
+**Ablauf Duell (2+ Spieler) – jetzt reihum, nicht mehr gleichzeitig**:
+Nach mehreren Rückfragen (Zeit-Umschaltung 30→15s, Zugreihenfolge bei 2v2)
+so verstanden und umgesetzt – **bitte beim Anschauen gegenprüfen, einige
+Annahmen mussten getroffen werden, siehe unten:**
+- **Zugreihenfolge**: über alle Teams interleaved (Team-Index 0 aller Teams
+  zuerst, dann Index 1, usw.) – bei 2v2 mit Team1=[A,B]/Team2=[C,D] ergibt
+  das genau A, C, B, D wie besprochen. Mit echtem Serverlauf exakt
+  bestätigt (P1, P3, P2, P4 bei entsprechender Team-Zuordnung).
+- **Hauptrunde**: jede Person hat ihren EIGENEN Zug mit eigener Zeit (nicht
+  ein gemeinsam schrumpfender Timer) – erste Hälfte der Zugreihenfolge
+  bekommt 30s (`NENNSBLITZ_HAUPT_FIRST_MS`), zweite Hälfte 15s
+  (`NENNSBLITZ_HAUPT_SECOND_MS`). Bei 2v2 (4 Züge): A,C = 30s, B,D = 15s.
+  Bei 1v1 (2 Züge): erste Person 30s, zweite 15s.
+- **Finalrunde** (**Annahme, da vom Nutzer nicht abschließend geklärt**:
+  läuft IMMER direkt nach der Hauptrunde, nicht nur bei Gleichstand):
+  dieselbe Zugreihenfolge nochmal, aber stark verkürzt: 7s/Zug bei 1
+  Spieler pro Team (`NENNSBLITZ_FINAL_1V1_MS`), 10s/Zug bei 2 Spielern pro
+  Team (`NENNSBLITZ_FINAL_2V2_MS`). Bei 3+ Spielern/Team (z.B. 3v3) auf 12s
+  verallgemeinert (`NENNSBLITZ_FINAL_LARGER_MS`) – dafür gab es keine
+  explizite Vorgabe.
+- **Nur die Person am Zug darf tippen** – mit echtem Serverlauf bestätigt
+  (ein Versuch außerhalb des eigenen Zugs wird stillschweigend ignoriert).
+- **Duplikat-Prüfung jetzt GLOBAL** über alle bisherigen Züge/Spieler:innen
+  hinweg (nicht mehr nur "im eigenen Feld"), da im Duell alle nacheinander
+  einen gemeinsamen Begriffs-Pool füllen – ein bereits genannter Begriff
+  zählt nicht nochmal, egal von wem. Mit echtem Serverlauf bestätigt
+  (abweichende Groß-/Kleinschreibung wird korrekt als Duplikat erkannt).
+- Nach Hauptrunde + Finalrunde folgt dieselbe Anfechtungs-/Wertungs-
+  Pipeline wie Solo (unverändert wiederverwendet).
 
-**Punktevergabe**: Solo = 1 Punkt pro korrekter (nicht angefochtener oder
-nach Abstimmung bestätigter) Antwort, exakt nach Vorgabe. Mehrspieler
-vorläufig ebenfalls 1 Punkt pro gültiger Antwort je Spieler, aufsummiert je
-Team – wird ggf. angepasst, sobald die Duell-Punktelogik final steht (laut
-Anforderung ohnehin "ggf. anpassen, sobald Zeitregeln final stehen").
+**Punktevergabe**: 1 Punkt pro gültiger Antwort, je Team aufsummiert – für
+Solo und Duell gleichermaßen (vom Nutzer bestätigt).
 
-**Kategorien** (`shared/partyDatasets.json`, neuer Bereich `nennsBlitz`,
-22 Kategorien, nur Label – keine Lösungsliste nötig, siehe oben):
-Länder (Allgemein/Europa/Nicht-Europa/Bundesländer/Bundesländer-
-Hauptstädte), Tierrassen (Allgemein/Hunde/Katzen/Fische/Vögel), Marvel-,
-Disney- und DC-Charaktere, "Ich bin ein Star"- und "Promi Big Brother"-
-Kandidat:innen, Naruto/One Piece/Dragonball-Charaktere, Twitch-Streamer mit
-über 1 Mio. Followern, Fußball (Mannschaften/Champions-League-Sieger/
-beidfüßige Spieler). Unterkategorien sind nach Rückfrage **eigene, einzeln
-wählbare Einträge** im Rundenpool (z.B. "Nenn's Blitz: Tierrassen: Hunde"),
-keine Unterauswahl unter einer Oberkategorie. "Champions Sieger / Seasen 1"
-aus der Anforderung war nicht eindeutig – nur "Champions-League-Sieger" als
-eine Kategorie umgesetzt, "Seasen 1" ausgelassen (bitte klären, falls damit
-etwas Eigenständiges gemeint war). Kategorie "Schauspieler" wie gefordert
-NICHT aufgenommen. Weitere Fußball-Kategorien ("es kommen noch welche
-nach") können jederzeit einfach als neue Einträge in
+**Bots im Duell-Modus**: nehmen jetzt an ihrem eigenen Zug teil (tempo-
+/trefferquoten-abhängig nach `BOT_TIERS`), tippen aber mangels fester
+Lösungsliste nur Platzhalter-Text (`"Antwort <Name> <n>"`) – das ist eine
+inhärente Folge der bewusst gewählten freitextbasierten Validierung ohne
+Lösungsliste, kein Bug. Sie tragen zum Spielfluss/Tempo bei, ihre Antworten
+sind aber nicht als "echtes" Kategoriewissen zu verstehen.
+
+**Kategorien** (`shared/partyDatasets.json`, Bereich `nennsBlitz`, 22
+Kategorien, nur Label – keine Lösungsliste nötig): Länder (Allgemein/
+Europa/Nicht-Europa/Bundesländer/Bundesländer-Hauptstädte), Tierrassen
+(Allgemein/Hunde/Katzen/Fische/Vögel), Marvel-, Disney- und DC-Charaktere,
+"Ich bin ein Star"- und "Promi Big Brother"-Kandidat:innen, Naruto/One
+Piece/Dragonball-Charaktere, Twitch-Streamer mit über 1 Mio. Followern,
+Fußball (Mannschaften/Champions-League-Sieger/beidfüßige Spieler).
+Unterkategorien sind **eigene, einzeln wählbare Einträge** im Rundenpool
+(z.B. "Nenn's Blitz: Tierrassen: Hunde"), wie besprochen. "Champions
+Sieger / Seasen 1" aus der Anforderung war nicht eindeutig – nur
+"Champions-League-Sieger" umgesetzt, "Seasen 1" ausgelassen (bitte klären,
+falls damit etwas Eigenständiges gemeint war). Kategorie "Schauspieler"
+wie gefordert NICHT aufgenommen. Weitere Fußball-Kategorien ("es kommen
+noch welche nach") können jederzeit einfach als neue Einträge in
 `DATASETS.nennsBlitz` ergänzt werden – kein Code muss dafür geändert
 werden.
 
 **Einbindung**: normale Kategorie im gemischten Rundenpool (`ROUND_DEF_POOL`,
-`germanOnly: true`), kein eigener Hauptmenüpunkt – funktioniert daher
-automatisch auch in Solo-Party, Stadt-Land-Fluss-fremdem Multiplayer und im
-1-Runden-Kategorie-Picker aus 7j. **Bots nehmen an Nenn's Blitz nicht teil**
-(0 Antworten) – ohne Lösungsliste gibt es keine verlässliche Grundlage, auf
-der ein Bot "wissen" könnte, was in einer Kategorie richtig wäre.
+`germanOnly: true`) – funktioniert daher auch in Solo-Party und im
+1-Runden-Kategorie-Picker aus 7j.
 
-Mit mehreren echten Serverläufen getestet: Solo (15s, exakt 1 Punkt/Antwort,
-korrekt erkannt über Spieleranzahl), Mehrspieler (30s, Duplikat-Erkennung
-bei abweichender Groß-/Kleinschreibung bestätigt, Anfechten+Abstimmen
-korrekt, Endwertung stimmt), außerdem eine komplette Simulation der echten
-Client-Rendering-Funktionen gegen echte Server-Nachrichten (keine Fehler)
-sowie ein voller 5-Runden-Zufalls-Durchlauf, bei dem eine Nenn's-Blitz-Runde
-zufällig gezogen wurde und sauber bis zum Spielende durchlief.
+**Client** (`public/index.html`): neue Bildschirme `renderNennsBlitzTurn()`
+(zeigt Zugreihenfolge/Phase/wer dran ist/Timer; nur die Person am Zug sieht
+ein Eingabefeld, alle anderen eine Warteanzeige) und
+`handleNennsBlitzTurnUpdate()` (Live-Liste bereits genannter Begriffe für
+alle sichtbar). Die bestehende Auflösungs-/Anfechten-/Abstimmungs-
+Bildschirme (`renderNennsBlitzReveal()` etc.) wurden unverändert
+wiederverwendet.
+
+Mit mehreren echten Serverläufen ausführlich getestet: kompletter 1v1-
+Durchlauf (Hauptrunde 30s/15s, Finalrunde 7s/7s, Anfechten-Fenster,
+Endwertung – alles korrekt), 2v2-Zugreihenfolge exakt wie erwartet
+(P1→P3→P2→P4 mit 30s/30s/15s/15s), Zugbeschränkung (nur aktive Person darf
+tippen) bestätigt, globale Duplikat-Erkennung bestätigt, Solo-Modus
+weiterhin unverändert korrekt, Standard-Regressionstest (andere
+Rundentypen) läuft unverändert sauber durch.
 
 ## 8. Bekannte Grenzen dieser ersten Version
 
