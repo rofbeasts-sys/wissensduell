@@ -852,14 +852,12 @@ function rankPillHtml(score){
 }
 
 /* ------------------------- 3. ZEIT & SCHWIERIGKEIT (zentral) ------------------------- */
-function getTimeLimit(score){
-  if(score < 1000) return 100;
-  if(score < 2500) return 50;
-  if(score < 4000) return 30;
-  if(score < 6000) return 25;
-  if(score < 8000) return 20;
-  if(score < 10000) return 15;
-  return 10;
+// Feste Zeit pro Frage (nicht mehr punktebasiert gestaffelt, da das Punkte-
+// system entfernt wurde) - bewusst kurz gehalten, damit auf einem zweiten
+// Gerät nicht in Ruhe nachgegoogelt werden kann. Bei Bedarf hier einfach den
+// Wert anpassen (z.B. auf 15 senken, falls 30s noch zu lang ist).
+function getTimeLimit(){
+  return 30;
 }
 let recentQuestions = [];
 // Für den lokalen Pass-&-Play-Mehrspieler (separat vom Solo-Aufstiegssystem):
