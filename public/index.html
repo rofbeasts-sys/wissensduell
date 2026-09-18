@@ -811,14 +811,34 @@ const QUESTIONS = [{q:"Welcher ist der größte Ozean der Erde?",a:["Atlantik","
 const RANKS = [
   {name:"Nicht gelistet", min:0,     max:999,     cls:"rank-none"},
   {name:"Gelistet",       min:1000,  max:1499,    cls:"rank-listed"},
-  {name:"Bronze",         min:1500,  max:2499,    cls:"rank-bronze"},
-  {name:"Silber",         min:2500,  max:3999,    cls:"rank-silver"},
-  {name:"Gold",           min:4000,  max:5999,    cls:"rank-gold"},
-  {name:"Diamant",        min:6000,  max:7999,    cls:"rank-diamond"},
-  {name:"Platin",         min:8000,  max:9999,    cls:"rank-platin"},
-  {name:"Meister",        min:10000, max:14999,   cls:"rank-master"},
-  {name:"Großmeister",    min:15000, max:Infinity,cls:"rank-grand"}
+  {name:"Schüler",        min:1500,  max:2499,    cls:"rank-bronze"},
+  {name:"Student",        min:2500,  max:3999,    cls:"rank-silver"},
+  {name:"Lehrer",         min:4000,  max:5999,    cls:"rank-gold"},
+  {name:"Experte",        min:6000,  max:7999,    cls:"rank-platin"},
+  {name:"Wissenschaftler",min:8000,  max:9999,    cls:"rank-diamond"},
+  {name:"Professor",      min:10000, max:14999,   cls:"rank-master"},
+  {name:"Sheldon",        min:15000, max:Infinity,cls:"rank-grand"}
 ];
+// Aufstiegs-Test je Rang: Anzahl Fragen, mindestens nötig richtig, um in den
+// NÄCHSTEN Rang aufzusteigen (Index i = Test, um von RANKS[i] zu RANKS[i+1]
+// zu kommen). easyOnly = nur Schwierigkeit 1. Fragen werden zunehmend
+// schwieriger; der letzte Eintrag ist vorerst die Obergrenze.
+const TIER_TESTS = [
+  { questions: 5,  needed: 4  },              // Nicht gelistet -> Gelistet
+  { questions: 5,  needed: 4, easyOnly:true }, // Gelistet -> Schüler (nur leichte Fragen)
+  { questions: 10, needed: 8  },               // Schüler -> Student
+  { questions: 10, needed: 9  },               // Student -> Lehrer
+  { questions: 10, needed: 10 },               // Lehrer -> Experte
+  { questions: 15, needed: 14 },               // Experte -> Wissenschaftler
+  { questions: 15, needed: 15 },               // Wissenschaftler -> Professor
+  { questions: 20, needed: 19 },               // Professor -> Sheldon
+  { questions: 20, needed: 20 }                // Sheldon -> (aktuelle Obergrenze)
+];
+// Zielschwierigkeit je Rang-Test: wird mit dem Rang zunehmend schwerer.
+function tierTestDifficulty(tierIndex){
+  if(TIER_TESTS[tierIndex] && TIER_TESTS[tierIndex].easyOnly) return 1;
+  return Math.min(4, 1 + Math.floor(tierIndex/2));
+}
 function getRank(score){ return RANKS.find(r => score >= r.min && score <= r.max) || RANKS[0]; }
 function getNextRankInfo(score){
   const idx = RANKS.findIndex(r => score >= r.min && score <= r.max);
@@ -841,29 +861,20 @@ function getTimeLimit(score){
   if(score < 10000) return 15;
   return 10;
 }
-function getDifficultyWeights(score){
-  // [leicht, normal, schwer, extrem schwer]
-  if(score < 1500) return [0.65, 0.25, 0.09, 0.01];
-  if(score < 4000) return [0.30, 0.40, 0.25, 0.05];
-  if(score < 8000) return [0.10, 0.30, 0.40, 0.20];
-  if(score < 12000) return [0.03, 0.15, 0.42, 0.40];
-  return [0.0, 0.05, 0.30, 0.65];
-}
-function weightedDifficulty(weights){
-  const r = Math.random();
-  if(r < weights[0]) return 1;
-  if(r < weights[0]+weights[1]) return 2;
-  if(r < weights[0]+weights[1]+weights[2]) return 3;
-  return 4;
-}
 let recentQuestions = [];
-function pickQuestionsForRound(baseScore){
-  const weights = getDifficultyWeights(baseScore);
+// Für den lokalen Pass-&-Play-Mehrspieler (separat vom Solo-Aufstiegssystem):
+// 5 Fragen, Schwierigkeit grob am Punkte-Durchschnitt der Teilnehmenden orientiert.
+function pickQuestionsForLocalMP(avgScore){
+  const weights = avgScore < 1500 ? [0.55,0.30,0.12,0.03]
+    : avgScore < 4000 ? [0.30,0.40,0.25,0.05]
+    : avgScore < 8000 ? [0.10,0.30,0.40,0.20]
+    : [0.03,0.15,0.42,0.40];
   const usedIds = new Set();
   const recentSet = new Set(recentQuestions);
   const picks = [];
   for(let i=0;i<5;i++){
-    const diff = weightedDifficulty(weights);
+    const r = Math.random();
+    const diff = r<weights[0]?1 : r<weights[0]+weights[1]?2 : r<weights[0]+weights[1]+weights[2]?3 : 4;
     let pool = QUESTIONS.map((q,idx)=>({...q,idx})).filter(q=>q.d===diff && !usedIds.has(q.idx) && !recentSet.has(q.idx));
     if(pool.length===0) pool = QUESTIONS.map((q,idx)=>({...q,idx})).filter(q=>q.d===diff && !usedIds.has(q.idx));
     if(pool.length===0) pool = QUESTIONS.map((q,idx)=>({...q,idx})).filter(q=>!usedIds.has(q.idx));
@@ -872,6 +883,28 @@ function pickQuestionsForRound(baseScore){
     picks.push(chosen);
   }
   recentQuestions = [...picks.map(p=>p.idx), ...recentQuestions].slice(0,40);
+  return picks;
+}
+// Stellt den Aufstiegstest für den aktuellen Rang zusammen: TIER_TESTS[tierIndex].questions
+// Fragen der zu diesem Rang passenden Zielschwierigkeit (tierTestDifficulty).
+// Fällt auf benachbarte Schwierigkeiten bzw. den Gesamtpool zurück, falls zu
+// wenige passende, noch nicht kürzlich gesehene Fragen übrig sind.
+function pickTierTestQuestions(tierIndex){
+  const test = TIER_TESTS[Math.min(tierIndex, TIER_TESTS.length-1)];
+  const targetDiff = tierTestDifficulty(tierIndex);
+  const usedIds = new Set();
+  const recentSet = new Set(recentQuestions);
+  const picks = [];
+  for(let i=0;i<test.questions;i++){
+    let pool = QUESTIONS.map((q,idx)=>({...q,idx})).filter(q=>q.d===targetDiff && !usedIds.has(q.idx) && !recentSet.has(q.idx));
+    if(pool.length===0) pool = QUESTIONS.map((q,idx)=>({...q,idx})).filter(q=>q.d===targetDiff && !usedIds.has(q.idx));
+    if(pool.length===0) pool = QUESTIONS.map((q,idx)=>({...q,idx})).filter(q=>!usedIds.has(q.idx) && !recentSet.has(q.idx));
+    if(pool.length===0) pool = QUESTIONS.map((q,idx)=>({...q,idx})).filter(q=>!usedIds.has(q.idx));
+    const chosen = pool[Math.floor(Math.random()*pool.length)];
+    usedIds.add(chosen.idx);
+    picks.push(chosen);
+  }
+  recentQuestions = [...picks.map(p=>p.idx), ...recentQuestions].slice(0,60);
   return picks;
 }
 
@@ -889,7 +922,7 @@ function saveProfiles(){
 }
 function createProfile(name){
   const p = { id:"p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-    name: name.trim(), score:0, roundsPlayed:0, wins:0, losses:0,
+    name: name.trim(), score:0, tier:0, roundsPlayed:0, wins:0, losses:0,
     correctAnswers:0, wrongAnswers:0, bestScore:0 };
   profiles.push(p);
   saveProfiles();
@@ -985,7 +1018,7 @@ function accountAsProfile(){
   const p = account.profile;
   return {
     id: "account:" + p.username, name: p.username,
-    score: p.score, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
+    score: p.score, tier: p.tier || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
     correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore,
     isAccount: true
   };
@@ -996,7 +1029,7 @@ async function syncAccountStats(profile){
   const result = await apiCall("/api/save-stats", {
     token: account.token,
     stats: {
-      score: profile.score, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
+      score: profile.score, tier: profile.tier, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
       correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore
     }
   });
@@ -1359,13 +1392,19 @@ function startSoloFlow(){
 }
 
 function beginSolo(profile){
-  const questions = pickQuestionsForRound(profile.score);
+  const tierIndex = Math.min(profile.tier || 0, TIER_TESTS.length - 1);
+  const test = TIER_TESTS[tierIndex];
+  const questions = pickTierTestQuestions(tierIndex);
+  const currentRank = RANKS[tierIndex] || RANKS[0];
+  const nextRank = RANKS[tierIndex + 1];
   solo = {
     profile,
     startScore: profile.score,
+    startTier: tierIndex,
     questions,
     qIndex: 0,
     timeLimit: getTimeLimit(profile.score),
+    testNeeded: test.needed,
     correct: 0, wrong: 0, points: 0,
     timerId: null, remaining: 0, answered: false
   };
@@ -1375,7 +1414,7 @@ function beginSolo(profile){
     <div class="panel pass-card">
       <div class="avatar-big" style="background:${avatarColor(profile.name)}">${initials(profile.name)}</div>
       <h2>${profile.name}</h2>
-      <p>5 Fragen · ${solo.timeLimit}s pro Frage · Verbessere deinen Punktestand!</p>
+      <p>Aufstiegstest ${currentRank.name}${nextRank ? ' → '+nextRank.name : ''}: ${questions.length} Fragen · mindestens ${test.needed} richtig · ${solo.timeLimit}s pro Frage</p>
       <button class="btn btn-primary" onclick="renderSoloQuestion()">LOS GEHT'S</button>
     </div>
   `);
@@ -1470,11 +1509,13 @@ function soloNextQuestion(){
 }
 
 function endSoloRound(){
-  const perfectRound = solo.correct === solo.questions.length;
-  const bonus = perfectRound ? 150 : 0;
+  const isMaxTier = solo.startTier >= TIER_TESTS.length - 1 && (RANKS[solo.startTier+1] === undefined);
+  const promoted = solo.correct >= solo.testNeeded;
+  const bonus = promoted ? 150 : 0;
   applyPoints(solo.profile, bonus);
+  if(promoted && RANKS[solo.startTier + 1]) solo.profile.tier = solo.startTier + 1;
 
-  const roundWon = solo.correct >= 3;
+  const roundWon = promoted;
   solo.profile.roundsPlayed++;
   solo.profile.correctAnswers += solo.correct;
   solo.profile.wrongAnswers += solo.wrong;
@@ -1482,10 +1523,11 @@ function endSoloRound(){
   if(solo.profile.isAccount) syncAccountStats(solo.profile);
   else saveProfiles();
 
-  const rankBefore = getRank(solo.startScore);
-  const rankAfter = getRank(solo.profile.score);
+  const rankBefore = RANKS[solo.startTier] || RANKS[0];
+  const rankAfter = RANKS[solo.profile.tier || 0] || RANKS[0];
   const rankChanged = rankBefore.name !== rankAfter.name;
-  const nextInfo = getNextRankInfo(solo.profile.score);
+  const nextTest = TIER_TESTS[Math.min(solo.profile.tier || 0, TIER_TESTS.length-1)];
+  const nextRank = RANKS[(solo.profile.tier || 0) + 1];
 
   renderApp(`
     ${statusbarHtml(solo.profile.score)}
@@ -1495,15 +1537,15 @@ function endSoloRound(){
       ${rankChanged ? `<div class="rank-up-banner">Neuer Rang erreicht: ${rankAfter.name}!</div>` : ``}
 
       <div class="result-grid">
-        <div class="result-item pos"><div class="n">${solo.correct}</div><div class="l">Richtige Antworten</div></div>
+        <div class="result-item pos"><div class="n">${solo.correct}/${solo.questions.length}</div><div class="l">Richtige Antworten (nötig: ${solo.testNeeded})</div></div>
         <div class="result-item neg"><div class="n">${solo.wrong}</div><div class="l">Falsche Antworten</div></div>
         <div class="result-item"><div class="n">${solo.points>=0?"+":""}${solo.points}</div><div class="l">Punkte aus Fragen</div></div>
-        <div class="result-item ${bonus>0?'pos':''}"><div class="n">+${bonus}</div><div class="l">Rundenbonus${bonus>0?'':' (nur bei 5/5 richtig)'}</div></div>
+        <div class="result-item ${bonus>0?'pos':''}"><div class="n">${promoted?'✓ Bestanden':'✕ Nicht bestanden'}</div><div class="l">Aufstiegstest${promoted?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}</div></div>
       </div>
 
       <div class="result-item" style="margin-bottom:20px;">
-        <div class="n">${solo.profile.score} Punkte</div>
-        <div class="l">${rankPillHtml(solo.profile.score)} · ${nextInfo ? `Noch ${nextInfo.pointsNeeded} Punkte bis ${nextInfo.next.name}` : "Höchster Rang erreicht"}</div>
+        <div class="n">${rankPillHtml(RANKS[solo.profile.tier||0].min)}</div>
+        <div class="l">${nextRank ? `Nächster Aufstiegstest: ${nextTest.questions} Fragen, mindestens ${nextTest.needed} richtig → ${nextRank.name}` : "Höchster Rang erreicht (vorerst)"}</div>
       </div>
 
       <div class="actions-row">
@@ -1567,7 +1609,7 @@ function beginMP(playerProfiles){
       profile: p, startScore: p.score,
       roundCorrect:0, roundWrong:0, roundPoints:0
     })),
-    questions: pickQuestionsForRound(avgScore),
+    questions: pickQuestionsForLocalMP(avgScore),
     qIndex: 0,
     turnIndex: 0,
     currentResults: [], // {correct:bool} pro Spieler für aktuelle Frage
