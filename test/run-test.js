@@ -83,11 +83,8 @@ setTimeout(() => {
     }
     if (msg.type === "joined") { host.__playerId = msg.playerId; }
     if (msg.type === "nennsBlitzStart") {
-      // Solo-Fall (nur 1 Spieler im Raum) – Host tippt direkt etwas ein.
+      // Jetzt gleichzeitig für alle (Solo wie Duell) - Host tippt direkt etwas ein.
       setTimeout(() => host.send({ action: "nennsBlitzSubmit", text: "Antwort" }), 30);
-    }
-    if (msg.type === "nennsBlitzTurn" && msg.activePlayerId === host.__playerId) {
-      setTimeout(() => host.send({ action: "nennsBlitzSubmit", text: "Antwort-" + msg.turnIndex }), 30);
     }
     if (msg.type === "roundEnd") {
       setTimeout(() => host.send({ action: "continue" }), 100);
@@ -117,8 +114,8 @@ setTimeout(() => {
     if (msg.type === "musicItem") {
       setTimeout(() => guest.send({ action: "guessSubmit", answers: { artist: "y", title: "y", year: "2000" } }), 40);
     }
-    if (msg.type === "nennsBlitzTurn" && msg.activePlayerId === guest.__playerId) {
-      setTimeout(() => guest.send({ action: "nennsBlitzSubmit", text: "GastAntwort-" + msg.turnIndex }), 40);
+    if (msg.type === "nennsBlitzStart") {
+      setTimeout(() => guest.send({ action: "nennsBlitzSubmit", text: "GastAntwort" }), 40);
     }
   });
 
