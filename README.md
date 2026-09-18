@@ -1080,6 +1080,39 @@ nicht ganz stimmt, sag einfach kurz welche Stufe anders sein soll – die
 Tabelle oben lässt sich gezielt an einer Stelle in `TIER_TESTS` anpassen,
 ohne den Rest anzufassen.
 
+## 7r. Wissenstest: Punktesystem raus, vorzeitiger Abbruch, Abstieg bei 2 Fehlversuchen
+
+Drei Anpassungen am Aufstiegstest-System aus 7q/dem Namens-Update:
+
+- **Punktesystem entfernt**: kein ±100/-150 pro Antwort, kein +150-Bonus
+  mehr. Statusleiste (`statusbarHtml()`) zeigt jetzt nur noch den aktuellen
+  Rang (Pille), keine Punktzahl mehr. `profile.score` existiert als Feld
+  zwar noch (u.a. für `rankPillHtml()`-Wiederverwendung intern), wird aber
+  im Wissenstest nicht mehr verändert oder angezeigt.
+- **Vorzeitiger Abbruch bei feststehendem Ergebnis**: nach jeder Antwort
+  wird geprüft, ob das Bestehen schon sicher ist (genug richtig) ODER schon
+  unmöglich geworden ist (selbst mit allen verbleibenden richtig nicht mehr
+  genug) – dann geht's direkt zur Auswertung statt weitere Fragen zu
+  stellen. Beispiel "5 Fragen, 4 nötig": 2 falsche Antworten beenden den
+  Test sofort, da maximal noch 3 richtig möglich wären. Beim nächsten
+  Versuch werden neue Fragen gezogen (nutzt die bestehende
+  `recentQuestions`-Vermeidung), nicht dieselben wie zuvor.
+- **Abstieg bei 2 Fehlversuchen in Folge**: neues Feld
+  `profile.consecutiveFails`. Bestehst du einen Aufstiegstest nicht, bleibt
+  der Rang zunächst gleich (wie bisher) und der Zähler steigt um 1;
+  bestehst du ihn direkt danach nochmal nicht (2x in Folge, ohne
+  zwischenzeitlichen Erfolg), wirst du einen Rang zurückgestuft und der
+  Zähler wird zurückgesetzt. Ein bestandener Test setzt den Zähler
+  ebenfalls zurück auf 0. Für Konto-Profile serverseitig mitgespeichert
+  (`defaultStats()`/`saveUserStats()`).
+- **"Nicht gelistet" → "Gelistet"-Test verkürzt**: von 5 auf 3 Fragen (2
+  nötig statt 4), da die meisten diese Einstiegsstufe ohnehin schaffen.
+
+Mit einer Simulation der Kernlogik geprüft: Testgröße korrekt (3/2), Abbruch
+korrekt erst nach dem zweiten Fehler bei "5 Fragen/4 nötig" (nicht schon
+beim ersten), Abstieg korrekt erst beim zweiten Fehlschlag in Folge (nicht
+beim ersten).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
