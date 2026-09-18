@@ -1272,7 +1272,7 @@ function renderProfilePicker(title, subtitle, excludeIds, onPick, backFn){
         ${available.map(p => `
           <div class="picker-item" onclick="pickerChoose('${p.id}')">
             <span>${p.name}</span>
-            <span class="sub">${p.score} Punkte · ${getRank(p.score).name}</span>
+            <span class="sub">${(RANKS[p.tier||0]||RANKS[0]).name}</span>
           </div>
         `).join("")}
       </div>
@@ -1384,12 +1384,23 @@ function startSoloMenu(){
   renderMainMenu();
 }
 
+const LAST_PROFILE_KEY = "wq_last_profile_id";
 function startSoloFlow(){
   if(account){ beginSolo(accountAsProfile()); return; }
-  renderProfilePicker("WER SPIELT?", "Wähle dein Profil für den Solo-Modus.", [], beginSolo, "renderMainMenu");
+  // Jedes Gerät gehört normalerweise einer Person -> sobald ein lokales
+  // Profil existiert, direkt damit starten statt jedes Mal danach zu fragen.
+  // Nur wenn noch gar kein Profil da ist, wird die Namenseingabe gezeigt.
+  if(profiles.length > 0){
+    const lastId = localStorage.getItem(LAST_PROFILE_KEY);
+    const profile = profiles.find(p => p.id === lastId) || profiles[0];
+    beginSolo(profile);
+    return;
+  }
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], beginSolo, "renderMainMenu");
 }
 
 function beginSolo(profile){
+  if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
   const tierIndex = Math.min(profile.tier || 0, TIER_TESTS.length - 1);
   const test = TIER_TESTS[tierIndex];
   const questions = pickTierTestQuestions(tierIndex);
