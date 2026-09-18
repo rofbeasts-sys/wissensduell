@@ -986,6 +986,37 @@ die 22 `nennsBlitz`-Kategorien, Solo-Erkennung funktioniert) sowie einer
 kompletten Simulation der Client-Navigation (Hauptmenü-Karte → Untermenü →
 Solo-Namenseingabe → korrekter `createRoom`-Aufruf mit `gameMode:"blitz"`).
 
+## 7p. Nenn's Blitz: reihum-Duell wieder zurückgebaut – jetzt Zeit-Auswahl statt Zugreihenfolge
+
+Korrektur zu 7l/7o: das reihum-Prinzip (Hauptrunde 30s/15s + Finalrunde
+7s/10s, wechselnde Zugreihenfolge) wurde nach Rückfrage komplett wieder
+entfernt. Jetzt wieder wie ganz am Anfang: **alle tippen gleichzeitig**
+(kein Buzzer, kein reihum), aber mit anderen Zeiten als zuvor:
+
+- **Solo**: wählbar zwischen 60/90/120/180 Sekunden (vorher fest 15s).
+  Auswahl über neue Chips im Kategorie-Picker (nur sichtbar bei
+  `gameMode:"blitz"`), sendet `{action:'setNennsBlitzDuration', durationMs}`
+  an den Server, gespeichert in `room.nennsBlitzSoloDurationMs`
+  (Standardwert 60s, falls nie gesetzt). Mit echtem Serverlauf bestätigt
+  (90s gewählt → Runde lief tatsächlich mit 90.000ms, nicht dem Standard).
+- **Duell/Multiplayer**: immer fest 120 Sekunden
+  (`NENNSBLITZ_DUELL_MS`), keine Auswahl möglich – ein Versuch, trotzdem
+  eine andere Zeit zu setzen, wird ignoriert (mit echtem Serverlauf
+  bestätigt: 60s-Versuch hatte keine Wirkung, Runde lief mit 120.000ms).
+- **Duplikat-Prüfung wieder wie ursprünglich**: nur noch "im eigenen Feld"
+  – dieselbe Antwort von zwei verschiedenen Spieler:innen zählt für BEIDE
+  unabhängig (kein globaler, geteilter Begriffs-Pool mehr wie in der
+  reihum-Fassung). Mit echtem Serverlauf bestätigt (beide Spieler nannten
+  "Frankreich", beide bekamen es unabhängig gezählt).
+- Die reihum-spezifischen Server-Funktionen (`startNennsBlitzTurn`,
+  `advanceNennsBlitzTurn`, `nennsBlitzTurnDuration`,
+  `scheduleNennsBlitzBotTurn`) und Client-Bildschirme
+  (`renderNennsBlitzTurn`, `handleNennsBlitzTurnUpdate`) wurden entfernt.
+  Bots laufen jetzt wieder unabhängig über die gesamte Antwortzeit verteilt
+  (`scheduleNennsBlitzBots`), nicht mehr an einen Zug gebunden.
+- Anfechten-Mechanik, Punktevergabe (1 pro gültiger Antwort) und alle
+  Kategorien sind unverändert.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
