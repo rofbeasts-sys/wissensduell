@@ -1052,6 +1052,53 @@
      "value": 0.05
     }
    ]
+  },
+  "planeten_abstand": {
+   "label": "Planeten nach Abstand von der Sonne",
+   "unit": "Mio. km von der Sonne",
+   "order": "asc",
+   "items": [
+    {
+     "id": "merkur",
+     "name": "☿️ Merkur",
+     "value": 57.9
+    },
+    {
+     "id": "venus",
+     "name": "🌕 Venus",
+     "value": 108.2
+    },
+    {
+     "id": "erde",
+     "name": "🌍 Erde",
+     "value": 149.6
+    },
+    {
+     "id": "mars",
+     "name": "🔴 Mars",
+     "value": 227.9
+    },
+    {
+     "id": "jupiter",
+     "name": "🟠 Jupiter",
+     "value": 778.5
+    },
+    {
+     "id": "saturn",
+     "name": "🪐 Saturn",
+     "value": 1434.0
+    },
+    {
+     "id": "uranus",
+     "name": "🔷 Uranus",
+     "value": 2871.0
+    },
+    {
+     "id": "neptun",
+     "name": "🔵 Neptun",
+     "value": 4495.0
+    }
+   ]
   }
  },
  "higherLower": {
@@ -2072,6 +2119,53 @@
      "id": "deathnotemanga",
      "name": "📖 Death Note",
      "value": 47
+    }
+   ]
+  },
+  "planeten_durchmesser": {
+   "label": "Planeten nach Durchmesser",
+   "unit": "km Durchmesser",
+   "order": "desc",
+   "items": [
+    {
+     "id": "merkur",
+     "name": "☿️ Merkur",
+     "value": 4879
+    },
+    {
+     "id": "mars",
+     "name": "🔴 Mars",
+     "value": 6779
+    },
+    {
+     "id": "venus",
+     "name": "🌕 Venus",
+     "value": 12104
+    },
+    {
+     "id": "erde",
+     "name": "🌍 Erde",
+     "value": 12742
+    },
+    {
+     "id": "neptun",
+     "name": "🔵 Neptun",
+     "value": 49244
+    },
+    {
+     "id": "uranus",
+     "name": "🔷 Uranus",
+     "value": 50724
+    },
+    {
+     "id": "saturn",
+     "name": "🪐 Saturn",
+     "value": 116460
+    },
+    {
+     "id": "jupiter",
+     "name": "🟠 Jupiter",
+     "value": 139820
     }
    ]
   }
@@ -4405,6 +4499,9 @@
   },
   "fussball_beidfuessig": {
    "label": "Fußball: Spieler, die beidfüßig sind"
+  },
+  "planeten": {
+   "label": "Planeten (unser Sonnensystem)"
   }
  }
 }

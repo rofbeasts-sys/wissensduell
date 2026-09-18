@@ -7083,5 +7083,590 @@
   "cat": "Kurioses",
   "d": 4,
   "e": "Überraschend ist, dass ein Mensch damit kaum mehr Gene besitzt als manche deutlich einfachere Lebewesen."
+ },
+ {
+  "q": "Wie viele Knochen befinden sich im menschlichen Mittelohr (pro Seite)?",
+  "a": [
+   "2",
+   "3",
+   "4",
+   "5"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "Hammer, Amboss und Steigbügel – die kleinsten Knochen des Körpers."
+ },
+ {
+  "q": "Wie schnell schlägt ein gesundes Herz eines Erwachsenen in Ruhe ungefähr?",
+  "a": [
+   "20-40 Mal/Min",
+   "60-100 Mal/Min",
+   "120-150 Mal/Min",
+   "180-200 Mal/Min"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 1,
+  "e": "60 bis 100 Schläge pro Minute gelten als normaler Ruhepuls."
+ },
+ {
+  "q": "Wie viele Knochen hat eine menschliche Hand inklusive Handwurzel?",
+  "a": [
+   "19",
+   "27",
+   "33",
+   "41"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "27 Knochen: 8 Handwurzel-, 5 Mittelhand- und 14 Fingerknochen."
+ },
+ {
+  "q": "Wie viele Rippen hat ein Mensch normalerweise?",
+  "a": [
+   "20",
+   "22",
+   "24",
+   "26"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "Zwölf Rippenpaare, also 24 Rippen insgesamt."
+ },
+ {
+  "q": "Was ist der größte Knochen im menschlichen Körper?",
+  "a": [
+   "Schienbein",
+   "Oberschenkelknochen",
+   "Oberarmknochen",
+   "Wadenbein"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "Der Oberschenkelknochen (Femur) ist der längste und stärkste Knochen."
+ },
+ {
+  "q": "Was ist der kleinste Knochen im menschlichen Körper?",
+  "a": [
+   "Steigbügel im Ohr",
+   "Kleiner Zeh",
+   "Nasenbein",
+   "Halswirbel"
+  ],
+  "c": 0,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "Der Steigbügel (Stapes) im Mittelohr ist nur wenige Millimeter groß."
+ },
+ {
+  "q": "Wie viele Liter Blut hat ein erwachsener Mensch durchschnittlich?",
+  "a": [
+   "ca. 2 Liter",
+   "ca. 5 Liter",
+   "ca. 8 Liter",
+   "ca. 12 Liter"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "Etwa 5 Liter, abhängig von Körpergröße und -gewicht."
+ },
+ {
+  "q": "Welches Organ produziert Insulin?",
+  "a": [
+   "Leber",
+   "Niere",
+   "Bauchspeicheldrüse",
+   "Milz"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "Die Bauchspeicheldrüse (Pankreas) reguliert damit den Blutzuckerspiegel."
+ },
+ {
+  "q": "Wie viele Chromosomenpaare besitzt ein Mensch normalerweise?",
+  "a": [
+   "21",
+   "23",
+   "25",
+   "27"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "23 Chromosomenpaare, also 46 Chromosomen insgesamt."
+ },
+ {
+  "q": "Welches ist die größte Zelle im menschlichen Körper?",
+  "a": [
+   "Nervenzelle",
+   "Muskelzelle",
+   "Eizelle",
+   "Fettzelle"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 4,
+  "e": "Die Eizelle ist mit bloßem Auge gerade noch erkennbar."
+ },
+ {
+  "q": "Wie viele Muskeln hat ein erwachsener Mensch ungefähr?",
+  "a": [
+   "ca. 200",
+   "ca. 400",
+   "ca. 650",
+   "ca. 1000"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "Schätzungen gehen von etwa 600 bis 650 Muskeln aus."
+ },
+ {
+  "q": "Was ist das größte Organ des menschlichen Körpers?",
+  "a": [
+   "Leber",
+   "Lunge",
+   "Haut",
+   "Darm"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 1,
+  "e": "Die Haut macht bis zu 16% des Körpergewichts aus."
+ },
+ {
+  "q": "Wie lang ist der Dünndarm eines Erwachsenen ungefähr?",
+  "a": [
+   "ca. 1 Meter",
+   "ca. 3 Meter",
+   "ca. 6 Meter",
+   "ca. 12 Meter"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "Der Dünndarm ist im Schnitt etwa 6 bis 7 Meter lang."
+ },
+ {
+  "q": "Welche Blutgefäße transportieren sauerstoffreiches Blut vom Herzen weg?",
+  "a": [
+   "Venen",
+   "Arterien",
+   "Kapillaren",
+   "Lymphgefäße"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "Arterien führen (mit Ausnahme der Lungenarterie) sauerstoffreiches Blut."
+ },
+ {
+  "q": "Wie viele Wirbel hat die menschliche Wirbelsäule normalerweise?",
+  "a": [
+   "24",
+   "26",
+   "33",
+   "40"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "33 Wirbel, davon 24 frei beweglich, dazu Kreuz- und Steißbein."
+ },
+ {
+  "q": "Welches Hormon wird häufig als 'Stresshormon' bezeichnet?",
+  "a": [
+   "Insulin",
+   "Cortisol",
+   "Adrenalin",
+   "Melatonin"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "Cortisol wird in der Nebennierenrinde bei Stress ausgeschüttet."
+ },
+ {
+  "q": "Wie viele Milchzähne hat ein Kind normalerweise?",
+  "a": [
+   "16",
+   "20",
+   "24",
+   "28"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "20 Milchzähne, später ersetzt durch 32 bleibende Zähne."
+ },
+ {
+  "q": "Welcher Teil des Gehirns ist hauptsächlich für das Gleichgewicht zuständig?",
+  "a": [
+   "Großhirn",
+   "Kleinhirn",
+   "Hirnstamm",
+   "Hypothalamus"
+  ],
+  "c": 1,
+  "cat": "Biologie",
+  "d": 3,
+  "e": "Das Kleinhirn (Cerebellum) koordiniert Bewegung und Gleichgewicht."
+ },
+ {
+  "q": "Was ist die Hauptaufgabe der roten Blutkörperchen?",
+  "a": [
+   "Sauerstofftransport",
+   "Krankheitsabwehr",
+   "Blutgerinnung",
+   "Hormonproduktion"
+  ],
+  "c": 0,
+  "cat": "Biologie",
+  "d": 1,
+  "e": "Rote Blutkörperchen (Erythrozyten) transportieren Sauerstoff im Blut."
+ },
+ {
+  "q": "Wie viele Zähne hat ein erwachsener Mensch mit vollständigem Gebiss normalerweise?",
+  "a": [
+   "28",
+   "30",
+   "32",
+   "34"
+  ],
+  "c": 2,
+  "cat": "Biologie",
+  "d": 2,
+  "e": "32 Zähne, inklusive der vier Weisheitszähne."
+ },
+ {
+  "q": "Welcher Planet ist der Sonne am nächsten?",
+  "a": [
+   "Venus",
+   "Merkur",
+   "Mars",
+   "Erde"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 1,
+  "e": "Merkur umkreist die Sonne in nur rund 58 Millionen km Entfernung."
+ },
+ {
+  "q": "Welcher Planet ist der größte in unserem Sonnensystem?",
+  "a": [
+   "Saturn",
+   "Jupiter",
+   "Neptun",
+   "Uranus"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 1,
+  "e": "Jupiter hat einen Durchmesser von über 139.000 km."
+ },
+ {
+  "q": "Welcher Planet rotiert extrem 'liegend' fast auf der Seite um seine Achse?",
+  "a": [
+   "Neptun",
+   "Saturn",
+   "Uranus",
+   "Mars"
+  ],
+  "c": 2,
+  "cat": "Raumfahrt",
+  "d": 3,
+  "e": "Die Achse des Uranus ist um etwa 98 Grad geneigt."
+ },
+ {
+  "q": "Wie viele Monde hat der Mars?",
+  "a": [
+   "0",
+   "1",
+   "2",
+   "4"
+  ],
+  "c": 2,
+  "cat": "Raumfahrt",
+  "d": 3,
+  "e": "Phobos und Deimos, benannt nach den Söhnen des griechischen Kriegsgottes Ares."
+ },
+ {
+  "q": "Welcher Planet ist am Himmel als 'Morgenstern' bzw. 'Abendstern' bekannt?",
+  "a": [
+   "Merkur",
+   "Venus",
+   "Mars",
+   "Jupiter"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 2,
+  "e": "Venus ist nach Sonne und Mond das hellste Objekt am Nachthimmel."
+ },
+ {
+  "q": "Welcher Planet hat die kürzeste Umlaufzeit um die Sonne?",
+  "a": [
+   "Venus",
+   "Erde",
+   "Merkur",
+   "Mars"
+  ],
+  "c": 2,
+  "cat": "Raumfahrt",
+  "d": 2,
+  "e": "Merkur umrundet die Sonne in nur etwa 88 Erdtagen."
+ },
+ {
+  "q": "Nach welchem römischen Gott ist der Planet Mars benannt?",
+  "a": [
+   "Kriegsgott",
+   "Meeresgott",
+   "Göttervater",
+   "Liebesgöttin"
+  ],
+  "c": 0,
+  "cat": "Raumfahrt",
+  "d": 1,
+  "e": "Mars ist nach dem römischen Kriegsgott benannt, wegen seiner roten Farbe."
+ },
+ {
+  "q": "Welcher ist der kleinste Planet in unserem Sonnensystem?",
+  "a": [
+   "Mars",
+   "Merkur",
+   "Venus",
+   "Pluto"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 2,
+  "e": "Merkur hat nur einen Durchmesser von rund 4.879 km (Pluto zählt seit 2006 nicht mehr als Planet)."
+ },
+ {
+  "q": "Wie viele Erdjahre dauert ein Umlauf des Jupiter um die Sonne ungefähr?",
+  "a": [
+   "ca. 5 Jahre",
+   "ca. 12 Jahre",
+   "ca. 29 Jahre",
+   "ca. 84 Jahre"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 3,
+  "e": "Jupiter braucht rund 12 Erdjahre für eine Sonnenumrundung."
+ },
+ {
+  "q": "Welcher Himmelskörper galt bis 2006 offiziell als neunter Planet, bevor er zum Zwergplaneten wurde?",
+  "a": [
+   "Ceres",
+   "Eris",
+   "Pluto",
+   "Charon"
+  ],
+  "c": 2,
+  "cat": "Raumfahrt",
+  "d": 1,
+  "e": "Die Internationale Astronomische Union stufte Pluto 2006 als Zwergplaneten ein."
+ },
+ {
+  "q": "Welcher Planet wird wegen seiner ähnlichen Größe manchmal 'Zwillingsplanet' der Erde genannt?",
+  "a": [
+   "Mars",
+   "Venus",
+   "Merkur",
+   "Neptun"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 2,
+  "e": "Venus hat einen fast identischen Durchmesser wie die Erde."
+ },
+ {
+  "q": "Auf welchem Planeten befindet sich der 'Große Rote Fleck'?",
+  "a": [
+   "Mars",
+   "Saturn",
+   "Jupiter",
+   "Uranus"
+  ],
+  "c": 2,
+  "cat": "Raumfahrt",
+  "d": 2,
+  "e": "Ein gigantischer Sturm, größer als die Erde, der seit Jahrhunderten tobt."
+ },
+ {
+  "q": "Auf welchem Planeten ist ein Tag (eine Rotation) länger als sein Jahr (ein Umlauf)?",
+  "a": [
+   "Merkur",
+   "Venus",
+   "Mars",
+   "Saturn"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 4,
+  "e": "Venus rotiert so langsam, dass ihr Tag länger dauert als ihr Jahr."
+ },
+ {
+  "q": "Welcher blaue Planet wird optisch oft mit Neptun verwechselt?",
+  "a": [
+   "Saturn",
+   "Uranus",
+   "Mars",
+   "Venus"
+  ],
+  "c": 1,
+  "cat": "Raumfahrt",
+  "d": 3,
+  "e": "Uranus und Neptun sehen sich durch ihre Methan-Atmosphäre sehr ähnlich."
+ },
+ {
+  "q": "Welcher Planet hat das ausgeprägteste und bekannteste Ringsystem?",
+  "a": [
+   "Jupiter",
+   "Uranus",
+   "Saturn",
+   "Neptun"
+  ],
+  "c": 2,
+  "cat": "Raumfahrt",
+  "d": 1,
+  "e": "Saturns Ringe bestehen hauptsächlich aus Eis- und Gesteinsbrocken."
+ },
+ {
+  "q": "Wie viele Spieler stehen bei einem Fußballspiel pro Team gleichzeitig auf dem Feld?",
+  "a": [
+   "9",
+   "10",
+   "11",
+   "12"
+  ],
+  "c": 2,
+  "cat": "Sport",
+  "d": 1,
+  "e": "Elf Spieler pro Mannschaft, inklusive Torwart."
+ },
+ {
+  "q": "Wie lange dauert die reguläre Spielzeit eines Fußballspiels (ohne Verlängerung)?",
+  "a": [
+   "60 Minuten",
+   "80 Minuten",
+   "90 Minuten",
+   "100 Minuten"
+  ],
+  "c": 2,
+  "cat": "Sport",
+  "d": 1,
+  "e": "Zwei Halbzeiten à 45 Minuten."
+ },
+ {
+  "q": "Welches Land hat die meisten Fußball-Weltmeistertitel der Männer gewonnen (Stand WM 2022)?",
+  "a": [
+   "Deutschland",
+   "Italien",
+   "Argentinien",
+   "Brasilien"
+  ],
+  "c": 3,
+  "cat": "Sport",
+  "d": 2,
+  "e": "Brasilien gewann bislang fünf WM-Titel."
+ },
+ {
+  "q": "Wie heißt der wichtigste jährliche Vereinswettbewerb im europäischen Fußball?",
+  "a": [
+   "Europa League",
+   "Champions League",
+   "Conference League",
+   "Weltpokal"
+  ],
+  "c": 1,
+  "cat": "Sport",
+  "d": 1,
+  "e": "Die UEFA Champions League ermittelt Europas besten Verein."
+ },
+ {
+  "q": "Wie viele gelbe Karten führen im Fußball zu einem Platzverweis?",
+  "a": [
+   "1",
+   "2",
+   "3",
+   "Beliebig viele"
+  ],
+  "c": 1,
+  "cat": "Sport",
+  "d": 1,
+  "e": "Die zweite gelbe Karte bedeutet automatisch Gelb-Rot."
+ },
+ {
+  "q": "Welche Kartenfarbe zeigt im Fußball einen direkten Platzverweis an?",
+  "a": [
+   "Gelb",
+   "Blau",
+   "Rot",
+   "Orange"
+  ],
+  "c": 2,
+  "cat": "Sport",
+  "d": 1,
+  "e": "Rot bedeutet sofortiger Ausschluss vom Spiel."
+ },
+ {
+  "q": "Wie lautet die Abkürzung des deutschen Fußball-Dachverbands?",
+  "a": [
+   "DFL",
+   "DFB",
+   "FCB",
+   "BFV"
+  ],
+  "c": 1,
+  "cat": "Sport",
+  "d": 1,
+  "e": "DFB steht für Deutscher Fußball-Bund."
+ },
+ {
+  "q": "In welchem Land fand die Fußball-Weltmeisterschaft 2006 statt?",
+  "a": [
+   "Frankreich",
+   "Deutschland",
+   "Südafrika",
+   "Brasilien"
+  ],
+  "c": 1,
+  "cat": "Sport",
+  "d": 1,
+  "e": "Das 'Sommermärchen' 2006 fand in Deutschland statt."
+ },
+ {
+  "q": "Wie viele Ecken hat ein reguläres Fußballfeld?",
+  "a": [
+   "2",
+   "4",
+   "6",
+   "8"
+  ],
+  "c": 1,
+  "cat": "Sport",
+  "d": 1,
+  "e": "Vier Ecken, markiert mit Eckfahnen."
+ },
+ {
+  "q": "Wie wird ein 0:0-Ergebnis nach 90 Minuten im Fußball umgangssprachlich genannt?",
+  "a": [
+   "Shutout",
+   "Torlos",
+   "Golden Goal",
+   "Remis ohne Tore"
+  ],
+  "c": 1,
+  "cat": "Sport",
+  "d": 2,
+  "e": "Ein torloses Unentschieden wird oft als 'torlos' oder '0:0' bezeichnet."
  }
 ]
