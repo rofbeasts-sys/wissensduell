@@ -824,7 +824,7 @@ const RANKS = [
 // zu kommen). easyOnly = nur Schwierigkeit 1. Fragen werden zunehmend
 // schwieriger; der letzte Eintrag ist vorerst die Obergrenze.
 const TIER_TESTS = [
-  { questions: 5,  needed: 4  },              // Nicht gelistet -> Gelistet
+  { questions: 3,  needed: 2  },              // Nicht gelistet -> Gelistet (kurz, da die meisten das schaffen)
   { questions: 5,  needed: 4, easyOnly:true }, // Gelistet -> Schüler (nur leichte Fragen)
   { questions: 10, needed: 8  },               // Schüler -> Student
   { questions: 10, needed: 9  },               // Student -> Lehrer
@@ -922,7 +922,7 @@ function saveProfiles(){
 }
 function createProfile(name){
   const p = { id:"p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-    name: name.trim(), score:0, tier:0, roundsPlayed:0, wins:0, losses:0,
+    name: name.trim(), score:0, tier:0, consecutiveFails:0, roundsPlayed:0, wins:0, losses:0,
     correctAnswers:0, wrongAnswers:0, bestScore:0 };
   profiles.push(p);
   saveProfiles();
@@ -1018,7 +1018,7 @@ function accountAsProfile(){
   const p = account.profile;
   return {
     id: "account:" + p.username, name: p.username,
-    score: p.score, tier: p.tier || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
+    score: p.score, tier: p.tier || 0, consecutiveFails: p.consecutiveFails || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
     correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore,
     isAccount: true
   };
@@ -1029,7 +1029,7 @@ async function syncAccountStats(profile){
   const result = await apiCall("/api/save-stats", {
     token: account.token,
     stats: {
-      score: profile.score, tier: profile.tier, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
+      score: profile.score, tier: profile.tier, consecutiveFails: profile.consecutiveFails, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
       correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore
     }
   });
@@ -1041,11 +1041,11 @@ function renderApp(html){ document.getElementById("app").innerHTML = html; }
 function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`; }
 function initials(name){ return name.trim().slice(0,2).toUpperCase(); }
 
-function statusbarHtml(score){
+function statusbarHtml(profile){
+  const rank = RANKS[Math.min(profile.tier||0, RANKS.length-1)];
   return `
     <div id="statusbar" class="statusbar">
-      <div class="score-block"><div class="score-num">${score}</div><div class="score-label">Punkte</div></div>
-      ${rankPillHtml(score)}
+      <span class="rank-pill ${rank.cls}"><span class="rank-dot"></span>${rank.name}</span>
     </div>`;
 }
 
@@ -1405,12 +1405,12 @@ function beginSolo(profile){
     qIndex: 0,
     timeLimit: getTimeLimit(profile.score),
     testNeeded: test.needed,
-    correct: 0, wrong: 0, points: 0,
+    correct: 0, wrong: 0,
     timerId: null, remaining: 0, answered: false
   };
 
   renderApp(`
-    ${statusbarHtml(profile.score)}
+    ${statusbarHtml(profile)}
     <div class="panel pass-card">
       <div class="avatar-big" style="background:${avatarColor(profile.name)}">${initials(profile.name)}</div>
       <h2>${profile.name}</h2>
@@ -1425,7 +1425,7 @@ function renderSoloQuestion(){
   const letters = ["A","B","C","D"];
   solo.answered = false;
   renderApp(`
-    ${statusbarHtml(solo.profile.score)}
+    ${statusbarHtml(solo.profile)}
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">Frage ${solo.qIndex+1} von ${solo.questions.length}</div>
@@ -1481,39 +1481,50 @@ function handleSoloAnswer(selectedIdx){
   clearInterval(solo.timerId);
   const q = solo.questions[solo.qIndex];
   const isCorrect = selectedIdx === q.c;
-  const delta = isCorrect ? 100 : -150;
 
   if(isCorrect){ solo.correct++; } else { solo.wrong++; }
-  solo.points += delta;
-  applyPoints(solo.profile, delta);
 
   document.querySelectorAll(".answer-btn").forEach((btn,i)=>{
     btn.disabled = true;
     if(i===q.c) btn.classList.add("correct");
     else if(i===selectedIdx) btn.classList.add("wrong");
   });
-  document.getElementById("statusbar").outerHTML = statusbarHtml(solo.profile.score);
 
   const explBox = document.getElementById("explanationBox");
   explBox.classList.remove("hidden");
   explBox.textContent = q.e ? q.e : (isCorrect ? "Richtig beantwortet!" : "Das war leider falsch.");
 
+  // Test vorzeitig entschieden? Bestehen ist bereits sicher (genug richtig)
+  // oder unmöglich geworden (selbst mit allen verbleibenden richtig nicht
+  // mehr genug) -> keinen Sinn, die restlichen Fragen noch abzufragen.
+  const remaining = solo.questions.length - (solo.qIndex + 1);
+  const maxPossibleCorrect = solo.correct + remaining;
+  solo.decided = (solo.correct >= solo.testNeeded) || (maxPossibleCorrect < solo.testNeeded);
+
   const nextBtn = document.getElementById("soloNextBtn");
   nextBtn.classList.remove("hidden");
-  nextBtn.textContent = (solo.qIndex + 1 >= solo.questions.length) ? "ZUR RUNDENAUSWERTUNG" : "WEITER";
+  nextBtn.textContent = solo.decided ? "ZUR RUNDENAUSWERTUNG" : "WEITER";
 }
 function soloNextQuestion(){
+  if(solo.decided){ endSoloRound(); return; }
   solo.qIndex++;
   if(solo.qIndex >= solo.questions.length) endSoloRound();
   else renderSoloQuestion();
 }
 
 function endSoloRound(){
-  const isMaxTier = solo.startTier >= TIER_TESTS.length - 1 && (RANKS[solo.startTier+1] === undefined);
   const promoted = solo.correct >= solo.testNeeded;
-  const bonus = promoted ? 150 : 0;
-  applyPoints(solo.profile, bonus);
-  if(promoted && RANKS[solo.startTier + 1]) solo.profile.tier = solo.startTier + 1;
+  if(promoted){
+    solo.profile.consecutiveFails = 0;
+    if(RANKS[solo.startTier + 1]) solo.profile.tier = solo.startTier + 1;
+  } else {
+    solo.profile.consecutiveFails = (solo.profile.consecutiveFails || 0) + 1;
+    if(solo.profile.consecutiveFails >= 2 && solo.startTier > 0){
+      // Zweimal hintereinander an derselben Stufe gescheitert -> einen Rang zurück.
+      solo.profile.tier = solo.startTier - 1;
+      solo.profile.consecutiveFails = 0;
+    }
+  }
 
   const roundWon = promoted;
   solo.profile.roundsPlayed++;
@@ -1530,17 +1541,16 @@ function endSoloRound(){
   const nextRank = RANKS[(solo.profile.tier || 0) + 1];
 
   renderApp(`
-    ${statusbarHtml(solo.profile.score)}
+    ${statusbarHtml(solo.profile)}
     <div class="panel">
       <div class="result-title">RUNDE BEENDET</div>
       <div class="result-sub">${roundWon ? "Starke Leistung!" : "Nächstes Mal klappt's besser."}</div>
-      ${rankChanged ? `<div class="rank-up-banner">Neuer Rang erreicht: ${rankAfter.name}!</div>` : ``}
+      ${rankChanged ? `<div class="rank-up-banner">${promoted ? 'Neuer Rang erreicht: '+rankAfter.name+'!' : 'Zurückgestuft auf: '+rankAfter.name}</div>` : ``}
 
       <div class="result-grid">
         <div class="result-item pos"><div class="n">${solo.correct}/${solo.questions.length}</div><div class="l">Richtige Antworten (nötig: ${solo.testNeeded})</div></div>
         <div class="result-item neg"><div class="n">${solo.wrong}</div><div class="l">Falsche Antworten</div></div>
-        <div class="result-item"><div class="n">${solo.points>=0?"+":""}${solo.points}</div><div class="l">Punkte aus Fragen</div></div>
-        <div class="result-item ${bonus>0?'pos':''}"><div class="n">${promoted?'✓ Bestanden':'✕ Nicht bestanden'}</div><div class="l">Aufstiegstest${promoted?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}</div></div>
+        <div class="result-item ${promoted?'pos':''}" style="grid-column: span 2;"><div class="n">${promoted?'✓ Bestanden':'✕ Nicht bestanden'}</div><div class="l">Aufstiegstest${promoted?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}${!promoted && solo.profile.consecutiveFails===1 ? ' · noch ein Fehlversuch führt zum Rangabstieg' : ''}</div></div>
       </div>
 
       <div class="result-item" style="margin-bottom:20px;">
@@ -1639,7 +1649,7 @@ function renderMPQuestion(){
   mp.answered = false;
 
   renderApp(`
-    ${statusbarHtml(playerEntry.profile.score)}
+    ${statusbarHtml(playerEntry.profile)}
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">${playerEntry.profile.name} · Frage ${mp.qIndex+1} von 5</div>
