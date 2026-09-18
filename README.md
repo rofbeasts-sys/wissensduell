@@ -1017,6 +1017,69 @@ entfernt. Jetzt wieder wie ganz am Anfang: **alle tippen gleichzeitig**
 - Anfechten-Mechanik, Punktevergabe (1 pro gültiger Antwort) und alle
   Kategorien sind unverändert.
 
+## 7q. Wissenstest: Aufstiegstest-System statt Punkteschwellen + 45 neue Fragen + Planeten überall
+
+**Wichtiger Hinweis vorab:** deine Sprachnachricht war an einigen Stellen
+schwer eindeutig herauszuhören (Zahlen/Selbstkorrekturen) – ich habe das
+Muster nach bestem Verständnis umgesetzt und dokumentiere hier genau, wie
+ich es interpretiert habe, damit du es leicht korrigieren kannst.
+
+**45 neue Wissenstest-Fragen** (`shared/quizQuestions.json`, jetzt 590
+Fragen gesamt): 20× Biologie/Körper (Knochen im Ohr, Ruhepuls, größter/
+kleinster Knochen, Chromosomen, Zähne, …), 15× Raumfahrt/Planeten (ergänzt
+die bereits 9 vorhandenen), 10× Fußball. Alle mit Schwierigkeit 1-4
+eingestuft und Erklärungstext versehen, wie die bestehenden Fragen.
+
+**Planeten in drei weiteren Modi ergänzt** (`shared/partyDatasets.json`):
+- Nenn's Blitz: neue Kategorie "Planeten" (Freitext, keine Liste nötig)
+- Mehr oder Weniger: "Planeten nach Durchmesser" (echte km-Werte, Merkur
+  kleinster bis Jupiter größter)
+- Einordnen: "Planeten nach Abstand von der Sonne" (echte Mio.-km-Werte,
+  Merkur bis Neptun – Pluto bewusst nicht dabei, gilt seit 2006 nicht mehr
+  als Planet)
+
+**Aufstiegstest-System für den Solo-Wissenstest** – so verstanden und
+umgesetzt (`public/index.html`, `TIER_TESTS`/`tierTestDifficulty()`/
+`pickTierTestQuestions()`): statt kontinuierlich Punkte zu sammeln bis eine
+Schwelle erreicht ist, gibt es jetzt pro Rang einen festen Aufstiegstest.
+Bestehende Rang-Namen (`RANKS`) wiederverwendet, nur Platin/Diamant in die
+übliche Reihenfolge gebracht:
+
+| Von → Zu | Fragen | Nötig richtig | Schwierigkeit |
+|---|---|---|---|
+| Nicht gelistet → Gelistet | 5 | 4 | leicht |
+| Gelistet → Bronze | 5 | 4 | **nur leichte** (explizit gefordert) |
+| Bronze → Silber | 10 | 8 | mittel |
+| Silber → Gold | 10 | 9 | mittel |
+| Gold → Platin | 10 | 10 | schwer |
+| Platin → Diamant | 15 | 14 | schwer |
+| Diamant → Meister | 15 | 15 | sehr schwer |
+| Meister → Großmeister | 20 | 19 | sehr schwer |
+| Großmeister → (Obergrenze vorerst) | 20 | 20 | sehr schwer |
+
+Muster dahinter: Fragenanzahl und Schwierigkeit steigen mit dem Rang,
+innerhalb einer "Fragenanzahl-Stufe" (10/15/20) wird die nötige Trefferzahl
+schrittweise strenger bis auf die volle Zahl, danach beginnt die nächste,
+größere Stufe wieder etwas darunter. Bei Nichtbestehen bleibt der Rang
+gleich (keine Rückstufung), es gibt einfach eine neue Zusammenstellung an
+Fragen beim nächsten Versuch. `profile.tier` (Index in `RANKS`) ist das neue
+maßgebliche Feld, `profile.score` bleibt als Hintergrund-Statistik bestehen
+(±100/±150 pro Frage wie gehabt, Bonus nur bei bestandenem Test). Für
+Konto-Profile wurde `tier` serverseitig in `defaultStats()`/`saveUserStats()`
+ergänzt und wird mit gesynct. Der lokale Pass-&-Play-Mehrspieler (separates
+Feature, nicht Teil deiner Anfrage) hat weiterhin seine eigene, einfache
+Fragenauswahl (`pickQuestionsForLocalMP()`), unverändert in der Wirkung.
+
+Mit einer Simulation der Kernlogik geprüft: Rang-Reihenfolge korrekt,
+Fragenanzahl je Test korrekt (5/5/10/10/10/15/15/20/20), Zielschwierigkeit
+korrekt (1/1/2/2/3/3/4/4/4), "nur leichte Fragen" bei Gelistet→Bronze
+korrekt gefiltert.
+
+**Bei Kapazität/Zeit für mehr:** falls die Interpretation der Testzahlen
+nicht ganz stimmt, sag einfach kurz welche Stufe anders sein soll – die
+Tabelle oben lässt sich gezielt an einer Stelle in `TIER_TESTS` anpassen,
+ohne den Rest anzufassen.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
