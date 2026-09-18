@@ -1962,11 +1962,21 @@ function renderSoloCategoryPicker(){
   const room = party.room;
   const title = room.gameMode==='slf' ? 'STADT LAND FLUSS – SOLO' : (room.gameMode==='music' ? 'MUSIK RATEN – SOLO' : (room.gameMode==='blitz' ? 'NENN\'S BLITZ – SOLO' : t('solo_party_title')));
   const backFn = room.gameMode==='slf' ? 'startSlfMenu' : (room.gameMode==='music' ? 'startMusicMenu' : (room.gameMode==='blitz' ? 'startNennsBlitzMenu' : 'startSoloMenu'));
+  const blitzDurationOptions = [60000,90000,120000,180000];
+  const activeBlitzDuration = room.nennsBlitzSoloDurationMs || 60000;
   renderApp(`
     <div class="panel">
       <div class="picker-title">${title}</div>
       <div class="picker-sub">Rundenzahl und Kategorie wählen.</div>
       ${roundCountChipsHtml(room)}
+      ${room.gameMode==='blitz' ? `
+        <div class="settings-row" style="margin-top:10px;">
+          <span class="label">Zeit pro Runde</span>
+          <div class="chip-group">
+            ${blitzDurationOptions.map(ms=>`<div class="chip-btn ${activeBlitzDuration===ms?'active':''}" onclick="chooseNennsBlitzDuration(${ms})">${ms/1000}s</div>`).join("")}
+          </div>
+        </div>
+      ` : ``}
       <div class="picker-sub" style="margin-top:14px;">Kategorie – zufällig/gemischt oder eine bestimmte wählen.</div>
       <div class="chip-group" style="margin-top:10px;">
         <div class="chip-btn" onclick="chooseSoloCategory(null)">🎲 Zufällig / Gemischt</div>
@@ -1977,6 +1987,9 @@ function renderSoloCategoryPicker(){
       </div>
     </div>
   `);
+}
+function chooseNennsBlitzDuration(ms){
+  partySend({action:'setNennsBlitzDuration', durationMs: ms});
 }
 function chooseSoloCategory(defId){
   party.soloPickerDone = true; // weitere roomUpdates waehrend des Startvorgangs nicht mehr als Auswahlbildschirm zeigen
@@ -2156,12 +2169,6 @@ function partyHandleMessage(msg){
       break;
     case "nennsBlitzOwnUpdate":
       handleNennsBlitzOwnUpdate(msg);
-      break;
-    case "nennsBlitzTurn":
-      renderNennsBlitzTurn(msg);
-      break;
-    case "nennsBlitzTurnUpdate":
-      handleNennsBlitzTurnUpdate(msg);
       break;
     case "nennsBlitzReveal":
       renderNennsBlitzReveal(msg);
@@ -3464,46 +3471,6 @@ function handleNennsBlitzOwnUpdate(msg){
   if(listEl){
     listEl.innerHTML = msg.answers.slice().reverse().map(a => `<div class="round-plan-item"><span>${a.text}</span></div>`).join("");
   }
-}
-
-/* ---------- Nenn's Blitz: Duell-Modus (reihum, nicht gleichzeitig) ---------- */
-function renderNennsBlitzTurn(msg){
-  party.nennsBlitzTurnMsg = msg;
-  const isMe = msg.activePlayerId === party.playerId;
-  const stageLabel = msg.stage === 'final' ? 'FINALRUNDE' : 'HAUPTRUNDE';
-  renderApp(`
-    <div class="panel">
-      <div class="picker-title">${msg.label}</div>
-      <div class="picker-sub">${stageLabel} · Zug ${msg.turnIndex+1}/${msg.turnCount}</div>
-      <div class="explanation" style="margin-top:10px; text-align:center; font-weight:800; ${isMe?'border-color:var(--accent);':''}">
-        ${isMe ? 'DU BIST DRAN!' : `${msg.activePlayerName} ist dran …`}
-      </div>
-      <div class="timer-wrap" style="margin-top:10px;">
-        <div class="timer-bar"><div id="blitzTimerFill" class="timer-fill" style="width:100%"></div></div>
-        <div id="blitzTimerNum" class="timer-num">${Math.ceil(msg.durationMs/1000)}s</div>
-      </div>
-      ${isMe ? `
-        <div class="picker-form" style="margin-top:14px;">
-          <input type="text" id="blitzInput" class="builder-search" style="margin-top:0;" placeholder="Antwort eintippen …" autocomplete="off" autofocus onkeydown="if(event.key==='Enter')submitNennsBlitzAnswer()">
-          <button class="btn btn-primary" onclick="submitNennsBlitzAnswer()">+</button>
-        </div>
-      ` : `
-        <div class="explanation" style="margin-top:14px;">Warte, bis du dran bist …</div>
-      `}
-      <div class="picker-sub" style="margin-top:16px;">Schon genannt (<span id="blitzTakenCount">${msg.takenAnswers.length}</span>)</div>
-      <div id="blitzTakenList" class="round-plan-list" style="margin-top:6px;">
-        ${msg.takenAnswers.slice().reverse().map(t => `<div class="round-plan-item"><span>${t}</span></div>`).join("")}
-      </div>
-    </div>
-  `);
-  startNennsBlitzTicker(msg);
-  if(isMe) setTimeout(() => { const el = document.getElementById("blitzInput"); if(el) el.focus(); }, 50);
-}
-function handleNennsBlitzTurnUpdate(msg){
-  const countEl = document.getElementById("blitzTakenCount");
-  const listEl = document.getElementById("blitzTakenList");
-  if(countEl) countEl.textContent = msg.allTaken.length;
-  if(listEl) listEl.innerHTML = msg.allTaken.slice().reverse().map(t => `<div class="round-plan-item"><span>${t}</span></div>`).join("");
 }
 
 function renderNennsBlitzReveal(msg){
