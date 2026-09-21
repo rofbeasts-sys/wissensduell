@@ -86,6 +86,14 @@ setTimeout(() => {
       // Jetzt gleichzeitig für alle (Solo wie Duell) - Host tippt direkt etwas ein.
       setTimeout(() => host.send({ action: "nennsBlitzSubmit", text: "Antwort" }), 30);
     }
+    if (msg.type === "nennsBlitzReveal" || msg.type === "slfReveal") {
+      // Kein Zeitlimit mehr fürs Anfechten (siehe README) - Host meldet sich
+      // "fertig" und gibt kurz danach manuell "continue", damit der Test
+      // (wie ein echter Host) zügig weitermacht statt endlos zu warten.
+      const readyAction = msg.type === "nennsBlitzReveal" ? "nennsBlitzChallengeReady" : "slfChallengeReady";
+      setTimeout(() => host.send({ action: readyAction }), 50);
+      setTimeout(() => host.send({ action: "continue" }), 300);
+    }
     if (msg.type === "roundEnd") {
       setTimeout(() => host.send({ action: "continue" }), 100);
     }
