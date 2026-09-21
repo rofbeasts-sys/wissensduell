@@ -1333,6 +1333,63 @@ Herausforderungsrunden 60-80s dauern):
   Punktezahl nach einer Nenn's-Blitz- oder SLF-Herausforderungsrunde
   schauen.
 
+## 7y. Bugfix: Bild erraten – Unschärfe/Zeitbalken lief nicht bei allen Geräten
+
+Gemeldet: beim Host wurde das Bild korrekt unscharf und der Zeitbalken
+zählte runter, beim mitspielenden Gerät (anderes Handy) passierte beide
+nicht. Ursache gefunden: `startGuessTicker()` verglich die eigene Uhr
+gegen den **absoluten Server-Zeitstempel** (`msg.startedAt`) – bei nicht
+exakt synchronen Geräteuhren (zwei verschiedene Handys, durchaus üblich)
+kann das sofort zu 0% Restzeit / scharfem Bild führen. Alle anderen Timer
+im Spiel (Musik raten, Stadt Land Fluss, Nenn's Blitz) machen das schon
+richtig: eigenen Startzeitpunkt lokal beim Empfang nehmen
+(`const startedAt = Date.now();`), nie gegen die Serverzeit vergleichen.
+`startGuessTicker()` jetzt auf dasselbe, bereits bewährte Muster umgestellt.
+
+Mit einer simulierten Uhr-Abweichung von 5 Minuten geprüft: mit dem alten
+Code wäre das sofort bei 0%/scharfem Bild gelandet, mit dem Fix läuft der
+Timer korrekt unabhängig von der Server-Uhr (nach 1s ≈95% Restzeit,
+weiterhin unscharf, wie erwartet).
+
+## 7z. Arena: Liga-Namen (Schüler/Lehrer) vorerst aus der Anzeige entfernt
+
+Auf Wunsch: "Schüler-Liga"/"Lehrer-Liga" gehört konzeptionell zu einem
+späteren, eigenen "Erfolge"-System, nicht zur Arena selbst. Deshalb aus der
+sichtbaren Arena-Oberfläche entfernt (Startbildschirm, Match-Ergebnis,
+Bestenliste zeigen jetzt nur noch Punkte/Herzen, keine Liga-Namen oder
+Klassenbereich-Texte mehr).
+
+**Bewusst NICHT angetastet** (um die bereits ausführlich getestete Mechanik
+nicht zu gefährden): `ARENA_LEAGUES`, die Klassen-Bereich-Zuordnung für die
+Quiz-Blöcke und die Aufstiegs-/Punktelogik laufen serverseitig unverändert
+im Hintergrund weiter – nur eben ohne das gerade noch nicht gewollte
+"Schüler"/"Lehrer"-Wording in der Oberfläche. Sobald das "Erfolge"-System
+kommt, lässt sich die Liga-Anzeige gezielt wieder einblenden bzw. dort
+integrieren, ohne die Grundmechanik neu bauen zu müssen. Die "Bestenliste"
+bleibt wie schon zuvor als eigener Button unten auf dem Arena-Bildschirm.
+
+Mit echtem Serverlauf + echtem Client-Code bestätigt: kein "Schüler-Liga"/
+"Lehrer-Liga"/"Klasse X-Y" mehr sichtbar, Bestenliste-Button und Punkte-/
+Herzen-Anzeige funktionieren weiterhin.
+
+## 7aa. Statistik-Seite erweitert + grauer "Erfolge"-Platzhalter
+
+Auf Wunsch deutlich mehr Werte je Profil, plus Vorbereitung für ein
+späteres Erfolge-System:
+
+- **Neu angezeigt**: aktuelle Klasse (Brain-Test-Fortschritt, eigene
+  Zeile mit Klassen-Pille), Siegquote in % (Siege/Gesamtspiele), Trefferquote
+  in % (richtige/alle beantworteten Fragen).
+- **Weiterhin angezeigt**: Name, (alter) Rang, Punkte, beste Punktzahl,
+  Runden, Siege, Niederlagen, Richtig/Falsch.
+- **Neuer "🏆 Erfolge (bald verfügbar)"-Button** je Profilkarte – bewusst
+  ausgegraut und mit `disabled` nicht antippbar, als Platzhalter für das
+  geplante, separate Erfolge-System (siehe 7z).
+
+Mit einer Simulation geprüft: alle neuen Werte korrekt berechnet und
+angezeigt (Siegquote/Trefferquote-Prozentrechnung stimmt), Erfolge-Button
+vorhanden und tatsächlich deaktiviert.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
