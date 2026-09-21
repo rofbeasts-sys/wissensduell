@@ -1253,6 +1253,86 @@ der 3 bestehenden Modi) geprüft.
 Blitz ohne Ende – simuliert jetzt einen Host, der sich "fertig" meldet und
 kurz danach manuell weitergibt.
 
+## 7x. NEU: Arena / Bestenliste (Match-Modus) – komplett neues System
+
+Separates System neben dem bestehenden Klassen-System (Brain Test) und den
+Party-Modi, wie angefordert. Erfordert ein **Konto** (echte, geräteübergreifende
+Bestenliste, kein lokales Profil).
+
+**Ligen** (`server.js`, `ARENA_LEAGUES`) – direkt mit den Klassen-Fragenpools
+verknüpft, flexibel erweiterbar (neue Liga = ein neuer Eintrag):
+- Schüler-Liga: Klasse 1-5
+- Lehrer-Liga: Klasse 6-10
+- Aufstieg bei 150 kumulierten Punkten (Schüler → Lehrer); Lehrer-Liga ist
+  vorerst die Obergrenze, bis mehr Klassen existieren. **Kein Abstieg** –
+  ein erreichter Liga-Index wird serverseitig nie verringert, unabhängig
+  davon, wie lange jemand pausiert.
+
+**Herz-System**: 3 Herzen/Tag (`ARENA_DAILY_HEARTS`), ein Herz pro
+Matchstart verbraucht, füllt sich bei Tageswechsel (UTC) automatisch
+wieder auf. Ist bewusst so aufgebaut, dass ein späterer Shop einfach
+`user.stats.arenaHearts` erhöhen könnte, ohne sonst etwas anzufassen.
+
+**Match-Ablauf**: 20 Fragen in 4 Blöcken à 5, im Wechsel mit 4
+Herausforderungsrunden (Stadt Land Fluss/Nenn's Blitz/Einordnen/
+Chronologie/Mehr oder Weniger – auf Wunsch ohne Bild/Musik raten). Läuft
+technisch als normale Solo-Party-Session (`gameMode:"arena"`), damit alle
+bestehenden Rundentyp-Engines unverändert wiederverwendet werden. Neue
+Rundenart `arenaQuiz` zieht Fragen aus dem Klassen-Pool der aktuellen Liga
+statt aus dem allgemeinen Wissenstest-Pool. **1 Punkt pro korrekter
+Antwort/gelöster Aufgabe** – bewusst unabhängig vom internen Punktesystem
+der einzelnen Rundentypen (das hat oft andere Werte, z.B. 10 statt 1);
+der Client zählt das separat mit (`tallyArenaPoints()` in
+`public/index.html`, liest je nach Rundentyp die jeweilige
+Korrekt-Zählung aus der Abschlussnachricht: `quizReveal.correct`,
+`orderingFinalReveal.correctCount`, `rankReveal.correctCount`,
+`slfFinalReveal.scores` (Anzahl Kategorien >0), `nennsBlitzFinal.total`).
+
+**Wichtiger Fund dabei**: Die 500 Klassen-Fragen existierten bisher nur
+eingebettet im Client. Für die `arenaQuiz`-Blöcke musste der Server sie
+auch kennen – deshalb nach `shared/klasseQuestions.json` ausgelagert
+(Server lädt von dort, Client-Kopie wird jetzt ebenfalls daraus generiert,
+nach demselben sicheren Muster wie beim letzten Sync-Fix).
+
+**Neue API-Endpunkte** (`server.js`): `/api/arena-status`,
+`/api/arena-start-match`, `/api/arena-finish-match`,
+`/api/arena-leaderboard` (Top 50, sortiert nach Punkten, nur Konten mit
+mind. 1 gespieltem Match).
+
+**Neuer Hauptmenüpunkt** "Arena" (🏆), Konto-Sperre mit automatischer
+Weiterleitung zurück zur Arena nach Login/Registrierung
+(`postLoginRedirect`).
+
+**Wichtiger Bug gefunden und behoben während der Entwicklung**: Die
+bestehende `partyConnect()`-Funktion überschreibt beim Verbindungsaufbau
+das komplette `party`-Objekt – dadurch gingen die Arena-spezifischen Felder
+sofort wieder verloren. Behoben, indem diese Felder jetzt erst NACH dem
+Verbindungsaufbau (im `onOpen`-Callback) gesetzt werden.
+
+**Testabdeckung, ehrlich aufgeschlüsselt** (ein vollständiger 20-Fragen-
+Match-Durchlauf sprengt das Zeitlimit einzelner Testläufe, da manche
+Herausforderungsrunden 60-80s dauern):
+- Mit echten API-Aufrufen vollständig bestätigt: Registrierung, Standard-
+  werte, Herz-Verbrauch/Ablehnung bei 0 Herzen, Punkte-Akkumulierung,
+  Liga-Aufstieg bei Schwellenüberschreitung (kein Abstieg), Bestenliste
+  zeigt korrekten Eintrag.
+- Mit echtem Serverlauf bestätigt: `arenaQuiz`-Runden ziehen Fragen exakt
+  aus dem richtigen Klassen-Bereich, `setArenaRoundPlan` akzeptiert die
+  gemischte Sequenz korrekt, Herausforderungsrunde läuft dazwischen.
+- Mit echtem Client-Code (im selben Prozess wie ein echter Server)
+  bestätigt: Login, Arena-Startbildschirm, der oben beschriebene Bugfix
+  (`party.arenaMode` bleibt jetzt erhalten), automatischer Rundenplan-
+  Aufbau, und **punktgenaue** Quiz-Punktezählung (5 Fragen einzeln
+  durchgetestet, jede richtige/falsche Antwort korrekt gezählt).
+- Die Punktezählung für die anderen 4 Rundentypen (Ordering/Chronologie/
+  Mehr-oder-Weniger/SLF/Nenn's Blitz) folgt strukturell demselben, jetzt
+  bewiesenen Muster (Eintrag per playerId suchen, Zählfeld auslesen) mit
+  Feldnamen, die ich direkt gegen den Server-Code verifiziert habe – aber
+  nicht alle 5 einzeln mit einem kompletten Durchlauf bestätigt, das steht
+  noch aus. Bitte beim ersten echten Match-Test besonders auf die
+  Punktezahl nach einer Nenn's-Blitz- oder SLF-Herausforderungsrunde
+  schauen.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

@@ -30,6 +30,10 @@ const PORT = process.env.PORT || 3000;
 /* Datenbasis laden (zentral, getrennt vom Spielcode)                        */
 /* ------------------------------------------------------------------------ */
 const QUIZ_QUESTIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/quizQuestions.json"), "utf8"));
+// Klassen-Fragenpool (1-10, je 50 Fragen) - dieselbe Quelle, aus der auch der
+// Client sein KLASSE_QUESTIONS erzeugt (siehe public/index.html) - wird hier
+// für die Quiz-Blöcke im Arena-Match nach Liga/Klassenbereich gefiltert.
+const KLASSE_QUESTIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/klasseQuestions.json"), "utf8"));
 const DATASETS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/partyDatasets.json"), "utf8"));
 
 // Konfigurierbarer Punktabzug für Punktesystem 3 ("Punkteabzug").
@@ -182,6 +186,12 @@ const DEDICATED_POOLS = {};
 Object.entries(DEDICATED_MODE_KINDS).forEach(([mode, kind]) => {
   DEDICATED_POOLS[mode] = ROUND_DEF_POOL.filter(r => r.kind === kind);
 });
+// Eigener Pool nur für die Arena-Herausforderungsrunden (alle Modi außer
+// Bild/Musik erraten, siehe ARENA_CHALLENGE_MODES weiter unten) - SLF ist
+// hier per Union mit reingenommen, da sein Pool (anders als alle anderen)
+// nicht Teil von ROUND_DEF_POOL ist.
+const ARENA_CHALLENGE_POOL = [...SLF_ROUND_DEF_POOL, ...ROUND_DEF_POOL.filter(r => ["nennsBlitz", "orderingGame", "chronologyGame", "higherLowerGame"].includes(r.kind))];
+DEDICATED_POOLS.arena = ARENA_CHALLENGE_POOL;
 function findRoundDef(id) {
   // Alle DEDICATED_POOLS-Einträge sind Teilmengen von ROUND_DEF_POOL (siehe
   // oben) – nur SLF_ROUND_DEF_POOL enthält davon unabhängige, eigene IDs.
@@ -224,7 +234,7 @@ function createRoom(hostWs, hostName, language, gameMode) {
     // (eigenständiger Stadt-Land-Fluss-Modus, nicht im Mix enthalten) oder
     // einer der generischen dedizierten Modi aus DEDICATED_MODE_KINDS
     // (bleiben zusätzlich auch im normalen Mix verfügbar).
-    gameMode: gameMode === "slf" ? "slf" : (DEDICATED_MODE_KINDS[gameMode] ? gameMode : "mixed"),
+    gameMode: gameMode === "slf" ? "slf" : (gameMode === "arena" ? "arena" : (DEDICATED_MODE_KINDS[gameMode] ? gameMode : "mixed")),
     currentRoundIndex: -1,
     phase: "lobby", // lobby | roundIntro | playing | roundResult | gameEnd
     runtime: null
@@ -400,6 +410,21 @@ function pickQuizQuestions(n) {
   }
   return picks;
 }
+// Für die Arena-Quiz-Blöcke: n zufällige, unterschiedliche Fragen aus dem
+// vereinigten Fragenpool der Klassen klasseMin bis klasseMax (statt aus dem
+// allgemeinen QUIZ_QUESTIONS-Pool wie beim normalen Wissenstest).
+function pickKlasseRangeQuestions(klasseMin, klasseMax, n) {
+  const combined = [];
+  for (let k = klasseMin; k <= klasseMax; k++) {
+    (KLASSE_QUESTIONS[k] || []).forEach(q => combined.push(q));
+  }
+  const pool = combined.slice();
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, n);
+}
 
 function startQuizRound(room) {
   room.runtime = {
@@ -407,6 +432,22 @@ function startQuizRound(room) {
     questions: pickQuizQuestions(5),
     qIndex: 0,
     answers: new Map(), // playerId -> {selectedIndex, correct, delta}
+    roundPointsByTeam: new Map(Array.from(room.teams.keys()).map(id => [id, 0])),
+    timer: null
+  };
+  sendNextQuizQuestion(room);
+}
+// Wie startQuizRound, aber mit Klassen-gefiltertem Fragenpool für die
+// Arena-Quiz-Blöcke (def.klasseMin/def.klasseMax kommen vom Client, der die
+// aktuelle Liga kennt - siehe setArenaRoundPlan). Nutzt dieselbe
+// sendNextQuizQuestion()/resolveQuizQuestion()-Pipeline wie der normale
+// Wissenstest unverändert weiter, nur die Fragenauswahl unterscheidet sich.
+function startArenaQuizRound(room, def) {
+  room.runtime = {
+    kind: "knowledgeQuiz",
+    questions: pickKlasseRangeQuestions(def.klasseMin || 1, def.klasseMax || 10, 5),
+    qIndex: 0,
+    answers: new Map(),
     roundPointsByTeam: new Map(Array.from(room.teams.keys()).map(id => [id, 0])),
     timer: null
   };
@@ -1986,6 +2027,7 @@ function startNextRound(room) {
 
   setTimeout(() => {
     if (def.kind === "knowledgeQuiz") startQuizRound(room);
+    else if (def.kind === "arenaQuiz") startArenaQuizRound(room, def);
     else if (def.kind === "guessPicture") startGuessPictureRound(room, def);
     else if (def.kind === "guessMusic") startGuessMusicRound(room, def);
     else if (def.kind === "stadtLandFluss") startStadtLandFlussRound(room, def);
@@ -2040,7 +2082,8 @@ function findUserByToken(token) {
   return users.find(u => (u.tokens || []).some(t => t.token === token));
 }
 function defaultStats() {
-  return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0 };
+  return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
+    arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0 };
 }
 function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
@@ -2116,6 +2159,126 @@ function saveUserStats(token, stats) {
 }
 
 /* ------------------------------------------------------------------------ */
+/* ARENA / BESTENLISTE (Match-Modus)                                        */
+/* Echte, gerätübergreifende Bestenliste über Konten (nicht die lokalen,    */
+/* geräteeigenen Profile) - siehe Anforderung. Ligen sind direkt mit         */
+/* Klassen-Fragenbereichen verknüpft und bewusst als Datenliste aufgebaut,   */
+/* damit künftig einfach weitere Ligen (für weitere Klassen) ergänzt werden  */
+/* können, ohne die Logik anzufassen. Ein einmal erreichter Liga-Index wird  */
+/* nie automatisch verringert (kein Abstieg) - saveArenaProgress() garantiert*/
+/* das explizit, unabhängig davon, was der Client sendet.                   */
+/* ------------------------------------------------------------------------ */
+const ARENA_DAILY_HEARTS = 3;
+// promoteAt = kumulierte arenaPoints (lifetime), ab denen automatisch in die
+// nächste Liga aufgestiegen wird. Letzter Eintrag hat vorerst kein
+// promoteAt (aktuelle Obergrenze, bis mehr Klassen/Ligen existieren).
+const ARENA_LEAGUES = [
+  { name: "Schüler-Liga", klasseMin: 1, klasseMax: 5, promoteAt: 150 },
+  { name: "Lehrer-Liga",  klasseMin: 6, klasseMax: 10, promoteAt: null }
+];
+const ARENA_QUESTIONS_PER_BLOCK = 5;
+const ARENA_BLOCKS_PER_MATCH = 4; // macht 20 Fragen + 4 Modus-Herausforderungen gesamt
+// Modi, die als "Zwischen-Herausforderung" infrage kommen (auf Wunsch: alle
+// außer Bild erraten und Musik raten).
+const ARENA_CHALLENGE_MODES = ["stadtLandFluss", "nennsBlitz", "orderingGame", "chronologyGame", "higherLowerGame"];
+
+function todayDateString() { return new Date().toISOString().slice(0, 10); }
+
+// Frischt die Herzen auf, falls seit der letzten Speicherung ein neuer
+// Kalendertag (UTC) begonnen hat. Verringert NIE bestehende Herzen, füllt
+// nur bei Tageswechsel auf das Tageskontingent auf.
+function refreshArenaHearts(user) {
+  const today = todayDateString();
+  if (user.stats.arenaHeartsDate !== today) {
+    user.stats.arenaHearts = ARENA_DAILY_HEARTS;
+    user.stats.arenaHeartsDate = today;
+  }
+}
+
+function arenaLeagueInfo(user) {
+  const idx = Math.min(user.stats.arenaLeague || 0, ARENA_LEAGUES.length - 1);
+  return { index: idx, ...ARENA_LEAGUES[idx] };
+}
+
+function arenaStatus(token) {
+  const user = findUserByToken(token);
+  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  refreshArenaHearts(user);
+  saveUsers();
+  const league = arenaLeagueInfo(user);
+  const nextLeague = ARENA_LEAGUES[league.index + 1] || null;
+  return {
+    ok: true,
+    hearts: user.stats.arenaHearts,
+    maxHearts: ARENA_DAILY_HEARTS,
+    points: user.stats.arenaPoints,
+    league: { index: league.index, name: league.name, klasseMin: league.klasseMin, klasseMax: league.klasseMax },
+    nextLeague: nextLeague ? { name: nextLeague.name, pointsNeeded: Math.max(0, (league.promoteAt || 0) - user.stats.arenaPoints) } : null,
+    matchesPlayed: user.stats.arenaMatchesPlayed || 0
+  };
+}
+
+// Verbraucht ein Herz für den Matchstart. Gibt die passende Liga (für die
+// Fragenauswahl im Client) gleich mit zurück, damit der Client nicht separat
+// nachfragen muss.
+function arenaStartMatch(token) {
+  const user = findUserByToken(token);
+  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  refreshArenaHearts(user);
+  if (user.stats.arenaHearts <= 0) {
+    return { ok: false, error: "Keine Herzen mehr übrig. Morgen gibt's wieder welche!" };
+  }
+  user.stats.arenaHearts -= 1;
+  saveUsers();
+  const league = arenaLeagueInfo(user);
+  return { ok: true, heartsLeft: user.stats.arenaHearts, league: { index: league.index, name: league.name, klasseMin: league.klasseMin, klasseMax: league.klasseMax } };
+}
+
+// Schließt ein Match ab: addiert die im Match gesammelten Punkte (1 pro
+// korrekter Antwort/gelöster Aufgabe, vom Client mitgezählt) auf das
+// Lifetime-Konto, prüft ob die aktuelle Liga damit überschritten wird
+// (Aufstieg - niemals Abstieg, siehe Kommentar oben) und speichert.
+function arenaFinishMatch(token, pointsEarned) {
+  const user = findUserByToken(token);
+  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  const gained = Math.max(0, Math.round(Number(pointsEarned) || 0));
+  user.stats.arenaPoints = (user.stats.arenaPoints || 0) + gained;
+  user.stats.arenaMatchesPlayed = (user.stats.arenaMatchesPlayed || 0) + 1;
+
+  let leaguePromoted = false;
+  let league = arenaLeagueInfo(user);
+  while (league.promoteAt !== null && league.promoteAt !== undefined && user.stats.arenaPoints >= league.promoteAt && ARENA_LEAGUES[league.index + 1]) {
+    user.stats.arenaLeague = league.index + 1;
+    leaguePromoted = true;
+    league = arenaLeagueInfo(user);
+  }
+  saveUsers();
+  return { ok: true, pointsEarned: gained, totalPoints: user.stats.arenaPoints, league: { index: league.index, name: league.name }, leaguePromoted };
+}
+
+// Globale Bestenliste (geräteübergreifend, alle Konten) - sortiert nach
+// arenaPoints absteigend. Zeigt nur, wer schon mindestens 1 Match gespielt
+// hat, damit die Liste nicht mit frischen 0-Punkte-Konten überflutet wird.
+function arenaLeaderboard() {
+  const rows = users
+    .filter(u => (u.stats.arenaMatchesPlayed || 0) > 0)
+    .map(u => {
+      const idx = Math.min(u.stats.arenaLeague || 0, ARENA_LEAGUES.length - 1);
+      return {
+        username: u.username,
+        avatar: u.avatar || null,
+        points: u.stats.arenaPoints || 0,
+        leagueName: ARENA_LEAGUES[idx].name,
+        matchesPlayed: u.stats.arenaMatchesPlayed || 0
+      };
+    })
+    .sort((a, b) => b.points - a.points)
+    .slice(0, 50)
+    .map((row, i) => ({ rank: i + 1, ...row }));
+  return { ok: true, leaderboard: rows };
+}
+
+/* ------------------------------------------------------------------------ */
 /* HTTP: statische Dateien aus /public                                       */
 /* ------------------------------------------------------------------------ */
 const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml" };
@@ -2132,6 +2295,10 @@ const server = http.createServer((req, res) => {
       else if (req.url === "/api/session") result = sessionUser(payload.token);
       else if (req.url === "/api/logout") result = logoutUser(payload.token);
       else if (req.url === "/api/save-stats") result = saveUserStats(payload.token, payload.stats || {});
+      else if (req.url === "/api/arena-status") result = arenaStatus(payload.token);
+      else if (req.url === "/api/arena-start-match") result = arenaStartMatch(payload.token);
+      else if (req.url === "/api/arena-finish-match") result = arenaFinishMatch(payload.token, payload.pointsEarned);
+      else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
       else result = { ok: false, error: "Unbekannter Endpunkt." };
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
@@ -2240,6 +2407,30 @@ wss.on("connection", (ws) => {
           const def = findRoundDef(msg.defId);
           if (def && msg.index >= 0 && msg.index < room.roundCount) {
             room.roundDefs[msg.index] = def;
+            pushRoomState(room);
+          }
+        }
+        break;
+      case "setArenaRoundPlan":
+        // Setzt den kompletten Arena-Match-Ablauf auf einmal (statt einzeln
+        // per setRoundDef): Client schickt die fertige Sequenz aus
+        // {kind:"arenaQuiz", klasseMin, klasseMax} (Quiz-Block, Klassenbereich
+        // kommt vom Client, der die aktuelle Liga kennt) und
+        // {defId} (Herausforderungsrunde, per ID aus ARENA_CHALLENGE_POOL).
+        // Serverseitig validiert, damit klasseMin/Max nicht beliebig sind.
+        if (isHost && room.phase === "lobby" && room.gameMode === "arena" && Array.isArray(msg.roundDefs) && msg.roundDefs.length > 0) {
+          const validated = msg.roundDefs.map(rd => {
+            if (rd && rd.kind === "arenaQuiz") {
+              const kMin = Math.max(1, Math.min(10, parseInt(rd.klasseMin, 10) || 1));
+              const kMax = Math.max(kMin, Math.min(10, parseInt(rd.klasseMax, 10) || 10));
+              return { kind: "arenaQuiz", label: "Quiz", klasseMin: kMin, klasseMax: kMax };
+            }
+            return ARENA_CHALLENGE_POOL.find(r => r.id === (rd && rd.defId)) || null;
+          });
+          if (validated.every(Boolean)) {
+            room.roundCount = validated.length;
+            room.roundMode = "custom";
+            room.roundDefs = validated;
             pushRoomState(room);
           }
         }
