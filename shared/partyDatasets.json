@@ -4502,6 +4502,33 @@
   },
   "planeten": {
    "label": "Planeten (unser Sonnensystem)"
+  },
+  "essen_gerichte": {
+   "label": "Essen (Gerichte & Lebensmittel)"
+  },
+  "fastfood_ketten": {
+   "label": "Fastfood-Ketten"
+  },
+  "suessigkeiten": {
+   "label": "Süßigkeiten"
+  },
+  "marken_allgemein": {
+   "label": "Marken (bekannte Brands)"
+  },
+  "bands": {
+   "label": "Bands (Musikgruppen)"
+  },
+  "musikinstrumente": {
+   "label": "Musikinstrumente"
+  },
+  "simpsons_charaktere": {
+   "label": "Simpsons-Charaktere"
+  },
+  "cartoon_charaktere": {
+   "label": "Cartoon-Charaktere (allgemein)"
+  },
+  "anime_charaktere_allgemein": {
+   "label": "Anime-Charaktere (allgemein)"
   }
  }
 }
