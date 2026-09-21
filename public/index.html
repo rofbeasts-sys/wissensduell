@@ -1507,6 +1507,7 @@ loadProfiles();
 /* ------------------------------ 5. BENUTZERKONTEN (online, optional) ---------------------------- */
 const ACCOUNT_TOKEN_KEY = "wq_account_token";
 let account = null; // { token, profile } oder null
+let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() nach Login/Registrierung aufgerufen wird (z.B. für Arena)
 
 async function apiCall(endpoint, body){
   try{
@@ -1572,7 +1573,8 @@ async function submitAccountAuth(mode){
   }
   account = { token: result.token, profile: result.profile };
   try{ localStorage.setItem(ACCOUNT_TOKEN_KEY, result.token); }catch(e){}
-  renderMainMenu();
+  if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
+  else renderMainMenu();
 }
 
 async function logoutAccount(){
@@ -1679,6 +1681,187 @@ function startDedicatedMenu(gm){
       </div>
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+
+/* ============================================================================
+   ARENA / BESTENLISTE (Match-Modus)
+   Erfordert ein Konto (echte, kontenübergreifende Bestenliste). Ein Match
+   besteht aus ARENA_BLOCKS_PER_MATCH_CLIENT Quiz-Blöcken (je 5 Fragen aus dem
+   Klassen-Fragenpool der aktuellen Liga) im Wechsel mit einer zufälligen
+   Herausforderungsrunde (Stadt Land Fluss/Nenn's Blitz/Einordnen/Chronologie/
+   Mehr oder Weniger). 1 Punkt pro korrekter Antwort/gelöster Aufgabe, egal
+   aus welchem Rundentyp - siehe tallyArenaPoints(). Läuft als normale
+   Solo-Party-Raum-Session (gameMode:"arena"), damit alle bestehenden
+   Rundentyp-Engines unverändert wiederverwendet werden.
+   ============================================================================ */
+const ARENA_BLOCKS_PER_MATCH_CLIENT = 4; // muss zu ARENA_BLOCKS_PER_MATCH im Server passen
+
+function startArenaFlow(){
+  if(!account){
+    postLoginRedirect = startArenaFlow;
+    renderAccountAuth('login');
+    return;
+  }
+  renderArenaHome();
+}
+
+async function renderArenaHome(){
+  renderApp(`<div class="panel"><div class="picker-title">ARENA</div><div class="picker-sub">Lade …</div></div>`);
+  const status = await apiCall("/api/arena-status", { token: account.token });
+  if(!status.ok){
+    renderApp(`
+      <div class="panel">
+        <div class="picker-title">ARENA</div>
+        <div class="explanation" style="border-color:var(--danger); margin-top:10px;">${status.error || 'Etwas ist schiefgelaufen.'}</div>
+        <div class="actions-row" style="margin-top:16px;">
+          <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+        </div>
+      </div>
+    `);
+    return;
+  }
+  party_arenaStatus = status;
+  const heartsRow = Array.from({length: status.maxHearts}, (_,i) => i < status.hearts ? "❤️" : "🖤").join(" ");
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">ARENA</div>
+      <div class="picker-sub">${status.league.name} · Klasse ${status.league.klasseMin}-${status.league.klasseMax}</div>
+      <div class="result-grid" style="margin-top:14px;">
+        <div class="result-item pos"><div class="n">${status.points}</div><div class="l">Punkte gesamt</div></div>
+        <div class="result-item"><div class="n">${heartsRow}</div><div class="l">${status.hearts}/${status.maxHearts} Herzen heute</div></div>
+      </div>
+      ${status.nextLeague ? `<div class="picker-sub" style="margin-top:10px;">Noch ${status.nextLeague.pointsNeeded} Punkte bis ${status.nextLeague.name}</div>` : `<div class="picker-sub" style="margin-top:10px;">Höchste Liga bisher erreicht</div>`}
+      <div class="actions-row" style="margin-top:18px; flex-direction:column; gap:10px;">
+        <button class="btn btn-primary btn-block" ${status.hearts<=0?'disabled':''} onclick="beginArenaMatch()">${status.hearts>0 ? 'MATCH STARTEN (−1 ❤️)' : 'KEINE HERZEN MEHR'}</button>
+        <button class="btn btn-ghost btn-block" onclick="renderArenaLeaderboard()">🏆 BESTENLISTE</button>
+        <button class="btn btn-ghost btn-block" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+let party_arenaStatus = null;
+
+async function renderArenaLeaderboard(){
+  renderApp(`<div class="panel"><div class="picker-title">🏆 BESTENLISTE</div><div class="picker-sub">Lade …</div></div>`);
+  const result = await apiCall("/api/arena-leaderboard", {});
+  const rows = (result.ok ? result.leaderboard : []);
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🏆 BESTENLISTE</div>
+      <div class="picker-sub">Alle Konten, sortiert nach Arena-Punkten.</div>
+      <div class="round-plan-list" style="margin-top:14px;">
+        ${rows.length===0 ? `<div class="round-plan-item"><span style="color:var(--text-dim);">Noch niemand hat ein Match gespielt.</span></div>` : rows.map(r => `
+          <div class="round-plan-item ${account && r.username===account.profile.username ? 'active' : ''}" style="align-items:center;">
+            <span style="width:28px; font-weight:800;">#${r.rank}</span>
+            <span style="flex:1;">${r.username} <span style="color:var(--text-dim); font-size:12px;">· ${r.leagueName}</span></span>
+            <span class="val">${r.points} P.</span>
+          </div>
+        `).join("")}
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderArenaHome()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+
+async function beginArenaMatch(){
+  const startResult = await apiCall("/api/arena-start-match", { token: account.token });
+  if(!startResult.ok){
+    alert(startResult.error || "Match konnte nicht gestartet werden.");
+    renderArenaHome();
+    return;
+  }
+  renderApp(`<div class="panel"><div class="picker-title">ARENA</div><div class="picker-sub">Match wird vorbereitet …</div></div>`);
+  partyConnect(() => {
+    // partyConnect() hat "party" gerade frisch initialisiert (überschreibt
+    // dabei alles) - Arena-Felder deshalb erst HIER danach ergänzen, nicht
+    // vorher setzen.
+    party.arenaMode = true;
+    party.arenaLeague = startResult.league;
+    party.arenaMatchPoints = 0;
+    party.soloMode = true;
+    party.ws.send(JSON.stringify({ action:'createRoom', name: account.profile.username, language: currentLang, gameMode:'arena' }));
+  }, () => { alert("Verbindung fehlgeschlagen."); renderArenaHome(); });
+}
+
+// Baut den Match-Ablauf sobald der Raum bereit ist: ARENA_BLOCKS_PER_MATCH_CLIENT
+// mal (Klassen-Quiz-Block, zufällige Herausforderungsrunde).
+function setupArenaRoundPlan(room){
+  const league = party.arenaLeague;
+  const challengePool = (room.availableRoundDefs || []).slice();
+  const roundDefs = [];
+  for(let i=0;i<ARENA_BLOCKS_PER_MATCH_CLIENT;i++){
+    roundDefs.push({ kind:'arenaQuiz', klasseMin: league.klasseMin, klasseMax: league.klasseMax });
+    if(challengePool.length>0){
+      const pick = challengePool[Math.floor(Math.random()*challengePool.length)];
+      roundDefs.push({ defId: pick.id });
+    }
+  }
+  partySend({action:'setArenaRoundPlan', roundDefs});
+  setTimeout(() => partySend({action:'startGame'}), 300);
+}
+
+// Wird aus partyHandleMessage() heraus für JEDE Nachricht während eines
+// Arena-Matches aufgerufen (siehe dort) - zählt 1 Punkt pro korrekter
+// Antwort/gelöster Aufgabe mit, unabhängig vom internen Punktesystem des
+// jeweiligen Rundentyps (das hätte oft andere Werte, z.B. 10 statt 1).
+function tallyArenaPoints(msg){
+  const myId = party.playerId;
+  if(msg.type === "roomUpdate" && msg.phase === "lobby" && !party.arenaPlanSet){
+    party.arenaPlanSet = true;
+    setupArenaRoundPlan(msg);
+    return;
+  }
+  if(msg.type === "quizQuestion"){
+    party.arenaBlockLabel = "Quiz";
+  }
+  if(msg.type === "quizReveal"){
+    const mine = (msg.results||[]).find(r => r.playerId === myId);
+    if(mine && mine.correct) party.arenaMatchPoints++;
+  } else if(msg.type === "orderingFinalReveal"){
+    const mine = (msg.results||[]).find(r => r.playerId === myId);
+    if(mine) party.arenaMatchPoints += (mine.correctCount||0);
+  } else if(msg.type === "rankReveal"){
+    party.arenaMatchPoints += ((msg.correctCount||{})[myId] || 0);
+  } else if(msg.type === "slfFinalReveal"){
+    const mineScores = (msg.scores||{})[myId] || {};
+    party.arenaMatchPoints += Object.values(mineScores).filter(v => v > 0).length;
+  } else if(msg.type === "nennsBlitzFinal"){
+    const mine = (msg.results||[]).find(r => r.playerId === myId);
+    if(mine) party.arenaMatchPoints += (mine.total||0);
+  }
+}
+
+async function finishArenaMatch(){
+  const earned = party.arenaMatchPoints || 0;
+  renderApp(`<div class="panel"><div class="picker-title">ARENA</div><div class="picker-sub">Match wird ausgewertet …</div></div>`);
+  const result = await apiCall("/api/arena-finish-match", { token: account.token, pointsEarned: earned });
+  try{ party.ws && party.ws.close(); }catch(e){}
+  if(!result.ok){
+    alert(result.error || "Auswertung fehlgeschlagen.");
+    party = null;
+    renderArenaHome();
+    return;
+  }
+  account.profile.arenaPoints = result.totalPoints;
+  account.profile.arenaLeague = result.league.index;
+  party = null;
+  renderApp(`
+    <div class="panel">
+      <div class="result-title">MATCH BEENDET</div>
+      ${result.leaguePromoted ? `<div class="rank-up-banner">Aufstieg in die ${result.league.name}!</div>` : ``}
+      <div class="result-grid" style="margin-top:10px;">
+        <div class="result-item pos"><div class="n">+${result.pointsEarned}</div><div class="l">Punkte in diesem Match</div></div>
+        <div class="result-item"><div class="n">${result.totalPoints}</div><div class="l">Punkte gesamt</div></div>
+      </div>
+      <div class="picker-sub" style="margin-top:14px;">Aktuelle Liga: ${result.league.name}</div>
+      <div class="actions-row" style="margin-top:18px; flex-direction:column; gap:10px;">
+        <button class="btn btn-primary btn-block" onclick="renderArenaHome()">ZURÜCK ZUR ARENA</button>
+        <button class="btn btn-ghost btn-block" onclick="renderMainMenu()">HAUPTMENÜ</button>
       </div>
     </div>
   `);
@@ -1794,6 +1977,11 @@ function renderMainMenu(){
         <div class="icon">🌐</div>
         <h3>${t('menu_party_title')}</h3>
         <p>${t('menu_party_desc')}</p>
+      </div>
+      <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'startArenaFlow()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
+        <div class="icon">🏆</div>
+        <h3>Arena</h3>
+        <p>${currentLang!=='de' ? 'Nur auf Deutsch verfügbar' : 'Bestenliste – Match spielen, Punkte sammeln, aufsteigen'}</p>
       </div>
       ${Object.entries(DEDICATED_MODES).map(([gm, m]) => `
         <div class="mode-card ${m.germanOnly && currentLang!=='de' ? 'locked' : ''}" onclick="${m.germanOnly && currentLang!=='de' ? '' : `startDedicatedMenu('${gm}')`}" style="${m.germanOnly && currentLang!=='de' ? 'opacity:.45; cursor:default;' : ''}">
@@ -2663,6 +2851,10 @@ function roundPlanReady(room){
 
 function partyHandleMessage(msg){
   if(!party) return;
+  if(party.arenaMode){
+    if(msg.type === "gameEnd"){ finishArenaMatch(); return; }
+    tallyArenaPoints(msg);
+  }
   switch(msg.type){
     case "joined":
       party.playerId = msg.playerId;
