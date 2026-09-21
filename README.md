@@ -1,6 +1,6 @@
-# WISSENSDUELL PARTY
+# BRAIN PULSE PARTY (ehem. WISSENSDUELL PARTY)
 
-Erweiterung des bestehenden Wissensduell-Spiels um einen echten **WLAN-/Internet-
+Erweiterung des bestehenden Brain-Pulse-Spiels (ehem. "Wissensduell") um einen echten **WLAN-/Internet-
 Mehrgeräte-Modus** ("Party-Raum") sowie einen Solo-Modus.
 
 ## 1. Starten
@@ -1112,6 +1112,146 @@ Mit einer Simulation der Kernlogik geprüft: Testgröße korrekt (3/2), Abbruch
 korrekt erst nach dem zweiten Fehler bei "5 Fragen/4 nötig" (nicht schon
 beim ersten), Abstieg korrekt erst beim zweiten Fehlschlag in Folge (nicht
 beim ersten).
+
+## 7s. Sprachauswahl auf Deutsch/Englisch reduziert
+
+`AVAILABLE_LANGS` (`public/index.html`) zeigt jetzt nur noch Deutsch und
+Englisch als wählbare Sprachen. Französisch/Spanisch stehen als
+auskommentierte Zeilen direkt daneben im Code bereit – zum Freischalten
+später einfach die beiden `// {code:"fr",...}`/`// {code:"es",...}`-Zeilen
+einkommentieren, fertig (Übersetzungstexte für fr/es sind in den
+`t()`-Objekten weiterhin vorhanden, wurden nicht angefasst). Japanisch/
+Chinesisch/Italienisch sind aus der Auswahl entfernt; serverseitig
+akzeptiert `SUPPORTED_LANGS` (`server.js`) entsprechend nur noch
+`de/en/fr/es`. Ein Sicherheits-Fallback sorgt dafür, dass ein bei
+wiederkehrenden Nutzer:innen evtl. noch lokal gespeichertes, jetzt
+entferntes Sprachkürzel (z.B. altes `ja`) automatisch auf Deutsch
+zurückfällt statt in einem ungültigen Zustand hängen zu bleiben. Mit einer
+Simulation geprüft: Auswahl zeigt nur de/en, Fallback von "ja" auf "de"
+funktioniert, gültiges "en" bleibt erhalten.
+
+## 7t. Umbenennung: WISSENSDUELL → Brain Pulse (Wissenstest → Brain Test)
+
+Das Gesamtspiel heißt jetzt **Brain Pulse** (App-Titel, Browser-Tab-Titel),
+die klassische Solo-Quiz-Kachel im Hauptmenü heißt jetzt **Brain Test**
+(vorher "WISSENSDUELL", davor "SOLO"). Beide Namen bewusst nicht pro
+Sprache unterschiedlich übersetzt, sondern überall gleich (`I18N.app_title`/
+`I18N.menu_solo_title` in `public/index.html`, für alle Sprachen identisch
+"BRAIN PULSE"/"BRAIN TEST"). Auch im Server-Startlog, den Code-Kommentaren
+und den Media-Session-Anzeigetexten bei Musik raten entsprechend
+aktualisiert. Mit einer Simulation geprüft: Hauptmenü zeigt beide neuen
+Namen, kein "WISSENSDUELL" mehr sichtbar.
+
+## 7u. Anfechten ohne Zeitlimit (Stadt Land Fluss & Nenn's Blitz)
+
+Die bisherige 30-Sekunden-Grenze für die gesamte Anfechtungsphase
+(`SLF_CHALLENGE_MS`/`NENNSBLITZ_CHALLENGE_MS`) ist komplett entfernt – in
+beiden Modi. Stattdessen:
+
+- Jede Person kann wie bisher anfechten (unverändert) und meldet sich
+  zusätzlich per neuem "FERTIG"-Button bereit
+  (`slfChallengeReady`/`nennsBlitzChallengeReady`), sobald sie fertig ist.
+- Alle sehen live "X von Y bereit" (neue Felder `readyCount`/`readyTotal`
+  in `slfChallengeUpdate`/`nennsBlitzChallengeUpdate`).
+- Nur der **Host** hat einen "WEITER"-Button und entscheidet selbst, wann es
+  weitergeht (nicht zwingend erst wenn alle bereit sind – informierte
+  eigene Entscheidung). Nutzt dafür dieselbe bestehende `"continue"`-Aktion
+  wie an anderen Stellen im Spiel (`slfFinalizeRound()`/
+  `finalizeNennsBlitzRound()` werden jetzt darüber ausgelöst statt per
+  Timer).
+- Die Einzelabstimmung über eine konkrete Anfechtung (20s je Anfechtung,
+  `SLF_VOTE_MS`/`NENNSBLITZ_VOTE_MS`) ist davon **nicht** betroffen und
+  bleibt unverändert – hierzu kam keine Änderung.
+
+Mit echten Serverläufen bestätigt (beide Modi): kein `challengeWindowMs`
+mehr in der Auflösungs-Nachricht, Bereitschaftszähler korrekt (0→1→2),
+Anfechtungsphase bleibt beliebig lange offen bis der Host manuell
+"continue" sendet, danach löst die Auflösung sofort aus (nicht erst nach
+30s).
+
+## 7v. Brain Test komplett umgebaut: Klassen-System statt Rang-Namen (500 neue Fragen)
+
+Wichtiger Fund dabei: Der Client hatte seine Wissenstest-Fragen als eigene,
+**fest eingebettete** Kopie (`QUESTIONS` in `public/index.html`) – unabhängig
+von `shared/quizQuestions.json`. Die 45 in einer früheren Runde
+hinzugefügten Fragen (Biologie/Planeten/Fußball) waren dadurch nie im
+echten Spiel angekommen. Behoben: `QUESTIONS` wird jetzt direkt aus
+`shared/quizQuestions.json` generiert (590 Fragen, synchron).
+
+**Neues Aufstiegssystem** (ersetzt die Rang-Namen Schüler/Student/.../Sheldon
+für den Solo-Modus): 10 Klassen wie in der deutschen Schule.
+- Eigenes Profil-Feld `klasse` (0-basiert), bewusst getrennt vom alten
+  `tier`-Feld – der lokale Pass-&-Play-Mehrspieler nutzt weiterhin
+  unverändert RANKS/`tier`/Score, damit dort nichts kaputtgeht.
+- Testgröße pro Klasse: 20 Fragen in Klasse 1, +5 je Klasse, gedeckelt bei
+  50 (= Größe des Fragenpools je Klasse). Klasse 1–10 also 20, 25, 30, 35,
+  40, 45, 50, 50, 50, 50 Fragen.
+- Bestehensgrenze: 80% (aufgerundet) – z.B. Klasse 1: 16 von 20 nötig,
+  Klasse 7-10: 40 von 50 nötig.
+- Aufstieg bei Bestehen, Rückstufung bei zwei Fehlversuchen in Folge (wie
+  im vorherigen System, Logik unverändert übernommen).
+- **500 komplett neue Fragen** (`KLASSE_QUESTIONS` in `public/index.html`,
+  fester 50er-Pool je Klasse), echter Schulstoff je Klassenstufe (Mathe/
+  Deutsch/Sachkunde in den unteren Klassen, ab Klasse 6 zusätzlich
+  Englisch, ab Klasse 7 Physik/Chemie, Geschichte/Politik durchgehend) –
+  Klasse 1 = Grundschul-Anfang (Rechnen bis 20, Alphabet), Klasse 10 =
+  Realschulabschluss-Niveau (quadratische Gleichungen, Redoxreaktionen,
+  Nachkriegsgeschichte). Aus jedem 50er-Pool wird die für die Klasse
+  passende Anzahl zufällig gezogen (`pickKlasseTestQuestions()`), mit
+  Fallback auf die nächstniedrigere Klasse, falls ein Pool mal leer sein
+  sollte (aktuell nicht der Fall, alle 10 sind vollständig befüllt).
+
+Mit mehreren Simulationen geprüft: Testgrößen/Bestehensgrenzen exakt wie
+oben, alle 10 Pools mit genau 50 Fragen befüllt (500 gesamt, praktisch
+keine inhaltlichen Duplikate), Auf- und Abstiegslogik funktioniert weiterhin
+korrekt, Klasse-10-Test zieht jetzt aus dem eigenen Pool statt über den
+Fallback.
+
+## 7w. Alle Rundentypen jetzt als eigener Hauptmenüpunkt (generisch umgebaut)
+
+Wie zuvor bei Stadt Land Fluss/Musik raten/Nenn's Blitz bekommen jetzt auch
+**Einordnen**, **Chronologie**, **Mehr oder Weniger** und **Bild erraten**
+einen eigenen Hauptmenüpunkt mit Solo/Multiplayer – macht insgesamt 7
+dedizierte Modi. Bleiben (wie Musik raten/Nenn's Blitz, anders als Stadt
+Land Fluss) zusätzlich auch im normalen gemischten Rundenpool wählbar.
+
+Da das mit dem bisherigen Copy-Paste-Muster (für jeden Modus eigene
+Konstanten + eigene Ternär-Ketten an ~8 Stellen im Client) schnell unübersichtlich
+geworden wäre, hab ich das bei der Gelegenheit generisch umgebaut:
+
+- **Server** (`server.js`): `DEDICATED_MODE_KINDS` ordnet gameMode-Namen
+  ihrem Rundentyp zu (`{music:"guessMusic", blitz:"nennsBlitz",
+  ordering:"orderingGame", chronology:"chronologyGame",
+  higherlower:"higherLowerGame", picture:"guessPicture"}`), `DEDICATED_POOLS`
+  wird daraus automatisch abgeleitet. `roundDefPoolForLanguage()` und die
+  `gameMode`-Zuweisung in `createRoom()` schlagen jetzt generisch nach,
+  keine Kette aus `gameMode === "x" ? ... : (gameMode === "y" ? ...`
+  mehr. Stadt Land Fluss bleibt bewusst ein separater Sonderfall (eigener
+  Pool, nicht im Mix), alle anderen sind Teilmengen von `ROUND_DEF_POOL`.
+  **Neue dedizierte Modi künftig: einfach eine Zeile in
+  `DEDICATED_MODE_KINDS` ergänzen, mehr ist serverseitig nicht nötig.**
+- **Client** (`public/index.html`): `DEDICATED_MODES`-Objekt (Icon, Titel,
+  ob nur Deutsch) erzeugt die Hauptmenü-Kacheln automatisch per Schleife,
+  `startDedicatedMenu(gm)` ersetzt die einzelnen `startSlfMenu()`/
+  `startMusicMenu()`/... (die als dünne Weiterleitungen für
+  Rückwärtskompatibilität erhalten bleiben). Alle vormals hart codierten
+  Ternär-Ketten (Solo-Titel, Zurück-Ziel, Lobby-Titel, Sprachsperren-Anzeige)
+  sind durch `dedicatedGameMode()`/`dedicatedScreenTitle()`/
+  `dedicatedBackFn()` ersetzt.
+- Nenn's Blitz war wie Stadt Land Fluss `germanOnly` – die "Sprache fest auf
+  Deutsch"-Anzeige in der Lobby war bisher SLF-spezifisch verdrahtet, gilt
+  jetzt korrekt für beide (generisch über `DEDICATED_MODES[...].germanOnly`).
+
+Mit echten Serverläufen (alle 7 Modi liefern ausschließlich ihre eigene
+Rundenart, korrekte Kategorienzahl) und einer kompletten Simulation der
+Client-Navigation (Hauptmenü zeigt alle 7 Kacheln, jeder Modus von
+Untermenü bis `createRoom` mit korrektem `gameMode` – inklusive Regression
+der 3 bestehenden Modi) geprüft.
+
+**Nebenbei behoben:** `test/run-test.js` kannte das neue zeitlose Anfechten
+(siehe vorherige Sitzung) noch nicht und wartete bei Stadt Land Fluss/Nenn's
+Blitz ohne Ende – simuliert jetzt einen Host, der sich "fertig" meldet und
+kurz danach manuell weitergibt.
 
 ## 8. Bekannte Grenzen dieser ersten Version
 

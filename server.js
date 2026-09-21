@@ -1,5 +1,5 @@
 /**
- * WISSENSDUELL PARTY – Server
+ * BRAIN PULSE PARTY (ehem. WISSENSDUELL PARTY) – Server
  * ---------------------------------------------------------------------------
  * Kleiner Node.js-Server (http + ws), den der Host im eigenen WLAN startet.
  * Andere Geräte im selben Netzwerk verbinden sich per Browser mit der
@@ -57,7 +57,10 @@ const BOT_TIER_ORDER = ["dumm", "einsteiger", "schlau", "doktor", "wissenschaftl
 const BOT_NAME_POOL = ["Alex", "Max", "Lisa", "Tom", "Anna", "Chris", "Ben", "Leon", "Sophie", "Daniel"];
 const DEFAULT_BOT_TIER = "schlau";
 const MAX_PARTICIPANTS = 6;
-const SUPPORTED_LANGS = ["de", "en", "ja", "zh", "fr", "it", "es"];
+// Aktuell im Client wählbar: nur "de"/"en". "fr"/"es" bleiben hier als
+// bereits akzeptierte Werte im Hintergrund vorbereitet (Client bietet sie
+// nur noch nicht als Auswahl an); ja/zh/it wurden auf Wunsch entfernt.
+const SUPPORTED_LANGS = ["de", "en", "fr", "es"];
 
 // Stadt-Land-Fluss-Konstanten (hier oben, da schon beim Aufbau des
 // Rundenpools benötigt – siehe buildRoundDefPool()/slfBuildRoundDef()).
@@ -65,7 +68,8 @@ const SLF_DEFAULT_CATEGORIES = ["Stadt", "Land", "Fluss", "Name", "Tier", "Beruf
 const SLF_LETTERS = "ABCDEFGHIJKLMNOPRSTUVWZ".split(""); // Q, X, Y ausgelassen (zu schwer für flüssiges Spiel)
 const SLF_ANSWER_MS = 80000;      // Zeit zum Schreiben
 const SLF_HURRY_MS = 15000;       // Verkürzte Restzeit, sobald jemand ALLE Felder ausgefüllt abgegeben hat
-const SLF_CHALLENGE_MS = 30000;   // Zeit zum Anfechten nach der Auflösung
+// Kein Zeitlimit mehr fürs Anfechten (auf Wunsch entfernt) - Anfechtungsphase
+// läuft jetzt, bis der Host manuell per "continue" weitergeht.
 const SLF_VOTE_MS = 20000;        // Zeit zum Abstimmen über eine einzelne Anfechtung
 const SLF_PARTY_ROUND_SIZE = 10;  // Anzahl Kategorien pro Party-Mix-Runde
 
@@ -157,27 +161,34 @@ const ROUND_DEF_POOL = buildRoundDefPool();
 // 7 Kategorien) und Party-Mix (bei jedem Rundenstart frisch gezogene 10
 // Kategorien aus SLF_PARTY_CATEGORIES). "Eigene Kategorien" ist kein
 // Pool-Eintrag, sondern wird interaktiv über setSlfCustomRoundDef gebaut.
+// SLF ist ein Sonderfall: sein Pool ist NICHT im normalen Mix enthalten
+// (siehe Anforderung), anders als alle anderen dedizierten Modi unten.
 const SLF_ROUND_DEF_POOL = [slfBuildRoundDef(null, null), slfBuildRoundDef(null, "party")];
-// Eigener Pool nur für den Musik-raten-Modus: alle guessMusic-Kategorien aus
-// shared/partyDatasets.json (identisch zu den music_*-Einträgen im normalen
-// Pool oben – "Musik raten" bleibt bewusst AUCH im normalen Mix verfügbar,
-// anders als Stadt Land Fluss, siehe Anforderung).
-const MUSIC_ROUND_DEF_POOL = ROUND_DEF_POOL.filter(r => r.kind === "guessMusic");
-// Eigener Pool nur für den Nenn's-Blitz-Modus: alle nennsBlitz-Kategorien
-// aus shared/partyDatasets.json (identisch zu den blitz_*-Einträgen im
-// normalen Pool oben – bleibt wie Musik raten bewusst AUCH im normalen Mix
-// verfügbar).
-const NENNSBLITZ_ROUND_DEF_POOL = ROUND_DEF_POOL.filter(r => r.kind === "nennsBlitz");
+// Generische dedizierte Modi: jeweils "wie Stadt Land Fluss/Musik raten/
+// Nenn's Blitz" ein eigener Hauptmenüpunkt (Solo/Multiplayer), dessen Pool
+// einfach die Teilmenge des normalen Mix-Pools mit diesem "kind" ist –
+// bleiben (anders als SLF) bewusst AUCH im normalen Mix verfügbar. Neue
+// dedizierte Modi lassen sich hier einfach durch eine weitere Zeile
+// ergänzen, ohne woanders im Server etwas anfassen zu müssen.
+const DEDICATED_MODE_KINDS = {
+  music: "guessMusic",
+  blitz: "nennsBlitz",
+  ordering: "orderingGame",
+  chronology: "chronologyGame",
+  higherlower: "higherLowerGame",
+  picture: "guessPicture"
+};
+const DEDICATED_POOLS = {};
+Object.entries(DEDICATED_MODE_KINDS).forEach(([mode, kind]) => {
+  DEDICATED_POOLS[mode] = ROUND_DEF_POOL.filter(r => r.kind === kind);
+});
 function findRoundDef(id) {
-  return ROUND_DEF_POOL.find(r => r.id === id)
-    || SLF_ROUND_DEF_POOL.find(r => r.id === id)
-    || MUSIC_ROUND_DEF_POOL.find(r => r.id === id)
-    || NENNSBLITZ_ROUND_DEF_POOL.find(r => r.id === id);
+  // Alle DEDICATED_POOLS-Einträge sind Teilmengen von ROUND_DEF_POOL (siehe
+  // oben) – nur SLF_ROUND_DEF_POOL enthält davon unabhängige, eigene IDs.
+  return ROUND_DEF_POOL.find(r => r.id === id) || SLF_ROUND_DEF_POOL.find(r => r.id === id);
 }
 function roundDefPoolForLanguage(language, gameMode) {
-  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL
-    : (gameMode === "music" ? MUSIC_ROUND_DEF_POOL
-    : (gameMode === "blitz" ? NENNSBLITZ_ROUND_DEF_POOL : ROUND_DEF_POOL));
+  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : (DEDICATED_POOLS[gameMode] || ROUND_DEF_POOL);
   return language === "de" ? base : base.filter(r => !r.germanOnly);
 }
 
@@ -210,10 +221,10 @@ function createRoom(hostWs, hostName, language, gameMode) {
     roundDefs: [],
     language: SUPPORTED_LANGS.includes(language) ? language : "de",
     // 'mixed' (Standard, alle Rundentypen außer Stadt Land Fluss) oder 'slf'
-    // (eigenständiger Stadt-Land-Fluss-Modus) oder 'music'/'blitz'
-    // (eigenständiger Musik-raten- bzw. Nenn's-Blitz-Modus, bleiben
-    // zusätzlich auch im normalen Mix verfügbar).
-    gameMode: gameMode === "slf" ? "slf" : (gameMode === "music" ? "music" : (gameMode === "blitz" ? "blitz" : "mixed")),
+    // (eigenständiger Stadt-Land-Fluss-Modus, nicht im Mix enthalten) oder
+    // einer der generischen dedizierten Modi aus DEDICATED_MODE_KINDS
+    // (bleiben zusätzlich auch im normalen Mix verfügbar).
+    gameMode: gameMode === "slf" ? "slf" : (DEDICATED_MODE_KINDS[gameMode] ? gameMode : "mixed"),
     currentRoundIndex: -1,
     phase: "lobby", // lobby | roundIntro | playing | roundResult | gameEnd
     runtime: null
@@ -1416,7 +1427,8 @@ function scheduleBotMusicGuesses(room) {
 const NENNSBLITZ_SOLO_DURATION_OPTIONS_MS = [60000, 90000, 120000, 180000];
 const NENNSBLITZ_SOLO_DEFAULT_MS = 60000;
 const NENNSBLITZ_DUELL_MS = 120000;        // fest für 2+ Spieler:innen, keine Auswahl
-const NENNSBLITZ_CHALLENGE_MS = 30000;     // Zeitfenster, in dem überhaupt angefochten werden kann
+// Kein Zeitlimit mehr fürs Anfechten (auf Wunsch entfernt) - läuft jetzt,
+// bis der Host manuell per "continue" weitergeht.
 const NENNSBLITZ_VOTE_MS = 20000;          // Abstimmzeit je einzelner Anfechtung (an SLF angelehnt)
 
 function normalizeNennsBlitzText(text) {
@@ -1503,16 +1515,25 @@ function resolveNennsBlitzAnswering(room) {
   if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "answering") return;
   rt.phase = "challenge";
   clearTimeout(rt.timer);
+  rt.readyPlayers = new Set();
 
   broadcast(room, {
     type: "nennsBlitzReveal",
     label: rt.label,
     players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, teamId: p.teamId, isBot: p.isBot })),
-    answers: Object.fromEntries(Array.from(rt.perPlayer.entries()).map(([pid, st]) => [pid, st.answers])),
-    challengeWindowMs: NENNSBLITZ_CHALLENGE_MS
+    answers: Object.fromEntries(Array.from(rt.perPlayer.entries()).map(([pid, st]) => [pid, st.answers]))
   });
+  // Kein Zeitlimit mehr: jede·r meldet sich per "Fertig" bereit, der Host
+  // sieht den Stand und löst per "continue" selbst die Auflösung aus.
+  broadcastNennsBlitzChallenges(room);
+}
 
-  rt.timer = setTimeout(() => finalizeNennsBlitzRound(room), NENNSBLITZ_CHALLENGE_MS + 400);
+function handleNennsBlitzChallengeReady(room, playerId) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "challenge") return;
+  if (!rt.readyPlayers) rt.readyPlayers = new Set();
+  rt.readyPlayers.add(playerId);
+  broadcastNennsBlitzChallenges(room);
 }
 
 function handleNennsBlitzChallenge(room, challengerId, targetPlayerId, answerId) {
@@ -1561,12 +1582,15 @@ function resolveNennsBlitzChallenge(room, challengeId) {
 
 function broadcastNennsBlitzChallenges(room) {
   const rt = room.runtime;
+  const humanCount = Array.from(room.players.values()).filter(p => !p.isBot).length;
   broadcast(room, {
     type: "nennsBlitzChallengeUpdate",
     challenges: Array.from(rt.challenges.values()).map(c => ({
       id: c.id, playerId: c.playerId, answerId: c.answerId, answerText: c.answerText,
       resolved: c.resolved, invalidated: c.invalidated, voteCount: c.votes.size
-    }))
+    })),
+    readyCount: rt.readyPlayers ? rt.readyPlayers.size : 0,
+    readyTotal: humanCount
   });
 }
 
@@ -1816,11 +1840,22 @@ function slfFinishAnswering(room) {
     letter: rt.letter,
     answers: Object.fromEntries(rt.answers),
     players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, teamId: p.teamId })),
-    scores: Object.fromEntries(scores),
-    challengeWindowMs: SLF_CHALLENGE_MS
+    scores: Object.fromEntries(scores)
   });
   rt.phase = "challenge";
-  rt.timer = setTimeout(() => slfFinalizeRound(room), SLF_CHALLENGE_MS + 400);
+  // Kein Zeitlimit mehr: jede·r kann anfechten und sich per "Fertig" als
+  // bereit melden; der Host sieht den Bereitschaftsstand und entscheidet
+  // selbst per "continue", wann es weitergeht (nicht an alle gebunden).
+  rt.readyPlayers = new Set();
+  broadcastSlfChallenges(room);
+}
+
+function handleSlfChallengeReady(room, playerId) {
+  const rt = room.runtime;
+  if (!rt || rt.phase !== "challenge") return;
+  if (!rt.readyPlayers) rt.readyPlayers = new Set();
+  rt.readyPlayers.add(playerId);
+  broadcastSlfChallenges(room);
 }
 
 function handleSlfChallenge(room, challengerId, targetPlayerId, category) {
@@ -1869,12 +1904,15 @@ function slfResolveChallenge(room, challengeId) {
 
 function broadcastSlfChallenges(room) {
   const rt = room.runtime;
+  const humanCount = Array.from(room.players.values()).filter(p => !p.isBot).length;
   broadcast(room, {
     type: "slfChallengeUpdate",
     challenges: Array.from(rt.challenges.values()).map(c => ({
       id: c.id, playerId: c.playerId, category: c.category, answerText: c.answerText,
       resolved: c.resolved, invalidated: c.invalidated, voteCount: c.votes.size
-    }))
+    })),
+    readyCount: rt.readyPlayers ? rt.readyPlayers.size : 0,
+    readyTotal: humanCount
   });
 }
 
@@ -2002,7 +2040,7 @@ function findUserByToken(token) {
   return users.find(u => (u.tokens || []).some(t => t.token === token));
 }
 function defaultStats() {
-  return { score: 0, tier: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0 };
+  return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0 };
 }
 function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
@@ -2067,7 +2105,7 @@ function logoutUser(token) {
 function saveUserStats(token, stats) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
-  const allowedKeys = ["score", "tier", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore"];
+  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore"];
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
@@ -2309,6 +2347,8 @@ wss.on("connection", (ws) => {
       case "continue":
         if (isHost && room.phase === "roundResult") startNextRound(room);
         else if (isHost && room.runtime && room.runtime.awaitingContinue) advanceQuizQuestion(room);
+        else if (isHost && room.runtime && room.runtime.kind === "nennsBlitz" && room.runtime.phase === "challenge") finalizeNennsBlitzRound(room);
+        else if (isHost && room.runtime && room.runtime.kind === "stadtLandFluss" && room.runtime.phase === "challenge") slfFinalizeRound(room);
         break;
       case "quizAnswer":
         handleQuizAnswer(room, ws.playerId, msg.selectedIndex);
@@ -2339,6 +2379,9 @@ wss.on("connection", (ws) => {
       case "nennsBlitzVote":
         handleNennsBlitzVote(room, ws.playerId, msg.challengeId, msg.valid);
         break;
+      case "nennsBlitzChallengeReady":
+        handleNennsBlitzChallengeReady(room, ws.playerId);
+        break;
       case "slfSubmit":
         handleSlfSubmit(room, ws.playerId, msg.answers);
         break;
@@ -2347,6 +2390,9 @@ wss.on("connection", (ws) => {
         break;
       case "slfVote":
         handleSlfVote(room, ws.playerId, msg.challengeId, msg.valid);
+        break;
+      case "slfChallengeReady":
+        handleSlfChallengeReady(room, ws.playerId);
         break;
       case "restartLobby":
         if (isHost && room.phase === "gameEnd") {
@@ -2382,7 +2428,7 @@ server.listen(PORT, () => {
     if (iface.family === "IPv4" && !iface.internal) addresses.push(iface.address);
   }));
   console.log("");
-  console.log("WISSENSDUELL PARTY läuft.");
+  console.log("BRAIN PULSE PARTY läuft.");
   console.log("Auf diesem Gerät öffnen:   http://localhost:" + PORT);
   if (addresses.length) {
     console.log("Für andere Geräte im selben WLAN:");
