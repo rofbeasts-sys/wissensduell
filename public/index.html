@@ -1965,7 +1965,6 @@ function renderMainMenu(){
     ${accountIndicatorHtml()}
     <div class="menu-hero">
       <h1>${t('app_title')}</h1>
-      <p>${t('app_tagline')}</p>
     </div>
     <div class="menu-grid">
       <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'startSoloFlow()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
@@ -2113,17 +2112,50 @@ function startSoloMenu(){
 
 const LAST_PROFILE_KEY = "wq_last_profile_id";
 function startSoloFlow(){
-  if(account){ beginSolo(accountAsProfile()); return; }
+  if(account){ renderKlassenOverview(accountAsProfile()); return; }
   // Jedes Gerät gehört normalerweise einer Person -> sobald ein lokales
   // Profil existiert, direkt damit starten statt jedes Mal danach zu fragen.
   // Nur wenn noch gar kein Profil da ist, wird die Namenseingabe gezeigt.
   if(profiles.length > 0){
     const lastId = localStorage.getItem(LAST_PROFILE_KEY);
     const profile = profiles.find(p => p.id === lastId) || profiles[0];
-    beginSolo(profile);
+    renderKlassenOverview(profile);
     return;
   }
-  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], beginSolo, "renderMainMenu");
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], renderKlassenOverview, "renderMainMenu");
+}
+
+// Übersicht aller 10 Klassen mit Status (bestanden/aktuell/noch nicht
+// erreicht), bevor der eigentliche Aufstiegstest losgeht - ersetzt den
+// direkten Sprung in beginSolo(), der zuvor keinen Überblick gab.
+let klassenOverviewProfile = null;
+function renderKlassenOverview(profile){
+  if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
+  klassenOverviewProfile = profile;
+  const currentIdx = Math.min(profile.klasse || 0, KLASSEN.length - 1);
+  renderApp(`
+    ${statusbarHtml(profile)}
+    <div class="panel">
+      <div class="picker-title">BRAIN TEST</div>
+      <div class="picker-sub">${profile.name} – alle Klassen im Überblick.</div>
+      <div class="klassen-list" style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+        ${KLASSEN.map((k, i) => {
+          const isDone = i < currentIdx;
+          const isCurrent = i === currentIdx;
+          const statusLabel = isDone ? '✓ Bestanden' : (isCurrent ? '▶ Aktuell' : 'Noch nicht erreicht');
+          const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
+          return `
+          <div class="leaderboard-row" style="${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
+            <span class="rank-pill ${k.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${k.name}</span>
+            <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}</span>
+            ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">${KLASSE_TESTS[i].questions} Fragen · ab ${KLASSE_TESTS[i].needed} richtig</span>` : ``}
+          </div>
+        `;}).join("")}
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile)">${currentIdx===0 && !profile.klasse ? 'ERSTEN TEST STARTEN' : 'WEITER ZUM AKTUELLEN TEST'}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
+    </div>
+  `);
 }
 
 function beginSolo(profile){

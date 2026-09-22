@@ -186,11 +186,13 @@ const DEDICATED_POOLS = {};
 Object.entries(DEDICATED_MODE_KINDS).forEach(([mode, kind]) => {
   DEDICATED_POOLS[mode] = ROUND_DEF_POOL.filter(r => r.kind === kind);
 });
-// Eigener Pool nur für die Arena-Herausforderungsrunden (alle Modi außer
-// Bild/Musik erraten, siehe ARENA_CHALLENGE_MODES weiter unten) - SLF ist
-// hier per Union mit reingenommen, da sein Pool (anders als alle anderen)
-// nicht Teil von ROUND_DEF_POOL ist.
-const ARENA_CHALLENGE_POOL = [...SLF_ROUND_DEF_POOL, ...ROUND_DEF_POOL.filter(r => ["nennsBlitz", "orderingGame", "chronologyGame", "higherLowerGame"].includes(r.kind))];
+// Eigener Pool nur für die Arena-Herausforderungsrunden. Bewusst nur
+// Rundentypen, die rein anhand objektiver Werte automatisch bewertet
+// werden - Stadt Land Fluss und Nenn's Blitz sind hier NICHT dabei, siehe
+// ausführlicher Kommentar bei ARENA_CHALLENGE_MODES weiter unten (Bugfix -
+// beide ließen sich in der Solo-Arena durch beliebige Eingaben ausnutzen,
+// da die normale "Anfechten"-Prüfung echte Mitspieler braucht).
+const ARENA_CHALLENGE_POOL = ROUND_DEF_POOL.filter(r => ["orderingGame", "chronologyGame", "higherLowerGame"].includes(r.kind));
 DEDICATED_POOLS.arena = ARENA_CHALLENGE_POOL;
 function findRoundDef(id) {
   // Alle DEDICATED_POOLS-Einträge sind Teilmengen von ROUND_DEF_POOL (siehe
@@ -2247,7 +2249,15 @@ const ARENA_QUESTIONS_PER_BLOCK = 5;
 const ARENA_BLOCKS_PER_MATCH = 4; // macht 20 Fragen + 4 Modus-Herausforderungen gesamt
 // Modi, die als "Zwischen-Herausforderung" infrage kommen (auf Wunsch: alle
 // außer Bild erraten und Musik raten).
-const ARENA_CHALLENGE_MODES = ["stadtLandFluss", "nennsBlitz", "orderingGame", "chronologyGame", "higherLowerGame"];
+// Nur Rundentypen, die rein anhand objektiver Werte automatisch bewertet
+// werden (kein Freitext, keine Bewertung durch "Anfechten"), dürfen hier
+// rein. Stadt Land Fluss und Nenn's Blitz verlassen sich normalerweise
+// darauf, dass ECHTE Mitspieler fragwürdige Antworten per Anfechten
+// bestreiten können - in der Solo-Arena gibt es aber niemanden, der das
+// tun könnte, wodurch JEDE Eingabe (auch erfundene Wörter) automatisch als
+// richtig durchgeht. Deshalb hier bewusst ausgeschlossen (Bugfix - waren
+// vorher enthalten, das ließ sich ausnutzen).
+const ARENA_CHALLENGE_MODES = ["orderingGame", "chronologyGame", "higherLowerGame"];
 
 function todayDateString() { return new Date().toISOString().slice(0, 10); }
 

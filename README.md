@@ -1704,6 +1704,48 @@ die Daten korrekt zurück – der Login-Token bleibt gültig. Der bisherige
 Datei-Fallback (ohne die beiden Variablen) wurde ebenfalls gegengetestet
 und funktioniert nach dem Umbau unverändert.
 
+## 7pp. Bugfix: Arena – Stadt Land Fluss & Nenn's Blitz ausgenutzt
+
+Gemeldet: bei Nenn's Blitz in der Arena einfach beliebige Namen eingegeben
+und trotzdem Punkte bekommen.
+
+**Ursache**: Stadt Land Fluss und Nenn's Blitz bewerten offene Freitext-
+Antworten normalerweise NICHT vollautomatisch – zweifelhafte Antworten
+werden von ECHTEN Mitspielern per "Anfechten" bestritten. In der Solo-
+Arena gibt es aber niemanden, der anfechten könnte, wodurch praktisch
+jede Eingabe automatisch durchging.
+
+**Fix**: Beide Modi komplett aus dem Arena-Herausforderungspool entfernt
+(an zwei Stellen: `ARENA_CHALLENGE_POOL` und `ARENA_CHALLENGE_MODES` in
+`server.js`). **Bewusst NICHT alles auf Wissenstest reduziert** – Einordnen,
+Chronologie und Mehr-oder-Weniger bleiben drin, da die rein anhand
+tatsächlicher Werte (Größe, Jahr, Anzahl, …) automatisch und ohne Freitext
+bewertet werden, also strukturell gar nicht auf dieselbe Art ausnutzbar
+sind. Bleiben insgesamt 58 sichere Herausforderungsrunden übrig. Falls dir
+das trotzdem zu unsicher ist und du lieber nur noch den reinen Wissenstest
+in der Arena willst, sag Bescheid – das wäre dann nur eine Zeile
+(`ARENA_CHALLENGE_MODES = []`).
+
+Mit echtem Serverlauf bestätigt: weder Stadt Land Fluss noch Nenn's Blitz
+tauchen mehr im Arena-Rundenpool auf.
+
+## 7qq. Brain Test: veraltete Tagline raus, neue Klassen-1-bis-10-Übersicht
+
+- **"Beweise dein Wissen. 5 Fragen. Immer schwieriger. Immer schneller."**
+  unter dem "BRAIN PULSE"-Titel im Hauptmenü entfernt (stimmte seit dem
+  Klassen-System nicht mehr).
+- **Neuer Zwischenschritt beim Brain-Test-Einstieg**: statt direkt in den
+  "LOS GEHT'S"-Bildschirm zu springen, zeigt `renderKlassenOverview()`
+  jetzt erst alle 10 Klassen auf einen Blick, mit Status je Klasse:
+  "✓ Bestanden" (schon geschafft), "▶ Aktuell" (hervorgehoben mit
+  Rahmen/Hintergrund, zeigt zusätzlich Fragenanzahl und Bestehensgrenze),
+  "Noch nicht erreicht" (abgeblendet). Von dort per Button weiter zum
+  eigentlichen Test (unveränderter bisheriger Ablauf).
+
+Mit einer Simulation geprüft: Tagline weg, Titel bleibt; Übersicht zeigt
+korrekt alle 10 Klassen mit dem richtigen Status pro Klasse; Weiter-Button
+führt korrekt zum bestehenden Testbildschirm.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
