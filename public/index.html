@@ -2188,10 +2188,141 @@ function renderTttRankOverview(profile){
           </div>
         `;}).join("")}
       </div>
-      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startTttGame(tttOverviewProfile)">SPIELEN</button>
+      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startTttGame(tttOverviewProfile)">GEGEN BOT SPIELEN</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttStartMultiplayer(tttOverviewProfile)">MIT FREUNDEN SPIELEN</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
+}
+
+/* ---- Tic Tac Toe: Mehrspieler (eigene, schlanke WebSocket-Verbindung,   */
+/*      getrennt von "party" - braucht keine der Quiz-Rundenlogik) ---- */
+let tttMp = null; // { ws, roomCode, mySymbol, board, turnSymbol, gameOver, winner, opponentLeft, isHost }
+
+function tttStartMultiplayer(profile){
+  tttOverviewProfile = profile;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE – MIT FREUNDEN</div>
+      <div class="picker-sub">Raum erstellen und den Code teilen, oder einem bestehenden Raum beitreten.</div>
+      <div class="actions-row" style="margin-bottom:18px;">
+        <button class="btn btn-primary" onclick="tttMpCreateRoom()">RAUM ERSTELLEN</button>
+      </div>
+      <div class="picker-sub">Oder einem bestehenden Raum beitreten:</div>
+      <div class="picker-form">
+        <input id="tttJoinCode" type="text" placeholder="RAUM-CODE" maxlength="4" style="text-transform:uppercase;">
+        <button class="btn btn-primary" onclick="tttMpJoinRoom()">BEITRETEN</button>
+      </div>
+      <div id="tttMpEntryError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderTttRankOverview(tttOverviewProfile)">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+
+function tttMpConnect(onOpen){
+  let ws;
+  try{ ws = new WebSocket(wsUrl()); }
+  catch(err){ tttMpShowError("Verbindung fehlgeschlagen: " + err.message); return; }
+  tttMp = { ws, roomCode:null, mySymbol:null, board:Array(9).fill(null), turnSymbol:"X", gameOver:false, winner:null, opponentLeft:false, isHost:false, opponentConnected:true };
+  const timeout = setTimeout(() => {
+    if(ws.readyState !== WebSocket.OPEN){ ws.close(); tttMp = null; tttMpShowError("Der Server antwortet nicht."); }
+  }, 5000);
+  ws.onopen = () => { clearTimeout(timeout); onOpen(); };
+  ws.onmessage = (ev) => tttMpHandleMessage(JSON.parse(ev.data));
+  ws.onclose = () => { clearTimeout(timeout); };
+}
+
+function tttMpShowError(message){
+  const el = document.getElementById("tttMpEntryError");
+  if(el){ el.textContent = message; el.classList.remove("hidden"); }
+}
+
+function tttMpCreateRoom(){
+  tttMpConnect(() => {
+    tttMp.isHost = true;
+    tttMp.ws.send(JSON.stringify({action:"tttCreateRoom", name: tttOverviewProfile.name}));
+  });
+}
+function tttMpJoinRoom(){
+  const code = ((document.getElementById("tttJoinCode")||{}).value||"").trim().toUpperCase();
+  if(code.length !== 4){ tttMpShowError("Bitte einen 4-stelligen Raum-Code eingeben."); return; }
+  tttMpConnect(() => {
+    tttMp.isHost = false;
+    tttMp.ws.send(JSON.stringify({action:"tttJoinRoom", code, name: tttOverviewProfile.name}));
+  });
+}
+
+function tttMpHandleMessage(msg){
+  if(!tttMp) return;
+  if(msg.type === "tttJoined"){
+    tttMp.roomCode = msg.roomCode;
+    tttMp.mySymbol = msg.symbol;
+    renderTttMpGame();
+    return;
+  }
+  if(msg.type === "tttError"){
+    tttMpShowError(msg.message);
+    return;
+  }
+  if(msg.type === "tttState"){
+    tttMp.board = msg.board;
+    tttMp.turnSymbol = msg.turnSymbol;
+    tttMp.gameOver = msg.gameOver;
+    tttMp.winner = msg.winner;
+    tttMp.players = msg.players;
+    tttMp.opponentConnected = msg.players.length===2 && msg.players.every(p=>p.connected);
+    renderTttMpGame();
+    return;
+  }
+  if(msg.type === "tttOpponentLeft"){
+    tttMp.opponentLeft = true;
+    renderTttMpGame();
+    return;
+  }
+}
+
+function renderTttMpGame(){
+  const waiting = !tttMp.players || tttMp.players.length < 2;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE – MIT FREUNDEN</div>
+      <div class="picker-sub">Raum-Code: <b>${tttMp.roomCode}</b>${tttMp.mySymbol ? ' · Du spielst: '+tttMp.mySymbol : ''}</div>
+      ${waiting ? `
+        <div class="explanation" style="margin-top:14px;">Warte auf eine zweite Person … Teile den Code <b>${tttMp.roomCode}</b>.</div>
+      ` : `
+        <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+          ${tttMp.board.map((c,i) => `
+            <div onclick="tttMpMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !tttMp.gameOver && tttMp.turnSymbol===tttMp.mySymbol)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+          `).join("")}
+        </div>
+        ${tttMp.opponentLeft ? `
+          <div class="explanation" style="text-align:center; border-color:var(--danger);">Die andere Person hat den Raum verlassen.</div>
+        ` : tttMp.gameOver ? `
+          <div class="explanation" style="text-align:center;">${tttMp.winner==='draw' ? 'Unentschieden!' : (tttMp.winner===tttMp.mySymbol ? '🎉 Du hast gewonnen!' : "Verloren – nächstes Mal klappt's!")}</div>
+          <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttMpRematch()">NOCHMAL</button>
+        ` : `
+          <div class="picker-sub" style="text-align:center;">${tttMp.turnSymbol===tttMp.mySymbol ? 'Du bist dran' : 'Die andere Person ist dran …'}</div>
+        `}
+      `}
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttMpLeave()">${t('btn_leave_room')||'RAUM VERLASSEN'}</button>
+    </div>
+  `);
+}
+
+function tttMpMove(i){
+  if(!tttMp || tttMp.gameOver || tttMp.board[i] || tttMp.turnSymbol !== tttMp.mySymbol) return;
+  tttMp.ws.send(JSON.stringify({action:"tttMove", index:i}));
+}
+function tttMpRematch(){
+  if(!tttMp) return;
+  tttMp.ws.send(JSON.stringify({action:"tttRematch"}));
+}
+function tttMpLeave(){
+  if(tttMp && tttMp.ws){ try{ tttMp.ws.send(JSON.stringify({action:"tttLeave"})); tttMp.ws.close(); }catch(e){} }
+  tttMp = null;
+  renderTttRankOverview(tttOverviewProfile);
 }
 
 function startTttGame(profile){
