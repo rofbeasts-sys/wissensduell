@@ -1390,6 +1390,99 @@ Mit einer Simulation geprüft: alle neuen Werte korrekt berechnet und
 angezeigt (Siegquote/Trefferquote-Prozentrechnung stimmt), Erfolge-Button
 vorhanden und tatsächlich deaktiviert.
 
+## 7bb. Bugfix: Stadt Land Fluss – eingetippte Antworten gingen bei Zeitablauf verloren
+
+Gemeldet: wenn die Zeit abläuft (oder jemand abgibt), wurden ausgefüllte
+Felder manchmal nicht gewertet, obwohl etwas Gültiges drinstand.
+
+**Vermutete Ursache**: Mobile Browser drosseln/pausieren JavaScript-Timer,
+wenn der Bildschirm ausgeht oder die App in den Hintergrund gerät. Der
+lokale Auto-Abgabe-Timer auf dem Client (der bei Zeitablauf automatisch
+`slfSubmit` senden sollte) kann dadurch verspätet oder gar nicht feuern.
+Der Server zählt seine eigenen 80 Sekunden aber unabhängig davon mit – kam
+die Abgabe nicht rechtzeitig an, hatte der Server buchstäblich nichts
+gespeichert und wertete alle Felder dieser Person als leer, selbst wenn
+sie etwas Gültiges eingetippt hatten.
+
+**Fix**: Der Client sendet jetzt beim Tippen laufend (entprellt, 500ms nach
+der letzten Eingabe) den aktuellen Stand als "Entwurf" an den Server
+(`slfDraftUpdate`/`handleSlfDraftUpdate`) – ohne das als finale Abgabe zu
+werten (Feld bleibt editierbar, zählt nicht zu "alle abgegeben"). Läuft die
+Zeit beim Server ab, ohne dass je eine explizite Abgabe ankam, nutzt er
+automatisch den zuletzt bekannten Entwurf-Stand statt leerer Felder – die
+bestehende Fallback-Prüfung (`!rt.answers.has(...)`) in `slfFinishAnswering`
+musste dafür nicht mal geändert werden, da der Entwurf genau dort landet,
+wo vorher nur die finale Abgabe stand.
+
+Mit echtem Serverlauf bestätigt (kompletter 80-Sekunden-Durchlauf): Host
+tippt ein gültiges Wort, sendet aber NIE eine explizite Abgabe (simuliert
+den gedrosselten Timer) – beim serverseitigen Zeitablauf wurde das Feld
+trotzdem korrekt mit dem zuletzt eingetippten Wort übernommen und richtig
+bewertet (20 Punkte für ein gültiges, einzigartiges Wort).
+
+## 7cc. Vier kleinere Änderungen
+
+- **Einordnen: kein Zeitlimit mehr** ("es geht immer so schnell weg") – die
+  bisherige 160s-Obergrenze (`ORDERING_ROUND_CAP_MS`) ist komplett weg, nach
+  demselben Prinzip wie beim Anfechten. Die Runde läuft jetzt, bis alle
+  Spieler:innen fertig oder eliminiert sind (unverändert), ODER der Host
+  über einen neuen "Runde jetzt beenden (Host)"-Button manuell abschließt.
+  Der Hurry-Timer (30s für alle, sobald jemand PERFEKT fertig ist) bleibt
+  unverändert – das ist eine bewusste Dringlichkeit, nicht das gemeldete
+  Problem. Mit echtem Serverlauf bestätigt: Runde blieb über 15s aktiv ohne
+  automatisches Ende, Host-Button hat manuell korrekt beendet.
+- **"Party (WLAN)" → "Party Raum"** überall in der Oberfläche umbenannt.
+- **"Tierrassen" → "Tierarten"** bei Nenn's Blitz (betraf 3 von 5
+  Tier-Kategorien, die anderen beiden hießen schon "Tierarten" – jetzt
+  einheitlich).
+- **Einordnen-Kategorie "Größenvergleich"**: der Zusatz "(von Kakerlake bis
+  Todesstern)" im Namen ist raus (waren nur Beispiele, keine festen Grenzen).
+  Von 13 auf **101 verschiedene Objekte** erweitert (von 0,5mm Sandkorn bis
+  zur 120km-"Todesstern"-Größenordnung, dazwischen u.a. Tiere, Fahrzeuge,
+  Gebäude, Landschaften, Popkultur). Zieht jetzt wie Stadt Land Fluss'
+  Party-Mix bei jeder Runde zufällig 10 davon (nutzt die bereits
+  bestehende Zufallsauswahl-Logik, die brauchte dafür keine Änderung – nur
+  der Datenpool musste größer werden). Mit echtem Serverlauf bestätigt:
+  10 zufällig gezogen, Label ohne die alten festen Anker.
+
+## 7dd. Brain Test: Zurück-Button ergänzt
+
+Zwei neue "Zurück"-Buttons, wo bisher keiner war:
+- Auf dem "LOS GEHT'S"-Startbildschirm (vor Testbeginn) – zurück ins
+  Hauptmenü, ohne den Test überhaupt zu starten.
+- Auf dem eigentlichen Fragen-Bildschirm selbst (unten, `exitSoloTest()`) –
+  bricht den laufenden Test jederzeit ab und geht zurück ins Hauptmenü.
+  Zählt bewusst NICHT als bestandener/nicht bestandener Versuch (weder
+  `roundsPlayed` noch `consecutiveFails` werden verändert), da der Test ja
+  nicht zu Ende gespielt wurde.
+
+Mit einer Simulation geprüft: beide Buttons vorhanden, Abbruch setzt den
+Testzustand sauber zurück und zeigt korrekt das Hauptmenü.
+
+## 7ee. Ein Profil für alle Modi (Konto statt wiederholter Namenseingabe)
+
+War bisher inkonsistent: Brain Test kannte den Login bereits, aber
+Stadt Land Fluss/Musik raten/Nenn's Blitz/Einordnen/Chronologie/Mehr-oder-
+Weniger-Solo fragten trotz Login immer wieder nach einem Namen, und die
+Statistik zeigte nur lokale Geräte-Profile, nie das Konto.
+
+- **`startSoloPartyFlow()`**: bei Login jetzt sofortiger Start mit dem
+  Konto-Namen, keine Namenseingabe mehr (wie beim Brain Test).
+- **Multiplayer-Raum erstellen/beitreten**: Namensfeld wird bei Login mit
+  dem Konto-Namen vorausgefüllt (bleibt editierbar, falls für eine
+  einzelne Runde doch ein anderer Name gewünscht ist).
+- **Statistik**: zeigt bei Login das Konto-Profil ganz oben (mit Hinweis
+  "gilt für alle Modi"), inklusive der Arena-Punkte/Matches – daneben
+  weiterhin alle lokalen Geräte-Profile, falls vorhanden.
+- Der lokale Pass-&-Play-Mehrspieler (mehrere Personen an einem Gerät)
+  behält bewusst seine eigene Mehrfach-Profilauswahl – das Konto ist dort
+  naturgemäß nur eine von mehreren Personen, kein Ersatz für alle.
+
+Mit echtem Server + echtem Client-Code geprüft: Solo-Party überspringt die
+Namenseingabe korrekt und sendet den Konto-Namen, Multiplayer-Feld zeigt
+den Konto-Namen vorausgefüllt, Statistik zeigt Konto-Profil samt
+Arena-Werten.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

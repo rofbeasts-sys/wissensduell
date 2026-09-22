@@ -848,7 +848,12 @@ function finishRankingRound(room) {
 /* ------------------------------------------------------------------------ */
 const ORDERING_LIVES = 3;
 const ORDERING_HURRY_MS = 30000;       // Restzeit für alle anderen, sobald jemand PERFEKT fertig ist
-const ORDERING_ROUND_CAP_MS = 160000;  // absolute Obergrenze für die ganze Runde
+// Kein absolutes Zeitlimit mehr für die Runde selbst (auf Wunsch entfernt,
+// wie beim Anfechten) - die Runde läuft, bis alle fertig/eliminiert sind
+// ODER der Host manuell per "continue" abschließt (Sicherheitsventil, falls
+// jemand offensichtlich nicht mehr weiterspielt). Der Hurry-Timer, sobald
+// jemand PERFEKT fertig ist, bleibt unverändert (das ist eine bewusste
+// Dringlichkeit, kein "es geht zu schnell weg"-Problem).
 const ORDERING_POINTS_PER_CORRECT = 10;
 
 function startOrderingSimultaneousRound(room, def) {
@@ -883,12 +888,10 @@ function startOrderingSimultaneousRound(room, def) {
     perPlayer,
     startedAt: Date.now(),
     hurryDeadline: null,
-    roundDeadline: Date.now() + ORDERING_ROUND_CAP_MS,
     timer: null,
     finalized: false
   };
 
-  room.runtime.timer = setTimeout(() => finalizeOrderingRound(room), ORDERING_ROUND_CAP_MS + 400);
   broadcastOrderingState(room);
   scheduleBotOrderingPlays(room);
 }
@@ -959,9 +962,8 @@ function handleOrderingPlace(room, playerId, itemId, slotIndex) {
     st.finishedPerfect = st.mistakes === 0;
     if (st.finishedPerfect && !rt.hurryDeadline) {
       rt.hurryDeadline = Date.now() + ORDERING_HURRY_MS;
-      const effectiveDeadline = Math.min(rt.hurryDeadline, rt.roundDeadline);
       clearTimeout(rt.timer);
-      rt.timer = setTimeout(() => finalizeOrderingRound(room), Math.max(0, effectiveDeadline - Date.now()) + 300);
+      rt.timer = setTimeout(() => finalizeOrderingRound(room), ORDERING_HURRY_MS + 300);
       broadcast(room, { type: "orderingHurry", remainingMs: ORDERING_HURRY_MS });
     }
   }
@@ -1002,7 +1004,7 @@ function broadcastOrderingState(room) {
       lives: st.lives, correctCount: st.correctCount,
       finished: st.finished, finishedPerfect: st.finishedPerfect, eliminated: st.eliminated,
       hurryActive: !!rt.hurryDeadline,
-      remainingMs: Math.max(0, (rt.hurryDeadline || rt.roundDeadline) - Date.now()),
+      remainingMs: rt.hurryDeadline ? Math.max(0, rt.hurryDeadline - Date.now()) : null,
       leaderboard
     });
   });
@@ -1746,6 +1748,23 @@ function scheduleBotSlfAnswers(room) {
       handleSlfSubmit(room, bot.id, answers);
     }, delay);
   });
+}
+
+// Laufende Zwischenspeicherung des Eingabestands (nicht "Abgeben", das
+// Feld bleibt editierbar und zählt NICHT zu rt.submitted). Grund: mobile
+// Browser können JS-Timer drosseln/pausieren, wenn der Bildschirm ausgeht
+// oder die App in den Hintergrund geht - der lokale Auto-Abgabe-Timer auf
+// dem Client kann dadurch verspätet oder gar nicht feuern. Damit beim
+// serverseitigen Timeout (slfFinishAnswering) trotzdem nicht alles leer
+// gewertet wird, übernimmt der Server hier laufend den letzten bekannten
+// Tippstand - unabhängig davon, ob eine explizite Abgabe je ankommt.
+function handleSlfDraftUpdate(room, playerId, answers) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "stadtLandFluss" || rt.phase !== "answering") return;
+  if (rt.submitted.has(playerId)) return; // schon final abgegeben, keine Überschreibung mehr
+  const clean = {};
+  rt.categories.forEach(cat => { clean[cat] = (answers && typeof answers[cat] === "string") ? answers[cat].slice(0, 40) : ""; });
+  rt.answers.set(playerId, clean);
 }
 
 function handleSlfSubmit(room, playerId, answers) {
@@ -2540,6 +2559,7 @@ wss.on("connection", (ws) => {
         else if (isHost && room.runtime && room.runtime.awaitingContinue) advanceQuizQuestion(room);
         else if (isHost && room.runtime && room.runtime.kind === "nennsBlitz" && room.runtime.phase === "challenge") finalizeNennsBlitzRound(room);
         else if (isHost && room.runtime && room.runtime.kind === "stadtLandFluss" && room.runtime.phase === "challenge") slfFinalizeRound(room);
+        else if (isHost && room.runtime && room.runtime.kind === "orderingGame" && !room.runtime.finalized) { clearTimeout(room.runtime.timer); finalizeOrderingRound(room); }
         break;
       case "quizAnswer":
         handleQuizAnswer(room, ws.playerId, msg.selectedIndex);
@@ -2575,6 +2595,9 @@ wss.on("connection", (ws) => {
         break;
       case "slfSubmit":
         handleSlfSubmit(room, ws.playerId, msg.answers);
+        break;
+      case "slfDraftUpdate":
+        handleSlfDraftUpdate(room, ws.playerId, msg.answers);
         break;
       case "slfChallenge":
         handleSlfChallenge(room, ws.playerId, msg.targetPlayerId, msg.category);
