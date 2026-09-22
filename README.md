@@ -1834,6 +1834,37 @@ zeigt alle 7 Stufen korrekt, kompletter Spielablauf (Zug → Sieg-Erkennung
 → Aufstieg) funktioniert, und die Unbesiegbarkeit des Meister-Bots wurde
 über 1000 simulierte Partien bestätigt.
 
+## 7vv. Tic Tac Toe: jetzt auch mit Freunden spielbar (Mehrspieler)
+
+Auf Wunsch: neben "gegen den Bot" jetzt auch "mit Freunden" – ein neuer
+"MIT FREUNDEN SPIELEN"-Button auf der Gürtel-Übersicht führt zu einem
+eigenen, bewusst schlanken Mehrspieler-System (komplett getrennt vom
+komplexen Quiz-Party-System, da Tic Tac Toe nur 2 Spieler und ein Brett
+braucht):
+
+- **Server** (`server.js`): eigenes `tttRooms`-Raumsystem mit eigenen
+  WebSocket-Aktionen (`tttCreateRoom`, `tttJoinRoom`, `tttMove`,
+  `tttRematch`, `tttLeave`). Raum erstellen liefert einen 4-stelligen
+  Code (gleiches Format wie beim normalen Party-Raum), erste Person
+  spielt X, zweite O. Serverseitige Zug-Validierung (nur wer dran ist,
+  darf ziehen; nur auf freie Felder). Bei Verbindungsabbruch wird die
+  jeweils andere Person benachrichtigt.
+- **Client**: neue Bildschirme für Raum erstellen/beitreten, Warten auf
+  Gegner, und das eigentliche Spielbrett (gleiche Optik wie beim
+  Bot-Modus, aber Züge laufen über die eigene WebSocket-Verbindung statt
+  lokal). "Nochmal"-Button für ein Rematch direkt im selben Raum (Symbole
+  tauschen dabei fair, wer zuletzt O war fängt an).
+- Wichtig: die **Gürtel-Rangliste bleibt reine Bot-Modus-Sache** – im
+  Mehrspieler gegen Freunde gibt's (bewusst, wie bei den anderen
+  Mehrspieler-Modi) keinen Auf-/Abstieg, einfach nur zum Spaß spielen.
+
+Mit einem echten Zwei-Client-Test über WebSocket vollständig bestätigt:
+Raumerstellung, Beitritt mit korrekter Symbolzuweisung (X/O), Zug-
+Synchronisation zwischen beiden Seiten, Sieg-Erkennung bei beiden
+gleichzeitig korrekt, Rematch tauscht die Symbole und setzt das Brett
+zurück, und die verbleibende Person wird korrekt benachrichtigt, wenn die
+andere den Raum verlässt.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

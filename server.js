@@ -306,6 +306,63 @@ function broadcast(room, msg) {
 }
 
 /* ------------------------------------------------------------------------ */
+/* Tic Tac Toe - Mehrspieler (eigenes, bewusst schlankes Raumsystem, völlig  */
+/* getrennt vom komplexen Quiz-Party-System oben - braucht nur 2 Spieler,   */
+/* ein Baord, wer gerade dran ist. Gegen Bots läuft rein clientseitig,      */
+/* dieser Teil ist NUR für "mit Freunden spielen".                          */
+/* ------------------------------------------------------------------------ */
+const tttRooms = new Map(); // code -> room
+
+function tttMakeRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code;
+  do {
+    code = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  } while (tttRooms.has(code));
+  return code;
+}
+
+const TTT_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function tttCheckWinner(board) {
+  for (const [a,b,c] of TTT_LINES) {
+    if (board[a] && board[a]===board[b] && board[a]===board[c]) return board[a];
+  }
+  if (board.every(c => c)) return "draw";
+  return null;
+}
+
+function tttBroadcastState(room) {
+  const msg = {
+    type: "tttState",
+    board: room.board,
+    turnSymbol: room.turnSymbol,
+    gameOver: room.gameOver,
+    winner: room.winner || null,
+    players: room.players.map(p => ({ name: p.name, symbol: p.symbol, connected: p.connected }))
+  };
+  room.players.forEach(p => send(p.ws, msg));
+}
+
+function tttHandleDisconnect(ws) {
+  const code = ws.tttRoomCode;
+  if (!code) return;
+  const room = tttRooms.get(code);
+  if (!room) return;
+  const player = room.players.find(p => p.ws === ws);
+  if (player) player.connected = false;
+  const other = room.players.find(p => p.ws !== ws);
+  if (other) {
+    send(other.ws, { type: "tttOpponentLeft" });
+  }
+  // Raum sofort entfernen, wenn niemand mehr verbunden ist; sonst kurz
+  // stehen lassen, falls die Person nur kurz die Verbindung verliert und
+  // die Seite neu lädt (kommt dann aber als neue Verbindung rein, ein
+  // echtes Wiederverbinden mit demselben Platz ist hier bewusst nicht
+  // eingebaut, das würde den Umfang für ein kleines Minigame sprengen).
+  if (room.players.every(p => !p.connected)) tttRooms.delete(code);
+}
+
+/* ------------------------------------------------------------------------ */
 /* Team-Hilfsfunktionen                                                      */
 /* ------------------------------------------------------------------------ */
 function rebuildFfaTeams(room) {
@@ -2407,7 +2464,7 @@ wss.on("connection", (ws) => {
     if (ws.readyState === 1) ws.ping();
     else clearInterval(keepAlive);
   }, 25000);
-  ws.on("close", () => clearInterval(keepAlive));
+  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); });
 
   ws.on("message", (raw) => {
     let msg;
@@ -2430,6 +2487,68 @@ wss.on("connection", (ws) => {
       send(ws, { type: "joined", roomCode: room.code, playerId: id, isHost: false });
       rebuildFfaTeams(room);
       pushRoomState(room);
+      return;
+    }
+
+    // ---- Tic Tac Toe Mehrspieler (eigenes, schlankes Raumsystem) ----
+    if (msg.action === "tttCreateRoom") {
+      const code = tttMakeRoomCode();
+      const room = {
+        code,
+        players: [{ ws, name: msg.name || "Host", symbol: "X", connected: true }],
+        board: Array(9).fill(null),
+        turnSymbol: "X",
+        gameOver: false,
+        winner: null
+      };
+      tttRooms.set(code, room);
+      ws.tttRoomCode = code;
+      send(ws, { type: "tttJoined", roomCode: code, symbol: "X" });
+      return;
+    }
+    if (msg.action === "tttJoinRoom") {
+      const room = tttRooms.get((msg.code || "").toUpperCase());
+      if (!room) return send(ws, { type: "tttError", message: "Raum nicht gefunden." });
+      if (room.players.length >= 2) return send(ws, { type: "tttError", message: "Der Raum ist schon voll." });
+      room.players.push({ ws, name: msg.name || "Spieler", symbol: "O", connected: true });
+      ws.tttRoomCode = room.code;
+      send(ws, { type: "tttJoined", roomCode: room.code, symbol: "O" });
+      tttBroadcastState(room);
+      return;
+    }
+    if (msg.action === "tttMove") {
+      const room = tttRooms.get(ws.tttRoomCode);
+      if (!room || room.gameOver) return;
+      const player = room.players.find(p => p.ws === ws);
+      if (!player || player.symbol !== room.turnSymbol) return; // nicht am Zug
+      const i = msg.index;
+      if (typeof i !== "number" || i < 0 || i > 8 || room.board[i]) return;
+      room.board[i] = player.symbol;
+      const winner = tttCheckWinner(room.board);
+      if (winner) {
+        room.gameOver = true;
+        room.winner = winner; // "X" | "O" | "draw"
+      } else {
+        room.turnSymbol = room.turnSymbol === "X" ? "O" : "X";
+      }
+      tttBroadcastState(room);
+      return;
+    }
+    if (msg.action === "tttRematch") {
+      const room = tttRooms.get(ws.tttRoomCode);
+      if (!room) return;
+      room.board = Array(9).fill(null);
+      room.gameOver = false;
+      room.winner = null;
+      // Wer beim vorigen Spiel O war, faengt diesmal an - fairer Wechsel.
+      room.players.forEach(p => { p.symbol = p.symbol === "X" ? "O" : "X"; });
+      room.turnSymbol = "X";
+      tttBroadcastState(room);
+      return;
+    }
+    if (msg.action === "tttLeave") {
+      tttHandleDisconnect(ws);
+      ws.tttRoomCode = null;
       return;
     }
 
