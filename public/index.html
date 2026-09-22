@@ -3851,8 +3851,8 @@ function renderPartyMusicItem(msg){
         <button id="musicReplayBtn" class="btn btn-ghost" onclick="requestMusicReplay()">🔁 Nochmal hören (${msg.maxReplays} übrig, -1 Punkt/Feld)</button>
       </div>
       <div class="picker-form" style="flex-direction:column; gap:10px; margin-top:14px;">
-        <input type="text" id="musicArtistInput" class="builder-search" style="margin-top:0;" placeholder="Künstler" autocomplete="off">
-        <input type="text" id="musicTitleInput" class="builder-search" style="margin-top:0;" placeholder="Titel" autocomplete="off">
+        ${msg.noArtist ? `` : `<input type="text" id="musicArtistInput" class="builder-search" style="margin-top:0;" placeholder="Künstler" autocomplete="off">`}
+        <input type="text" id="musicTitleInput" class="builder-search" style="margin-top:0;" placeholder="${msg.noArtist ? 'Serie' : 'Titel'}" autocomplete="off">
         <input type="text" id="musicYearInput" class="builder-search" style="margin-top:0;" placeholder="Jahr" autocomplete="off" inputmode="numeric" onkeydown="if(event.key==='Enter')submitPartyMusicGuess()">
         <button class="btn btn-primary" id="musicSubmitBtn" onclick="submitPartyMusicGuess()">ABGEBEN</button>
       </div>
@@ -4069,7 +4069,7 @@ function renderPartyMusicResolved(msg){
         ${msg.cover ? `<img src="${msg.cover}" alt="" style="width:64px; height:64px; border-radius:10px; object-fit:cover;">` : ''}
         <div style="text-align:left;">
           <div style="font-weight:800; font-size:17px;">${msg.title}</div>
-          <div style="color:var(--text-dim);">${msg.artist}${msg.year?' · '+msg.year:''}</div>
+          <div style="color:var(--text-dim);">${msg.noArtist ? (msg.year||'') : (msg.artist + (msg.year?' · '+msg.year:''))}</div>
         </div>
       </div>
       <div class="party-players" style="margin-top:16px;">
@@ -4077,7 +4077,7 @@ function renderPartyMusicResolved(msg){
           <div class="party-player-row">
             <span>${r.name}${r.submitted ? '' : ' (nicht abgegeben)'}</span>
             <span style="font-size:12px; color:var(--text-dim);">
-              ${r.points ? `👤${r.points.artist>0?'✓':'✕'} 🎵${r.points.title>0?'✓':'✕'} 📅${r.points.year>0?'✓':'✕'} · +${r.total}` : '+0'}
+              ${r.points ? `${msg.noArtist ? '' : '👤'+(r.points.artist>0?'✓':'✕')+' '} 🎵${r.points.title>0?'✓':'✕'} 📅${r.points.year>0?'✓':'✕'} · +${r.total}` : '+0'}
             </span>
           </div>
         `).join("")}
