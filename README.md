@@ -1483,6 +1483,25 @@ Namenseingabe korrekt und sendet den Konto-Namen, Multiplayer-Feld zeigt
 den Konto-Namen vorausgefüllt, Statistik zeigt Konto-Profil samt
 Arena-Werten.
 
+## 7ff. Musik raten: 2 kaputte Songs raus, neue Kategorie "Serien-Intros" (kleines Starter-Set)
+
+- **Entfernt** (gingen laut Rückmeldung generell nicht): Die Ärzte –
+  Westerland (hatte ich zuvor zweimal erfolglos versucht zu reparieren),
+  Böhse Onkelz – Mexico. 105 Songs verbleiben in `musik_kernliste`.
+- **Neue Kategorie "Serien-Intros raten"** (`serienintros_mix`): Auf
+  Wunsch, deckt Sitcom/Cartoon/Anime/TV-Show ab. **Bewusst nur ein kleines,
+  einzeln web-recherchiertes Starter-Set von 6 Einträgen** (Friends, The
+  Big Bang Theory, How I Met Your Mother, SpongeBob Schwammkopf, Naruto
+  Shippuden Opening 3, Wer wird Millionär) – nach Rückfrage lieber wenige,
+  echt verifizierte Einträge als viele geratene. Die ursprünglich gewünschten
+  8-10 je Unterkategorie (Sitcom/Cartoon/Anime/TV allgemein einzeln) sowie
+  "Instrumente raten" sind **noch nicht umgesetzt** – das hätte den Rahmen
+  dieser Antwort gesprengt (vergleichbar mit dem ursprünglichen
+  107-Songs-Aufbau). Sag gerne Bescheid, wenn ich das weiter ausbauen soll,
+  dann mache ich in einer der nächsten Antworten gezielt weiter.
+- Mit echtem Serverlauf bestätigt: neue Kategorie erscheint korrekt im
+  Rundenpool, Westerland ist weg.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
