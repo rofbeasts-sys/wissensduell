@@ -1838,17 +1838,20 @@ function tallyArenaPoints(msg){
 async function finishArenaMatch(){
   const earned = party.arenaMatchPoints || 0;
   renderApp(`<div class="panel"><div class="picker-title">ARENA</div><div class="picker-sub">Match wird ausgewertet …</div></div>`);
-  const result = await apiCall("/api/arena-finish-match", { token: account.token, pointsEarned: earned });
+  // Verbindung SOFORT schließen und party nullen, VOR dem await - sonst
+  // bleibt party.roomCode waehrend der API-Wartezeit gesetzt, und ein
+  // unerwartetes Server-Event/Close in diesem Fenster wuerde faelschlich
+  // den "Verbindung verloren"-Bildschirm zeigen (Bugfix).
   try{ party.ws && party.ws.close(); }catch(e){}
+  party = null;
+  const result = await apiCall("/api/arena-finish-match", { token: account.token, pointsEarned: earned });
   if(!result.ok){
     alert(result.error || "Auswertung fehlgeschlagen.");
-    party = null;
     renderArenaHome();
     return;
   }
   account.profile.arenaPoints = result.totalPoints;
   account.profile.arenaLeague = result.league.index;
-  party = null;
   renderApp(`
     <div class="panel">
       <div class="result-title">MATCH BEENDET</div>
@@ -2891,6 +2894,7 @@ function partyHandleMessage(msg){
       party.selectedRankItemId = null;
       if(party.soloMode && msg.kind === "knowledgeQuiz") party.soloQuizLives = 3;
       else party.soloQuizLives = undefined;
+      if(party.arenaMode) party.arenaPointsAtRoundStart = party.arenaMatchPoints || 0;
       renderPartyRoundIntro(msg);
       break;
     case "quizQuestion":
@@ -2993,8 +2997,35 @@ function partyHandleMessage(msg){
       renderPartyRoundEnd(msg);
       break;
     case "gameEnd":
+      recordSoloPartyCompletion();
       renderPartyGameEnd(msg);
       break;
+  }
+}
+// Solo-Party-Modi (SLF/Musik raten/Nenn's Blitz/Einordnen/Chronologie/
+// Mehr-oder-Weniger) hatten bisher GAR KEINE Statistik-Speicherung - weder
+// lokal noch fürs Konto (Bugfix: "man soll mit dem Profil spielen").
+// Zählt hier bewusst nur "Runde gespielt" (roundsPlayed) - die genaue
+// Sieg/Niederlage- und Korrektheits-Logik unterscheidet sich stark
+// zwischen den sechs sehr verschiedenen Rundentypen.
+function recordSoloPartyCompletion(){
+  if(!party || !party.soloMode || party.arenaMode) return; // Arena hat eigene Auswertung
+  if(account){
+    syncAccountStats({
+      score: account.profile.score, tier: account.profile.tier, klasse: account.profile.klasse,
+      consecutiveFails: account.profile.consecutiveFails,
+      roundsPlayed: (account.profile.roundsPlayed||0) + 1,
+      wins: account.profile.wins, losses: account.profile.losses,
+      correctAnswers: account.profile.correctAnswers, wrongAnswers: account.profile.wrongAnswers,
+      bestScore: account.profile.bestScore
+    });
+  } else if(profiles.length > 0){
+    // Ohne Konto: an das zuletzt aktive lokale Profil (nach Namen) anhängen,
+    // falls eines mit passendem Namen existiert - sonst nichts (kein
+    // automatisches Anlegen eines neuen Profils nur wegen eines Solo-Party-
+    // Durchlaufs, das bleibt bewusst dem Brain Test vorbehalten).
+    const p = profiles.find(pr => pr.name === lastSoloPartyName);
+    if(p){ p.roundsPlayed = (p.roundsPlayed||0) + 1; saveProfiles(); }
   }
 }
 
@@ -3459,7 +3490,7 @@ function renderPartyQuizReveal(msg){
         ${msg.results.map(r => `
           <div class="resolve-row">
             <span>${r.name}</span>
-            <span class="mark ${r.correct?'ok':'bad'}">${r.correct?'✓ +100':'✕ -150'}</span>
+            <span class="mark ${r.correct?'ok':'bad'}">${party.arenaMode ? (r.correct?'✓ +1':'✕') : (r.correct?'✓ +100':'✕ -150')}</span>
           </div>
         `).join("")}
       </div>
@@ -4443,6 +4474,28 @@ function renderNennsBlitzFinal(msg){
 
 /* ---------- Rundenauswertung & Spielende ---------- */
 function renderPartyRoundEnd(msg){
+  if(party.arenaMode){
+    const gained = (party.arenaMatchPoints||0) - (party.arenaPointsAtRoundStart||0);
+    renderApp(`
+      <div class="panel">
+        <div class="result-title">${t('round_of')} ${msg.roundNumber} ${t('round_of_mid')} ${msg.totalRounds} ${t('round_over')}</div>
+        <div class="result-grid" style="margin-top:14px;">
+          <div class="result-item ${gained>=0?'pos':''}">
+            <div class="n">+${gained}</div>
+            <div class="l">Punkte diese Runde</div>
+          </div>
+          <div class="result-item">
+            <div class="n">${party.arenaMatchPoints||0}</div>
+            <div class="l">Punkte im Match</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="partySend({action:'continue'})">
+          ${msg.isLastRound ? t('final_eval') : t('next_round')}
+        </button>
+      </div>
+    `);
+    return;
+  }
   if(party.soloMode){
     const mine = msg.teams[0];
     const won = msg.winnerTeamIds.includes(mine.id);

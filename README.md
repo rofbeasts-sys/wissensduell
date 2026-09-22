@@ -1623,6 +1623,47 @@ Einordnen-Kategorien zufällig 10 davon pro Runde.
 Mit echtem Serverlauf bestätigt: Kategorie erscheint korrekt im
 Rundenpool.
 
+## 7nn. Drei Bugfixes: Verbindungsfehler beim Verlassen, fehlende Statistik-Speicherung, Arena-Punkte-Anzeige
+
+**1. Verbindungsfehler bei `finishArenaMatch()`**: Die Verbindung wurde
+erst NACH dem `await` des Auswertungs-API-Aufrufs geschlossen und
+`party` erst danach genullt – in diesem Zeitfenster konnte ein
+unerwartetes Server-Event fälschlich den "Verbindung verloren"-Bildschirm
+auslösen. Jetzt wird die Verbindung SOFORT geschlossen und `party`
+genullt, noch bevor der API-Aufruf losgeht (gleiches sichere Muster wie
+beim Quiz-Game-Over). Die regulären "Raum verlassen"-Buttons selbst waren
+bereits sicher (mit einer echten asynchronen WebSocket-Simulation
+gegengeprüft).
+
+**2. Solo-Party-Modi (SLF/Musik raten/Nenn's Blitz/Einordnen/Chronologie/
+Mehr-oder-Weniger) speicherten GAR KEINE Statistik** – weder lokal noch
+fürs Konto, obwohl der Name korrekt angezeigt wurde ("man soll mit dem
+Profil spielen"). Neue Funktion `recordSoloPartyCompletion()`, die bei
+Spielende `roundsPlayed` sowohl fürs Konto (falls eingeloggt, per
+`syncAccountStats`) als auch fürs lokale Profil (falls eines mit
+passendem Namen existiert) hochzählt. Bewusst nur "Runde gespielt" als
+Metrik – Sieg/Niederlage/Korrektheit unterscheidet sich zu stark
+zwischen den sechs Rundentypen für eine einheitliche Logik in diesem
+Schritt.
+
+**3. Arena-Punkteanzeige zeigte komplett falsche, verwirrende Zahlen**
+(per Screenshots bestätigt: "+500 Punkte diese Runde" / "1 Punkte
+gesamt" nach 5 richtig beantworteten Quiz-Fragen). Ursache gefunden:
+Arena-Quiz-Runden liefen technisch als normale `knowledgeQuiz`-Runde,
+und die Runden-Ende-Anzeige zeigte deshalb `team.score` – das ist im
+Normalspiel aber gar kein Punktestand, sondern ein **Rundensieg-Zähler**
+(+1 pro gewonnener Runde), komplett unabhängig von der eigentlichen
+Arena-Logik. Neue, eigene Arena-Anzeige in `renderPartyRoundEnd()` zeigt
+jetzt korrekt `party.arenaMatchPoints` (echte 1-Punkt-pro-Frage-Zählung)
+sowohl als "Punkte diese Runde" als auch "Punkte im Match". Zusätzlich
+das irreführende "✓ +100 / ✕ -150" bei der Einzelfragen-Auflösung für
+Arena-Runden auf "✓ +1 / ✕" umgestellt.
+
+Mit echtem Server- und Client-Code bestätigt: Rundenende zeigt nach 5
+Quiz-Fragen einen plausiblen Wert (z.B. 3 von 5 richtig = 3 Punkte,
+nicht mehr 100er-Vielfache wie 500), roundsPlayed wird nach Solo-Party-
+Runden korrekt hochgezählt.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
