@@ -3687,6 +3687,223 @@
      "value": 2054
     }
    ]
+  },
+  "serien_erscheinungsjahr": {
+   "label": "Chronologie: Serien & Filme nach Erscheinungsjahr (Sitcom/Cartoon/Anime)",
+   "unit": "Erscheinungsjahr",
+   "order": "asc",
+   "items": [
+    {
+     "id": "serienchrono_friends_illbethere",
+     "name": "📺 Friends",
+     "value": 1994
+    },
+    {
+     "id": "serienchrono_bigbangtheory_theme",
+     "name": "📺 The Big Bang Theory",
+     "value": 2007
+    },
+    {
+     "id": "serienchrono_himym_heybeautiful",
+     "name": "📺 How I Met Your Mother",
+     "value": 2005
+    },
+    {
+     "id": "serienchrono_seinfeld_theme",
+     "name": "📺 Seinfeld",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_theoffice_theme",
+     "name": "📺 The Office (US)",
+     "value": 2005
+    },
+    {
+     "id": "serienchrono_twoandahalfmen_theme",
+     "name": "📺 Two and a Half Men",
+     "value": 2003
+    },
+    {
+     "id": "serienchrono_brooklyn99_theme",
+     "name": "📺 Brooklyn Nine-Nine",
+     "value": 2013
+    },
+    {
+     "id": "serienchrono_modernfamily_theme",
+     "name": "📺 Modern Family",
+     "value": 2009
+    },
+    {
+     "id": "serienchrono_scrubs_theme",
+     "name": "📺 Scrubs",
+     "value": 2001
+    },
+    {
+     "id": "serienchrono_cheers_theme",
+     "name": "📺 Cheers",
+     "value": 1982
+    },
+    {
+     "id": "serienchrono_spongebob_theme",
+     "name": "🎨 SpongeBob Schwammkopf",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_simpsons_theme",
+     "name": "🎨 Die Simpsons",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_phineasferb_theme",
+     "name": "🎨 Phineas und Ferb",
+     "value": 2007
+    },
+    {
+     "id": "serienchrono_naruto_bluebird",
+     "name": "🎌 Naruto Shippuden",
+     "value": 2008
+    },
+    {
+     "id": "serienchrono_onepiece_weare",
+     "name": "🎌 One Piece",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_dbz_rockthedragon",
+     "name": "🎌 Dragon Ball Z",
+     "value": 1996
+    },
+    {
+     "id": "serienchrono_wwm_intro",
+     "name": "📺 Wer wird Millionär?",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_naruto_harukakanata",
+     "name": "🎌 Naruto",
+     "value": 2003
+    },
+    {
+     "id": "serienchrono_detectiveconan_theme",
+     "name": "🎌 Detektiv Conan",
+     "value": 1996
+    },
+    {
+     "id": "serienchrono_pokemon_theme",
+     "name": "🎌 Pokémon",
+     "value": 1997
+    },
+    {
+     "id": "serienchrono_digimon_butterfly",
+     "name": "🎌 Digimon Adventure",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_bleach_asterisk",
+     "name": "🎌 Bleach",
+     "value": 2004
+    },
+    {
+     "id": "serienchrono_aot_gurennoyumiya",
+     "name": "🎌 Attack on Titan",
+     "value": 2013
+    },
+    {
+     "id": "serienchrono_jjk_kaikaikitan",
+     "name": "🎌 Jujutsu Kaisen",
+     "value": 2020
+    },
+    {
+     "id": "serienchrono_sao_crossingfield",
+     "name": "🎌 Sword Art Online",
+     "value": 2012
+    },
+    {
+     "id": "serienchrono_ducktales_theme",
+     "name": "🎨 DuckTales",
+     "value": 1987
+    },
+    {
+     "id": "serienchrono_gooftroop_theme",
+     "name": "🎨 Goofy und Max (Goof Troop)",
+     "value": 1992
+    },
+    {
+     "id": "serienchrono_mickeymouseclubhouse_theme",
+     "name": "🎨 Micky Maus Wunderhaus",
+     "value": 2006
+    },
+    {
+     "id": "serienchrono_chipndale_theme",
+     "name": "🎨 Chip und Chap: Die Ritter des Rechts",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_darkwingduck_theme",
+     "name": "🎨 Darkwing Duck",
+     "value": 1991
+    },
+    {
+     "id": "serienchrono_liloandstitch_theme",
+     "name": "🎨 Lilo & Stitch",
+     "value": 2002
+    },
+    {
+     "id": "serienchrono_jackiechanadventures_theme",
+     "name": "🎨 Jackie Chan Adventures",
+     "value": 2000
+    },
+    {
+     "id": "serienchrono_sailormoon_moonlightdensetsu",
+     "name": "🎌 Sailor Moon",
+     "value": 1992
+    },
+    {
+     "id": "serienchrono_ranma_dontmakemewild",
+     "name": "🎌 Ranma ½",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_fullhouse_theme",
+     "name": "📺 Full House",
+     "value": 1987
+    },
+    {
+     "id": "serienchrono_freshprince_theme",
+     "name": "📺 Fresh Prince of Bel-Air",
+     "value": 1990
+    },
+    {
+     "id": "serienchrono_parksandrec_theme",
+     "name": "📺 Parks and Recreation",
+     "value": 2009
+    },
+    {
+     "id": "serienchrono_mha_theday",
+     "name": "🎌 My Hero Academia",
+     "value": 2016
+    },
+    {
+     "id": "serienchrono_demonslayer_gurenge",
+     "name": "🎌 Demon Slayer",
+     "value": 2019
+    },
+    {
+     "id": "serienchrono_deathnote_theworld",
+     "name": "🎌 Death Note",
+     "value": 2006
+    },
+    {
+     "id": "serienchrono_xmen_animatedseries_theme",
+     "name": "🎨 X-Men: The Animated Series",
+     "value": 1992
+    },
+    {
+     "id": "serienchrono_spiderman_animatedseries_theme",
+     "name": "🎨 Spider-Man: The Animated Series",
+     "value": 1994
+    }
+   ]
   }
  },
  "guessMusic": {
@@ -4851,16 +5068,17 @@
    ]
   },
   "serienintros_mix": {
-   "label": "Serien-Intros raten (Sitcom/Cartoon/Anime/TV) – Starter-Set",
+   "label": "Serien-Intros raten: Gemischt",
+   "noArtist": true,
    "items": [
     {
      "id": "friends_illbethere",
      "youtubeId": "S8PNXgLhkT0",
      "startSeconds": 0,
      "clipSeconds": 10,
-     "title": "I'll Be There For You (Friends-Intro)",
-     "artist": "The Rembrandts",
-     "year": 1995,
+     "title": "Friends",
+     "artist": "",
+     "year": 1994,
      "genre": "Sitcom",
      "cover": null
     },
@@ -4869,8 +5087,8 @@
      "youtubeId": "20i5eqwK178",
      "startSeconds": 0,
      "clipSeconds": 10,
-     "title": "Theme (The Big Bang Theory)",
-     "artist": "Barenaked Ladies",
+     "title": "The Big Bang Theory",
+     "artist": "",
      "year": 2007,
      "genre": "Sitcom",
      "cover": null
@@ -4880,9 +5098,86 @@
      "youtubeId": "xRyqIbwYaQo",
      "startSeconds": 0,
      "clipSeconds": 10,
-     "title": "Hey Beautiful (How I Met Your Mother-Intro)",
-     "artist": "The Solids",
+     "title": "How I Met Your Mother",
+     "artist": "",
      "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "seinfeld_theme",
+     "youtubeId": "RWak0i_iqnM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Seinfeld",
+     "artist": "",
+     "year": 1989,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "theoffice_theme",
+     "youtubeId": "tFXjflvbBJo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "The Office (US)",
+     "artist": "",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "twoandahalfmen_theme",
+     "youtubeId": "KxNrJljt_WI",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Two and a Half Men",
+     "artist": "",
+     "year": 2003,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "brooklyn99_theme",
+     "youtubeId": "ourfSzoC7pA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Brooklyn Nine-Nine",
+     "artist": "",
+     "year": 2013,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "modernfamily_theme",
+     "youtubeId": "_0eWsQSG1cM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Modern Family",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "scrubs_theme",
+     "youtubeId": "c9JsIvG-daY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Scrubs",
+     "artist": "",
+     "year": 2001,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "cheers_theme",
+     "youtubeId": "LgDv32UkEGU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Cheers",
+     "artist": "",
+     "year": 1982,
      "genre": "Sitcom",
      "cover": null
     },
@@ -4891,9 +5186,31 @@
      "youtubeId": "pFfUunOS1a4",
      "startSeconds": 0,
      "clipSeconds": 10,
-     "title": "SpongeBob Schwammkopf Titelmelodie",
-     "artist": "Painty the Pirate & Chor",
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
      "year": 1999,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_theme",
+     "youtubeId": "Fttst9dG6Ko",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "phineasferb_theme",
+     "youtubeId": "IQL3B4o5rLk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Phineas und Ferb",
+     "artist": "",
+     "year": 2007,
      "genre": "Cartoon",
      "cover": null
     },
@@ -4902,9 +5219,31 @@
      "youtubeId": "aJRu5ltxXjc",
      "startSeconds": 0,
      "clipSeconds": 10,
-     "title": "Blue Bird (Naruto Shippuden Opening 3)",
-     "artist": "Ikimono-gakari",
+     "title": "Naruto Shippuden",
+     "artist": "",
      "year": 2008,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_weare",
+     "youtubeId": "0OdExTY2D8M",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "dbz_rockthedragon",
+     "youtubeId": "BelpF2B44Zo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Dragon Ball Z",
+     "artist": "",
+     "year": 1996,
      "genre": "Anime",
      "cover": null
     },
@@ -4913,8 +5252,857 @@
      "youtubeId": "jN-3bzAzPHU",
      "startSeconds": 0,
      "clipSeconds": 10,
-     "title": "Erkennungsmelodie (Wer wird Millionär?)",
-     "artist": "TV-Show",
+     "title": "Wer wird Millionär?",
+     "artist": "",
+     "year": 1999,
+     "genre": "TV-Show",
+     "cover": null
+    },
+    {
+     "id": "naruto_harukakanata",
+     "youtubeId": "RiQrbSuLrsU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto",
+     "artist": "",
+     "year": 2003,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "naruto_diver",
+     "youtubeId": "P1yJ51DH-18",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto Shippuden",
+     "artist": "",
+     "year": 2010,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_believe",
+     "youtubeId": "bhrgZDJygqY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 2000,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "spongebob_fun",
+     "youtubeId": "64fetbSh89s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
+     "year": 2001,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_bartman",
+     "youtubeId": "B-W6punNMjU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1990,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "detectiveconan_theme",
+     "youtubeId": "7EYcOntuD7s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Detektiv Conan",
+     "artist": "",
+     "year": 1996,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "pokemon_theme",
+     "youtubeId": "u2zRgqms2qo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Pokémon",
+     "artist": "",
+     "year": 1997,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "digimon_butterfly",
+     "youtubeId": "GItIzDCzsWM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Digimon Adventure",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "bleach_asterisk",
+     "youtubeId": "wW9TwZdWpjw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Bleach",
+     "artist": "",
+     "year": 2004,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "aot_gurennoyumiya",
+     "youtubeId": "2c1s_gXDiVk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Attack on Titan",
+     "artist": "",
+     "year": 2013,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "jjk_kaikaikitan",
+     "youtubeId": "GwaRztMaoY0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jujutsu Kaisen",
+     "artist": "",
+     "year": 2020,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "sao_crossingfield",
+     "youtubeId": "6Y1swEeFwYo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sword Art Online",
+     "artist": "",
+     "year": 2012,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "ducktales_theme",
+     "youtubeId": "CenzjSEkDDA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "DuckTales",
+     "artist": "",
+     "year": 1987,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "gooftroop_theme",
+     "youtubeId": "En8-0p39kPU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Goofy und Max (Goof Troop)",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "mickeymouseclubhouse_theme",
+     "youtubeId": "N6uDZw7-3z8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Micky Maus Wunderhaus",
+     "artist": "",
+     "year": 2006,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "chipndale_theme",
+     "youtubeId": "N0PJfIO64EU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Chip und Chap: Die Ritter des Rechts",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "darkwingduck_theme",
+     "youtubeId": "JXEDr0DN3m8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Darkwing Duck",
+     "artist": "",
+     "year": 1991,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "liloandstitch_theme",
+     "youtubeId": "Kiz5pS4piOU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Lilo & Stitch",
+     "artist": "",
+     "year": 2002,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "jackiechanadventures_theme",
+     "youtubeId": "rqo6rNsPQG8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jackie Chan Adventures",
+     "artist": "",
+     "year": 2000,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "sailormoon_moonlightdensetsu",
+     "youtubeId": "UMTWuNkIWHw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sailor Moon",
+     "artist": "",
+     "year": 1992,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "ranma_dontmakemewild",
+     "youtubeId": "F4SAzwQxeoM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Ranma ½",
+     "artist": "",
+     "year": 1989,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "fullhouse_theme",
+     "youtubeId": "Xo348kPPboE",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Full House",
+     "artist": "",
+     "year": 1987,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "freshprince_theme",
+     "youtubeId": "NpnQ2oIRgB0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Fresh Prince of Bel-Air",
+     "artist": "",
+     "year": 1990,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "parksandrec_theme",
+     "youtubeId": "QDIxi99xbOg",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Parks and Recreation",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "mha_theday",
+     "youtubeId": "L1FdEBTJXus",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "My Hero Academia",
+     "artist": "",
+     "year": 2016,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "demonslayer_gurenge",
+     "youtubeId": "b_QlWCXBDik",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Demon Slayer",
+     "artist": "",
+     "year": 2019,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "deathnote_theworld",
+     "youtubeId": "EtGhFQ88mjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Death Note",
+     "artist": "",
+     "year": 2006,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "xmen_animatedseries_theme",
+     "youtubeId": "tQjdm8BdJO4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "X-Men: The Animated Series",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "spiderman_animatedseries_theme",
+     "youtubeId": "dIqVNxmdtPk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Spider-Man: The Animated Series",
+     "artist": "",
+     "year": 1994,
+     "genre": "Cartoon",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_sitcom": {
+   "label": "Serien-Intros raten: Sitcom",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "friends_illbethere",
+     "youtubeId": "S8PNXgLhkT0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Friends",
+     "artist": "",
+     "year": 1994,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "bigbangtheory_theme",
+     "youtubeId": "20i5eqwK178",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "The Big Bang Theory",
+     "artist": "",
+     "year": 2007,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "himym_heybeautiful",
+     "youtubeId": "xRyqIbwYaQo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "How I Met Your Mother",
+     "artist": "",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "seinfeld_theme",
+     "youtubeId": "RWak0i_iqnM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Seinfeld",
+     "artist": "",
+     "year": 1989,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "theoffice_theme",
+     "youtubeId": "tFXjflvbBJo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "The Office (US)",
+     "artist": "",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "twoandahalfmen_theme",
+     "youtubeId": "KxNrJljt_WI",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Two and a Half Men",
+     "artist": "",
+     "year": 2003,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "brooklyn99_theme",
+     "youtubeId": "ourfSzoC7pA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Brooklyn Nine-Nine",
+     "artist": "",
+     "year": 2013,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "modernfamily_theme",
+     "youtubeId": "_0eWsQSG1cM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Modern Family",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "scrubs_theme",
+     "youtubeId": "c9JsIvG-daY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Scrubs",
+     "artist": "",
+     "year": 2001,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "cheers_theme",
+     "youtubeId": "LgDv32UkEGU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Cheers",
+     "artist": "",
+     "year": 1982,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "fullhouse_theme",
+     "youtubeId": "Xo348kPPboE",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Full House",
+     "artist": "",
+     "year": 1987,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "freshprince_theme",
+     "youtubeId": "NpnQ2oIRgB0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Fresh Prince of Bel-Air",
+     "artist": "",
+     "year": 1990,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "parksandrec_theme",
+     "youtubeId": "QDIxi99xbOg",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Parks and Recreation",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_cartoon": {
+   "label": "Serien-Intros raten: Cartoon",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "spongebob_theme",
+     "youtubeId": "pFfUunOS1a4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
+     "year": 1999,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_theme",
+     "youtubeId": "Fttst9dG6Ko",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "phineasferb_theme",
+     "youtubeId": "IQL3B4o5rLk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Phineas und Ferb",
+     "artist": "",
+     "year": 2007,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "spongebob_fun",
+     "youtubeId": "64fetbSh89s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
+     "year": 2001,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_bartman",
+     "youtubeId": "B-W6punNMjU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1990,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "ducktales_theme",
+     "youtubeId": "CenzjSEkDDA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "DuckTales",
+     "artist": "",
+     "year": 1987,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "gooftroop_theme",
+     "youtubeId": "En8-0p39kPU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Goofy und Max (Goof Troop)",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "mickeymouseclubhouse_theme",
+     "youtubeId": "N6uDZw7-3z8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Micky Maus Wunderhaus",
+     "artist": "",
+     "year": 2006,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "chipndale_theme",
+     "youtubeId": "N0PJfIO64EU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Chip und Chap: Die Ritter des Rechts",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "darkwingduck_theme",
+     "youtubeId": "JXEDr0DN3m8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Darkwing Duck",
+     "artist": "",
+     "year": 1991,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "liloandstitch_theme",
+     "youtubeId": "Kiz5pS4piOU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Lilo & Stitch",
+     "artist": "",
+     "year": 2002,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "jackiechanadventures_theme",
+     "youtubeId": "rqo6rNsPQG8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jackie Chan Adventures",
+     "artist": "",
+     "year": 2000,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "xmen_animatedseries_theme",
+     "youtubeId": "tQjdm8BdJO4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "X-Men: The Animated Series",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "spiderman_animatedseries_theme",
+     "youtubeId": "dIqVNxmdtPk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Spider-Man: The Animated Series",
+     "artist": "",
+     "year": 1994,
+     "genre": "Cartoon",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_anime": {
+   "label": "Serien-Intros raten: Anime",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "naruto_bluebird",
+     "youtubeId": "aJRu5ltxXjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto Shippuden",
+     "artist": "",
+     "year": 2008,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_weare",
+     "youtubeId": "0OdExTY2D8M",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "dbz_rockthedragon",
+     "youtubeId": "BelpF2B44Zo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Dragon Ball Z",
+     "artist": "",
+     "year": 1996,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "naruto_harukakanata",
+     "youtubeId": "RiQrbSuLrsU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto",
+     "artist": "",
+     "year": 2003,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "naruto_diver",
+     "youtubeId": "P1yJ51DH-18",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto Shippuden",
+     "artist": "",
+     "year": 2010,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_believe",
+     "youtubeId": "bhrgZDJygqY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 2000,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "detectiveconan_theme",
+     "youtubeId": "7EYcOntuD7s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Detektiv Conan",
+     "artist": "",
+     "year": 1996,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "pokemon_theme",
+     "youtubeId": "u2zRgqms2qo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Pokémon",
+     "artist": "",
+     "year": 1997,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "digimon_butterfly",
+     "youtubeId": "GItIzDCzsWM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Digimon Adventure",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "bleach_asterisk",
+     "youtubeId": "wW9TwZdWpjw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Bleach",
+     "artist": "",
+     "year": 2004,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "aot_gurennoyumiya",
+     "youtubeId": "2c1s_gXDiVk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Attack on Titan",
+     "artist": "",
+     "year": 2013,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "jjk_kaikaikitan",
+     "youtubeId": "GwaRztMaoY0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jujutsu Kaisen",
+     "artist": "",
+     "year": 2020,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "sao_crossingfield",
+     "youtubeId": "6Y1swEeFwYo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sword Art Online",
+     "artist": "",
+     "year": 2012,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "sailormoon_moonlightdensetsu",
+     "youtubeId": "UMTWuNkIWHw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sailor Moon",
+     "artist": "",
+     "year": 1992,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "ranma_dontmakemewild",
+     "youtubeId": "F4SAzwQxeoM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Ranma ½",
+     "artist": "",
+     "year": 1989,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "mha_theday",
+     "youtubeId": "L1FdEBTJXus",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "My Hero Academia",
+     "artist": "",
+     "year": 2016,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "demonslayer_gurenge",
+     "youtubeId": "b_QlWCXBDik",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Demon Slayer",
+     "artist": "",
+     "year": 2019,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "deathnote_theworld",
+     "youtubeId": "EtGhFQ88mjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Death Note",
+     "artist": "",
+     "year": 2006,
+     "genre": "Anime",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_tvshow": {
+   "label": "Serien-Intros raten: TV-Sendungen",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "wwm_intro",
+     "youtubeId": "jN-3bzAzPHU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Wer wird Millionär?",
+     "artist": "",
      "year": 1999,
      "genre": "TV-Show",
      "cover": null
