@@ -1746,6 +1746,94 @@ Mit einer Simulation geprüft: Tagline weg, Titel bleibt; Übersicht zeigt
 korrekt alle 10 Klassen mit dem richtigen Status pro Klasse; Weiter-Button
 führt korrekt zum bestehenden Testbildschirm.
 
+## 7rr. Multiplayer ohne Namenseingabe bei Login + kein Solo bei SLF/Nenn's Blitz
+
+- **Multiplayer-Einstieg bei Login**: Statt nur vorausgefüllt zu sein, ist
+  das Namensfeld jetzt bei Login komplett weg – stattdessen ein Hinweis
+  "Du spielst als **[Kontoname]** (angemeldetes Konto)". Kein anderer Name
+  mehr wählbar, direkt "Raum erstellen" oder "Beitreten". `partyGetName()`
+  nutzt bei Login automatisch den Kontonamen, unabhängig vom (jetzt nicht
+  mehr vorhandenen) Eingabefeld.
+- **Kein Solo mehr bei Stadt Land Fluss und Nenn's Blitz**: Beide Modi
+  bewerten offene Antworten normalerweise per "Anfechten" durch echte
+  Mitspieler – genau das Problem, das schon bei der Arena aufgefallen war
+  (siehe 7pp), gilt hier genauso: allein gespielt kann niemand eine
+  erfundene Antwort anzweifeln, jede Eingabe ginge automatisch durch. Bei
+  diesen beiden Modi wird jetzt nur noch "Multiplayer" angeboten, kein
+  Solo-Kachel mehr. Alle anderen Modi (Musik raten, Einordnen,
+  Chronologie, Mehr-oder-Weniger, Bild erraten) unverändert weiterhin mit
+  Solo-Option, da die algorithmisch/automatisch bewertet werden.
+
+Mit echtem Server- und Client-Code bestätigt: Multiplayer-Einstieg bei
+Login zeigt kein Eingabefeld mehr und verwendet korrekt den Kontonamen;
+Stadt Land Fluss und Nenn's Blitz zeigen keine Solo-Kachel mehr; andere
+Modi (Musik raten als Stichprobe) weiterhin unverändert mit Solo.
+
+## 7ss. Musik raten: erste Songs aus deiner Link-Liste eingebaut
+
+Aus der hochgeladenen Datei mit 65 YouTube-Links (Sido, Luciano,
+Apache207, Capital Bra & Samra, Bushido, Cro, u.a.) konnte ich die
+Interpreten-Beschriftungen leider nicht automatisch zuordnen – im
+Originaltext kleben sie ohne jedes Trennzeichen direkt an die
+`si=`-Tracking-Parameter der Links dran, das lässt sich nicht zuverlässig
+auseinanderklamüsern. Stattdessen hole ich zu jeder Video-ID einzeln den
+echten Titel von YouTube.
+
+**Bisher geschafft (16 von 65)**: alle 7 Sido-Songs, alle 5 Luciano-Songs,
+und 4 Apache-207-Songs (Roller, 200 km/h, KEIN PROBLEM, Wieso tust Du dir
+das an?). Kernliste jetzt bei 121 Songs.
+
+**Bei diesem Tempo braucht der Rest mehrere weitere Antworten** – 65
+Songs einzeln abzufragen sprengt den Rahmen einer einzigen Antwort. Noch
+offen: der Rest von Apache207, dann Capital Bra & Samra, Bushido, Cro.
+Ich mache in den nächsten Antworten weiter.
+
+## 7tt. Brain Test: Statusleiste (Klasse-Anzeige oben) entfernt
+
+Auf Wunsch: Die kleine "Klasse X"-Anzeige oben links, die bisher auf allen
+Brain-Test-Bildschirmen mitlief (Klassen-Übersicht, "LOS GEHT'S"-
+Bildschirm, Fragen-Bildschirm, Rundenergebnis), ist jetzt weg – seit es
+die komplette Klassen-1-bis-10-Übersicht gibt (siehe 7qq), ist die
+zusätzliche einzelne Anzeige redundant. In der Statistik bleibt die
+Klassen-Anzeige unverändert bestehen. Der lokale Pass-&-Play-Mehrspieler
+zeigt seine Statusleiste ebenfalls weiterhin (eigenes, unabhängiges
+Punktesystem, nicht Teil dieser Änderung).
+
+Mit einer Simulation geprüft: Statusleiste auf allen vier Brain-Test-
+Bildschirmen weg, Klassen-Übersicht selbst zeigt weiterhin alle 10
+Klassen, Statistik zeigt die Klasse weiterhin korrekt an.
+
+## 7uu. Neues Minigame: Tic Tac Toe gegen Bots (Gürtel-Rangliste)
+
+Das erste "richtige" Minigame neben den Wissensmodi – klassisches Tic Tac
+Toe gegen den Bot, komplett clientseitig (kein Server nötig für den
+Spielablauf selbst).
+
+- **Eigene Rangliste** von "Weißer Gürtel" bis "Meister" (7 Stufen:
+  Weiß/Gelb/Orange/Grün/Blau/Braun/Meister) – bewusst ein anderes
+  Namensthema als "Klasse X" beim Brain Test, damit beide
+  Fortschrittssysteme klar unterscheidbar bleiben.
+- **Bot-Schwierigkeit steigt mit dem Rang**: der Bot spielt mit
+  wachsender Wahrscheinlichkeit den mathematisch optimalen Zug
+  (Minimax-Suche) statt eines zufälligen. Beim "Meister"-Rang spielt der
+  Bot immer perfekt – mit 1000 simulierten Zufallsspielen gegengeprüft,
+  der Bot hat dabei kein einziges Mal verloren (nur gewonnen oder
+  unentschieden), genau wie es die Theorie für perfektes Tic-Tac-Toe-
+  Spiel vorhersagt.
+- **Aufstieg**: ein Sieg hebt eine Gürtelstufe (außer bei Meister, das
+  ist die Spitze). Unentschieden oder Niederlage → kein Abstieg, einfach
+  nochmal versuchen.
+- Eigene Übersichtsseite (Rangliste 1-7 mit aktuellem Rang hervorgehoben)
+  im selben Stil wie die Brain-Test-Klassenübersicht, für Wiedererkennung.
+- Fortschritt wird wie bei den anderen Modi gespeichert – fürs Konto
+  (neues `tttRank`-Feld, per `/api/save-stats` synchronisiert) oder fürs
+  lokale Profil.
+
+Mit einer Simulation geprüft: Hauptmenü-Kachel vorhanden, Rangübersicht
+zeigt alle 7 Stufen korrekt, kompletter Spielablauf (Zug → Sieg-Erkennung
+→ Aufstieg) funktioniert, und die Unbesiegbarkeit des Meister-Bots wurde
+über 1000 simulierte Partien bestätigt.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

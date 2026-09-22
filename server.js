@@ -2152,7 +2152,7 @@ function findUserByToken(token) {
 }
 function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
-    arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0 };
+    arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0 };
 }
 function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
@@ -2217,7 +2217,7 @@ async function logoutUser(token) {
 async function saveUserStats(token, stats) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
-  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore"];
+  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank"];
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
