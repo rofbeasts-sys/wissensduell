@@ -5064,6 +5064,182 @@
      "year": 2022,
      "genre": "Deutschrock",
      "cover": null
+    },
+    {
+     "id": "sido_issa",
+     "youtubeId": "NBZ30B8VYqo",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "ISSA",
+     "artist": "Sido",
+     "year": 2026,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_dulmichnicht",
+     "youtubeId": "AMA_SNE_qEc",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Du liebst mich nicht",
+     "artist": "Sido",
+     "year": 2023,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_rollenderstein",
+     "youtubeId": "jCqYm2Hb-ig",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Rollender Stein",
+     "artist": "Sido",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_mitdir",
+     "youtubeId": "9VAFU492-Dk",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Mit Dir",
+     "artist": "Sido",
+     "year": 2021,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_bozza_sterne",
+     "youtubeId": "howTT2QBUi8",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Sterne",
+     "artist": "Sido feat. Bozza",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_liebstdumich",
+     "youtubeId": "WKb0ohIhfG8",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Liebst Du Mich",
+     "artist": "Sido",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_medizin",
+     "youtubeId": "PHW1RLjm1-w",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Medizin",
+     "artist": "Sido feat. Jamule",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_bamba",
+     "youtubeId": "oglRrpIsVaE",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "BAMBA",
+     "artist": "Luciano feat. BIA & AITCH",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_beautifulgirl",
+     "youtubeId": "BWUR1e6fMtw",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Beautiful Girl",
+     "artist": "Luciano",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_meer",
+     "youtubeId": "rTQJiDqfBhM",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Meer",
+     "artist": "Luciano",
+     "year": 2018,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_ballin",
+     "youtubeId": "wMU49zQ_stM",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "BALLIN",
+     "artist": "Luciano",
+     "year": 2018,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_suv",
+     "youtubeId": "Tcm_GYyNWhI",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "SUV",
+     "artist": "Luciano",
+     "year": 2021,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_roller",
+     "youtubeId": "Fo3DAhiNKQo",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Roller",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_200kmh",
+     "youtubeId": "GoFfNGhdY0k",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "200 km/h",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_keinproblem",
+     "youtubeId": "6Wm4c4N1zm0",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "KEIN PROBLEM",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_wiesotust",
+     "youtubeId": "vmj2Ab1GknA",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Wieso tust Du dir das an?",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
     }
    ]
   },
