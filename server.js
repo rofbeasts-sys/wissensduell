@@ -1276,6 +1276,9 @@ function startGuessMusicRound(room, def) {
   room.runtime = {
     kind: "guessMusic",
     label: dsRaw.label,
+    // Bei Serien-Intros wird bewusst kein Interpret abgefragt/gewertet -
+    // nur Serie (Feld "title") und Erscheinungsjahr (siehe Anforderung).
+    noArtist: !!dsRaw.noArtist,
     items,
     index: -1,
     current: null,
@@ -1307,6 +1310,7 @@ function nextMusicItem(room) {
     index: rt.index,
     total: rt.items.length,
     label: rt.label,
+    noArtist: rt.noArtist,
     youtubeId: rt.current.youtubeId,
     startSeconds: rt.current.startSeconds || 0,
     clipSeconds,
@@ -1361,7 +1365,9 @@ function handleMusicSubmit(room, playerId, answers) {
     title: ((answers && answers.title) || "").toString().slice(0, 60),
     year: ((answers && answers.year) || "").toString().slice(0, 10)
   };
-  const artistCorrect = isGuessCorrect(clean.artist, { answer: rt.current.artist, alt: [] });
+  // Bei Serien-Intros (rt.noArtist) zählt der Interpret nicht mit - unabhängig
+  // davon, was (falls überhaupt) im Feld ankommt, gibt es dafür nie Punkte.
+  const artistCorrect = !rt.noArtist && isGuessCorrect(clean.artist, { answer: rt.current.artist, alt: [] });
   const titleCorrect = isGuessCorrect(clean.title, { answer: rt.current.title, alt: [] });
   const yearCorrect = clean.year.trim() !== "" && parseInt(clean.year, 10) === rt.current.year;
 
@@ -1418,6 +1424,7 @@ function resolveMusicItem(room) {
     year: rt.current.year || null,
     cover: rt.current.cover || null,
     genre: rt.current.genre || null,
+    noArtist: rt.noArtist,
     results
   });
 

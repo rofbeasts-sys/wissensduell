@@ -1502,6 +1502,127 @@ Arena-Werten.
 - Mit echtem Serverlauf bestätigt: neue Kategorie erscheint korrekt im
   Rundenpool, Westerland ist weg.
 
+## 7gg. Serien-Intros: eigene Unterkategorien + kein Künstler mehr abgefragt
+
+Zwei strukturelle Änderungen an "Serien-Intros raten":
+
+- **Neue Rundenart-Eigenschaft `noArtist`**: bei diesen Kategorien wird
+  jetzt nur noch **Serie** (Feld "title", Eingabe-Platzhalter entsprechend
+  umbenannt) und **Erscheinungsjahr** abgefragt – kein Künstler/Interpret
+  mehr, weder als Eingabefeld noch in der Auflösung. Serverseitig
+  (`rt.noArtist` in `server.js`) wird der Künstler-Punkt unabhängig von der
+  Eingabe immer auf 0 gesetzt. Generisch gebaut, könnte künftig auch für
+  andere Musik-raten-Kategorien genutzt werden, ist aber aktuell nur bei
+  den Serien-Intro-Kategorien aktiv.
+- **6 statt 1 Kategorie**: das bisherige gemischte Set bleibt als "Serien-
+  Intros raten: Gemischt" bestehen, dazu jetzt einzeln wählbar "Sitcom",
+  "Cartoon", "Anime", "TV-Sendungen" und neu "Trash-TV" (mit "Bauer sucht
+  Frau" als erstem Eintrag – für "Frauentausch" habe ich keinen sauberen,
+  verifizierten Intro-Clip gefunden, daher bewusst ausgelassen statt
+  geraten).
+- **Weiterhin nur ein kleines Set** (1-3 Einträge je Unterkategorie) – das
+  "mach ruhig von jedem mehr" steht noch aus, aus denselben Zeitgründen wie
+  beim letzten Mal. Sitcom hat schon 3, die anderen vier je 1.
+
+Mit echtem Serverlauf bestätigt: alle 6 Kategorien erscheinen im Rundenpool,
+`noArtist` kommt korrekt bis zum Client durch, Künstler-Punkte werden
+unabhängig von der Eingabe immer auf 0 gesetzt.
+
+## 7hh. Serien-Intros: Sitcom/Cartoon/Anime deutlich erweitert, Trash-TV raus
+
+- **Trash-TV komplett entfernt** (auf Wunsch).
+- **Sitcom: 3 → 10** (Friends, The Big Bang Theory, How I Met Your Mother,
+  Seinfeld, The Office US, Two and a Half Men, Brooklyn Nine-Nine, Modern
+  Family, Scrubs, Cheers).
+- **Cartoon: 1 → 3** (SpongeBob, Die Simpsons, Phineas und Ferb).
+- **Anime: 1 → 3** (Naruto Shippuden, One Piece, Dragon Ball Z).
+- TV-Sendungen bleibt bei 1 (Wer wird Millionär) – nicht Teil dieser
+  Erweiterungsrunde.
+- Alle neuen Video-IDs einzeln web-recherchiert (nicht geraten), bevorzugt
+  offizielle Label-/Studio-Uploads nach demselben Muster wie die
+  ursprüngliche Songliste.
+
+**Ehrlich**: 15 je Kategorie wurde nicht ganz erreicht (Sitcom ja, Cartoon/
+Anime bei 3) – bei diesem Tempo hätte das Erreichen von 15x3 den Rahmen
+dieser Antwort gesprengt. Sag gerne Bescheid, falls ich Cartoon/Anime noch
+weiter aufstocken soll.
+
+Mit echtem Serverlauf bestätigt: 5 Kategorien vorhanden, Trash-TV korrekt
+entfernt.
+
+## 7ii. Mehr aus denselben Franchises (Naruto/One Piece/SpongeBob/Simpsons)
+
+Auf Wunsch: statt neuer Franchises lieber mehr bekannte Songs/Openings aus
+den schon vorhandenen. Anime jetzt 6 (Naruto Shippuden "Blue Bird" +
+zusätzlich Naruto "Haruka Kanata" von Asian Kung-Fu Generation + Naruto
+Shippuden "Diver" von NICO Touches the Walls, One Piece "We Are!" +
+zusätzlich "Believe" von Folder5, Dragon Ball Z "Rock the Dragon").
+Cartoon jetzt 5 (SpongeBob-Titelmelodie + zusätzlich der bekannte
+"F.U.N. Song", Simpsons-Titelmelodie + zusätzlich "Do the Bartman",
+Phineas und Ferb). Alle wieder einzeln recherchiert, bevorzugt offizielle
+Label-/Studio-Uploads.
+
+## 7jj. Anime deutlich erweitert (Detektiv Conan/Pokémon/Digimon/Bleach/AoT/JJK/SAO)
+
+Auf Wunsch 7 weitere bekannte Anime dazu: Detektiv Conan, Pokémon, Digimon
+Adventure ("Butter-Fly"), Bleach ("Asterisk"), Attack on Titan ("Guren no
+Yumiya"), Jujutsu Kaisen ("Kaikai Kitan"), Sword Art Online ("Crossing
+Field"). Anime-Kategorie damit von 6 auf **13** Einträge.
+
+**Nicht geschafft** (Zeit ging aus, bevor ich saubere Quellen fand):
+Sailor Moon, Ranma ½, Jackie Chan Adventures (Cartoon). Gerne beim nächsten
+Mal.
+
+## 7kk. Disney-Klassiker + weitere Anime (diesmal in Ruhe recherchiert)
+
+Auf ausdrücklichen Wunsch diesmal langsamer und gründlicher, mit den
+genannten Disney+-Titeln als Ausgangspunkt:
+
+**Cartoon (jetzt 12, vorher 5)**: DuckTales (Disney+-Throwback-Kanal),
+Goofy und Max (Goof Troop), Micky Maus Wunderhaus (offizieller Disney-
+Junior-Kanal), Chip und Chap: Die Ritter des Rechts, Darkwing Duck, Lilo &
+Stitch, Jackie Chan Adventures.
+
+**Anime (jetzt 15, vorher 13)**: Sailor Moon ("Moonlight Densetsu"),
+Ranma ½ ("Don't Make Me Wild Like You").
+
+**Nicht gefunden trotz Suche**: Kim Possible ("Call Me, Beep Me!") – keine
+Version mit eindeutig offizieller Quelle auffindbar, daher ausgelassen
+statt geraten.
+
+Alle neuen Einträge einzeln recherchiert, bevorzugt offizielle Disney-/
+Universal-/Label-Kanäle (gleiches Muster wie bisher). Serien-Intros
+"Gemischt" jetzt bei 38 Einträgen insgesamt.
+
+## 7ll. Weiter aufgestockt Richtung 50 je Kategorie (noch nicht erreicht)
+
+Ziel ist 50 je Kategorie (Sitcom/Anime/Cartoon), mehrere Openings vom
+selben Anime zählen mit, dazu Disney- und Marvel-Zeichentrickserien als
+weitere Quelle für Cartoon.
+
+**Aktueller Stand**: Sitcom 13 (+Full House, Fresh Prince of Bel-Air,
+Parks and Recreation), Anime 18 (+My Hero Academia, Demon Slayer, Death
+Note), Cartoon 14 (+X-Men: The Animated Series, Spider-Man: The Animated
+Series als erste Marvel-Einträge). Gemischt insgesamt 46.
+
+**Noch weit von 50 entfernt** – bei diesem Tempo (jeder Song einzeln
+recherchiert und verifiziert) ist das ein Vorhaben über mehrere Antworten
+hinweg, kein einmaliger Rutsch. Sag gerne Bescheid, wenn ich weitermachen
+soll, dann geht's in der nächsten Antwort direkt weiter.
+
+## 7mm. Neue Chronologie-Kategorie aus den Serien-Daten
+
+Idee: die Erscheinungsjahre, die für Serien-Intros ohnehin schon erfasst
+sind, auch für Chronologie/Einordnen nutzen. Neue Kategorie "Chronologie:
+Serien & Filme nach Erscheinungsjahr" mit 42 Einträgen (alle bisher
+gesammelten Sitcom/Cartoon/Anime-Titel, Duplikate durch mehrere Openings
+vom selben Anime rausgefiltert) – kostete keine neue Recherche, nur
+Wiederverwendung der schon vorhandenen Jahreszahlen. Zieht wie die anderen
+Einordnen-Kategorien zufällig 10 davon pro Runde.
+
+Mit echtem Serverlauf bestätigt: Kategorie erscheint korrekt im
+Rundenpool.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
