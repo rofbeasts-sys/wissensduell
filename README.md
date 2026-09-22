@@ -1664,6 +1664,46 @@ Quiz-Fragen einen plausiblen Wert (z.B. 3 von 5 richtig = 3 Punkte,
 nicht mehr 100er-Vielfache wie 500), roundsPlayed wird nach Solo-Party-
 Runden korrekt hochgezählt.
 
+## 7oo. Dauerhafte Konto-Speicherung über Upstash Redis (löst Login-Verlust bei Render)
+
+Ursache des gemeldeten Bugs ("Login bleibt nicht gespeichert, besonders
+nach neuer Version hochladen"): Render löscht bei kostenlosen Web
+Services alle lokal geschriebenen Dateien (wie bisher `data/users.json`)
+bei jedem Neustart/Deployment – das ist eine Eigenschaft des Hosting-
+Anbieters, kein Fehler im bisherigen Code an sich, aber für dauerhafte
+Konten auf Dauer nicht brauchbar.
+
+**Lösung**: Ist `UPSTASH_REDIS_REST_URL` und `UPSTASH_REDIS_REST_TOKEN`
+als Umgebungsvariable gesetzt (bei Render unter Environment einzutragen,
+Werte kommen aus einer kostenlosen Upstash-Redis-Datenbank), speichert der
+Server die komplette Nutzerliste dort als ein JSON-Paket unter einem
+festen Schlüssel (`brainpulse_users`) – das übersteht Neustarts und
+Deployments. Sind die Variablen NICHT gesetzt (z.B. beim lokalen Testen
+mit `node server.js`), fällt der Server automatisch auf die bisherige
+Datei-Speicherung zurück – für lokales Ausprobieren weiterhin praktisch,
+für dauerhaftes Hosting aber nicht empfohlen.
+
+Technisch: `loadUsers()`/`saveUsers()` sind jetzt asynchron (echte
+Netzwerk-Aufrufe an Upstashs REST-API statt synchronem Datei-Zugriff) –
+das musste durch alle aufrufenden Funktionen (`registerUser`, `loginUser`,
+`logoutUser`, `saveUserStats`, die drei Arena-Funktionen) und den zentralen
+HTTP-Endpunkt-Dispatcher als `await`-Kette durchgezogen werden, damit die
+Antwort an den Client immer erst nach erfolgreichem Speichern rausgeht.
+Der Server wartet beim Start jetzt außerdem erst das Laden der
+Nutzerdaten ab, bevor er Verbindungen annimmt.
+
+Beim Start protokolliert der Server jetzt auch, welche Speicherart aktiv
+ist ("Upstash Redis" oder "lokale Datei"), damit man das im Log leicht
+nachprüfen kann.
+
+Mit einem lokalen Mock-Server, der Upstashs REST-API nachbildet, getestet
+(echte Zugangsdaten hatte ich nicht): erster Serverstart registriert
+einen Nutzer und schreibt korrekt per POST an den Mock, zweiter,
+komplett frischer Serverprozess (simuliert einen Render-Redeploy) lädt
+die Daten korrekt zurück – der Login-Token bleibt gültig. Der bisherige
+Datei-Fallback (ohne die beiden Variablen) wurde ebenfalls gegengetestet
+und funktioniert nach dem Umbau unverändert.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

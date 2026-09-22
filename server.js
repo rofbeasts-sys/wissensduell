@@ -2077,16 +2077,58 @@ function endGame(room) {
 /* ------------------------------------------------------------------------ */
 // Passwörter werden NIE im Klartext gespeichert, sondern mit scrypt (Node-
 // Bordmittel, sicher, kein externes Paket) + zufälligem Salt pro Nutzer
-// gehasht. Speicherung als einfache JSON-Datei – reicht für dieses Projekt,
-// siehe README für Hinweise zur Persistenz bei manchen Hosting-Anbietern.
+// gehasht.
+//
+// Speicherung: Falls die Umgebungsvariablen UPSTASH_REDIS_REST_URL und
+// UPSTASH_REDIS_REST_TOKEN gesetzt sind (z.B. bei Render als Environment
+// Variable hinterlegt), wird die komplette Nutzerliste dort als ein JSON-
+// Blob unter einem festen Schlüssel gespeichert - das übersteht Neustarts/
+// Deployments auch bei Hosting-Anbietern mit "ephemeral" (nicht dauerhaftem)
+// Dateisystem wie Render's kostenlosem Web-Service-Tier. Ohne diese beiden
+// Variablen (z.B. beim lokalen Testen) wird wie bisher auf eine einfache
+// JSON-Datei zurückgegriffen - das reicht für lokales Ausprobieren, aber
+// NICHT für dauerhaftes Hosting auf einer Plattform mit ephemeral disk.
 const USERS_FILE = path.join(__dirname, "data", "users.json");
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const USE_UPSTASH = !!(UPSTASH_URL && UPSTASH_TOKEN);
+const UPSTASH_USERS_KEY = "brainpulse_users";
 
 let users = [];
-function loadUsers() {
+
+async function loadUsers() {
+  if (USE_UPSTASH) {
+    try {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}`, {
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
+      });
+      const data = await res.json();
+      users = data.result ? JSON.parse(data.result) : [];
+      console.log(`Nutzerdaten aus Upstash geladen (${users.length} Konten).`);
+    } catch (e) {
+      console.error("Konnte Nutzerdaten nicht aus Upstash laden:", e.message);
+      users = [];
+    }
+    return;
+  }
   try { users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")); }
   catch (e) { users = []; }
 }
-function saveUsers() {
+
+async function saveUsers() {
+  if (USE_UPSTASH) {
+    try {
+      const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" },
+        body: JSON.stringify(users)
+      });
+      if (!res.ok) console.error("Upstash-Speichern fehlgeschlagen, Status:", res.status);
+    } catch (e) {
+      console.error("Konnte Nutzerdaten nicht in Upstash speichern:", e.message);
+    }
+    return;
+  }
   try {
     fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 1), "utf8");
@@ -2094,7 +2136,6 @@ function saveUsers() {
     console.error("Konnte Nutzerdaten nicht speichern:", e.message);
   }
 }
-loadUsers();
 
 function hashPassword(password, salt) {
   return crypto.scryptSync(password, salt, 64).toString("hex");
@@ -2115,7 +2156,7 @@ function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
 }
 
-function registerUser(username, password) {
+async function registerUser(username, password) {
   username = (username || "").trim();
   if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_äöüÄÖÜß]+$/.test(username)) {
     return { ok: false, error: "Benutzername muss 3-20 Zeichen haben (Buchstaben, Zahlen, _)." };
@@ -2137,11 +2178,11 @@ function registerUser(username, password) {
     createdAt: Date.now()
   };
   users.push(user);
-  saveUsers();
+  await saveUsers();
   return { ok: true, token, profile: publicProfile(user) };
 }
 
-function loginUser(username, password) {
+async function loginUser(username, password) {
   const user = findUserByName(username);
   const genericError = { ok: false, error: "Benutzername oder Passwort ist falsch." };
   if (!user) return genericError;
@@ -2152,7 +2193,7 @@ function loginUser(username, password) {
   const token = crypto.randomBytes(24).toString("hex");
   user.tokens = user.tokens || [];
   user.tokens.push({ token, createdAt: Date.now() });
-  saveUsers();
+  await saveUsers();
   return { ok: true, token, profile: publicProfile(user) };
 }
 
@@ -2162,16 +2203,16 @@ function sessionUser(token) {
   return { ok: true, profile: publicProfile(user) };
 }
 
-function logoutUser(token) {
+async function logoutUser(token) {
   const user = findUserByToken(token);
   if (user) {
     user.tokens = (user.tokens || []).filter(t => t.token !== token);
-    saveUsers();
+    await saveUsers();
   }
   return { ok: true };
 }
 
-function saveUserStats(token, stats) {
+async function saveUserStats(token, stats) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore"];
@@ -2180,7 +2221,7 @@ function saveUserStats(token, stats) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
     }
   });
-  saveUsers();
+  await saveUsers();
   return { ok: true, profile: publicProfile(user) };
 }
 
@@ -2226,11 +2267,11 @@ function arenaLeagueInfo(user) {
   return { index: idx, ...ARENA_LEAGUES[idx] };
 }
 
-function arenaStatus(token) {
+async function arenaStatus(token) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   refreshArenaHearts(user);
-  saveUsers();
+  await saveUsers();
   const league = arenaLeagueInfo(user);
   const nextLeague = ARENA_LEAGUES[league.index + 1] || null;
   return {
@@ -2247,7 +2288,7 @@ function arenaStatus(token) {
 // Verbraucht ein Herz für den Matchstart. Gibt die passende Liga (für die
 // Fragenauswahl im Client) gleich mit zurück, damit der Client nicht separat
 // nachfragen muss.
-function arenaStartMatch(token) {
+async function arenaStartMatch(token) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   refreshArenaHearts(user);
@@ -2255,7 +2296,7 @@ function arenaStartMatch(token) {
     return { ok: false, error: "Keine Herzen mehr übrig. Morgen gibt's wieder welche!" };
   }
   user.stats.arenaHearts -= 1;
-  saveUsers();
+  await saveUsers();
   const league = arenaLeagueInfo(user);
   return { ok: true, heartsLeft: user.stats.arenaHearts, league: { index: league.index, name: league.name, klasseMin: league.klasseMin, klasseMax: league.klasseMax } };
 }
@@ -2264,7 +2305,7 @@ function arenaStartMatch(token) {
 // korrekter Antwort/gelöster Aufgabe, vom Client mitgezählt) auf das
 // Lifetime-Konto, prüft ob die aktuelle Liga damit überschritten wird
 // (Aufstieg - niemals Abstieg, siehe Kommentar oben) und speichert.
-function arenaFinishMatch(token, pointsEarned) {
+async function arenaFinishMatch(token, pointsEarned) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   const gained = Math.max(0, Math.round(Number(pointsEarned) || 0));
@@ -2278,7 +2319,7 @@ function arenaFinishMatch(token, pointsEarned) {
     leaguePromoted = true;
     league = arenaLeagueInfo(user);
   }
-  saveUsers();
+  await saveUsers();
   return { ok: true, pointsEarned: gained, totalPoints: user.stats.arenaPoints, league: { index: league.index, name: league.name }, leaguePromoted };
 }
 
@@ -2312,18 +2353,18 @@ const server = http.createServer((req, res) => {
   if (req.method === "POST" && req.url.startsWith("/api/")) {
     let body = "";
     req.on("data", chunk => { body += chunk; if (body.length > 1e6) req.destroy(); });
-    req.on("end", () => {
+    req.on("end", async () => {
       let payload;
       try { payload = body ? JSON.parse(body) : {}; } catch (e) { payload = {}; }
       let result;
-      if (req.url === "/api/register") result = registerUser(payload.username, payload.password);
-      else if (req.url === "/api/login") result = loginUser(payload.username, payload.password);
+      if (req.url === "/api/register") result = await registerUser(payload.username, payload.password);
+      else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password);
       else if (req.url === "/api/session") result = sessionUser(payload.token);
-      else if (req.url === "/api/logout") result = logoutUser(payload.token);
-      else if (req.url === "/api/save-stats") result = saveUserStats(payload.token, payload.stats || {});
-      else if (req.url === "/api/arena-status") result = arenaStatus(payload.token);
-      else if (req.url === "/api/arena-start-match") result = arenaStartMatch(payload.token);
-      else if (req.url === "/api/arena-finish-match") result = arenaFinishMatch(payload.token, payload.pointsEarned);
+      else if (req.url === "/api/logout") result = await logoutUser(payload.token);
+      else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {});
+      else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token);
+      else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token);
+      else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned);
       else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
       else result = { ok: false, error: "Unbekannter Endpunkt." };
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -2642,22 +2683,25 @@ wss.on("connection", (ws) => {
 /* ------------------------------------------------------------------------ */
 /* Start                                                                     */
 /* ------------------------------------------------------------------------ */
-server.listen(PORT, () => {
-  const nets = os.networkInterfaces();
-  const addresses = [];
-  Object.values(nets).forEach(ifaces => (ifaces || []).forEach(iface => {
-    if (iface.family === "IPv4" && !iface.internal) addresses.push(iface.address);
-  }));
-  console.log("");
-  console.log("BRAIN PULSE PARTY läuft.");
-  console.log("Auf diesem Gerät öffnen:   http://localhost:" + PORT);
-  if (addresses.length) {
-    console.log("Für andere Geräte im selben WLAN:");
-    addresses.forEach(a => console.log("  http://" + a + ":" + PORT));
-  } else {
-    console.log("Keine WLAN-Adresse gefunden – stelle sicher, dass dieses Gerät im WLAN ist.");
-  }
-  console.log("(Läuft dieser Server bei einem Hosting-Anbieter, nutze stattdessen die von");
-  console.log(" dort angezeigte öffentliche Adresse, z.B. https://dein-app-name.<anbieter>.app)");
-  console.log("");
-});
+(async () => {
+  await loadUsers();
+  server.listen(PORT, () => {
+    const nets = os.networkInterfaces();
+    const addresses = [];
+    Object.values(nets).forEach(ifaces => (ifaces || []).forEach(iface => {
+      if (iface.family === "IPv4" && !iface.internal) addresses.push(iface.address);
+    }));
+    console.log("");
+    console.log("BRAIN PULSE PARTY läuft.");
+    console.log("Nutzerkonten-Speicherung: " + (USE_UPSTASH ? "Upstash Redis (dauerhaft, übersteht Neustarts/Deployments)" : "lokale Datei (data/users.json - bei manchen Hosting-Anbietern NICHT dauerhaft!)"));
+    console.log("Auf diesem Gerät öffnen:   http://localhost:" + PORT);
+    if (addresses.length) {
+      console.log("Für andere Geräte im selben WLAN:");
+      addresses.forEach(a => console.log("  http://" + a + ":" + PORT));
+    }
+    console.log("(Läuft dieser Server bei einem Hosting-Anbieter, nutze stattdessen die von");
+    console.log(" dort angezeigte öffentliche Adresse, z.B. https://dein-app-name.<anbieter>.app -");
+    console.log(" darüber sind dann auch Personen außerhalb des eigenen WLANs erreichbar.)");
+    console.log("");
+  });
+})();
