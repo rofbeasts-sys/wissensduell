@@ -1401,6 +1401,28 @@ function klassePillHtml(klasseIndex){
   const k = KLASSEN[Math.min(klasseIndex||0, KLASSEN.length-1)] || KLASSEN[0];
   return `<span class="rank-pill ${k.cls}"><span class="rank-dot"></span>${k.name}</span>`;
 }
+
+// Tic Tac Toe: eigene Gürtel-Rangliste (Anfänger bis Meister), bewusst
+// eigenes Namensthema statt "Klasse X" (wie beim Brain Test), damit beide
+// Fortschrittssysteme klar auseinandergehalten werden können. difficulty
+// ist die Wahrscheinlichkeit (0-1), dass der Bot den optimalen (Minimax-)
+// Zug spielt statt eines zufälligen - bei 1.0 (Meister) spielt der Bot
+// immer perfekt und ist bei optimalem Gegenspiel bestenfalls zu einem
+// Unentschieden zu bewegen, nie zu besiegen (mathematische Eigenschaft von
+// Tic Tac Toe bei perfektem Spiel).
+const TTT_RANKS = [
+  {name:"Weißer Gürtel",  cls:"rank-none",    difficulty:0.15},
+  {name:"Gelber Gürtel",  cls:"rank-listed",  difficulty:0.35},
+  {name:"Oranger Gürtel", cls:"rank-bronze",  difficulty:0.5},
+  {name:"Grüner Gürtel",  cls:"rank-silver",  difficulty:0.65},
+  {name:"Blauer Gürtel",  cls:"rank-gold",    difficulty:0.8},
+  {name:"Brauner Gürtel", cls:"rank-platin",  difficulty:0.92},
+  {name:"Meister",        cls:"rank-master",  difficulty:1.0}
+];
+function tttRankPillHtml(rankIndex){
+  const r = TTT_RANKS[Math.min(rankIndex||0, TTT_RANKS.length-1)] || TTT_RANKS[0];
+  return `<span class="rank-pill ${r.cls}"><span class="rank-dot"></span>${r.name}</span>`;
+}
 // Zieht die Testfragen für eine Klasse: aus dem festen 50er-Pool dieser
 // Klasse (KLASSE_QUESTIONS) werden zufällig genau so viele gezogen, wie
 // KLASSE_TESTS für diese Klasse vorsieht (nie mehr als der Pool hat).
@@ -1491,7 +1513,7 @@ function saveProfiles(){
 function createProfile(name){
   const p = { id:"p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     name: name.trim(), score:0, tier:0, klasse:0, consecutiveFails:0, roundsPlayed:0, wins:0, losses:0,
-    correctAnswers:0, wrongAnswers:0, bestScore:0 };
+    correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0 };
   profiles.push(p);
   saveProfiles();
   return p;
@@ -1589,7 +1611,7 @@ function accountAsProfile(){
   return {
     id: "account:" + p.username, name: p.username,
     score: p.score, tier: p.tier || 0, klasse: p.klasse || 0, consecutiveFails: p.consecutiveFails || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
-    correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore,
+    correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore, tttRank: p.tttRank || 0,
     isAccount: true
   };
 }
@@ -1600,7 +1622,7 @@ async function syncAccountStats(profile){
     token: account.token,
     stats: {
       score: profile.score, tier: profile.tier, klasse: profile.klasse, consecutiveFails: profile.consecutiveFails, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
-      correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore
+      correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank
     }
   });
   if(result.ok) account.profile = result.profile;
@@ -1663,16 +1685,24 @@ function dedicatedBackFn(gm){ return DEDICATED_MODES[gm] ? "startDedicatedMenu('
 function startDedicatedMenu(gm){
   const m = DEDICATED_MODES[gm];
   if(!m) { renderMainMenu(); return; }
+  // Stadt Land Fluss und Nenn's Blitz bewerten offene Antworten normalerweise
+  // per "Anfechten" durch echte Mitspieler (siehe auch der Arena-Bugfix an
+  // anderer Stelle) - allein gespielt gibt es niemanden, der eine erfundene
+  // Antwort anzweifeln könnte, jede Eingabe würde also automatisch als
+  // richtig durchgehen. Deshalb bei diesen beiden Modi kein Solo-Angebot.
+  const soloAllowed = gm !== 'slf' && gm !== 'blitz';
   renderApp(`
     <div class="panel">
       <div class="picker-title">${m.screenTitle}</div>
-      <div class="picker-sub">Wähle, wie du spielen möchtest.</div>
-      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
+      <div class="picker-sub">${soloAllowed ? 'Wähle, wie du spielen möchtest.' : 'Dieser Modus lebt vom gegenseitigen Anfechten – nur mit anderen zusammen spielbar.'}</div>
+      <div class="menu-grid" style="grid-template-columns:${soloAllowed ? '1fr 1fr' : '1fr'}; margin-top:6px;">
+        ${soloAllowed ? `
         <div class="mode-card" onclick="startSoloPartyFlow('${gm}')">
           <div class="icon">🎧</div>
           <h3>Solo</h3>
           <p>Allein gegen die Uhr, in deinem Tempo.</p>
         </div>
+        ` : ``}
         <div class="mode-card" onclick="startPartyFlow('${gm}')">
           <div class="icon">🌐</div>
           <h3>Multiplayer</h3>
@@ -1982,6 +2012,11 @@ function renderMainMenu(){
         <h3>Arena</h3>
         <p>${currentLang!=='de' ? 'Nur auf Deutsch verfügbar' : 'Bestenliste – Match spielen, Punkte sammeln, aufsteigen'}</p>
       </div>
+      <div class="mode-card" onclick="startTicTacToeFlow()">
+        <div class="icon">⭕</div>
+        <h3>Tic Tac Toe</h3>
+        <p>Gegen den Bot – vom weißen bis zum Meister-Gürtel</p>
+      </div>
       ${Object.entries(DEDICATED_MODES).map(([gm, m]) => `
         <div class="mode-card ${m.germanOnly && currentLang!=='de' ? 'locked' : ''}" onclick="${m.germanOnly && currentLang!=='de' ? '' : `startDedicatedMenu('${gm}')`}" style="${m.germanOnly && currentLang!=='de' ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">${m.icon}</div>
@@ -2110,6 +2145,161 @@ function startSoloMenu(){
   renderMainMenu();
 }
 
+/* ============================================================================
+   TIC TAC TOE (gegen Bots, Gürtel-Rangliste Weiß bis Meister)
+   Komplett clientseitig (kein Server nötig) - der Bot spielt abhängig von
+   der Rangstufe mit steigender Wahrscheinlichkeit den optimalen (Minimax-)
+   Zug statt eines zufälligen. Sieg = eine Gürtelstufe aufsteigen (außer bei
+   Meister, das ist die höchste Stufe). Unentschieden/Niederlage = Rang
+   bleibt gleich, kein Abstieg.
+   ============================================================================ */
+let ttt = null; // { profile, board:[9], playerTurn, rankIndex, gameOver }
+
+function startTicTacToeFlow(){
+  if(account){ renderTttRankOverview(accountAsProfile()); return; }
+  if(profiles.length > 0){
+    const lastId = localStorage.getItem(LAST_PROFILE_KEY);
+    const profile = profiles.find(p => p.id === lastId) || profiles[0];
+    renderTttRankOverview(profile);
+    return;
+  }
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], renderTttRankOverview, "renderMainMenu");
+}
+
+let tttOverviewProfile = null;
+function renderTttRankOverview(profile){
+  if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
+  tttOverviewProfile = profile;
+  const currentIdx = Math.min(profile.tttRank || 0, TTT_RANKS.length - 1);
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE</div>
+      <div class="picker-sub">${profile.name} – gegen den Bot, vom weißen bis zum Meister-Gürtel.</div>
+      <div class="klassen-list" style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+        ${TTT_RANKS.map((r, i) => {
+          const isDone = i < currentIdx;
+          const isCurrent = i === currentIdx;
+          const statusLabel = isDone ? '✓ Geschafft' : (isCurrent ? '▶ Aktuell' : 'Noch nicht erreicht');
+          const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
+          return `
+          <div class="leaderboard-row" style="${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
+            <span class="rank-pill ${r.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${r.name}</span>
+            <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}</span>
+          </div>
+        `;}).join("")}
+      </div>
+      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startTttGame(tttOverviewProfile)">SPIELEN</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
+    </div>
+  `);
+}
+
+function startTttGame(profile){
+  ttt = { profile, board: Array(9).fill(null), playerTurn: true, rankIndex: Math.min(profile.tttRank||0, TTT_RANKS.length-1), gameOver: false, resultText: "" };
+  renderTttGame();
+}
+
+const TTT_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function tttCheckWinner(board){
+  for(const [a,b,c] of TTT_LINES){
+    if(board[a] && board[a]===board[b] && board[a]===board[c]) return board[a];
+  }
+  if(board.every(c => c)) return "draw";
+  return null;
+}
+function tttAvailableMoves(board){
+  const moves = [];
+  board.forEach((c,i) => { if(!c) moves.push(i); });
+  return moves;
+}
+// Minimax: liefert den bestmöglichen Zug fürs Symbol "player" (perfektes
+// Spiel). Bei einem 3x3-Feld ist die volle Suche trivial schnell.
+function tttMinimax(board, symbol){
+  const other = symbol === "O" ? "X" : "O";
+  const winner = tttCheckWinner(board);
+  if(winner === "O") return {score:10};
+  if(winner === "X") return {score:-10};
+  if(winner === "draw") return {score:0};
+  const moves = tttAvailableMoves(board);
+  let best = null;
+  for(const m of moves){
+    const next = board.slice();
+    next[m] = symbol;
+    const result = tttMinimax(next, other);
+    const score = symbol === "O" ? result.score : result.score;
+    if(best === null || (symbol==="O" ? score > best.score : score < best.score)){
+      best = {score, move:m};
+    }
+  }
+  return best;
+}
+function tttPickBotMove(board, difficulty){
+  const moves = tttAvailableMoves(board);
+  if(Math.random() < difficulty){
+    return tttMinimax(board, "O").move;
+  }
+  return moves[Math.floor(Math.random()*moves.length)];
+}
+
+function renderTttGame(){
+  const rank = TTT_RANKS[ttt.rankIndex];
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE</div>
+      <div class="picker-sub">Gegen: ${tttRankPillHtml(ttt.rankIndex)}</div>
+      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+        ${ttt.board.map((c,i) => `
+          <div onclick="tttPlayerMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && ttt.playerTurn && !ttt.gameOver)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+        `).join("")}
+      </div>
+      ${ttt.gameOver ? `
+        <div class="explanation" style="margin-top:10px; text-align:center;">${ttt.resultText}</div>
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="startTttGame(ttt.profile)">NOCHMAL</button>
+      ` : `
+        <div class="picker-sub" style="text-align:center; margin-top:8px;">${ttt.playerTurn ? 'Du bist dran (X)' : 'Bot ist dran (O) …'}</div>
+      `}
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderTttRankOverview(ttt.profile)">${t('btn_back')}</button>
+    </div>
+  `);
+}
+
+function tttPlayerMove(i){
+  if(!ttt || ttt.gameOver || ttt.board[i] || !ttt.playerTurn) return;
+  ttt.board[i] = "X";
+  const winner = tttCheckWinner(ttt.board);
+  if(winner){ tttFinishGame(winner); return; }
+  ttt.playerTurn = false;
+  renderTttGame();
+  setTimeout(() => {
+    const move = tttPickBotMove(ttt.board, TTT_RANKS[ttt.rankIndex].difficulty);
+    ttt.board[move] = "O";
+    const w2 = tttCheckWinner(ttt.board);
+    if(w2){ tttFinishGame(w2); return; }
+    ttt.playerTurn = true;
+    renderTttGame();
+  }, 500);
+}
+
+function tttFinishGame(winner){
+  ttt.gameOver = true;
+  const profile = ttt.profile;
+  if(winner === "X"){
+    profile.wins = (profile.wins||0) + 1;
+    const wasTop = ttt.rankIndex >= TTT_RANKS.length - 1;
+    if(!wasTop){ profile.tttRank = ttt.rankIndex + 1; ttt.resultText = `🎉 Gewonnen! Aufstieg zu ${TTT_RANKS[ttt.rankIndex+1].name}!`; }
+    else { ttt.resultText = `🎉 Gewonnen gegen den Meister-Bot!`; }
+  } else if(winner === "draw"){
+    profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
+    ttt.resultText = ttt.rankIndex >= TTT_RANKS.length-1 ? "Unentschieden – gegen den Meister-Bot ist das schon stark! 👏" : "Unentschieden – kein Auf- oder Abstieg.";
+  } else {
+    profile.losses = (profile.losses||0) + 1;
+    ttt.resultText = "Verloren – kein Abstieg, einfach nochmal versuchen!";
+  }
+  if(profile.isAccount) syncAccountStats(profile);
+  else saveProfiles();
+  renderTttGame();
+}
+
 const LAST_PROFILE_KEY = "wq_last_profile_id";
 function startSoloFlow(){
   if(account){ renderKlassenOverview(accountAsProfile()); return; }
@@ -2134,7 +2324,6 @@ function renderKlassenOverview(profile){
   klassenOverviewProfile = profile;
   const currentIdx = Math.min(profile.klasse || 0, KLASSEN.length - 1);
   renderApp(`
-    ${statusbarHtml(profile)}
     <div class="panel">
       <div class="picker-title">BRAIN TEST</div>
       <div class="picker-sub">${profile.name} – alle Klassen im Überblick.</div>
@@ -2178,7 +2367,6 @@ function beginSolo(profile){
   };
 
   renderApp(`
-    ${statusbarHtml(profile)}
     <div class="panel pass-card">
       <div class="avatar-big" style="background:${avatarColor(profile.name)}">${initials(profile.name)}</div>
       <h2>${profile.name}</h2>
@@ -2194,7 +2382,6 @@ function renderSoloQuestion(){
   const letters = ["A","B","C","D"];
   solo.answered = false;
   renderApp(`
-    ${statusbarHtml(solo.profile)}
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">Frage ${solo.qIndex+1} von ${solo.questions.length}</div>
@@ -2322,7 +2509,6 @@ function endSoloRound(){
   const nextRank = KLASSEN[(solo.profile.klasse || 0) + 1];
 
   renderApp(`
-    ${statusbarHtml(solo.profile)}
     <div class="panel">
       <div class="result-title">RUNDE BEENDET</div>
       <div class="result-sub">${roundWon ? "Starke Leistung!" : "Nächstes Mal klappt's besser."}</div>
@@ -2619,7 +2805,10 @@ function startPartyFlow(gameMode){
       <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : (pendingCreateGameMode==='music' ? 'MUSIK RATEN – MULTIPLAYER' : (pendingCreateGameMode==='blitz' ? 'NENN\'S BLITZ – MULTIPLAYER' : t('party_entry_title')))}</div>
       <div class="picker-sub">${t('party_entry_sub')}</div>
       <div class="picker-form" style="margin-bottom:14px;">
-        <input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20" value="${account ? account.profile.username : ''}">
+        ${account
+          ? `<div class="explanation" style="text-align:left;">Du spielst als <b>${account.profile.username}</b> (angemeldetes Konto).</div>`
+          : `<input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20">`
+        }
       </div>
       <div id="partyEntryError" class="explanation hidden" style="border-color:var(--danger);"></div>
       <div class="actions-row" style="margin-bottom:18px;">
@@ -2638,6 +2827,7 @@ function startPartyFlow(gameMode){
 }
 
 function partyGetName(){
+  if(account) return account.profile.username;
   const el = document.getElementById("partyName");
   const name = (el && el.value || "").trim();
   return name || "Spieler";
