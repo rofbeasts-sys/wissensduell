@@ -982,63 +982,138 @@
    ]
   },
   "objekte_groesse": {
-   "label": "Einordnen: Größenvergleich (von Kakerlake bis Todesstern)",
+   "label": "Einordnen: Größenvergleich",
    "unit": "m (ca.)",
    "order": "desc",
    "items": [
     {
-     "id": "todesstern",
-     "name": "⭐ Todesstern (Star Wars)",
-     "value": 120000
+     "id": "sandkorn",
+     "name": "🏖️ Sandkorn",
+     "value": 0.0005
     },
     {
-     "id": "burj_khalifa2",
-     "name": "🏙️ Burj Khalifa",
-     "value": 828
+     "id": "floh",
+     "name": "🦟 Floh",
+     "value": 0.003
     },
     {
-     "id": "eiffelturm2",
-     "name": "🗼 Eiffelturm",
-     "value": 330
+     "id": "ameise",
+     "name": "🐜 Ameise",
+     "value": 0.005
     },
     {
-     "id": "godzilla",
-     "name": "🦎 Godzilla (Film-Version 2014)",
-     "value": 108
+     "id": "schneeflocke",
+     "name": "❄️ Schneeflocke",
+     "value": 0.005
     },
     {
-     "id": "fussballfeld",
-     "name": "⚽ Fußballfeld",
-     "value": 105
+     "id": "marienkaefer",
+     "name": "🐞 Marienkäfer",
+     "value": 0.007
     },
     {
-     "id": "blauwal2",
-     "name": "🐋 Blauwal",
-     "value": 30
+     "id": "reiskorn",
+     "name": "🍚 Reiskorn",
+     "value": 0.007
     },
     {
-     "id": "doppeldeckerbus",
-     "name": "🚌 Doppeldeckerbus",
-     "value": 11
+     "id": "stecknadel",
+     "name": "📌 Stecknadel",
+     "value": 0.03
     },
     {
-     "id": "biggbird",
-     "name": "🐤 Big Bird (Sesamstraße)",
-     "value": 2.4
+     "id": "buerorklammer",
+     "name": "📎 Büroklammer",
+     "value": 0.03
     },
     {
-     "id": "mensch",
-     "name": "🧍 Mensch (Durchschnittsgröße)",
-     "value": 1.7
+     "id": "kakerlake",
+     "name": "🪳 Kakerlake",
+     "value": 0.04
     },
     {
-     "id": "yoda",
-     "name": "👽 Yoda (Star Wars)",
-     "value": 0.66
+     "id": "streichholz",
+     "name": "🔥 Streichholz",
+     "value": 0.045
     },
     {
-     "id": "spongebob",
-     "name": "🧽 SpongeBob Schwammkopf",
+     "id": "euromuenze",
+     "name": "🪙 1-Euro-Münze",
+     "value": 0.023
+    },
+    {
+     "id": "wuerfel",
+     "name": "🎲 Spielwürfel",
+     "value": 0.016
+    },
+    {
+     "id": "biene",
+     "name": "🐝 Biene",
+     "value": 0.015
+    },
+    {
+     "id": "kolibri",
+     "name": "🐦 Kolibri",
+     "value": 0.1
+    },
+    {
+     "id": "maus_tier",
+     "name": "🐭 Maus",
+     "value": 0.08
+    },
+    {
+     "id": "golfball",
+     "name": "⛳ Golfball",
+     "value": 0.043
+    },
+    {
+     "id": "batterie_aa",
+     "name": "🔋 AA-Batterie",
+     "value": 0.05
+    },
+    {
+     "id": "tennisball",
+     "name": "🎾 Tennisball",
+     "value": 0.067
+    },
+    {
+     "id": "smartphone",
+     "name": "📱 Smartphone",
+     "value": 0.15
+    },
+    {
+     "id": "hamster",
+     "name": "🐹 Hamster",
+     "value": 0.12
+    },
+    {
+     "id": "ratte",
+     "name": "🐀 Ratte",
+     "value": 0.25
+    },
+    {
+     "id": "fussball_ball",
+     "name": "⚽ Fußball (Ball)",
+     "value": 0.22
+    },
+    {
+     "id": "buch",
+     "name": "📖 Buch (Taschenbuch)",
+     "value": 0.19
+    },
+    {
+     "id": "baguette",
+     "name": "🥖 Baguette",
+     "value": 0.65
+    },
+    {
+     "id": "katze",
+     "name": "🐈 Hauskatze",
+     "value": 0.46
+    },
+    {
+     "id": "hase",
+     "name": "🐇 Feldhase",
      "value": 0.6
     },
     {
@@ -1047,9 +1122,374 @@
      "value": 0.4
     },
     {
-     "id": "kakerlake",
-     "name": "🪳 Kakerlake",
-     "value": 0.05
+     "id": "spongebob",
+     "name": "🧽 SpongeBob Schwammkopf",
+     "value": 0.6
+    },
+    {
+     "id": "gitarre",
+     "name": "🎸 Akustikgitarre",
+     "value": 1.0
+    },
+    {
+     "id": "yoda",
+     "name": "👽 Yoda (Star Wars)",
+     "value": 0.66
+    },
+    {
+     "id": "regenschirm",
+     "name": "☂️ Regenschirm (aufgespannt)",
+     "value": 1.0
+    },
+    {
+     "id": "hund_gross",
+     "name": "🐕 Großer Hund (z.B. Deutsche Dogge)",
+     "value": 1.0
+    },
+    {
+     "id": "fahrrad",
+     "name": "🚲 Fahrrad",
+     "value": 1.1
+    },
+    {
+     "id": "mensch",
+     "name": "🧍 Mensch (Durchschnittsgröße)",
+     "value": 1.7
+    },
+    {
+     "id": "strauss_vogel",
+     "name": "🦩 Flamingo",
+     "value": 1.4
+    },
+    {
+     "id": "kuehlschrank",
+     "name": "🧊 Kühlschrank",
+     "value": 1.8
+    },
+    {
+     "id": "tuer",
+     "name": "🚪 Standard-Zimmertür",
+     "value": 2.0
+    },
+    {
+     "id": "basketballspieler",
+     "name": "🏀 Sehr großer Basketballspieler",
+     "value": 2.2
+    },
+    {
+     "id": "bigbird",
+     "name": "🐤 Big Bird (Sesamstraße)",
+     "value": 2.4
+    },
+    {
+     "id": "pferd",
+     "name": "🐴 Pferd",
+     "value": 2.4
+    },
+    {
+     "id": "kuh",
+     "name": "🐄 Kuh",
+     "value": 2.5
+    },
+    {
+     "id": "smart_auto",
+     "name": "🚗 Smart (Kleinstwagen)",
+     "value": 2.7
+    },
+    {
+     "id": "mittelklassewagen",
+     "name": "🚙 Mittelklasse-Auto",
+     "value": 4.5
+    },
+    {
+     "id": "krokodil",
+     "name": "🐊 Salzwasserkrokodil",
+     "value": 5.0
+    },
+    {
+     "id": "giraffe",
+     "name": "🦒 Giraffe",
+     "value": 5.5
+    },
+    {
+     "id": "kleinbus",
+     "name": "🚐 Kleinbus",
+     "value": 5.5
+    },
+    {
+     "id": "segelboot",
+     "name": "⛵ Kleines Segelboot",
+     "value": 6.0
+    },
+    {
+     "id": "elefant",
+     "name": "🐘 Afrikanischer Elefant",
+     "value": 6.5
+    },
+    {
+     "id": "limousine_lang",
+     "name": "🚘 Stretch-Limousine",
+     "value": 8.9
+    },
+    {
+     "id": "t_rex",
+     "name": "🦖 Tyrannosaurus Rex",
+     "value": 12.0
+    },
+    {
+     "id": "doppeldeckerbus",
+     "name": "🚌 Doppeldeckerbus",
+     "value": 11.0
+    },
+    {
+     "id": "optimus_prime",
+     "name": "🤖 Optimus Prime (Transformers)",
+     "value": 10.0
+    },
+    {
+     "id": "king_kong",
+     "name": "🦍 King Kong (2005er Film)",
+     "value": 25.0
+    },
+    {
+     "id": "blauwal",
+     "name": "🐋 Blauwal",
+     "value": 30.0
+    },
+    {
+     "id": "tennisplatz",
+     "name": "🎾 Tennisplatz (Länge)",
+     "value": 23.8
+    },
+    {
+     "id": "wohnhaus_3stock",
+     "name": "🏠 Wohnhaus (3 Stockwerke)",
+     "value": 10.0
+    },
+    {
+     "id": "windrad_fluegel",
+     "name": "💨 Windkraftanlage (Nabenhöhe)",
+     "value": 100.0
+    },
+    {
+     "id": "fussballfeld",
+     "name": "⚽ Fußballfeld (Länge)",
+     "value": 105.0
+    },
+    {
+     "id": "godzilla",
+     "name": "🦎 Godzilla (Film-Version 2014)",
+     "value": 108.0
+    },
+    {
+     "id": "freiheitsstatue",
+     "name": "🗽 Freiheitsstatue (mit Sockel)",
+     "value": 93.0
+    },
+    {
+     "id": "kreuzfahrtschiff_klein",
+     "name": "🚢 Kleineres Kreuzfahrtschiff",
+     "value": 200.0
+    },
+    {
+     "id": "titanic",
+     "name": "🚢 Titanic",
+     "value": 269.0
+    },
+    {
+     "id": "eiffelturm",
+     "name": "🗼 Eiffelturm",
+     "value": 330.0
+    },
+    {
+     "id": "kreuzfahrtschiff_gross",
+     "name": "🛳️ Symphony of the Seas",
+     "value": 362.0
+    },
+    {
+     "id": "koelner_dom",
+     "name": "⛪ Kölner Dom",
+     "value": 157.0
+    },
+    {
+     "id": "cheops_pyramide",
+     "name": "🔺 Cheops-Pyramide",
+     "value": 147.0
+    },
+    {
+     "id": "burj_khalifa",
+     "name": "🏙️ Burj Khalifa",
+     "value": 828.0
+    },
+    {
+     "id": "golden_gate_bridge",
+     "name": "🌉 Golden Gate Bridge (Hauptspannweite)",
+     "value": 1280.0
+    },
+    {
+     "id": "central_park",
+     "name": "🌳 Central Park (Länge)",
+     "value": 4000.0
+    },
+    {
+     "id": "flughafen_runway",
+     "name": "🛫 Startbahn (großer Flughafen)",
+     "value": 4000.0
+    },
+    {
+     "id": "zugspitze",
+     "name": "🏔️ Zugspitze (Höhe)",
+     "value": 2962.0
+    },
+    {
+     "id": "mount_everest",
+     "name": "🏔️ Mount Everest (Höhe)",
+     "value": 8849.0
+    },
+    {
+     "id": "marianengraben",
+     "name": "🌊 Marianengraben (Tiefe)",
+     "value": 10935.0
+    },
+    {
+     "id": "death_star",
+     "name": "⭐ Todesstern (Star Wars)",
+     "value": 120000.0
+    },
+    {
+     "id": "manhattan_laenge",
+     "name": "🏙️ Manhattan (Länge)",
+     "value": 21000.0
+    },
+    {
+     "id": "bodensee_laenge",
+     "name": "🌊 Bodensee (Länge)",
+     "value": 63000.0
+    },
+    {
+     "id": "english_channel",
+     "name": "🌊 Ärmelkanal (kürzeste Breite)",
+     "value": 33000.0
+    },
+    {
+     "id": "mauna_kea",
+     "name": "🌋 Mauna Kea (Basis bis Gipfel)",
+     "value": 10200.0
+    },
+    {
+     "id": "hoover_damm",
+     "name": "🌊 Hoover-Staudamm (Höhe)",
+     "value": 221.0
+    },
+    {
+     "id": "great_wall_segment",
+     "name": "🧱 Chinesische Mauer (sichtbares Segment)",
+     "value": 8850000.0
+    },
+    {
+     "id": "bienenstock",
+     "name": "🐝 Bienenstock",
+     "value": 0.5
+    },
+    {
+     "id": "spinnennetz",
+     "name": "🕸️ Spinnennetz (groß)",
+     "value": 1.5
+    },
+    {
+     "id": "surfbrett",
+     "name": "🏄 Surfbrett",
+     "value": 2.0
+    },
+    {
+     "id": "klavier_fluegel",
+     "name": "🎹 Konzertflügel",
+     "value": 2.7
+    },
+    {
+     "id": "schulbus",
+     "name": "🚌 Amerikanischer Schulbus",
+     "value": 12.0
+    },
+    {
+     "id": "segelschiff",
+     "name": "⛵ Großsegler (Viermaster)",
+     "value": 100.0
+    },
+    {
+     "id": "gletscher_zunge",
+     "name": "🧊 Gletscherzunge (kleiner Alpengletscher)",
+     "value": 3000.0
+    },
+    {
+     "id": "regenbogen_basis",
+     "name": "🌈 Regenbogen (Basisabstand, ca.)",
+     "value": 2000.0
+    },
+    {
+     "id": "staudamm_drei_schluchten",
+     "name": "🌊 Drei-Schluchten-Staudamm (Länge)",
+     "value": 2335.0
+    },
+    {
+     "id": "wal_hai",
+     "name": "🐳 Walhai",
+     "value": 12.0
+    },
+    {
+     "id": "anakonda",
+     "name": "🐍 Grüne Anakonda",
+     "value": 6.0
+    },
+    {
+     "id": "straussenvogel",
+     "name": "🦤 Strauß",
+     "value": 2.7
+    },
+    {
+     "id": "panzer",
+     "name": "🪖 Kampfpanzer (z.B. Leopard 2)",
+     "value": 9.7
+    },
+    {
+     "id": "u_boot",
+     "name": "🚤 U-Boot (Angriffs-U-Boot)",
+     "value": 110.0
+    },
+    {
+     "id": "achterbahn",
+     "name": "🎢 Große Achterbahn (Höhe)",
+     "value": 130.0
+    },
+    {
+     "id": "staumauer_talsperre",
+     "name": "🌊 Große Staumauer (Höhe)",
+     "value": 285.0
+    },
+    {
+     "id": "space_shuttle",
+     "name": "🚀 Space Shuttle",
+     "value": 37.0
+    },
+    {
+     "id": "saturn_v_rakete",
+     "name": "🚀 Saturn-V-Rakete",
+     "value": 111.0
+    },
+    {
+     "id": "iss",
+     "name": "🛰️ Internationale Raumstation (ISS, Länge)",
+     "value": 109.0
+    },
+    {
+     "id": "wolkenkratzer_mittel",
+     "name": "🏢 Durchschnittlicher Wolkenkratzer",
+     "value": 200.0
+    },
+    {
+     "id": "moby_dick_wal",
+     "name": "🐋 Pottwal",
+     "value": 20.0
     }
    ]
   },
@@ -4046,17 +4486,6 @@
      "cover": null
     },
     {
-     "id": "diearzte_westerland",
-     "youtubeId": "KdeBMhXyX6w",
-     "startSeconds": 45,
-     "clipSeconds": 10,
-     "title": "Westerland",
-     "artist": "Die Ärzte",
-     "year": 1988,
-     "genre": "Rock",
-     "cover": null
-    },
-    {
      "id": "boehseonkelz_dankefuernichts",
      "youtubeId": "6kP-xraRWOk",
      "startSeconds": 45,
@@ -4064,17 +4493,6 @@
      "title": "Danke für nichts",
      "artist": "Böhse Onkelz",
      "year": 1995,
-     "genre": "Rock",
-     "cover": null
-    },
-    {
-     "id": "boehseonkelz_mexico",
-     "youtubeId": "c8nHADo8-BI",
-     "startSeconds": 45,
-     "clipSeconds": 10,
-     "title": "Mexico",
-     "artist": "Böhse Onkelz",
-     "year": 2000,
      "genre": "Rock",
      "cover": null
     },
@@ -4431,6 +4849,77 @@
      "cover": null
     }
    ]
+  },
+  "serienintros_mix": {
+   "label": "Serien-Intros raten (Sitcom/Cartoon/Anime/TV) – Starter-Set",
+   "items": [
+    {
+     "id": "friends_illbethere",
+     "youtubeId": "S8PNXgLhkT0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "I'll Be There For You (Friends-Intro)",
+     "artist": "The Rembrandts",
+     "year": 1995,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "bigbangtheory_theme",
+     "youtubeId": "20i5eqwK178",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Theme (The Big Bang Theory)",
+     "artist": "Barenaked Ladies",
+     "year": 2007,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "himym_heybeautiful",
+     "youtubeId": "xRyqIbwYaQo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Hey Beautiful (How I Met Your Mother-Intro)",
+     "artist": "The Solids",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "spongebob_theme",
+     "youtubeId": "pFfUunOS1a4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf Titelmelodie",
+     "artist": "Painty the Pirate & Chor",
+     "year": 1999,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "naruto_bluebird",
+     "youtubeId": "aJRu5ltxXjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Blue Bird (Naruto Shippuden Opening 3)",
+     "artist": "Ikimono-gakari",
+     "year": 2008,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "wwm_intro",
+     "youtubeId": "jN-3bzAzPHU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Erkennungsmelodie (Wer wird Millionär?)",
+     "artist": "TV-Show",
+     "year": 1999,
+     "genre": "TV-Show",
+     "cover": null
+    }
+   ]
   }
  },
  "nennsBlitz": {
@@ -4450,13 +4939,13 @@
    "label": "Bundesländer-Hauptstädte (Deutschland)"
   },
   "tiere_rassen_allgemein": {
-   "label": "Tierrassen: Allgemein"
+   "label": "Tierarten: Allgemein"
   },
   "tiere_hunde": {
-   "label": "Tierrassen: Hunde"
+   "label": "Tierarten: Hunde"
   },
   "tiere_katzen": {
-   "label": "Tierrassen: Katzen"
+   "label": "Tierarten: Katzen"
   },
   "tiere_fische": {
    "label": "Tierarten: Fische"
