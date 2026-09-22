@@ -1884,7 +1884,7 @@ const I18N = {
 
   menu_solo_title: {de:"BRAIN TEST", en:"BRAIN TEST", ja:"BRAIN TEST", zh:"BRAIN TEST", fr:"BRAIN TEST", it:"BRAIN TEST", es:"BRAIN TEST"},
   menu_solo_desc: {de:"Spiele allein und verbessere deinen eigenen Punktestand und Rang.", en:"Play alone and improve your own score and rank.", ja:"一人でプレイして、自分のスコアとランクを上げよう。", zh:"独自游戏，提升你自己的分数和段位。", fr:"Joue seul et améliore ton propre score et ton rang.", it:"Gioca da solo e migliora il tuo punteggio e il tuo grado.", es:"Juega solo y mejora tu propia puntuación y rango."},
-  menu_party_title: {de:"PARTY (WLAN)", en:"PARTY (WIFI)", ja:"パーティー（Wi-Fi）", zh:"聚会模式（WiFi）", fr:"SOIRÉE (WIFI)", it:"PARTY (WIFI)", es:"FIESTA (WIFI)"},
+  menu_party_title: {de:"PARTY RAUM", en:"PARTY (WIFI)", ja:"パーティー（Wi-Fi）", zh:"聚会模式（WiFi）", fr:"SOIRÉE (WIFI)", it:"PARTY (WIFI)", es:"FIESTA (WIFI)"},
   menu_party_desc: {de:"Bis zu 6 Spieler auf eigenen Geräten im selben WLAN, mit Teams und mehreren Spielmodi.", en:"Up to 6 players on their own devices on the same network, with teams and multiple game modes.", ja:"同じネットワーク上で最大6人がそれぞれの端末で参加。チームと複数のゲームモード。", zh:"最多6名玩家在同一网络下用各自设备游玩，支持组队和多种模式。", fr:"Jusqu'à 6 joueurs sur leurs propres appareils sur le même réseau, avec équipes et plusieurs modes de jeu.", it:"Fino a 6 giocatori sui propri dispositivi nella stessa rete, con squadre e più modalità di gioco.", es:"Hasta 6 jugadores en sus propios dispositivos en la misma red, con equipos y varios modos de juego."},
   menu_ranking: {de:"RANKING", en:"RANKING", ja:"ランキング", zh:"排行榜", fr:"CLASSEMENT", it:"CLASSIFICA", es:"CLASIFICACIÓN"},
   menu_stats: {de:"STATISTIK", en:"STATISTICS", ja:"統計", zh:"统计", fr:"STATISTIQUES", it:"STATISTICHE", es:"ESTADÍSTICAS"},
@@ -1903,7 +1903,7 @@ const I18N = {
   btn_leave_room: {de:"RAUM VERLASSEN", en:"LEAVE ROOM", ja:"ルームを退出", zh:"离开房间", fr:"QUITTER LA SALLE", it:"ABBANDONA STANZA", es:"SALIR DE LA SALA"},
   btn_confirm: {de:"BESTÄTIGEN", en:"CONFIRM", ja:"確定", zh:"确认", fr:"CONFIRMER", it:"CONFERMA", es:"CONFIRMAR"},
 
-  party_entry_title: {de:"PARTY (WLAN)", en:"PARTY (WIFI)", ja:"パーティー（Wi-Fi）", zh:"聚会模式（WiFi）", fr:"SOIRÉE (WIFI)", it:"PARTY (WIFI)", es:"FIESTA (WIFI)"},
+  party_entry_title: {de:"PARTY RAUM", en:"PARTY (WIFI)", ja:"パーティー（Wi-Fi）", zh:"聚会模式（WiFi）", fr:"SOIRÉE (WIFI)", it:"PARTY (WIFI)", es:"FIESTA (WIFI)"},
   party_entry_sub: {de:"Alle Geräte müssen im selben WLAN sein und diese Seite über die Adresse des Hosts geöffnet haben.", en:"All devices must be on the same network and have opened this page via the host's address.", ja:"すべての端末が同じネットワークに接続し、ホストのアドレスでこのページを開いている必要があります。", zh:"所有设备必须在同一网络下，并通过主机地址打开此页面。", fr:"Tous les appareils doivent être sur le même réseau et avoir ouvert cette page via l'adresse de l'hôte.", it:"Tutti i dispositivi devono essere sulla stessa rete e aver aperto questa pagina tramite l'indirizzo dell'host.", es:"Todos los dispositivos deben estar en la misma red y haber abierto esta página con la dirección del anfitrión."},
   party_name_placeholder: {de:"Dein Name", en:"Your name", ja:"あなたの名前", zh:"你的名字", fr:"Ton nom", it:"Il tuo nome", es:"Tu nombre"},
   party_create_room: {de:"RAUM ERSTELLEN", en:"CREATE ROOM", ja:"ルームを作成", zh:"创建房间", fr:"CRÉER UNE SALLE", it:"CREA STANZA", es:"CREAR SALA"},
@@ -1995,37 +1995,45 @@ function renderMainMenu(){
   `);
 }
 
+function statCardHtml(p, extraArena){
+  const totalGames = p.wins + p.losses;
+  const winRate = totalGames > 0 ? Math.round((p.wins/totalGames)*100) : 0;
+  const totalAnswers = p.correctAnswers + p.wrongAnswers;
+  const accuracy = totalAnswers > 0 ? Math.round((p.correctAnswers/totalAnswers)*100) : 0;
+  return `
+    <div class="stat-card">
+      <div class="row1">
+        <div class="sname">${p.name}${p.isAccount ? ' <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(Konto – gilt für alle Modi)</span>' : ''}</div>
+        ${rankPillHtml(p.score)}
+      </div>
+      <div class="picker-sub" style="margin:4px 0 8px;">${klassePillHtml(p.klasse||0)} <span style="margin-left:6px;">Aktuelle Klasse (Brain Test)</span></div>
+      <div class="stat-mini">
+        <div><div class="n">${p.score}</div><div class="l">Punkte</div></div>
+        <div><div class="n">${p.bestScore}</div><div class="l">Beste Punktzahl</div></div>
+        <div><div class="n">${p.roundsPlayed}</div><div class="l">Runden gespielt</div></div>
+        <div><div class="n">${p.wins}</div><div class="l">Siege</div></div>
+        <div><div class="n">${p.losses}</div><div class="l">Niederlagen</div></div>
+        <div><div class="n">${winRate}%</div><div class="l">Siegquote</div></div>
+        <div><div class="n">${p.correctAnswers}/${p.wrongAnswers}</div><div class="l">Richtig/Falsch</div></div>
+        <div><div class="n">${accuracy}%</div><div class="l">Trefferquote</div></div>
+        ${extraArena ? `
+        <div><div class="n">${extraArena.arenaPoints||0}</div><div class="l">Arena-Punkte</div></div>
+        <div><div class="n">${extraArena.arenaMatchesPlayed||0}</div><div class="l">Arena-Matches</div></div>
+        ` : ``}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:12px; opacity:.5; cursor:not-allowed;" disabled title="Kommt bald">🏆 Erfolge (bald verfügbar)</button>
+    </div>
+  `;
+}
 function renderStatistik(){
+  const showLocalHint = !account && profiles.length===0;
   renderApp(`
     <div class="panel">
       <div class="picker-title">STATISTIK</div>
-      <div class="picker-sub">Detaillierte Werte je gespeichertem Profil.</div>
-      ${profiles.length===0 ? `<p style="color:var(--text-dim)">Noch keine Profile vorhanden.</p>` : ``}
-      ${profiles.map(p => {
-        const totalGames = p.wins + p.losses;
-        const winRate = totalGames > 0 ? Math.round((p.wins/totalGames)*100) : 0;
-        const totalAnswers = p.correctAnswers + p.wrongAnswers;
-        const accuracy = totalAnswers > 0 ? Math.round((p.correctAnswers/totalAnswers)*100) : 0;
-        return `
-        <div class="stat-card">
-          <div class="row1">
-            <div class="sname">${p.name}</div>
-            ${rankPillHtml(p.score)}
-          </div>
-          <div class="picker-sub" style="margin:4px 0 8px;">${klassePillHtml(p.klasse||0)} <span style="margin-left:6px;">Aktuelle Klasse (Brain Test)</span></div>
-          <div class="stat-mini">
-            <div><div class="n">${p.score}</div><div class="l">Punkte</div></div>
-            <div><div class="n">${p.bestScore}</div><div class="l">Beste Punktzahl</div></div>
-            <div><div class="n">${p.roundsPlayed}</div><div class="l">Runden gespielt</div></div>
-            <div><div class="n">${p.wins}</div><div class="l">Siege</div></div>
-            <div><div class="n">${p.losses}</div><div class="l">Niederlagen</div></div>
-            <div><div class="n">${winRate}%</div><div class="l">Siegquote</div></div>
-            <div><div class="n">${p.correctAnswers}/${p.wrongAnswers}</div><div class="l">Richtig/Falsch</div></div>
-            <div><div class="n">${accuracy}%</div><div class="l">Trefferquote</div></div>
-          </div>
-          <button class="btn btn-ghost btn-block" style="margin-top:12px; opacity:.5; cursor:not-allowed;" disabled title="Kommt bald">🏆 Erfolge (bald verfügbar)</button>
-        </div>
-      `;}).join("")}
+      <div class="picker-sub">${account ? 'Dein Konto-Profil gilt für alle Modi.' : 'Detaillierte Werte je gespeichertem Profil.'}</div>
+      ${account ? statCardHtml(accountAsProfile(), account.profile) : ``}
+      ${showLocalHint ? `<p style="color:var(--text-dim)">Noch keine Profile vorhanden.</p>` : ``}
+      ${profiles.map(p => statCardHtml(p)).join("")}
       <div class="actions-row" style="margin-top:10px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">ZUM HAUPTMENÜ</button>
       </div>
@@ -2141,6 +2149,7 @@ function beginSolo(profile){
       <h2>${profile.name}</h2>
       <p>Aufstiegstest ${currentKlasse.name}${nextKlasse ? ' → '+nextKlasse.name : ''}: ${questions.length} Fragen · mindestens ${test.needed} richtig · ${solo.timeLimit}s pro Frage</p>
       <button class="btn btn-primary" onclick="renderSoloQuestion()">LOS GEHT'S</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
 }
@@ -2169,9 +2178,21 @@ function renderSoloQuestion(){
       </div>
       <div id="explanationBox" class="explanation hidden"></div>
       <button id="soloNextBtn" class="btn btn-primary btn-block hidden" style="margin-top:14px;" onclick="soloNextQuestion()">WEITER</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="exitSoloTest()">${t('btn_back')}</button>
     </div>
   `);
   startSoloTimer();
+}
+// Bricht den laufenden Aufstiegstest ab und geht zurück ins Hauptmenü, ohne
+// das als bestandenen/nicht bestandenen Versuch gegen das Profil zu werten
+// (roundsPlayed/consecutiveFails bleiben unverändert - der Test wurde ja
+// nicht zu Ende gespielt).
+function exitSoloTest(){
+  if(solo){
+    clearInterval(solo.timerId);
+    solo = null;
+  }
+  renderMainMenu();
 }
 
 function startSoloTimer(){
@@ -2542,7 +2563,7 @@ function startPartyFlow(gameMode){
   if(location.protocol !== "http:" && location.protocol !== "https:"){
     renderApp(`
       <div class="panel">
-        <div class="picker-title">PARTY (WLAN)</div>
+        <div class="picker-title">PARTY RAUM</div>
         <div class="explanation" style="border-color:var(--danger); color:var(--text);">
           Diese Seite wurde direkt als Datei geöffnet (Adresse beginnt nicht mit <code>http://</code>
           oder <code>https://</code>, sondern z.B. mit <code>file://</code> oder <code>content://</code>).
@@ -2563,7 +2584,7 @@ function startPartyFlow(gameMode){
       <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : (pendingCreateGameMode==='music' ? 'MUSIK RATEN – MULTIPLAYER' : (pendingCreateGameMode==='blitz' ? 'NENN\'S BLITZ – MULTIPLAYER' : t('party_entry_title')))}</div>
       <div class="picker-sub">${t('party_entry_sub')}</div>
       <div class="picker-form" style="margin-bottom:14px;">
-        <input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20">
+        <input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20" value="${account ? account.profile.username : ''}">
       </div>
       <div id="partyEntryError" class="explanation hidden" style="border-color:var(--danger);"></div>
       <div class="actions-row" style="margin-bottom:18px;">
@@ -2687,6 +2708,9 @@ function partySetLanguage(lang){ currentLang = lang; try{ localStorage.setItem("
 let lastSoloPartyName = "Du";
 function startSoloPartyFlow(gameMode){
   const gm = dedicatedGameMode(gameMode);
+  // Eingeloggt -> direkt mit dem Konto-Namen starten, keine erneute
+  // Namenseingabe nötig (ein Profil für alle Modi, wie gewünscht).
+  if(account){ connectSoloPartyToPicker(gm, account.profile.username); return; }
   const title = dedicatedScreenTitle(gm) ? dedicatedScreenTitle(gm) + ' – SOLO' : t('solo_party_title');
   const backFn = dedicatedBackFn(gm);
   renderApp(`
@@ -3568,16 +3592,21 @@ function renderPartyOrdering(msg){
 
       <div class="lives-row"><span>Deine Leben</span><div class="hearts">${hearts}</div></div>
 
-      <div class="timer-wrap" style="margin-top:8px;">
-        <div class="timer-bar"><div id="orderingTimerFill" class="timer-fill" style="width:100%"></div></div>
-        <div id="orderingTimerNum" class="timer-num">${Math.ceil(msg.remainingMs/1000)}s</div>
-      </div>
-      <div id="orderingHurryNote" class="explanation ${msg.hurryActive?'':'hidden'}" style="border-color:var(--accent); margin-top:8px;">⏱ Jemand ist fertig — nur noch 30 Sekunden für alle!</div>
+      ${msg.hurryActive ? `
+        <div class="timer-wrap" style="margin-top:8px;">
+          <div class="timer-bar"><div id="orderingTimerFill" class="timer-fill" style="width:100%"></div></div>
+          <div id="orderingTimerNum" class="timer-num">${Math.ceil(msg.remainingMs/1000)}s</div>
+        </div>
+        <div id="orderingHurryNote" class="explanation" style="border-color:var(--accent); margin-top:8px;">⏱ Jemand ist fertig — nur noch 30 Sekunden für alle!</div>
+      ` : `
+        <div id="orderingHurryNote" class="explanation hidden" style="border-color:var(--accent); margin-top:8px;">⏱ Jemand ist fertig — nur noch 30 Sekunden für alle!</div>
+      `}
 
       ${done ? `
         <div class="explanation" style="margin-top:14px;">
           ${msg.eliminated ? 'Keine Leben mehr übrig – du wartest jetzt auf die anderen …' : 'Fertig! Du wartest jetzt auf die anderen …'}
         </div>
+        ${party.isHost ? `<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="partySend({action:'continue'})">Trotzdem jetzt beenden (Host)</button>` : ``}
       ` : `
         ${!activeItem ? `
           <div style="color:var(--text-dim); font-size:12px; margin:10px 0 8px;">Wähle ein Element aus, das du einordnen willst:</div>
@@ -3605,6 +3634,7 @@ function renderPartyOrdering(msg){
           `).join("")}
         </div>
         ${activeItem ? `<button class="btn btn-ghost" style="margin-top:10px;" onclick="partySelectOrderingItem(null)">Andere Auswahl</button>` : ``}
+        ${party.isHost ? `<button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="partySend({action:'continue'})">Runde jetzt beenden (Host)</button>` : ``}
       `}
 
       <div class="picker-sub" style="margin-top:18px;">Mitspieler</div>
@@ -3622,7 +3652,8 @@ function renderPartyOrdering(msg){
       </div>
     </div>
   `);
-  startOrderingTicker(msg);
+  if(msg.hurryActive) startOrderingTicker(msg);
+  else if(party.orderingTickerId){ clearInterval(party.orderingTickerId); party.orderingTickerId = null; }
 }
 function partySelectOrderingItem(itemId){
   party.selectedOrderingItemId = itemId;
@@ -4075,7 +4106,7 @@ function renderSlfAnswering(msg){
         ${msg.categories.map((cat,i) => `
           <div>
             <label style="font-size:12px; color:var(--text-dim); font-weight:700;">${cat}</label>
-            <input type="text" id="slfInput_${i}" class="builder-search" style="margin-top:4px;" placeholder="${cat} mit ${msg.letter} …" maxlength="30" autocomplete="off">
+            <input type="text" id="slfInput_${i}" class="builder-search" style="margin-top:4px;" placeholder="${cat} mit ${msg.letter} …" maxlength="30" autocomplete="off" oninput="scheduleSlfDraftSync()">
           </div>
         `).join("")}
       </div>
@@ -4109,9 +4140,28 @@ function handleSlfHurryUp(msg){
   const note = document.getElementById("slfHurryNote");
   if(note) note.classList.remove("hidden");
 }
+// Entprellter, laufender Zwischenstand an den Server (siehe Server-Kommentar
+// bei handleSlfDraftUpdate: Absicherung gegen gedrosselte Timer auf mobilen
+// Browsern, damit bei Zeitablauf nicht alles als leer gewertet wird, selbst
+// wenn der lokale Auto-Abgabe-Timer verspätet/gar nicht feuert).
+let slfDraftSyncTimeout = null;
+function scheduleSlfDraftSync(){
+  if(slfDraftSyncTimeout) clearTimeout(slfDraftSyncTimeout);
+  slfDraftSyncTimeout = setTimeout(sendSlfDraftSync, 500);
+}
+function sendSlfDraftSync(){
+  if(!party || !party.slfMsg || party.slfSubmitted) return;
+  const answers = {};
+  (party.slfMsg.categories||[]).forEach((cat,i) => {
+    const el = document.getElementById("slfInput_"+i);
+    answers[cat] = el ? el.value : "";
+  });
+  partySend({action:'slfDraftUpdate', answers});
+}
 function submitSlfAnswers(){
   if(party.slfSubmitted) return;
   party.slfSubmitted = true;
+  if(slfDraftSyncTimeout){ clearTimeout(slfDraftSyncTimeout); slfDraftSyncTimeout = null; }
   if(party.slfTickerId) clearInterval(party.slfTickerId);
   const answers = {};
   (party.slfMsg.categories||[]).forEach((cat,i) => {
