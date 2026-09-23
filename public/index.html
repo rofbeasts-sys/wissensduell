@@ -64,6 +64,8 @@
   .menu-hero p{ color:var(--text-dim); margin:0; font-size:14px; }
   .menu-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
   @media (max-width:600px){ .menu-grid{ grid-template-columns:1fr; } }
+  .menu-section-title{ font-size:13px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-dim); margin:22px 0 10px; }
+  .menu-section-title:first-of-type{ margin-top:6px; }
   .mode-card{
     background:var(--bg-alt); border:1.5px solid var(--line); border-radius:16px;
     padding:26px 20px; text-align:left; cursor:pointer; color:var(--text);
@@ -182,6 +184,12 @@
   .stat-mini div{ background:var(--panel-2); border-radius:10px; padding:8px; text-align:center; }
   .stat-mini .n{ font-weight:800; font-size:15px; }
   .stat-mini .l{ font-size:10px; color:var(--text-dim); }
+  .mode-stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; }
+  .mode-stat-card{ background:var(--panel-2); border-radius:10px; padding:10px 8px; text-align:center; min-width:0; }
+  .mode-stat-card .title{ font-size:12px; font-weight:700; margin-bottom:8px; overflow-wrap:break-word; }
+  .mode-stat-card .values{ display:flex; justify-content:center; gap:18px; }
+  .mode-stat-card .values .n{ font-weight:800; font-size:17px; }
+  .mode-stat-card .values .l{ font-size:10px; color:var(--text-dim); }
 
   footer{ text-align:center; color:var(--text-dim); font-size:11px; margin-top:36px; }
 
@@ -1702,9 +1710,14 @@ const DEDICATED_MODES = {
   music:      { icon:"🎵", title:"Musik raten",          screenTitle:"MUSIK RATEN",          germanOnly:false },
   blitz:      { icon:"⚡", title:"Nenn's Blitz",          screenTitle:"NENN'S BLITZ",         germanOnly:true  },
   ordering:   { icon:"🔢", title:"Einordnen",             screenTitle:"EINORDNEN",             germanOnly:false },
-  chronology: { icon:"📅", title:"Chronologie",           screenTitle:"CHRONOLOGIE",           germanOnly:false },
-  higherlower:{ icon:"⚖️", title:"Mehr oder Weniger",     screenTitle:"MEHR ODER WENIGER",     germanOnly:false },
-  picture:    { icon:"🖼️", title:"Bild erraten",          screenTitle:"BILD ERRATEN",          germanOnly:false }
+  // chronology und picture sind auf Wunsch vorübergehend komplett draußen
+  // (kommen als späteres Patch-Update zurück) - Code/Engine dafür bleibt
+  // serverseitig unangetastet, hier nur die Menüpunkte entfernt. Zum
+  // Reaktivieren: Zeilen wieder einkommentieren UND server.js
+  // (buildRoundDefPool + DEDICATED_MODE_KINDS) entsprechend rückgängig machen.
+  // chronology: { icon:"📅", title:"Chronologie",           screenTitle:"CHRONOLOGIE",           germanOnly:false },
+  higherlower:{ icon:"⚖️", title:"Mehr oder Weniger",     screenTitle:"MEHR ODER WENIGER",     germanOnly:false }
+  // picture:    { icon:"🖼️", title:"Bild erraten",          screenTitle:"BILD ERRATEN",          germanOnly:false }
 };
 function dedicatedGameMode(gm){ return DEDICATED_MODES[gm] ? gm : "mixed"; }
 function dedicatedScreenTitle(gm){ return DEDICATED_MODES[gm] ? DEDICATED_MODES[gm].screenTitle : null; }
@@ -2017,6 +2030,21 @@ function t(key){
 }
 
 function renderMainMenu(){
+  // Kleiner Helfer für eine dedizierte-Modus-Karte (Einordnen, Mehr oder
+  // Weniger, Nenn's Blitz, Musik raten, Stadt Land Fluss) - holt Icon/
+  // Titel/Sprachsperre aus DEDICATED_MODES, damit nichts doppelt gepflegt
+  // werden muss.
+  const dedicatedCard = (gm) => {
+    const m = DEDICATED_MODES[gm];
+    const locked = m.germanOnly && currentLang!=='de';
+    return `
+      <div class="mode-card ${locked ? 'locked' : ''}" onclick="${locked ? '' : `startDedicatedMenu('${gm}')`}" style="${locked ? 'opacity:.45; cursor:default;' : ''}">
+        <div class="icon">${m.icon}</div>
+        <h3>${m.title}</h3>
+        <p>${locked ? 'Nur auf Deutsch verfügbar' : 'Eigener Modus – Solo oder mit Freunden'}</p>
+      </div>
+    `;
+  };
   renderApp(`
     ${langSwitcherHtml()}
     ${accountIndicatorHtml()}
@@ -2029,6 +2057,10 @@ function renderMainMenu(){
         <h3>${t('menu_solo_title')}</h3>
         <p>${currentLang!=='de' ? t('solo_quiz_locked') : t('menu_solo_desc')}</p>
       </div>
+    </div>
+
+    <div class="menu-section-title">Online-Modus</div>
+    <div class="menu-grid">
       <div class="mode-card" onclick="startPartyFlow()">
         <div class="icon">🌐</div>
         <h3>${t('menu_party_title')}</h3>
@@ -2039,19 +2071,26 @@ function renderMainMenu(){
         <h3>Arena</h3>
         <p>${currentLang!=='de' ? 'Nur auf Deutsch verfügbar' : 'Bestenliste – Match spielen, Punkte sammeln, aufsteigen'}</p>
       </div>
+    </div>
+
+    <div class="menu-section-title">Modi</div>
+    <div class="menu-grid">
+      ${dedicatedCard('ordering')}
+      ${dedicatedCard('higherlower')}
+      ${dedicatedCard('blitz')}
+      ${dedicatedCard('music')}
+    </div>
+
+    <div class="menu-section-title">Mini Games</div>
+    <div class="menu-grid">
+      ${dedicatedCard('slf')}
       <div class="mode-card" onclick="startTicTacToeFlow()">
         <div class="icon">⭕</div>
         <h3>Tic Tac Toe</h3>
         <p>Gegen den Bot – vom weißen bis zum Meister-Gürtel</p>
       </div>
-      ${Object.entries(DEDICATED_MODES).map(([gm, m]) => `
-        <div class="mode-card ${m.germanOnly && currentLang!=='de' ? 'locked' : ''}" onclick="${m.germanOnly && currentLang!=='de' ? '' : `startDedicatedMenu('${gm}')`}" style="${m.germanOnly && currentLang!=='de' ? 'opacity:.45; cursor:default;' : ''}">
-          <div class="icon">${m.icon}</div>
-          <h3>${m.title}</h3>
-          <p>${m.germanOnly && currentLang!=='de' ? 'Nur auf Deutsch verfügbar' : 'Eigener Modus – Solo oder mit Freunden'}</p>
-        </div>
-      `).join("")}
     </div>
+
     <div class="menu-secondary">
       <button class="btn btn-ghost" onclick="renderStatistik()">${t('menu_stats')}</button>
     </div>
@@ -2080,15 +2119,15 @@ function statCardHtml(p, extraArena){
         ` : ``}
       </div>
       <div class="picker-sub" style="margin:16px 0 8px;">Nach Spielmodus:</div>
-      <div class="stat-mini">
+      <div class="mode-stat-grid">
         ${MODE_STAT_DEFS.map(m => {
           const s = modeStats[m.key] || {played:0, correct:0};
           return `
-          <div>
-            <div class="l" style="margin-bottom:4px; font-weight:700;">${m.label}</div>
-            <div style="display:flex; justify-content:space-between; gap:8px;">
-              <span><span class="n" style="font-size:18px;">${s.played}</span><br><span class="l">gespielt</span></span>
-              ${m.tracksCorrect ? `<span><span class="n" style="font-size:18px;">${s.correct}</span><br><span class="l">richtig</span></span>` : ``}
+          <div class="mode-stat-card">
+            <div class="title">${m.label}</div>
+            <div class="values">
+              <span><span class="n">${s.played}</span><br><span class="l">gespielt</span></span>
+              ${m.tracksCorrect ? `<span><span class="n">${s.correct}</span><br><span class="l">richtig</span></span>` : ``}
             </div>
           </div>
         `;}).join("")}
@@ -3844,6 +3883,12 @@ function partyHandleMessage(msg){
     case "orderingFinalReveal":
       renderPartyOrderingFinal(msg);
       break;
+    case "ticTacToeState":
+      renderPartyTicTacToe(msg);
+      break;
+    case "ticTacToeSkipped":
+      renderPartyTicTacToeSkipped(msg);
+      break;
     case "guessItem":
       party.guessAttempts = [];
       renderPartyGuessItem(msg);
@@ -4104,16 +4149,37 @@ const PARTY_MODE_META = {
   chronologyGame: "Chronologie",
   higherLowerGame: "Mehr oder Weniger",
   guessPicture: "Bild erraten",
-  stadtLandFluss: "Stadt Land Fluss"
+  stadtLandFluss: "Stadt Land Fluss",
+  ticTacToeGame: "Tic Tac Toe"
 };
 const SLF_SUGGESTED_CATEGORIES = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Filmtitel","Promi","Getränk","Sportart"];
 function builderCategoryLabel(def){
   const idx = def.label.indexOf(": ");
   return idx === -1 ? def.label : def.label.slice(idx + 2);
 }
+// Gleiche Kategorien wie im Hauptmenü (Modi / Mini Games), damit die
+// Rundenauswahl im Party Raum genauso gegliedert ist. Wissenstest hat im
+// Hauptmenü keine eigene Kategorie (Brain Test ist dort separat) - fällt
+// hier unter "Modi", da es inhaltlich am ehesten dazu passt.
+const BUILDER_MODE_CATEGORIES = [
+  { title:"Modi", kinds:["knowledgeQuiz","orderingGame","higherLowerGame","nennsBlitz","guessMusic"] },
+  { title:"Mini Games", kinds:["stadtLandFluss","ticTacToeGame"] }
+];
 function builderModes(){
   const kinds = [...new Set(party.room.availableRoundDefs.map(d => d.kind))];
   return kinds.map(k => ({ kind: k, label: PARTY_MODE_META[k] || k }));
+}
+function builderModesByCategory(){
+  const all = builderModes();
+  const used = new Set();
+  const groups = BUILDER_MODE_CATEGORIES.map(cat => {
+    const items = cat.kinds.map(k => all.find(m => m.kind === k)).filter(Boolean);
+    items.forEach(m => used.add(m.kind));
+    return { title: cat.title, items };
+  }).filter(g => g.items.length > 0);
+  const rest = all.filter(m => !used.has(m.kind));
+  if(rest.length) groups.push({ title:"Weitere", items:rest });
+  return groups;
 }
 
 function openRoundBuilder(returnTo){
@@ -4159,10 +4225,17 @@ function renderRoundBuilder(){
       <div class="settings-row" style="display:block; border-bottom:none; padding-bottom:6px;">
         <span class="label">🔍 Spielmodus suchen</span>
         <input type="text" class="builder-search" placeholder="z.B. Einordnen" value="${b.modeSearch}" oninput="builderSetModeSearch(this.value)">
-        <div class="chip-group" style="margin-top:8px;">
-          ${modes.length ? modes.map(m => `<div class="chip-btn ${b.selectedKind===m.kind?'active':''}" onclick="builderSelectMode('${m.kind}')">${m.label}</div>`).join("")
-            : `<span style="color:var(--text-dim); font-size:13px;">Kein Spielmodus gefunden</span>`}
-        </div>
+        ${modeQuery ? `
+          <div class="chip-group" style="margin-top:8px;">
+            ${modes.length ? modes.map(m => `<div class="chip-btn ${b.selectedKind===m.kind?'active':''}" onclick="builderSelectMode('${m.kind}')">${m.label}</div>`).join("")
+              : `<span style="color:var(--text-dim); font-size:13px;">Kein Spielmodus gefunden</span>`}
+          </div>
+        ` : builderModesByCategory().map(group => `
+          <div class="menu-section-title" style="margin:14px 0 6px;">${group.title}</div>
+          <div class="chip-group">
+            ${group.items.map(m => `<div class="chip-btn ${b.selectedKind===m.kind?'active':''}" onclick="builderSelectMode('${m.kind}')">${m.label}</div>`).join("")}
+          </div>
+        `).join("")}
       </div>
 
       ${needsCategory ? `
@@ -4739,7 +4812,44 @@ function renderPartyOrderingFinal(msg){
   `);
 }
 
-/* ---------- Bild erraten ---------- */
+/* ---------- Tic Tac Toe (als Party-Runde, team-basiert) ---------- */
+function renderPartyTicTacToe(msg){
+  const myTeamId = party.room.players.find(p=>p.id===party.playerId)?.teamId;
+  const mySymbol = myTeamId ? msg.teamSymbols[myTeamId] : null;
+  const myTurn = mySymbol && mySymbol === msg.turnSymbol;
+  const teamNameFor = (sym) => {
+    const tid = Object.keys(msg.teamSymbols).find(t => msg.teamSymbols[t] === sym);
+    return party.room.teams.find(t=>t.id===tid)?.name || sym;
+  };
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE</div>
+      <div class="picker-sub">${teamNameFor('X')} (X) gegen ${teamNameFor('O')} (O)</div>
+      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+        ${msg.board.map((c,i) => `
+          <div onclick="partyTicTacToeMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !msg.gameOver && myTurn)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+        `).join("")}
+      </div>
+      ${msg.gameOver ? `
+        <div class="explanation" style="text-align:center;">${!msg.winnerTeamId ? 'Unentschieden!' : (msg.winnerTeamId===myTeamId ? '🎉 Euer Team hat gewonnen!' : (party.room.teams.find(t=>t.id===msg.winnerTeamId)?.name||'') + ' hat gewonnen!')}</div>
+      ` : `
+        <div class="picker-sub" style="text-align:center;">${myTurn ? 'Euer Team ist dran!' : (mySymbol ? 'Das andere Team ist dran …' : 'Zuschauen …')}</div>
+      `}
+    </div>
+  `);
+}
+function partyTicTacToeMove(i){ partySend({action:'ticTacToeMove', index:i}); }
+function renderPartyTicTacToeSkipped(msg){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE</div>
+      <div class="explanation" style="margin-top:14px;">${msg.reason}</div>
+      <p style="color:var(--text-dim); font-size:13px; margin-top:8px;">Die Runde wird ohne Punkte übersprungen, es geht gleich weiter.</p>
+    </div>
+  `);
+}
+
+
 function renderPartyGuessItem(msg){
   party.guessMsg = msg;
   party.guessAnswered = false;

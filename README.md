@@ -2197,6 +2197,80 @@ die behaltenen Werte stimmen weiterhin, die neue Modi-Liste zeigt alle
 fünf Modi mit den richtigen Labels, und das Tracking funktioniert korrekt
 über mehrere Runden hinweg (addiert sich richtig auf, nicht überschrieben).
 
+## 8hh. Bugfix: Modi-Liste auf dem Handy übergelaufen
+
+Per Screenshot gemeldet: die neue "Nach Spielmodus"-Liste hatte auf dem
+Handy Karten, die über den Bildschirmrand hinausragten (v.a. "Mehr oder
+Weniger" mit seinem längeren, umbrechenden Namen).
+
+**Ursache**: die Liste hat versehentlich dieselbe CSS-Klasse (`.stat-mini`)
+wie die einfachen Einzelwert-Kästchen oben (Runden gespielt, Siege, …)
+mitbenutzt – die ist auf eine feste 3-Spalten-Aufteilung ausgelegt, die
+für die neuen, dichteren Modi-Karten (Titel + zwei Werte nebeneinander)
+auf schmalen Bildschirmen zu eng war.
+
+**Fix**: eigene, neue CSS-Klasse `.mode-stat-grid`/`.mode-stat-card` für
+die Modi-Liste, mit `repeat(auto-fit, minmax(130px, 1fr))` statt einer
+festen Spaltenzahl – dadurch passen sich die Spalten der verfügbaren
+Breite an (auf dem Handy automatisch 2 statt erzwungener 3 pro Reihe),
+ohne dass eine Karte überläuft.
+
+## 8ii. Hauptmenü in Kategorien umgebaut, Chronologie + Bild erraten vorerst raus
+
+**Hauptmenü neu strukturiert**, wie gewünscht:
+- **Brain Test** – weiterhin oben für sich allein
+- **Online-Modus**: Party Raum, Arena
+- **Modi**: Einordnen, Mehr oder Weniger, Nenn's Blitz, Musik raten
+- **Mini Games**: Stadt Land Fluss, Tic Tac Toe
+
+Jede Gruppe hat jetzt eine eigene Überschrift über ihrem Kartenraster,
+statt allem in einem einzigen durchgehenden Grid.
+
+**Chronologie und Bild erraten komplett raus** (kommen laut Ansage als
+späteres Patch-Update zurück) – nicht nur aus dem Hauptmenü, sondern
+wirklich überall: auch aus dem "Party Raum"-Mixed-Modus und aus der
+Arena-Herausforderungsauswahl, da beide denselben zentralen
+Rundendaten-Pool nutzen. Technisch bewusst so gelöst, dass die Engine
+und alle Datensätze dahinter unangetastet im Code bleiben (nur
+auskommentiert/rausgefiltert an den paar zentralen Stellen) – für die
+spätere Rückkehr reicht es, diese Kommentare wieder zu entfernen, es
+muss nichts neu gebaut werden.
+
+Mit Tests bestätigt: neue Menü-Überschriften und alle acht verbleibenden
+Modi korrekt an ihrem jeweiligen Platz, Chronologie und Bild erraten
+weder im Menü noch im serverseitigen Rundenpool (auch dort, wo Party
+Raum seine zufälligen Runden herzieht) auffindbar, Einordnen und die
+anderen Modi weiterhin unangetastet im Pool vorhanden.
+
+## 8jj. Party Raum: Rundenauswahl jetzt auch kategorisiert + Tic Tac Toe als Runde
+
+**1. Rundenauswahl im Party Raum kategorisiert**, wie im Hauptmenü:
+"Modi" (Wissenstest, Einordnen, Mehr oder Weniger, Nenn's Blitz, Musik
+raten) und "Mini Games" (Stadt Land Fluss, Tic Tac Toe) als eigene
+Überschriften, statt einer einzigen durchgehenden Liste – die Suche
+funktioniert unverändert weiter, blendet bei einer Eingabe einfach eine
+flache Trefferliste statt der Kategorien ein.
+
+**2. Tic Tac Toe ist jetzt als Party-Raum-Runde wählbar.** Team- statt
+einzelspielerbasiert: die beiden Teams spielen gemeinsam je eine Seite
+(X/O), jedes Teammitglied darf ziehen, wenn das eigene Team dran ist.
+Sieg = 10 Punkte fürs Team, Unentschieden = 5/5, Niederlage = 0 – reiht
+sich in die normale Rundenpunkte-Vergabe ein.
+
+**Wichtige Einschränkung**: Tic Tac Toe braucht zwangsläufig genau 2
+Seiten. Bei genau 2 Teams (z.B. FFA mit 2 Personen, oder einer 1v1-
+Aufteilung) funktioniert die Runde normal. Bei mehr als 2 Teams (z.B.
+2v2v2, oder FFA mit mehr als 2 Personen) wird die Runde automatisch mit
+0 Punkten für alle übersprungen, mit einer klaren Erklärung an alle
+Beteiligten – ein echtes Turniersystem mit mehreren parallelen Tic-Tac-
+Toe-Partien für größere Gruppen wäre ein eigenes, deutlich größeres
+Feature, das hier bewusst nicht mit reinkam.
+
+Mit einem echten Zwei-Spieler-Test bestätigt: Team-Zugreihenfolge
+funktioniert korrekt (nur das jeweils berechtigte Team kann ziehen),
+Sieg-Erkennung funktioniert, und die Punkte reihen sich korrekt in die
+normale `roundEnd`-Vergabe ein (Sieger-Team 10, Verlierer-Team 0).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

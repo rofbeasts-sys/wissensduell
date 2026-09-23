@@ -138,18 +138,25 @@ const SLF_BOT_WORDS = {
 /* ------------------------------------------------------------------------ */
 function buildRoundDefPool() {
   const pool = [{ id: "quiz", kind: "knowledgeQuiz", label: "Wissenstest", germanOnly: true }];
+  pool.push({ id: "tictactoe", kind: "ticTacToeGame", label: "Tic Tac Toe", germanOnly: false });
   Object.entries(DATASETS.ordering).forEach(([key, ds]) => {
     pool.push({ id: "order_" + key, kind: "orderingGame", label: ds.label, datasetGroup: "ordering", datasetKey: key, germanOnly: !!ds.germanOnly });
   });
-  Object.entries(DATASETS.chronology || {}).forEach(([key, ds]) => {
-    pool.push({ id: "chrono_" + key, kind: "chronologyGame", label: ds.label, datasetGroup: "chronology", datasetKey: key, germanOnly: !!ds.germanOnly });
-  });
+  // Chronologie und Bild erraten sind auf Wunsch vorübergehend komplett
+  // draußen (kommen als späteres Patch-Update zurück) - Datensätze und
+  // Spiel-Engine bleiben unangetastet im Code, hier wird nur bewusst
+  // NICHTS aus DATASETS.chronology/guessPicture in den Pool aufgenommen.
+  // Zum Reaktivieren: die beiden folgenden forEach-Blöcke (auskommentiert)
+  // einfach wieder einkommentieren.
+  // Object.entries(DATASETS.chronology || {}).forEach(([key, ds]) => {
+  //   pool.push({ id: "chrono_" + key, kind: "chronologyGame", label: ds.label, datasetGroup: "chronology", datasetKey: key, germanOnly: !!ds.germanOnly });
+  // });
   Object.entries(DATASETS.higherLower).forEach(([key, ds]) => {
     pool.push({ id: "hilo_" + key, kind: "higherLowerGame", label: ds.label, datasetGroup: "higherLower", datasetKey: key, germanOnly: !!ds.germanOnly });
   });
-  Object.entries(DATASETS.guessPicture || {}).forEach(([key, ds]) => {
-    pool.push({ id: "guess_" + key, kind: "guessPicture", label: ds.label, datasetGroup: "guessPicture", datasetKey: key, germanOnly: !!ds.germanOnly });
-  });
+  // Object.entries(DATASETS.guessPicture || {}).forEach(([key, ds]) => {
+  //   pool.push({ id: "guess_" + key, kind: "guessPicture", label: ds.label, datasetGroup: "guessPicture", datasetKey: key, germanOnly: !!ds.germanOnly });
+  // });
   Object.entries(DATASETS.guessMusic || {}).forEach(([key, ds]) => {
     pool.push({ id: "music_" + key, kind: "guessMusic", label: ds.label, datasetGroup: "guessMusic", datasetKey: key, germanOnly: !!ds.germanOnly });
   });
@@ -179,9 +186,9 @@ const DEDICATED_MODE_KINDS = {
   music: "guessMusic",
   blitz: "nennsBlitz",
   ordering: "orderingGame",
-  chronology: "chronologyGame",
-  higherlower: "higherLowerGame",
-  picture: "guessPicture"
+  // chronology: "chronologyGame", // vorübergehend draußen (Patch-Update später), siehe buildRoundDefPool()
+  higherlower: "higherLowerGame"
+  // picture: "guessPicture" // vorübergehend draußen (Patch-Update später), siehe buildRoundDefPool()
 };
 const DEDICATED_POOLS = {};
 Object.entries(DEDICATED_MODE_KINDS).forEach(([mode, kind]) => {
@@ -2324,6 +2331,72 @@ function finishRoundEngine(room, roundPointsByTeam) {
   });
 }
 
+// Tic Tac Toe als Party-Runde: team- statt einzelspielerbasiert, jedes der
+// beiden Teams spielt gemeinsam eine Seite (X/O) - JEDES Teammitglied darf
+// ziehen, wenn das eigene Team dran ist (kein festes "wer genau" innerhalb
+// des Teams). Braucht bewusst GENAU 2 Teams (das Spiel selbst ist
+// zwangsläufig 2-seitig) - bei einer anderen Teamanzahl (z.B. FFA mit mehr
+// als 2 Personen, oder 2v2v2) wird die Runde übersprungen statt
+// abzustürzen; ein Mehr-Team-Turniersystem dafür wäre ein eigenes, viel
+// größeres Feature.
+function startPartyTicTacToeRound(room, def) {
+  const teamIds = Array.from(room.teams.keys());
+  if (teamIds.length !== 2) {
+    broadcast(room, { type: "ticTacToeSkipped", reason: "Tic Tac Toe braucht genau 2 Teams – diese Runde entfällt." });
+    return finishRoundEngine(room, new Map(teamIds.map(id => [id, 0])));
+  }
+  const [teamA, teamB] = teamIds;
+  const aGetsX = Math.random() < 0.5;
+  room.runtime = {
+    kind: "ticTacToeGame",
+    board: Array(9).fill(null),
+    teamSymbols: { [teamA]: aGetsX ? "X" : "O", [teamB]: aGetsX ? "O" : "X" },
+    turnSymbol: "X",
+    gameOver: false,
+    winnerTeamId: null
+  };
+  broadcastPartyTicTacToe(room);
+}
+
+function broadcastPartyTicTacToe(room) {
+  const rt = room.runtime;
+  broadcast(room, {
+    type: "ticTacToeState",
+    board: rt.board,
+    turnSymbol: rt.turnSymbol,
+    teamSymbols: rt.teamSymbols,
+    gameOver: rt.gameOver,
+    winnerTeamId: rt.winnerTeamId
+  });
+}
+
+function handlePartyTicTacToeMove(room, playerId, index) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "ticTacToeGame" || rt.gameOver) return;
+  const player = room.players.get(playerId);
+  if (!player || !player.teamId) return;
+  const mySymbol = rt.teamSymbols[player.teamId];
+  if (!mySymbol || mySymbol !== rt.turnSymbol) return; // eigenes Team nicht am Zug
+  if (typeof index !== "number" || index < 0 || index > 8 || rt.board[index]) return;
+  rt.board[index] = mySymbol;
+  const winner = tttCheckWinner(rt.board); // dieselbe Funktion wie beim eigenständigen Tic-Tac-Toe-Modus
+  if (winner) {
+    rt.gameOver = true;
+    if (winner !== "draw") {
+      rt.winnerTeamId = Object.keys(rt.teamSymbols).find(tid => rt.teamSymbols[tid] === winner);
+    }
+    broadcastPartyTicTacToe(room);
+    const teamIds = Object.keys(rt.teamSymbols);
+    const points = new Map();
+    if (winner === "draw") teamIds.forEach(tid => points.set(tid, 5));
+    else teamIds.forEach(tid => points.set(tid, rt.teamSymbols[tid] === winner ? 10 : 0));
+    setTimeout(() => finishRoundEngine(room, points), 1800);
+  } else {
+    rt.turnSymbol = rt.turnSymbol === "X" ? "O" : "X";
+    broadcastPartyTicTacToe(room);
+  }
+}
+
 /* ------------------------------------------------------------------------ */
 /* Rundensteuerung                                                           */
 /* ------------------------------------------------------------------------ */
@@ -2351,6 +2424,7 @@ function startNextRound(room) {
     else if (def.kind === "stadtLandFluss") startStadtLandFlussRound(room, def);
     else if (def.kind === "orderingGame") startOrderingSimultaneousRound(room, def);
     else if (def.kind === "nennsBlitz") startNennsBlitzRound(room, def);
+    else if (def.kind === "ticTacToeGame") startPartyTicTacToeRound(room, def);
     else startRankingRound(room, def);
   }, 1800);
 }
@@ -3052,6 +3126,11 @@ wss.on("connection", (ws) => {
           handleOrderingPlace(room, ws.playerId, msg.itemId, msg.insertIndex);
         } else {
           handleRankPlace(room, ws.playerId, msg.itemId, msg.insertIndex);
+        }
+        break;
+      case "ticTacToeMove":
+        if (room.runtime && room.runtime.kind === "ticTacToeGame") {
+          handlePartyTicTacToeMove(room, ws.playerId, msg.index);
         }
         break;
       case "guessSubmit":
