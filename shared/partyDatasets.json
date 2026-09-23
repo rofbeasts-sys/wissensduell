@@ -5240,6 +5240,94 @@
      "year": 2019,
      "genre": "Hip-Hop/Rap",
      "cover": null
+    },
+    {
+     "id": "apache207_fame",
+     "youtubeId": "YPuUpulF1ag",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "FAME",
+     "artist": "Apache 207",
+     "year": 2020,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_brotnachhause",
+     "youtubeId": "KLqoiLuikCI",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Brot nach Hause",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "udolindenberg_apache207_komet",
+     "youtubeId": "0nYDnTTJgFI",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Komet",
+     "artist": "Udo Lindenberg x Apache 207",
+     "year": 2023,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_tilidin",
+     "youtubeId": "bY6059rr7BU",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Tilidin",
+     "artist": "Capital Bra & Samra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "samra_capitalbra_huracan",
+     "youtubeId": "Q5km12ioQmw",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Huracan",
+     "artist": "Samra & Capital Bra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_lea_110",
+     "youtubeId": "dab3fgqboeA",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "110",
+     "artist": "Capital Bra x Samra x LEA",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_wirticken",
+     "youtubeId": "V39cyakHKTw",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Wir ticken",
+     "artist": "Capital Bra & Samra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_nummer1",
+     "youtubeId": "HKa_M9YOs9Y",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Nummer 1",
+     "artist": "Capital Bra x Samra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
     }
    ]
   },

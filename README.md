@@ -2114,6 +2114,47 @@ Grün wird durch eine Niederlage zurückgesetzt); der komplette QuizMix-
 gegen-Bot-Ablauf (Feld antippen → 5 Fragen → Auflösung → zurück zum Brett)
 läuft ohne Fehler durch.
 
+## 8ee. Quantum jetzt auch im Online-Modus
+
+Auf Wunsch: die Raumauswahl beim Online-Modus hat jetzt drei statt zwei
+Optionen – Klassisch, QuizMix und neu **Quantum**. Gleiche Regel wie im
+Bot-Modus: höchstens 3 Symbole je Seite gleichzeitig auf dem Feld, beim
+vierten Zug verschwindet automatisch das eigene älteste. Technisch
+unaufwändig, da Quantum sich strukturell wie Klassisch verhält
+(rundenbasiert, leeres Feld antippen) – der Client brauchte praktisch
+keine Änderung, nur der Server wendet jetzt bei `mode:"quantum"` die
+Verschwinde-Regel auf jeden Zug an (`tttQuantumApplyMove()`, verfolgt die
+Zug-Reihenfolge je Symbol in `room.xPieces`/`room.oPieces`). Rematch
+setzt diese Reihenfolge korrekt zurück.
+
+Mit einem echten Zwei-Client-Test bestätigt: das älteste Symbol
+verschwindet beim vierten Zug korrekt (Feld wieder leer), die beiden
+neueren eigenen Symbole bleiben unverändert erhalten.
+
+## 8ff. QuizMix: Feldauswahl wechselt jetzt strikt ab
+
+Gemeldet: bei QuizMix (Bot UND Online) konnte man jederzeit ein
+beliebiges Feld antippen, egal wer das vorige Duell gewonnen hatte –
+sollte aber wie bei richtigem Tic Tac Toe strikt abwechseln, wer das
+nächste Feld auswählen darf.
+
+**Bot-Modus**: neues `ttqb.turnSymbol` (zufällig, wer beginnt). Ist der
+Bot dran, wählt er jetzt selbstständig ein zufälliges leeres Feld und
+startet das Duell von sich aus (`tttQuizmixBotAutoPick()`), ganz ohne
+Zutun der spielenden Person. Nach jedem Duell wechselt die Wahlberechtigung
+– unabhängig vom Ausgang (Sieg/Niederlage/Unentschieden).
+
+**Online-Modus**: `tttQuizmixTap` prüft jetzt `room.turnSymbol` (dieselbe
+Variable wie beim klassischen Modus), bevor ein Duell gestartet wird –
+die Person, die nicht dran ist, kann kein Feld mehr antippen. Nach jedem
+Duell (`tttFinishDuel`) wechselt `turnSymbol`, ebenfalls unabhängig vom
+Ausgang.
+
+Mit echten Tests bestätigt: Bot-Modus – nach dem ersten (von der Person
+gewählten) Duell wählt der Bot eigenständig ein anderes Feld und startet
+selbst ein neues Duell. Online-Modus – die Person, die nicht am Zug ist,
+kann kein Duell starten; die Person am Zug kann es weiterhin normal.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

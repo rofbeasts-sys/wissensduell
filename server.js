@@ -332,6 +332,19 @@ function tttCheckWinner(board) {
   return null;
 }
 
+// Quantum-Modus: höchstens 3 Symbole je Seite auf dem Feld - beim vierten
+// Zug verschwindet automatisch das jeweils älteste eigene Symbol (gleiche
+// Regel wie im Bot-Quantum-Modus, hier serverseitig für den Online-Modus).
+function tttQuantumApplyMove(room, symbol, index) {
+  const pieces = symbol === "X" ? room.xPieces : room.oPieces;
+  if (pieces.length >= 3) {
+    const removed = pieces.shift();
+    room.board[removed] = null;
+  }
+  pieces.push(index);
+  room.board[index] = symbol;
+}
+
 function tttBroadcastState(room) {
   const playersPublic = room.players.map(p => ({ name: p.name, symbol: p.symbol, connected: p.connected }));
   room.players.forEach(p => {
@@ -428,6 +441,11 @@ function tttFinishDuel(room) {
     room.board[duel.cellIndex] = winnerSymbol;
     const w = tttCheckWinner(room.board);
     if (w) { room.gameOver = true; room.winner = w; }
+  }
+  // Wer das nächste Feld wählen darf, wechselt jetzt IMMER (auf Wunsch),
+  // unabhängig davon, wer das Duell gewonnen hat oder ob es unentschieden war.
+  if (!room.gameOver) {
+    room.turnSymbol = room.turnSymbol === "X" ? "O" : "X";
   }
   broadcast(room, { type: "tttDuelFinished", cellIndex: duel.cellIndex, winnerSymbol, tie: !winnerSymbol });
   room.duel = null;
@@ -2731,8 +2749,9 @@ wss.on("connection", (ws) => {
         turnSymbol: "X",
         gameOver: false,
         winner: null,
-        mode: msg.mode === "quizmix" ? "quizmix" : "classic",
-        duel: null
+        mode: (msg.mode === "quizmix" || msg.mode === "quantum") ? msg.mode : "classic",
+        duel: null,
+        xPieces: [], oPieces: [] // nur für Quantum-Modus genutzt (Zug-Reihenfolge je Symbol)
       };
       tttRooms.set(code, room);
       ws.tttRoomCode = code;
@@ -2757,7 +2776,11 @@ wss.on("connection", (ws) => {
       if (!player || player.symbol !== room.turnSymbol) return; // nicht am Zug
       const i = msg.index;
       if (typeof i !== "number" || i < 0 || i > 8 || room.board[i]) return;
-      room.board[i] = player.symbol;
+      if (room.mode === "quantum") {
+        tttQuantumApplyMove(room, player.symbol, i);
+      } else {
+        room.board[i] = player.symbol;
+      }
       const winner = tttCheckWinner(room.board);
       if (winner) {
         room.gameOver = true;
@@ -2773,6 +2796,8 @@ wss.on("connection", (ws) => {
     if (msg.action === "tttQuizmixTap") {
       const room = tttRooms.get(ws.tttRoomCode);
       if (!room || room.gameOver || room.mode !== "quizmix" || room.duel) return;
+      const player = room.players.find(p => p.ws === ws);
+      if (!player || player.symbol !== room.turnSymbol) return; // nicht am Zug (Feldwahl wechselt strikt ab, unabhängig vom Duell-Ausgang)
       const i = msg.index;
       if (typeof i !== "number" || i < 0 || i > 8 || room.board[i]) return;
       if (room.players.length < 2) return;
@@ -2792,6 +2817,7 @@ wss.on("connection", (ws) => {
       if (!room) return;
       if (room.duel) { clearTimeout(room.duel.timer); room.duel = null; }
       room.board = Array(9).fill(null);
+      room.xPieces = []; room.oPieces = []; // Quantum-Modus: Zug-Reihenfolge zurücksetzen
       room.gameOver = false;
       room.winner = null;
       // Wer beginnt, wird jedes Mal neu zufällig verteilt (nicht einfach

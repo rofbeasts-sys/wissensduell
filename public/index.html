@@ -2257,8 +2257,8 @@ function tttStartMultiplayer(profile){
     <div class="panel">
       <div class="picker-title">TIC TAC TOE – ONLINE-MODUS</div>
       <div class="picker-sub">Modus für einen neuen Raum:</div>
-      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
-        <div class="mode-card ${tttMpSelectedMode==='classic'?'':''}" style="${tttMpSelectedMode==='classic'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='classic'; tttStartMultiplayer(tttOverviewProfile);">
+      <div class="menu-grid" style="grid-template-columns:1fr 1fr 1fr; margin-top:6px;">
+        <div class="mode-card" style="${tttMpSelectedMode==='classic'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='classic'; tttStartMultiplayer(tttOverviewProfile);">
           <div class="icon">⭕</div>
           <h3>Klassisch</h3>
           <p>Ganz normal abwechselnd setzen.</p>
@@ -2267,6 +2267,11 @@ function tttStartMultiplayer(profile){
           <div class="icon">🧠</div>
           <h3>QuizMix</h3>
           <p>Jedes Feld wird per 5-Fragen-Duell erkämpft.</p>
+        </div>
+        <div class="mode-card" style="${tttMpSelectedMode==='quantum'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='quantum'; tttStartMultiplayer(tttOverviewProfile);">
+          <div class="icon">⚡</div>
+          <h3>Quantum</h3>
+          <p>Höchstens 3 Symbole – das älteste verschwindet beim vierten Zug.</p>
         </div>
       </div>
       <div class="actions-row" style="margin:18px 0;">
@@ -2412,11 +2417,11 @@ function renderTttMpGame(){
   if(tttMp.duel && !waiting){ renderTttDuelPopup(); return; }
   const cellClickable = (i) => {
     if(tttMp.board[i] || tttMp.gameOver) return false;
-    return isQuizmix ? true : tttMp.turnSymbol === tttMp.mySymbol;
+    return tttMp.turnSymbol === tttMp.mySymbol;
   };
   renderApp(`
     <div class="panel">
-      <div class="picker-title">TIC TAC TOE – ${isQuizmix ? 'QUIZMIX' : 'ONLINE-MODUS'}</div>
+      <div class="picker-title">TIC TAC TOE – ${isQuizmix ? 'QUIZMIX' : (tttMp.mode==='quantum' ? 'QUANTUM' : 'ONLINE-MODUS')}</div>
       <div class="picker-sub">Raum-Code: <b>${tttMp.roomCode}</b>${tttMp.mySymbol ? ' · Du spielst: '+tttMp.mySymbol : ''}</div>
       ${!waiting && tttMp.rankIndex !== undefined ? `<div class="picker-sub" style="margin-top:4px;">${tttRankPillHtml(tttMp.rankIndex)}</div>` : ``}
       ${waiting ? `
@@ -2601,19 +2606,25 @@ let ttqb = null; // { board:[9], rankIndex, gameOver, winner, resultText, duel:n
 function tttQuizmixBotEntry(profile){
   tttOverviewProfile = profile;
   const rankIndex = Math.min(profile.tttRank||0, TTT_RANKS.length-1);
-  ttqb = { board: Array(9).fill(null), rankIndex, gameOver:false, winner:null, resultText:"", duel:null };
+  // Wer das naechste Feld waehlen darf, wechselt jetzt strikt ab (auf
+  // Wunsch) - unabhaengig davon, wer das vorige Duell gewonnen hat. Start
+  // zufaellig, genau wie bei "wer faengt an" in den anderen Modi.
+  const turnSymbol = Math.random() < 0.5 ? "X" : "O";
+  ttqb = { board: Array(9).fill(null), rankIndex, gameOver:false, winner:null, resultText:"", duel:null, turnSymbol };
   renderTtqbGame();
+  if(turnSymbol === "O") setTimeout(tttQuizmixBotAutoPick, 600);
 }
 
 function renderTtqbGame(){
   if(ttqb.duel){ renderTtqbDuelPopup(); return; }
+  const myTurn = ttqb.turnSymbol === "X";
   renderApp(`
     <div class="panel">
       <div class="picker-title">QUIZMIX GEGEN BOT</div>
-      <div class="picker-sub">${tttRankPillHtml(ttqb.rankIndex)} · Tippe auf ein leeres Feld, um es per Wissensduell zu erkämpfen.</div>
+      <div class="picker-sub">${tttRankPillHtml(ttqb.rankIndex)} · ${ttqb.gameOver ? '' : (myTurn ? 'Du bist dran – tippe auf ein leeres Feld.' : 'Der Bot wählt gerade ein Feld …')}</div>
       <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttqb.board.map((c,i) => `
-          <div onclick="tttQuizmixBotTap(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !ttqb.gameOver)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+          <div onclick="tttQuizmixBotTap(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !ttqb.gameOver && myTurn)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
         `).join("")}
       </div>
       ${ttqb.gameOver ? `
@@ -2626,8 +2637,24 @@ function renderTtqbGame(){
   `);
 }
 
+// Wenn der Bot dran ist, das naechste Feld auszuwaehlen (nicht die Person),
+// sucht er sich selbst eins aus (einfach zufaellig unter den leeren
+// Feldern - die eigentliche "Herausforderung" liegt im Quiz, nicht in der
+// Feldwahl) und startet das Duell selbststaendig.
+function tttQuizmixBotAutoPick(){
+  if(!ttqb || ttqb.gameOver || ttqb.turnSymbol !== "O" || ttqb.duel) return;
+  const empty = ttqb.board.map((c,i)=>c?null:i).filter(i=>i!==null);
+  if(empty.length === 0) return;
+  const i = empty[Math.floor(Math.random()*empty.length)];
+  tttQuizmixBotTap(i);
+}
+
 async function tttQuizmixBotTap(i){
   if(!ttqb || ttqb.gameOver || ttqb.board[i] || ttqb.duel) return;
+  if(ttqb.turnSymbol !== "X" && ttqb.turnSymbol !== "O") return; // Sicherheitsnetz
+  // Wenn die Person antippt, muss sie auch dran sein (der Bot ruft diese
+  // Funktion bei sich selbst intern ueber tttQuizmixBotAutoPick auf, das
+  // ist erlaubt).
   ttqb.duel = { cellIndex:i, qIndex:0, qTotal:5, questions:null, scores:{X:0,O:0}, answered:false, reveal:null };
   renderTtqbGame(); // zeigt kurz "lädt" (leeres duel.questions faengt renderTtqbDuelPopup ab)
   const result = await apiCall("/api/random-quiz-questions", { count: 5 });
@@ -2711,6 +2738,12 @@ function tttQuizmixBotFinishDuel(){
     }
   }
   ttqb.duel = null;
+  // Wer das naechste Feld waehlen darf, wechselt jetzt IMMER (auf Wunsch),
+  // egal wer das Duell gewonnen hat oder ob es unentschieden war.
+  if(!ttqb.gameOver){
+    ttqb.turnSymbol = ttqb.turnSymbol === "X" ? "O" : "X";
+    if(ttqb.turnSymbol === "O") setTimeout(tttQuizmixBotAutoPick, 600);
+  }
   renderTtqbGame();
 }
 
