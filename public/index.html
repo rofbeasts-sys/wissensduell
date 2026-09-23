@@ -1454,6 +1454,18 @@ function pickKlasseTestQuestions(klasseIndex){
   }
   return pool.slice(0, test.questions);
 }
+// Haupttest: ALLE Fragen der Klasse (nicht nur eine Teilmenge wie beim
+// Übungstest), nur gemischt, nichts abgeschnitten.
+function pickKlasseHaupttestQuestions(klasseIndex){
+  let klasseNum = Math.min(klasseIndex, KLASSEN.length-1) + 1;
+  while(klasseNum > 1 && !(KLASSE_QUESTIONS[klasseNum] && KLASSE_QUESTIONS[klasseNum].length)) klasseNum--;
+  const pool = (KLASSE_QUESTIONS[klasseNum] || []).slice();
+  for(let i=pool.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [pool[i],pool[j]] = [pool[j],pool[i]];
+  }
+  return pool;
+}
 
 const RANKS = [
   {name:"Nicht gelistet", min:0,     max:999,     cls:"rank-none"},
@@ -1534,7 +1546,8 @@ const MODE_STAT_DEFS = [
   { key:"chronology",  label:"Chronologie",       tracksCorrect:true },
   { key:"higherlower", label:"Mehr oder Weniger",  tracksCorrect:true },
   { key:"music",       label:"Musik raten",       tracksCorrect:false },
-  { key:"picture",     label:"Bild erraten",      tracksCorrect:false }
+  { key:"picture",     label:"Bild erraten",      tracksCorrect:false },
+  { key:"speedmath",   label:"Speed Math",        tracksCorrect:true }
 ];
 function freshModeStats(){
   const s = {};
@@ -1546,6 +1559,7 @@ function createProfile(name){
   const p = { id:"p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     name: name.trim(), score:0, tier:0, klasse:0, consecutiveFails:0, roundsPlayed:0, wins:0, losses:0,
     correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0, tttWinsAtRank:0,
+    haupttestUnlockedForKlasse:-1,
     modeStats: freshModeStats() };
   profiles.push(p);
   saveProfiles();
@@ -1645,6 +1659,7 @@ function accountAsProfile(){
     id: "account:" + p.username, name: p.username,
     score: p.score, tier: p.tier || 0, klasse: p.klasse || 0, consecutiveFails: p.consecutiveFails || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
     correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore, tttRank: p.tttRank || 0, tttWinsAtRank: p.tttWinsAtRank || 0,
+    haupttestUnlockedForKlasse: typeof p.haupttestUnlockedForKlasse === "number" ? p.haupttestUnlockedForKlasse : -1,
     modeStats: p.modeStats || freshModeStats(),
     isAccount: true
   };
@@ -1657,6 +1672,7 @@ async function syncAccountStats(profile){
     stats: {
       score: profile.score, tier: profile.tier, klasse: profile.klasse, consecutiveFails: profile.consecutiveFails, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
       correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank, tttWinsAtRank: profile.tttWinsAtRank,
+      haupttestUnlockedForKlasse: profile.haupttestUnlockedForKlasse,
       modeStats: profile.modeStats
     }
   });
@@ -2079,6 +2095,11 @@ function renderMainMenu(){
       ${dedicatedCard('higherlower')}
       ${dedicatedCard('blitz')}
       ${dedicatedCard('music')}
+      <div class="mode-card" onclick="startSpeedMathFlow()">
+        <div class="icon">🧮</div>
+        <h3>Speed Math</h3>
+        <p>Kopfrechnen gegen die Uhr – wie viele schaffst du?</p>
+      </div>
     </div>
 
     <div class="menu-section-title">Mini Games</div>
@@ -2228,6 +2249,176 @@ function startSoloMenu(){
    bleibt gleich, kein Abstieg.
    ============================================================================ */
 let ttt = null; // { profile, board:[9], playerTurn, rankIndex, gameOver }
+
+/* ============================================================================
+   SPEED MATH - Kopfrechnen gegen die Uhr: Plus, Minus, Mal, Geteilt, alle
+   Zahlen im Bereich des kleinen Einmaleins (1-10). Rein clientseitig, kein
+   Server nötig (ähnlich wie Tic Tac Toe gegen Bot) - man tippt die Antwort
+   ein statt aus Optionen zu wählen, das fühlt sich beim Kopfrechnen
+   natürlicher/schneller an als eine Multiple-Choice-Auswahl.
+   ============================================================================ */
+let speedMath = null; // { profile, durationSec, remaining, correct, wrong, current:{a,b,op,answer}, timerId }
+let speedMathProfile = null;
+const SPEEDMATH_DURATIONS = [
+  {label:"1 Minute", sec:60},
+  {label:"2 Minuten", sec:120},
+  {label:"3 Minuten", sec:180},
+  {label:"5 Minuten", sec:300}
+];
+
+function startSpeedMathFlow(){
+  if(account){ renderSpeedMathEntry(accountAsProfile()); return; }
+  if(profiles.length > 0){
+    const lastId = localStorage.getItem(LAST_PROFILE_KEY);
+    const profile = profiles.find(p => p.id === lastId) || profiles[0];
+    renderSpeedMathEntry(profile);
+    return;
+  }
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], renderSpeedMathEntry, "renderMainMenu");
+}
+
+function renderSpeedMathEntry(profile){
+  if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
+  speedMathProfile = profile;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">SPEED MATH</div>
+      <div class="picker-sub">${profile.name} – Plus, Minus, Mal, Geteilt, Zahlen bis zum kleinen Einmaleins (1-10). Wie viele schaffst du?</div>
+      <div class="picker-sub" style="margin-top:14px;">Wie lange möchtest du spielen?</div>
+      <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
+        ${SPEEDMATH_DURATIONS.map(d => `<button class="btn btn-primary btn-block" onclick="startSpeedMathGame(${d.sec})">${d.label}</button>`).join("")}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="renderMainMenu()">${t('btn_back')}</button>
+    </div>
+  `);
+}
+
+// Erzeugt eine zufällige Aufgabe. Division wird bewusst "rückwärts"
+// konstruiert (Divisor × Ergebnis = Dividend), damit sie immer sauber
+// aufgeht (keine Kommazahlen). Subtraktion tauscht bei Bedarf die Zahlen,
+// damit nie ein negatives Ergebnis herauskommt (grundschulfreundlich).
+function speedMathGenerateProblem(){
+  const ops = ["+","-","×","÷"];
+  const op = ops[Math.floor(Math.random()*ops.length)];
+  let a, b, answer;
+  if(op === "+"){
+    a = 1+Math.floor(Math.random()*10); b = 1+Math.floor(Math.random()*10);
+    answer = a+b;
+  } else if(op === "-"){
+    a = 1+Math.floor(Math.random()*10); b = 1+Math.floor(Math.random()*10);
+    if(b>a){ const t=a; a=b; b=t; }
+    answer = a-b;
+  } else if(op === "×"){
+    a = 1+Math.floor(Math.random()*10); b = 1+Math.floor(Math.random()*10);
+    answer = a*b;
+  } else {
+    b = 1+Math.floor(Math.random()*10);
+    answer = 1+Math.floor(Math.random()*10);
+    a = b*answer;
+  }
+  return {a,b,op,answer};
+}
+
+function startSpeedMathGame(durationSec){
+  speedMath = {
+    profile: speedMathProfile,
+    durationSec,
+    remaining: durationSec,
+    correct: 0, wrong: 0,
+    current: speedMathGenerateProblem(),
+    timerId: null
+  };
+  renderSpeedMathGame();
+  clearInterval(speedMath.timerId);
+  speedMath.timerId = setInterval(() => {
+    speedMath.remaining -= 0.1;
+    if(speedMath.remaining <= 0){
+      speedMath.remaining = 0;
+      clearInterval(speedMath.timerId);
+      finishSpeedMath();
+    } else {
+      updateSpeedMathTimerUI();
+    }
+  }, 100);
+}
+
+function renderSpeedMathGame(){
+  const c = speedMath.current;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">SPEED MATH</div>
+      <div class="picker-sub" style="text-align:center;">✓ ${speedMath.correct} richtig · ✕ ${speedMath.wrong} falsch</div>
+      <div class="timer-wrap" style="margin:10px 0;">
+        <div class="timer-bar"><div id="speedMathTimerFill" class="timer-fill" style="width:${Math.max(0,(speedMath.remaining/speedMath.durationSec)*100)}%"></div></div>
+        <div id="speedMathTimerNum" class="timer-num">${Math.ceil(speedMath.remaining)}s</div>
+      </div>
+      <div class="question-text" style="text-align:center; font-size:40px; font-weight:800; margin:24px 0;">${c.a} ${c.op} ${c.b} = ?</div>
+      <div class="picker-form">
+        <input type="number" id="speedMathInput" class="builder-search" style="text-align:center; font-size:24px;" onkeydown="if(event.key==='Enter'){event.preventDefault();speedMathSubmit();}">
+        <button class="btn btn-primary" onclick="speedMathSubmit()">✓</button>
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="exitSpeedMath()">${t('btn_back')}</button>
+    </div>
+  `);
+  const input = document.getElementById("speedMathInput");
+  if(input) input.focus();
+}
+
+function updateSpeedMathTimerUI(){
+  const fill = document.getElementById("speedMathTimerFill");
+  const num = document.getElementById("speedMathTimerNum");
+  if(!fill || !num) return;
+  const pct = Math.max(0, (speedMath.remaining/speedMath.durationSec)*100);
+  fill.style.width = pct + "%";
+  fill.classList.toggle("warn", pct < 20);
+  num.textContent = Math.ceil(speedMath.remaining) + "s";
+}
+
+function speedMathSubmit(){
+  if(!speedMath || speedMath.remaining <= 0) return;
+  const input = document.getElementById("speedMathInput");
+  const val = input ? parseInt(input.value, 10) : NaN;
+  if(val === speedMath.current.answer) speedMath.correct++; else speedMath.wrong++;
+  speedMath.current = speedMathGenerateProblem();
+  renderSpeedMathGame();
+}
+
+function exitSpeedMath(){
+  if(speedMath){ clearInterval(speedMath.timerId); speedMath = null; }
+  renderMainMenu();
+}
+
+function finishSpeedMath(){
+  const profile = speedMath.profile;
+  const total = speedMath.correct + speedMath.wrong;
+  const durationSec = speedMath.durationSec;
+  profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
+  profile.correctAnswers = (profile.correctAnswers||0) + speedMath.correct;
+  profile.wrongAnswers = (profile.wrongAnswers||0) + speedMath.wrong;
+  if(!profile.modeStats) profile.modeStats = freshModeStats();
+  const entry = profile.modeStats.speedmath || {played:0, correct:0};
+  entry.played = (entry.played||0) + 1;
+  entry.correct = (entry.correct||0) + speedMath.correct;
+  profile.modeStats.speedmath = entry;
+  if(profile.isAccount) syncAccountStats(profile);
+  else saveProfiles();
+
+  renderApp(`
+    <div class="panel">
+      <div class="result-title">ZEIT UM!</div>
+      <div class="result-grid" style="margin-top:14px;">
+        <div class="result-item pos"><div class="n">${speedMath.correct}</div><div class="l">Richtig gelöst</div></div>
+        <div class="result-item neg"><div class="n">${speedMath.wrong}</div><div class="l">Falsch</div></div>
+        <div class="result-item" style="grid-column: span 2;"><div class="n">${total}</div><div class="l">Aufgaben insgesamt</div></div>
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-primary" onclick="startSpeedMathGame(${durationSec})">NOCHMAL</button>
+        <button class="btn btn-ghost" onclick="renderMainMenu()">HAUPTMENÜ</button>
+      </div>
+    </div>
+  `);
+  speedMath = null;
+}
 
 function startTicTacToeFlow(){
   renderApp(`
@@ -2443,14 +2634,14 @@ function tttMpHandleMessage(msg){
     return;
   }
   if(msg.type === "tttDuelQuestion"){
-    tttMp.duel = { cellIndex: msg.cellIndex, qIndex: msg.qIndex, qTotal: msg.qTotal, question: msg.question, options: msg.options, answered: false, reveal: null };
+    tttMp.duel = { cellIndex: msg.cellIndex, qIndex: msg.qIndex, qTotal: msg.qTotal, duelType: msg.duelType, question: msg.question, options: msg.options, mathA: msg.mathA, mathB: msg.mathB, mathOp: msg.mathOp, answered: false, reveal: null };
     tttMpStartDuelTimer(msg.durationMs);
     renderTttMpGame();
     return;
   }
   if(msg.type === "tttDuelReveal"){
     if(tttMp.duelTickerId) clearInterval(tttMp.duelTickerId);
-    if(tttMp.duel) tttMp.duel.reveal = { correctIndex: msg.correctIndex, explanation: msg.explanation, results: msg.results, scores: msg.scores };
+    if(tttMp.duel) tttMp.duel.reveal = { correctIndex: msg.correctIndex, correctAnswer: msg.correctAnswer, explanation: msg.explanation, results: msg.results, scores: msg.scores };
     renderTttMpGame();
     return;
   }
@@ -2518,32 +2709,52 @@ function renderTttMpGame(){
 
 function renderTttDuelPopup(){
   const d = tttMp.duel;
+  const isMath = d.duelType === "math";
   renderApp(`
     <div class="panel">
-      <div class="picker-title">⚔️ DUELL UM DAS FELD</div>
-      <div class="picker-sub">Frage ${d.qIndex+1} von ${d.qTotal}${!d.reveal ? ' · <span id="tttDuelTimer">'+Math.ceil((tttMp.duelTimeLeft||0)/1000)+'s</span>' : ''}</div>
-      <p style="font-weight:700; font-size:17px; margin-top:14px;">${d.question}</p>
-      <div class="picker-form" style="flex-direction:column; gap:8px; margin-top:10px;">
-        ${d.options.map((opt,i) => {
-          let style = "";
-          if(d.reveal){
-            if(i === d.reveal.correctIndex) style = "border-color:var(--accent-2); background:rgba(0,255,150,0.08);";
-            else style = "opacity:.6;";
-          } else if(d.answered){
-            style = "opacity:.6;";
-          }
-          return `<button class="btn ${d.answered||d.reveal ? 'btn-ghost' : 'btn-primary'} btn-block" style="${style}" onclick="tttMpDuelAnswer(${i})" ${d.answered||d.reveal ? 'disabled' : ''}>${opt}</button>`;
-        }).join("")}
-      </div>
+      <div class="picker-title">⚔️ DUELL UM DAS FELD${isMath ? ' – SPEED MATH' : ''}</div>
+      <div class="picker-sub">${isMath?'Aufgabe':'Frage'} ${d.qIndex+1} von ${d.qTotal}${!d.reveal ? ' · <span id="tttDuelTimer">'+Math.ceil((tttMp.duelTimeLeft||0)/1000)+'s</span>' : ''}</div>
+      ${isMath ? `
+        <div class="question-text" style="text-align:center; font-size:36px; font-weight:800; margin:20px 0;">${d.mathA} ${d.mathOp} ${d.mathB} = ?</div>
+        <div class="picker-form">
+          <input type="number" id="tttDuelMathInput" class="builder-search" style="text-align:center; font-size:22px;" ${d.answered||d.reveal?'disabled':''} onkeydown="if(event.key==='Enter'){event.preventDefault();tttMpMathAnswer();}">
+          <button class="btn btn-primary" onclick="tttMpMathAnswer()" ${d.answered||d.reveal?'disabled':''}>✓</button>
+        </div>
+      ` : `
+        <p style="font-weight:700; font-size:17px; margin-top:14px;">${d.question}</p>
+        <div class="picker-form" style="flex-direction:column; gap:8px; margin-top:10px;">
+          ${d.options.map((opt,i) => {
+            let style = "";
+            if(d.reveal){
+              if(i === d.reveal.correctIndex) style = "border-color:var(--accent-2); background:rgba(0,255,150,0.08);";
+              else style = "opacity:.6;";
+            } else if(d.answered){
+              style = "opacity:.6;";
+            }
+            return `<button class="btn ${d.answered||d.reveal ? 'btn-ghost' : 'btn-primary'} btn-block" style="${style}" onclick="tttMpDuelAnswer(${i})" ${d.answered||d.reveal ? 'disabled' : ''}>${opt}</button>`;
+          }).join("")}
+        </div>
+      `}
       ${d.answered && !d.reveal ? `<div class="explanation" style="margin-top:12px; text-align:center;">Warte auf die andere Person …</div>` : ``}
       ${d.reveal ? `
         <div class="explanation" style="margin-top:12px;">
+          ${isMath && d.reveal.correctAnswer !== null && d.reveal.correctAnswer !== undefined ? `<p>Richtige Antwort: <b>${d.reveal.correctAnswer}</b></p>` : ``}
           ${Object.entries(d.reveal.results).map(([sym,r]) => `<div>${sym}: ${r.correct ? '✓ richtig' : '✕ falsch'}</div>`).join("")}
           ${d.reveal.explanation ? `<p style="margin-top:6px; color:var(--text-dim);">${d.reveal.explanation}</p>` : ``}
         </div>
       ` : ``}
     </div>
   `);
+  if(isMath && !d.answered && !d.reveal){ const inp = document.getElementById("tttDuelMathInput"); if(inp) inp.focus(); }
+}
+function tttMpMathAnswer(){
+  const d = tttMp.duel;
+  if(!d || d.answered || d.reveal) return;
+  const input = document.getElementById("tttDuelMathInput");
+  const val = input ? parseInt(input.value, 10) : NaN;
+  d.answered = true;
+  tttMp.ws.send(JSON.stringify({action:"tttDuelAnswer", mathAnswer: val}));
+  renderTttDuelPopup();
 }
 
 function tttQuizmixTap(i){
@@ -2724,8 +2935,19 @@ async function tttQuizmixBotTap(i){
   // Wenn die Person antippt, muss sie auch dran sein (der Bot ruft diese
   // Funktion bei sich selbst intern ueber tttQuizmixBotAutoPick auf, das
   // ist erlaubt).
-  ttqb.duel = { cellIndex:i, qIndex:0, qTotal:5, questions:null, scores:{X:0,O:0}, answered:false, reveal:null };
+  // Auf Wunsch: der Duell-Typ wird pro Feld zufaellig zwischen Wissenstest
+  // und Speed Math gemischt, statt immer nur Wissenstest zu sein.
+  const duelType = Math.random() < 0.5 ? "quiz" : "math";
+  ttqb.duel = { cellIndex:i, qIndex:0, qTotal:5, questions:null, scores:{X:0,O:0}, answered:false, reveal:null, type: duelType };
   renderTtqbGame(); // zeigt kurz "lädt" (leeres duel.questions faengt renderTtqbDuelPopup ab)
+  if(duelType === "math"){
+    ttqb.duel.questions = Array.from({length:5}, () => speedMathGenerateProblem());
+    // Bot "kann rechnen" mit einer an den Rang gekoppelten Wahrscheinlichkeit,
+    // genau wie beim Wissen simuliert, kein echtes Rechnen dahinter.
+    ttqb.duel.botCorrectness = ttqb.duel.questions.map(() => Math.random() < TTT_RANKS[ttqb.rankIndex].difficulty);
+    renderTtqbGame();
+    return;
+  }
   const result = await apiCall("/api/random-quiz-questions", { count: 5 });
   if(!result.ok || !ttqb || !ttqb.duel){ if(ttqb) ttqb.duel = null; renderTtqbGame(); return; }
   ttqb.duel.questions = result.questions;
@@ -2738,42 +2960,67 @@ async function tttQuizmixBotTap(i){
 function renderTtqbDuelPopup(){
   const d = ttqb.duel;
   if(!d.questions){
-    renderApp(`<div class="panel"><div class="picker-title">⚔️ DUELL UM DAS FELD</div><div class="explanation" style="margin-top:14px;">Fragen werden geladen …</div></div>`);
+    renderApp(`<div class="panel"><div class="picker-title">⚔️ DUELL UM DAS FELD</div><div class="explanation" style="margin-top:14px;">${d.type==='math'?'Aufgaben werden vorbereitet':'Fragen werden geladen'} …</div></div>`);
     return;
   }
   const q = d.questions[d.qIndex];
+  const isMath = d.type === "math";
   renderApp(`
     <div class="panel">
-      <div class="picker-title">⚔️ DUELL UM DAS FELD</div>
-      <div class="picker-sub">Frage ${d.qIndex+1} von ${d.qTotal}</div>
-      <p style="font-weight:700; font-size:17px; margin-top:14px;">${q.q}</p>
-      <div class="picker-form" style="flex-direction:column; gap:8px; margin-top:10px;">
-        ${q.a.map((opt,i) => {
-          let style = "";
-          if(d.reveal){
-            if(i === q.c) style = "border-color:var(--accent-2); background:rgba(0,255,150,0.08);";
-            else style = "opacity:.6;";
-          } else if(d.answered){ style = "opacity:.6;"; }
-          return `<button class="btn ${d.answered||d.reveal ? 'btn-ghost' : 'btn-primary'} btn-block" style="${style}" onclick="tttQuizmixBotAnswer(${i})" ${d.answered||d.reveal ? 'disabled' : ''}>${opt}</button>`;
-        }).join("")}
-      </div>
+      <div class="picker-title">⚔️ DUELL UM DAS FELD${isMath ? ' – SPEED MATH' : ''}</div>
+      <div class="picker-sub">${isMath?'Aufgabe':'Frage'} ${d.qIndex+1} von ${d.qTotal}</div>
+      ${isMath ? `
+        <div class="question-text" style="text-align:center; font-size:36px; font-weight:800; margin:20px 0;">${q.a} ${q.op} ${q.b} = ?</div>
+        <div class="picker-form">
+          <input type="number" id="ttqbMathInput" class="builder-search" style="text-align:center; font-size:22px;" ${d.answered||d.reveal?'disabled':''} onkeydown="if(event.key==='Enter'){event.preventDefault();tttQuizmixBotMathAnswer();}">
+          <button class="btn btn-primary" onclick="tttQuizmixBotMathAnswer()" ${d.answered||d.reveal?'disabled':''}>✓</button>
+        </div>
+      ` : `
+        <p style="font-weight:700; font-size:17px; margin-top:14px;">${q.q}</p>
+        <div class="picker-form" style="flex-direction:column; gap:8px; margin-top:10px;">
+          ${q.a.map((opt,i) => {
+            let style = "";
+            if(d.reveal){
+              if(i === q.c) style = "border-color:var(--accent-2); background:rgba(0,255,150,0.08);";
+              else style = "opacity:.6;";
+            } else if(d.answered){ style = "opacity:.6;"; }
+            return `<button class="btn ${d.answered||d.reveal ? 'btn-ghost' : 'btn-primary'} btn-block" style="${style}" onclick="tttQuizmixBotAnswer(${i})" ${d.answered||d.reveal ? 'disabled' : ''}>${opt}</button>`;
+          }).join("")}
+        </div>
+      `}
       ${d.reveal ? `
         <div class="explanation" style="margin-top:12px;">
-          <div>Du: ${d.reveal.playerCorrect ? '✓ richtig' : '✕ falsch'}</div>
+          <div>Du: ${d.reveal.playerCorrect ? '✓ richtig' : '✕ falsch'}${isMath && !d.reveal.playerCorrect ? ' (richtig wäre '+q.answer+')' : ''}</div>
           <div>Bot: ${d.reveal.botCorrect ? '✓ richtig' : '✕ falsch'}</div>
-          ${q.e ? `<p style="margin-top:6px; color:var(--text-dim);">${q.e}</p>` : ``}
+          ${!isMath && q.e ? `<p style="margin-top:6px; color:var(--text-dim);">${q.e}</p>` : ``}
         </div>
       ` : ``}
     </div>
   `);
+  if(isMath && !d.answered && !d.reveal){ const inp = document.getElementById("ttqbMathInput"); if(inp) inp.focus(); }
+}
+
+function tttQuizmixBotMathAnswer(){
+  const d = ttqb.duel;
+  if(!d || d.answered || d.reveal) return;
+  const input = document.getElementById("ttqbMathInput");
+  const val = input ? parseInt(input.value, 10) : NaN;
+  const q = d.questions[d.qIndex];
+  tttQuizmixBotResolveAnswer(val === q.answer);
 }
 
 function tttQuizmixBotAnswer(i){
   const d = ttqb.duel;
   if(!d || d.answered || d.reveal) return;
-  d.answered = true;
   const q = d.questions[d.qIndex];
-  const playerCorrect = i === q.c;
+  tttQuizmixBotResolveAnswer(i === q.c);
+}
+// Gemeinsame Logik fuer beide Duell-Typen (Wissenstest per Index-Vergleich,
+// Speed Math per Zahlen-Vergleich) - nimmt nur noch das fertige
+// richtig/falsch-Ergebnis entgegen.
+function tttQuizmixBotResolveAnswer(playerCorrect){
+  const d = ttqb.duel;
+  d.answered = true;
   const botCorrect = d.botCorrectness[d.qIndex];
   if(playerCorrect) d.scores.X++;
   if(botCorrect) d.scores.O++;
@@ -3044,6 +3291,7 @@ function renderKlassenOverview(profile){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
   klassenOverviewProfile = profile;
   const currentIdx = Math.min(profile.klasse || 0, KLASSEN.length - 1);
+  const haupttestReady = (profile.haupttestUnlockedForKlasse ?? -1) === currentIdx;
   renderApp(`
     <div class="panel">
       <div class="picker-title">BRAIN TEST</div>
@@ -3062,27 +3310,38 @@ function renderKlassenOverview(profile){
           </div>
         `;}).join("")}
       </div>
-      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile)">${currentIdx===0 && !profile.klasse ? 'ERSTEN TEST STARTEN' : 'WEITER ZUM AKTUELLEN TEST'}</button>
+      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, false)">${currentIdx===0 && !profile.klasse ? 'ÜBUNGSTEST STARTEN' : 'ÜBUNGSTEST FORTSETZEN'}</button>
+      ${haupttestReady ? `
+        <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true)">🔓 HAUPTTEST STARTEN (alle 50 Fragen)</button>
+      ` : `
+        <p class="picker-sub" style="text-align:center; margin-top:10px;">Ab 80% im Übungstest schaltet sich der Haupttest für ${KLASSEN[currentIdx].name} frei – der zählt für den Klassenaufstieg.</p>
+      `}
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
 }
 
-function beginSolo(profile){
+function beginSolo(profile, isHaupttest){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
   const klasseIndex = Math.min(profile.klasse || 0, KLASSE_TESTS.length - 1);
   const test = KLASSE_TESTS[klasseIndex];
-  const questions = pickKlasseTestQuestions(klasseIndex);
   const currentKlasse = KLASSEN[klasseIndex] || KLASSEN[0];
   const nextKlasse = KLASSEN[klasseIndex + 1];
+  // Haupttest: ALLE Fragen der Klasse (immer 50), 90s pro Frage, 80% nötig,
+  // läuft immer komplett durch (kein vorzeitiges Ende). Übungstest bleibt
+  // wie bisher: eine zufällige Teilmenge, kürzeres Zeitlimit, endet
+  // vorzeitig sobald bestehen/durchfallen feststeht.
+  const questions = isHaupttest ? pickKlasseHaupttestQuestions(klasseIndex) : pickKlasseTestQuestions(klasseIndex);
+  const testNeeded = isHaupttest ? Math.ceil(questions.length * 0.8) : test.needed;
   solo = {
     profile,
     startScore: profile.score,
     startTier: klasseIndex,
     questions,
     qIndex: 0,
-    timeLimit: getTimeLimit(profile.score),
-    testNeeded: test.needed,
+    timeLimit: isHaupttest ? 90 : getTimeLimit(profile.score),
+    testNeeded,
+    isHaupttest: !!isHaupttest,
     correct: 0, wrong: 0,
     timerId: null, remaining: 0, answered: false
   };
@@ -3091,7 +3350,11 @@ function beginSolo(profile){
     <div class="panel pass-card">
       <div class="avatar-big" style="background:${avatarColor(profile.name)}">${initials(profile.name)}</div>
       <h2>${profile.name}</h2>
-      <p>Aufstiegstest ${currentKlasse.name}${nextKlasse ? ' → '+nextKlasse.name : ''}: ${questions.length} Fragen · mindestens ${test.needed} richtig · ${solo.timeLimit}s pro Frage</p>
+      ${isHaupttest ? `
+        <p>Haupttest ${currentKlasse.name}${nextKlasse ? ' → '+nextKlasse.name : ''}: alle ${questions.length} Fragen dieser Klasse · mindestens ${testNeeded} richtig · ${solo.timeLimit}s pro Frage · läuft komplett durch, egal wie es steht</p>
+      ` : `
+        <p>Übungstest ${currentKlasse.name}: ${questions.length} Fragen · mindestens ${testNeeded} richtig · ${solo.timeLimit}s pro Frage</p>
+      `}
       <button class="btn btn-primary" onclick="renderSoloQuestion()">LOS GEHT'S</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
@@ -3108,6 +3371,7 @@ function renderSoloQuestion(){
         <div class="qcount">Frage ${solo.qIndex+1} von ${solo.questions.length}</div>
         <div class="qcat">${q.cat}</div>
       </div>
+      <div class="picker-sub" style="text-align:center; margin:-4px 0 8px;">✓ ${solo.correct} richtig · ✕ ${solo.wrong} falsch</div>
       <div class="timer-wrap">
         <div class="timer-bar"><div id="timerFill" class="timer-fill" style="width:100%"></div></div>
         <div id="timerNum" class="timer-num">${solo.timeLimit}s</div>
@@ -3186,9 +3450,15 @@ function handleSoloAnswer(selectedIdx){
   // Test vorzeitig entschieden? Bestehen ist bereits sicher (genug richtig)
   // oder unmöglich geworden (selbst mit allen verbleibenden richtig nicht
   // mehr genug) -> keinen Sinn, die restlichen Fragen noch abzufragen.
-  const remaining = solo.questions.length - (solo.qIndex + 1);
-  const maxPossibleCorrect = solo.correct + remaining;
-  solo.decided = (solo.correct >= solo.testNeeded) || (maxPossibleCorrect < solo.testNeeded);
+  // Beim Haupttest bewusst NICHT: der muss immer komplett durchlaufen
+  // werden, auch wenn Bestehen/Durchfallen schon feststeht.
+  if(solo.isHaupttest){
+    solo.decided = false;
+  } else {
+    const remaining = solo.questions.length - (solo.qIndex + 1);
+    const maxPossibleCorrect = solo.correct + remaining;
+    solo.decided = (solo.correct >= solo.testNeeded) || (maxPossibleCorrect < solo.testNeeded);
+  }
 
   const nextBtn = document.getElementById("soloNextBtn");
   nextBtn.classList.remove("hidden");
@@ -3202,52 +3472,67 @@ function soloNextQuestion(){
 }
 
 function endSoloRound(){
-  const promoted = solo.correct >= solo.testNeeded;
-  if(promoted){
-    solo.profile.consecutiveFails = 0;
-    if(KLASSEN[solo.startTier + 1]) solo.profile.klasse = solo.startTier + 1;
-  } else {
-    solo.profile.consecutiveFails = (solo.profile.consecutiveFails || 0) + 1;
-    if(solo.profile.consecutiveFails >= 2 && solo.startTier > 0){
-      // Zweimal hintereinander an derselben Klasse gescheitert -> eine Klasse zurück.
-      solo.profile.klasse = solo.startTier - 1;
+  const passed = solo.correct >= solo.testNeeded;
+  const rankBefore = KLASSEN[solo.startTier] || KLASSEN[0];
+  let justUnlockedHaupttest = false;
+
+  if(solo.isHaupttest){
+    if(passed){
       solo.profile.consecutiveFails = 0;
+      if(KLASSEN[solo.startTier + 1]) solo.profile.klasse = solo.startTier + 1;
+      // Für die neue Klasse muss der Haupttest erst wieder über den
+      // Übungstest freigeschaltet werden.
+      solo.profile.haupttestUnlockedForKlasse = -1;
     }
+    // Bei Nichtbestehen: keine Rückstufung mehr, der Haupttest bleibt
+    // einfach frei wiederholbar (auf Wunsch - "egal in welcher Klasse er
+    // ist" - kein Fehlversuchs-Zähler mehr, der zur Rückstufung führt).
+  } else if(passed && solo.profile.haupttestUnlockedForKlasse !== solo.startTier){
+    // Übungstest: KEINE Klassen-Änderung mehr - ab 80% schaltet sich
+    // stattdessen der Haupttest für diese Klasse frei.
+    solo.profile.haupttestUnlockedForKlasse = solo.startTier;
+    justUnlockedHaupttest = true;
   }
 
-  const roundWon = promoted;
+  const rankAfter = KLASSEN[solo.profile.klasse || 0] || KLASSEN[0];
+  const rankChanged = rankBefore.name !== rankAfter.name;
+
   solo.profile.roundsPlayed++;
   solo.profile.correctAnswers += solo.correct;
   solo.profile.wrongAnswers += solo.wrong;
-  if(roundWon) solo.profile.wins++; else solo.profile.losses++;
+  if(passed) solo.profile.wins++; else solo.profile.losses++;
   if(solo.profile.isAccount) syncAccountStats(solo.profile);
   else saveProfiles();
 
-  const rankBefore = KLASSEN[solo.startTier] || KLASSEN[0];
-  const rankAfter = KLASSEN[solo.profile.klasse || 0] || KLASSEN[0];
-  const rankChanged = rankBefore.name !== rankAfter.name;
-  const nextTest = KLASSE_TESTS[Math.min(solo.profile.klasse || 0, KLASSE_TESTS.length-1)];
-  const nextRank = KLASSEN[(solo.profile.klasse || 0) + 1];
+  const canOfferHaupttest = !solo.isHaupttest && solo.profile.haupttestUnlockedForKlasse === solo.startTier;
 
   renderApp(`
     <div class="panel">
       <div class="result-title">RUNDE BEENDET</div>
-      <div class="result-sub">${roundWon ? "Starke Leistung!" : "Nächstes Mal klappt's besser."}</div>
-      ${rankChanged ? `<div class="rank-up-banner">${promoted ? 'Neuer Rang erreicht: '+rankAfter.name+'!' : 'Zurückgestuft auf: '+rankAfter.name}</div>` : ``}
+      <div class="result-sub">${passed ? "Starke Leistung!" : "Nächstes Mal klappt's besser."}</div>
+      ${rankChanged ? `<div class="rank-up-banner">Neuer Rang erreicht: ${rankAfter.name}!</div>` : ``}
+      ${justUnlockedHaupttest ? `<div class="rank-up-banner">🔓 Haupttest für ${rankBefore.name} freigeschaltet!</div>` : ``}
 
       <div class="result-grid">
         <div class="result-item pos"><div class="n">${solo.correct}/${solo.questions.length}</div><div class="l">Richtige Antworten (nötig: ${solo.testNeeded})</div></div>
         <div class="result-item neg"><div class="n">${solo.wrong}</div><div class="l">Falsche Antworten</div></div>
-        <div class="result-item ${promoted?'pos':''}" style="grid-column: span 2;"><div class="n">${promoted?'✓ Bestanden':'✕ Nicht bestanden'}</div><div class="l">Aufstiegstest${promoted?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}${!promoted && solo.profile.consecutiveFails===1 ? ' · noch ein Fehlversuch führt zum Rangabstieg' : ''}</div></div>
+        <div class="result-item ${passed?'pos':''}" style="grid-column: span 2;">
+          <div class="n">${passed?'✓ Bestanden':'✕ Nicht bestanden'}</div>
+          <div class="l">${solo.isHaupttest ? 'Haupttest' : 'Übungstest'}${passed?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}</div>
+        </div>
       </div>
 
       <div class="result-item" style="margin-bottom:20px;">
         <div class="n">${klassePillHtml(solo.profile.klasse||0)}</div>
-        <div class="l">${nextRank ? `Nächster Aufstiegstest: ${nextTest.questions} Fragen, mindestens ${nextTest.needed} richtig → ${nextRank.name}` : "Höchster Rang erreicht (vorerst)"}</div>
+        <div class="l">${solo.isHaupttest
+          ? (KLASSEN[(solo.profile.klasse||0)+1] ? 'Aktuelle Klasse' : "Höchster Rang erreicht (vorerst)")
+          : (canOfferHaupttest ? "Haupttest ist freigeschaltet – jederzeit wiederholbar." : "Ab 80% im Übungstest wird der Haupttest freigeschaltet.")}
+        </div>
       </div>
 
       <div class="actions-row">
-        <button class="btn btn-primary" onclick="beginSolo(solo.profile)">NOCH EINE RUNDE</button>
+        ${canOfferHaupttest ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true)">HAUPTTEST STARTEN</button>` : ``}
+        <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">NOCH EINE RUNDE</button>
         <button class="btn btn-ghost" onclick="renderMainMenu()">HAUPTMENÜ</button>
       </div>
     </div>
@@ -4654,6 +4939,11 @@ function renderPartyRankReveal(msg){
           <div class="rank-item-row"><span>${item.name}</span><span class="val">${item.value} ${msg.unit}</span></div>
         `).join("")}
       </div>
+      ${msg.awaitingContinue ? (
+        party.isHost
+          ? `<button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="partySend({action:'continue'})">WEITER</button>`
+          : `<div class="explanation" style="margin-top:16px;">Der Host schaltet weiter, wenn alle fertig geschaut haben.</div>`
+      ) : ``}
     </div>
   `);
 }
