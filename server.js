@@ -2608,6 +2608,17 @@ async function arenaFinishMatch(token, pointsEarned) {
 // Globale Bestenliste (geräteübergreifend, alle Konten) - sortiert nach
 // arenaPoints absteigend. Zeigt nur, wer schon mindestens 1 Match gespielt
 // hat, damit die Liste nicht mit frischen 0-Punkte-Konten überflutet wird.
+// Für QuizMix gegen Bot bei Tic Tac Toe (rein clientseitiges Spiel, kein
+// Raum/keine Session nötig) - liefert einfach N zufällige Fragen samt
+// korrektem Index. Unbedenklich, da es sich um ein Solo-Spiel gegen einen
+// simulierten Bot handelt, nicht um ein echtes Duell zwischen Personen
+// (bei dem der Index natürlich geheim bleiben müsste).
+function randomQuizQuestions(count) {
+  const n = Math.min(20, Math.max(1, Number(count) || 5));
+  const picked = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, n);
+  return { ok: true, questions: picked.map(q => ({ q: q.q, a: q.a, c: q.c, cat: q.cat, e: q.e || "" })) };
+}
+
 function arenaLeaderboard() {
   const rows = users
     .filter(u => (u.stats.arenaMatchesPlayed || 0) > 0)
@@ -2648,6 +2659,7 @@ const server = http.createServer((req, res) => {
       else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token);
       else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned);
       else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
+      else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
       else result = { ok: false, error: "Unbekannter Endpunkt." };
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));

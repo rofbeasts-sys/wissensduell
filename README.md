@@ -1779,14 +1779,16 @@ Originaltext kleben sie ohne jedes Trennzeichen direkt an die
 auseinanderklamüsern. Stattdessen hole ich zu jeder Video-ID einzeln den
 echten Titel von YouTube.
 
-**Bisher geschafft (16 von 65)**: alle 7 Sido-Songs, alle 5 Luciano-Songs,
-und 4 Apache-207-Songs (Roller, 200 km/h, KEIN PROBLEM, Wieso tust Du dir
-das an?). Kernliste jetzt bei 121 Songs.
+**Bisher geschafft (24 von 65)**: alle 7 Sido-Songs, alle 5 Luciano-Songs,
+7 Apache-207-Songs/Kollabos, und 5 Capital-Bra-&-Samra-Songs (Tilidin,
+Huracan, 110 feat. LEA, Wir ticken, Nummer 1). Kernliste jetzt bei 129
+Songs.
 
 **Bei diesem Tempo braucht der Rest mehrere weitere Antworten** – 65
-Songs einzeln abzufragen sprengt den Rahmen einer einzigen Antwort. Noch
-offen: der Rest von Apache207, dann Capital Bra & Samra, Bushido, Cro.
-Ich mache in den nächsten Antworten weiter.
+Songs einzeln abzufragen sprengt den Rahmen einer einzigen Antwort. Ein
+paar IDs lieferten keinen eindeutigen Treffer, die lasse ich erstmal aus
+statt zu raten. Noch offen: der Rest von Capital Bra & Samra, dann
+Bushido, Cro. Ich mache in den nächsten Antworten weiter.
 
 ## 7tt. Brain Test: Statusleiste (Klasse-Anzeige oben) entfernt
 
@@ -2042,6 +2044,75 @@ mit `timeout:true`, Leben sinkt korrekt von 3 auf 2.
 Mit echten Server-Tests bestätigt: normaler Multiplayer-Wissenstest bleibt
 bei 20s, Arena-Wissenstest korrekt bei 10s, und beim Einordnen in der
 Arena kostet Nichtstun nach 10 Sekunden nachweislich ein Leben (3→2).
+
+## 8cc. Bugfix: Weißer Gürtel war praktisch unschlagbar
+
+Gemeldet: nicht mal der allererste Bot ließ sich schlagen.
+
+**Ursache**: Meine vorigen Bot-Fixes ("nimmt nie mehr einen geschenkten
+Sieg liegen", "lässt sich nie einen offensichtlichen Verlust entgehen")
+waren als feste Garantien gebaut, unabhängig von der Schwierigkeitsstufe.
+In Tic Tac Toe reicht aber schon "nimmt IMMER einen Sieg, blockt IMMER
+eine Bedrohung" für sich allein, um gegen die meisten Menschen zu
+gewinnen oder wenigstens nicht zu verlieren – die Schwierigkeitsstufe
+wirkte sich dadurch praktisch nur noch auf "wie gut spielt er
+strategisch", nicht mehr auf "verschenkt er mal was", aus.
+
+**Fix**: Auch diese beiden Verhaltensweisen skalieren jetzt mit der
+Schwierigkeit (niedrige Ränge übersehen jetzt öfter mal eine Bedrohung
+oder eine Gewinnchance – genau das macht sie wirklich schlagbar). Beim
+weißen Gürtel entsprechend deutlich reduziert.
+
+Mit mehreren wiederholten, isolierten Simulationen bestätigt: weißer
+Gürtel gegen einen soliden simulierten Gegenspieler (nimmt Sieg/blockt
+Niederlagen, sonst zufällig) jetzt bei ~75% Gewinnchance für den
+Menschen (zwei unabhängige 200-Spiele-Durchläufe: 78%, dann 73%) – vorher
+0%. Meister bleibt weiterhin korrekt unbesiegbar (200 Spiele, 0 Siege für
+den Menschen). Nebenbei auch die Kern-Minimax-Logik selbst gegengeprüft
+(reines Minimax gegen reines Minimax endet über 50 Spiele zuverlässig
+immer unentschieden, wie es die Theorie für perfektes Tic-Tac-Toe-Spiel
+vorhersagt) – die war die ganze Zeit korrekt, das Problem lag
+ausschließlich an den zu starren "immer"-Garantien.
+
+**Ehrlich**: ein Testskript, das alle 7 Stufen in einem Durchlauf
+zusammen prüfen sollte, lieferte widersprüchliche, in sich nicht
+schlüssige Werte (u.a. Meister bei 3% statt 0%) – vermutlich ein Fehler
+in diesem Testskript selbst, nicht im eigentlichen Spielcode, da
+wiederholte einzelne Prüfungen jeder Stufe für sich konsistent und
+korrekt waren. Die mittleren Stufen (Gelb bis Braun) habe ich deshalb
+nicht mit derselben Sicherheit einzeln nachgeprüft wie Weiß und Meister.
+
+## 8dd. Online-Ranking für Tic Tac Toe + neuer Modus: QuizMix gegen Bot
+
+Zwei Ergänzungen auf Wunsch:
+
+**1. Online-Siege zählen jetzt für denselben Gürtel-Aufstieg.** Bisher
+war der Gürtel-Fortschritt eine reine Bot-Modus-Sache. Die
+Aufstiegs-Logik (gestaffelte Sieg-Anforderungen, "in Folge" ab Grün) ist
+jetzt in `tttApplyRankOutcome()` wiederverwendbar gemacht und wird sowohl
+vom Bot-Modus als auch vom Online-Modus (Klassisch UND Online-QuizMix)
+genutzt. Nach jedem beendeten Online-Spiel wird der Ausgang (Sieg/
+Niederlage/Unentschieden) genauso wie im Bot-Modus verarbeitet, inklusive
+Serien-Reset bei einer Niederlage. Der aktuelle Rang wird jetzt auch im
+Online-Bildschirm angezeigt.
+
+**2. Neuer Modus "QuizMix gegen Bot"** (`🧠 QUIZMIX GEGEN BOT` auf der
+Rangübersicht) – dieselbe Idee wie das Online-QuizMix, nur gegen einen
+simulierten Bot statt einer echten Person. Neuer, leichter Server-
+Endpunkt `/api/random-quiz-questions` liefert 5 zufällige Fragen aus dem
+590er-Pool (inkl. korrektem Index – unbedenklich, da Solo gegen einen Bot,
+kein echtes Duell). Die "Wissens"-Korrektheit des Bots wird pro Frage
+unabhängig anhand der Gürtel-Schwierigkeit simuliert (kein echtes
+Fragenverständnis nötig). Wer mehr der 5 Fragen richtig hat, bekommt das
+Feld; bei Gleichstand bleibt es leer, genau wie beim Online-QuizMix.
+Siege/Niederlagen zählen ebenfalls für den Gürtel-Aufstieg.
+
+Mit echten Tests bestätigt: der neue API-Endpunkt liefert 5 unterschiedliche,
+korrekt strukturierte Fragen; die wiederverwendete Aufstiegs-Logik
+funktioniert identisch zum Bot-Modus (1 Sieg bei Weiß reicht, Serie bei
+Grün wird durch eine Niederlage zurückgesetzt); der komplette QuizMix-
+gegen-Bot-Ablauf (Feld antippen → 5 Fragen → Auflösung → zurück zum Brett)
+läuft ohne Fehler durch.
 
 ## 8. Bekannte Grenzen dieser ersten Version
 
