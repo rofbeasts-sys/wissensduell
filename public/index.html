@@ -1410,14 +1410,19 @@ function klassePillHtml(klasseIndex){
 // immer perfekt und ist bei optimalem Gegenspiel bestenfalls zu einem
 // Unentschieden zu bewegen, nie zu besiegen (mathematische Eigenschaft von
 // Tic Tac Toe bei perfektem Spiel).
+// winsNeeded/consecutive: auf Wunsch gestaffelte Aufstiegs-Anforderung -
+// die ersten drei Ränge brauchen einfach X Siege insgesamt (Niederlagen
+// zählen nicht rückwärts), ab "Grün" müssen die Siege HINTEREINANDER
+// kommen (ein Verlust/Unentschieden setzt den Fortschritt an diesem Rang
+// zurück auf 0).
 const TTT_RANKS = [
-  {name:"Weißer Gürtel",  cls:"rank-none",    difficulty:0.15},
-  {name:"Gelber Gürtel",  cls:"rank-listed",  difficulty:0.35},
-  {name:"Oranger Gürtel", cls:"rank-bronze",  difficulty:0.5},
-  {name:"Grüner Gürtel",  cls:"rank-silver",  difficulty:0.65},
-  {name:"Blauer Gürtel",  cls:"rank-gold",    difficulty:0.8},
-  {name:"Brauner Gürtel", cls:"rank-platin",  difficulty:0.92},
-  {name:"Meister",        cls:"rank-master",  difficulty:1.0}
+  {name:"Weißer Gürtel",  cls:"rank-none",    difficulty:0.15, winsNeeded:1, consecutive:false},
+  {name:"Gelber Gürtel",  cls:"rank-listed",  difficulty:0.3,  winsNeeded:2, consecutive:false},
+  {name:"Oranger Gürtel", cls:"rank-bronze",  difficulty:0.5,  winsNeeded:3, consecutive:false},
+  {name:"Grüner Gürtel",  cls:"rank-silver",  difficulty:0.7,  winsNeeded:3, consecutive:true},
+  {name:"Blauer Gürtel",  cls:"rank-gold",    difficulty:0.85, winsNeeded:4, consecutive:true},
+  {name:"Brauner Gürtel", cls:"rank-platin",  difficulty:0.95, winsNeeded:5, consecutive:true},
+  {name:"Meister",        cls:"rank-master",  difficulty:1.0,  winsNeeded:null, consecutive:false}
 ];
 function tttRankPillHtml(rankIndex){
   const r = TTT_RANKS[Math.min(rankIndex||0, TTT_RANKS.length-1)] || TTT_RANKS[0];
@@ -1513,7 +1518,7 @@ function saveProfiles(){
 function createProfile(name){
   const p = { id:"p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     name: name.trim(), score:0, tier:0, klasse:0, consecutiveFails:0, roundsPlayed:0, wins:0, losses:0,
-    correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0 };
+    correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0, tttWinsAtRank:0 };
   profiles.push(p);
   saveProfiles();
   return p;
@@ -1611,7 +1616,7 @@ function accountAsProfile(){
   return {
     id: "account:" + p.username, name: p.username,
     score: p.score, tier: p.tier || 0, klasse: p.klasse || 0, consecutiveFails: p.consecutiveFails || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
-    correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore, tttRank: p.tttRank || 0,
+    correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore, tttRank: p.tttRank || 0, tttWinsAtRank: p.tttWinsAtRank || 0,
     isAccount: true
   };
 }
@@ -1622,7 +1627,7 @@ async function syncAccountStats(profile){
     token: account.token,
     stats: {
       score: profile.score, tier: profile.tier, klasse: profile.klasse, consecutiveFails: profile.consecutiveFails, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
-      correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank
+      correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank, tttWinsAtRank: profile.tttWinsAtRank
     }
   });
   if(result.ok) account.profile = result.profile;
@@ -2156,6 +2161,29 @@ function startSoloMenu(){
 let ttt = null; // { profile, board:[9], playerTurn, rankIndex, gameOver }
 
 function startTicTacToeFlow(){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE</div>
+      <div class="picker-sub">Wähle, wie du spielen möchtest.</div>
+      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
+        <div class="mode-card" onclick="tttSoloEntry()">
+          <div class="icon">🎧</div>
+          <h3>Solo</h3>
+          <p>Gegen den Bot, vom weißen bis zum Meister-Gürtel.</p>
+        </div>
+        <div class="mode-card" onclick="tttMultiplayerEntry()">
+          <div class="icon">🌐</div>
+          <h3>Online-Modus</h3>
+          <p>Raum erstellen oder einem Raum beitreten.</p>
+        </div>
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+function tttSoloEntry(){
   if(account){ renderTttRankOverview(accountAsProfile()); return; }
   if(profiles.length > 0){
     const lastId = localStorage.getItem(LAST_PROFILE_KEY);
@@ -2163,7 +2191,17 @@ function startTicTacToeFlow(){
     renderTttRankOverview(profile);
     return;
   }
-  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], renderTttRankOverview, "renderMainMenu");
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], renderTttRankOverview, "startTicTacToeFlow");
+}
+function tttMultiplayerEntry(){
+  if(account){ tttStartMultiplayer(accountAsProfile()); return; }
+  if(profiles.length > 0){
+    const lastId = localStorage.getItem(LAST_PROFILE_KEY);
+    const profile = profiles.find(p => p.id === lastId) || profiles[0];
+    tttStartMultiplayer(profile);
+    return;
+  }
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], tttStartMultiplayer, "startTicTacToeFlow");
 }
 
 let tttOverviewProfile = null;
@@ -2171,6 +2209,8 @@ function renderTttRankOverview(profile){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
   tttOverviewProfile = profile;
   const currentIdx = Math.min(profile.tttRank || 0, TTT_RANKS.length - 1);
+  const isTop = currentIdx >= TTT_RANKS.length - 1;
+  const winsAtRank = profile.tttWinsAtRank || 0;
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE</div>
@@ -2179,7 +2219,8 @@ function renderTttRankOverview(profile){
         ${TTT_RANKS.map((r, i) => {
           const isDone = i < currentIdx;
           const isCurrent = i === currentIdx;
-          const statusLabel = isDone ? '✓ Geschafft' : (isCurrent ? '▶ Aktuell' : 'Noch nicht erreicht');
+          let statusLabel = isDone ? '✓ Geschafft' : (isCurrent ? '▶ Aktuell' : 'Noch nicht erreicht');
+          if(isCurrent && !isTop) statusLabel += ` (${winsAtRank}/${r.winsNeeded}${r.consecutive?' in Folge':''})`;
           const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
           return `
           <div class="leaderboard-row" style="${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
@@ -2189,23 +2230,45 @@ function renderTttRankOverview(profile){
         `;}).join("")}
       </div>
       <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startTttGame(tttOverviewProfile)">GEGEN BOT SPIELEN</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttStartMultiplayer(tttOverviewProfile)">MIT FREUNDEN SPIELEN</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttQuantumEntry(tttOverviewProfile)">⚡ QUANTUM-MODUS</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttResetRank()">↺ RANG ZURÜCKSETZEN</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
     </div>
   `);
+}
+function tttResetRank(){
+  if(!confirm("Wirklich von ganz vorne (Weißer Gürtel) starten?")) return;
+  tttOverviewProfile.tttRank = 0;
+  tttOverviewProfile.tttWinsAtRank = 0;
+  if(tttOverviewProfile.isAccount) syncAccountStats(tttOverviewProfile);
+  else saveProfiles();
+  renderTttRankOverview(tttOverviewProfile);
 }
 
 /* ---- Tic Tac Toe: Mehrspieler (eigene, schlanke WebSocket-Verbindung,   */
 /*      getrennt von "party" - braucht keine der Quiz-Rundenlogik) ---- */
 let tttMp = null; // { ws, roomCode, mySymbol, board, turnSymbol, gameOver, winner, opponentLeft, isHost }
 
+let tttMpSelectedMode = "classic";
 function tttStartMultiplayer(profile){
   tttOverviewProfile = profile;
   renderApp(`
     <div class="panel">
-      <div class="picker-title">TIC TAC TOE – MIT FREUNDEN</div>
-      <div class="picker-sub">Raum erstellen und den Code teilen, oder einem bestehenden Raum beitreten.</div>
-      <div class="actions-row" style="margin-bottom:18px;">
+      <div class="picker-title">TIC TAC TOE – ONLINE-MODUS</div>
+      <div class="picker-sub">Modus für einen neuen Raum:</div>
+      <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
+        <div class="mode-card ${tttMpSelectedMode==='classic'?'':''}" style="${tttMpSelectedMode==='classic'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='classic'; tttStartMultiplayer(tttOverviewProfile);">
+          <div class="icon">⭕</div>
+          <h3>Klassisch</h3>
+          <p>Ganz normal abwechselnd setzen.</p>
+        </div>
+        <div class="mode-card" style="${tttMpSelectedMode==='quizmix'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='quizmix'; tttStartMultiplayer(tttOverviewProfile);">
+          <div class="icon">🧠</div>
+          <h3>QuizMix</h3>
+          <p>Jedes Feld wird per 5-Fragen-Duell erkämpft.</p>
+        </div>
+      </div>
+      <div class="actions-row" style="margin:18px 0;">
         <button class="btn btn-primary" onclick="tttMpCreateRoom()">RAUM ERSTELLEN</button>
       </div>
       <div class="picker-sub">Oder einem bestehenden Raum beitreten:</div>
@@ -2215,7 +2278,7 @@ function tttStartMultiplayer(profile){
       </div>
       <div id="tttMpEntryError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
       <div class="actions-row" style="margin-top:18px;">
-        <button class="btn btn-ghost" onclick="renderTttRankOverview(tttOverviewProfile)">${t('btn_back')}</button>
+        <button class="btn btn-ghost" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
       </div>
     </div>
   `);
@@ -2225,7 +2288,7 @@ function tttMpConnect(onOpen){
   let ws;
   try{ ws = new WebSocket(wsUrl()); }
   catch(err){ tttMpShowError("Verbindung fehlgeschlagen: " + err.message); return; }
-  tttMp = { ws, roomCode:null, mySymbol:null, board:Array(9).fill(null), turnSymbol:"X", gameOver:false, winner:null, opponentLeft:false, isHost:false, opponentConnected:true };
+  tttMp = { ws, roomCode:null, mySymbol:null, board:Array(9).fill(null), turnSymbol:"X", gameOver:false, winner:null, opponentLeft:false, isHost:false, opponentConnected:true, mode:"classic", duel:null };
   const timeout = setTimeout(() => {
     if(ws.readyState !== WebSocket.OPEN){ ws.close(); tttMp = null; tttMpShowError("Der Server antwortet nicht."); }
   }, 5000);
@@ -2242,7 +2305,7 @@ function tttMpShowError(message){
 function tttMpCreateRoom(){
   tttMpConnect(() => {
     tttMp.isHost = true;
-    tttMp.ws.send(JSON.stringify({action:"tttCreateRoom", name: tttOverviewProfile.name}));
+    tttMp.ws.send(JSON.stringify({action:"tttCreateRoom", name: tttOverviewProfile.name, mode: tttMpSelectedMode}));
   });
 }
 function tttMpJoinRoom(){
@@ -2259,6 +2322,7 @@ function tttMpHandleMessage(msg){
   if(msg.type === "tttJoined"){
     tttMp.roomCode = msg.roomCode;
     tttMp.mySymbol = msg.symbol;
+    tttMp.mode = msg.mode || "classic";
     renderTttMpGame();
     return;
   }
@@ -2272,7 +2336,10 @@ function tttMpHandleMessage(msg){
     tttMp.gameOver = msg.gameOver;
     tttMp.winner = msg.winner;
     tttMp.players = msg.players;
+    tttMp.mode = msg.mode || tttMp.mode;
+    tttMp.mySymbol = msg.yourSymbol; // kann sich nach einem Rematch ändern (Tausch)
     tttMp.opponentConnected = msg.players.length===2 && msg.players.every(p=>p.connected);
+    tttMp.duel = null;
     renderTttMpGame();
     return;
   }
@@ -2281,20 +2348,62 @@ function tttMpHandleMessage(msg){
     renderTttMpGame();
     return;
   }
+  if(msg.type === "tttDuelQuestion"){
+    tttMp.duel = { cellIndex: msg.cellIndex, qIndex: msg.qIndex, qTotal: msg.qTotal, question: msg.question, options: msg.options, answered: false, reveal: null };
+    tttMpStartDuelTimer(msg.durationMs);
+    renderTttMpGame();
+    return;
+  }
+  if(msg.type === "tttDuelReveal"){
+    if(tttMp.duelTickerId) clearInterval(tttMp.duelTickerId);
+    if(tttMp.duel) tttMp.duel.reveal = { correctIndex: msg.correctIndex, explanation: msg.explanation, results: msg.results, scores: msg.scores };
+    renderTttMpGame();
+    return;
+  }
+  if(msg.type === "tttDuelFinished"){
+    tttMp.duel = null;
+    renderTttMpGame();
+    return;
+  }
+}
+// Rein optischer Countdown fuer die Duell-Frage (die eigentliche Zeit-
+// Autorität liegt beim Server, der die Frage nach Ablauf selbst aufloest).
+function tttMpStartDuelTimer(durationMs){
+  if(tttMp.duelTickerId) clearInterval(tttMp.duelTickerId);
+  const startedAt = Date.now();
+  tttMp.duelTimeLeft = durationMs;
+  tttMp.duelTickerId = setInterval(() => {
+    tttMp.duelTimeLeft = Math.max(0, durationMs - (Date.now()-startedAt));
+    const el = document.getElementById("tttDuelTimer");
+    if(el) el.textContent = Math.ceil(tttMp.duelTimeLeft/1000) + "s";
+    if(tttMp.duelTimeLeft <= 0) clearInterval(tttMp.duelTickerId);
+  }, 200);
+}
+function tttMpDuelAnswer(i){
+  if(!tttMp || !tttMp.duel || tttMp.duel.answered || tttMp.duel.reveal) return;
+  tttMp.duel.answered = true;
+  tttMp.ws.send(JSON.stringify({action:"tttDuelAnswer", selectedIndex:i}));
+  renderTttMpGame();
 }
 
 function renderTttMpGame(){
   const waiting = !tttMp.players || tttMp.players.length < 2;
+  const isQuizmix = tttMp.mode === "quizmix";
+  if(tttMp.duel && !waiting){ renderTttDuelPopup(); return; }
+  const cellClickable = (i) => {
+    if(tttMp.board[i] || tttMp.gameOver) return false;
+    return isQuizmix ? true : tttMp.turnSymbol === tttMp.mySymbol;
+  };
   renderApp(`
     <div class="panel">
-      <div class="picker-title">TIC TAC TOE – MIT FREUNDEN</div>
+      <div class="picker-title">TIC TAC TOE – ${isQuizmix ? 'QUIZMIX' : 'ONLINE-MODUS'}</div>
       <div class="picker-sub">Raum-Code: <b>${tttMp.roomCode}</b>${tttMp.mySymbol ? ' · Du spielst: '+tttMp.mySymbol : ''}</div>
       ${waiting ? `
         <div class="explanation" style="margin-top:14px;">Warte auf eine zweite Person … Teile den Code <b>${tttMp.roomCode}</b>.</div>
       ` : `
         <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
           ${tttMp.board.map((c,i) => `
-            <div onclick="tttMpMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !tttMp.gameOver && tttMp.turnSymbol===tttMp.mySymbol)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+            <div onclick="${isQuizmix ? 'tttQuizmixTap('+i+')' : 'tttMpMove('+i+')'}" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${cellClickable(i)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
           `).join("")}
         </div>
         ${tttMp.opponentLeft ? `
@@ -2303,12 +2412,47 @@ function renderTttMpGame(){
           <div class="explanation" style="text-align:center;">${tttMp.winner==='draw' ? 'Unentschieden!' : (tttMp.winner===tttMp.mySymbol ? '🎉 Du hast gewonnen!' : "Verloren – nächstes Mal klappt's!")}</div>
           <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttMpRematch()">NOCHMAL</button>
         ` : `
-          <div class="picker-sub" style="text-align:center;">${tttMp.turnSymbol===tttMp.mySymbol ? 'Du bist dran' : 'Die andere Person ist dran …'}</div>
+          <div class="picker-sub" style="text-align:center;">${isQuizmix ? 'Tippe auf ein leeres Feld, um es per Duell zu erkämpfen.' : (tttMp.turnSymbol===tttMp.mySymbol ? 'Du bist dran' : 'Die andere Person ist dran …')}</div>
         `}
       `}
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttMpLeave()">${t('btn_leave_room')||'RAUM VERLASSEN'}</button>
     </div>
   `);
+}
+
+function renderTttDuelPopup(){
+  const d = tttMp.duel;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">⚔️ DUELL UM DAS FELD</div>
+      <div class="picker-sub">Frage ${d.qIndex+1} von ${d.qTotal}${!d.reveal ? ' · <span id="tttDuelTimer">'+Math.ceil((tttMp.duelTimeLeft||0)/1000)+'s</span>' : ''}</div>
+      <p style="font-weight:700; font-size:17px; margin-top:14px;">${d.question}</p>
+      <div class="picker-form" style="flex-direction:column; gap:8px; margin-top:10px;">
+        ${d.options.map((opt,i) => {
+          let style = "";
+          if(d.reveal){
+            if(i === d.reveal.correctIndex) style = "border-color:var(--accent-2); background:rgba(0,255,150,0.08);";
+            else style = "opacity:.6;";
+          } else if(d.answered){
+            style = "opacity:.6;";
+          }
+          return `<button class="btn ${d.answered||d.reveal ? 'btn-ghost' : 'btn-primary'} btn-block" style="${style}" onclick="tttMpDuelAnswer(${i})" ${d.answered||d.reveal ? 'disabled' : ''}>${opt}</button>`;
+        }).join("")}
+      </div>
+      ${d.answered && !d.reveal ? `<div class="explanation" style="margin-top:12px; text-align:center;">Warte auf die andere Person …</div>` : ``}
+      ${d.reveal ? `
+        <div class="explanation" style="margin-top:12px;">
+          ${Object.entries(d.reveal.results).map(([sym,r]) => `<div>${sym}: ${r.correct ? '✓ richtig' : '✕ falsch'}</div>`).join("")}
+          ${d.reveal.explanation ? `<p style="margin-top:6px; color:var(--text-dim);">${d.reveal.explanation}</p>` : ``}
+        </div>
+      ` : ``}
+    </div>
+  `);
+}
+
+function tttQuizmixTap(i){
+  if(!tttMp || tttMp.gameOver || tttMp.board[i] || tttMp.duel) return;
+  tttMp.ws.send(JSON.stringify({action:"tttQuizmixTap", index:i}));
 }
 
 function tttMpMove(i){
@@ -2322,12 +2466,24 @@ function tttMpRematch(){
 function tttMpLeave(){
   if(tttMp && tttMp.ws){ try{ tttMp.ws.send(JSON.stringify({action:"tttLeave"})); tttMp.ws.close(); }catch(e){} }
   tttMp = null;
-  renderTttRankOverview(tttOverviewProfile);
+  tttStartMultiplayer(tttOverviewProfile);
 }
 
 function startTttGame(profile){
-  ttt = { profile, board: Array(9).fill(null), playerTurn: true, rankIndex: Math.min(profile.tttRank||0, TTT_RANKS.length-1), gameOver: false, resultText: "" };
+  const rankIndex = Math.min(profile.tttRank||0, TTT_RANKS.length-1);
+  // Zufällig, wer beginnt - vorher stand immer die spielende Person zuerst
+  // am Zug, das sollte fair gemischt sein.
+  const playerStarts = Math.random() < 0.5;
+  ttt = { profile, board: Array(9).fill(null), playerTurn: playerStarts, rankIndex, gameOver: false, resultText: "" };
   renderTttGame();
+  if(!playerStarts){
+    setTimeout(() => {
+      const move = tttPickBotMove(ttt.board, TTT_RANKS[ttt.rankIndex].difficulty);
+      ttt.board[move] = "O";
+      ttt.playerTurn = true;
+      renderTttGame();
+    }, 500);
+  }
 }
 
 const TTT_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
@@ -2364,12 +2520,173 @@ function tttMinimax(board, symbol){
   }
   return best;
 }
+// Bewertet ALLE moeglichen Zuege (nicht nur den besten) - wird gebraucht,
+// damit auch "absichtliche Fehler" bei niedrigerer Schwierigkeit nie einen
+// sofortigen, vermeidbaren Verlust bedeuten (das fuehlte sich vorher zu
+// einfach an, weil ein "zufaelliger" Zug auch mal einen geschenkten Sieg
+// fuer die spielende Person bedeutete - jetzt spielt der Bot immer
+// zumindest solide, wird aber trotzdem mit steigendem Rang strategisch
+// deutlich staerker).
+function tttScoreAllMoves(board, symbol){
+  const other = symbol === "O" ? "X" : "O";
+  return tttAvailableMoves(board).map(m => {
+    const next = board.slice();
+    next[m] = symbol;
+    return { move:m, score: tttMinimax(next, other).score };
+  });
+}
 function tttPickBotMove(board, difficulty){
-  const moves = tttAvailableMoves(board);
+  const scored = tttScoreAllMoves(board, "O");
+  // Einen SOFORTIGEN Sieg (score 10, direkt mit diesem Zug) nimmt der Bot
+  // immer, unabhängig von der Schwierigkeit - ihn absichtlich liegen zu
+  // lassen wirkt einfach kaputt, nicht "leicht".
+  const immediateWin = scored.find(s => s.score === 10);
+  if(immediateWin) return immediateWin.move;
+  const bestScore = Math.max(...scored.map(s => s.score));
   if(Math.random() < difficulty){
-    return tttMinimax(board, "O").move;
+    const bestMoves = scored.filter(s => s.score === bestScore);
+    return bestMoves[Math.floor(Math.random()*bestMoves.length)].move;
+  }
+  // "Fehler" - aber nie ein Zug, der sofort in eine erzwungene Niederlage
+  // läuft, solange es eine Alternative gibt.
+  const safeMoves = scored.filter(s => s.score > -10);
+  const pool = safeMoves.length > 0 ? safeMoves : scored;
+  return pool[Math.floor(Math.random()*pool.length)].move;
+}
+
+/* ---- Tic Tac Toe: Quantum-Modus (das älteste Symbol verschwindet, wenn  */
+/*      man sein viertes setzt) - eigener, einfacherer Bot ohne volle      */
+/*      Minimax-Suche, da der Zustandsraum durch das Verschwinden nicht    */
+/*      mehr endlich/erschöpfend absuchbar ist wie beim klassischen Modus. */
+/*      Vorerst nur gegen Bot (kein Rang-Fortschritt, einfach zum Üben/    */
+/*      Ausprobieren mit 3 Schwierigkeitsstufen).                          */
+let ttq = null; // { board:[9], xPieces:[], oPieces:[], playerTurn, difficulty, gameOver, winner, totalMoves }
+const TTQ_MOVE_LIMIT = 30; // Sicherheitsnetz gegen ein endloses Spiel -> danach Unentschieden
+const TTQ_DIFFICULTIES = [
+  {name:"Leicht", value:0.25},
+  {name:"Mittel", value:0.55},
+  {name:"Schwer", value:0.85}
+];
+
+function tttQuantumEntry(profile){
+  tttOverviewProfile = profile;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">QUANTUM-MODUS</div>
+      <div class="picker-sub">Jede Seite hat höchstens 3 Zeichen auf dem Feld – beim vierten Zug verschwindet das jeweils älteste eigene Symbol. Dadurch endet die Partie nicht mehr zwangsläufig unentschieden.</div>
+      <div class="picker-sub" style="margin-top:14px;">Schwierigkeit wählen:</div>
+      <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
+        ${TTQ_DIFFICULTIES.map((d,i) => `<button class="btn btn-primary btn-block" onclick="startTtqGame(${i})">${d.name}</button>`).join("")}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="renderTttRankOverview(tttOverviewProfile)">${t('btn_back')}</button>
+    </div>
+  `);
+}
+
+function startTtqGame(difficultyIndex){
+  const playerStarts = Math.random() < 0.5;
+  ttq = { board: Array(9).fill(null), xPieces:[], oPieces:[], playerTurn: playerStarts, difficulty: TTQ_DIFFICULTIES[difficultyIndex].value, difficultyName: TTQ_DIFFICULTIES[difficultyIndex].name, gameOver:false, winner:null, totalMoves:0, lastRemoved:null };
+  renderTtqGame();
+  if(!playerStarts) setTimeout(tttQuantumBotMove, 500);
+}
+
+// Wendet einen Zug fuer "symbol" auf "state" an (mutiert state), inkl. dem
+// Verschwinden des aeltesten eigenen Symbols ab dem vierten Zug. Gibt das
+// ggf. entfernte Feld zurueck (oder null).
+function ttqApplyMove(state, symbol, index){
+  const pieces = symbol === "X" ? state.xPieces : state.oPieces;
+  let removed = null;
+  if(pieces.length >= 3){
+    removed = pieces.shift();
+    state.board[removed] = null;
+  }
+  pieces.push(index);
+  state.board[index] = symbol;
+  return removed;
+}
+function ttqAvailable(board){
+  const moves = [];
+  board.forEach((c,i) => { if(!c) moves.push(i); });
+  return moves;
+}
+// Heuristischer Bot (keine volle Suche - siehe Kommentar oben): nimmt einen
+// sofortigen Sieg, blockt eine sofortige Niederlage, sonst bevorzugt er
+// Zentrum/Ecken mit steigender Zuverlässigkeit je nach Schwierigkeit.
+function ttqPickBotMove(state, difficulty){
+  const moves = ttqAvailable(state.board);
+  // Sofortiger Sieg?
+  for(const m of moves){
+    const sim = { board: state.board.slice(), xPieces:[...state.xPieces], oPieces:[...state.oPieces] };
+    ttqApplyMove(sim, "O", m);
+    if(tttCheckWinner(sim.board) === "O") return m;
+  }
+  // Muss geblockt werden? (simuliert: wuerde X hier eine sofortige
+  // Gewinnmoeglichkeit bekommen, wenn der Bot NICHT diese Zelle nimmt)
+  const threatCells = [];
+  for(const m of moves){
+    const sim = { board: state.board.slice(), xPieces:[...state.xPieces], oPieces:[...state.oPieces] };
+    ttqApplyMove(sim, "X", m);
+    if(tttCheckWinner(sim.board) === "X") threatCells.push(m);
+  }
+  if(threatCells.length > 0 && Math.random() < (0.5 + difficulty*0.5)){
+    return threatCells[Math.floor(Math.random()*threatCells.length)];
+  }
+  // Sonst: mit "difficulty"-Wahrscheinlichkeit Zentrum > Ecken > Kanten
+  // bevorzugen, sonst zufaellig.
+  if(Math.random() < difficulty){
+    const priority = [4,0,2,6,8,1,3,5,7];
+    for(const p of priority){ if(moves.includes(p)) return p; }
   }
   return moves[Math.floor(Math.random()*moves.length)];
+}
+
+function renderTtqGame(){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">QUANTUM-MODUS</div>
+      <div class="picker-sub">Schwierigkeit: ${ttq.difficultyName} · höchstens 3 Symbole je Seite</div>
+      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+        ${ttq.board.map((c,i) => `
+          <div onclick="ttqPlayerMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !ttq.gameOver && ttq.playerTurn)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+        `).join("")}
+      </div>
+      ${ttq.gameOver ? `
+        <div class="explanation" style="margin-top:10px; text-align:center;">${ttq.winner==='draw' ? `Unentschieden nach ${TTQ_MOVE_LIMIT} Zügen!` : (ttq.winner==='X' ? '🎉 Du hast gewonnen!' : "Verloren – nächstes Mal klappt's!")}</div>
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="startTtqGame(TTQ_DIFFICULTIES.findIndex(d=>d.name===ttq.difficultyName))">NOCHMAL</button>
+      ` : `
+        <div class="picker-sub" style="text-align:center;">${ttq.playerTurn ? 'Du bist dran' : 'Bot ist dran …'}${ttq.xPieces && ttq.xPieces.length>=3 ? ' · dein nächstes Symbol lässt dein ältestes verschwinden' : ''}</div>
+      `}
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderTttRankOverview(tttOverviewProfile)">${t('btn_back')}</button>
+    </div>
+  `);
+}
+
+function ttqPlayerMove(i){
+  if(!ttq || ttq.gameOver || ttq.board[i] || !ttq.playerTurn) return;
+  ttqApplyMove(ttq, "X", i);
+  ttq.totalMoves++;
+  const winner = tttCheckWinner(ttq.board);
+  if(winner && winner !== "draw"){ ttqFinish(winner); return; }
+  if(ttq.totalMoves >= TTQ_MOVE_LIMIT){ ttqFinish("draw"); return; }
+  ttq.playerTurn = false;
+  renderTtqGame();
+  setTimeout(tttQuantumBotMove, 500);
+}
+function tttQuantumBotMove(){
+  if(!ttq || ttq.gameOver) return;
+  const move = ttqPickBotMove(ttq, ttq.difficulty);
+  ttqApplyMove(ttq, "O", move);
+  ttq.totalMoves++;
+  const winner = tttCheckWinner(ttq.board);
+  if(winner && winner !== "draw"){ ttqFinish(winner); return; }
+  if(ttq.totalMoves >= TTQ_MOVE_LIMIT){ ttqFinish("draw"); return; }
+  ttq.playerTurn = true;
+  renderTtqGame();
+}
+function ttqFinish(winner){
+  ttq.gameOver = true;
+  ttq.winner = winner;
+  renderTtqGame();
 }
 
 function renderTttGame(){
@@ -2414,17 +2731,31 @@ function tttPlayerMove(i){
 function tttFinishGame(winner){
   ttt.gameOver = true;
   const profile = ttt.profile;
+  const rank = TTT_RANKS[ttt.rankIndex];
+  const isTop = ttt.rankIndex >= TTT_RANKS.length - 1;
   if(winner === "X"){
     profile.wins = (profile.wins||0) + 1;
-    const wasTop = ttt.rankIndex >= TTT_RANKS.length - 1;
-    if(!wasTop){ profile.tttRank = ttt.rankIndex + 1; ttt.resultText = `🎉 Gewonnen! Aufstieg zu ${TTT_RANKS[ttt.rankIndex+1].name}!`; }
-    else { ttt.resultText = `🎉 Gewonnen gegen den Meister-Bot!`; }
+    if(isTop){
+      ttt.resultText = `🎉 Gewonnen gegen den Meister-Bot!`;
+    } else {
+      profile.tttWinsAtRank = (profile.tttWinsAtRank||0) + 1;
+      if(profile.tttWinsAtRank >= rank.winsNeeded){
+        profile.tttRank = ttt.rankIndex + 1;
+        profile.tttWinsAtRank = 0;
+        ttt.resultText = `🎉 Gewonnen! Aufstieg zu ${TTT_RANKS[ttt.rankIndex+1].name}!`;
+      } else {
+        const remaining = rank.winsNeeded - profile.tttWinsAtRank;
+        ttt.resultText = `🎉 Gewonnen! Noch ${remaining} ${rank.consecutive ? 'Sieg(e) in Folge' : 'Sieg(e)'} bis ${TTT_RANKS[ttt.rankIndex+1].name}.`;
+      }
+    }
   } else if(winner === "draw"){
     profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
-    ttt.resultText = ttt.rankIndex >= TTT_RANKS.length-1 ? "Unentschieden – gegen den Meister-Bot ist das schon stark! 👏" : "Unentschieden – kein Auf- oder Abstieg.";
+    if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0; // Serie unterbrochen
+    ttt.resultText = isTop ? "Unentschieden – gegen den Meister-Bot ist das schon stark! 👏" : (rank.consecutive ? "Unentschieden – die Siegesserie ist leider gerissen, nochmal von vorn." : "Unentschieden – kein Auf- oder Abstieg.");
   } else {
     profile.losses = (profile.losses||0) + 1;
-    ttt.resultText = "Verloren – kein Abstieg, einfach nochmal versuchen!";
+    if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0; // Serie unterbrochen
+    ttt.resultText = (!isTop && rank.consecutive) ? "Verloren – die Siegesserie ist gerissen, nochmal von vorn." : "Verloren – kein Abstieg, einfach nochmal versuchen!";
   }
   if(profile.isAccount) syncAccountStats(profile);
   else saveProfiles();
@@ -3802,6 +4133,10 @@ function renderPartyQuiz(msg){
         <div class="qcat">${msg.cat}</div>
       </div>
       <div class="question-text">${msg.q}</div>
+      <div class="timer-wrap" style="margin:10px 0;">
+        <div class="timer-bar"><div id="partyQuizTimerFill" class="timer-fill" style="width:100%"></div></div>
+        <div id="partyQuizTimerNum" class="timer-num">${msg.timeLimit}s</div>
+      </div>
       <div class="answers">
         ${msg.a.map((ans,i)=>`
           <button class="answer-btn" onclick="partyAnswerQuiz(${i})">
@@ -3811,6 +4146,23 @@ function renderPartyQuiz(msg){
       <div id="partyQuizStatus" class="next-hint"></div>
     </div>
   `);
+  startPartyQuizTicker(msg.timeLimit);
+}
+// Rein optischer Countdown (lokale Uhr, wie bei den anderen Timern in
+// diesem Spiel) - die eigentliche Zeit-Autorität liegt beim Server, der
+// nach Ablauf auch ohne Antwort selbst aufloest.
+function startPartyQuizTicker(timeLimitSeconds){
+  if(party.quizTickerId) clearInterval(party.quizTickerId);
+  const totalMs = timeLimitSeconds * 1000;
+  const startedAt = Date.now();
+  party.quizTickerId = setInterval(() => {
+    const remaining = Math.max(0, totalMs - (Date.now()-startedAt));
+    const fill = document.getElementById("partyQuizTimerFill");
+    const num = document.getElementById("partyQuizTimerNum");
+    if(fill) fill.style.width = (remaining/totalMs*100) + "%";
+    if(num) num.textContent = Math.ceil(remaining/1000) + "s";
+    if(remaining <= 0) clearInterval(party.quizTickerId);
+  }, 100);
 }
 function partyAnswerQuiz(idx){
   if(party.myAnswered) return;
@@ -3892,6 +4244,12 @@ function renderPartyRank(msg){
       <div class="picker-sub">${msg.unit} · ${msg.order === 'desc' ? 'Höchster Wert zuerst' : 'Niedrigster Wert zuerst'}</div>
 
       ${party.soloMode ? `` : `<div class="turn-banner">${myTurn ? 'IHR SEID DRAN!' : (turnTeam?.name || '...') + ' ist dran'}</div>`}
+      ${msg.arenaTimeLimitMs ? `
+        <div class="timer-wrap" style="margin:8px 0;">
+          <div class="timer-bar"><div id="rankArenaTimerFill" class="timer-fill" style="width:100%"></div></div>
+          <div id="rankArenaTimerNum" class="timer-num">${Math.ceil(msg.arenaTimeLimitMs/1000)}s</div>
+        </div>
+      ` : ``}
 
       ${msg.freeChoice && !activeItem ? `
         <div style="color:var(--text-dim); font-size:12px; margin-bottom:8px;">
@@ -3926,6 +4284,20 @@ function renderPartyRank(msg){
       <div style="margin-top:18px;">${livesHtml}</div>
     </div>
   `);
+  if(msg.arenaTimeLimitMs) startRankArenaTicker(msg.arenaTimeLimitMs);
+  else if(party.rankArenaTickerId){ clearInterval(party.rankArenaTickerId); party.rankArenaTickerId = null; }
+}
+function startRankArenaTicker(totalMs){
+  if(party.rankArenaTickerId) clearInterval(party.rankArenaTickerId);
+  const startedAt = Date.now();
+  party.rankArenaTickerId = setInterval(() => {
+    const remaining = Math.max(0, totalMs - (Date.now()-startedAt));
+    const fill = document.getElementById("rankArenaTimerFill");
+    const num = document.getElementById("rankArenaTimerNum");
+    if(fill) fill.style.width = (remaining/totalMs*100) + "%";
+    if(num) num.textContent = Math.ceil(remaining/1000) + "s";
+    if(remaining <= 0) clearInterval(party.rankArenaTickerId);
+  }, 100);
 }
 function partySelectRankItem(itemId){
   party.selectedRankItemId = itemId;
@@ -3940,9 +4312,14 @@ function renderPartyRankAttempt(msg){
   const team = party.room.teams.find(t=>t.id===msg.teamId);
   renderApp(`
     <div class="panel confirm-card">
-      <div class="points-badge ${msg.correct?'pos':'neg'}">${msg.correct?'✓ RICHTIG':'✕ FALSCH'}</div>
+      <div class="points-badge ${msg.correct?'pos':'neg'}">${msg.timeout ? '⏱ ZEIT ABGELAUFEN' : (msg.correct?'✓ RICHTIG':'✕ FALSCH')}</div>
       <p style="margin-top:10px; font-weight:700;">${team?.name || ''}: ${msg.itemName}</p>
-      ${msg.value !== undefined ? `<p style="color:var(--text-dim);">Wert: ${msg.value}</p>` : ``}
+      ${msg.value !== undefined ? `<p style="color:var(--text-dim); font-size:20px; font-weight:800;">${msg.value}${msg.unit ? ' '+msg.unit : ''}</p>` : ``}
+      ${msg.awaitingContinue ? (
+        party.isHost
+          ? `<button class="btn btn-primary btn-block" style="margin-top:14px;" onclick="partySend({action:'continue'})">WEITER</button>`
+          : `<div class="explanation" style="margin-top:14px;">Der Host schaltet weiter, wenn alle bereit sind.</div>`
+      ) : ``}
     </div>
   `);
 }
@@ -3985,6 +4362,12 @@ function renderPartyOrdering(msg){
       ` : `
         <div id="orderingHurryNote" class="explanation hidden" style="border-color:var(--accent); margin-top:8px;">⏱ Jemand ist fertig — nur noch 30 Sekunden für alle!</div>
       `}
+      ${(msg.arenaTimeLimitMs && !done) ? `
+        <div class="timer-wrap" style="margin-top:8px;">
+          <div class="timer-bar"><div id="orderingArenaTimerFill" class="timer-fill" style="width:100%"></div></div>
+          <div id="orderingArenaTimerNum" class="timer-num">${Math.ceil(msg.arenaTimeLimitMs/1000)}s</div>
+        </div>
+      ` : ``}
 
       ${done ? `
         <div class="explanation" style="margin-top:14px;">
@@ -4038,6 +4421,23 @@ function renderPartyOrdering(msg){
   `);
   if(msg.hurryActive) startOrderingTicker(msg);
   else if(party.orderingTickerId){ clearInterval(party.orderingTickerId); party.orderingTickerId = null; }
+  if(msg.arenaTimeLimitMs && !done) startOrderingArenaTicker(msg.arenaTimeLimitMs);
+  else if(party.orderingArenaTickerId){ clearInterval(party.orderingArenaTickerId); party.orderingArenaTickerId = null; }
+}
+// Rein optischer Countdown (lokale Uhr) fuer das Arena-Zeitlimit pro
+// Platzierung - startet bei jeder Zustandsaktualisierung neu (nahe genug
+// an der tatsaechlichen Server-Frist, die serverseitig durchgesetzt wird).
+function startOrderingArenaTicker(totalMs){
+  if(party.orderingArenaTickerId) clearInterval(party.orderingArenaTickerId);
+  const startedAt = Date.now();
+  party.orderingArenaTickerId = setInterval(() => {
+    const remaining = Math.max(0, totalMs - (Date.now()-startedAt));
+    const fill = document.getElementById("orderingArenaTimerFill");
+    const num = document.getElementById("orderingArenaTimerNum");
+    if(fill) fill.style.width = (remaining/totalMs*100) + "%";
+    if(num) num.textContent = Math.ceil(remaining/1000) + "s";
+    if(remaining <= 0) clearInterval(party.orderingArenaTickerId);
+  }, 100);
 }
 function partySelectOrderingItem(itemId){
   party.selectedOrderingItemId = itemId;
@@ -4930,7 +5330,7 @@ function renderPartyGameEnd(msg){
         </div>
       `).join("")}
       <div class="actions-row" style="margin-top:14px;">
-        ${party.isHost ? `<button class="btn btn-primary" onclick="partySend({action:'restartLobby'})">${t('back_to_waiting_room')}</button>` : ``}
+        <button class="btn btn-primary" onclick="partySend({action:'restartLobby'})">${t('back_to_waiting_room')}</button>
         <button class="btn btn-ghost" onclick="partyLeave()">${t('btn_leave_room')}</button>
       </div>
     </div>
