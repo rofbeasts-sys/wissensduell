@@ -2230,6 +2230,7 @@ function renderTttRankOverview(profile){
         `;}).join("")}
       </div>
       <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startTttGame(tttOverviewProfile)">GEGEN BOT SPIELEN</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttQuizmixBotEntry(tttOverviewProfile)">🧠 QUIZMIX GEGEN BOT</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttQuantumEntry(tttOverviewProfile)">⚡ QUANTUM-MODUS</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttResetRank()">↺ RANG ZURÜCKSETZEN</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
@@ -2323,6 +2324,8 @@ function tttMpHandleMessage(msg){
     tttMp.roomCode = msg.roomCode;
     tttMp.mySymbol = msg.symbol;
     tttMp.mode = msg.mode || "classic";
+    tttMp.rankIndex = Math.min(tttOverviewProfile.tttRank||0, TTT_RANKS.length-1);
+    tttMp.rankApplied = false;
     renderTttMpGame();
     return;
   }
@@ -2331,6 +2334,15 @@ function tttMpHandleMessage(msg){
     return;
   }
   if(msg.type === "tttState"){
+    // Frisches Brett (neues Spiel oder Rematch) -> aktuellen Rang neu
+    // einlesen (könnte sich durch das gerade beendete Spiel verändert
+    // haben) und die "schon verarbeitet"-Sperre für den nächsten Ausgang
+    // zurücksetzen.
+    if(msg.board.every(c => !c) && !msg.gameOver){
+      tttMp.rankIndex = Math.min(tttOverviewProfile.tttRank||0, TTT_RANKS.length-1);
+      tttMp.rankApplied = false;
+      tttMp.rankResultText = null;
+    }
     tttMp.board = msg.board;
     tttMp.turnSymbol = msg.turnSymbol;
     tttMp.gameOver = msg.gameOver;
@@ -2340,6 +2352,14 @@ function tttMpHandleMessage(msg){
     tttMp.mySymbol = msg.yourSymbol; // kann sich nach einem Rematch ändern (Tausch)
     tttMp.opponentConnected = msg.players.length===2 && msg.players.every(p=>p.connected);
     tttMp.duel = null;
+    // Online-Siege/Niederlagen/Unentschieden zählen jetzt für denselben
+    // Gürtel-Aufstieg wie im Bot-Modus (auf Wunsch) - genau einmal je
+    // beendetem Spiel anwenden.
+    if(msg.gameOver && !tttMp.rankApplied){
+      tttMp.rankApplied = true;
+      const outcome = msg.winner === "draw" ? "draw" : (msg.winner === msg.yourSymbol ? "win" : "loss");
+      tttMp.rankResultText = tttApplyRankOutcome(tttOverviewProfile, tttMp.rankIndex, outcome);
+    }
     renderTttMpGame();
     return;
   }
@@ -2398,6 +2418,7 @@ function renderTttMpGame(){
     <div class="panel">
       <div class="picker-title">TIC TAC TOE – ${isQuizmix ? 'QUIZMIX' : 'ONLINE-MODUS'}</div>
       <div class="picker-sub">Raum-Code: <b>${tttMp.roomCode}</b>${tttMp.mySymbol ? ' · Du spielst: '+tttMp.mySymbol : ''}</div>
+      ${!waiting && tttMp.rankIndex !== undefined ? `<div class="picker-sub" style="margin-top:4px;">${tttRankPillHtml(tttMp.rankIndex)}</div>` : ``}
       ${waiting ? `
         <div class="explanation" style="margin-top:14px;">Warte auf eine zweite Person … Teile den Code <b>${tttMp.roomCode}</b>.</div>
       ` : `
@@ -2410,6 +2431,7 @@ function renderTttMpGame(){
           <div class="explanation" style="text-align:center; border-color:var(--danger);">Die andere Person hat den Raum verlassen.</div>
         ` : tttMp.gameOver ? `
           <div class="explanation" style="text-align:center;">${tttMp.winner==='draw' ? 'Unentschieden!' : (tttMp.winner===tttMp.mySymbol ? '🎉 Du hast gewonnen!' : "Verloren – nächstes Mal klappt's!")}</div>
+          ${tttMp.rankResultText ? `<div class="explanation" style="text-align:center; margin-top:8px;">${tttMp.rankResultText}</div>` : ``}
           <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttMpRematch()">NOCHMAL</button>
         ` : `
           <div class="picker-sub" style="text-align:center;">${isQuizmix ? 'Tippe auf ein leeres Feld, um es per Duell zu erkämpfen.' : (tttMp.turnSymbol===tttMp.mySymbol ? 'Du bist dran' : 'Die andere Person ist dran …')}</div>
@@ -2537,20 +2559,22 @@ function tttScoreAllMoves(board, symbol){
 }
 function tttPickBotMove(board, difficulty){
   const scored = tttScoreAllMoves(board, "O");
-  // Einen SOFORTIGEN Sieg (score 10, direkt mit diesem Zug) nimmt der Bot
-  // immer, unabhängig von der Schwierigkeit - ihn absichtlich liegen zu
-  // lassen wirkt einfach kaputt, nicht "leicht".
-  const immediateWin = scored.find(s => s.score === 10);
-  if(immediateWin) return immediateWin.move;
   const bestScore = Math.max(...scored.map(s => s.score));
+  // Sowohl "nimmt einen geschenkten Sieg" als auch "blockt eine drohende
+  // Niederlage" skalieren jetzt DEUTLICH stärker mit der Schwierigkeit als
+  // zuvor (Bugfix, zweiter Anlauf: selbst die erste Abstufung reichte
+  // nicht, der weiße Gürtel blieb gegen jede Art von Testgegner bei 0%
+  // Gewinnchance - über die 4-5 Bot-Züge eines Spiels hinweg reichten
+  // ~50% "gutes" Verhalten pro Einzelzug trotzdem fast immer für den Bot).
+  const immediateWin = scored.find(s => s.score === 10);
+  if(immediateWin && Math.random() < (0.15 + difficulty * 0.6)) return immediateWin.move;
   if(Math.random() < difficulty){
     const bestMoves = scored.filter(s => s.score === bestScore);
     return bestMoves[Math.floor(Math.random()*bestMoves.length)].move;
   }
-  // "Fehler" - aber nie ein Zug, der sofort in eine erzwungene Niederlage
-  // läuft, solange es eine Alternative gibt.
   const safeMoves = scored.filter(s => s.score > -10);
-  const pool = safeMoves.length > 0 ? safeMoves : scored;
+  const playsSafe = safeMoves.length > 0 && Math.random() < (0.1 + difficulty * 0.45);
+  const pool = playsSafe ? safeMoves : scored;
   return pool[Math.floor(Math.random()*pool.length)].move;
 }
 
@@ -2567,6 +2591,128 @@ const TTQ_DIFFICULTIES = [
   {name:"Mittel", value:0.55},
   {name:"Schwer", value:0.85}
 ];
+
+/* ---- Tic Tac Toe: QuizMix gegen Bot (Felder per 5-Fragen-Duell gegen    */
+/*      einen simulierten Bot erkämpfen, statt gegen eine echte Person -   */
+/*      Fragen kommen vom Server, die Korrektheit des Bots wird anhand der */
+/*      Rang-Schwierigkeit simuliert, kein echtes "Wissen" nötig). ---- */
+let ttqb = null; // { board:[9], rankIndex, gameOver, winner, resultText, duel:null }
+
+function tttQuizmixBotEntry(profile){
+  tttOverviewProfile = profile;
+  const rankIndex = Math.min(profile.tttRank||0, TTT_RANKS.length-1);
+  ttqb = { board: Array(9).fill(null), rankIndex, gameOver:false, winner:null, resultText:"", duel:null };
+  renderTtqbGame();
+}
+
+function renderTtqbGame(){
+  if(ttqb.duel){ renderTtqbDuelPopup(); return; }
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">QUIZMIX GEGEN BOT</div>
+      <div class="picker-sub">${tttRankPillHtml(ttqb.rankIndex)} · Tippe auf ein leeres Feld, um es per Wissensduell zu erkämpfen.</div>
+      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+        ${ttqb.board.map((c,i) => `
+          <div onclick="tttQuizmixBotTap(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !ttqb.gameOver)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+        `).join("")}
+      </div>
+      ${ttqb.gameOver ? `
+        <div class="explanation" style="text-align:center;">${ttqb.winner==='draw' ? 'Unentschieden!' : (ttqb.winner==='X' ? '🎉 Du hast gewonnen!' : "Verloren – nächstes Mal klappt's!")}</div>
+        ${ttqb.resultText ? `<div class="explanation" style="text-align:center; margin-top:8px;">${ttqb.resultText}</div>` : ``}
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttQuizmixBotEntry(tttOverviewProfile)">NOCHMAL</button>
+      ` : ``}
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderTttRankOverview(tttOverviewProfile)">${t('btn_back')}</button>
+    </div>
+  `);
+}
+
+async function tttQuizmixBotTap(i){
+  if(!ttqb || ttqb.gameOver || ttqb.board[i] || ttqb.duel) return;
+  ttqb.duel = { cellIndex:i, qIndex:0, qTotal:5, questions:null, scores:{X:0,O:0}, answered:false, reveal:null };
+  renderTtqbGame(); // zeigt kurz "lädt" (leeres duel.questions faengt renderTtqbDuelPopup ab)
+  const result = await apiCall("/api/random-quiz-questions", { count: 5 });
+  if(!result.ok || !ttqb || !ttqb.duel){ if(ttqb) ttqb.duel = null; renderTtqbGame(); return; }
+  ttqb.duel.questions = result.questions;
+  // Bot "weiß" jede Frage unabhängig mit einer an den Rang gekoppelten
+  // Wahrscheinlichkeit - kein echtes Wissen, nur eine Simulation.
+  ttqb.duel.botCorrectness = result.questions.map(() => Math.random() < TTT_RANKS[ttqb.rankIndex].difficulty);
+  renderTtqbGame();
+}
+
+function renderTtqbDuelPopup(){
+  const d = ttqb.duel;
+  if(!d.questions){
+    renderApp(`<div class="panel"><div class="picker-title">⚔️ DUELL UM DAS FELD</div><div class="explanation" style="margin-top:14px;">Fragen werden geladen …</div></div>`);
+    return;
+  }
+  const q = d.questions[d.qIndex];
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">⚔️ DUELL UM DAS FELD</div>
+      <div class="picker-sub">Frage ${d.qIndex+1} von ${d.qTotal}</div>
+      <p style="font-weight:700; font-size:17px; margin-top:14px;">${q.q}</p>
+      <div class="picker-form" style="flex-direction:column; gap:8px; margin-top:10px;">
+        ${q.a.map((opt,i) => {
+          let style = "";
+          if(d.reveal){
+            if(i === q.c) style = "border-color:var(--accent-2); background:rgba(0,255,150,0.08);";
+            else style = "opacity:.6;";
+          } else if(d.answered){ style = "opacity:.6;"; }
+          return `<button class="btn ${d.answered||d.reveal ? 'btn-ghost' : 'btn-primary'} btn-block" style="${style}" onclick="tttQuizmixBotAnswer(${i})" ${d.answered||d.reveal ? 'disabled' : ''}>${opt}</button>`;
+        }).join("")}
+      </div>
+      ${d.reveal ? `
+        <div class="explanation" style="margin-top:12px;">
+          <div>Du: ${d.reveal.playerCorrect ? '✓ richtig' : '✕ falsch'}</div>
+          <div>Bot: ${d.reveal.botCorrect ? '✓ richtig' : '✕ falsch'}</div>
+          ${q.e ? `<p style="margin-top:6px; color:var(--text-dim);">${q.e}</p>` : ``}
+        </div>
+      ` : ``}
+    </div>
+  `);
+}
+
+function tttQuizmixBotAnswer(i){
+  const d = ttqb.duel;
+  if(!d || d.answered || d.reveal) return;
+  d.answered = true;
+  const q = d.questions[d.qIndex];
+  const playerCorrect = i === q.c;
+  const botCorrect = d.botCorrectness[d.qIndex];
+  if(playerCorrect) d.scores.X++;
+  if(botCorrect) d.scores.O++;
+  d.reveal = { playerCorrect, botCorrect };
+  renderTtqbDuelPopup();
+  setTimeout(() => {
+    d.qIndex++;
+    if(d.qIndex >= d.qTotal){ tttQuizmixBotFinishDuel(); return; }
+    d.answered = false;
+    d.reveal = null;
+    renderTtqbDuelPopup();
+  }, 2200);
+}
+
+function tttQuizmixBotFinishDuel(){
+  const d = ttqb.duel;
+  let winnerSymbol = null;
+  if(d.scores.X > d.scores.O) winnerSymbol = "X";
+  else if(d.scores.O > d.scores.X) winnerSymbol = "O";
+  if(winnerSymbol){
+    ttqb.board[d.cellIndex] = winnerSymbol;
+    const w = tttCheckWinner(ttqb.board);
+    if(w && w !== "draw"){
+      ttqb.gameOver = true;
+      ttqb.winner = w;
+      ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, w==="X"?"win":"loss");
+    } else if(ttqb.board.every(c=>c)){
+      ttqb.gameOver = true;
+      ttqb.winner = "draw";
+      ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, "draw");
+    }
+  }
+  ttqb.duel = null;
+  renderTtqbGame();
+}
 
 function tttQuantumEntry(profile){
   tttOverviewProfile = profile;
@@ -2728,37 +2874,48 @@ function tttPlayerMove(i){
   }, 500);
 }
 
-function tttFinishGame(winner){
-  ttt.gameOver = true;
-  const profile = ttt.profile;
-  const rank = TTT_RANKS[ttt.rankIndex];
-  const isTop = ttt.rankIndex >= TTT_RANKS.length - 1;
-  if(winner === "X"){
+// Wiederverwendbare Aufstiegs-Logik - wird sowohl vom Bot-Modus als auch
+// vom Online-Modus genutzt (auf Wunsch zählen jetzt auch Online-Siege
+// gegen echte Personen für denselben Gürtel-Aufstieg, nicht mehr nur
+// Bot-Siege).
+function tttApplyRankOutcome(profile, rankIndex, outcome){
+  const rank = TTT_RANKS[rankIndex];
+  const isTop = rankIndex >= TTT_RANKS.length - 1;
+  let resultText = "";
+  if(outcome === "win"){
     profile.wins = (profile.wins||0) + 1;
     if(isTop){
-      ttt.resultText = `🎉 Gewonnen gegen den Meister-Bot!`;
+      resultText = `🎉 Gewonnen gegen den Meister-Bot!`;
     } else {
       profile.tttWinsAtRank = (profile.tttWinsAtRank||0) + 1;
       if(profile.tttWinsAtRank >= rank.winsNeeded){
-        profile.tttRank = ttt.rankIndex + 1;
+        profile.tttRank = rankIndex + 1;
         profile.tttWinsAtRank = 0;
-        ttt.resultText = `🎉 Gewonnen! Aufstieg zu ${TTT_RANKS[ttt.rankIndex+1].name}!`;
+        resultText = `🎉 Gewonnen! Aufstieg zu ${TTT_RANKS[rankIndex+1].name}!`;
       } else {
         const remaining = rank.winsNeeded - profile.tttWinsAtRank;
-        ttt.resultText = `🎉 Gewonnen! Noch ${remaining} ${rank.consecutive ? 'Sieg(e) in Folge' : 'Sieg(e)'} bis ${TTT_RANKS[ttt.rankIndex+1].name}.`;
+        resultText = `🎉 Gewonnen! Noch ${remaining} ${rank.consecutive ? 'Sieg(e) in Folge' : 'Sieg(e)'} bis ${TTT_RANKS[rankIndex+1].name}.`;
       }
     }
-  } else if(winner === "draw"){
+  } else if(outcome === "draw"){
     profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
-    if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0; // Serie unterbrochen
-    ttt.resultText = isTop ? "Unentschieden – gegen den Meister-Bot ist das schon stark! 👏" : (rank.consecutive ? "Unentschieden – die Siegesserie ist leider gerissen, nochmal von vorn." : "Unentschieden – kein Auf- oder Abstieg.");
+    if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0;
+    resultText = isTop ? "Unentschieden – stark gespielt! 👏" : (rank.consecutive ? "Unentschieden – die Siegesserie ist leider gerissen, nochmal von vorn." : "Unentschieden – kein Auf- oder Abstieg.");
   } else {
     profile.losses = (profile.losses||0) + 1;
-    if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0; // Serie unterbrochen
-    ttt.resultText = (!isTop && rank.consecutive) ? "Verloren – die Siegesserie ist gerissen, nochmal von vorn." : "Verloren – kein Abstieg, einfach nochmal versuchen!";
+    if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0;
+    resultText = (!isTop && rank.consecutive) ? "Verloren – die Siegesserie ist gerissen, nochmal von vorn." : "Verloren – kein Abstieg, einfach nochmal versuchen!";
   }
   if(profile.isAccount) syncAccountStats(profile);
   else saveProfiles();
+  return resultText;
+}
+
+function tttFinishGame(winner){
+  ttt.gameOver = true;
+  const profile = ttt.profile;
+  const outcome = winner === "X" ? "win" : (winner === "draw" ? "draw" : "loss");
+  ttt.resultText = tttApplyRankOutcome(profile, ttt.rankIndex, outcome);
   renderTttGame();
 }
 
