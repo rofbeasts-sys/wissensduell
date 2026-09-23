@@ -1515,10 +1515,30 @@ function loadProfiles(){
 function saveProfiles(){
   try{ localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles)); }catch(e){}
 }
+// Party-Modi mit eigener "gespielt/richtig"-Statistik (siehe Statistik-
+// Seite). SLF und Nenn's Blitz fehlen hier bewusst (reine Mehrspieler-
+// Modi ohne Solo-Variante, bräuchten einen eigenen Multiplayer-Haken).
+// Bei Musik raten/Bild erraten wird nur "gespielt" gezählt, kein
+// "richtig" - dort läuft die Punktevergabe in Teilpunkten je Feld, nicht
+// als klares richtig/falsch wie bei den anderen drei.
+const MODE_STAT_DEFS = [
+  { key:"ordering",    label:"Einordnen",         tracksCorrect:true },
+  { key:"chronology",  label:"Chronologie",       tracksCorrect:true },
+  { key:"higherlower", label:"Mehr oder Weniger",  tracksCorrect:true },
+  { key:"music",       label:"Musik raten",       tracksCorrect:false },
+  { key:"picture",     label:"Bild erraten",      tracksCorrect:false }
+];
+function freshModeStats(){
+  const s = {};
+  MODE_STAT_DEFS.forEach(m => { s[m.key] = { played:0, correct:0 }; });
+  return s;
+}
+
 function createProfile(name){
   const p = { id:"p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     name: name.trim(), score:0, tier:0, klasse:0, consecutiveFails:0, roundsPlayed:0, wins:0, losses:0,
-    correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0, tttWinsAtRank:0 };
+    correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0, tttWinsAtRank:0,
+    modeStats: freshModeStats() };
   profiles.push(p);
   saveProfiles();
   return p;
@@ -1617,6 +1637,7 @@ function accountAsProfile(){
     id: "account:" + p.username, name: p.username,
     score: p.score, tier: p.tier || 0, klasse: p.klasse || 0, consecutiveFails: p.consecutiveFails || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
     correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore, tttRank: p.tttRank || 0, tttWinsAtRank: p.tttWinsAtRank || 0,
+    modeStats: p.modeStats || freshModeStats(),
     isAccount: true
   };
 }
@@ -1627,7 +1648,8 @@ async function syncAccountStats(profile){
     token: account.token,
     stats: {
       score: profile.score, tier: profile.tier, klasse: profile.klasse, consecutiveFails: profile.consecutiveFails, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
-      correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank, tttWinsAtRank: profile.tttWinsAtRank
+      correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank, tttWinsAtRank: profile.tttWinsAtRank,
+      modeStats: profile.modeStats
     }
   });
   if(result.ok) account.profile = result.profile;
@@ -2040,28 +2062,36 @@ function renderMainMenu(){
 function statCardHtml(p, extraArena){
   const totalGames = p.wins + p.losses;
   const winRate = totalGames > 0 ? Math.round((p.wins/totalGames)*100) : 0;
-  const totalAnswers = p.correctAnswers + p.wrongAnswers;
-  const accuracy = totalAnswers > 0 ? Math.round((p.correctAnswers/totalAnswers)*100) : 0;
+  const modeStats = p.modeStats || freshModeStats();
   return `
     <div class="stat-card">
       <div class="row1">
         <div class="sname">${p.name}${p.isAccount ? ' <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(Konto – gilt für alle Modi)</span>' : ''}</div>
-        ${rankPillHtml(p.score)}
       </div>
       <div class="picker-sub" style="margin:4px 0 8px;">${klassePillHtml(p.klasse||0)} <span style="margin-left:6px;">Aktuelle Klasse (Brain Test)</span></div>
       <div class="stat-mini">
-        <div><div class="n">${p.score}</div><div class="l">Punkte</div></div>
-        <div><div class="n">${p.bestScore}</div><div class="l">Beste Punktzahl</div></div>
         <div><div class="n">${p.roundsPlayed}</div><div class="l">Runden gespielt</div></div>
         <div><div class="n">${p.wins}</div><div class="l">Siege</div></div>
         <div><div class="n">${p.losses}</div><div class="l">Niederlagen</div></div>
         <div><div class="n">${winRate}%</div><div class="l">Siegquote</div></div>
-        <div><div class="n">${p.correctAnswers}/${p.wrongAnswers}</div><div class="l">Richtig/Falsch</div></div>
-        <div><div class="n">${accuracy}%</div><div class="l">Trefferquote</div></div>
         ${extraArena ? `
         <div><div class="n">${extraArena.arenaPoints||0}</div><div class="l">Arena-Punkte</div></div>
         <div><div class="n">${extraArena.arenaMatchesPlayed||0}</div><div class="l">Arena-Matches</div></div>
         ` : ``}
+      </div>
+      <div class="picker-sub" style="margin:16px 0 8px;">Nach Spielmodus:</div>
+      <div class="stat-mini">
+        ${MODE_STAT_DEFS.map(m => {
+          const s = modeStats[m.key] || {played:0, correct:0};
+          return `
+          <div>
+            <div class="l" style="margin-bottom:4px; font-weight:700;">${m.label}</div>
+            <div style="display:flex; justify-content:space-between; gap:8px;">
+              <span><span class="n" style="font-size:18px;">${s.played}</span><br><span class="l">gespielt</span></span>
+              ${m.tracksCorrect ? `<span><span class="n" style="font-size:18px;">${s.correct}</span><br><span class="l">richtig</span></span>` : ``}
+            </div>
+          </div>
+        `;}).join("")}
       </div>
       <button class="btn btn-ghost btn-block" style="margin-top:12px; opacity:.5; cursor:not-allowed;" disabled title="Kommt bald">🏆 Erfolge (bald verfügbar)</button>
     </div>
@@ -3794,12 +3824,18 @@ function partyHandleMessage(msg){
       renderPartyRank(msg);
       break;
     case "rankAttempt":
+      // Für die Modus-Statistik (Chronologie/Mehr oder Weniger): im Solo
+      // gibt es nur ein Team, jeder Versuch zählt für die eigene Quote.
+      if(party.soloMode && msg.correct) party.soloModeCorrect = (party.soloModeCorrect||0) + 1;
       renderPartyRankAttempt(msg);
       break;
     case "rankReveal":
       renderPartyRankReveal(msg);
       break;
     case "orderingState":
+      // Für die Modus-Statistik (Einordnen): correctCount ist im Server
+      // bereits laufend kumuliert, wir merken uns nur den letzten Stand.
+      if(party.soloMode && typeof msg.correctCount === "number") party.soloModeCorrect = msg.correctCount;
       renderPartyOrdering(msg);
       break;
     case "orderingHurry":
@@ -3882,16 +3918,28 @@ function partyHandleMessage(msg){
 // Zählt hier bewusst nur "Runde gespielt" (roundsPlayed) - die genaue
 // Sieg/Niederlage- und Korrektheits-Logik unterscheidet sich stark
 // zwischen den sechs sehr verschiedenen Rundentypen.
+// Zusätzlich (auf Wunsch): pro-Modus-Statistik in modeStats, für die Modi
+// mit eigenem, sauberem Rundentyp (siehe MODE_STAT_DEFS). SLF/Nenn's Blitz
+// fehlen hier bewusst (reine Mehrspieler-Modi, kein Solo-Durchlauf).
 function recordSoloPartyCompletion(){
   if(!party || !party.soloMode || party.arenaMode) return; // Arena hat eigene Auswertung
+  const modeDef = MODE_STAT_DEFS.find(m => m.key === party.gameMode);
   if(account){
+    const modeStats = account.profile.modeStats || freshModeStats();
+    if(modeDef){
+      const entry = modeStats[modeDef.key] || {played:0, correct:0};
+      entry.played = (entry.played||0) + 1;
+      if(modeDef.tracksCorrect) entry.correct = (entry.correct||0) + (party.soloModeCorrect||0);
+      modeStats[modeDef.key] = entry;
+    }
     syncAccountStats({
       score: account.profile.score, tier: account.profile.tier, klasse: account.profile.klasse,
       consecutiveFails: account.profile.consecutiveFails,
       roundsPlayed: (account.profile.roundsPlayed||0) + 1,
       wins: account.profile.wins, losses: account.profile.losses,
       correctAnswers: account.profile.correctAnswers, wrongAnswers: account.profile.wrongAnswers,
-      bestScore: account.profile.bestScore
+      bestScore: account.profile.bestScore, tttRank: account.profile.tttRank, tttWinsAtRank: account.profile.tttWinsAtRank,
+      modeStats
     });
   } else if(profiles.length > 0){
     // Ohne Konto: an das zuletzt aktive lokale Profil (nach Namen) anhängen,
@@ -3899,8 +3947,19 @@ function recordSoloPartyCompletion(){
     // automatisches Anlegen eines neuen Profils nur wegen eines Solo-Party-
     // Durchlaufs, das bleibt bewusst dem Brain Test vorbehalten).
     const p = profiles.find(pr => pr.name === lastSoloPartyName);
-    if(p){ p.roundsPlayed = (p.roundsPlayed||0) + 1; saveProfiles(); }
+    if(p){
+      p.roundsPlayed = (p.roundsPlayed||0) + 1;
+      if(modeDef){
+        if(!p.modeStats) p.modeStats = freshModeStats();
+        const entry = p.modeStats[modeDef.key] || {played:0, correct:0};
+        entry.played = (entry.played||0) + 1;
+        if(modeDef.tracksCorrect) entry.correct = (entry.correct||0) + (party.soloModeCorrect||0);
+        p.modeStats[modeDef.key] = entry;
+      }
+      saveProfiles();
+    }
   }
+  party.soloModeCorrect = 0;
 }
 
 /* ---------- Lobby ---------- */

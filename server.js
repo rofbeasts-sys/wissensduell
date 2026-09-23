@@ -2442,7 +2442,14 @@ function findUserByToken(token) {
 }
 function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
-    arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0 };
+    arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
+    modeStats: freshModeStats() };
+}
+const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture"];
+function freshModeStats() {
+  const s = {};
+  MODE_STAT_KEYS.forEach(k => { s[k] = { played: 0, correct: 0 }; });
+  return s;
 }
 function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
@@ -2513,6 +2520,20 @@ async function saveUserStats(token, stats) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
     }
   });
+  // modeStats ist verschachtelt (kein einfacher Zahlenwert) - eigene,
+  // strikte Validierung pro Modus statt der generischen allowedKeys-Schleife.
+  if (stats.modeStats && typeof stats.modeStats === "object") {
+    if (!user.stats.modeStats) user.stats.modeStats = freshModeStats();
+    MODE_STAT_KEYS.forEach(k => {
+      const incoming = stats.modeStats[k];
+      if (incoming && typeof incoming.played === "number" && typeof incoming.correct === "number") {
+        user.stats.modeStats[k] = {
+          played: Math.max(0, Math.round(incoming.played)),
+          correct: Math.max(0, Math.round(incoming.correct))
+        };
+      }
+    });
+  }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
 }

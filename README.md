@@ -2155,6 +2155,48 @@ gewählten) Duell wählt der Bot eigenständig ein anderes Feld und startet
 selbst ein neues Duell. Online-Modus – die Person, die nicht am Zug ist,
 kann kein Duell starten; die Person am Zug kann es weiterhin normal.
 
+## 8gg. Statistik-Seite überarbeitet: alte Felder raus, neue Modi-Liste rein
+
+Auf Wunsch, nach Durchsicht eines Screenshots der bisherigen Seite:
+
+**Entfernt** (veraltet/ungenutzt, Reste des alten Punkte-/Tier-Systems von
+vor der Einführung des Klassensystems):
+- "Nicht gelistet"-Badge oben rechts (war nur der alte Score-Rang, stand
+  eh schon 0/ungenutzt neben der eigentlich relevanten Klassen-Anzeige)
+- "Punkte" und "Beste Punktzahl" (gleiches altes System, zeigte immer 0)
+- "Richtig/Falsch" und "Trefferquote" (unklar, wofür - wird jetzt durch
+  die neue, verständlichere Pro-Modus-Aufschlüsselung ersetzt)
+
+**Geblieben**: Konto-Hinweiszeile, aktuelle Klasse (Brain Test), Runden
+gespielt, Siege, Niederlagen, Siegquote, Arena-Punkte und Arena-Matches
+(beides schon immer Gesamtwerte über die ganze Zeit, nicht saisonal - die
+Saison-Werte stehen ja separat in der Arena-Bestenliste), Erfolge-Button.
+
+**Neu**: eine Liste je Spielmodus darunter, jeweils mit "gespielt" und
+(wo sinnvoll) "richtig":
+- Einordnen, Chronologie, Mehr oder Weniger: volle Verfolgung (gespielt +
+  richtig), da diese drei über dieselbe Ranking-Engine sauberes
+  richtig/falsch pro Zug liefern.
+- Musik raten, Bild erraten: nur "gespielt" - dort läuft die Bewertung in
+  Teilpunkten pro Feld (Interpret/Titel/Jahr bzw. Bild), kein klares
+  richtig/falsch wie bei den anderen drei, daher (noch) keine
+  "richtig"-Zahl dafür.
+- Stadt Land Fluss und Nenn's Blitz fehlen in der Liste - beides reine
+  Mehrspieler-Modi ohne Solo-Variante, bräuchten einen eigenen,
+  separaten Multiplayer-Statistik-Haken (kein Solo-Durchlauf, an den
+  sich die Zählung wie bei den anderen fünf anhängen ließe).
+
+Technisch: neues `modeStats`-Feld im Profil (lokal + Konto, inkl. neuer
+serverseitiger Validierung, da es ein verschachteltes Objekt statt einer
+einfachen Zahl ist). Tracking hängt sich für Einordnen an die ohnehin
+schon vom Server mitgelieferte `correctCount`, für Chronologie/Mehr-oder-
+Weniger an die einzelnen `rankAttempt`-Antworten.
+
+Mit einer Simulation bestätigt: alle fünf entfernten Elemente sind weg,
+die behaltenen Werte stimmen weiterhin, die neue Modi-Liste zeigt alle
+fünf Modi mit den richtigen Labels, und das Tracking funktioniert korrekt
+über mehrere Runden hinweg (addiert sich richtig auf, nicht überschrieben).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
