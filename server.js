@@ -42,7 +42,8 @@ const MISTAKE_PENALTY = 1;
 
 // Feste Zeitlimits im Party-Modus (Party-Runden sind session-basiert,
 // unabhängig vom persönlichen Solo-/Multiplayer-Rang).
-const QUIZ_TIME_LIMIT = 20; // Sekunden pro Frage
+const QUIZ_TIME_LIMIT = 20; // Sekunden pro Frage (normaler Wissenstest/Multiplayer)
+const ARENA_TIME_LIMIT = 10; // Sekunden pro Frage/Zug in der Arena (bewusst kürzer als normal)
 
 /* ------------------------------------------------------------------------ */
 /* BOTS (ausschließlich im Party-Raum, sauber getrennt vom restlichen Spiel) */
@@ -332,15 +333,114 @@ function tttCheckWinner(board) {
 }
 
 function tttBroadcastState(room) {
-  const msg = {
-    type: "tttState",
-    board: room.board,
-    turnSymbol: room.turnSymbol,
-    gameOver: room.gameOver,
-    winner: room.winner || null,
-    players: room.players.map(p => ({ name: p.name, symbol: p.symbol, connected: p.connected }))
+  const playersPublic = room.players.map(p => ({ name: p.name, symbol: p.symbol, connected: p.connected }));
+  room.players.forEach(p => {
+    send(p.ws, {
+      type: "tttState",
+      board: room.board,
+      turnSymbol: room.turnSymbol,
+      gameOver: room.gameOver,
+      winner: room.winner || null,
+      yourSymbol: p.symbol, // personalisiert - wichtig nach einem Rematch, bei dem Symbole tauschen
+      mode: room.mode,
+      players: playersPublic
+    });
+  });
+}
+
+/* ---- QuizMix: Variante mit Wissensduell-Feldern statt direktem Setzen -- */
+/* Auf ein leeres Feld tippen startet ein 5-Fragen-Duell zwischen beiden    */
+/* Spielenden (gleichzeitig, jede Frage mit Timer). Wer mehr richtige       */
+/* Antworten hat, bekommt das Feld mit seinem Symbol. Bei Gleichstand       */
+/* bleibt das Feld leer und ist erneut antippbar.                          */
+const TTT_DUEL_QUESTIONS_PER_CELL = 5;
+const TTT_DUEL_QUESTION_MS = 12000;
+
+function tttStartDuel(room, cellIndex) {
+  const questions = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TTT_DUEL_QUESTIONS_PER_CELL);
+  room.duel = {
+    cellIndex,
+    questions,
+    qIndex: 0,
+    scores: Object.fromEntries(room.players.map(p => [p.symbol, 0])),
+    answered: {}, // symbol -> selectedIndex fuer die aktuelle Frage
+    timer: null
   };
-  room.players.forEach(p => send(p.ws, msg));
+  tttSendDuelQuestion(room);
+}
+
+function tttSendDuelQuestion(room) {
+  const duel = room.duel;
+  if (!duel) return;
+  duel.answered = {};
+  const q = duel.questions[duel.qIndex];
+  room.players.forEach(p => send(p.ws, {
+    type: "tttDuelQuestion",
+    cellIndex: duel.cellIndex,
+    qIndex: duel.qIndex,
+    qTotal: duel.questions.length,
+    question: q.q,
+    options: q.a,
+    durationMs: TTT_DUEL_QUESTION_MS
+  }));
+  clearTimeout(duel.timer);
+  duel.timer = setTimeout(() => tttResolveDuelQuestion(room), TTT_DUEL_QUESTION_MS + 400);
+}
+
+function tttResolveDuelQuestion(room) {
+  const duel = room.duel;
+  if (!duel) return;
+  clearTimeout(duel.timer);
+  const q = duel.questions[duel.qIndex];
+  const results = {};
+  room.players.forEach(p => {
+    const selected = duel.answered[p.symbol];
+    const correct = selected === q.c;
+    if (correct) duel.scores[p.symbol] = (duel.scores[p.symbol] || 0) + 1;
+    results[p.symbol] = { selected: selected === undefined ? null : selected, correct };
+  });
+  broadcast(room, {
+    type: "tttDuelReveal",
+    cellIndex: duel.cellIndex,
+    correctIndex: q.c,
+    explanation: q.e || "",
+    results,
+    scores: duel.scores
+  });
+  duel.qIndex++;
+  if (duel.qIndex >= duel.questions.length) {
+    setTimeout(() => tttFinishDuel(room), 2200);
+  } else {
+    setTimeout(() => tttSendDuelQuestion(room), 2200);
+  }
+}
+
+function tttFinishDuel(room) {
+  const duel = room.duel;
+  if (!duel) return;
+  const symbols = Object.keys(duel.scores);
+  const [symA, symB] = symbols;
+  let winnerSymbol = null;
+  if (duel.scores[symA] > duel.scores[symB]) winnerSymbol = symA;
+  else if (duel.scores[symB] > duel.scores[symA]) winnerSymbol = symB;
+  // Bei Gleichstand (winnerSymbol bleibt null) bleibt das Feld leer.
+  if (winnerSymbol) {
+    room.board[duel.cellIndex] = winnerSymbol;
+    const w = tttCheckWinner(room.board);
+    if (w) { room.gameOver = true; room.winner = w; }
+  }
+  broadcast(room, { type: "tttDuelFinished", cellIndex: duel.cellIndex, winnerSymbol, tie: !winnerSymbol });
+  room.duel = null;
+  tttBroadcastState(room);
+}
+
+function tttHandleDuelAnswer(room, symbol, selectedIndex) {
+  const duel = room.duel;
+  if (!duel) return;
+  if (duel.answered[symbol] !== undefined) return; // schon geantwortet
+  duel.answered[symbol] = selectedIndex;
+  const allAnswered = room.players.every(p => duel.answered[p.symbol] !== undefined);
+  if (allAnswered) tttResolveDuelQuestion(room);
 }
 
 function tttHandleDisconnect(ws) {
@@ -348,6 +448,7 @@ function tttHandleDisconnect(ws) {
   if (!code) return;
   const room = tttRooms.get(code);
   if (!room) return;
+  if (room.duel) { clearTimeout(room.duel.timer); room.duel = null; }
   const player = room.players.find(p => p.ws === ws);
   if (player) player.connected = false;
   const other = room.players.find(p => p.ws !== ws);
@@ -492,6 +593,7 @@ function startQuizRound(room) {
     qIndex: 0,
     answers: new Map(), // playerId -> {selectedIndex, correct, delta}
     roundPointsByTeam: new Map(Array.from(room.teams.keys()).map(id => [id, 0])),
+    timeLimit: QUIZ_TIME_LIMIT,
     timer: null
   };
   sendNextQuizQuestion(room);
@@ -500,7 +602,8 @@ function startQuizRound(room) {
 // Arena-Quiz-Blöcke (def.klasseMin/def.klasseMax kommen vom Client, der die
 // aktuelle Liga kennt - siehe setArenaRoundPlan). Nutzt dieselbe
 // sendNextQuizQuestion()/resolveQuizQuestion()-Pipeline wie der normale
-// Wissenstest unverändert weiter, nur die Fragenauswahl unterscheidet sich.
+// Wissenstest unverändert weiter, nur die Fragenauswahl unterscheidet sich
+// und die Zeit ist bewusst kürzer (ARENA_TIME_LIMIT statt QUIZ_TIME_LIMIT).
 function startArenaQuizRound(room, def) {
   room.runtime = {
     kind: "knowledgeQuiz",
@@ -508,6 +611,7 @@ function startArenaQuizRound(room, def) {
     qIndex: 0,
     answers: new Map(),
     roundPointsByTeam: new Map(Array.from(room.teams.keys()).map(id => [id, 0])),
+    timeLimit: ARENA_TIME_LIMIT,
     timer: null
   };
   sendNextQuizQuestion(room);
@@ -517,16 +621,17 @@ function sendNextQuizQuestion(room) {
   const rt = room.runtime;
   const q = rt.questions[rt.qIndex];
   rt.answers.clear();
-  rt.questionDeadline = Date.now() + QUIZ_TIME_LIMIT * 1000;
+  const timeLimit = rt.timeLimit || QUIZ_TIME_LIMIT;
+  rt.questionDeadline = Date.now() + timeLimit * 1000;
   broadcast(room, {
     type: "quizQuestion",
     index: rt.qIndex,
     total: rt.questions.length,
     q: q.q, a: q.a, cat: q.cat,
-    timeLimit: QUIZ_TIME_LIMIT
+    timeLimit
   });
   clearTimeout(rt.timer);
-  rt.timer = setTimeout(() => resolveQuizQuestion(room), QUIZ_TIME_LIMIT * 1000 + 200);
+  rt.timer = setTimeout(() => resolveQuizQuestion(room), timeLimit * 1000 + 200);
   scheduleBotQuizAnswers(room);
 }
 
@@ -725,6 +830,56 @@ function advanceRankingTurn(room, first) {
   }
   broadcastRankState(room);
   scheduleBotRankMove(room);
+  scheduleRankingArenaTimer(room);
+}
+
+// Arena: bewusst kurzes Zeitlimit (ARENA_TIME_LIMIT) für die Entscheidung
+// des gerade aktiven Teams - reagiert es nicht rechtzeitig, zählt das wie
+// eine falsche Antwort (Leben weg), danach geht's normal weiter (gleiche
+// "awaitingRankContinue"-Pause bei Mehr-oder-Weniger wie bei einer echten
+// Antwort). Außerhalb der Arena bleibt die Entscheidungszeit unverändert
+// unbegrenzt (kein Timer wird gesetzt).
+function scheduleRankingArenaTimer(room) {
+  const rt = room.runtime;
+  if (!rt) return;
+  clearTimeout(rt.arenaTurnTimer);
+  if (room.gameMode !== "arena") return;
+  rt.arenaTurnTimer = setTimeout(() => handleRankingArenaTimeout(room), ARENA_TIME_LIMIT * 1000 + 200);
+}
+
+function handleRankingArenaTimeout(room) {
+  const rt = room.runtime;
+  if (!rt) return;
+  const teamId = rt.turnOrder[rt.turnPointer];
+  if (!teamId || rt.eliminated.has(teamId)) return;
+
+  rt.mistakes.set(teamId, (rt.mistakes.get(teamId) || 0) + 1);
+  rt.lives.set(teamId, Math.max(0, (rt.lives.get(teamId) || 3) - 1));
+  applyMistakePenalty(room, teamId);
+  if (rt.lives.get(teamId) <= 0) rt.eliminated.add(teamId);
+
+  let itemName = "–";
+  if (rt.currentItem) {
+    itemName = rt.currentItem.name;
+    rt.pool.push(rt.currentItem);
+    rt.currentItem = null;
+  }
+
+  broadcast(room, {
+    type: "rankAttempt",
+    teamId,
+    itemName,
+    timeout: true,
+    correct: false,
+    livesLeft: rt.lives.get(teamId),
+    awaitingContinue: rt.revealOnTurn
+  });
+
+  if (rt.revealOnTurn) {
+    rt.awaitingRankContinue = true;
+  } else {
+    setTimeout(() => advanceRankingTurn(room, false), 1600);
+  }
 }
 
 // Ermittelt die tatsächlich korrekte Einfügeposition für einen Wert
@@ -801,7 +956,8 @@ function broadcastRankState(room) {
     lives: Object.fromEntries(rt.lives),
     mistakes: Object.fromEntries(rt.mistakes),
     eliminated: Array.from(rt.eliminated),
-    remainingInPool: rt.pool.length
+    remainingInPool: rt.pool.length,
+    arenaTimeLimitMs: room.gameMode === "arena" ? ARENA_TIME_LIMIT * 1000 : null
   });
 }
 
@@ -822,6 +978,7 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
   const player = room.players.get(playerId);
   if (!player || player.teamId !== rt.turnOrder[rt.turnPointer]) return; // nur das Team am Zug darf ziehen
   if (typeof insertIndex !== "number" || insertIndex < 0 || insertIndex > rt.placed.length) return;
+  clearTimeout(rt.arenaTurnTimer); // echte Aktion kam rechtzeitig - Timeout nicht mehr nötig
 
   let item;
   if (rt.freeChoice) {
@@ -863,15 +1020,28 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
     type: "rankAttempt",
     teamId,
     itemName: item.name,
+    value: item.value,
+    unit: rt.unit,
     correct,
-    livesLeft: rt.lives.get(teamId)
+    livesLeft: rt.lives.get(teamId),
+    // Bei Mehr oder Weniger (revealOnTurn) bewusst KEIN automatischer
+    // Weiterschalt-Timer mehr - der aufgedeckte Wert (z.B. "X Mio. Streams")
+    // soll in Ruhe angeschaut werden koennen. Der Host schaltet manuell per
+    // "continue" weiter. Bei Chronologie bleibt der bisherige kurze
+    // automatische Rhythmus unveraendert (dort wird ja kein Wert aufgedeckt).
+    awaitingContinue: rt.revealOnTurn
   });
 
-  setTimeout(() => advanceRankingTurn(room, false), 1600);
+  if (rt.revealOnTurn) {
+    rt.awaitingRankContinue = true;
+  } else {
+    setTimeout(() => advanceRankingTurn(room, false), 1600);
+  }
 }
 
 function finishRankingRound(room) {
   const rt = room.runtime;
+  clearTimeout(rt.arenaTurnTimer);
   // Endauflösung: alle Werte aufdecken und Restpunkte je Team ausweisen.
   const fullyRevealed = [...rt.placed, ...rt.pool].sort((a, b) => rt.order === "desc" ? b.value - a.value : a.value - b.value);
 
@@ -934,7 +1104,8 @@ function startOrderingSimultaneousRound(room, def) {
       finished: false,        // alle Elemente platziert (mit oder ohne Fehler unterwegs)
       finishedPerfect: false, // alle Elemente platziert UND 0 Fehler (alle 3 Leben noch da)
       eliminated: false,      // 0 Leben, konnte nicht fertig werden
-      finishedAt: null        // Date.now() bei Abschluss (Geschwindigkeits-Tiebreak)
+      finishedAt: null,       // Date.now() bei Abschluss (Geschwindigkeits-Tiebreak)
+      arenaTimer: null        // nur in der Arena genutzt (siehe unten)
     });
   });
 
@@ -953,6 +1124,40 @@ function startOrderingSimultaneousRound(room, def) {
 
   broadcastOrderingState(room);
   scheduleBotOrderingPlays(room);
+
+  // Arena: bewusst kurzes Zeitlimit (ARENA_TIME_LIMIT) je Spieler für die
+  // NÄCHSTE Platzierung, statt der sonst hier unbegrenzten Zeit - reagiert
+  // niemand rechtzeitig, zählt das wie eine falsche Platzierung (Leben
+  // weg) und der Timer läuft für den nächsten Versuch direkt weiter.
+  if (room.gameMode === "arena") {
+    room.players.forEach(p => tttScheduleOrderingArenaTimer(room, p.id));
+  }
+}
+
+function tttScheduleOrderingArenaTimer(room, playerId) {
+  const rt = room.runtime;
+  const st = rt.perPlayer.get(playerId);
+  if (!st || st.finished || st.eliminated) return;
+  clearTimeout(st.arenaTimer);
+  st.arenaTimer = setTimeout(() => handleOrderingArenaTimeout(room, playerId), ARENA_TIME_LIMIT * 1000 + 200);
+}
+
+function handleOrderingArenaTimeout(room, playerId) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "orderingGame") return;
+  const st = rt.perPlayer.get(playerId);
+  if (!st || st.finished || st.eliminated || st.pool.length === 0) return;
+  // Keine rechtzeitige Platzierung -> zaehlt wie ein Fehlversuch (Leben
+  // weg), das Element bleibt im eigenen Pool erhalten (kann später erneut
+  // versucht werden, genau wie bei einer normalen falschen Platzierung).
+  st.mistakes++;
+  st.lives = Math.max(0, st.lives - 1);
+  if (st.lives <= 0) {
+    st.eliminated = true;
+  }
+  broadcastOrderingState(room);
+  checkOrderingRoundEnd(room);
+  if (!st.finished && !st.eliminated) tttScheduleOrderingArenaTimer(room, playerId);
 }
 
 // Prüft, ob das Einsortieren an slotIndex im festen 1..N-Positionsraster
@@ -1028,7 +1233,12 @@ function handleOrderingPlace(room, playerId, itemId, slotIndex) {
   }
 
   broadcastOrderingState(room);
+  checkOrderingRoundEnd(room);
+  if (room.gameMode === "arena") tttScheduleOrderingArenaTimer(room, playerId); // no-op falls fertig/eliminiert
+}
 
+function checkOrderingRoundEnd(room) {
+  const rt = room.runtime;
   const stillActive = Array.from(rt.perPlayer.values()).some(s => !s.finished && !s.eliminated);
   if (!stillActive) {
     clearTimeout(rt.timer);
@@ -1064,6 +1274,7 @@ function broadcastOrderingState(room) {
       finished: st.finished, finishedPerfect: st.finishedPerfect, eliminated: st.eliminated,
       hurryActive: !!rt.hurryDeadline,
       remainingMs: rt.hurryDeadline ? Math.max(0, rt.hurryDeadline - Date.now()) : null,
+      arenaTimeLimitMs: room.gameMode === "arena" ? ARENA_TIME_LIMIT * 1000 : null,
       leaderboard
     });
   });
@@ -1074,6 +1285,10 @@ function finalizeOrderingRound(room) {
   if (!rt || rt.finalized) return;
   rt.finalized = true;
   clearTimeout(rt.timer);
+  // Alle individuellen Arena-Timer sauber stoppen, sonst könnten sie nach
+  // Rundenende noch verspätet feuern und auf einem bereits abgeschlossenen
+  // Zustand herumrechnen.
+  rt.perPlayer.forEach(st => clearTimeout(st.arenaTimer));
 
   const results = Array.from(rt.perPlayer.entries()).map(([playerId, st]) => ({ playerId, ...st }));
 
@@ -2209,7 +2424,7 @@ function findUserByToken(token) {
 }
 function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
-    arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0 };
+    arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0 };
 }
 function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
@@ -2274,7 +2489,7 @@ async function logoutUser(token) {
 async function saveUserStats(token, stats) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
-  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank"];
+  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank"];
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
@@ -2493,26 +2708,33 @@ wss.on("connection", (ws) => {
     // ---- Tic Tac Toe Mehrspieler (eigenes, schlankes Raumsystem) ----
     if (msg.action === "tttCreateRoom") {
       const code = tttMakeRoomCode();
+      // Zufällig, welches Symbol der Host bekommt (statt immer X) - beim
+      // Beitreten der zweiten Person entscheidet sich dadurch auch fair,
+      // wer zuerst dran ist (X beginnt immer).
+      const hostSymbol = Math.random() < 0.5 ? "X" : "O";
       const room = {
         code,
-        players: [{ ws, name: msg.name || "Host", symbol: "X", connected: true }],
+        players: [{ ws, name: msg.name || "Host", symbol: hostSymbol, connected: true }],
         board: Array(9).fill(null),
         turnSymbol: "X",
         gameOver: false,
-        winner: null
+        winner: null,
+        mode: msg.mode === "quizmix" ? "quizmix" : "classic",
+        duel: null
       };
       tttRooms.set(code, room);
       ws.tttRoomCode = code;
-      send(ws, { type: "tttJoined", roomCode: code, symbol: "X" });
+      send(ws, { type: "tttJoined", roomCode: code, symbol: hostSymbol, mode: room.mode });
       return;
     }
     if (msg.action === "tttJoinRoom") {
       const room = tttRooms.get((msg.code || "").toUpperCase());
       if (!room) return send(ws, { type: "tttError", message: "Raum nicht gefunden." });
       if (room.players.length >= 2) return send(ws, { type: "tttError", message: "Der Raum ist schon voll." });
-      room.players.push({ ws, name: msg.name || "Spieler", symbol: "O", connected: true });
+      const guestSymbol = room.players[0].symbol === "X" ? "O" : "X";
+      room.players.push({ ws, name: msg.name || "Spieler", symbol: guestSymbol, connected: true });
       ws.tttRoomCode = room.code;
-      send(ws, { type: "tttJoined", roomCode: room.code, symbol: "O" });
+      send(ws, { type: "tttJoined", roomCode: room.code, symbol: guestSymbol, mode: room.mode });
       tttBroadcastState(room);
       return;
     }
@@ -2534,14 +2756,38 @@ wss.on("connection", (ws) => {
       tttBroadcastState(room);
       return;
     }
+    // QuizMix: kein Zugzwang - jede Person darf jedes leere, nicht gerade
+    // umkämpfte Feld antippen, um dort ein 5-Fragen-Duell zu starten.
+    if (msg.action === "tttQuizmixTap") {
+      const room = tttRooms.get(ws.tttRoomCode);
+      if (!room || room.gameOver || room.mode !== "quizmix" || room.duel) return;
+      const i = msg.index;
+      if (typeof i !== "number" || i < 0 || i > 8 || room.board[i]) return;
+      if (room.players.length < 2) return;
+      tttStartDuel(room, i);
+      return;
+    }
+    if (msg.action === "tttDuelAnswer") {
+      const room = tttRooms.get(ws.tttRoomCode);
+      if (!room || !room.duel) return;
+      const player = room.players.find(p => p.ws === ws);
+      if (!player) return;
+      tttHandleDuelAnswer(room, player.symbol, msg.selectedIndex);
+      return;
+    }
     if (msg.action === "tttRematch") {
       const room = tttRooms.get(ws.tttRoomCode);
       if (!room) return;
+      if (room.duel) { clearTimeout(room.duel.timer); room.duel = null; }
       room.board = Array(9).fill(null);
       room.gameOver = false;
       room.winner = null;
-      // Wer beim vorigen Spiel O war, faengt diesmal an - fairer Wechsel.
-      room.players.forEach(p => { p.symbol = p.symbol === "X" ? "O" : "X"; });
+      // Wer beginnt, wird jedes Mal neu zufällig verteilt (nicht einfach
+      // nur getauscht) - auf Wunsch, damit es nicht immer "der/die andere"
+      // ist, sondern wirklich zufällig.
+      if (Math.random() < 0.5) {
+        [room.players[0].symbol, room.players[1].symbol] = [room.players[1].symbol, room.players[0].symbol];
+      }
       room.turnSymbol = "X";
       tttBroadcastState(room);
       return;
@@ -2737,6 +2983,7 @@ wss.on("connection", (ws) => {
         else if (isHost && room.runtime && room.runtime.kind === "nennsBlitz" && room.runtime.phase === "challenge") finalizeNennsBlitzRound(room);
         else if (isHost && room.runtime && room.runtime.kind === "stadtLandFluss" && room.runtime.phase === "challenge") slfFinalizeRound(room);
         else if (isHost && room.runtime && room.runtime.kind === "orderingGame" && !room.runtime.finalized) { clearTimeout(room.runtime.timer); finalizeOrderingRound(room); }
+        else if (isHost && room.runtime && room.runtime.kind === "higherLowerGame" && room.runtime.awaitingRankContinue) { room.runtime.awaitingRankContinue = false; advanceRankingTurn(room, false); }
         break;
       case "quizAnswer":
         handleQuizAnswer(room, ws.playerId, msg.selectedIndex);
@@ -2786,7 +3033,10 @@ wss.on("connection", (ws) => {
         handleSlfChallengeReady(room, ws.playerId);
         break;
       case "restartLobby":
-        if (isHost && room.phase === "gameEnd") {
+        // Bewusst nicht mehr auf den Host beschränkt (Bugfix) - jede Person
+        // im Raum soll nach Spielende zurück in den Warteraum können, nicht
+        // nur der Host.
+        if (room.phase === "gameEnd") {
           room.phase = "lobby";
           room.currentRoundIndex = -1;
           room.roundDefs = [];

@@ -1865,6 +1865,184 @@ gleichzeitig korrekt, Rematch tauscht die Symbole und setzt das Brett
 zurück, und die verbleibende Person wird korrekt benachrichtigt, wenn die
 andere den Raum verlässt.
 
+## 7ww. Tic Tac Toe: Bot spielt insgesamt kompetenter + steilere Rangkurve
+
+Gemeldet: der Aufstieg bis fast zum Meister-Rang ging "ratzifatzi", fühlte
+sich zu leicht an.
+
+**Echter Fund dabei**: Der Bot hat bei "absichtlichen Fehlern" (niedrige
+Schwierigkeit) manchmal einen **sofortigen, geschenkten Sieg liegen
+gelassen** – das lag daran, dass die "Sicherheits"-Auswahl zufällig
+zwischen ALLEN nicht-verlierenden Zügen wählte, auch wenn einer davon der
+Gewinnzug selbst war, statt den Gewinnzug zu bevorzugen. Das machte den
+Bot streckenweise wirken, als würde er einfach nicht aufpassen, statt nur
+"schwächer" zu spielen. Jetzt nimmt der Bot einen sofortigen Sieg **immer**,
+unabhängig vom Rang (mit 200/200 Testdurchläufen bestätigt, vorher
+teilweise unter 65%).
+
+**Zusätzlich**: die Schwierigkeitskurve wurde nach oben steiler gemacht
+(Gelb 0,35→0,3, Grün 0,65→0,7, Blau 0,8→0,85, Braun 0,92→0,95 – die
+oberen Ränge liegen jetzt näher an "praktisch perfekt").
+
+Mit einer Simulation gegen einen "soliden" simulierten Gegenspieler
+(nimmt Siege, blockt Niederlagen, sonst zufällig) über 500 Partien je
+Rang bestätigt: der Bot gewinnt mit steigendem Rang tendenziell öfter
+(Weißer Gürtel ~12%, Blauer Gürtel ~19% der Partien für den Bot selbst),
+und lässt sich nie mehr einen offensichtlichen Sieg oder Block entgehen.
+
+## 7xx. Zwei Bugfixes: TTT-Rematch reagierte nicht mehr, Warteraum-Button nur für Host
+
+**1. Tic Tac Toe Mehrspieler: "Nochmal"-Button reagierte nicht mehr.**
+Ursache gefunden: `tttMp.mySymbol` wurde beim Client nur EINMAL beim
+Beitreten gesetzt, aber nie aktualisiert. Da der Server beim Rematch die
+Symbole zwischen den beiden Spielenden tauscht (fairer Wechsel, wer
+anfängt), dachte der Client danach weiterhin, er hätte sein altes Symbol
+– und lehnte dadurch eigene Klicks fälschlich ab, weil die
+"bin ich dran?"-Prüfung mit dem falschen Symbol verglich. Fix: Der Server
+schickt jetzt jeder Person in der personalisierten `tttState`-Nachricht
+ihr eigenes, aktuelles Symbol (`yourSymbol`) mit, der Client übernimmt das
+bei jeder Aktualisierung. Mit einem echten Zwei-Client-Test bestätigt:
+Symbole tauschen nach Rematch korrekt, und ein Zug der Person, die jetzt
+neu X ist, kommt danach auch tatsächlich an.
+
+**2. "Zurück zum Warteraum" nach Spielende war nur für den Host sichtbar.**
+War sowohl client- als auch serverseitig auf `isHost` beschränkt. Beides
+entfernt (Button jetzt für alle sichtbar, Server akzeptiert die Aktion
+jetzt von jeder Person im Raum, solange `room.phase === "gameEnd"`) – der
+dahinterliegende, bereits bewährte Ablauf (Phase zurück auf "lobby",
+Punkte zurücksetzen) ist dabei unverändert geblieben, nur die
+Berechtigungsprüfung ist weg.
+
+## 7yy. Vier Änderungen: Mehr-oder-Weniger-Zeit, TTT-Reset, gestaffelte Siege, Zufallsbeginn
+
+**1. Mehr oder Weniger: unbegrenzt Zeit zum Anschauen der Werte.** Bisher
+ging es nach jeder Auflösung (z.B. "X Mio. Streams") automatisch nach nur
+1,6 Sekunden weiter – viel zu kurz, um die Zahl wirklich zu lesen. Dabei
+außerdem einen echten Bug gefunden: der aufgedeckte Wert wurde vom Server
+gar nicht erst mitgeschickt, die Anzeige dafür lief komplett ins Leere.
+Jetzt: Server schickt den Wert korrekt mit, kein automatischer Timer mehr
+– der Host schaltet manuell per neuem "WEITER"-Button weiter, alle können
+sich die Zahl in Ruhe anschauen. Chronologie (nutzt dieselbe Engine)
+bleibt bewusst unverändert, da dort pro Zug kein Wert aufgedeckt wird.
+
+**2. Tic Tac Toe: Reset-Button.** Neuer "↺ RANG ZURÜCKSETZEN"-Button auf
+der Gürtel-Übersicht (mit Sicherheitsabfrage), setzt Rang und
+Fortschritt zum aktuellen Gürtel zurück auf Weißer Gürtel/0.
+
+**3. Tic Tac Toe: gestaffelte Aufstiegs-Anforderungen.** Statt "1 Sieg =
+sofortiger Aufstieg" jetzt: Weiß→Gelb 1 Sieg, Gelb→Orange 2 Siege,
+Orange→Grün 3 Siege (müssen nicht am Stück sein), Grün→Blau 3 Siege **in
+Folge**, Blau→Braun 4 in Folge, Braun→Meister 5 in Folge. Bei den
+"in Folge"-Rängen setzt eine Niederlage oder ein Unentschieden die Serie
+zurück auf 0. Die Übersicht zeigt den Fortschritt direkt an (z.B. "▶
+Aktuell (2/3 in Folge)").
+
+**4. Tic Tac Toe: zufälliger Spielbeginn.** Gegen den Bot: nicht mehr
+immer die spielende Person zuerst, sondern 50/50 zufällig (macht der Bot
+den ersten Zug automatisch). Im Mehrspieler: sowohl bei Raumerstellung
+(wer X/O bekommt) als auch bei jedem Rematch zufällig statt eines festen
+Wechsels.
+
+Mit Simulationen und echten Server-Tests bestätigt: alle Stufen-Übergänge
+inkl. Serien-Reset bei Niederlage korrekt, Reset-Button funktioniert,
+Zufallsverteilung sowohl gegen Bot (100 Spiele) als auch bei
+Raumerstellung (20 Räume) zeigt eine echte Mischung, nicht immer
+dieselbe Seite.
+
+## 7zz. Tic Tac Toe: Solo/Online-Modus-Struktur + neue Quantum-Variante
+
+**1. Einstieg umstrukturiert**: Tic Tac Toe hat jetzt wie die anderen
+Modi zuerst einen "Solo"/"Online-Modus"-Auswahlbildschirm (statt beides
+zusammen auf der Rangübersicht). "Online-Modus" ist weiterhin nur "Raum
+erstellen/beitreten mit Freunden" – auf Wunsch bewusst OHNE automatische
+Gegnersuche/Matchmaking, das kann später noch kommen.
+
+**2. Neue Variante: Quantum-Modus** (`⚡ QUANTUM-MODUS`-Button auf der
+Solo-Rangübersicht). Jede Seite hat höchstens 3 Symbole gleichzeitig auf
+dem Feld – beim vierten Zug verschwindet automatisch das jeweils älteste
+eigene Symbol. Das macht das Spiel im Gegensatz zum klassischen Modus
+NICHT mehr zu einem "gelösten", bei perfektem Spiel immer unentschieden
+endenden Spiel – es gibt wirklich Sieger.
+
+- Eigener, einfacherer Bot (keine volle Minimax-Suche, da der
+  Zustandsraum durch das Verschwinden nicht mehr sauber erschöpfend
+  durchsuchbar ist) – nimmt aber zuverlässig sofortige Siege und blockt
+  meistens drohende Niederlagen, mit 3 wählbaren Schwierigkeitsstufen
+  (Leicht/Mittel/Schwer).
+- Zugbegrenzung (30 Züge) als Sicherheitsnetz gegen ein theoretisch
+  endloses Spiel – danach automatisch unentschieden.
+- Vorerst **nur gegen Bot**, kein eigenes Rang-/Fortschrittssystem (das
+  würde den Rahmen sprengen) – einfach zum Ausprobieren. Mehrspieler-
+  Unterstützung für den Quantum-Modus wäre ein möglicher nächster Schritt.
+
+Mit Simulationen bestätigt: Die Kernmechanik (ältestes Symbol verschwindet
+korrekt beim vierten Zug) funktioniert exakt, der Bot nimmt sofortige
+Siege auch auf "Leicht", und über 200 komplette simulierte Partien kamen
+tatsächlich Siege zustande (nicht nur Unentschieden) – die Variante
+erfüllt also genau ihren Zweck.
+
+## 8aa. Neuer Tic-Tac-Toe-Modus: QuizMix (Felder per Wissensduell erkämpfen)
+
+Auf Wunsch eine weitere Variante, diesmal im Online-Modus wählbar (beim
+Raum erstellen: "Klassisch" oder "QuizMix"). Statt direkt zu setzen, wird
+jedes Feld per 5-Fragen-Duell erkämpft:
+
+- Antippen eines leeren Feldes startet ein Duell – **beide** Spielenden
+  bekommen dieselben 5 Fragen (aus dem allgemeinen 590-Fragen-Pool),
+  nacheinander, je 12 Sekunden Zeit pro Frage.
+- Wer nach 5 Fragen mehr richtig hat, bekommt das Feld mit seinem Symbol.
+  **Bei Gleichstand bleibt das Feld leer** und ist erneut antippbar –
+  genau wie gewünscht ("kriegt keiner den Punkt").
+- Gewöhnliches 3-in-einer-Reihe-Gewinnen danach unverändert.
+- Server ist die Zeit-Autorität (löst nach Ablauf auch ohne Antwort
+  automatisch auf), Client zeigt nur einen optischen Countdown.
+
+Mit einem echten Zwei-Client-Test über WebSocket vollständig bestätigt:
+Raum korrekt im QuizMix-Modus erstellt, Duell startet beim Antippen,
+beide Seiten sehen exakt dieselben 5 Fragen, alle 5 Auflösungen kommen
+korrekt an, die Punktezählung stimmt mit dem tatsächlichen Ergebnis
+überein, und das gewonnene Feld zeigt am Ende korrekt das Sieger-Symbol.
+
+**Nicht explizit durchgetestet** (aber durch die einfache, symmetrische
+Vergleichslogik im Code hohe Zuversicht): der Unentschieden-Fall
+(Feld bleibt leer) und der Fall, dass jemand eine Frage gar nicht
+beantwortet und die Zeit einfach abläuft.
+
+## 8bb. Arena: 10-Sekunden-Zeitlimit statt unbegrenzter Zeit
+
+Auf Wunsch, da die Arena vorher teils unbegrenzt Zeit ließ ("hat man ja
+unendlich Zeit") – jetzt bewusst kurz und knackig:
+
+- **Wissenstest in der Arena**: 10 Sekunden statt der normalen 20
+  (`ARENA_TIME_LIMIT` neu, getrennt von `QUIZ_TIME_LIMIT` – normaler
+  Multiplayer-Wissenstest bleibt unverändert bei 20s). Dabei auch gleich
+  einen sichtbaren Countdown-Balken für Party-Quiz-Fragen ergänzt, den es
+  vorher gar nicht gab (nur der Server kannte bisher ein Zeitlimit, die
+  Anzeige zeigte keinen Timer).
+- **Einordnen in der Arena**: 10 Sekunden pro Platzierung, individuell je
+  Person (nicht rundenweise). Reagiert jemand nicht rechtzeitig, zählt das
+  wie eine falsche Platzierung (ein Leben weg), der Timer läuft direkt für
+  den nächsten Versuch weiter. Im normalen (Nicht-Arena-)Einordnen bleibt
+  es bei der kürzlich eingeführten unbegrenzten Zeit – nur die Arena
+  bekommt dieses knappe Zeitlimit.
+
+**Nachgeliefert**: Chronologie und Mehr-oder-Weniger (gemeinsame
+Ranking-Engine) haben jetzt ebenfalls das 10-Sekunden-Arena-Zeitlimit pro
+Entscheidung – nach demselben Muster wie bei Einordnen. Reagiert das
+aktive Team nicht rechtzeitig, zählt das wie eine falsche Antwort (Leben
+weg), sichtbarer Countdown-Balken ergänzt, Auflösung zeigt "⏱ ZEIT
+ABGELAUFEN" statt "✕ FALSCH". Außerhalb der Arena bleibt die
+Entscheidungszeit weiterhin bewusst unbegrenzt (kein Timer gesetzt, keine
+Verhaltensänderung).
+
+Mit einem echten Server-Test bestätigt: `arenaTimeLimitMs` korrekt im
+State, nach 10 Sekunden ohne Reaktion kommt eine `rankAttempt`-Nachricht
+mit `timeout:true`, Leben sinkt korrekt von 3 auf 2.
+
+Mit echten Server-Tests bestätigt: normaler Multiplayer-Wissenstest bleibt
+bei 20s, Arena-Wissenstest korrekt bei 10s, und beim Einordnen in der
+Arena kostet Nichtstun nach 10 Sekunden nachweislich ein Leben (3→2).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
