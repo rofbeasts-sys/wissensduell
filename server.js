@@ -377,16 +377,46 @@ const TTT_DUEL_QUESTIONS_PER_CELL = 5;
 const TTT_DUEL_QUESTION_MS = 12000;
 
 function tttStartDuel(room, cellIndex) {
-  const questions = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TTT_DUEL_QUESTIONS_PER_CELL);
+  // Auf Wunsch: der Duell-Typ wird pro Feld zufaellig zwischen Wissenstest
+  // und Speed Math gemischt (gleiche Idee wie im Bot-Modus).
+  const duelType = Math.random() < 0.5 ? "quiz" : "math";
+  const questions = duelType === "math"
+    ? Array.from({ length: TTT_DUEL_QUESTIONS_PER_CELL }, () => tttGenerateMathProblem())
+    : [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TTT_DUEL_QUESTIONS_PER_CELL);
   room.duel = {
     cellIndex,
+    type: duelType,
     questions,
     qIndex: 0,
     scores: Object.fromEntries(room.players.map(p => [p.symbol, 0])),
-    answered: {}, // symbol -> selectedIndex fuer die aktuelle Frage
+    answered: {}, // symbol -> selectedIndex (Quiz) bzw. eingetippte Zahl (Math) fuer die aktuelle Frage
     timer: null
   };
   tttSendDuelQuestion(room);
+}
+
+// Server-Pendant zu speedMathGenerateProblem() im Client - dieselbe Logik
+// (Division geht immer sauber auf, Subtraktion nie negativ, Zahlen 1-10).
+function tttGenerateMathProblem() {
+  const ops = ["+", "-", "×", "÷"];
+  const op = ops[Math.floor(Math.random() * ops.length)];
+  let a, b, answer;
+  if (op === "+") {
+    a = 1 + Math.floor(Math.random() * 10); b = 1 + Math.floor(Math.random() * 10);
+    answer = a + b;
+  } else if (op === "-") {
+    a = 1 + Math.floor(Math.random() * 10); b = 1 + Math.floor(Math.random() * 10);
+    if (b > a) { const t = a; a = b; b = t; }
+    answer = a - b;
+  } else if (op === "×") {
+    a = 1 + Math.floor(Math.random() * 10); b = 1 + Math.floor(Math.random() * 10);
+    answer = a * b;
+  } else {
+    b = 1 + Math.floor(Math.random() * 10);
+    answer = 1 + Math.floor(Math.random() * 10);
+    a = b * answer;
+  }
+  return { a, b, op, answer };
 }
 
 function tttSendDuelQuestion(room) {
@@ -399,8 +429,12 @@ function tttSendDuelQuestion(room) {
     cellIndex: duel.cellIndex,
     qIndex: duel.qIndex,
     qTotal: duel.questions.length,
-    question: q.q,
-    options: q.a,
+    duelType: duel.type,
+    question: duel.type === "math" ? null : q.q,
+    options: duel.type === "math" ? null : q.a,
+    mathA: duel.type === "math" ? q.a : null,
+    mathB: duel.type === "math" ? q.b : null,
+    mathOp: duel.type === "math" ? q.op : null,
     durationMs: TTT_DUEL_QUESTION_MS
   }));
   clearTimeout(duel.timer);
@@ -412,18 +446,20 @@ function tttResolveDuelQuestion(room) {
   if (!duel) return;
   clearTimeout(duel.timer);
   const q = duel.questions[duel.qIndex];
+  const isMath = duel.type === "math";
   const results = {};
   room.players.forEach(p => {
     const selected = duel.answered[p.symbol];
-    const correct = selected === q.c;
+    const correct = isMath ? (selected === q.answer) : (selected === q.c);
     if (correct) duel.scores[p.symbol] = (duel.scores[p.symbol] || 0) + 1;
     results[p.symbol] = { selected: selected === undefined ? null : selected, correct };
   });
   broadcast(room, {
     type: "tttDuelReveal",
     cellIndex: duel.cellIndex,
-    correctIndex: q.c,
-    explanation: q.e || "",
+    correctIndex: isMath ? null : q.c,
+    correctAnswer: isMath ? q.answer : null,
+    explanation: isMath ? "" : (q.e || ""),
     results,
     scores: duel.scores
   });
@@ -1077,10 +1113,17 @@ function finishRankingRound(room) {
     unit: rt.unit,
     fullOrder: fullyRevealed.map(it => ({ id: it.id, name: it.name, value: it.value })),
     correctCount: Object.fromEntries(rt.correctCount),
-    mistakes: Object.fromEntries(rt.mistakes)
+    mistakes: Object.fromEntries(rt.mistakes),
+    // Bugfix (auf Wunsch): die Endauflösung ging bisher nach fest 2,6
+    // Sekunden automatisch weiter, ohne dass man die eigenen/gegnerischen
+    // Antworten in Ruhe anschauen konnte. Jetzt kein automatischer Timer
+    // mehr - der Host schaltet manuell per "WEITER" weiter, sobald alle
+    // fertig geschaut haben. Betrifft gleichermaßen Mehr oder Weniger und
+    // Chronologie, da beide dieselbe Engine hier nutzen.
+    awaitingContinue: true
   });
 
-  setTimeout(() => finishRoundEngine(room, rt.roundPointsByTeam), 2600);
+  rt.awaitingRoundEndContinue = true;
 }
 
 /* ------------------------------------------------------------------------ */
@@ -1902,7 +1945,20 @@ function handleNennsBlitzChallenge(room, challengerId, targetPlayerId, answerId)
   const challenge = { id: challengeId, playerId: targetPlayerId, answerId, answerText: answer.text, votes, resolved: false };
   rt.challenges.set(challengeId, challenge);
   broadcastNennsBlitzChallenges(room);
-  setTimeout(() => resolveNennsBlitzChallenge(room, challengeId), NENNSBLITZ_VOTE_MS + 300);
+  // Bugfix: bei genau 2 menschlichen Spielenden ist die anfechtende Person
+  // die EINZIGE stimmberechtigte Person (die Zielperson darf ja nicht über
+  // die eigene Antwort abstimmen) - deren Stimme steht mit der Anfechtung
+  // selbst schon fest, ohne dass noch wer anderes abstimmen könnte. Bisher
+  // wurde das nur beim tatsächlichen Abstimmen (handleNennsBlitzVote)
+  // geprüft, nie direkt bei der Erstellung - dadurch hing die Anfechtung
+  // bei 1 gegen 1 die vollen 20 Sekunden im Timeout fest, statt sofort
+  // aufzulösen.
+  const eligibleVoters = Array.from(room.players.keys()).filter(pid => pid !== targetPlayerId && !room.players.get(pid).isBot);
+  if (eligibleVoters.every(pid => challenge.votes.has(pid))) {
+    resolveNennsBlitzChallenge(room, challengeId);
+  } else {
+    setTimeout(() => resolveNennsBlitzChallenge(room, challengeId), NENNSBLITZ_VOTE_MS + 300);
+  }
 }
 
 function handleNennsBlitzVote(room, voterId, challengeId, valid) {
@@ -2241,7 +2297,16 @@ function handleSlfChallenge(room, challengerId, targetPlayerId, category) {
   const challenge = { id: challengeId, playerId: targetPlayerId, category, answerText: targetAnswers[category], votes, resolved: false, voteDeadline: Date.now() + SLF_VOTE_MS };
   rt.challenges.set(challengeId, challenge);
   broadcastSlfChallenges(room);
-  setTimeout(() => slfResolveChallenge(room, challengeId), SLF_VOTE_MS + 300);
+  // Gleicher Bugfix wie bei Nenn's Blitz: bei genau 2 menschlichen
+  // Spielenden ist die anfechtende Person die einzige stimmberechtigte
+  // Person - direkt nach der Erstellung prüfen, statt nur beim (dann nie
+  // eintretenden) Abstimmen einer weiteren Person.
+  const eligibleVoters = Array.from(room.players.keys()).filter(pid => pid !== targetPlayerId && !room.players.get(pid).isBot);
+  if (eligibleVoters.every(pid => challenge.votes.has(pid))) {
+    slfResolveChallenge(room, challengeId);
+  } else {
+    setTimeout(() => slfResolveChallenge(room, challengeId), SLF_VOTE_MS + 300);
+  }
 }
 
 function handleSlfVote(room, voterId, challengeId, valid) {
@@ -2517,9 +2582,10 @@ function findUserByToken(token) {
 function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
     arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
+    haupttestUnlockedForKlasse: -1,
     modeStats: freshModeStats() };
 }
-const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture"];
+const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture", "speedmath"];
 function freshModeStats() {
   const s = {};
   MODE_STAT_KEYS.forEach(k => { s[k] = { played: 0, correct: 0 }; });
@@ -2607,6 +2673,12 @@ async function saveUserStats(token, stats) {
         };
       }
     });
+  }
+  // haupttestUnlockedForKlasse darf -1 sein (noch nicht freigeschaltet) -
+  // eigene Validierung, da die generische Schleife oben negative Werte
+  // auf 0 kappen würde (Math.max(0, ...)).
+  if (typeof stats.haupttestUnlockedForKlasse === "number" && Number.isFinite(stats.haupttestUnlockedForKlasse)) {
+    user.stats.haupttestUnlockedForKlasse = Math.max(-1, Math.round(stats.haupttestUnlockedForKlasse));
   }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
@@ -2904,7 +2976,8 @@ wss.on("connection", (ws) => {
       if (!room || !room.duel) return;
       const player = room.players.find(p => p.ws === ws);
       if (!player) return;
-      tttHandleDuelAnswer(room, player.symbol, msg.selectedIndex);
+      const value = room.duel.type === "math" ? msg.mathAnswer : msg.selectedIndex;
+      tttHandleDuelAnswer(room, player.symbol, value);
       return;
     }
     if (msg.action === "tttRematch") {
@@ -3117,6 +3190,7 @@ wss.on("connection", (ws) => {
         else if (isHost && room.runtime && room.runtime.kind === "stadtLandFluss" && room.runtime.phase === "challenge") slfFinalizeRound(room);
         else if (isHost && room.runtime && room.runtime.kind === "orderingGame" && !room.runtime.finalized) { clearTimeout(room.runtime.timer); finalizeOrderingRound(room); }
         else if (isHost && room.runtime && room.runtime.kind === "higherLowerGame" && room.runtime.awaitingRankContinue) { room.runtime.awaitingRankContinue = false; advanceRankingTurn(room, false); }
+        else if (isHost && room.runtime && room.runtime.awaitingRoundEndContinue) { room.runtime.awaitingRoundEndContinue = false; finishRoundEngine(room, room.runtime.roundPointsByTeam); }
         break;
       case "quizAnswer":
         handleQuizAnswer(room, ws.playerId, msg.selectedIndex);

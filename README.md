@@ -2271,6 +2271,151 @@ funktioniert korrekt (nur das jeweils berechtigte Team kann ziehen),
 Sieg-Erkennung funktioniert, und die Punkte reihen sich korrekt in die
 normale `roundEnd`-Vergabe ein (Sieger-Team 10, Verlierer-Team 0).
 
+## 8kk. Brain Test grundlegend umgebaut: Übungstest + Haupttest getrennt
+
+Auf Wunsch eine größere Umstrukturierung des Brain-Test-Ablaufs:
+
+**Übungstest** – bleibt technisch wie bisher (zufällige Teilmenge der
+Fragen je Klasse, kürzeres Zeitlimit, endet vorzeitig sobald
+Bestehen/Durchfallen feststeht). **Ändert aber nicht mehr die Klasse.**
+Erreicht man dabei ≥80%, schaltet sich stattdessen der **Haupttest** für
+die aktuelle Klasse frei.
+
+**Haupttest** (neu) – der eigentliche Aufstiegstest:
+- Immer **alle 50 Fragen** der Klasse (nicht nur eine Teilmenge)
+- **90 Sekunden** pro Frage
+- Läuft **immer komplett durch**, auch wenn Bestehen oder Durchfallen
+  schon vorher feststeht – kein vorzeitiges Ende wie beim Übungstest
+- 80% (40/50) nötig zum Bestehen
+- **Bestanden** → Klassenaufstieg, für die neue Klasse muss der
+  Haupttest wieder frisch über einen Übungstest freigeschaltet werden
+- **Nicht bestanden** → keine Rückstufung mehr (das alte "2× hintereinander
+  durchgefallen → eine Klasse zurück" ist raus), bleibt einfach frei
+  wiederholbar, wie gewünscht ("egal in welcher Klasse er ist")
+
+**Live-Anzeige**: auf dem Fragen-Bildschirm steht jetzt durchgehend
+"✓ X richtig · ✕ Y falsch", für beide Testarten.
+
+**Klassen-Übersicht**: zeigt jetzt einen eigenen "🔓 HAUPTTEST STARTEN"-
+Button, sobald für die aktuelle Klasse freigeschaltet (bleibt sichtbar,
+bis diese Klasse tatsächlich bestanden wird – ein alter Freischalt-Status
+von einer früheren Klasse zählt nicht mehr für die neue).
+
+Mit einer ausführlichen Simulation bestätigt (8 Testbereiche): Übungstest-
+Mechanik unverändert, Haupttest nutzt wirklich immer alle 50 Fragen mit
+90s/40 nötig, bricht nachweislich nicht vorzeitig ab, Übungstest ändert
+die Klasse nicht mehr, schaltet aber korrekt den Haupttest frei,
+bestandener Haupttest hebt die Klasse und setzt die Freischaltung für die
+neue Klasse zurück, durchgefallener Haupttest stuft nicht mehr zurück und
+bleibt wiederholbar, die Live-Anzeige erscheint korrekt, und der
+Haupttest-Button in der Übersicht reagiert korrekt auf den
+klassenspezifischen Freischalt-Status.
+
+## 8ll. Bugfix: Anfechten bei genau 2 Spielern (Nenn's Blitz + Stadt Land Fluss)
+
+Gemeldet: das Anfechten funktionierte bei 1 gegen 1 nicht.
+
+**Ursache gefunden**: Wenn jemand eine Anfechtung startet, zählt die
+eigene (implizite) "ungültig"-Stimme sofort mit. Ob damit schon ALLE
+stimmberechtigten Personen abgestimmt haben, wurde bisher aber nur
+geprüft, wenn noch jemand ANDERES aktiv abstimmt (`handleSlfVote`/
+`handleNennsBlitzVote`). Bei genau 2 menschlichen Spielenden ist die
+anfechtende Person aber die EINZIGE stimmberechtigte Person (die
+Zielperson darf ja nicht über die eigene Antwort mitstimmen) – es gibt
+also niemanden mehr, der/die noch abstimmen und diese Prüfung auslösen
+könnte. Die Anfechtung hing dadurch im 15-/20-Sekunden-Timeout fest,
+statt sich sofort aufzulösen.
+
+**Fix**: direkt beim Erstellen der Anfechtung wird jetzt geprüft, ob mit
+der eigenen impliziten Stimme bereits alle stimmberechtigten Personen
+abgestimmt haben – falls ja (genau der 1-gegen-1-Fall), löst sich die
+Anfechtung sofort auf, ohne auf den Timeout zu warten.
+
+Mit einem gezielten, isolierten Test der geänderten Funktionen bestätigt:
+bei genau 2 Spielenden löst sich die Anfechtung sofort auf (statt erst
+nach dem Timeout) und wird korrekt als ungültig markiert (die
+anfechtende Person ist ja die einzige Stimme). Als Gegenprobe bei 3
+Spielenden bestätigt, dass sich daran nichts geändert hat – dort wird
+weiterhin korrekt auf die zweite, echte Stimme gewartet, bevor aufgelöst
+wird.
+
+## 8mm. Bugfix: Mehr-oder-Weniger-Rundenauflösung ging nach 3s automatisch weiter
+
+Gemeldet: nach einer kompletten Runde Mehr oder Weniger (nicht die
+Einzelfrage-Auflösung, die schon vorher behoben wurde, sondern die
+Gesamt-Auflösung am Ende der Runde mit allen Antworten) ging es nach
+~3 Sekunden automatisch weiter zur nächsten Runde, ohne dass man die
+Antworten in Ruhe anschauen konnte.
+
+**Ursache**: `finishRankingRound()` hatte einen festen
+`setTimeout(..., 2600)`, bevor automatisch zur Rundenauswertung
+weitergeschaltet wurde – unabhängig von der Einzelfrage-Pause, die
+schon früher auf Host-Bestätigung umgestellt wurde. Betrifft
+gleichermaßen Chronologie, da beide Modi dieselbe Engine nutzen.
+
+**Fix**: kein automatischer Timer mehr – der Host bekommt jetzt einen
+"WEITER"-Button auf der Auflösungsseite, alle anderen sehen einen
+Hinweis, dass der Host weiterschaltet, sobald alle fertig geschaut haben.
+
+Mit einem echten Server-Test (komplette Runde bis zur Auflösung
+durchgespielt) bestätigt: die Auflösung kommt korrekt mit dem
+Weiterschalt-Hinweis an, geht nach 3,5 Sekunden OHNE Bestätigung nicht
+automatisch weiter (der alte Timer ist nachweislich weg), und schaltet
+erst nach dem manuellen "WEITER" tatsächlich zur nächsten Runde um.
+
+## 8nn. Neuer Modus: Speed Math
+
+Auf Wunsch ein neuer Modus unter "Modi" im Hauptmenü – Kopfrechnen gegen
+die Uhr:
+
+- Vier wählbare Zeit-Optionen: 1, 2, 3 oder 5 Minuten
+- Alle vier Grundrechenarten (Plus, Minus, Mal, Geteilt), zufällig
+  gemischt
+- Zahlen im Bereich des kleinen Einmaleins (1-10) – Subtraktion tauscht
+  bei Bedarf die Zahlen, damit nie ein negatives Ergebnis herauskommt;
+  Division wird so konstruiert, dass sie immer sauber aufgeht (keine
+  Kommazahlen)
+- Antwort wird eingetippt (nicht aus Optionen gewählt) – fühlt sich beim
+  Kopfrechnen schneller/natürlicher an
+- Live-Anzeige "✓ X richtig · ✕ Y falsch" während des Spiels
+- Nach Ablauf der Zeit: Ergebnis-Bildschirm mit Gesamtzahl, direkt
+  "NOCHMAL"-Button mit derselben Zeit-Einstellung
+- Komplett clientseitig (wie Tic Tac Toe gegen Bot), kein Server-
+  Roundtrip pro Aufgabe nötig
+- Zählt in der Statistik-Seite als neuer Eintrag "Speed Math" mit
+  gespielt/richtig, genau wie Einordnen & Co.
+
+Mit einem ausführlichen Test bestätigt: 2000 generierte Aufgaben
+allesamt rechnerisch korrekt, nie ein negatives Subtraktions-Ergebnis,
+jede Division geht sauber auf, alle vier Rechenarten kommen vor, kompletter
+Spielablauf (Start → richtige/falsche Antwort → Zeitablauf → Ergebnis)
+funktioniert fehlerfrei, und die Statistik wird korrekt aktualisiert.
+
+## 8oo. QuizMix mischt jetzt zufällig Speed Math mit ein
+
+Auf Wunsch: die QuizMix-Duelle bei Tic Tac Toe (Bot- UND Online-Modus)
+wählen jetzt pro Feld zufällig zwischen zwei Duell-Typen statt immer nur
+Wissenstest zu sein:
+
+- **Wissenstest** (wie bisher): 5 Multiple-Choice-Fragen aus dem
+  590er-Pool
+- **Speed Math** (neu): 5 Kopfrechenaufgaben (Plus/Minus/Mal/Geteilt,
+  Zahlen bis zum kleinen Einmaleins), Antwort wird eingetippt statt
+  ausgewählt – dieselbe Aufgaben-Logik wie beim eigenständigen
+  Speed-Math-Modus
+
+Welcher der beiden Typen für ein Feld kommt, entscheidet sich beim
+Antippen zufällig (50/50). Bot-Modus: der Bot "kann rechnen" mit
+derselben rang-abhängigen Wahrscheinlichkeit wie beim Wissen, keine echte
+Rechenleistung dahinter. Online-Modus: der Server generiert und prüft die
+Aufgaben, damit niemand mogeln kann, genau wie beim Wissenstest.
+
+Mit Tests bestätigt: Bot-Modus – über 30 Versuche kamen beide Typen
+zuverlässig vor, Rechen-Duell zeigt korrekt die Aufgabe und prüft die
+eingetippte Antwort richtig. Online-Modus – ein echter Zwei-Client-Test
+über 6 komplette Duelle bestätigt beide Typen, jedes lief korrekt mit 5
+Fragen/Aufgaben durch und schloss sauber ab.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
