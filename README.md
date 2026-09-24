@@ -2416,6 +2416,84 @@ eingetippte Antwort richtig. Online-Modus – ein echter Zwei-Client-Test
 über 6 komplette Duelle bestätigt beide Typen, jedes lief korrekt mit 5
 Fragen/Aufgaben durch und schloss sauber ab.
 
+## 8pp. Speed Math: fest 1 Minute statt Zeit-Auswahl
+
+Auf Wunsch vereinfacht: keine Auswahl zwischen 1/2/3/5 Minuten mehr, Speed
+Math läuft jetzt immer genau 1 Minute. Der Einstiegsbildschirm zeigt
+direkt einen "LOS GEHT'S"-Button statt der vier Zeit-Buttons.
+
+Mit einem Test bestätigt: Einstiegsseite zeigt "1 Minute" und keine der
+anderen Zeitoptionen mehr, das Spiel startet korrekt mit 60 Sekunden.
+
+## 8qq. Speed Math bei Tic-Tac-Toe-QuizMix: jetzt auch 1-Minuten-Sprint
+
+Korrektur zur letzten Änderung: die feste 1-Minute sollte nur beim
+Speed-Math-Duell in Tic Tac Toe gelten, nicht beim eigenständigen
+Speed-Math-Modus im Hauptmenü. Entsprechend umgesetzt:
+
+- **Eigenständiger Speed-Math-Modus**: wieder wie ursprünglich, Auswahl
+  zwischen 1/2/3/5 Minuten.
+- **Tic-Tac-Toe-QuizMix-Duell (Speed Math)**: komplett umgebaut von "5
+  feste Aufgaben, Punktevergleich" auf einen **echten 1-Minuten-Sprint**
+  – so viele Aufgaben wie möglich lösen, wer nach 60 Sekunden mehr
+  richtig hat, bekommt das Feld. Bot- UND Online-Modus.
+  - **Bot-Modus**: der Bot bekommt sein Endergebnis einmalig zu
+    Sprintbeginn simuliert (8-15 plausible Versuche in einer Minute,
+    davon ein rang-abhängiger Anteil richtig) und erst am Ende
+    aufgedeckt.
+  - **Online-Modus**: beide Seiten bekommen ihren **eigenen,
+    unabhängigen** Strom an Aufgaben (nicht dieselbe Aufgabe
+    gleichzeitig) – man muss nicht aufeinander warten, sieht aber den
+    Punktestand der anderen Seite live mit.
+  - Das Wissenstest-Duell (5 Multiple-Choice-Fragen) bleibt unverändert
+    wie zuvor – nur Speed Math wurde umgestellt.
+
+Mit Tests bestätigt: Bot-Sprint läuft korrekt 60 Sekunden ohne Pause
+zwischen Aufgaben, vergleicht Ergebnisse richtig am Ende. Online-Sprint
+(echter Zwei-Client-Test): beide Seiten bekommen eigene Startaufgaben,
+eine Seite kann 5 Aufgaben hintereinander lösen ohne auf die andere zu
+warten, Punktestände werden korrekt und live an beide Seiten
+übertragen.
+
+## 8rr. Neu: Speed Math Meilenstein-Modus (50 Level, Punkte, Herzen)
+
+Auf Wunsch ein komplettes Level-System innerhalb von Speed Math, als
+zweite Option neben dem freien Zeit-Modus:
+
+- **50 Level**, Schwierigkeit steigt alle 5 Level: Level 1-5 nur Plus/
+  Minus ("Einfach"), Level 6-10 zusätzlich Mal ("Mittel"), ab Level 11
+  alle vier Rechenarten (Zahlenbereich wächst danach weiter langsam mit,
+  bis maximal 1-20 in den obersten Leveln, "Fortgeschritten" → "Schwer"
+  → "Experte")
+- **Punkte**: +100 pro richtiger Antwort, -50 pro Fehler, zusätzlich +50
+  Bonus bei jeder 5er-Serie in Folge
+- **Level bestehen**: die für das Level nötige Punktzahl erreichen (steigt
+  mit jedem Level)
+- **Kontrollpunkt alle 5 Fragen**: die aktuelle Serie muss das
+  Level-spezifische Ziel erreicht haben (wächst langsam mit der
+  Schwierigkeit) – sonst geht ein Herz drauf
+- **3 Herzen pro Tag**, füllen sich über Nacht wieder auf (gleiches
+  Prinzip wie die bestehenden Arena-Herzen) – bei 0 Herzen ist für heute
+  Schluss
+- Level-Fortschritt und Herzen werden gespeichert wie alle anderen
+  Werte (lokal oder am Konto)
+
+**Zu den genauen Zahlen (Punkteziel je Level, wie schnell der
+Zahlenbereich wächst, wie die Streak-Ziele genau skalieren)**: da du
+keine exakten Formeln vorgegeben hast, habe ich hier plausible,
+sich sauber über 50 Level steigernde Werte gewählt. Sag gerne Bescheid,
+falls sich das zu leicht/schwer anfühlt, dann justiere ich die Kurve nach.
+
+Mit einem ausführlichen Test über 9 Bereiche bestätigt: Level-
+Konfiguration steigt korrekt über die ganze Spanne, Aufgabengenerierung
+hält sich an die jeweilige Level-Konfiguration, Punktesystem (+100/-50)
+und Serien-Bonus (+50 bei jeder 5er-Serie) funktionieren exakt,
+Kontrollpunkt kostet bei zu niedriger Serie korrekt ein Herz (und NICHT
+bei ausreichender Serie), Level-Aufstieg bei erreichtem Punkteziel
+funktioniert, täglicher Herzen-Reset funktioniert korrekt (nur bei
+echtem Tageswechsel, nicht mitten am Tag), und die Einstiegsseite zeigt
+Level und Herzen korrekt an.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

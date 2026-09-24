@@ -378,21 +378,80 @@ const TTT_DUEL_QUESTION_MS = 12000;
 
 function tttStartDuel(room, cellIndex) {
   // Auf Wunsch: der Duell-Typ wird pro Feld zufaellig zwischen Wissenstest
-  // und Speed Math gemischt (gleiche Idee wie im Bot-Modus).
+  // (5 feste Fragen) und Speed Math (1-Minuten-Sprint) gemischt.
   const duelType = Math.random() < 0.5 ? "quiz" : "math";
-  const questions = duelType === "math"
-    ? Array.from({ length: TTT_DUEL_QUESTIONS_PER_CELL }, () => tttGenerateMathProblem())
-    : [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TTT_DUEL_QUESTIONS_PER_CELL);
+  if (duelType === "math") {
+    tttStartMathSprintDuel(room, cellIndex);
+    return;
+  }
+  const questions = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TTT_DUEL_QUESTIONS_PER_CELL);
   room.duel = {
     cellIndex,
-    type: duelType,
+    type: "quiz",
     questions,
     qIndex: 0,
     scores: Object.fromEntries(room.players.map(p => [p.symbol, 0])),
-    answered: {}, // symbol -> selectedIndex (Quiz) bzw. eingetippte Zahl (Math) fuer die aktuelle Frage
+    answered: {}, // symbol -> selectedIndex fuer die aktuelle Frage
     timer: null
   };
   tttSendDuelQuestion(room);
+}
+
+// Speed-Math-Duell: auf Wunsch KEIN festes 5er-Set mehr, sondern ein
+// echter 1-Minuten-Sprint - jede Seite bekommt ihren EIGENEN, unabhängigen
+// Strom an Aufgaben (nicht dieselbe Aufgabe gleichzeitig), löst so viele
+// wie möglich, wer nach 60s mehr richtig hat, bekommt das Feld. Beide
+// sehen den jeweils aktuellen Punktestand der anderen Seite live mit.
+const TTT_MATH_SPRINT_MS = 60000;
+function tttStartMathSprintDuel(room, cellIndex) {
+  room.duel = {
+    cellIndex,
+    type: "math",
+    scores: Object.fromEntries(room.players.map(p => [p.symbol, 0])),
+    problems: Object.fromEntries(room.players.map(p => [p.symbol, tttGenerateMathProblem()])),
+    timer: null
+  };
+  room.players.forEach(p => send(p.ws, {
+    type: "tttSprintStart",
+    cellIndex,
+    durationMs: TTT_MATH_SPRINT_MS,
+    problem: room.duel.problems[p.symbol]
+  }));
+  room.duel.timer = setTimeout(() => tttFinishMathSprint(room), TTT_MATH_SPRINT_MS + 300);
+}
+
+function tttHandleSprintAnswer(room, symbol, value) {
+  const duel = room.duel;
+  if (!duel || duel.type !== "math") return;
+  const problem = duel.problems[symbol];
+  if (!problem) return;
+  if (value === problem.answer) duel.scores[symbol] = (duel.scores[symbol] || 0) + 1;
+  duel.problems[symbol] = tttGenerateMathProblem();
+  const player = room.players.find(p => p.symbol === symbol);
+  if (player) send(player.ws, { type: "tttSprintNextProblem", problem: duel.problems[symbol] });
+  broadcast(room, { type: "tttSprintScoreUpdate", scores: duel.scores });
+}
+
+function tttFinishMathSprint(room) {
+  const duel = room.duel;
+  if (!duel || duel.type !== "math") return;
+  clearTimeout(duel.timer);
+  const symbols = Object.keys(duel.scores);
+  const [symA, symB] = symbols;
+  let winnerSymbol = null;
+  if (duel.scores[symA] > duel.scores[symB]) winnerSymbol = symA;
+  else if (duel.scores[symB] > duel.scores[symA]) winnerSymbol = symB;
+  if (winnerSymbol) {
+    room.board[duel.cellIndex] = winnerSymbol;
+    const w = tttCheckWinner(room.board);
+    if (w) { room.gameOver = true; room.winner = w; }
+  }
+  if (!room.gameOver) {
+    room.turnSymbol = room.turnSymbol === "X" ? "O" : "X";
+  }
+  broadcast(room, { type: "tttSprintFinished", cellIndex: duel.cellIndex, winnerSymbol, tie: !winnerSymbol, finalScores: duel.scores });
+  room.duel = null;
+  tttBroadcastState(room);
 }
 
 // Server-Pendant zu speedMathGenerateProblem() im Client - dieselbe Logik
@@ -429,12 +488,8 @@ function tttSendDuelQuestion(room) {
     cellIndex: duel.cellIndex,
     qIndex: duel.qIndex,
     qTotal: duel.questions.length,
-    duelType: duel.type,
-    question: duel.type === "math" ? null : q.q,
-    options: duel.type === "math" ? null : q.a,
-    mathA: duel.type === "math" ? q.a : null,
-    mathB: duel.type === "math" ? q.b : null,
-    mathOp: duel.type === "math" ? q.op : null,
+    question: q.q,
+    options: q.a,
     durationMs: TTT_DUEL_QUESTION_MS
   }));
   clearTimeout(duel.timer);
@@ -446,20 +501,18 @@ function tttResolveDuelQuestion(room) {
   if (!duel) return;
   clearTimeout(duel.timer);
   const q = duel.questions[duel.qIndex];
-  const isMath = duel.type === "math";
   const results = {};
   room.players.forEach(p => {
     const selected = duel.answered[p.symbol];
-    const correct = isMath ? (selected === q.answer) : (selected === q.c);
+    const correct = selected === q.c;
     if (correct) duel.scores[p.symbol] = (duel.scores[p.symbol] || 0) + 1;
     results[p.symbol] = { selected: selected === undefined ? null : selected, correct };
   });
   broadcast(room, {
     type: "tttDuelReveal",
     cellIndex: duel.cellIndex,
-    correctIndex: isMath ? null : q.c,
-    correctAnswer: isMath ? q.answer : null,
-    explanation: isMath ? "" : (q.e || ""),
+    correctIndex: q.c,
+    explanation: q.e || "",
     results,
     scores: duel.scores
   });
@@ -2583,6 +2636,7 @@ function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
     arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
     haupttestUnlockedForKlasse: -1,
+    speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
     modeStats: freshModeStats() };
 }
 const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture", "speedmath"];
@@ -2679,6 +2733,18 @@ async function saveUserStats(token, stats) {
   // auf 0 kappen würde (Math.max(0, ...)).
   if (typeof stats.haupttestUnlockedForKlasse === "number" && Number.isFinite(stats.haupttestUnlockedForKlasse)) {
     user.stats.haupttestUnlockedForKlasse = Math.max(-1, Math.round(stats.haupttestUnlockedForKlasse));
+  }
+  // Speed-Math-Meilenstein: Level als Zahl 1-50, Herzen 0-3, Datum als
+  // schlichter String (kein Zahlenwert) - eigene Validierung statt der
+  // generischen allowedKeys-Schleife.
+  if (typeof stats.speedMathLevel === "number" && Number.isFinite(stats.speedMathLevel)) {
+    user.stats.speedMathLevel = Math.max(1, Math.min(50, Math.round(stats.speedMathLevel)));
+  }
+  if (typeof stats.speedMathHearts === "number" && Number.isFinite(stats.speedMathHearts)) {
+    user.stats.speedMathHearts = Math.max(0, Math.min(3, Math.round(stats.speedMathHearts)));
+  }
+  if (typeof stats.speedMathHeartsDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(stats.speedMathHeartsDate)) {
+    user.stats.speedMathHeartsDate = stats.speedMathHeartsDate;
   }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
@@ -2973,11 +3039,18 @@ wss.on("connection", (ws) => {
     }
     if (msg.action === "tttDuelAnswer") {
       const room = tttRooms.get(ws.tttRoomCode);
-      if (!room || !room.duel) return;
+      if (!room || !room.duel || room.duel.type !== "quiz") return;
       const player = room.players.find(p => p.ws === ws);
       if (!player) return;
-      const value = room.duel.type === "math" ? msg.mathAnswer : msg.selectedIndex;
-      tttHandleDuelAnswer(room, player.symbol, value);
+      tttHandleDuelAnswer(room, player.symbol, msg.selectedIndex);
+      return;
+    }
+    if (msg.action === "tttSprintAnswer") {
+      const room = tttRooms.get(ws.tttRoomCode);
+      if (!room || !room.duel || room.duel.type !== "math") return;
+      const player = room.players.find(p => p.ws === ws);
+      if (!player) return;
+      tttHandleSprintAnswer(room, player.symbol, msg.value);
       return;
     }
     if (msg.action === "tttRematch") {
