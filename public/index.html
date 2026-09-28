@@ -116,6 +116,23 @@
   .qcount{ font-size:13px; color:var(--text-dim); font-weight:600; }
   .qcat{ font-size:12px; padding:4px 10px; border-radius:999px; background:var(--bg-alt); border:1px solid var(--line); color:var(--accent-2); font-weight:700; }
   .timer-wrap{ margin-bottom:16px; }
+  .achv-toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:9999; display:flex; gap:12px; align-items:center; background:#151b2a; border:2px solid var(--accent-2); border-radius:16px; padding:12px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5); animation:achvIn .35s ease; max-width:92vw; }
+  .achv-toast .ic{ font-size:30px; }
+  @keyframes achvIn{ from{ transform:translate(-50%,30px); opacity:0; } to{ transform:translate(-50%,0); opacity:1; } }
+  .achv-card{ display:flex; gap:12px; align-items:center; padding:12px; margin-top:8px; border-radius:14px; background:rgba(255,255,255,0.04); border:2px solid transparent; opacity:.72; }
+  .achv-card.done{ opacity:1; border-color:var(--accent-2); background:rgba(0,255,150,0.07); }
+  .achv-ic{ font-size:28px; width:40px; text-align:center; flex-shrink:0; }
+  .achv-title{ font-weight:800; font-size:15px; }
+  .achv-desc{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .achv-bar{ height:7px; border-radius:6px; background:rgba(255,255,255,0.1); margin-top:7px; overflow:hidden; }
+  .achv-bar div{ height:100%; background:var(--accent-2); }
+  .achv-num{ font-size:11px; color:var(--text-dim); margin-top:3px; }
+  .achv-date{ font-size:11px; color:var(--accent-2); margin-top:3px; }
+  .thumb-btn{ min-width:52px; padding:8px 10px; border-radius:12px; border:2px solid var(--line); background:rgba(255,255,255,0.05); color:inherit; font-size:15px; cursor:pointer; touch-action:manipulation; }
+  .thumb-btn.on{ border-color:var(--danger); background:rgba(255,80,80,0.18); }
+  .sm-choices{ display:grid; grid-template-columns:1fr 1fr; gap:14px; justify-items:center; margin-top:26px; }
+  .sm-choice{ width:min(38vw,130px); height:min(38vw,130px); border-radius:50%; border:3px solid var(--accent-2); background:rgba(255,255,255,0.06); color:inherit; font-size:30px; font-weight:800; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
+  .sm-choice:active{ transform:scale(.92); background:var(--accent-2); color:#08110c; }
   .timer-bar{ height:8px; background:var(--bg-alt); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
   .timer-fill{ height:100%; background:linear-gradient(90deg,var(--accent-2),var(--accent)); transition:width .2s linear, background .3s ease; }
   .timer-fill.warn{ background:linear-gradient(90deg,var(--warn),var(--danger)); }
@@ -261,6 +278,7 @@
 <body>
 <div id="app"></div>
 
+<script src="/achievements.js"></script>
 <script>
 /* =========================================================================
    BRAIN TEST (ehem. WISSENSDUELL) — Solo & Lokaler Multiplayer (Pass & Play)
@@ -1398,13 +1416,23 @@ const KLASSEN = [
   {name:"Klasse 7", cls:"rank-diamond"}, {name:"Klasse 8", cls:"rank-master"},
   {name:"Klasse 9", cls:"rank-grand"}, {name:"Klasse 10", cls:"rank-grand"}
 ];
-// Testgröße: 20 Fragen in Klasse 1, +5 je Klasse, gedeckelt bei 50 (= Größe
-// des Fragenpools je Klasse - mehr als 50 eindeutige Fragen könnten sonst
-// nicht gezogen werden). Bestehensgrenze: 80% (aufgerundet).
-const KLASSE_TESTS = KLASSEN.map((_, i) => {
-  const qCount = Math.min(20 + i * 5, 50);
-  return { questions: qCount, needed: Math.ceil(qCount * 0.8) };
-});
+// Testgrößen (auf Wunsch, für alle Klassen gleich):
+// - Übungstest: ALLE 50 Fragen der Klasse, läuft immer komplett durch (auch
+//   wenn die nötige Prozentzahl schon erreicht ist), 90% nötig (45/50), um
+//   den Haupttest freizuschalten.
+// - Haupttest: 20 zufällige Fragen der Klasse, 80% nötig (16/20) für den
+//   Klassenaufstieg.
+const BRAINTEST_PRACTICE_COUNT = 50, BRAINTEST_PRACTICE_PCT = 0.9;
+const BRAINTEST_MAIN_COUNT = 20,     BRAINTEST_MAIN_PCT = 0.8;
+// Haupttest: EINE gemeinsame Gesamtzeit fuer alle Fragen (1:30 Minuten) statt
+// eines Zeitlimits pro Frage. Nicht beantwortete Fragen zaehlen als falsch.
+const BRAINTEST_MAIN_TOTAL_SEC = 90;
+const KLASSE_TESTS = KLASSEN.map(() => ({
+  questions: BRAINTEST_PRACTICE_COUNT,
+  needed: Math.ceil(BRAINTEST_PRACTICE_COUNT * BRAINTEST_PRACTICE_PCT),
+  mainQuestions: BRAINTEST_MAIN_COUNT,
+  mainNeeded: Math.ceil(BRAINTEST_MAIN_COUNT * BRAINTEST_MAIN_PCT)
+}));
 function klassePillHtml(klasseIndex){
   const k = KLASSEN[Math.min(klasseIndex||0, KLASSEN.length-1)] || KLASSEN[0];
   return `<span class="rank-pill ${k.cls}"><span class="rank-dot"></span>${k.name}</span>`;
@@ -1454,8 +1482,8 @@ function pickKlasseTestQuestions(klasseIndex){
   }
   return pool.slice(0, test.questions);
 }
-// Haupttest: ALLE Fragen der Klasse (nicht nur eine Teilmenge wie beim
-// Übungstest), nur gemischt, nichts abgeschnitten.
+// Haupttest: 20 zufällige Fragen der Klasse (der Übungstest nimmt dagegen
+// alle 50).
 function pickKlasseHaupttestQuestions(klasseIndex){
   let klasseNum = Math.min(klasseIndex, KLASSEN.length-1) + 1;
   while(klasseNum > 1 && !(KLASSE_QUESTIONS[klasseNum] && KLASSE_QUESTIONS[klasseNum].length)) klasseNum--;
@@ -1464,7 +1492,7 @@ function pickKlasseHaupttestQuestions(klasseIndex){
     const j = Math.floor(Math.random()*(i+1));
     [pool[i],pool[j]] = [pool[j],pool[i]];
   }
-  return pool;
+  return pool.slice(0, BRAINTEST_MAIN_COUNT);
 }
 
 const RANKS = [
@@ -1561,6 +1589,7 @@ function createProfile(name){
     correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0, tttWinsAtRank:0,
     haupttestUnlockedForKlasse:-1,
     speedMathLevel:1, speedMathHearts:3, speedMathHeartsDate:null,
+    achv: Achv.newState(),
     modeStats: freshModeStats() };
   profiles.push(p);
   saveProfiles();
@@ -1593,12 +1622,15 @@ async function restoreAccountSession(){
   if(!token) return;
   const result = await apiCall("/api/session", { token });
   if(result.ok){ account = { token, profile: result.profile }; }
-  else { localStorage.removeItem(ACCOUNT_TOKEN_KEY); }
+  // Token nur loeschen, wenn der Server eindeutig "ungueltig" meldet - NICHT bei
+  // Netzproblemen oder wenn der Kontodienst gerade nicht erreichbar ist
+  // (sonst wuerde man bei jeder kurzen Stoerung ausgeloggt).
+  else if(!result.unavailable && !result.error){ localStorage.removeItem(ACCOUNT_TOKEN_KEY); }
 }
 
 function accountIndicatorHtml(){
   if(account){
-    return `<div class="account-bar">👤 ${account.profile.username} · <button class="account-link" onclick="logoutAccount()">Abmelden</button></div>`;
+    return `<div class="account-bar">👤 ${esc(account.profile.username)} · <button class="account-link" onclick="logoutAccount()">Abmelden</button></div>`;
   }
   return `<div class="account-bar"><button class="account-link" onclick="renderAccountAuth('login')">Anmelden</button></div>`;
 }
@@ -1676,15 +1708,193 @@ async function syncAccountStats(profile){
       correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank, tttWinsAtRank: profile.tttWinsAtRank,
       haupttestUnlockedForKlasse: profile.haupttestUnlockedForKlasse,
       speedMathLevel: profile.speedMathLevel, speedMathHearts: profile.speedMathHearts, speedMathHeartsDate: profile.speedMathHeartsDate,
+      achv: account.profile && account.profile.achv,
       modeStats: profile.modeStats
     }
   });
-  if(result.ok) account.profile = result.profile;
+  if(result.ok){
+    // Erfolge, die WAEHREND der Anfrage dazukamen, nicht ueberschreiben: Stand des Servers und
+    // lokalen Stand zusammenfuehren (Zaehler = Maximum), statt einfach den Serverstand zu nehmen.
+    const localAchv = account.profile && account.profile.achv;
+    account.profile = result.profile;
+    account.profile.achv = Achv.merge(result.profile.achv, localAchv);
+  }
 }
 
 /* ------------------------------ 6. RENDER-HELFER ---------------------------- */
 function renderApp(html){ document.getElementById("app").innerHTML = html; }
 function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`; }
+// HTML-Escaping fuer ALLES, was von Nutzern stammt (Namen, Antworten, eigene
+// Kategorien) und per innerHTML angezeigt wird - verhindert eingeschleusten Code.
+function esc(v){
+  return String(v == null ? "" : v).replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
+}
+/* ============================================================================
+   ERFOLGE (Client) - Regeln/Definitionen stehen in achievements.js (auch vom
+   Server genutzt). Hier: wem gehoeren die Erfolge, Ereignisse melden, Speichern,
+   Einblendung ("Erfolg freigeschaltet!") und die Erfolge-Seite.
+   ============================================================================ */
+function achvOwner(){
+  if(typeof account !== "undefined" && account) return account.profile;
+  if(typeof profiles !== "undefined" && profiles && profiles.length){
+    let id = null; try{ id = localStorage.getItem(LAST_PROFILE_KEY); }catch(e){}
+    return profiles.find(p => p.id === id) || profiles[0];
+  }
+  return null; // ohne Konto/Profil gibt es nichts, dem man Erfolge zuordnen koennte
+}
+// Gueltigen Zustand sicherstellen und bisherigen Fortschritt (Klasse, Guertel) einmalig uebernehmen
+function achvBerlinToday(){
+  try{ return new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Berlin"}); }
+  catch(e){ return new Date().toISOString().slice(0,10); }
+}
+function achvEnsure(owner){
+  if(!owner) return [];
+  let newly = [];
+  if(!owner._achvOk){
+    owner.achv = Achv.normalize(owner.achv);
+    newly = newly.concat(Achv.backfill(owner.achv, owner));
+    Object.defineProperty(owner, "_achvOk", { value:true, enumerable:false, configurable:true, writable:true }); // nicht mitspeichern
+  }
+  // Taeglicher Streak: einmal pro Kalendertag zaehlen, unabhaengig vom obigen Merker
+  newly = newly.concat(Achv.touchDaily(owner.achv, achvBerlinToday()));
+  if(newly.length){ achvToast(newly); achvPersist(owner); }
+  return newly;
+}
+let achvPersistTimer = null, achvDirtyOwner = null;
+function achvPersist(owner){
+  achvDirtyOwner = owner;
+  clearTimeout(achvPersistTimer);
+  achvPersistTimer = setTimeout(achvFlush, 1500); // gesammelt speichern (Zaehler aendern sich pro Antwort)
+}
+function achvFlush(){
+  clearTimeout(achvPersistTimer);
+  const owner = achvDirtyOwner; achvDirtyOwner = null;
+  if(!owner) return;
+  if(typeof account !== "undefined" && account && owner === account.profile) syncAccountStats(accountAsProfile());
+  else { try{ saveProfiles(); }catch(e){} }
+}
+// Meldet ein Ereignis. ownerHint: Profil, dem es gehoert (Konto-Kopien werden auf das echte Konto abgebildet).
+function achvRecord(evt, ownerHint){
+  let owner = ownerHint;
+  if(owner && owner.isAccount) owner = account ? account.profile : null;
+  if(!owner) owner = achvOwner();
+  if(!owner) return [];
+  try{
+    achvEnsure(owner);
+    const newly = Achv.apply(owner.achv, evt);
+    if(newly.length) achvToast(newly);
+    achvPersist(owner);
+    return newly;
+  }catch(e){ console.error("Erfolge:", e); return []; }
+}
+const achvToastQueue = []; let achvToastBusy = false, achvLastToast = null;
+function achvToast(ids){ ids.forEach(id => achvToastQueue.push(id)); achvToastNext(); }
+function achvToastNext(){
+  if(achvToastBusy || !achvToastQueue.length) return;
+  const d = Achv.BY_ID[achvToastQueue.shift()];
+  if(!d) return achvToastNext();
+  achvLastToast = d.title;
+  if(typeof document === "undefined" || !document.body || !document.createElement) return;
+  achvToastBusy = true;
+  const el = document.createElement("div");
+  el.className = "achv-toast";
+  el.innerHTML = `<span class="ic">${d.icon}</span><div><b>Erfolg freigeschaltet!</b><br>${esc(d.title)}</div>`;
+  document.body.appendChild(el);
+  setTimeout(() => { try{ el.remove(); }catch(e){} achvToastBusy = false; achvToastNext(); }, 3800);
+}
+function startAchievementsFlow(){
+  if(account){ renderAchievements(account.profile); return; }
+  if(profiles.length > 0){
+    let id = null; try{ id = localStorage.getItem(LAST_PROFILE_KEY); }catch(e){}
+    renderAchievements(profiles.find(p => p.id === id) || profiles[0]);
+    return;
+  }
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], renderAchievements, "renderMainMenu");
+}
+function renderAchievements(profile){
+  if(profile && profile.isAccount && account) profile = account.profile;
+  if(profile && !profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
+  achvEnsure(profile);
+  const st = profile.achv, sum = Achv.summary(st);
+  const fmt = n => Number(n).toLocaleString("de-DE");
+  const card = d => {
+    const done = !!st.unlocked[d.id];
+    const [cur, target] = Achv.progressOf(st, d.id);
+    const pct = Math.max(0, Math.min(100, cur / target * 100));
+    return `
+      <div class="achv-card ${done ? 'done' : ''}">
+        <div class="achv-ic">${done ? d.icon : '🔒'}</div>
+        <div style="flex:1; min-width:0;">
+          <div class="achv-title">${esc(d.title)}</div>
+          <div class="achv-desc">${esc(d.desc)}</div>
+          ${done ? `<div class="achv-date">✓ freigeschaltet am ${new Date(st.unlocked[d.id]).toLocaleDateString("de-DE")}</div>`
+                 : (target > 1 ? `<div class="achv-bar"><div style="width:${pct}%"></div></div><div class="achv-num">${fmt(cur)} / ${fmt(target)}</div>` : ``)}
+        </div>
+      </div>`;
+  };
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🏆 ERFOLGE</div>
+      <div class="picker-sub">${esc(profile.name || profile.username || "")} – ${sum.done} von ${sum.total} freigeschaltet</div>
+      <div class="achv-bar" style="height:10px; margin:10px 0 4px;"><div style="width:${sum.done/sum.total*100}%"></div></div>
+      ${Achv.CATEGORIES.map(c => {
+        const list = Achv.DEFS.filter(d => d.cat === c.id);
+        const done = list.filter(d => st.unlocked[d.id]).length;
+        return `<div style="margin-top:18px; font-weight:800; font-size:14px; color:var(--accent-2);">${c.icon} ${esc(c.title)} <span style="font-weight:400; color:var(--text-dim);">(${done}/${list.length})</span></div>${list.map(card).join("")}`;
+      }).join("")}
+      <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="renderMainMenu()">${t('btn_back')}</button>
+    </div>
+  `);
+}
+// Ereignisse aus Party-Raum-Nachrichten (Server) -> Erfolge. Ein zentraler Einhaengepunkt.
+function achvOnPartyMessage(msg){
+  try{
+    if(!party || !msg) return;
+    const me = party.playerId;
+    switch(msg.type){
+      case "quizReveal": { // Wissenstest-Fragen: richtig beantwortet
+        const mine = (msg.results || []).find(r => r.playerId === me);
+        if(mine && mine.correct) achvRecord({ t:"gen", n:1 });
+        break;
+      }
+      case "orderingFinalReveal": {
+        const r = (msg.results || []).find(x => x.playerId === me);
+        if(r) achvRecord({ t:"ordering", finished:!!r.finished, flawless:!!r.finishedPerfect });
+        break;
+      }
+      case "rankReveal": { // nur Mehr oder Weniger (Chronologie ist abgeschaltet und zaehlt nicht)
+        if(msg.kind !== "higherLowerGame") break;
+        const myTeam = party.room && party.room.players.find(p => p.id === me)?.teamId;
+        if(!myTeam) break;
+        const alive = ((msg.livesLeft || {})[myTeam] || 0) > 0;
+        const mistakes = (msg.mistakes || {})[myTeam] || 0;
+        achvRecord({ t:"mow", finished:alive, flawless: alive && mistakes === 0 });
+        break;
+      }
+      case "nennsBlitzFinal": {
+        const r = (msg.results || []).find(x => x.playerId === me);
+        if(r) achvRecord({ t:"blitz", total: r.total });
+        break;
+      }
+      case "musicPlayerSubmitted": { // Song erraten = Titel richtig, ohne dass wiederholt wurde
+        if(msg.playerId === me && msg.correct && msg.correct.title && !msg.replaysUsed) achvRecord({ t:"music", n:1 });
+        break;
+      }
+      case "slfReveal": {
+        const mine = (msg.answers || {})[me];
+        if(!mine) break;
+        const cats = msg.categories || [];
+        const allFilled = cats.length > 0 && cats.every(c => mine[c] && String(mine[c]).trim());
+        const firstFull = msg.firstFullId === me && (msg.humanCount || 0) >= 2;
+        const myScores = (msg.scores || {})[me] || {};
+        const uniqueCount = Object.values(myScores).filter(v => v === 20).length; // 20 P. = einzige gueltige Antwort in der Kategorie
+        if(allFilled || firstFull || uniqueCount > 0) achvRecord({ t:"slf", allFilled, firstFull, uniqueCount });
+        break;
+      }
+    }
+  }catch(e){ console.error("Erfolge (Party):", e); }
+}
+
 function initials(name){ return name.trim().slice(0,2).toUpperCase(); }
 
 function statusbarHtml(profile){
@@ -1753,7 +1963,7 @@ function startDedicatedMenu(gm){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${m.screenTitle}</div>
-      <div class="picker-sub">${soloAllowed ? 'Wähle, wie du spielen möchtest.' : 'Dieser Modus lebt vom gegenseitigen Anfechten – nur mit anderen zusammen spielbar.'}</div>
+      <div class="picker-sub">${soloAllowed ? 'Wähle, wie du spielen möchtest.' : 'Dieser Modus lebt vom gegenseitigen Daumen-runter – nur mit anderen zusammen spielbar.'}</div>
       <div class="menu-grid" style="grid-template-columns:${soloAllowed ? '1fr 1fr' : '1fr'}; margin-top:6px;">
         ${soloAllowed ? `
         <div class="mode-card" onclick="startSoloPartyFlow('${gm}')">
@@ -1844,7 +2054,7 @@ async function renderArenaLeaderboard(){
         ${rows.length===0 ? `<div class="round-plan-item"><span style="color:var(--text-dim);">Noch niemand hat ein Match gespielt.</span></div>` : rows.map(r => `
           <div class="round-plan-item ${account && r.username===account.profile.username ? 'active' : ''}" style="align-items:center;">
             <span style="width:28px; font-weight:800;">#${r.rank}</span>
-            <span style="flex:1;">${r.username}</span>
+            <span style="flex:1;">${esc(r.username)}</span>
             <span class="val">${r.points} P.</span>
           </div>
         `).join("")}
@@ -1856,6 +2066,7 @@ async function renderArenaLeaderboard(){
   `);
 }
 
+let arenaActiveMatchId = null;
 async function beginArenaMatch(){
   const startResult = await apiCall("/api/arena-start-match", { token: account.token });
   if(!startResult.ok){
@@ -1863,6 +2074,7 @@ async function beginArenaMatch(){
     renderArenaHome();
     return;
   }
+  arenaActiveMatchId = startResult.matchId || null; // einmalige Match-ID fuer die Auswertung
   renderApp(`<div class="panel"><div class="picker-title">ARENA</div><div class="picker-sub">Match wird vorbereitet …</div></div>`);
   partyConnect(() => {
     // partyConnect() hat "party" gerade frisch initialisiert (überschreibt
@@ -1933,7 +2145,9 @@ async function finishArenaMatch(){
   // den "Verbindung verloren"-Bildschirm zeigen (Bugfix).
   try{ party.ws && party.ws.close(); }catch(e){}
   party = null;
-  const result = await apiCall("/api/arena-finish-match", { token: account.token, pointsEarned: earned });
+  const matchIdToSend = arenaActiveMatchId;
+  arenaActiveMatchId = null;
+  const result = await apiCall("/api/arena-finish-match", { token: account.token, pointsEarned: earned, matchId: matchIdToSend });
   if(!result.ok){
     alert(result.error || "Auswertung fehlgeschlagen.");
     renderArenaHome();
@@ -2117,6 +2331,7 @@ function renderMainMenu(){
 
     <div class="menu-secondary">
       <button class="btn btn-ghost" onclick="renderStatistik()">${t('menu_stats')}</button>
+      <button class="btn btn-ghost" onclick="startAchievementsFlow()">🏆 Erfolge</button>
     </div>
     <footer>${t('menu_footer')}</footer>
   `);
@@ -2129,7 +2344,7 @@ function statCardHtml(p, extraArena){
   return `
     <div class="stat-card">
       <div class="row1">
-        <div class="sname">${p.name}${p.isAccount ? ' <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(Konto – gilt für alle Modi)</span>' : ''}</div>
+        <div class="sname">${esc(p.name)}${p.isAccount ? ' <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(Konto – gilt für alle Modi)</span>' : ''}</div>
       </div>
       <div class="picker-sub" style="margin:4px 0 8px;">${klassePillHtml(p.klasse||0)} <span style="margin-left:6px;">Aktuelle Klasse (Brain Test)</span></div>
       <div class="stat-mini">
@@ -2156,7 +2371,7 @@ function statCardHtml(p, extraArena){
           </div>
         `;}).join("")}
       </div>
-      <button class="btn btn-ghost btn-block" style="margin-top:12px; opacity:.5; cursor:not-allowed;" disabled title="Kommt bald">🏆 Erfolge (bald verfügbar)</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:12px;" onclick="startAchievementsFlow()">🏆 Erfolge</button>
     </div>
   `;
 }
@@ -2193,7 +2408,7 @@ function renderProfilePicker(title, subtitle, excludeIds, onPick, backFn){
       <div class="picker-list">
         ${available.map(p => `
           <div class="picker-item" onclick="pickerChoose('${p.id}')">
-            <span>${p.name}</span>
+            <span>${esc(p.name)}</span>
             <span class="sub">${(KLASSEN[p.klasse||0]||KLASSEN[0]).name}</span>
           </div>
         `).join("")}
@@ -2297,6 +2512,23 @@ function renderSpeedMathEntry(profile){
   `);
 }
 
+// Antwort-Kreise statt Tastatur: 1 richtige + 3 plausible falsche Werte
+// (nah dran, nie negativ, keine Doppelten), zufällig gemischt.
+function speedMathAddChoices(p){
+  const cands = [p.answer+1, p.answer-1, p.answer+2, p.answer-2, p.answer+10, p.answer-10, p.answer+3, p.answer-3];
+  if(p.op === "×"){ cands.push(p.answer+p.a, p.answer-p.a, p.answer+p.b, p.answer-p.b); }
+  const wrong = [];
+  const pool = cands.filter(v => v >= 0 && v !== p.answer).sort(() => Math.random()-0.5);
+  for(const v of pool){ if(!wrong.includes(v)) wrong.push(v); if(wrong.length === 3) break; }
+  let extra = p.answer + 4;
+  while(wrong.length < 3){ if(!wrong.includes(extra) && extra !== p.answer) wrong.push(extra); extra++; }
+  p.choices = [p.answer, ...wrong].sort(() => Math.random()-0.5);
+  return p;
+}
+function speedMathChoicesHtml(problem, handler){
+  return `<div class="sm-choices">${problem.choices.map(v => `<button class="sm-choice" onclick="${handler}(${v})">${v}</button>`).join("")}</div>`;
+}
+
 // Erzeugt eine zufällige Aufgabe. Division wird bewusst "rückwärts"
 // konstruiert (Divisor × Ergebnis = Dividend), damit sie immer sauber
 // aufgeht (keine Kommazahlen). Subtraktion tauscht bei Bedarf die Zahlen,
@@ -2320,7 +2552,7 @@ function speedMathGenerateProblem(){
     answer = 1+Math.floor(Math.random()*10);
     a = b*answer;
   }
-  return {a,b,op,answer};
+  return speedMathAddChoices({a,b,op,answer});
 }
 
 function startSpeedMathGame(durationSec){
@@ -2357,15 +2589,10 @@ function renderSpeedMathGame(){
         <div id="speedMathTimerNum" class="timer-num">${Math.ceil(speedMath.remaining)}s</div>
       </div>
       <div class="question-text" style="text-align:center; font-size:40px; font-weight:800; margin:24px 0;">${c.a} ${c.op} ${c.b} = ?</div>
-      <div class="picker-form">
-        <input type="number" id="speedMathInput" class="builder-search" style="text-align:center; font-size:24px;" onkeydown="if(event.key==='Enter'){event.preventDefault();speedMathSubmit();}">
-        <button class="btn btn-primary" onclick="speedMathSubmit()">✓</button>
-      </div>
+      ${speedMathChoicesHtml(c, "speedMathSubmit")}
       <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="exitSpeedMath()">${t('btn_back')}</button>
     </div>
   `);
-  const input = document.getElementById("speedMathInput");
-  if(input) input.focus();
 }
 
 function updateSpeedMathTimerUI(){
@@ -2378,11 +2605,9 @@ function updateSpeedMathTimerUI(){
   num.textContent = Math.ceil(speedMath.remaining) + "s";
 }
 
-function speedMathSubmit(){
+function speedMathSubmit(val){
   if(!speedMath || speedMath.remaining <= 0) return;
-  const input = document.getElementById("speedMathInput");
-  const val = input ? parseInt(input.value, 10) : NaN;
-  if(val === speedMath.current.answer) speedMath.correct++; else speedMath.wrong++;
+  if(val === speedMath.current.answer){ speedMath.correct++; achvRecord({t:"gen",n:1}, speedMath.profile); } else speedMath.wrong++;
   speedMath.current = speedMathGenerateProblem();
   renderSpeedMathGame();
 }
@@ -2447,10 +2672,10 @@ function speedMathLevelConfig(level){
   level = Math.max(1, Math.min(SPEEDMATH_LEVEL_COUNT, level));
   const tier = Math.ceil(level / 5); // 1..10
   let ops, label;
-  if(tier <= 2){ ops = ["+","-"]; label = "Einfach"; }
-  else if(tier <= 4){ ops = ["+","-","×"]; label = "Mittel"; }
-  else if(tier <= 6){ ops = ["+","-","×","÷"]; label = "Fortgeschritten"; }
-  else if(tier <= 8){ ops = ["+","-","×","÷"]; label = "Schwer"; }
+  if(tier <= 1){ ops = ["+","-"]; label = "Einfach"; }            // Level 1-5
+  else if(tier <= 2){ ops = ["+","-","×"]; label = "Mittel"; }     // Level 6-10
+  else if(tier <= 4){ ops = ["+","-","×","÷"]; label = "Fortgeschritten"; }
+  else if(tier <= 7){ ops = ["+","-","×","÷"]; label = "Schwer"; }
   else { ops = ["+","-","×","÷"]; label = "Experte"; }
   // Zahlenbereich waechst langsam mit dem Level (10 am Anfang, bis zu 20
   // in den obersten Leveln) - haelt die Grundrechenarten-Logik identisch,
@@ -2480,14 +2705,15 @@ function speedMathGenerateLevelProblem(config){
     answer = 1+Math.floor(Math.random()*max);
     a = b*answer;
   }
-  return {a,b,op,answer};
+  return speedMathAddChoices({a,b,op,answer});
 }
 
 // Frischt die Herzen auf, falls seit dem letzten Spielen ein neuer
 // Kalendertag begonnen hat - verringert nie bestehende Herzen, füllt nur
 // bei Tageswechsel auf 3 auf (gleiches Prinzip wie die Arena-Herzen).
 function speedMathRefreshHearts(profile){
-  const today = new Date().toISOString().slice(0,10);
+  // Tageswechsel nach deutscher Zeit (wie der Server), nicht nach UTC
+  let today; try{ today = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Berlin'}); }catch(e){ today = new Date().toISOString().slice(0,10); }
   if(profile.speedMathHeartsDate !== today){
     profile.speedMathHearts = SPEEDMATH_DAILY_HEARTS;
     profile.speedMathHeartsDate = today;
@@ -2497,6 +2723,7 @@ function speedMathRefreshHearts(profile){
 let speedMathLevelSession = null; // { profile, level, config, points, streak, questionsInBlock, currentProblem }
 
 function startSpeedMathMilestoneFlow(profile){
+  achvRecord({ t:"speedmath", level: profile.speedMathLevel||1 }, profile);
   speedMathRefreshHearts(profile);
   if(profile.isAccount) syncAccountStats(profile); else saveProfiles();
   renderSpeedMathMilestoneEntry(profile);
@@ -2553,24 +2780,18 @@ function renderSpeedMathLevelGame(){
         <div class="timer-num">${s.points} / ${s.config.pointsNeeded}</div>
       </div>
       <div class="question-text" style="text-align:center; font-size:40px; font-weight:800; margin:24px 0;">${c.a} ${c.op} ${c.b} = ?</div>
-      <div class="picker-form">
-        <input type="number" id="speedMathLevelInput" class="builder-search" style="text-align:center; font-size:24px;" onkeydown="if(event.key==='Enter'){event.preventDefault();speedMathLevelSubmit();}">
-        <button class="btn btn-primary" onclick="speedMathLevelSubmit()">✓</button>
-      </div>
+      ${speedMathChoicesHtml(c, "speedMathLevelSubmit")}
       <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="speedMathLevelSession=null; renderSpeedMathMilestoneEntry(speedMathProfile);">${t('btn_back')}</button>
     </div>
   `);
-  const inp = document.getElementById("speedMathLevelInput");
-  if(inp) inp.focus();
 }
 
-function speedMathLevelSubmit(){
+function speedMathLevelSubmit(val){
   const s = speedMathLevelSession;
   if(!s) return;
-  const input = document.getElementById("speedMathLevelInput");
-  const val = input ? parseInt(input.value, 10) : NaN;
   const correct = val === s.currentProblem.answer;
   if(correct){
+    achvRecord({t:"gen",n:1}, s.profile);
     s.points += 100;
     s.streak += 1;
     if(s.streak > 0 && s.streak % 5 === 0) s.points += 50; // Bonus bei jeder 5er-Serie
@@ -2621,6 +2842,7 @@ function finishSpeedMathLevel(won){
   } else if(won){
     profile.speedMathLevel = SPEEDMATH_LEVEL_COUNT; // letztes Level geschafft
   }
+  if(won) achvRecord({ t:"speedmath", level: profile.speedMathLevel }, profile);
   if(profile.isAccount) syncAccountStats(profile); else saveProfiles();
 
   renderApp(`
@@ -2760,7 +2982,7 @@ function tttStartMultiplayer(profile){
       </div>
       <div class="picker-sub">Oder einem bestehenden Raum beitreten:</div>
       <div class="picker-form">
-        <input id="tttJoinCode" type="text" placeholder="RAUM-CODE" maxlength="4" style="text-transform:uppercase;">
+        <input id="tttJoinCode" type="text" placeholder="RAUM-CODE" maxlength="6" style="text-transform:uppercase;">
         <button class="btn btn-primary" onclick="tttMpJoinRoom()">BEITRETEN</button>
       </div>
       <div id="tttMpEntryError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
@@ -2797,7 +3019,7 @@ function tttMpCreateRoom(){
 }
 function tttMpJoinRoom(){
   const code = ((document.getElementById("tttJoinCode")||{}).value||"").trim().toUpperCase();
-  if(code.length !== 4){ tttMpShowError("Bitte einen 4-stelligen Raum-Code eingeben."); return; }
+  if(code.length !== 6){ tttMpShowError("Bitte einen 6-stelligen Raum-Code eingeben."); return; }
   tttMpConnect(() => {
     tttMp.isHost = false;
     tttMp.ws.send(JSON.stringify({action:"tttJoinRoom", code, name: tttOverviewProfile.name}));
@@ -2845,6 +3067,8 @@ function tttMpHandleMessage(msg){
       tttMp.rankApplied = true;
       const outcome = msg.winner === "draw" ? "draw" : (msg.winner === msg.yourSymbol ? "win" : "loss");
       tttMp.rankResultText = tttApplyRankOutcome(tttOverviewProfile, tttMp.rankIndex, outcome);
+      // Der Server zaehlt Zuege/Duelle/Fehler selbst und schickt sie im tttState mit (msg.achv)
+      if(outcome === "win") achvRecord({ t:"ttt", mode: msg.mode || tttMp.mode, in3: !!(msg.achv && msg.achv.in3), allCorrect: !!(msg.achv && msg.achv.allCorrect) }, tttOverviewProfile);
     }
     renderTttMpGame();
     return;
@@ -2863,6 +3087,7 @@ function tttMpHandleMessage(msg){
   if(msg.type === "tttDuelReveal"){
     if(tttMp.duelTickerId) clearInterval(tttMp.duelTickerId);
     if(tttMp.duel) tttMp.duel.reveal = { correctIndex: msg.correctIndex, explanation: msg.explanation, results: msg.results, scores: msg.scores };
+    if(msg.results && msg.results[tttMp.mySymbol] && msg.results[tttMp.mySymbol].correct) achvRecord({ t:"gen", n:1 }, tttOverviewProfile);
     renderTttMpGame();
     return;
   }
@@ -2878,15 +3103,21 @@ function tttMpHandleMessage(msg){
     return;
   }
   if(msg.type === "tttSprintNextProblem"){
-    if(tttMp.duel){ tttMp.duel.currentProblem = msg.problem; renderTttMpGame(); }
+    if(tttMp.duel){ tttMp.duel.currentProblem = msg.problem; tttMp.duel.awaiting = false; renderTttMpGame(); }
     return;
   }
   if(msg.type === "tttSprintScoreUpdate"){
     if(tttMp.duel){
-      tttMp.duel.myScore = msg.scores[tttMp.mySymbol] || 0;
+      const newMy = msg.scores[tttMp.mySymbol] || 0;
+      if(newMy > tttMp.duel.myScore) achvRecord({ t:"gen", n: newMy - tttMp.duel.myScore }, tttOverviewProfile); // jede richtige Zahlenaufgabe
+      tttMp.duel.myScore = newMy;
       const oppSymbol = tttMp.mySymbol === "X" ? "O" : "X";
       tttMp.duel.oppScore = msg.scores[oppSymbol] || 0;
-      renderTttMpGame();
+      // Bugfix: NICHT mehr die ganze Seite neu aufbauen, wenn nur der
+      // Punktestand der anderen Seite sich aendert - das hat bei jedem
+      // Tipp des Gegners kurz geruckelt/die Anzeige verschwinden lassen.
+      const el = document.getElementById("tttSprintScores");
+      if(el) el.textContent = "Du: ✓ " + tttMp.duel.myScore + " · Die andere Person: ✓ " + tttMp.duel.oppScore;
     }
     return;
   }
@@ -3005,29 +3236,21 @@ function renderTttMpSprintDuel(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">⚔️ DUELL UM DAS FELD – SPEED MATH</div>
-      <div class="picker-sub" style="text-align:center;">Du: ✓ ${d.myScore} · Die andere Person: ✓ ${d.oppScore}</div>
+      <div id="tttSprintScores" class="picker-sub" style="text-align:center;">Du: ✓ ${d.myScore} · Die andere Person: ✓ ${d.oppScore}</div>
       <div class="timer-wrap" style="margin:10px 0;">
         <div class="timer-bar"><div id="tttSprintTimerFill" class="timer-fill" style="width:${Math.max(0,(d.remaining/d.durationMs)*100)}%"></div></div>
         <div id="tttSprintTimerNum" class="timer-num">${Math.ceil(d.remaining/1000)}s</div>
       </div>
       <div class="question-text" style="text-align:center; font-size:36px; font-weight:800; margin:20px 0;">${d.currentProblem.a} ${d.currentProblem.op} ${d.currentProblem.b} = ?</div>
-      <div class="picker-form">
-        <input type="number" id="tttSprintInput" class="builder-search" style="text-align:center; font-size:22px;" onkeydown="if(event.key==='Enter'){event.preventDefault();tttMpSprintAnswer();}">
-        <button class="btn btn-primary" onclick="tttMpSprintAnswer()">✓</button>
-      </div>
+      ${speedMathChoicesHtml(d.currentProblem, "tttMpSprintAnswer")}
     </div>
   `);
-  const inp = document.getElementById("tttSprintInput");
-  if(inp) inp.focus();
 }
-function tttMpSprintAnswer(){
+function tttMpSprintAnswer(val){
   const d = tttMp.duel;
-  if(!d) return;
-  const input = document.getElementById("tttSprintInput");
-  const val = input ? parseInt(input.value, 10) : NaN;
+  if(!d || d.awaiting) return; // Doppeltipp abfangen: sonst wuerde die 2. Antwort schon der NAECHSTEN Aufgabe zugerechnet
+  d.awaiting = true;
   tttMp.ws.send(JSON.stringify({action:"tttSprintAnswer", value: val}));
-  // Kein lokales Umschalten auf "warten" - direkt weiter moeglich, sobald
-  // die naechste Aufgabe vom Server ankommt (tttSprintNextProblem).
 }
 
 function tttQuizmixTap(i){
@@ -3163,7 +3386,7 @@ function tttQuizmixBotEntry(profile){
   // Wunsch) - unabhaengig davon, wer das vorige Duell gewonnen hat. Start
   // zufaellig, genau wie bei "wer faengt an" in den anderen Modi.
   const turnSymbol = Math.random() < 0.5 ? "X" : "O";
-  ttqb = { board: Array(9).fill(null), rankIndex, gameOver:false, winner:null, resultText:"", duel:null, turnSymbol };
+  ttqb = { board: Array(9).fill(null), rankIndex, gameOver:false, winner:null, resultText:"", duel:null, turnSymbol, duelCount:0, wrong:0 };
   renderTtqbGame();
   if(turnSymbol === "O") setTimeout(tttQuizmixBotAutoPick, 600);
 }
@@ -3274,14 +3497,9 @@ function renderTtqbMathSprint(){
         <div id="ttqbSprintTimerNum" class="timer-num">${Math.ceil(d.remaining)}s</div>
       </div>
       <div class="question-text" style="text-align:center; font-size:36px; font-weight:800; margin:20px 0;">${d.currentProblem.a} ${d.currentProblem.op} ${d.currentProblem.b} = ?</div>
-      <div class="picker-form">
-        <input type="number" id="ttqbSprintInput" class="builder-search" style="text-align:center; font-size:22px;" onkeydown="if(event.key==='Enter'){event.preventDefault();tttQuizmixBotSprintAnswer();}">
-        <button class="btn btn-primary" onclick="tttQuizmixBotSprintAnswer()">✓</button>
-      </div>
+      ${speedMathChoicesHtml(d.currentProblem, "tttQuizmixBotSprintAnswer")}
     </div>
   `);
-  const inp = document.getElementById("ttqbSprintInput");
-  if(inp) inp.focus();
 }
 
 function tttUpdateMathSprintTimerUI(){
@@ -3295,12 +3513,10 @@ function tttUpdateMathSprintTimerUI(){
   num.textContent = Math.ceil(d.remaining)+"s";
 }
 
-function tttQuizmixBotSprintAnswer(){
+function tttQuizmixBotSprintAnswer(val){
   const d = ttqb && ttqb.duel;
   if(!d || d.finished) return;
-  const input = document.getElementById("ttqbSprintInput");
-  const val = input ? parseInt(input.value, 10) : NaN;
-  if(val === d.currentProblem.answer) d.scores.X++;
+  if(val === d.currentProblem.answer){ d.scores.X++; achvRecord({t:"gen",n:1}, tttOverviewProfile); } else ttqb.wrong = (ttqb.wrong||0) + 1;
   d.currentProblem = speedMathGenerateProblem();
   renderTtqbMathSprint();
 }
@@ -3324,6 +3540,7 @@ function tttQuizmixBotFinishMathSprint(){
     </div>
   `);
   setTimeout(() => {
+    ttqb.duelCount = (ttqb.duelCount||0) + 1;
     if(winnerSymbol){
       ttqb.board[d.cellIndex] = winnerSymbol;
       const w = tttCheckWinner(ttqb.board);
@@ -3331,6 +3548,7 @@ function tttQuizmixBotFinishMathSprint(){
         ttqb.gameOver = true;
         ttqb.winner = w;
         ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, w==="X"?"win":"loss");
+        if(w === "X") achvTttBotQuizmixWin();
       } else if(ttqb.board.every(c=>c)){
         ttqb.gameOver = true;
         ttqb.winner = "draw";
@@ -3392,6 +3610,7 @@ function tttQuizmixBotResolveAnswer(playerCorrect){
   const d = ttqb.duel;
   d.answered = true;
   const botCorrect = d.botCorrectness[d.qIndex];
+  if(playerCorrect){ achvRecord({t:"gen",n:1}, tttOverviewProfile); } else ttqb.wrong = (ttqb.wrong||0) + 1;
   if(playerCorrect) d.scores.X++;
   if(botCorrect) d.scores.O++;
   d.reveal = { playerCorrect, botCorrect };
@@ -3405,8 +3624,13 @@ function tttQuizmixBotResolveAnswer(playerCorrect){
   }, 2200);
 }
 
+// Sieg im QuizMix gegen den Bot melden (3 Duelle = "in 3 Zuegen"; ohne einen Fehler = "alle Fragen richtig")
+function achvTttBotQuizmixWin(){
+  achvRecord({ t:"ttt", mode:"quizmix", in3: (ttqb.duelCount||0) === 3, allCorrect: (ttqb.wrong||0) === 0 }, tttOverviewProfile);
+}
 function tttQuizmixBotFinishDuel(){
   const d = ttqb.duel;
+  ttqb.duelCount = (ttqb.duelCount||0) + 1;
   let winnerSymbol = null;
   if(d.scores.X > d.scores.O) winnerSymbol = "X";
   else if(d.scores.O > d.scores.X) winnerSymbol = "O";
@@ -3417,6 +3641,7 @@ function tttQuizmixBotFinishDuel(){
       ttqb.gameOver = true;
       ttqb.winner = w;
       ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, w==="X"?"win":"loss");
+        if(w === "X") achvTttBotQuizmixWin();
     } else if(ttqb.board.every(c=>c)){
       ttqb.gameOver = true;
       ttqb.winner = "draw";
@@ -3530,6 +3755,7 @@ function ttqPlayerMove(i){
   if(!ttq || ttq.gameOver || ttq.board[i] || !ttq.playerTurn) return;
   ttqApplyMove(ttq, "X", i);
   ttq.totalMoves++;
+  ttq.playerMoves = (ttq.playerMoves||0) + 1;
   const winner = tttCheckWinner(ttq.board);
   if(winner && winner !== "draw"){ ttqFinish(winner); return; }
   if(ttq.totalMoves >= TTQ_MOVE_LIMIT){ ttqFinish("draw"); return; }
@@ -3551,6 +3777,7 @@ function tttQuantumBotMove(){
 function ttqFinish(winner){
   ttq.gameOver = true;
   ttq.winner = winner;
+  if(winner === "X") achvRecord({ t:"ttt", mode:"quantum", in3: (ttq.playerMoves||0) === 3 });
   renderTtqGame();
 }
 
@@ -3579,6 +3806,7 @@ function renderTttGame(){
 function tttPlayerMove(i){
   if(!ttt || ttt.gameOver || ttt.board[i] || !ttt.playerTurn) return;
   ttt.board[i] = "X";
+  ttt.moves = (ttt.moves||0) + 1;
   const winner = tttCheckWinner(ttt.board);
   if(winner){ tttFinishGame(winner); return; }
   ttt.playerTurn = false;
@@ -3618,6 +3846,7 @@ function tttApplyRankOutcome(profile, rankIndex, outcome){
     }
   } else if(outcome === "draw"){
     profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
+    if(isTop) achvRecord({ t:"tttDraw", meister:true }, profile);
     if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0;
     resultText = isTop ? "Unentschieden – stark gespielt! 👏" : (rank.consecutive ? "Unentschieden – die Siegesserie ist leider gerissen, nochmal von vorn." : "Unentschieden – kein Auf- oder Abstieg.");
   } else {
@@ -3625,6 +3854,7 @@ function tttApplyRankOutcome(profile, rankIndex, outcome){
     if(!isTop && rank.consecutive) profile.tttWinsAtRank = 0;
     resultText = (!isTop && rank.consecutive) ? "Verloren – die Siegesserie ist gerissen, nochmal von vorn." : "Verloren – kein Abstieg, einfach nochmal versuchen!";
   }
+  achvRecord({ t:"tttRank", rank: profile.tttRank||0 }, profile); // "Alle Guertel"
   if(profile.isAccount) syncAccountStats(profile);
   else saveProfiles();
   return resultText;
@@ -3635,6 +3865,7 @@ function tttFinishGame(winner){
   const profile = ttt.profile;
   const outcome = winner === "X" ? "win" : (winner === "draw" ? "draw" : "loss");
   ttt.resultText = tttApplyRankOutcome(profile, ttt.rankIndex, outcome);
+  if(winner === "X") achvRecord({ t:"ttt", mode:"classic", in3: (ttt.moves||0) === 3 }, profile);
   renderTttGame();
 }
 
@@ -3676,40 +3907,52 @@ function renderKlassenOverview(profile){
           <div class="leaderboard-row" style="${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
             <span class="rank-pill ${k.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${k.name}</span>
             <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}</span>
-            ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">${KLASSE_TESTS[i].questions} Fragen · ab ${KLASSE_TESTS[i].needed} richtig</span>` : ``}
+            ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">Übung ${KLASSE_TESTS[i].questions} Fragen · ab ${KLASSE_TESTS[i].needed} richtig</span>` : ``}
+            ${isDone ? `<button class="thumb-btn" style="font-size:12px; white-space:nowrap;" onclick="beginSolo(klassenOverviewProfile, true, ${i})" title="Haupttest dieser Klasse erneut spielen (${KLASSE_TESTS[i].mainQuestions} Fragen)">🔁 Test wiederholen</button>` : ``}
           </div>
         `;}).join("")}
       </div>
       <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, false)">${currentIdx===0 && !profile.klasse ? 'ÜBUNGSTEST STARTEN' : 'ÜBUNGSTEST FORTSETZEN'}</button>
       ${haupttestReady ? `
-        <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true)">🔓 HAUPTTEST STARTEN (alle 50 Fragen)</button>
+        <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true)">🔓 HAUPTTEST STARTEN (${KLASSE_TESTS[currentIdx].mainQuestions} Fragen)</button>
       ` : `
-        <p class="picker-sub" style="text-align:center; margin-top:10px;">Ab 80% im Übungstest schaltet sich der Haupttest für ${KLASSEN[currentIdx].name} frei – der zählt für den Klassenaufstieg.</p>
+        <p class="picker-sub" style="text-align:center; margin-top:10px;">Ab 90% im Übungstest (${KLASSE_TESTS[currentIdx].needed} von ${KLASSE_TESTS[currentIdx].questions}) schaltet sich der Haupttest mit ${KLASSE_TESTS[currentIdx].mainQuestions} Fragen für ${KLASSEN[currentIdx].name} frei – der zählt für den Klassenaufstieg.</p>
       `}
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
 }
 
-function beginSolo(profile, isHaupttest){
+// repeatKlasseIdx (optional): "Test wiederholen" bei einer bereits bestandenen
+// Klasse -> spielt deren Haupttest (20 Fragen, Gesamtuhr) noch einmal. Das
+// veraendert Klasse/Freischaltung NICHT (reine Wiederholung).
+function beginSolo(profile, isHaupttest, repeatKlasseIdx){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
-  const klasseIndex = Math.min(profile.klasse || 0, KLASSE_TESTS.length - 1);
+  const currentKlasseIdx = Math.min(profile.klasse || 0, KLASSE_TESTS.length - 1);
+  const isRepeat = Number.isInteger(repeatKlasseIdx) && repeatKlasseIdx >= 0 && repeatKlasseIdx < currentKlasseIdx;
+  const klasseIndex = isRepeat ? repeatKlasseIdx : currentKlasseIdx;
+  if(isRepeat) isHaupttest = true;
+  // Sicherheitsnetz: der Haupttest laesst sich nur starten, wenn er fuer die
+  // AKTUELLE Klasse freigeschaltet ist (Uebungstest >= 90%). Sonst -> Uebungstest.
+  // (Vorher startete "NOCH EINE RUNDE" nach einem bestandenen Haupttest direkt
+  // den Haupttest der naechsten Klasse und umging so den Uebungstest.)
+  if(!isRepeat && isHaupttest && (profile.haupttestUnlockedForKlasse ?? -1) !== klasseIndex) isHaupttest = false;
   const test = KLASSE_TESTS[klasseIndex];
   const currentKlasse = KLASSEN[klasseIndex] || KLASSEN[0];
   const nextKlasse = KLASSEN[klasseIndex + 1];
-  // Haupttest: ALLE Fragen der Klasse (immer 50), 90s pro Frage, 80% nötig,
-  // läuft immer komplett durch (kein vorzeitiges Ende). Übungstest bleibt
-  // wie bisher: eine zufällige Teilmenge, kürzeres Zeitlimit, endet
-  // vorzeitig sobald bestehen/durchfallen feststeht.
+  // Übungstest: alle 50 Fragen, 90% nötig. Haupttest: 20 Fragen, 90s pro
+  // Frage, 80% nötig. Beide laufen IMMER komplett durch, auch wenn
+  // Bestehen/Durchfallen schon feststeht.
   const questions = isHaupttest ? pickKlasseHaupttestQuestions(klasseIndex) : pickKlasseTestQuestions(klasseIndex);
-  const testNeeded = isHaupttest ? Math.ceil(questions.length * 0.8) : test.needed;
+  const testNeeded = Math.ceil(questions.length * (isHaupttest ? BRAINTEST_MAIN_PCT : BRAINTEST_PRACTICE_PCT));
   solo = {
     profile,
     startScore: profile.score,
     startTier: klasseIndex,
     questions,
     qIndex: 0,
-    timeLimit: isHaupttest ? 90 : getTimeLimit(profile.score),
+    timeLimit: isHaupttest ? BRAINTEST_MAIN_TOTAL_SEC : getTimeLimit(profile.score),
+    totalTimer: !!isHaupttest, isRepeat, repeatKlasseIdx: isRepeat ? klasseIndex : -1, finished: false, timedOut: false, advanceTimer: null,
     testNeeded,
     isHaupttest: !!isHaupttest,
     correct: 0, wrong: 0,
@@ -3721,9 +3964,9 @@ function beginSolo(profile, isHaupttest){
       <div class="avatar-big" style="background:${avatarColor(profile.name)}">${initials(profile.name)}</div>
       <h2>${profile.name}</h2>
       ${isHaupttest ? `
-        <p>Haupttest ${currentKlasse.name}${nextKlasse ? ' → '+nextKlasse.name : ''}: alle ${questions.length} Fragen dieser Klasse · mindestens ${testNeeded} richtig · ${solo.timeLimit}s pro Frage · läuft komplett durch, egal wie es steht</p>
+        <p>${isRepeat ? 'Wiederholung Haupttest '+currentKlasse.name+' (zählt nicht für den Aufstieg)' : 'Haupttest '+currentKlasse.name+(nextKlasse ? ' → '+nextKlasse.name : '')}: ${questions.length} Fragen dieser Klasse · mindestens ${testNeeded} richtig · insgesamt nur 1:30 Minuten für alle Fragen – nicht geschaffte zählen als falsch</p>
       ` : `
-        <p>Übungstest ${currentKlasse.name}: ${questions.length} Fragen · mindestens ${testNeeded} richtig · ${solo.timeLimit}s pro Frage</p>
+        <p>Übungstest ${currentKlasse.name}: alle ${questions.length} Fragen · mindestens ${testNeeded} richtig (90%) · ${solo.timeLimit}s pro Frage · läuft komplett durch, egal wie es steht</p>
       `}
       <button class="btn btn-primary" onclick="renderSoloQuestion()">LOS GEHT'S</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -3744,7 +3987,7 @@ function renderSoloQuestion(){
       <div class="picker-sub" style="text-align:center; margin:-4px 0 8px;">✓ ${solo.correct} richtig · ✕ ${solo.wrong} falsch</div>
       <div class="timer-wrap">
         <div class="timer-bar"><div id="timerFill" class="timer-fill" style="width:100%"></div></div>
-        <div id="timerNum" class="timer-num">${solo.timeLimit}s</div>
+        <div id="timerNum" class="timer-num">${Math.ceil(solo.totalTimer && solo.remaining > 0 ? solo.remaining : solo.timeLimit)}s</div>
       </div>
       <div class="question-text">${q.q}</div>
       <div class="answers">
@@ -3773,6 +4016,21 @@ function exitSoloTest(){
 }
 
 function startSoloTimer(){
+  if(solo.totalTimer){
+    // Haupttest: EINE durchlaufende Gesamtuhr - wird nur beim ersten Aufruf
+    // gestartet und NICHT bei jeder Frage neu gesetzt.
+    if(solo.totalRunning){ updateTimerUI(solo.remaining, solo.timeLimit); return; }
+    solo.totalRunning = true;
+    solo.remaining = solo.timeLimit;
+    updateTimerUI(solo.remaining, solo.timeLimit);
+    clearInterval(solo.timerId);
+    solo.timerId = setInterval(()=>{
+      solo.remaining -= 0.1;
+      if(solo.remaining <= 0){ solo.remaining = 0; updateTimerUI(0, solo.timeLimit); soloTotalTimeUp(); }
+      else updateTimerUI(solo.remaining, solo.timeLimit);
+    }, 100);
+    return;
+  }
   solo.remaining = solo.timeLimit;
   updateTimerUI(solo.remaining, solo.timeLimit);
   clearInterval(solo.timerId);
@@ -3788,6 +4046,16 @@ function startSoloTimer(){
     }
   }, 100);
 }
+// Gesamtzeit des Haupttests ist abgelaufen: alle noch nicht beantworteten
+// Fragen (auch die gerade offene) zaehlen als falsch, dann Auswertung.
+function soloTotalTimeUp(){
+  if(!solo || solo.finished) return;
+  clearInterval(solo.timerId);
+  clearTimeout(solo.advanceTimer);
+  solo.timedOut = true;
+  solo.wrong += Math.max(0, solo.questions.length - solo.correct - solo.wrong);
+  endSoloRound();
+}
 function updateTimerUI(remaining, limit){
   const fill = document.getElementById("timerFill");
   const num = document.getElementById("timerNum");
@@ -3799,9 +4067,10 @@ function updateTimerUI(remaining, limit){
 }
 
 function handleSoloAnswer(selectedIdx){
-  if(solo.answered) return;
+  if(solo.answered || solo.finished) return;
   solo.answered = true;
-  clearInterval(solo.timerId);
+  if(!solo.totalTimer) clearInterval(solo.timerId); // Haupttest: Gesamtuhr laeuft weiter
+  else solo.answerClock = solo.remaining; // Restzeit beim (letzten) Antworten - fuer "in 1 Minute"
   const q = solo.questions[solo.qIndex];
   const isCorrect = selectedIdx === q.c;
 
@@ -3813,22 +4082,22 @@ function handleSoloAnswer(selectedIdx){
     else if(i===selectedIdx) btn.classList.add("wrong");
   });
 
+  // Haupttest (Gesamtuhr): kein Erklaertext, kein "Weiter"-Knopf - kurz
+  // richtig/falsch zeigen und sofort die naechste Frage, die Uhr laeuft ja.
+  if(solo.totalTimer){
+    solo.decided = false;
+    solo.advanceTimer = setTimeout(() => { if(solo && !solo.finished) soloNextQuestion(); }, 450);
+    return;
+  }
+
   const explBox = document.getElementById("explanationBox");
   explBox.classList.remove("hidden");
   explBox.textContent = q.e ? q.e : (isCorrect ? "Richtig beantwortet!" : "Das war leider falsch.");
 
-  // Test vorzeitig entschieden? Bestehen ist bereits sicher (genug richtig)
-  // oder unmöglich geworden (selbst mit allen verbleibenden richtig nicht
-  // mehr genug) -> keinen Sinn, die restlichen Fragen noch abzufragen.
-  // Beim Haupttest bewusst NICHT: der muss immer komplett durchlaufen
-  // werden, auch wenn Bestehen/Durchfallen schon feststeht.
-  if(solo.isHaupttest){
-    solo.decided = false;
-  } else {
-    const remaining = solo.questions.length - (solo.qIndex + 1);
-    const maxPossibleCorrect = solo.correct + remaining;
-    solo.decided = (solo.correct >= solo.testNeeded) || (maxPossibleCorrect < solo.testNeeded);
-  }
+  // Auf Wunsch: KEIN vorzeitiges Ende mehr - weder beim Übungs- noch beim
+  // Haupttest. Es müssen immer alle Fragen beantwortet werden, auch wenn
+  // Bestehen/Durchfallen rechnerisch schon feststeht.
+  solo.decided = false;
 
   const nextBtn = document.getElementById("soloNextBtn");
   nextBtn.classList.remove("hidden");
@@ -3842,11 +4111,23 @@ function soloNextQuestion(){
 }
 
 function endSoloRound(){
+  if(solo.finished) return;
+  solo.finished = true;
+  clearInterval(solo.timerId);
+  clearTimeout(solo.advanceTimer);
   const passed = solo.correct >= solo.testNeeded;
+  // Erfolge: nur der Haupttest (20 Fragen, auch als Wiederholung) zaehlt
+  if(solo.isHaupttest){
+    const elapsed = solo.timedOut ? 999 : Math.max(0, solo.timeLimit - Math.max(0, typeof solo.answerClock === "number" ? solo.answerClock : (solo.remaining||0)));
+    achvRecord({ t:"braintest", klasse: solo.startTier, correct: solo.correct, total: solo.questions.length, elapsedSec: elapsed }, solo.profile);
+  }
   const rankBefore = KLASSEN[solo.startTier] || KLASSEN[0];
   let justUnlockedHaupttest = false;
 
-  if(solo.isHaupttest){
+  if(solo.isRepeat){
+    // Wiederholung einer bereits bestandenen Klasse: Klasse und
+    // Freischaltung bleiben unangetastet (nur die Statistik zaehlt mit).
+  } else if(solo.isHaupttest){
     if(passed){
       solo.profile.consecutiveFails = 0;
       if(KLASSEN[solo.startTier + 1]) solo.profile.klasse = solo.startTier + 1;
@@ -3858,14 +4139,14 @@ function endSoloRound(){
     // einfach frei wiederholbar (auf Wunsch - "egal in welcher Klasse er
     // ist" - kein Fehlversuchs-Zähler mehr, der zur Rückstufung führt).
   } else if(passed && solo.profile.haupttestUnlockedForKlasse !== solo.startTier){
-    // Übungstest: KEINE Klassen-Änderung mehr - ab 80% schaltet sich
+    // Übungstest: KEINE Klassen-Änderung mehr - ab 90% schaltet sich
     // stattdessen der Haupttest für diese Klasse frei.
     solo.profile.haupttestUnlockedForKlasse = solo.startTier;
     justUnlockedHaupttest = true;
   }
 
   const rankAfter = KLASSEN[solo.profile.klasse || 0] || KLASSEN[0];
-  const rankChanged = rankBefore.name !== rankAfter.name;
+  const rankChanged = !solo.isRepeat && rankBefore.name !== rankAfter.name;
 
   solo.profile.roundsPlayed++;
   solo.profile.correctAnswers += solo.correct;
@@ -3888,7 +4169,7 @@ function endSoloRound(){
         <div class="result-item neg"><div class="n">${solo.wrong}</div><div class="l">Falsche Antworten</div></div>
         <div class="result-item ${passed?'pos':''}" style="grid-column: span 2;">
           <div class="n">${passed?'✓ Bestanden':'✕ Nicht bestanden'}</div>
-          <div class="l">${solo.isHaupttest ? 'Haupttest' : 'Übungstest'}${passed?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}</div>
+          <div class="l">${solo.isRepeat ? 'Wiederholung Haupttest '+rankBefore.name : (solo.isHaupttest ? 'Haupttest' : 'Übungstest')}${solo.timedOut?' · ⏱ Zeit abgelaufen':''}${passed?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}</div>
         </div>
       </div>
 
@@ -3896,13 +4177,15 @@ function endSoloRound(){
         <div class="n">${klassePillHtml(solo.profile.klasse||0)}</div>
         <div class="l">${solo.isHaupttest
           ? (KLASSEN[(solo.profile.klasse||0)+1] ? 'Aktuelle Klasse' : "Höchster Rang erreicht (vorerst)")
-          : (canOfferHaupttest ? "Haupttest ist freigeschaltet – jederzeit wiederholbar." : "Ab 80% im Übungstest wird der Haupttest freigeschaltet.")}
+          : (canOfferHaupttest ? "Haupttest ist freigeschaltet – jederzeit wiederholbar." : "Ab 90% im Übungstest wird der Haupttest freigeschaltet.")}
         </div>
       </div>
 
       <div class="actions-row">
+        ${solo.isRepeat ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.repeatKlasseIdx})">NOCHMAL WIEDERHOLEN</button>
+        <button class="btn btn-ghost" onclick="renderKlassenOverview(solo.profile)">ZUR ÜBERSICHT</button>` : `
         ${canOfferHaupttest ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true)">HAUPTTEST STARTEN</button>` : ``}
-        <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">NOCH EINE RUNDE</button>
+        <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">${solo.isHaupttest && passed ? 'ÜBUNGSTEST ' + (KLASSEN[solo.profile.klasse||0]||KLASSEN[0]).name.toUpperCase() : 'NOCH EINE RUNDE'}</button>`}
         <button class="btn btn-ghost" onclick="renderMainMenu()">HAUPTMENÜ</button>
       </div>
     </div>
@@ -3942,7 +4225,7 @@ function mpPickNextPlayer(){
   if(slot >= mpSetup.count){ beginMP(mpSetup.chosen); return; }
   const excludeIds = mpSetup.chosen.map(p=>p.id);
   const chips = Array.from({length: mpSetup.count}).map((_,i)=>
-    `<div class="slot-chip ${i<slot?'filled':''}">${i<slot ? mpSetup.chosen[i].name : 'Spieler '+(i+1)}</div>`
+    `<div class="slot-chip ${i<slot?'filled':''}">${i<slot ? esc(mpSetup.chosen[i].name) : 'Spieler '+(i+1)}</div>`
   ).join("");
   renderProfilePicker(
     `SPIELER ${slot+1} VON ${mpSetup.count}`,
@@ -3976,9 +4259,9 @@ function renderMPPassScreen(){
   const q = mp.questions[mp.qIndex];
   renderApp(`
     <div class="panel pass-card">
-      <div class="avatar-big" style="background:${avatarColor(player.name)}">${initials(player.name)}</div>
+      <div class="avatar-big" style="background:${avatarColor(player.name)}">${esc(initials(player.name))}</div>
       <h2>${player.name.toUpperCase()} IST DRAN</h2>
-      <p>Frage ${mp.qIndex+1} von 5 · Gib das Gerät weiter, damit nur ${player.name} die Frage sieht.</p>
+      <p>Frage ${mp.qIndex+1} von 5 · Gib das Gerät weiter, damit nur ${esc(player.name)} die Frage sieht.</p>
       <button class="btn btn-primary" onclick="renderMPQuestion()">BEREIT – FRAGE ANZEIGEN</button>
     </div>
   `);
@@ -4072,7 +4355,7 @@ function renderMPResolve(){
       <div class="resolve-list">
         ${mp.currentResults.map(r => `
           <div class="resolve-row">
-            <span>${r.name}</span>
+            <span>${esc(r.name)}</span>
             <span class="mark ${r.correct?'ok':'bad'}">${r.correct?'✓':'✕'}</span>
           </div>
         `).join("")}
@@ -4182,7 +4465,7 @@ function startPartyFlow(gameMode){
       <div class="picker-sub">${t('party_entry_sub')}</div>
       <div class="picker-form" style="margin-bottom:14px;">
         ${account
-          ? `<div class="explanation" style="text-align:left;">Du spielst als <b>${account.profile.username}</b> (angemeldetes Konto).</div>`
+          ? `<div class="explanation" style="text-align:left;">Du spielst als <b>${esc(account.profile.username)}</b> (angemeldetes Konto).</div>`
           : `<input id="partyName" type="text" placeholder="${t('party_name_placeholder')}" maxlength="20">`
         }
       </div>
@@ -4192,7 +4475,7 @@ function startPartyFlow(gameMode){
       </div>
       <div class="picker-sub">${t('party_join_existing')}</div>
       <div class="picker-form">
-        <input id="partyCode" type="text" placeholder="${t('party_code_placeholder')}" maxlength="4" style="text-transform:uppercase;">
+        <input id="partyCode" type="text" placeholder="${t('party_code_placeholder')}" maxlength="6" style="text-transform:uppercase;">
         <button id="partyJoinBtn" class="btn btn-primary" onclick="partyJoinRoom()">${t('party_join')}</button>
       </div>
       <div class="actions-row" style="margin-top:18px;">
@@ -4430,7 +4713,7 @@ function roundPlanBlockHtml(room, returnTo){
         <button class="btn btn-ghost" style="padding:8px 14px; font-size:12px;" onclick="partyRandomizeRounds()">${t('lobby_reshuffle')}</button>
       </div>
       <div class="round-plan-list">
-        ${room.roundDefs.map((r,i)=>`<div class="round-plan-item"><span class="idx">${i+1}</span>${r ? r.label : '…'}</div>`).join("")}
+        ${room.roundDefs.map((r,i)=>`<div class="round-plan-item"><span class="idx">${i+1}</span>${r ? esc(r.label) : '…'}</div>`).join("")}
       </div>
     `;
   }
@@ -4443,7 +4726,7 @@ function roundPlanBlockHtml(room, returnTo){
       </button>
     </div>
     <div class="round-plan-list">
-      ${room.roundDefs.map((r,i)=>`<div class="round-plan-item"><span class="idx">${i+1}</span>${r ? r.label : '<span style="color:var(--text-dim)">'+t('lobby_not_chosen')+'</span>'}</div>`).join("")}
+      ${room.roundDefs.map((r,i)=>`<div class="round-plan-item"><span class="idx">${i+1}</span>${r ? esc(r.label) : '<span style="color:var(--text-dim)">'+t('lobby_not_chosen')+'</span>'}</div>`).join("")}
     </div>
   `;
 }
@@ -4455,6 +4738,7 @@ function roundPlanReady(room){
 
 function partyHandleMessage(msg){
   if(!party) return;
+  achvOnPartyMessage(msg);
   if(party.arenaMode){
     if(msg.type === "gameEnd"){ finishArenaMatch(); return; }
     tallyArenaPoints(msg);
@@ -4576,11 +4860,12 @@ function partyHandleMessage(msg){
     case "slfReveal":
       renderSlfReveal(msg);
       break;
-    case "slfChallengeUpdate":
-      party.slfChallenges = msg.challenges;
+    case "slfThumbUpdate":
+      party.slfThumbs = msg.thumbs;
+      party.slfThreshold = msg.threshold;
       party.slfReadyCount = msg.readyCount;
       party.slfReadyTotal = msg.readyTotal;
-      updateSlfChallengeUI();
+      updateSlfThumbUI();
       break;
     case "slfFinalReveal":
       renderSlfFinal(msg);
@@ -4594,11 +4879,12 @@ function partyHandleMessage(msg){
     case "nennsBlitzReveal":
       renderNennsBlitzReveal(msg);
       break;
-    case "nennsBlitzChallengeUpdate":
-      party.nennsBlitzChallenges = msg.challenges;
+    case "nennsBlitzThumbUpdate":
+      party.nennsBlitzThumbs = msg.thumbs;
+      party.nennsBlitzThreshold = msg.threshold;
       party.nennsBlitzReadyCount = msg.readyCount;
       party.nennsBlitzReadyTotal = msg.readyTotal;
-      updateNennsBlitzChallengeUI();
+      updateNennsBlitzThumbUI();
       break;
     case "nennsBlitzFinal":
       renderNennsBlitzFinal(msg);
@@ -4695,7 +4981,7 @@ function renderPartyLobby(){
         ${room.players.map(p => `
           <div class="party-player-row ${p.connected ? '' : 'offline'}">
             <span class="dot"></span>
-            <span>${p.isBot ? '🤖' : '👤'} ${p.name}${p.id === room.hostId ? ' 👑' : ''}${p.isBot ? ' – ' + p.botTierLabel : ''}</span>
+            <span>${p.isBot ? '🤖' : '👤'} ${esc(p.name)}${p.id === room.hostId ? ' 👑' : ''}${p.isBot ? ' – ' + p.botTierLabel : ''}</span>
             ${p.teamId ? `<span class="team-tag">${room.teams.find(t=>t.id===p.teamId)?.name || ''}</span>` : ''}
             ${isHost && p.isBot ? `
               <select class="bot-tier-select" onchange="partySetBotTier('${p.id}', this.value)">
@@ -4766,11 +5052,11 @@ function renderPartyHostSettings(room){
       <div class="team-slots">
         ${room.teams.map(team => `
           <div class="team-slot-card">
-            <h5>${team.name}</h5>
+            <h5>${esc(team.name)}</h5>
             <div class="members">
               ${room.players.map(p => `
                 <button class="team-member-btn ${p.teamId && p.teamId!==team.id ? 'taken':''}" onclick="partyAssignTeam('${p.id}','${team.id}')">
-                  ${p.isBot ? '🤖' : '👤'} ${p.name}${p.teamId===team.id ? ' ✓' : ''}
+                  ${p.isBot ? '🤖' : '👤'} ${esc(p.name)}${p.teamId===team.id ? ' ✓' : ''}
                 </button>
               `).join("")}
             </div>
@@ -5088,7 +5374,7 @@ function renderPartyRoundIntro(msg){
   renderApp(`
     <div class="panel pass-card">
       <h2>${t('round_of')} ${msg.roundNumber} ${t('round_of_mid')} ${msg.totalRounds}</h2>
-      <p>${msg.label}</p>
+      <p>${esc(msg.label)}</p>
     </div>
   `);
 }
@@ -5171,7 +5457,7 @@ function renderPartyQuizReveal(msg){
       <div class="resolve-list">
         ${msg.results.map(r => `
           <div class="resolve-row">
-            <span>${r.name}</span>
+            <span>${esc(r.name)}</span>
             <span class="mark ${r.correct?'ok':'bad'}">${party.arenaMode ? (r.correct?'✓ +1':'✕') : (r.correct?'✓ +100':'✕ -150')}</span>
           </div>
         `).join("")}
@@ -5201,7 +5487,7 @@ function renderPartyRank(msg){
     : Object.entries(msg.lives).map(([teamId, lives]) => {
         const team = party.room.teams.find(t=>t.id===teamId);
         const hearts = Array.from({length:3}).map((_,i)=>`<span class="heart ${i<lives?'on':''}">❤</span>`).join("");
-        return `<div class="lives-row"><span>${team?.name || teamId}${msg.eliminated.includes(teamId)?' (raus)':''}</span><div class="hearts">${hearts}</div></div>`;
+        return `<div class="lives-row"><span>${esc(team?.name || teamId)}${msg.eliminated.includes(teamId)?' (raus)':''}</span><div class="hearts">${hearts}</div></div>`;
       }).join("");
 
   // Bei "Mehr oder Weniger" bleibt es beim einzelnen gezogenen Element.
@@ -5217,10 +5503,10 @@ function renderPartyRank(msg){
 
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${msg.label}</div>
+      <div class="picker-title">${esc(msg.label)}</div>
       <div class="picker-sub">${msg.unit} · ${msg.order === 'desc' ? 'Höchster Wert zuerst' : 'Niedrigster Wert zuerst'}</div>
 
-      ${party.soloMode ? `` : `<div class="turn-banner">${myTurn ? 'IHR SEID DRAN!' : (turnTeam?.name || '...') + ' ist dran'}</div>`}
+      ${party.soloMode ? `` : `<div class="turn-banner">${myTurn ? 'IHR SEID DRAN!' : esc(turnTeam?.name || '...') + ' ist dran'}</div>`}
       ${msg.arenaTimeLimitMs ? `
         <div class="timer-wrap" style="margin:8px 0;">
           <div class="timer-bar"><div id="rankArenaTimerFill" class="timer-fill" style="width:100%"></div></div>
@@ -5290,7 +5576,7 @@ function renderPartyRankAttempt(msg){
   renderApp(`
     <div class="panel confirm-card">
       <div class="points-badge ${msg.correct?'pos':'neg'}">${msg.timeout ? '⏱ ZEIT ABGELAUFEN' : (msg.correct?'✓ RICHTIG':'✕ FALSCH')}</div>
-      <p style="margin-top:10px; font-weight:700;">${team?.name || ''}: ${msg.itemName}</p>
+      <p style="margin-top:10px; font-weight:700;">${esc(team?.name || '')}: ${msg.itemName}</p>
       ${msg.value !== undefined ? `<p style="color:var(--text-dim); font-size:20px; font-weight:800;">${msg.value}${msg.unit ? ' '+msg.unit : ''}</p>` : ``}
       ${msg.awaitingContinue ? (
         party.isHost
@@ -5303,7 +5589,7 @@ function renderPartyRankAttempt(msg){
 function renderPartyRankReveal(msg){
   renderApp(`
     <div class="panel">
-      <div class="picker-title">AUFLÖSUNG: ${msg.label}</div>
+      <div class="picker-title">AUFLÖSUNG: ${esc(msg.label)}</div>
       <div class="rank-board" style="margin-top:14px;">
         ${msg.fullOrder.map(item => `
           <div class="rank-item-row"><span>${item.name}</span><span class="val">${item.value} ${msg.unit}</span></div>
@@ -5330,7 +5616,7 @@ function renderPartyOrdering(msg){
 
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${msg.label}</div>
+      <div class="picker-title">${esc(msg.label)}</div>
       <div class="picker-sub">${msg.unit} · ${msg.order === 'desc' ? 'Höchster Wert zuerst' : 'Niedrigster Wert zuerst'}</div>
 
       <div class="lives-row"><span>Deine Leben</span><div class="hearts">${hearts}</div></div>
@@ -5390,7 +5676,7 @@ function renderPartyOrdering(msg){
       <div class="party-players">
         ${msg.leaderboard.filter(p=>p.playerId!==party.playerId).map(p => `
           <div class="party-player-row">
-            <span>${p.isBot?'🤖':'👤'} ${p.name}</span>
+            <span>${p.isBot?'🤖':'👤'} ${esc(p.name)}</span>
             <span style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim);">
               ${p.correctCount}/${msg.totalItems}
               ${Array.from({length:3}).map((_,i)=>`<span class="heart ${i<p.lives?'on':''}" style="font-size:12px;">❤</span>`).join("")}
@@ -5456,13 +5742,13 @@ function renderPartyOrderingFinal(msg){
   renderApp(`
     <div class="panel">
       <div class="picker-title">AUFLÖSUNG</div>
-      <div class="picker-sub">${msg.label}</div>
+      <div class="picker-sub">${esc(msg.label)}</div>
       <div class="party-players" style="margin-top:10px;">
         ${msg.results.map(r => {
           const player = msg.players.find(p=>p.id===r.playerId);
           return `
             <div class="party-player-row">
-              <span>#${r.rank} ${player ? player.name : ''}${r.finishedPerfect?' 🏆':''}</span>
+              <span>#${r.rank} ${player ? esc(player.name) : ''}${r.finishedPerfect?' 🏆':''}</span>
               <span style="font-size:12px; color:var(--text-dim);">${r.correctCount}/${r.totalItems} · ${r.lives} ❤</span>
             </div>
           `;
@@ -5484,14 +5770,14 @@ function renderPartyTicTacToe(msg){
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE</div>
-      <div class="picker-sub">${teamNameFor('X')} (X) gegen ${teamNameFor('O')} (O)</div>
+      <div class="picker-sub">${esc(teamNameFor('X'))} (X) gegen ${esc(teamNameFor('O'))} (O)</div>
       <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${msg.board.map((c,i) => `
           <div onclick="partyTicTacToeMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !msg.gameOver && myTurn)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
         `).join("")}
       </div>
       ${msg.gameOver ? `
-        <div class="explanation" style="text-align:center;">${!msg.winnerTeamId ? 'Unentschieden!' : (msg.winnerTeamId===myTeamId ? '🎉 Euer Team hat gewonnen!' : (party.room.teams.find(t=>t.id===msg.winnerTeamId)?.name||'') + ' hat gewonnen!')}</div>
+        <div class="explanation" style="text-align:center;">${!msg.winnerTeamId ? 'Unentschieden!' : (msg.winnerTeamId===myTeamId ? '🎉 Euer Team hat gewonnen!' : esc(party.room.teams.find(t=>t.id===msg.winnerTeamId)?.name||'') + ' hat gewonnen!')}</div>
       ` : `
         <div class="picker-sub" style="text-align:center;">${myTurn ? 'Euer Team ist dran!' : (mySymbol ? 'Das andere Team ist dran …' : 'Zuschauen …')}</div>
       `}
@@ -5518,7 +5804,7 @@ function renderPartyGuessItem(msg){
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">${msg.index+1} von ${msg.total}</div>
-        <div class="qcat">${msg.label}</div>
+        <div class="qcat">${esc(msg.label)}</div>
       </div>
       <div class="guess-points-badge" id="guessPointsBadge">5 Punkte</div>
       <div class="guess-image-wrap">
@@ -5585,7 +5871,7 @@ function handlePartyGuessAttempt(msg){
   if(feed){
     feed.innerHTML = party.guessAttempts.map(a => `
       <div class="resolve-row" style="padding:8px 14px;">
-        <span>${a.playerName}: "${a.text}"</span>
+        <span>${esc(a.playerName)}: "${esc(a.text)}"</span>
         <span class="mark ${a.correct?'ok':'bad'}">${a.correct?'✓':'✕'}</span>
       </div>
     `).join("");
@@ -5601,7 +5887,7 @@ function renderPartyGuessResolved(msg){
   renderApp(`
     <div class="panel confirm-card">
       <div class="points-badge ${team?'pos':'neg'}">${msg.correctAnswer}</div>
-      <p style="margin-top:10px; font-weight:700;">${team ? `${team.name} hatte es zuerst richtig (+${msg.points})` : 'Niemand hat es rechtzeitig erraten'}</p>
+      <p style="margin-top:10px; font-weight:700;">${team ? `${esc(team.name)} hatte es zuerst richtig (+${msg.points})` : 'Niemand hat es rechtzeitig erraten'}</p>
     </div>
   `);
 }
@@ -5637,7 +5923,7 @@ function renderPartyMusicItem(msg){
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">${msg.index+1} von ${msg.total}</div>
-        <div class="qcat">${msg.label}</div>
+        <div class="qcat">${esc(msg.label)}</div>
       </div>
       <div class="guess-points-badge" id="musicCapBadge">bis zu ${msg.fieldMaxPoints} Punkte pro Feld</div>
       <div class="music-player-wrap">
@@ -5855,7 +6141,7 @@ function handlePartyMusicSubmitted(msg){
   if(feed){
     feed.innerHTML = party.musicSubmittedFeed.map(m => `
       <div class="resolve-row" style="padding:8px 14px;">
-        <span>${m.playerName}</span>
+        <span>${esc(m.playerName)}</span>
         <span class="mark ${m.total>0?'ok':'bad'}">+${m.total}</span>
       </div>
     `).join("");
@@ -5878,7 +6164,7 @@ function renderPartyMusicResolved(msg){
       <div class="party-players" style="margin-top:16px;">
         ${msg.results.map(r => `
           <div class="party-player-row">
-            <span>${r.name}${r.submitted ? '' : ' (nicht abgegeben)'}</span>
+            <span>${esc(r.name)}${r.submitted ? '' : ' (nicht abgegeben)'}</span>
             <span style="font-size:12px; color:var(--text-dim);">
               ${r.points ? `${msg.noArtist ? '' : '👤'+(r.points.artist>0?'✓':'✕')+' '} 🎵${r.points.title>0?'✓':'✕'} 📅${r.points.year>0?'✓':'✕'} · +${r.total}` : '+0'}
             </span>
@@ -5908,8 +6194,8 @@ function renderSlfAnswering(msg){
       <div class="picker-form" style="flex-direction:column; gap:10px; margin-top:14px;">
         ${msg.categories.map((cat,i) => `
           <div>
-            <label style="font-size:12px; color:var(--text-dim); font-weight:700;">${cat}</label>
-            <input type="text" id="slfInput_${i}" class="builder-search" style="margin-top:4px;" placeholder="${cat} mit ${msg.letter} …" maxlength="30" autocomplete="off" oninput="scheduleSlfDraftSync()">
+            <label style="font-size:12px; color:var(--text-dim); font-weight:700;">${esc(cat)}</label>
+            <input type="text" id="slfInput_${i}" class="builder-search" style="margin-top:4px;" placeholder="${esc(cat)} mit ${msg.letter} …" maxlength="30" autocomplete="off" oninput="scheduleSlfDraftSync()">
           </div>
         `).join("")}
       </div>
@@ -5979,64 +6265,53 @@ function submitSlfAnswers(){
   document.querySelectorAll('[id^="slfInput_"]').forEach(el=>el.disabled=true);
 }
 
+function slfListHtml(){
+  const msg = party.slfRevealMsg;
+  const myId = party.playerId;
+  const thumbs = party.slfThumbs || [];
+  return msg.categories.map((cat, catIndex) => `
+    <div style="margin-top:16px;">
+      <div style="font-weight:800; font-size:14px; margin-bottom:6px; color:var(--accent-2);">${esc(cat)}</div>
+      <div class="round-plan-list">
+        ${msg.players.map(p => {
+          const text = (msg.answers[p.id]||{})[cat] || "";
+          const pts = (msg.scores[p.id]||{})[cat] ?? 0;
+          const th = thumbs.find(t => t.playerId===p.id && t.category===cat);
+          const count = th ? th.voters.length : 0;
+          const mine = !!(th && th.voters.includes(myId));
+          const removed = !!(th && th.removed);
+          const shownPts = removed ? 0 : pts;
+          return `
+            <div class="round-plan-item" style="align-items:center;">
+              <span style="flex:1; ${removed?'text-decoration:line-through; opacity:.6;':''}"><b>${esc(p.name)}${p.id===myId?' (du)':''}:</b> ${text ? esc(text) : '<span style="color:var(--text-dim);">(leer)</span>'}${removed ? '<br><span style="font-size:11px; color:var(--danger); text-decoration:none; display:inline-block;">👎 Antwort entfernt</span>' : ''}</span>
+              <span class="val" style="margin-right:8px;">${shownPts} P.</span>
+              ${text ? `<button class="thumb-btn ${mine?'on':''}" onclick="thumbSlf('${p.id}', ${catIndex})" title="Daumen runter">👎${count ? ' '+count : ''}</button>` : ``}
+            </div>
+          `;
+        }).join("")}
+      </div>
+    </div>
+  `).join("");
+}
 function renderSlfReveal(msg){
   party.slfRevealMsg = msg;
   party.slfImReady = false;
-  if(!party.slfChallenges) party.slfChallenges = [];
-  const myId = party.playerId;
+  party.slfThumbs = [];
   renderApp(`
     <div class="panel">
       <div class="picker-title">AUFLÖSUNG – Buchstabe „${msg.letter}"</div>
-      <div class="picker-sub">Vorläufige Punkte – jetzt anfechtbar, kein Zeitlimit</div>
-      ${msg.categories.map((cat, catIndex) => `
-        <div style="margin-top:16px;">
-          <div style="font-weight:800; font-size:14px; margin-bottom:6px; color:var(--accent-2);">${cat}</div>
-          <div class="round-plan-list">
-            ${msg.players.map(p => {
-              const text = (msg.answers[p.id]||{})[cat] || "";
-              const pts = (msg.scores[p.id]||{})[cat] ?? 0;
-              const challenge = (party.slfChallenges||[]).find(c => c.playerId===p.id && c.category===cat);
-              const canChallenge = p.id !== myId && text && !challenge;
-              const challengeNote = challenge ? (challenge.resolved
-                ? (challenge.invalidated ? '<br><span style="font-size:11px; color:var(--danger);">❌ angefochten – ungültig</span>' : '<br><span style="font-size:11px; color:var(--accent-2);">✓ angefochten – bleibt gültig</span>')
-                : '<br><span style="font-size:11px; color:var(--warn);">⏳ wird gerade angefochten …</span>') : '';
-              const shownPts = (challenge && challenge.resolved && challenge.invalidated) ? 0 : pts;
-              return `
-                <div class="round-plan-item" style="align-items:center;">
-                  <span style="flex:1;"><b>${p.name}:</b> ${text ? text : '<span style="color:var(--text-dim);">(leer)</span>'}${challengeNote}</span>
-                  <span class="val" style="margin-right:8px;">${shownPts} P.</span>
-                  ${canChallenge ? `<button class="bot-remove-btn" style="border-color:var(--warn); color:var(--warn);" onclick="raiseSlfChallenge('${p.id}', ${catIndex})" title="Anfechten">⚑</button>` : ``}
-                </div>
-              `;
-            }).join("")}
-          </div>
-        </div>
-      `).join("")}
-      <div id="slfVotePanel"></div>
+      <div class="picker-sub">Vorläufige Punkte – 👎 bei falschen Antworten (auch bei deiner eigenen), kein Zeitlimit</div>
+      <div id="slfThumbHint" class="picker-sub" style="font-size:12px;"></div>
+      <div id="slfList">${slfListHtml()}</div>
       <div id="slfReadyPanel"></div>
     </div>
   `);
-  renderSlfVotePanel();
+  updateSlfThumbHint();
   renderSlfReadyPanel();
 }
-function renderSlfVotePanel(){
-  const panel = document.getElementById("slfVotePanel");
-  if(!panel) return;
-  const myId = party.playerId;
-  const activeChallenges = (party.slfChallenges||[]).filter(c => !c.resolved && c.playerId !== myId);
-  if(activeChallenges.length === 0){ panel.innerHTML = ""; return; }
-  panel.innerHTML = `
-    <div class="panel" style="margin-top:16px; border-color:var(--warn);">
-      <div class="picker-title" style="font-size:15px;">Abstimmen: Ist diese Antwort gültig?</div>
-      ${activeChallenges.map(c => `
-        <div class="resolve-row" style="margin-top:8px;"><span>${c.category}: "${c.answerText}"</span></div>
-        <div class="actions-row" style="margin-top:6px; margin-bottom:14px;">
-          <button class="btn btn-primary" style="flex:1;" onclick="voteSlfChallenge('${c.id}', true)">✓ Gültig</button>
-          <button class="btn btn-ghost" style="flex:1; border-color:var(--danger); color:var(--danger);" onclick="voteSlfChallenge('${c.id}', false)">✕ Ungültig</button>
-        </div>
-      `).join("")}
-    </div>
-  `;
+function updateSlfThumbHint(){
+  const el = document.getElementById("slfThumbHint");
+  if(el) el.textContent = "Eine Antwort fliegt raus, sobald " + (party.slfThreshold||1) + " 👎 zusammenkommen. Nochmal tippen nimmt deinen Daumen zurück.";
 }
 function renderSlfReadyPanel(){
   const panel = document.getElementById("slfReadyPanel");
@@ -6059,21 +6334,20 @@ function markSlfChallengeReady(){
   partySend({action:'slfChallengeReady'});
   renderSlfReadyPanel();
 }
-function updateSlfChallengeUI(){
-  if(party.slfRevealMsg){ renderSlfVotePanel(); renderSlfReadyPanel(); }
+function updateSlfThumbUI(){
+  if(!party.slfRevealMsg) return;
+  const list = document.getElementById("slfList");
+  if(list) list.innerHTML = slfListHtml();
+  updateSlfThumbHint();
+  renderSlfReadyPanel();
 }
-function raiseSlfChallenge(targetPlayerId, catIndex){
+function thumbSlf(targetPlayerId, catIndex){
   const category = party.slfRevealMsg.categories[catIndex];
-  partySend({action:'slfChallenge', targetPlayerId, category});
-}
-function voteSlfChallenge(challengeId, valid){
-  partySend({action:'slfVote', challengeId, valid});
-  const panel = document.getElementById("slfVotePanel");
-  if(panel) panel.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:10px;">Stimme abgegeben, warte auf die anderen …</p>';
+  partySend({action:'slfThumb', targetPlayerId, category});
 }
 function renderSlfFinal(msg){
   const revealMsg = party.slfRevealMsg || {players:[]};
-  party.slfChallenges = [];
+  party.slfThumbs = [];
   renderApp(`
     <div class="panel">
       <div class="picker-title">ENDGÜLTIGE WERTUNG</div>
@@ -6081,20 +6355,20 @@ function renderSlfFinal(msg){
         ${(revealMsg.players||[]).map(p => {
           const catScores = msg.scores[p.id] || {};
           const total = Object.values(catScores).reduce((a,b)=>a+b,0);
-          return `<div class="round-plan-item"><span style="flex:1;">${p.name}</span><span class="val">${total} P.</span></div>`;
+          return `<div class="round-plan-item"><span style="flex:1;">${esc(p.name)}</span><span class="val">${total} P.</span></div>`;
         }).join("")}
       </div>
     </div>
   `);
 }
 
-/* ---------- Nenn's Blitz (Freitext-Kategorie, Anfechten-Mechanik wie SLF) ---------- */
+/* ---------- Nenn's Blitz (Freitext-Kategorie, Daumen-runter-Mechanik wie SLF) ---------- */
 function renderNennsBlitzAnswering(msg){
   party.nennsBlitzMsg = msg;
   party.nennsBlitzOwnAnswers = [];
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${msg.label}</div>
+      <div class="picker-title">${esc(msg.label)}</div>
       <div class="picker-sub">Nenn so viele richtige Begriffe wie möglich!</div>
       <div class="timer-wrap" style="margin-top:10px;">
         <div class="timer-bar"><div id="blitzTimerFill" class="timer-fill" style="width:100%"></div></div>
@@ -6137,68 +6411,58 @@ function handleNennsBlitzOwnUpdate(msg){
   const listEl = document.getElementById("blitzOwnList");
   if(countEl) countEl.textContent = msg.answers.length;
   if(listEl){
-    listEl.innerHTML = msg.answers.slice().reverse().map(a => `<div class="round-plan-item"><span>${a.text}</span></div>`).join("");
+    listEl.innerHTML = msg.answers.slice().reverse().map(a => `<div class="round-plan-item"><span>${esc(a.text)}</span></div>`).join("");
   }
 }
 
+function nennsBlitzListHtml(){
+  const msg = party.nennsBlitzRevealMsg;
+  const myId = party.playerId;
+  const thumbs = party.nennsBlitzThumbs || [];
+  return msg.players.map(p => {
+    const answers = msg.answers[p.id] || [];
+    const validCount = answers.filter(a => { const th = thumbs.find(t => t.playerId===p.id && t.answerId===a.id); return !(th && th.removed); }).length;
+    return `
+      <div style="margin-top:16px;">
+        <div style="font-weight:800; font-size:14px; margin-bottom:6px; color:var(--accent-2);">${esc(p.name)}${p.id===myId?' (du)':''} (${validCount}${validCount!==answers.length ? ' von '+answers.length : ''})</div>
+        <div class="round-plan-list">
+          ${answers.length === 0 ? `<div class="round-plan-item"><span style="color:var(--text-dim);">(keine Antworten)</span></div>` : answers.map(a => {
+            const th = thumbs.find(t => t.playerId===p.id && t.answerId===a.id);
+            const count = th ? th.voters.length : 0;
+            const mine = !!(th && th.voters.includes(myId));
+            const removed = !!(th && th.removed);
+            return `
+              <div class="round-plan-item" style="align-items:center;">
+                <span style="flex:1; ${removed?'text-decoration:line-through; opacity:.6;':''}">${esc(a.text)}</span>
+                <button class="thumb-btn ${mine?'on':''}" onclick="thumbNennsBlitz('${p.id}','${a.id}')" title="Daumen runter">👎${count ? ' '+count : ''}</button>
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
 function renderNennsBlitzReveal(msg){
   party.nennsBlitzRevealMsg = msg;
-  party.nennsBlitzChallenges = [];
+  party.nennsBlitzThumbs = [];
   party.nennsBlitzImReady = false;
   if(party.blitzTickerId) clearInterval(party.blitzTickerId);
-  const myId = party.playerId;
   renderApp(`
     <div class="panel">
-      <div class="picker-title">AUFLÖSUNG: ${msg.label}</div>
-      <div class="picker-sub">Vorläufige Punkte – jetzt anfechtbar, kein Zeitlimit</div>
-      ${msg.players.map(p => {
-        const answers = msg.answers[p.id] || [];
-        return `
-          <div style="margin-top:16px;">
-            <div style="font-weight:800; font-size:14px; margin-bottom:6px; color:var(--accent-2);">${p.name} (${answers.length})</div>
-            <div class="round-plan-list">
-              ${answers.length === 0 ? `<div class="round-plan-item"><span style="color:var(--text-dim);">(keine Antworten)</span></div>` : answers.map(a => {
-                const challenge = (party.nennsBlitzChallenges||[]).find(c => c.playerId===p.id && c.answerId===a.id);
-                const canChallenge = p.id !== myId && !challenge;
-                const challengeNote = challenge ? (challenge.resolved
-                  ? (challenge.invalidated ? ' <span style="font-size:11px; color:var(--danger);">❌ angefochten – ungültig</span>' : ' <span style="font-size:11px; color:var(--accent-2);">✓ angefochten – bleibt gültig</span>')
-                  : ' <span style="font-size:11px; color:var(--warn);">⏳ wird angefochten …</span>') : '';
-                return `
-                  <div class="round-plan-item" style="align-items:center;">
-                    <span style="flex:1;">${a.text}${challengeNote}</span>
-                    ${canChallenge ? `<button class="bot-remove-btn" style="border-color:var(--warn); color:var(--warn);" onclick="raiseNennsBlitzChallenge('${p.id}', '${a.id}')" title="Anfechten">⚑</button>` : ``}
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          </div>
-        `;
-      }).join("")}
-      <div id="blitzVotePanel"></div>
+      <div class="picker-title">AUFLÖSUNG: ${esc(msg.label)}</div>
+      <div class="picker-sub">👎 bei falschen Antworten (auch bei deinen eigenen), kein Zeitlimit</div>
+      <div id="blitzThumbHint" class="picker-sub" style="font-size:12px;"></div>
+      <div id="blitzList">${nennsBlitzListHtml()}</div>
       <div id="blitzReadyPanel"></div>
     </div>
   `);
-  renderNennsBlitzVotePanel();
+  updateNennsBlitzThumbHint();
   renderNennsBlitzReadyPanel();
 }
-function renderNennsBlitzVotePanel(){
-  const panel = document.getElementById("blitzVotePanel");
-  if(!panel) return;
-  const myId = party.playerId;
-  const activeChallenges = (party.nennsBlitzChallenges||[]).filter(c => !c.resolved && c.playerId !== myId);
-  if(activeChallenges.length === 0){ panel.innerHTML = ""; return; }
-  panel.innerHTML = `
-    <div class="panel" style="margin-top:16px; border-color:var(--warn);">
-      <div class="picker-title" style="font-size:15px;">Abstimmen: Ist diese Antwort gültig?</div>
-      ${activeChallenges.map(c => `
-        <div class="resolve-row" style="margin-top:8px;"><span>"${c.answerText}"</span></div>
-        <div class="actions-row" style="margin-top:6px; margin-bottom:14px;">
-          <button class="btn btn-primary" style="flex:1;" onclick="voteNennsBlitzChallenge('${c.id}', true)">✓ Gültig</button>
-          <button class="btn btn-ghost" style="flex:1; border-color:var(--danger); color:var(--danger);" onclick="voteNennsBlitzChallenge('${c.id}', false)">✕ Ungültig</button>
-        </div>
-      `).join("")}
-    </div>
-  `;
+function updateNennsBlitzThumbHint(){
+  const el = document.getElementById("blitzThumbHint");
+  if(el) el.textContent = "Eine Antwort fliegt raus, sobald " + (party.nennsBlitzThreshold||1) + " 👎 zusammenkommen. Nochmal tippen nimmt deinen Daumen zurück.";
 }
 function renderNennsBlitzReadyPanel(){
   const panel = document.getElementById("blitzReadyPanel");
@@ -6221,24 +6485,23 @@ function markNennsBlitzChallengeReady(){
   partySend({action:'nennsBlitzChallengeReady'});
   renderNennsBlitzReadyPanel();
 }
-function updateNennsBlitzChallengeUI(){
-  if(party.nennsBlitzRevealMsg){ renderNennsBlitzVotePanel(); renderNennsBlitzReadyPanel(); }
+function updateNennsBlitzThumbUI(){
+  if(!party.nennsBlitzRevealMsg) return;
+  const list = document.getElementById("blitzList");
+  if(list) list.innerHTML = nennsBlitzListHtml();
+  updateNennsBlitzThumbHint();
+  renderNennsBlitzReadyPanel();
 }
-function raiseNennsBlitzChallenge(targetPlayerId, answerId){
-  partySend({action:'nennsBlitzChallenge', targetPlayerId, answerId});
-}
-function voteNennsBlitzChallenge(challengeId, valid){
-  partySend({action:'nennsBlitzVote', challengeId, valid});
-  const panel = document.getElementById("blitzVotePanel");
-  if(panel) panel.innerHTML = '<p style="text-align:center; color:var(--text-dim); margin-top:10px;">Stimme abgegeben, warte auf die anderen …</p>';
+function thumbNennsBlitz(targetPlayerId, answerId){
+  partySend({action:'nennsBlitzThumb', targetPlayerId, answerId});
 }
 function renderNennsBlitzFinal(msg){
-  party.nennsBlitzChallenges = [];
+  party.nennsBlitzThumbs = [];
   renderApp(`
     <div class="panel">
-      <div class="picker-title">ENDGÜLTIGE WERTUNG: ${msg.label}</div>
+      <div class="picker-title">ENDGÜLTIGE WERTUNG: ${esc(msg.label)}</div>
       <div class="round-plan-list" style="margin-top:10px;">
-        ${msg.results.map(r => `<div class="round-plan-item"><span style="flex:1;">${r.name}</span><span class="val">${r.total} P.</span></div>`).join("")}
+        ${msg.results.map(r => `<div class="round-plan-item"><span style="flex:1;">${esc(r.name)}</span><span class="val">${r.total} P.</span></div>`).join("")}
       </div>
     </div>
   `);
@@ -6302,7 +6565,7 @@ function renderPartyRoundEnd(msg){
         <div class="leaderboard-row">
           <div class="medal">${medals[i]}</div>
           <div>
-            <div class="lname">${team.name}${msg.winnerTeamIds.includes(team.id) ? ' 👑' : ''}</div>
+            <div class="lname">${esc(team.name)}${msg.winnerTeamIds.includes(team.id) ? ' 👑' : ''}</div>
             <div class="lsub">${t('round_points_short')}: ${msg.roundScores[team.id] >= 0 ? '+' : ''}${msg.roundScores[team.id]}</div>
           </div>
           <div class="lright"><div class="lpoints">${team.score}</div><div class="lsub">${t('total_short')}</div></div>
@@ -6344,7 +6607,7 @@ function renderPartyGameEnd(msg){
       ${msg.ranking.map((team,i) => `
         <div class="leaderboard-row">
           <div class="medal">${medals[i]}</div>
-          <div class="lname">${team.name}</div>
+          <div class="lname">${esc(team.name)}</div>
           <div class="lright"><div class="lpoints">${team.score}</div><div class="lsub">${t('points_word')}</div></div>
         </div>
       `).join("")}

@@ -23,6 +23,75 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const { WebSocketServer } = require("./lib/miniws");
+// Erfolge: gleiche Datei wie im Browser (public/achievements.js) - eine Definition, ein Regelwerk
+const Achv = require("./public/achievements.js");
+
+/* ------------------------------------------------------------------------ */
+/* Sicherheits-/Stabilitaets-Helfer                                          */
+/* ------------------------------------------------------------------------ */
+// Notbremse: ein unerwarteter Fehler in EINEM Handler darf nie den ganzen
+// Server (und damit alle laufenden Spiele) beenden. Wird nur protokolliert.
+process.on("uncaughtException", (err) => { console.error("[uncaughtException]", err && err.stack || err); });
+process.on("unhandledRejection", (err) => { console.error("[unhandledRejection]", err && err.stack || err); });
+
+// Nutzertext bereinigen: nur Strings, Steuerzeichen und < > entfernt (kein
+// HTML moeglich), getrimmt, auf max Zeichen gekuerzt. Alles andere -> "".
+function cleanStr(v, max) {
+  if (typeof v !== "string") return "";
+  return v.replace(/[\u0000-\u001f\u007f<>]/g, "").trim().slice(0, max);
+}
+// ------------------------------------------------------------------------
+// Ratenbegrenzung (Login-Sperre, Registrierungs-/API-Limit)
+// ------------------------------------------------------------------------
+// Hinter einem Proxy (Render) steht die echte Client-IP in X-Forwarded-For;
+// den Header vertrauen wir nur dort - direkt am Internet waere er faelschbar.
+// Angenommen wird: der Proxy HAENGT die Peer-Adresse hinten an -> letzter Eintrag.
+const TRUST_PROXY = process.env.TRUST_PROXY === "1" || !!process.env.RENDER;
+function clientIp(req) {
+  if (TRUST_PROXY) {
+    const xff = req.headers && req.headers["x-forwarded-for"];
+    if (typeof xff === "string" && xff.trim()) {
+      const parts = xff.split(",").map(x => x.trim()).filter(Boolean);
+      if (parts.length) return parts[parts.length - 1].slice(0, 64);
+    }
+  }
+  return (req.socket && req.socket.remoteAddress) || "unbekannt";
+}
+const AUTH_WINDOW_MS = Number(process.env.AUTH_WINDOW_MS) || 10 * 60 * 1000; // Zaehlfenster
+const AUTH_LOCK_MS   = Number(process.env.AUTH_LOCK_MS)   || 10 * 60 * 1000; // Sperrdauer
+const AUTH_MAX_FAILS_PAIR = 5;    // falsche Logins je Benutzername + IP
+const AUTH_MAX_FAILS_IP   = 30;   // falsche Logins je IP (beliebige Namen)
+const AUTH_MAX_FAILS_USER = 40;   // je Benutzername ueber ALLE IPs (verteilter Angriff)
+const JOIN_MAX_FAILS_IP   = 40;   // falsche Raumcodes je IP und 5 Minuten (Schulklasse mit Tippfehlern ist ok)
+const REGISTER_MAX_PER_IP = 10;   // neue Konten je IP und Stunde
+const API_MAX_PER_MIN_IP  = 600;  // alle API-Aufrufe je IP und Minute (Schulklasse hinter EINER IP ist ok)
+const rlStore = new Map();        // key -> { count, windowStart, lockedUntil }
+function rlWait(key) { // Sekunden bis zur Entsperrung (0 = frei)
+  const e = rlStore.get(key);
+  if (!e || !e.lockedUntil) return 0;
+  const left = e.lockedUntil - Date.now();
+  return left > 0 ? Math.ceil(left / 1000) : 0;
+}
+function rlHit(key, max, windowMs, lockMs) { // zaehlt einen Treffer, sperrt ab "max"
+  const now = Date.now();
+  let e = rlStore.get(key);
+  if (!e || now - e.windowStart > windowMs) { e = { count: 0, windowStart: now, lockedUntil: 0 }; rlStore.set(key, e); }
+  e.count++;
+  if (e.count >= max) e.lockedUntil = now + lockMs;
+  return e;
+}
+function rlReset(key) { rlStore.delete(key); }
+setInterval(() => { // aufraeumen, damit die Map nicht ewig waechst
+  const now = Date.now();
+  for (const [k, e] of rlStore) { if (now - e.windowStart > 3600000 && e.lockedUntil < now) rlStore.delete(k); }
+  if (rlStore.size > 200000) rlStore.clear();
+}, 5 * 60 * 1000).unref();
+function waitText(sec) { return sec >= 90 ? Math.ceil(sec / 60) + " Minuten" : sec + " Sekunden"; }
+
+// Raumcode: nur String, nur Buchstaben/Ziffern, max 8 Zeichen.
+function cleanCode(v) {
+  return typeof v === "string" ? v.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) : "";
+}
 
 const PORT = process.env.PORT || 3000;
 
@@ -72,10 +141,9 @@ const SUPPORTED_LANGS = ["de", "en", "fr", "es"];
 const SLF_DEFAULT_CATEGORIES = ["Stadt", "Land", "Fluss", "Name", "Tier", "Beruf", "Pflanze", "Farbe", "Automarke", "Promi"];
 const SLF_LETTERS = "ABCDEFGHIJKLMNOPRSTUVWZ".split(""); // Q, X, Y ausgelassen (zu schwer für flüssiges Spiel)
 const SLF_ANSWER_MS = 80000;      // Zeit zum Schreiben
-const SLF_HURRY_MS = 15000;       // Verkürzte Restzeit, sobald jemand ALLE Felder ausgefüllt abgegeben hat
+const SLF_HURRY_MS = Number(process.env.SLF_HURRY_MS) || 15000; // Env nur fuer Tests       // Verkürzte Restzeit, sobald jemand ALLE Felder ausgefüllt abgegeben hat
 // Kein Zeitlimit mehr fürs Anfechten (auf Wunsch entfernt) - Anfechtungsphase
 // läuft jetzt, bis der Host manuell per "continue" weitergeht.
-const SLF_VOTE_MS = 20000;        // Zeit zum Abstimmen über eine einzelne Anfechtung
 const SLF_PARTY_ROUND_SIZE = 10;  // Anzahl Kategorien pro Party-Mix-Runde
 
 // Großer Kategorien-Pool für den Party-Mix-Modus von Stadt Land Fluss:
@@ -217,12 +285,18 @@ function roundDefPoolForLanguage(language, gameMode) {
 /* ------------------------------------------------------------------------ */
 const rooms = new Map(); // code -> room
 
+// Raumcode: 6 Zeichen (32^6 = ~1 Mrd. Moeglichkeiten) aus kryptografisch
+// sicherem Zufall - vorher 4 Zeichen mit Math.random (1 Mio., erratbar).
+const ROOM_CODE_LEN = 6;
+const ROOM_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function randomRoomCode() {
+  let code = "";
+  for (let i = 0; i < ROOM_CODE_LEN; i++) code += ROOM_CODE_CHARS[crypto.randomInt(ROOM_CODE_CHARS.length)];
+  return code;
+}
 function makeRoomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code;
-  do {
-    code = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-  } while (rooms.has(code));
+  do { code = randomRoomCode(); } while (rooms.has(code));
   return code;
 }
 
@@ -256,7 +330,7 @@ function createRoom(hostWs, hostName, language, gameMode) {
 }
 
 function addPlayer(room, ws, id, name) {
-  room.players.set(id, { id, name: name.trim().slice(0, 20) || "Spieler", ws, teamId: null, connected: true, isBot: false, botTier: null });
+  room.players.set(id, { id, name: cleanStr(name, 20) || "Spieler", ws, teamId: null, connected: true, isBot: false, botTier: null });
   ws.playerId = id;
   ws.roomCode = room.code;
 }
@@ -322,11 +396,8 @@ function broadcast(room, msg) {
 const tttRooms = new Map(); // code -> room
 
 function tttMakeRoomCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code;
-  do {
-    code = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-  } while (tttRooms.has(code));
+  do { code = randomRoomCode(); } while (tttRooms.has(code));
   return code;
 }
 
@@ -352,10 +423,19 @@ function tttQuantumApplyMove(room, symbol, index) {
   room.board[index] = symbol;
 }
 
+// Zaehler fuer die Erfolge (werden bei jedem neuen Spiel/Rematch zurueckgesetzt)
+function tttFreshCounters() { return { moves: { X: 0, O: 0 }, wrong: { X: 0, O: 0 }, duels: 0 }; }
+function tttAchvInfo(room, symbol) {
+  if (!room.gameOver || room.winner !== symbol) return null;
+  const c = room.counters || tttFreshCounters();
+  if (room.mode === "quizmix") return { in3: c.duels === 3, allCorrect: c.wrong[symbol] === 0 };
+  return { in3: c.moves[symbol] === 3, allCorrect: true };
+}
 function tttBroadcastState(room) {
   const playersPublic = room.players.map(p => ({ name: p.name, symbol: p.symbol, connected: p.connected }));
   room.players.forEach(p => {
     send(p.ws, {
+      achv: tttAchvInfo(room, p.symbol),
       type: "tttState",
       board: room.board,
       turnSymbol: room.turnSymbol,
@@ -379,7 +459,8 @@ const TTT_DUEL_QUESTION_MS = 12000;
 function tttStartDuel(room, cellIndex) {
   // Auf Wunsch: der Duell-Typ wird pro Feld zufaellig zwischen Wissenstest
   // (5 feste Fragen) und Speed Math (1-Minuten-Sprint) gemischt.
-  const duelType = Math.random() < 0.5 ? "quiz" : "math";
+  // TTT_DUEL_TYPE (nur fuer Tests) erzwingt eine Duell-Art; normal: 50/50
+  const duelType = (process.env.TTT_DUEL_TYPE === "math" || process.env.TTT_DUEL_TYPE === "quiz") ? process.env.TTT_DUEL_TYPE : (Math.random() < 0.5 ? "quiz" : "math");
   if (duelType === "math") {
     tttStartMathSprintDuel(room, cellIndex);
     return;
@@ -402,7 +483,7 @@ function tttStartDuel(room, cellIndex) {
 // Strom an Aufgaben (nicht dieselbe Aufgabe gleichzeitig), löst so viele
 // wie möglich, wer nach 60s mehr richtig hat, bekommt das Feld. Beide
 // sehen den jeweils aktuellen Punktestand der anderen Seite live mit.
-const TTT_MATH_SPRINT_MS = 60000;
+const TTT_MATH_SPRINT_MS = Number(process.env.TTT_SPRINT_MS) || 60000; // Env nur fuer Tests
 function tttStartMathSprintDuel(room, cellIndex) {
   room.duel = {
     cellIndex,
@@ -415,7 +496,7 @@ function tttStartMathSprintDuel(room, cellIndex) {
     type: "tttSprintStart",
     cellIndex,
     durationMs: TTT_MATH_SPRINT_MS,
-    problem: room.duel.problems[p.symbol]
+    problem: tttPublicProblem(room.duel.problems[p.symbol])
   }));
   room.duel.timer = setTimeout(() => tttFinishMathSprint(room), TTT_MATH_SPRINT_MS + 300);
 }
@@ -426,9 +507,10 @@ function tttHandleSprintAnswer(room, symbol, value) {
   const problem = duel.problems[symbol];
   if (!problem) return;
   if (value === problem.answer) duel.scores[symbol] = (duel.scores[symbol] || 0) + 1;
+  else room.counters.wrong[symbol]++;
   duel.problems[symbol] = tttGenerateMathProblem();
   const player = room.players.find(p => p.symbol === symbol);
-  if (player) send(player.ws, { type: "tttSprintNextProblem", problem: duel.problems[symbol] });
+  if (player) send(player.ws, { type: "tttSprintNextProblem", problem: tttPublicProblem(duel.problems[symbol]) });
   broadcast(room, { type: "tttSprintScoreUpdate", scores: duel.scores });
 }
 
@@ -441,6 +523,7 @@ function tttFinishMathSprint(room) {
   let winnerSymbol = null;
   if (duel.scores[symA] > duel.scores[symB]) winnerSymbol = symA;
   else if (duel.scores[symB] > duel.scores[symA]) winnerSymbol = symB;
+  room.counters.duels++;
   if (winnerSymbol) {
     room.board[duel.cellIndex] = winnerSymbol;
     const w = tttCheckWinner(room.board);
@@ -456,6 +539,21 @@ function tttFinishMathSprint(room) {
 
 // Server-Pendant zu speedMathGenerateProblem() im Client - dieselbe Logik
 // (Division geht immer sauber auf, Subtraktion nie negativ, Zahlen 1-10).
+// Antwort-Kreise (1 richtige + 3 plausible falsche) - Gegenstueck zum Client.
+function tttAddMathChoices(p) {
+  const cands = [p.answer + 1, p.answer - 1, p.answer + 2, p.answer - 2, p.answer + 10, p.answer - 10, p.answer + 3, p.answer - 3];
+  if (p.op === "×") cands.push(p.answer + p.a, p.answer - p.a, p.answer + p.b, p.answer - p.b);
+  const wrong = [];
+  const pool = cands.filter(v => v >= 0 && v !== p.answer).sort(() => Math.random() - 0.5);
+  for (const v of pool) { if (!wrong.includes(v)) wrong.push(v); if (wrong.length === 3) break; }
+  let extra = p.answer + 4;
+  while (wrong.length < 3) { if (!wrong.includes(extra) && extra !== p.answer) wrong.push(extra); extra++; }
+  p.choices = [p.answer, ...wrong].sort(() => Math.random() - 0.5);
+  return p;
+}
+// Schickt die Aufgabe OHNE die Loesung an den Client (vorher ging "answer" mit).
+function tttPublicProblem(p) { return { a: p.a, b: p.b, op: p.op, choices: p.choices }; }
+
 function tttGenerateMathProblem() {
   const ops = ["+", "-", "×", "÷"];
   const op = ops[Math.floor(Math.random() * ops.length)];
@@ -475,7 +573,7 @@ function tttGenerateMathProblem() {
     answer = 1 + Math.floor(Math.random() * 10);
     a = b * answer;
   }
-  return { a, b, op, answer };
+  return tttAddMathChoices({ a, b, op, answer });
 }
 
 function tttSendDuelQuestion(room) {
@@ -506,6 +604,7 @@ function tttResolveDuelQuestion(room) {
     const selected = duel.answered[p.symbol];
     const correct = selected === q.c;
     if (correct) duel.scores[p.symbol] = (duel.scores[p.symbol] || 0) + 1;
+    else room.counters.wrong[p.symbol]++; // auch "keine Antwort" zaehlt als falsch
     results[p.symbol] = { selected: selected === undefined ? null : selected, correct };
   });
   broadcast(room, {
@@ -533,6 +632,7 @@ function tttFinishDuel(room) {
   if (duel.scores[symA] > duel.scores[symB]) winnerSymbol = symA;
   else if (duel.scores[symB] > duel.scores[symA]) winnerSymbol = symB;
   // Bei Gleichstand (winnerSymbol bleibt null) bleibt das Feld leer.
+  room.counters.duels++;
   if (winnerSymbol) {
     room.board[duel.cellIndex] = winnerSymbol;
     const w = tttCheckWinner(room.board);
@@ -1088,7 +1188,9 @@ function isPlacementCorrect(rt, value, insertIndex) {
 
 function handleRankPlace(room, playerId, itemId, insertIndex) {
   const rt = room.runtime;
-  if (!rt) return;
+  // Nur in echten Ranking-Runden (Mehr oder Weniger / Chronologie). Eine
+  // verspaetete Nachricht waehrend einer anderen Rundenart darf nie crashen.
+  if (!rt || !Array.isArray(rt.turnOrder) || !Array.isArray(rt.placed)) return;
   const player = room.players.get(playerId);
   if (!player || player.teamId !== rt.turnOrder[rt.turnPointer]) return; // nur das Team am Zug darf ziehen
   if (typeof insertIndex !== "number" || insertIndex < 0 || insertIndex > rt.placed.length) return;
@@ -1167,6 +1269,7 @@ function finishRankingRound(room) {
     fullOrder: fullyRevealed.map(it => ({ id: it.id, name: it.name, value: it.value })),
     correctCount: Object.fromEntries(rt.correctCount),
     mistakes: Object.fromEntries(rt.mistakes),
+    livesLeft: Object.fromEntries(rt.lives), // fuer die Erfolge: wer noch dabei (nicht raus) ist
     // Bugfix (auf Wunsch): die Endauflösung ging bisher nach fest 2,6
     // Sekunden automatisch weiter, ohne dass man die eigenen/gegnerischen
     // Antworten in Ruhe anschauen konnte. Jetzt kein automatischer Timer
@@ -1786,6 +1889,7 @@ function handleMusicSubmit(room, playerId, answers) {
     playerId,
     playerName: player.name,
     total,
+    replaysUsed: rt.replaysUsed || 0, // fuer den Erfolg "ohne nochmal zuhoeren"
     correct: { artist: artistCorrect, title: titleCorrect, year: yearCorrect }
   });
 
@@ -1871,10 +1975,9 @@ function scheduleBotMusicGuesses(room) {
 /* ------------------------------------------------------------------------ */
 const NENNSBLITZ_SOLO_DURATION_OPTIONS_MS = [60000, 90000, 120000, 180000];
 const NENNSBLITZ_SOLO_DEFAULT_MS = 60000;
-const NENNSBLITZ_DUELL_MS = 120000;        // fest für 2+ Spieler:innen, keine Auswahl
+const NENNSBLITZ_DUELL_MS = Number(process.env.NENNSBLITZ_DUELL_MS) || 120000; // Env nur fuer Tests        // fest für 2+ Spieler:innen, keine Auswahl
 // Kein Zeitlimit mehr fürs Anfechten (auf Wunsch entfernt) - läuft jetzt,
 // bis der Host manuell per "continue" weitergeht.
-const NENNSBLITZ_VOTE_MS = 20000;          // Abstimmzeit je einzelner Anfechtung (an SLF angelehnt)
 
 function normalizeNennsBlitzText(text) {
   return (text || "").trim().toLowerCase().replace(/[^a-zäöüß0-9 ]/gi, "").replace(/\s+/g, " ").trim();
@@ -1899,8 +2002,7 @@ function startNennsBlitzRound(room, def) {
     phase: "answering",
     perPlayer,
     answerCounter: 0,
-    challengeCounter: 0,
-    challenges: new Map(),
+    thumbs: new Map(),       // "playerId|answerId" -> Set(voterId) (Daumen runter)
     startedAt: Date.now(),
     durationMs,
     timer: null,
@@ -1942,7 +2044,7 @@ function handleNennsBlitzSubmit(room, playerId, text) {
   if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "answering") return;
   const st = rt.perPlayer.get(playerId);
   if (!st) return;
-  const trimmed = (text || "").trim().slice(0, 60);
+  const trimmed = cleanStr(text, 60);
   if (!trimmed) return;
   const norm = normalizeNennsBlitzText(trimmed);
   if (!norm) return;
@@ -1970,7 +2072,7 @@ function resolveNennsBlitzAnswering(room) {
   });
   // Kein Zeitlimit mehr: jede·r meldet sich per "Fertig" bereit, der Host
   // sieht den Stand und löst per "continue" selbst die Auflösung aus.
-  broadcastNennsBlitzChallenges(room);
+  broadcastNennsBlitzThumbs(room);
 }
 
 function handleNennsBlitzChallengeReady(room, playerId) {
@@ -1978,75 +2080,46 @@ function handleNennsBlitzChallengeReady(room, playerId) {
   if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "challenge") return;
   if (!rt.readyPlayers) rt.readyPlayers = new Set();
   rt.readyPlayers.add(playerId);
-  broadcastNennsBlitzChallenges(room);
+  broadcastNennsBlitzThumbs(room);
 }
 
-function handleNennsBlitzChallenge(room, challengerId, targetPlayerId, answerId) {
+// Daumen runter (statt Anfechten): JEDE menschliche Person - auch die, der
+// die Antwort gehoert - kann bei jeder Antwort 👎 druecken (nochmal druecken
+// nimmt es zurueck). Eine Antwort ist ungueltig, sobald mindestens die
+// Haelfte (aufgerundet, min. 1) der menschlichen Spielenden 👎 gedrueckt
+// hat. Bei 2 Personen (1 gegen 1) reicht also ein einziger Daumen - dadurch
+// funktioniert es auch dort, wo das alte Anfechten mangels dritter
+// stimmberechtigter Person haengen blieb.
+function thumbsThreshold(room) {
+  const humans = Array.from(room.players.values()).filter(p => !p.isBot).length;
+  return Math.max(1, Math.ceil(humans / 2));
+}
+
+function handleNennsBlitzThumb(room, voterId, targetPlayerId, answerId) {
   const rt = room.runtime;
   if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "challenge") return;
-  if (targetPlayerId === challengerId) return; // eigene Antwort nicht anfechtbar
-  const targetSt = rt.perPlayer.get(targetPlayerId);
-  if (!targetSt) return;
-  const answer = targetSt.answers.find(a => a.id === answerId);
-  if (!answer) return;
-  const already = Array.from(rt.challenges.values()).some(c => c.playerId === targetPlayerId && c.answerId === answerId && !c.resolved);
-  if (already) return;
-
-  const challengeId = "c" + (++rt.challengeCounter);
-  const votes = new Map();
-  votes.set(challengerId, false); // Anfechter stimmt implizit "ungültig"
-  const challenge = { id: challengeId, playerId: targetPlayerId, answerId, answerText: answer.text, votes, resolved: false };
-  rt.challenges.set(challengeId, challenge);
-  broadcastNennsBlitzChallenges(room);
-  // Bugfix: bei genau 2 menschlichen Spielenden ist die anfechtende Person
-  // die EINZIGE stimmberechtigte Person (die Zielperson darf ja nicht über
-  // die eigene Antwort abstimmen) - deren Stimme steht mit der Anfechtung
-  // selbst schon fest, ohne dass noch wer anderes abstimmen könnte. Bisher
-  // wurde das nur beim tatsächlichen Abstimmen (handleNennsBlitzVote)
-  // geprüft, nie direkt bei der Erstellung - dadurch hing die Anfechtung
-  // bei 1 gegen 1 die vollen 20 Sekunden im Timeout fest, statt sofort
-  // aufzulösen.
-  const eligibleVoters = Array.from(room.players.keys()).filter(pid => pid !== targetPlayerId && !room.players.get(pid).isBot);
-  if (eligibleVoters.every(pid => challenge.votes.has(pid))) {
-    resolveNennsBlitzChallenge(room, challengeId);
-  } else {
-    setTimeout(() => resolveNennsBlitzChallenge(room, challengeId), NENNSBLITZ_VOTE_MS + 300);
-  }
+  const voter = room.players.get(voterId);
+  if (!voter || voter.isBot) return;
+  const st = rt.perPlayer.get(targetPlayerId);
+  if (!st || !st.answers.some(a => a.id === answerId)) return;
+  const key = targetPlayerId + "|" + answerId;
+  const set = rt.thumbs.get(key) || new Set();
+  if (set.has(voterId)) set.delete(voterId); else set.add(voterId);
+  rt.thumbs.set(key, set);
+  broadcastNennsBlitzThumbs(room);
 }
 
-function handleNennsBlitzVote(room, voterId, challengeId, valid) {
-  const rt = room.runtime;
-  if (!rt || rt.kind !== "nennsBlitz" || rt.phase !== "challenge") return;
-  const challenge = rt.challenges.get(challengeId);
-  if (!challenge || challenge.resolved || voterId === challenge.playerId) return;
-  challenge.votes.set(voterId, !!valid);
-  const eligibleVoters = Array.from(room.players.keys()).filter(pid => pid !== challenge.playerId && !room.players.get(pid).isBot);
-  if (eligibleVoters.length && eligibleVoters.every(pid => challenge.votes.has(pid))) resolveNennsBlitzChallenge(room, challenge.id);
-  else broadcastNennsBlitzChallenges(room);
-}
-
-function resolveNennsBlitzChallenge(room, challengeId) {
-  const rt = room.runtime;
-  if (!rt) return;
-  const challenge = rt.challenges.get(challengeId);
-  if (!challenge || challenge.resolved) return;
-  challenge.resolved = true;
-  const votes = Array.from(challenge.votes.values());
-  const invalidVotes = votes.filter(v => v === false).length;
-  const validVotes = votes.filter(v => v === true).length;
-  challenge.invalidated = invalidVotes > validVotes; // bei Gleichstand bleibt die Antwort gültig
-  broadcastNennsBlitzChallenges(room);
-}
-
-function broadcastNennsBlitzChallenges(room) {
+function broadcastNennsBlitzThumbs(room) {
   const rt = room.runtime;
   const humanCount = Array.from(room.players.values()).filter(p => !p.isBot).length;
+  const threshold = thumbsThreshold(room);
   broadcast(room, {
-    type: "nennsBlitzChallengeUpdate",
-    challenges: Array.from(rt.challenges.values()).map(c => ({
-      id: c.id, playerId: c.playerId, answerId: c.answerId, answerText: c.answerText,
-      resolved: c.resolved, invalidated: c.invalidated, voteCount: c.votes.size
-    })),
+    type: "nennsBlitzThumbUpdate",
+    thumbs: Array.from(rt.thumbs.entries()).filter(([, set]) => set.size > 0).map(([key, set]) => {
+      const [playerId, answerId] = key.split("|");
+      return { playerId, answerId, voters: Array.from(set), removed: set.size >= threshold };
+    }),
+    threshold,
     readyCount: rt.readyPlayers ? rt.readyPlayers.size : 0,
     readyTotal: humanCount
   });
@@ -2059,7 +2132,8 @@ function finalizeNennsBlitzRound(room) {
   clearTimeout(rt.timer);
 
   const invalidatedIds = new Set();
-  rt.challenges.forEach(c => { if (c.resolved && c.invalidated) invalidatedIds.add(c.playerId + "|" + c.answerId); });
+  const nbThreshold = thumbsThreshold(room);
+  rt.thumbs.forEach((set, key) => { if (set.size >= nbThreshold) invalidatedIds.add(key); });
 
   const results = [];
   rt.perPlayer.forEach((st, pid) => {
@@ -2132,8 +2206,7 @@ function startStadtLandFlussRound(room, def) {
     answers: new Map(),      // playerId -> { category: text }
     submitted: new Set(),
     hurryStarted: false,     // wird true, sobald jemand mit ALLEN Feldern ausgefüllt abgegeben hat
-    challenges: new Map(),   // challengeId -> { playerId, category, votes: Map(playerId->bool), resolved, invalidated }
-    challengeCounter: 0,
+    thumbs: new Map(),       // "playerId|category" -> Set(voterId) (Daumen runter)
     timer: null,
     roundPointsByTeam: new Map(teamIds.map(id => [id, 0]))
   };
@@ -2178,7 +2251,7 @@ function handleSlfDraftUpdate(room, playerId, answers) {
   if (!rt || rt.kind !== "stadtLandFluss" || rt.phase !== "answering") return;
   if (rt.submitted.has(playerId)) return; // schon final abgegeben, keine Überschreibung mehr
   const clean = {};
-  rt.categories.forEach(cat => { clean[cat] = (answers && typeof answers[cat] === "string") ? answers[cat].slice(0, 40) : ""; });
+  rt.categories.forEach(cat => { clean[cat] = (answers && typeof answers[cat] === "string") ? cleanStr(answers[cat], 40) : ""; });
   rt.answers.set(playerId, clean);
 }
 
@@ -2187,9 +2260,12 @@ function handleSlfSubmit(room, playerId, answers) {
   if (!rt || rt.kind !== "stadtLandFluss" || rt.phase !== "answering") return;
   if (rt.submitted.has(playerId)) return;
   const clean = {};
-  rt.categories.forEach(cat => { clean[cat] = (answers && typeof answers[cat] === "string") ? answers[cat].slice(0, 40) : ""; });
+  rt.categories.forEach(cat => { clean[cat] = (answers && typeof answers[cat] === "string") ? cleanStr(answers[cat], 40) : ""; });
   rt.answers.set(playerId, clean);
   rt.submitted.add(playerId);
+  // Erfolg "als Erste/r mit allen Feldern fertig": wer zuerst mit ALLEN Feldern abgibt
+  const filledAll = rt.categories.every(cat => clean[cat] && clean[cat].trim().length > 0);
+  if (filledAll && !rt.firstFullId && !room.players.get(playerId).isBot) rt.firstFullId = playerId;
 
   const allSubmitted = Array.from(room.players.keys())
     .filter(pid => !room.players.get(pid).isBot)
@@ -2315,14 +2391,16 @@ function slfFinishAnswering(room) {
     letter: rt.letter,
     answers: Object.fromEntries(rt.answers),
     players: Array.from(room.players.values()).map(p => ({ id: p.id, name: p.name, teamId: p.teamId })),
-    scores: Object.fromEntries(scores)
+    scores: Object.fromEntries(scores),
+    firstFullId: rt.firstFullId || null,
+    humanCount: Array.from(room.players.values()).filter(p => !p.isBot).length
   });
   rt.phase = "challenge";
   // Kein Zeitlimit mehr: jede·r kann anfechten und sich per "Fertig" als
   // bereit melden; der Host sieht den Bereitschaftsstand und entscheidet
   // selbst per "continue", wann es weitergeht (nicht an alle gebunden).
   rt.readyPlayers = new Set();
-  broadcastSlfChallenges(room);
+  broadcastSlfThumbs(room);
 }
 
 function handleSlfChallengeReady(room, playerId) {
@@ -2330,71 +2408,35 @@ function handleSlfChallengeReady(room, playerId) {
   if (!rt || rt.phase !== "challenge") return;
   if (!rt.readyPlayers) rt.readyPlayers = new Set();
   rt.readyPlayers.add(playerId);
-  broadcastSlfChallenges(room);
+  broadcastSlfThumbs(room);
 }
 
-function handleSlfChallenge(room, challengerId, targetPlayerId, category) {
+function handleSlfThumb(room, voterId, targetPlayerId, category) {
   const rt = room.runtime;
   if (!rt || rt.phase !== "challenge") return;
   if (!rt.categories.includes(category)) return;
-  if (targetPlayerId === challengerId) return; // eigene Antwort nicht anfechtbar
+  const voter = room.players.get(voterId);
+  if (!voter || voter.isBot) return;
   const targetAnswers = rt.answers.get(targetPlayerId);
   if (!targetAnswers || !targetAnswers[category]) return;
-  // Keine doppelte Anfechtung derselben Antwort
-  const already = Array.from(rt.challenges.values()).some(c => c.playerId === targetPlayerId && c.category === category && !c.resolved);
-  if (already) return;
-
-  const challengeId = "c" + (++rt.challengeCounter);
-  const votes = new Map();
-  votes.set(challengerId, false); // Anfechter stimmt implizit "ungültig"
-  const challenge = { id: challengeId, playerId: targetPlayerId, category, answerText: targetAnswers[category], votes, resolved: false, voteDeadline: Date.now() + SLF_VOTE_MS };
-  rt.challenges.set(challengeId, challenge);
-  broadcastSlfChallenges(room);
-  // Gleicher Bugfix wie bei Nenn's Blitz: bei genau 2 menschlichen
-  // Spielenden ist die anfechtende Person die einzige stimmberechtigte
-  // Person - direkt nach der Erstellung prüfen, statt nur beim (dann nie
-  // eintretenden) Abstimmen einer weiteren Person.
-  const eligibleVoters = Array.from(room.players.keys()).filter(pid => pid !== targetPlayerId && !room.players.get(pid).isBot);
-  if (eligibleVoters.every(pid => challenge.votes.has(pid))) {
-    slfResolveChallenge(room, challengeId);
-  } else {
-    setTimeout(() => slfResolveChallenge(room, challengeId), SLF_VOTE_MS + 300);
-  }
+  const key = targetPlayerId + "|" + category;
+  const set = rt.thumbs.get(key) || new Set();
+  if (set.has(voterId)) set.delete(voterId); else set.add(voterId);
+  rt.thumbs.set(key, set);
+  broadcastSlfThumbs(room);
 }
 
-function handleSlfVote(room, voterId, challengeId, valid) {
-  const rt = room.runtime;
-  if (!rt || rt.phase !== "challenge") return;
-  const challenge = rt.challenges.get(challengeId);
-  if (!challenge || challenge.resolved || voterId === challenge.playerId) return;
-  challenge.votes.set(voterId, !!valid);
-  const eligibleVoters = Array.from(room.players.keys()).filter(pid => pid !== challenge.playerId && !room.players.get(pid).isBot);
-  if (eligibleVoters.every(pid => challenge.votes.has(pid))) slfResolveChallenge(room, challengeId);
-  else broadcastSlfChallenges(room);
-}
-
-function slfResolveChallenge(room, challengeId) {
-  const rt = room.runtime;
-  if (!rt) return;
-  const challenge = rt.challenges.get(challengeId);
-  if (!challenge || challenge.resolved) return;
-  challenge.resolved = true;
-  const votes = Array.from(challenge.votes.values());
-  const invalidVotes = votes.filter(v => v === false).length;
-  const validVotes = votes.filter(v => v === true).length;
-  challenge.invalidated = invalidVotes > validVotes; // bei Gleichstand bleibt die Antwort gültig
-  broadcastSlfChallenges(room);
-}
-
-function broadcastSlfChallenges(room) {
+function broadcastSlfThumbs(room) {
   const rt = room.runtime;
   const humanCount = Array.from(room.players.values()).filter(p => !p.isBot).length;
+  const threshold = thumbsThreshold(room);
   broadcast(room, {
-    type: "slfChallengeUpdate",
-    challenges: Array.from(rt.challenges.values()).map(c => ({
-      id: c.id, playerId: c.playerId, category: c.category, answerText: c.answerText,
-      resolved: c.resolved, invalidated: c.invalidated, voteCount: c.votes.size
-    })),
+    type: "slfThumbUpdate",
+    thumbs: Array.from(rt.thumbs.entries()).filter(([, set]) => set.size > 0).map(([key, set]) => {
+      const i = key.indexOf("|");
+      return { playerId: key.slice(0, i), category: key.slice(i + 1), voters: Array.from(set), removed: set.size >= threshold };
+    }),
+    threshold,
     readyCount: rt.readyPlayers ? rt.readyPlayers.size : 0,
     readyTotal: humanCount
   });
@@ -2405,7 +2447,8 @@ function slfFinalizeRound(room) {
   if (!rt || rt.phase === "done") return;
   rt.phase = "done";
   const invalidPairs = new Set();
-  rt.challenges.forEach(c => { if (c.resolved && c.invalidated) invalidPairs.add(c.playerId + "|" + c.category); });
+  const slfThreshold = thumbsThreshold(room);
+  rt.thumbs.forEach((set, key) => { if (set.size >= slfThreshold) invalidPairs.add(key); });
   const finalScores = slfComputeScores(rt, invalidPairs);
 
   // Punkte je Spieler aufsummieren, dann auf dessen Team addieren
@@ -2572,34 +2615,76 @@ function endGame(room) {
 // Variablen (z.B. beim lokalen Testen) wird wie bisher auf eine einfache
 // JSON-Datei zurückgegriffen - das reicht für lokales Ausprobieren, aber
 // NICHT für dauerhaftes Hosting auf einer Plattform mit ephemeral disk.
-const USERS_FILE = path.join(__dirname, "data", "users.json");
+// USERS_FILE (Umgebungsvariable) ist fuer Tests: sie duerfen nie echte Daten anfassen
+const USERS_FILE = process.env.USERS_FILE || path.join(__dirname, "data", "users.json");
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const USE_UPSTASH = !!(UPSTASH_URL && UPSTASH_TOKEN);
 const UPSTASH_USERS_KEY = "brainpulse_users";
 
 let users = [];
+// Schutz vor Datenverlust: Solange die Kontenliste NICHT sicher geladen wurde,
+// wird NIEMALS gespeichert. Sonst wuerde ein Ladefehler (Netz, Limit, kaputte
+// Datei) zu users = [] fuehren und die naechste Speicherung die komplette
+// Datenbank ueberschreiben.
+let usersLoaded = false;
+let loadingPromise = null;
 
-async function loadUsers() {
+async function loadUsersOnce() {
   if (USE_UPSTASH) {
     try {
       const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}`, {
         headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
       });
+      if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      users = data.result ? JSON.parse(data.result) : [];
+      if (!data || typeof data !== "object" || !("result" in data)) throw new Error("Unerwartete Antwort: " + JSON.stringify(data).slice(0, 80));
+      const parsed = data.result ? JSON.parse(data.result) : []; // null = noch nie gespeichert
+      if (!Array.isArray(parsed)) throw new Error("Kontenliste ist kein Array");
+      users = parsed;
+      usersLoaded = true;
       console.log(`Nutzerdaten aus Upstash geladen (${users.length} Konten).`);
+      return true;
     } catch (e) {
-      console.error("Konnte Nutzerdaten nicht aus Upstash laden:", e.message);
-      users = [];
+      console.error("Konnte Nutzerdaten NICHT aus Upstash laden (Speichern bleibt gesperrt, bis es klappt):", e.message);
+      return false;
     }
-    return;
   }
-  try { users = JSON.parse(fs.readFileSync(USERS_FILE, "utf8")); }
-  catch (e) { users = []; }
+  // Lokale Datei (+ Sicherungskopie)
+  const tryRead = (file) => {
+    const raw = fs.readFileSync(file, "utf8");
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) throw new Error("Kontenliste ist kein Array");
+    return parsed;
+  };
+  try {
+    users = tryRead(USERS_FILE); usersLoaded = true; return true;
+  } catch (e) {
+    if (e.code === "ENOENT") {
+      // Wenn es noch eine Sicherung gibt, aber die Hauptdatei fehlt: Sicherung nehmen
+      try { users = tryRead(USERS_FILE + ".bak"); usersLoaded = true; console.error("users.json fehlt - Sicherung (.bak) geladen."); return true; }
+      catch (e2) { users = []; usersLoaded = true; return true; } // wirklich noch nie gespeichert
+    }
+    console.error("users.json ist nicht lesbar:", e.message);
+    try { fs.copyFileSync(USERS_FILE, USERS_FILE + ".corrupt-" + Date.now()); } catch (e3) { /* ignore */ }
+    try { users = tryRead(USERS_FILE + ".bak"); usersLoaded = true; console.error("Sicherung (.bak) geladen."); return true; }
+    catch (e4) { console.error("Auch keine brauchbare Sicherung - Speichern bleibt gesperrt."); return false; }
+  }
 }
+// Mehrere gleichzeitige Aufrufe teilen sich EINEN Ladeversuch.
+function loadUsers() {
+  if (!loadingPromise) loadingPromise = loadUsersOnce().finally(() => { loadingPromise = null; });
+  return loadingPromise;
+}
+async function ensureUsersLoaded() {
+  if (usersLoaded) return true;
+  return await loadUsers();
+}
+const SERVICE_DOWN = { ok: false, unavailable: true, error: "Der Kontodienst ist gerade nicht erreichbar. Bitte gleich nochmal versuchen." };
 
+// Gibt true zurueck, wenn wirklich gespeichert wurde.
 async function saveUsers() {
+  if (!usersLoaded) { console.error("Speichern verweigert: Kontenliste wurde nicht sicher geladen."); return false; }
   if (USE_UPSTASH) {
     try {
       const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}`, {
@@ -2607,36 +2692,71 @@ async function saveUsers() {
         headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" },
         body: JSON.stringify(users)
       });
-      if (!res.ok) console.error("Upstash-Speichern fehlgeschlagen, Status:", res.status);
+      if (!res.ok) { console.error("Upstash-Speichern fehlgeschlagen, Status:", res.status); return false; }
+      return true;
     } catch (e) {
       console.error("Konnte Nutzerdaten nicht in Upstash speichern:", e.message);
+      return false;
     }
-    return;
   }
   try {
     fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
-    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 1), "utf8");
+    // Atomar: erst in Temp-Datei, alte Fassung als .bak sichern, dann umbenennen.
+    const tmp = USERS_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(users, null, 1), "utf8");
+    try { fs.copyFileSync(USERS_FILE, USERS_FILE + ".bak"); } catch (e) { /* noch keine alte Datei */ }
+    fs.renameSync(tmp, USERS_FILE);
+    return true;
   } catch (e) {
     console.error("Konnte Nutzerdaten nicht speichern:", e.message);
+    return false;
   }
 }
 
+// ASYNCHRON (scryptSync blockierte den ganzen Server ~40 ms pro Aufruf, also
+// auch alle laufenden Spiele). Zusaetzlich Obergrenze fuer gleichzeitige Hashes.
+let hashInFlight = 0;
+const MAX_HASH_IN_FLIGHT = 12;
 function hashPassword(password, salt) {
-  return crypto.scryptSync(password, salt, 64).toString("hex");
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(password, salt, 64, (err, key) => err ? reject(err) : resolve(key.toString("hex")));
+  });
 }
+const BUSY = { ok: false, error: "Der Server ist gerade ausgelastet. Bitte gleich nochmal versuchen." };
+const DUMMY_SALT = "0".repeat(32);
 function findUserByName(username) {
-  const norm = (username || "").trim().toLowerCase();
+  const norm = (typeof username === "string" ? username : "").trim().toLowerCase();
   return users.find(u => u.username.toLowerCase() === norm);
 }
+// Sitzungs-Token laufen nach 30 Tagen OHNE Nutzung ab (jede Nutzung am Tag
+// darauf erneuert sie), pro Konto gibt es hoechstens 5 gleichzeitige Token.
+const TOKEN_MAX_AGE_MS = 30 * 24 * 3600 * 1000;
+const TOKEN_REFRESH_AFTER_MS = 24 * 3600 * 1000;
+const TOKEN_MAX_PER_USER = 5;
+function findSession(token) {
+  if (!token || typeof token !== "string") return null;
+  const now = Date.now();
+  for (const u of users) {
+    const entry = (u.tokens || []).find(t => t.token === token);
+    if (entry) return (now - (entry.createdAt || 0) <= TOKEN_MAX_AGE_MS) ? { user: u, entry } : null;
+  }
+  return null;
+}
 function findUserByToken(token) {
-  if (!token) return null;
-  return users.find(u => (u.tokens || []).some(t => t.token === token));
+  const s = findSession(token);
+  return s ? s.user : null;
+}
+function pruneTokens(user) {
+  const now = Date.now();
+  user.tokens = (user.tokens || []).filter(t => now - (t.createdAt || 0) <= TOKEN_MAX_AGE_MS)
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)).slice(-TOKEN_MAX_PER_USER);
 }
 function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
     arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
     haupttestUnlockedForKlasse: -1,
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
+    achv: Achv.newState(),
     modeStats: freshModeStats() };
 }
 const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture", "speedmath"];
@@ -2649,19 +2769,30 @@ function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
 }
 
-async function registerUser(username, password) {
-  username = (username || "").trim();
+async function registerUser(username, password, ip) {
+  if (typeof username !== "string" || typeof password !== "string") {
+    return { ok: false, error: "Ungültige Eingabe." };
+  }
+  if (!(await ensureUsersLoaded())) return SERVICE_DOWN;
+  username = username.trim();
   if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_äöüÄÖÜß]+$/.test(username)) {
     return { ok: false, error: "Benutzername muss 3-20 Zeichen haben (Buchstaben, Zahlen, _)." };
   }
-  if (!password || password.length < 6) {
+  if (!password || password.length < 6 || password.length > 200) {
     return { ok: false, error: "Passwort muss mindestens 6 Zeichen haben." };
   }
   if (findUserByName(username)) {
     return { ok: false, error: "Dieser Benutzername ist bereits vergeben." };
   }
+  const regWait = rlWait("r|" + ip);
+  if (regWait) return { ok: false, error: "Von diesem Anschluss wurden zu viele Konten angelegt. Bitte in " + waitText(regWait) + " erneut versuchen.", retryAfterSec: regWait };
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return BUSY;
+  rlHit("r|" + ip, REGISTER_MAX_PER_IP, 3600000, 3600000);
   const salt = crypto.randomBytes(16).toString("hex");
-  const passwordHash = hashPassword(password, salt);
+  hashInFlight++;
+  let passwordHash;
+  try { passwordHash = await hashPassword(password, salt); } finally { hashInFlight--; }
+  if (findUserByName(username)) return { ok: false, error: "Dieser Benutzername ist bereits vergeben." }; // waehrend des Hashens vergeben
   const token = crypto.randomBytes(24).toString("hex");
   const user = {
     username, salt, passwordHash,
@@ -2671,32 +2802,66 @@ async function registerUser(username, password) {
     createdAt: Date.now()
   };
   users.push(user);
-  await saveUsers();
+  if (!(await saveUsers())) {
+    // Nicht gespeichert -> Konto zurueckrollen statt so zu tun, als waere alles gut
+    users = users.filter(u => u !== user);
+    return SERVICE_DOWN;
+  }
   return { ok: true, token, profile: publicProfile(user) };
 }
 
-async function loginUser(username, password) {
+async function loginUser(username, password, ip) {
+  if (typeof username !== "string" || typeof password !== "string" || password.length > 200) {
+    return { ok: false, error: "Benutzername oder Passwort ist falsch." };
+  }
+  if (!(await ensureUsersLoaded())) return SERVICE_DOWN;
+  const uname = username.trim().toLowerCase().slice(0, 40);
+  const kPair = "p|" + uname + "|" + ip, kIp = "i|" + ip, kUser = "u|" + uname;
+  // Gesperrt? Dann ABLEHNEN, BEVOR gehasht wird (gesperrte Versuche kosten keine CPU)
+  const wait = Math.max(rlWait(kPair), rlWait(kIp), rlWait(kUser));
+  if (wait) return { ok: false, error: "Zu viele Fehlversuche. Bitte in " + waitText(wait) + " erneut versuchen.", retryAfterSec: wait };
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return BUSY;
   const user = findUserByName(username);
   const genericError = { ok: false, error: "Benutzername oder Passwort ist falsch." };
-  if (!user) return genericError;
-  const hash = hashPassword(password || "", user.salt);
+  const failed = () => {
+    rlHit(kPair, AUTH_MAX_FAILS_PAIR, AUTH_WINDOW_MS, AUTH_LOCK_MS);
+    rlHit(kIp, AUTH_MAX_FAILS_IP, AUTH_WINDOW_MS, AUTH_LOCK_MS);
+    rlHit(kUser, AUTH_MAX_FAILS_USER, AUTH_WINDOW_MS, AUTH_LOCK_MS);
+    return genericError;
+  };
+  hashInFlight++;
+  let hash;
+  // Auch bei unbekanntem Namen hashen: sonst verraet die Antwortzeit, ob es das Konto gibt
+  try { hash = await hashPassword(password || "", user ? user.salt : DUMMY_SALT); } finally { hashInFlight--; }
+  if (!user) return failed();
   const a = Buffer.from(hash, "hex");
   const b = Buffer.from(user.passwordHash, "hex");
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return genericError;
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return failed();
+  rlReset(kPair);
   const token = crypto.randomBytes(24).toString("hex");
   user.tokens = user.tokens || [];
   user.tokens.push({ token, createdAt: Date.now() });
+  pruneTokens(user);
   await saveUsers();
   return { ok: true, token, profile: publicProfile(user) };
 }
 
 function sessionUser(token) {
-  const user = findUserByToken(token);
-  if (!user) return { ok: false };
-  return { ok: true, profile: publicProfile(user) };
+  // Konten noch nicht geladen -> NICHT "abgemeldet" melden (der Client wuerde
+  // sonst sein gespeichertes Token loeschen), sondern "nicht verfuegbar".
+  if (!usersLoaded) { loadUsers(); return { ok: false, unavailable: true }; }
+  const sess = findSession(token);
+  if (!sess) return { ok: false };
+  // Rollierend erneuern (max. 1x am Tag), damit aktive Spielende nie ausgeloggt werden
+  if (Date.now() - sess.entry.createdAt > TOKEN_REFRESH_AFTER_MS) {
+    sess.entry.createdAt = Date.now();
+    saveUsers().catch(() => {});
+  }
+  return { ok: true, profile: publicProfile(sess.user) };
 }
 
 async function logoutUser(token) {
+  if (!usersLoaded) return { ok: true };
   const user = findUserByToken(token);
   if (user) {
     user.tokens = (user.tokens || []).filter(t => t.token !== token);
@@ -2706,8 +2871,10 @@ async function logoutUser(token) {
 }
 
 async function saveUserStats(token, stats) {
+  if (!usersLoaded) return SERVICE_DOWN;
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
+  if (!stats || typeof stats !== "object" || Array.isArray(stats)) return { ok: false, error: "Ungültige Eingabe." };
   const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank"];
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
@@ -2746,6 +2913,11 @@ async function saveUserStats(token, stats) {
   if (typeof stats.speedMathHeartsDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(stats.speedMathHeartsDate)) {
     user.stats.speedMathHeartsDate = stats.speedMathHeartsDate;
   }
+  // Erfolge: Staende zusammenfuehren (Zaehler nie rueckwaerts, "freigeschaltet"
+  // nur aus den Zaehlern berechnet - direktes Setzen von unlocked wirkt nicht)
+  if (stats.achv && typeof stats.achv === "object") {
+    user.stats.achv = Achv.merge(user.stats.achv, stats.achv, Date.now());
+  }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
 }
@@ -2782,7 +2954,12 @@ const ARENA_BLOCKS_PER_MATCH = 4; // macht 20 Fragen + 4 Modus-Herausforderungen
 // vorher enthalten, das ließ sich ausnutzen).
 const ARENA_CHALLENGE_MODES = ["orderingGame", "chronologyGame", "higherLowerGame"];
 
-function todayDateString() { return new Date().toISOString().slice(0, 10); }
+// Kalendertag in DEUTSCHER Zeit (Europe/Berlin) - vorher UTC, dadurch kam der
+// Tageswechsel der Herzen erst um 1/2 Uhr nachts statt um Mitternacht.
+function todayDateString() {
+  try { return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); }
+  catch (e) { return new Date().toISOString().slice(0, 10); }
+}
 
 // Frischt die Herzen auf, falls seit der letzten Speicherung ein neuer
 // Kalendertag (UTC) begonnen hat. Verringert NIE bestehende Herzen, füllt
@@ -2801,6 +2978,7 @@ function arenaLeagueInfo(user) {
 }
 
 async function arenaStatus(token) {
+  if (!usersLoaded) return SERVICE_DOWN;
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   refreshArenaHearts(user);
@@ -2821,7 +2999,15 @@ async function arenaStatus(token) {
 // Verbraucht ein Herz für den Matchstart. Gibt die passende Liga (für die
 // Fragenauswahl im Client) gleich mit zurück, damit der Client nicht separat
 // nachfragen muss.
+// Punkte-Sicherheit: Beim Start wird eine einmalige Match-ID ausgegeben. Nur
+// mit genau dieser ID (und nur einmal) kann das Match ausgewertet werden;
+// die gemeldeten Punkte sind gedeckelt (4 Bloecke x 5 Fragen + 4 Aufgaben
+// ergeben real weit unter 100), und ein Match muss mind. 20 s gedauert haben.
+const ARENA_MAX_POINTS_PER_MATCH = 100;
+const ARENA_MIN_MATCH_MS = Number(process.env.ARENA_MIN_MATCH_MS) || 20000;
+
 async function arenaStartMatch(token) {
+  if (!usersLoaded) return SERVICE_DOWN;
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   refreshArenaHearts(user);
@@ -2829,19 +3015,31 @@ async function arenaStartMatch(token) {
     return { ok: false, error: "Keine Herzen mehr übrig. Morgen gibt's wieder welche!" };
   }
   user.stats.arenaHearts -= 1;
+  const matchId = crypto.randomBytes(12).toString("hex");
+  user.arenaActiveMatch = { id: matchId, startedAt: Date.now() };
   await saveUsers();
   const league = arenaLeagueInfo(user);
-  return { ok: true, heartsLeft: user.stats.arenaHearts, league: { index: league.index, name: league.name, klasseMin: league.klasseMin, klasseMax: league.klasseMax } };
+  return { ok: true, matchId, heartsLeft: user.stats.arenaHearts, league: { index: league.index, name: league.name, klasseMin: league.klasseMin, klasseMax: league.klasseMax } };
 }
 
 // Schließt ein Match ab: addiert die im Match gesammelten Punkte (1 pro
 // korrekter Antwort/gelöster Aufgabe, vom Client mitgezählt) auf das
 // Lifetime-Konto, prüft ob die aktuelle Liga damit überschritten wird
 // (Aufstieg - niemals Abstieg, siehe Kommentar oben) und speichert.
-async function arenaFinishMatch(token, pointsEarned) {
+async function arenaFinishMatch(token, pointsEarned, matchId) {
+  if (!usersLoaded) return SERVICE_DOWN;
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
-  const gained = Math.max(0, Math.round(Number(pointsEarned) || 0));
+  const am = user.arenaActiveMatch;
+  if (!am || typeof matchId !== "string" || am.id !== matchId) {
+    return { ok: false, error: "Kein laufendes Match (oder es wurde schon ausgewertet)." };
+  }
+  if (Date.now() - am.startedAt < ARENA_MIN_MATCH_MS) {
+    return { ok: false, error: "Das Match wurde unrealistisch schnell beendet." };
+  }
+  user.arenaActiveMatch = null; // Match-ID ist nur einmal gueltig
+  const rawPts = Number(pointsEarned);
+  const gained = Number.isFinite(rawPts) ? Math.min(ARENA_MAX_POINTS_PER_MATCH, Math.max(0, Math.round(rawPts))) : 0;
   user.stats.arenaPoints = (user.stats.arenaPoints || 0) + gained;
   user.stats.arenaMatchesPlayed = (user.stats.arenaMatchesPlayed || 0) + 1;
 
@@ -2893,38 +3091,74 @@ function arenaLeaderboard() {
 /* HTTP: statische Dateien aus /public                                       */
 /* ------------------------------------------------------------------------ */
 const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml" };
+// Sicherheits-Header. Bewusst KEINE strikte script-src-CSP: die Seite nutzt
+// Inline-Skripte/onclick-Handler und die YouTube-IFrame-API (Musik raten) -
+// das ginge ohne Umbau + Browsertest kaputt. Diese Direktiven sind unkritisch.
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Referrer-Policy": "no-referrer",
+  "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+};
+const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
+
 const server = http.createServer((req, res) => {
-  if (req.method === "POST" && req.url.startsWith("/api/")) {
+  if (req.method === "POST" && typeof req.url === "string" && req.url.startsWith("/api/")) {
     let body = "";
-    req.on("data", chunk => { body += chunk; if (body.length > 1e6) req.destroy(); });
+    let tooBig = false;
+    req.on("error", () => {});
+    req.on("data", chunk => {
+      if (tooBig) return;
+      body += chunk;
+      if (body.length > MAX_API_BODY) { tooBig = true; body = ""; res.writeHead(413, SECURITY_HEADERS); res.end(); req.destroy(); }
+    });
     req.on("end", async () => {
-      let payload;
-      try { payload = body ? JSON.parse(body) : {}; } catch (e) { payload = {}; }
+      if (tooBig) return;
       let result;
-      if (req.url === "/api/register") result = await registerUser(payload.username, payload.password);
-      else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password);
-      else if (req.url === "/api/session") result = sessionUser(payload.token);
-      else if (req.url === "/api/logout") result = await logoutUser(payload.token);
-      else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {});
-      else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token);
-      else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token);
-      else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned);
-      else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
-      else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
-      else result = { ok: false, error: "Unbekannter Endpunkt." };
-      res.writeHead(200, { "Content-Type": "application/json" });
+      const ip = clientIp(req);
+      try {
+        if (rlHit("g|" + ip, API_MAX_PER_MIN_IP + 1, 60000, 60000).lockedUntil > Date.now()) { // +1: genau API_MAX_PER_MIN_IP Aufrufe sind erlaubt
+          res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60", ...SECURITY_HEADERS });
+          return res.end(JSON.stringify({ ok: false, error: "Zu viele Anfragen. Bitte kurz warten." }));
+        }
+        let payload;
+        try { payload = body ? JSON.parse(body) : {}; } catch (e) { payload = {}; }
+        if (!payload || typeof payload !== "object" || Array.isArray(payload)) payload = {};
+        if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip);
+        else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip);
+        else if (req.url === "/api/session") result = sessionUser(payload.token);
+        else if (req.url === "/api/logout") result = await logoutUser(payload.token);
+        else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {});
+        else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token);
+        else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token);
+        else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned, payload.matchId);
+        else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
+        else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
+        else result = { ok: false, error: "Unbekannter Endpunkt." };
+      } catch (e) {
+        console.error("[API-Fehler]", req.url, e && e.stack || e);
+        result = { ok: false, error: "Interner Fehler. Bitte nochmal versuchen." };
+      }
+      res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store", ...SECURITY_HEADERS });
       res.end(JSON.stringify(result));
     });
     return;
   }
 
-  let filePath = req.url.split("?")[0];
+  let filePath = (req.url || "/").split("?")[0];
+  try { filePath = decodeURIComponent(filePath); } catch (e) { res.writeHead(400, SECURITY_HEADERS); return res.end("Bad request"); }
+  if (filePath.includes("\0")) { res.writeHead(400, SECURITY_HEADERS); return res.end("Bad request"); }
   if (filePath === "/") filePath = "/index.html";
-  const fullPath = path.join(__dirname, "public", filePath);
-  if (!fullPath.startsWith(path.join(__dirname, "public"))) { res.writeHead(403); return res.end("Forbidden"); }
+  const publicDir = path.join(__dirname, "public");
+  const fullPath = path.join(publicDir, filePath);
+  // Mit Trennzeichen pruefen, damit z.B. ".../public-geheim" nicht durchrutscht
+  if (fullPath !== publicDir && !fullPath.startsWith(publicDir + path.sep)) { res.writeHead(403, SECURITY_HEADERS); return res.end("Forbidden"); }
   fs.readFile(fullPath, (err, data) => {
-    if (err) { res.writeHead(404); return res.end("Not found"); }
-    res.writeHead(200, { "Content-Type": MIME[path.extname(fullPath)] || "application/octet-stream" });
+    if (err) { res.writeHead(404, SECURITY_HEADERS); return res.end("Not found"); }
+    const ext = path.extname(fullPath);
+    // HTML/JS immer neu pruefen lassen (kein "altes Spiel aus dem Browser-Cache" nach Updates)
+    const cache = (ext === ".html" || ext === ".js") ? "no-cache" : "public, max-age=3600";
+    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": cache, ...SECURITY_HEADERS });
     res.end(data);
   });
 });
@@ -2934,34 +3168,78 @@ const server = http.createServer((req, res) => {
 /* ------------------------------------------------------------------------ */
 const wss = new WebSocketServer({ server });
 
-wss.on("connection", (ws) => {
+// Limits gegen Missbrauch (Verbindungsflut / Nachrichtenflut)
+const MAX_WS_PER_IP = 60;      // gleichzeitige Verbindungen je IP (Schulklasse hinter einer IP ist ok)
+const MAX_WS_TOTAL = 3000;
+const WS_BURST = 40;           // Nachrichten-Eimer: bis zu 40 auf einmal ...
+const WS_REFILL_PER_SEC = 25;  // ... danach im Schnitt 25 pro Sekunde (echtes Spielen liegt weit darunter)
+const WS_PING_EVERY_MS = Number(process.env.WS_PING_EVERY_MS) || 25000;
+const WS_DEAD_AFTER_MS = Number(process.env.WS_DEAD_AFTER_MS) || 75000;
+const wsPerIp = new Map();
+let wsTotal = 0;
+
+wss.on("connection", (ws, req) => {
+  const ip = clientIp(req || {});
+  ws.ip = ip;
+  if (wsTotal >= MAX_WS_TOTAL || (wsPerIp.get(ip) || 0) >= MAX_WS_PER_IP) { ws.close(); return; }
+  wsTotal++; wsPerIp.set(ip, (wsPerIp.get(ip) || 0) + 1);
+  ws.on("close", () => {
+    wsTotal = Math.max(0, wsTotal - 1);
+    const n = (wsPerIp.get(ip) || 1) - 1;
+    if (n <= 0) wsPerIp.delete(ip); else wsPerIp.set(ip, n);
+  });
+  let tokens = WS_BURST, lastRefill = Date.now(), dropped = 0, dropWindowStart = Date.now();
   // Regelmäßiger Ping hält die Verbindung durch Proxys/Idle-Timeouts mancher
   // Hosting-Anbieter am Leben (Browser beantworten Ping-Frames automatisch
   // mit Pong, ganz ohne zusätzlichen Client-Code).
   const keepAlive = setInterval(() => {
-    if (ws.readyState === 1) ws.ping();
-    else clearInterval(keepAlive);
-  }, 25000);
+    if (ws.readyState !== 1) { clearInterval(keepAlive); return; }
+    // Kein Lebenszeichen (Pong/Nachricht) seit 75 s -> Verbindung ist tot
+    // (z.B. Handy im Funkloch): kappen, damit die Person nicht ewig als
+    // "verbunden" im Raum steht und Spiele nicht auf sie warten.
+    if (Date.now() - ws.lastSeen > WS_DEAD_AFTER_MS) { ws.terminate(); return; }
+    ws.ping();
+  }, WS_PING_EVERY_MS);
   ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); });
 
   ws.on("message", (raw) => {
+    // Nachrichten-Eimer: zu schnelle Nachrichten werden verworfen, Dauerfeuer kappt die Verbindung
+    const now = Date.now();
+    tokens = Math.min(WS_BURST, tokens + (now - lastRefill) / 1000 * WS_REFILL_PER_SEC);
+    lastRefill = now;
+    if (tokens < 1) {
+      if (now - dropWindowStart > 10000) { dropWindowStart = now; dropped = 0; }
+      if (++dropped > 150) { ws.close(); }
+      return;
+    }
+    tokens -= 1;
+    try { onWsMessage(raw); }
+    catch (err) { console.error("[WS-Nachricht fehlgeschlagen]", err && err.stack || err); }
+  });
+
+  function onWsMessage(raw) {
     let msg;
     try { msg = JSON.parse(raw); } catch (e) { return; }
+    if (!msg || typeof msg !== "object" || Array.isArray(msg)) return; // z.B. "null", "5", "[]"
+    // Textfelder muessen Strings sein - sonst leer (verhindert .trim()/.toUpperCase()-Abstuerze)
+    for (const k of ["name", "text", "code"]) { if (k in msg && typeof msg[k] !== "string") msg[k] = ""; }
+    if (typeof msg.text === "string") msg.text = cleanStr(msg.text, 60);
 
     if (msg.action === "createRoom") {
-      const room = createRoom(ws, msg.name || "Host", msg.language, msg.gameMode);
+      const room = createRoom(ws, cleanStr(msg.name, 20) || "Host", msg.language, msg.gameMode);
       send(ws, { type: "joined", roomCode: room.code, playerId: ws.playerId, isHost: true });
       pushRoomState(room);
       return;
     }
 
     if (msg.action === "joinRoom") {
-      const room = rooms.get((msg.code || "").toUpperCase());
-      if (!room) return send(ws, { type: "error", message: "Raum nicht gefunden." });
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "error", message: "Zu viele falsche Codes. Bitte kurz warten." });
+      const room = rooms.get(cleanCode(msg.code));
+      if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "error", message: "Raum nicht gefunden." }); }
       if (room.phase !== "lobby") return send(ws, { type: "error", message: "Diese Runde läuft bereits." });
       if (room.players.size >= MAX_PARTICIPANTS) return send(ws, { type: "error", message: "Der Raum ist voll (max. " + MAX_PARTICIPANTS + " Teilnehmer)." });
       const id = "pl_" + Math.random().toString(36).slice(2, 9);
-      addPlayer(room, ws, id, msg.name || "Spieler");
+      addPlayer(room, ws, id, cleanStr(msg.name, 20) || "Spieler");
       send(ws, { type: "joined", roomCode: room.code, playerId: id, isHost: false });
       rebuildFfaTeams(room);
       pushRoomState(room);
@@ -2977,13 +3255,14 @@ wss.on("connection", (ws) => {
       const hostSymbol = Math.random() < 0.5 ? "X" : "O";
       const room = {
         code,
-        players: [{ ws, name: msg.name || "Host", symbol: hostSymbol, connected: true }],
+        players: [{ ws, name: cleanStr(msg.name, 20) || "Host", symbol: hostSymbol, connected: true }],
         board: Array(9).fill(null),
         turnSymbol: "X",
         gameOver: false,
         winner: null,
         mode: (msg.mode === "quizmix" || msg.mode === "quantum") ? msg.mode : "classic",
         duel: null,
+        counters: tttFreshCounters(),
         xPieces: [], oPieces: [] // nur für Quantum-Modus genutzt (Zug-Reihenfolge je Symbol)
       };
       tttRooms.set(code, room);
@@ -2992,11 +3271,12 @@ wss.on("connection", (ws) => {
       return;
     }
     if (msg.action === "tttJoinRoom") {
-      const room = tttRooms.get((msg.code || "").toUpperCase());
-      if (!room) return send(ws, { type: "tttError", message: "Raum nicht gefunden." });
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "tttError", message: "Zu viele falsche Codes. Bitte kurz warten." });
+      const room = tttRooms.get(cleanCode(msg.code));
+      if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "tttError", message: "Raum nicht gefunden." }); }
       if (room.players.length >= 2) return send(ws, { type: "tttError", message: "Der Raum ist schon voll." });
       const guestSymbol = room.players[0].symbol === "X" ? "O" : "X";
-      room.players.push({ ws, name: msg.name || "Spieler", symbol: guestSymbol, connected: true });
+      room.players.push({ ws, name: cleanStr(msg.name, 20) || "Spieler", symbol: guestSymbol, connected: true });
       ws.tttRoomCode = room.code;
       send(ws, { type: "tttJoined", roomCode: room.code, symbol: guestSymbol, mode: room.mode });
       tttBroadcastState(room);
@@ -3014,6 +3294,7 @@ wss.on("connection", (ws) => {
       } else {
         room.board[i] = player.symbol;
       }
+      room.counters.moves[player.symbol]++;
       const winner = tttCheckWinner(room.board);
       if (winner) {
         room.gameOver = true;
@@ -3058,6 +3339,7 @@ wss.on("connection", (ws) => {
       if (!room) return;
       if (room.duel) { clearTimeout(room.duel.timer); room.duel = null; }
       room.board = Array(9).fill(null);
+      room.counters = tttFreshCounters();
       room.xPieces = []; room.oPieces = []; // Quantum-Modus: Zug-Reihenfolge zurücksetzen
       room.gameOver = false;
       room.winner = null;
@@ -3159,7 +3441,7 @@ wss.on("connection", (ws) => {
       case "setSlfCustomRoundDef":
         if (isHost && room.phase === "lobby" && room.roundMode === "custom") {
           if (msg.index >= 0 && msg.index < room.roundCount && Array.isArray(msg.categories) && msg.categories.length > 0) {
-            const cleanCats = msg.categories.map(c => (c || "").toString().trim().slice(0, 20)).filter(Boolean).slice(0, 8);
+            const cleanCats = msg.categories.map(c => cleanStr(c, 20)).filter(Boolean).slice(0, 8);
             if (cleanCats.length > 0) {
               room.roundDefs[msg.index] = slfBuildRoundDef(cleanCats, "custom");
               pushRoomState(room);
@@ -3293,11 +3575,8 @@ wss.on("connection", (ws) => {
       case "nennsBlitzSubmit":
         handleNennsBlitzSubmit(room, ws.playerId, msg.text);
         break;
-      case "nennsBlitzChallenge":
-        handleNennsBlitzChallenge(room, ws.playerId, msg.targetPlayerId, msg.answerId);
-        break;
-      case "nennsBlitzVote":
-        handleNennsBlitzVote(room, ws.playerId, msg.challengeId, msg.valid);
+      case "nennsBlitzThumb":
+        handleNennsBlitzThumb(room, ws.playerId, msg.targetPlayerId, msg.answerId);
         break;
       case "nennsBlitzChallengeReady":
         handleNennsBlitzChallengeReady(room, ws.playerId);
@@ -3308,11 +3587,8 @@ wss.on("connection", (ws) => {
       case "slfDraftUpdate":
         handleSlfDraftUpdate(room, ws.playerId, msg.answers);
         break;
-      case "slfChallenge":
-        handleSlfChallenge(room, ws.playerId, msg.targetPlayerId, msg.category);
-        break;
-      case "slfVote":
-        handleSlfVote(room, ws.playerId, msg.challengeId, msg.valid);
+      case "slfThumb":
+        handleSlfThumb(room, ws.playerId, msg.targetPlayerId, msg.category);
         break;
       case "slfChallengeReady":
         handleSlfChallengeReady(room, ws.playerId);
@@ -3330,7 +3606,7 @@ wss.on("connection", (ws) => {
         }
         break;
     }
-  });
+  }
 
   ws.on("close", () => {
     const room = rooms.get(ws.roomCode);

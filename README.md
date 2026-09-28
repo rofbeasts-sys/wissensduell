@@ -2464,7 +2464,8 @@ zweite Option neben dem freien Zeit-Modus:
   Minus ("Einfach"), Level 6-10 zusätzlich Mal ("Mittel"), ab Level 11
   alle vier Rechenarten (Zahlenbereich wächst danach weiter langsam mit,
   bis maximal 1-20 in den obersten Leveln, "Fortgeschritten" → "Schwer"
-  → "Experte")
+  → "Experte"). Beim Testen fiel auf, dass Mal anfangs erst ab Level 11
+  statt ab 6 kam - korrigiert.
 - **Punkte**: +100 pro richtiger Antwort, -50 pro Fehler, zusätzlich +50
   Bonus bei jeder 5er-Serie in Folge
 - **Level bestehen**: die für das Level nötige Punktzahl erreichen (steigt
@@ -2493,6 +2494,351 @@ bei ausreichender Serie), Level-Aufstieg bei erreichtem Punkteziel
 funktioniert, täglicher Herzen-Reset funktioniert korrekt (nur bei
 echtem Tageswechsel, nicht mitten am Tag), und die Einstiegsseite zeigt
 Level und Herzen korrekt an.
+
+## 8ss. Speed Math: Antwort-Kreise statt Tastatur + Ruckel-Bugfix im Online-Duell
+
+- **Keine Tastatur mehr**: überall, wo Speed Math vorkommt (freier Modus,
+  Meilenstein-Level, Tic-Tac-Toe-Duell gegen Bot und Online), stehen unten
+  4 runde Antwort-Kreise. Einer ist richtig, drei sind plausible falsche
+  Werte (nah dran, nie negativ, keine Doppelten) - schnell den richtigen
+  antippen.
+- **Bugfix Online-Duell**: Jeder Tipp des Gegners hat bei dir die ganze
+  Seite neu aufgebaut (Ruckler, das Zahlenfeld war kurz weg). Der
+  Punktestand der anderen Seite wird jetzt nur noch als Text aktualisiert,
+  ohne Neuaufbau. Zusätzlich fängt ein Schutz Doppeltipps ab, damit eine
+  zweite Antwort nicht versehentlich schon der nächsten Aufgabe
+  zugerechnet wird.
+- **Sicherheit**: der Server schickt die Aufgabe im Online-Duell nicht mehr
+  samt Lösung an den Browser (vorher stand die Lösung im Datenpaket).
+
+Getestet: 3000 Aufgaben (immer 4 verschiedene Kreise inkl. richtiger
+Antwort), alle vier Spielarten, Score-Update ohne Neuaufbau, Doppeltipp,
+sowie ein echter Zwei-Client-Test gegen den Server.
+
+## 8tt. Brain Test: Übungstest 50 Fragen (90%), Haupttest 20 Fragen
+
+Auf Wunsch neu justiert, für alle 10 Klassen gleich:
+
+- **Übungstest**: immer alle **50 Fragen** der Klasse. **90 % richtig**
+  (45 von 50) schalten den Haupttest frei.
+- **Haupttest**: **20 Fragen** (zufällig aus dem Pool der Klasse), 90 s pro
+  Frage, weiterhin **80 % nötig** (16 von 20) für den Klassenaufstieg.
+- **Kein vorzeitiges Ende mehr**: beide Tests müssen immer bis zur letzten
+  Frage durchgespielt werden - auch wenn die nötige Prozentzahl schon
+  erreicht ist oder das Bestehen rechnerisch nicht mehr möglich ist
+  (vorher endete der Übungstest dann automatisch).
+- Anzeigen angepasst (Übersicht, Startseite, Ergebnis: "ab 90 %", "20 Fragen").
+
+Hinweis zur Auslegung: "maximal 90 Prozent" habe ich als "90 % sind die
+Bestehensgrenze beim Übungstest" verstanden. Die 80 % beim Haupttest habe
+ich nicht angetastet.
+
+Mit Tests bestätigt: 50/45 beim Übungstest, 45 richtige in Folge beenden
+den Test NICHT, 44/50 (88 %) schalten den Haupttest nicht frei, sicheres
+Durchfallen beendet den Test nicht vorzeitig, Haupttest 20 Fragen mit 16
+nötig und Aufstieg bei Bestehen, alle 10 Klassen liefern 50 bzw. 20 Fragen.
+
+## 8uu. Nenn's Blitz + Stadt Land Fluss: Daumen runter statt Anfechten
+
+Das Anfechten (mit Abstimmung) ist komplett raus. Stattdessen:
+
+- Bei **jeder Antwort** gibt es einen **👎-Button** - für alle, auch für die
+  Person, der die Antwort gehört (man kann sich also selbst korrigieren).
+- Nochmal tippen nimmt den eigenen Daumen zurück. Bis zum "WEITER" des Hosts
+  kann man das jederzeit ändern.
+- Eine Antwort fliegt raus (durchgestrichen, 0 Punkte), sobald **mindestens
+  die Hälfte der menschlichen Mitspielenden (aufgerundet)** 👎 gedrückt hat:
+  bei 2 Personen also **1 Daumen**, bei 3-4 Personen 2, bei 5-6 Personen 3.
+  Bots stimmen nicht mit und zählen nicht zur Schwelle.
+- Die Anzeige aktualisiert sich live bei allen; die Schwelle steht als
+  Hinweis oben. Endwertung (bei SLF inkl. neu berechneter Einzigartigkeit)
+  nach dem "WEITER" des Hosts.
+- **Warum**: Das Anfechten hing bei 1 gegen 1, weil keine dritte Person
+  abstimmen konnte. Mit dem Daumen-System entfällt die Abstimmung.
+
+Protokoll: neue Aktionen `nennsBlitzThumb` / `slfThumb`, neue Nachrichten
+`nennsBlitzThumbUpdate` / `slfThumbUpdate` (ersetzen Challenge/Vote).
+
+Getestet: Schwelle für 1/2/3 Personen und mit Bots, eigener Daumen, Daumen
+zurücknehmen, leere Antworten nicht bewertbar, Anzeige inkl. Live-Update,
+sowie echte 1-gegen-1-Durchläufe gegen den Server für beide Modi.
+
+## 8vv. Brain Test Haupttest: Gesamtzeit 1:30 Minuten für alle 20 Fragen
+
+- Der Haupttest hat jetzt **eine gemeinsame Gesamtuhr von 1:30 Minuten
+  (90 s)** für alle 20 Fragen, statt 90 s pro Frage. Die Uhr läuft
+  durchgehend und wird nicht bei jeder Frage neu gestartet.
+- Damit die Zeit nicht beim Lesen draufgeht: nach jeder Antwort wird kurz
+  (0,45 s) richtig/falsch gezeigt und **automatisch** zur nächsten Frage
+  gewechselt - kein Erklärtext, kein "Weiter"-Knopf im Haupttest.
+- **Läuft die Zeit ab**, endet der Test sofort; alle noch nicht
+  beantworteten Fragen zählen als falsch (Hinweis "Zeit abgelaufen" im
+  Ergebnis).
+- Übungstest unverändert (Zeit pro Frage, mit Erklärung und "Weiter").
+- Die 90 s stehen als Konstante `BRAINTEST_MAIN_TOTAL_SEC`.
+
+Hinweis: 90 s für 20 Fragen sind nur 4,5 s pro Frage - sehr knapp.
+
+Getestet mit simulierter Uhr: Uhr läuft über die Fragen durch, Anzeige zeigt
+die Restzeit, Ablauf zählt den Rest als falsch, 20/20 in ~50 s besteht
+regulär, danach laufen keine Timer mehr, Übungstest unverändert.
+
+## 8ww. Brain Test: Haupttest nach bestandenem Test / Lücke geschlossen
+
+- **Durchgefallen**: Haupttest bleibt freigeschaltet und ist beliebig oft
+  wiederholbar (keine Rückstufung).
+- **Bestanden**: Klasse steigt, die Freischaltung gilt nur für die alte
+  Klasse. Der Haupttest der neuen Klasse muss erst wieder über den
+  Übungstest (90 %) verdient werden.
+- **Bugfix**: Nach einem bestandenen Haupttest startete "NOCH EINE RUNDE"
+  direkt den Haupttest der NÄCHSTEN Klasse und umging so den Übungstest.
+  Jetzt startet `beginSolo` den Haupttest nur, wenn er für die aktuelle
+  Klasse freigeschaltet ist (sonst Übungstest), und der Knopf heißt nach
+  bestandenem Haupttest "ÜBUNGSTEST KLASSE X".
+
+## 8xx. Brain Test: "Test wiederholen" bei bestandenen Klassen
+
+- In der Klassenliste (Brain Test) steht bei jeder **bereits bestandenen
+  Klasse** ein Knopf **"🔁 Test wiederholen"**. Er startet den **Haupttest
+  dieser Klasse (20 Fragen, 1:30 Gesamtzeit)** erneut.
+- Es ist eine **reine Wiederholung**: Klasse und Freischaltung bleiben
+  unverändert (kein Aufstieg, keine Rückstufung, auch nicht bei
+  Durchfallen). Nur die allgemeine Statistik (Runden/richtig/falsch) zählt
+  mit.
+- Nach der Wiederholung: "NOCHMAL WIEDERHOLEN" oder "ZUR ÜBERSICHT".
+- Bewusst nur für die 20-Fragen-Variante, weil sie später für Erfolge
+  gebraucht wird. Erfolge selbst sind noch NICHT eingebaut, es wird auch
+  noch nichts extra gespeichert (z. B. Bestleistung je Klasse).
+- Nur für bereits bestandene Klassen möglich (die aktuelle Klasse geht
+  weiter über Übungstest/Haupttest, kommende Klassen sind gesperrt).
+
+## 8yy. Sicherheits- und Stabilitäts-Fixes (aus der Gesamtanalyse)
+
+**1. Absturzschutz** - vorher konnten einzelne Nachrichten mit falschem
+Datentyp den ganzen Server beenden (`null`, `name: 5`, `code: 5`,
+Registrierung mit Zahlen, verspätetes `rankPlace`).
+- Alle WebSocket- und HTTP-Handler laufen in `try/catch`; zusätzlich
+  `uncaughtException`/`unhandledRejection` als Notbremse (nur Log).
+- Textfelder werden typgeprüft; `msg` muss ein Objekt sein.
+- `rankPlace` prüft, ob wirklich eine Ranking-Runde läuft.
+- Fuzz-Test: 40 Aktionen x Müll-Werte in Lobby/Nenn's Blitz/SLF -> vorher 5
+  Abstürze, jetzt 0.
+
+**2. Datenverlust-Schutz** - vorher: Ladefehler -> leere Kontenliste -> nächste
+Speicherung überschrieb die ganze Datenbank.
+- Es wird nie gespeichert, solange die Konten nicht sicher geladen wurden;
+  der Server versucht das Laden bei Bedarf erneut.
+- Upstash-Antworten werden geprüft (Status, Struktur).
+- Lokal: atomares Schreiben (Temp-Datei + Umbenennen), `.bak`-Sicherung,
+  kaputte Datei wird als `users.json.corrupt-...` gerettet.
+- Kann nicht gespeichert werden, schlägt die Registrierung sichtbar fehl
+  (kein Schein-Erfolg). Während eines Ausfalls meldet `/api/session`
+  `unavailable` - der Client löscht sein Token dann NICHT mehr.
+
+**3. XSS + Header**
+- Client: neue `esc()`-Funktion an allen 51 Stellen mit Nutzertext (Namen,
+  Antworten, Kategorien, Teamnamen, Labels), auch im Attribut
+  (Kategorie-Eingabefeld).
+- Server: Namen/Antworten/Kategorien ohne `<` `>` und Steuerzeichen, Namen
+  überall max. 20 Zeichen (auch Tic Tac Toe), Raumcode nur A-Z/0-9.
+- Header: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  CSP (nur `object-src`, `base-uri`, `frame-ancestors`, `form-action` -
+  eine strikte `script-src` bräuchte Umbau der Inline-Handler und die
+  YouTube-API), `Cache-Control: no-cache` für HTML/JS (Updates kommen
+  sofort an), `no-store` für die API. API-Body max. 100 KB.
+
+**4. Arena-Punkte**
+- `arena-start-match` gibt eine einmalige Match-ID aus; `arena-finish-match`
+  akzeptiert nur diese ID (einmal), frühestens nach 20 s, Punkte gedeckelt
+  auf 100 pro Match, ungültige Werte (`Infinity`, Text) zählen 0.
+- Grenze: die Punkte innerhalb der 100 meldet weiter der Client. Voll
+  serverseitig wäre ein Umbau (Konto-Bindung der Spielverbindung).
+
+**Noch offen** (siehe `analyse-bericht.md`): Login-Ratenbegrenzung und
+asynchrones Hashing (5), Größenlimit/Ratenlimit im WebSocket (6),
+Token-Ablauf (7), längerer Raumcode (8), Erfolge serverseitig (10),
+Herzen-Zeitzone (11), veraltete Tests (12), Pong-Prüfung (13).
+
+## 8zz. Login-Sperre, asynchrones Hashing, WebSocket-Limits
+
+**Login-Sperre / Ratenbegrenzung** (`server.js`)
+- Falsche Logins werden gezählt: **5 je Benutzername + IP**, **30 je IP**
+  (beliebige Namen), **40 je Benutzername über alle IPs** (verteilter
+  Angriff) - danach 10 Minuten gesperrt. Gesperrte Versuche werden VOR dem
+  Hashen abgelehnt (kosten keine CPU), selbst das richtige Passwort geht dann
+  nicht durch. Ein erfolgreicher Login setzt den Zähler des Namens zurück.
+- Auch für nicht existierende Konten gilt dieselbe Sperre/Meldung, und es wird
+  trotzdem gehasht (Antwortzeit verrät nicht, ob es das Konto gibt).
+- Registrierung: max. **10 neue Konten je IP und Stunde**. Alle API-Aufrufe:
+  max. **600 je IP und Minute** (dann HTTP 429).
+- Hinter Render wird die IP aus `X-Forwarded-For` gelesen (letzter Eintrag);
+  sonst wird der Header ignoriert (sonst fälschbar). Steuerbar über die
+  Umgebungsvariable `TRUST_PROXY=1`. Für Tests gibt es `AUTH_LOCK_MS` und
+  `AUTH_WINDOW_MS`.
+- Einschränkung: Wer den Namen kennt, kann von einer IP aus das Konto für
+  10 Minuten "sperren", indem er 5x falsch tippt. Das trifft nur Logins von
+  dieser IP (und ab 40 Versuchen von allen).
+
+**Asynchrones Hashing**: `crypto.scrypt` statt `scryptSync`. Gemessen: ein
+fremder Request musste bei 10 gleichzeitigen Logins vorher bis zu **404 ms**
+warten, jetzt **18 ms**. Zusätzlich max. 12 gleichzeitige Hashes.
+
+**WebSocket** (`lib/miniws.js`, `server.js`)
+- Max. Nachrichtengröße **64 KB**, geprüft schon am Header (sonst Close 1009).
+  Der frühere 300-MB-Angriff wird sofort gekappt, der Speicher wächst nicht.
+- Max. **60 Verbindungen je IP**, 3000 insgesamt.
+- Nachrichtenrate: 40 als Burst, dann 25/s; Dauerfeuer kappt die Verbindung.
+  Normales Spielen liegt weit darunter.
+- **Bugfix**: Legte die Gegenseite ohne Close-Frame auf (App/Tab hart
+  beendet), blieb der Spieler bis zum nächsten Ping als "verbunden" stehen,
+  weil der Server das Ende der Verbindung nicht beachtete. Außerdem wurde
+  "close" doppelt gemeldet - jetzt genau einmal.
+
+**Noch offen**: Token-Ablauf (7), längerer Raumcode (8), Erfolge
+serverseitig (10), Herzen-Zeitzone (11), veraltete Tests (12),
+Pong-Prüfung (13).
+
+## 8aaa. Restliche Punkte aus der Analyse (Token, Raumcode, Zeitzone, Pong, Tests)
+
+**Sitzungs-Token** (Fund 7): Token laufen nach **30 Tagen ohne Nutzung** ab;
+jede Nutzung erneuert sie (max. 1x pro Tag), aktive Spielende werden also nie
+ausgeloggt. Pro Konto gelten höchstens **5 Token** (ältere fliegen raus).
+
+**Raumcode** (Fund 8): **6 statt 4 Zeichen** (~1 Mrd. statt ~1 Mio.
+Möglichkeiten), erzeugt mit `crypto.randomInt` statt `Math.random`. Zusätzlich
+Sperre beim Durchprobieren: nach 40 falschen Codes von einer IP 5 Minuten
+Pause (so viele, damit eine Schulklasse mit Tippfehlern nicht ausgesperrt
+wird). Eingabefelder und Hinweise im Client sind auf 6 Zeichen umgestellt.
+
+**Herzen-Zeitzone** (Fund 11): Der Tageswechsel gilt jetzt nach **deutscher
+Zeit** (`Europe/Berlin`), also um Mitternacht statt um 1/2 Uhr (UTC). Gilt für
+die Arena-Herzen (Server) und die Speed-Math-Herzen (Client).
+
+**Pong-Prüfung** (Fund 13): Der Server merkt sich das letzte Lebenszeichen jeder
+Verbindung (Ping wird alle 25 s gesendet, Browser antworten automatisch). Kommt
+75 s nichts, wird die Verbindung gekappt - z. B. Handy im Funkloch, sonst stünde
+die Person ewig als "verbunden" im Raum.
+
+**Tests** (Fund 12): Die veralteten `run-test.js`/`run-bot-test.js` sind ersetzt.
+`npm test` führt fünf Suiten aus (~1,5 Minuten, ohne Netz, mit temporärer
+Nutzerdatei - es werden nie echte Daten berührt):
+- `test/client.test.js` (52 Prüfungen): XSS-Schutz, Speed Math (Kreise, Level,
+  Herzen, Sprint), Brain Test (50/20 Fragen, Gesamtuhr, Wiederholen, Lücke beim
+  Freischalten), Daumen-runter-Anzeige.
+- `test/security.test.js` (60): Absturzschutz, Login-Sperre und Limits, Token,
+  Arena, Header/Pfade, Datenverlust (Datei + Upstash-Ausfall), WebSocket-Limits,
+  Raumcode, tote Verbindungen.
+- `test/multiplayer.test.js` (17): echte 2-Spieler-Abläufe (Stadt Land Fluss und
+  Nenn's Blitz mit Daumen runter, Speed-Math-Duell online, Namen).
+Für schnelle Tests gibt es Umgebungsvariablen (im Normalbetrieb wirkungslos):
+`USERS_FILE`, `AUTH_LOCK_MS`, `AUTH_WINDOW_MS`, `ARENA_MIN_MATCH_MS`,
+`WS_PING_EVERY_MS`, `WS_DEAD_AFTER_MS`, `NENNSBLITZ_DUELL_MS`, `SLF_HURRY_MS`.
+
+**Bewusst NICHT umgesetzt - Fund 10 (Spielstände serverseitig)**: Klasse,
+Speed-Math-Level und Herzen meldet weiterhin der Client. Ein Plausibilitäts-
+check ("Level nur +1 pro Speichern") würde nur Gelegenheits-Schummler stoppen -
+wer die Schnittstelle direkt aufruft, speichert einfach mehrfach. Echten Schutz
+gibt es nur, wenn der SERVER die Ereignisse selbst kennt (z. B. Level-Ergebnis
+serverseitig auswerten). Das sollte beim Einbau der Erfolge gleich mitgedacht
+werden.
+
+## 8bbb. Erfolge (53 Stück, inkl. eigener Ideen)
+
+Neuer Bereich **🏆 Erfolge** (Hauptmenü und Statistik-Seite): Karten je Kategorie
+mit Fortschrittsbalken, freigeschaltet = grün mit Datum; beim Freischalten
+erscheint kurz "Erfolg freigeschaltet!". Gilt für das Konto bzw. das zuletzt
+benutzte lokale Profil (ohne beides wird nichts gezählt).
+
+**Die Erfolge**
+- **Brain Test** (nur der *Haupttest* mit 20 Fragen, Wiederholungen zählen):
+  jede Klasse geschafft (10) · jede Klasse mit 100 % · 5× Haupttest mit 100 % ·
+  jede Klasse in 1 Minute (≤ 60 s).
+- **Einordnen** / **Mehr oder Weniger**: Runde komplett · Runde ohne ein Leben zu
+  verlieren.
+- **Nenn's Blitz**: 10 / 15 / 20 / 30 / 50 gültige Antworten in *einer* Runde
+  (nach Daumen-runter-Wertung).
+- **Musik**: 10 Songs erraten, ohne zu wiederholen.
+- **Stadt Land Fluss**: in jedes Feld etwas schreiben · als Erste/r mit allen
+  Feldern fertig (1×) · 50×.
+- **Tic Tac Toe**: alle Gürtel (Meister erreicht) · 100× in 3 Zügen gewinnen ·
+  100 Quantum-Siege · 100 QuizMix-Siege · QuizMix in 3 Zügen · QuizMix in den
+  ersten 3 Runden mit allen Fragen richtig.
+- **Allgemein**: 10 / 100 / 1.000 / 10.000 / 100.000 / 1 Mio. richtig beantwortete
+  Wissenstest-Fragen und Zahlenaufgaben.
+
+**Wie ich unklare Stellen ausgelegt habe** (bitte prüfen, jeweils leicht zu ändern):
+- *Musik*: "Song erraten" = **Titel** richtig; "ohne nochmal zuhören" = für diesen
+  Song wurde nicht wiederholt. Es zählt insgesamt (nicht "in Folge").
+- *Stadt Land Fluss "im Arena"*: SLF gibt es in der Arena nicht. Gezählt wird eine
+  **Mehrspielerrunde (mind. 2 echte Personen)**; "erste" = wer als Erste/r mit
+  ALLEN Feldern abgibt (der Server bestimmt das).
+- *Tic Tac Toe "in 3 Zügen"*: Sieg mit dem **3. eigenen Zug** (klassisch/Quantum).
+  Im QuizMix: das Spiel endet nach **genau 3 Duellen** und du hast alle gewonnen.
+  "Alle Fragen richtig" = in diesem Spiel keine falsche/fehlende Antwort (auch keine
+  falsche Zahlenaufgabe). Diese Siege zählen auch für das allgemeine "in 3 Zügen".
+- *Gewinne alle Gürtel*: Rang **Meister** erreicht (den Meister-Bot selbst kann man
+  nicht schlagen).
+- *Allgemein*: zählt **Wissenstest-Fragen** (Party/Arena, QuizMix-Wissensduelle)
+  und **Zahlenaufgaben** (Speed Math frei/Level, Zahlen-Duelle). **Nicht** gezählt:
+  Brain Test, Einordnen, Mehr oder Weniger, Musik, Blitz, SLF.
+- *Bereits Erreichtes*: bestandene Klassen (unterhalb der aktuellen) und ein schon
+  erreichter Gürtel werden beim ersten Öffnen übernommen. "100 %"/"1 Minute" lassen
+  sich nicht rückwirkend belegen und beginnen bei null.
+- *Bot-Siege zählen mit* (auch beim leichtesten Gürtel).
+
+**Technik**
+- `public/achievements.js` ist EINE Datei für Browser und Server (Definitionen,
+  Ereignisregeln, Zusammenführen). Der Server berechnet "freigeschaltet" beim
+  Speichern **immer aus den Zählern neu** - ein direkt gesetztes `unlocked` bringt
+  nichts; Zähler können nie sinken (Maximum beider Stände).
+- Der Server meldet für die Erfolge zusätzlich: `slfReveal.firstFullId`/`humanCount`,
+  `rankReveal.livesLeft`, `musicPlayerSubmitted.replaysUsed`, und im Online-TTT
+  `tttState.achv` (`in3`, `allCorrect`, vom Server gezählt).
+- Ehrlich: Die **Zähler** selbst kommen für Brain Test, Bot-Spiele und Speed Math aus
+  dem Browser. Wer die Schnittstelle direkt mit erfundenen Zählern ruft, kann sich
+  Erfolge erschummeln. Fälschungssicher wäre nur, diese Modi auf den Server zu
+  verlegen (siehe `erfolg-ideen.md`).
+- Tests: `test/achievements.test.js` (Regelwerk mit Grenzwerten, Server-Speicherung,
+  Client-Einbindung, Konto-Abgleich) und `test/achievements-online.test.js` (echte
+  Abläufe: TTT online, SLF, Mehr oder Weniger, Musik). Test-Schalter im Server:
+  `TTT_DUEL_TYPE`, `TTT_SPRINT_MS` (nur für Tests).
+
+## 8ccc. Erfolge: eigene Ideen mit eingebaut
+
+Auf Wunsch aus `erfolg-ideen.md` meine 8 Top-Empfehlungen ergänzt (jetzt 53 statt
+29 Erfolge):
+
+- **Sammler / Vielseitig / Vollständig**: 5 / 15 / alle sonstigen Erfolge
+  freigeschaltet (zählt auch die Kategorie-Erfolge mit, nicht sich selbst).
+- **Kategorie gemeistert** (je Kategorie 1): alle "echten" Erfolge dieser
+  Kategorie geschafft.
+- **Speed-Math-Level 10/25/50**: aus dem Meilenstein-Modus, auch beim ersten
+  Öffnen der Übersicht wird der bisherige Stand übernommen.
+- **Vielnenner 100/500/1.000** (Nenn's Blitz): Antworten **über alle Runden
+  aufsummiert** (zusätzlich zum bisherigen Bestwert einer einzelnen Runde).
+- **Einzigartig** (Stadt Land Fluss): 100× eine Antwort, die laut
+  Server-Wertung die einzige gültige in ihrer Kategorie war (20 Punkte).
+- **Unbezwingbar**: Unentschieden gegen den Meister-Bot.
+- **Perfektionist**: 10 perfekte Runden, Einordnen und Mehr-oder-Weniger
+  zusammengezählt.
+- **Täglicher Streak** (3/7/30/100 Tage in Folge): ein Kalendertag
+  (deutsche Zeit) zählt, sobald irgendein Erfolge-Ereignis eintritt oder die
+  Erfolge-Seite geöffnet wird - mehrfach am selben Tag zählt nur einmal, eine
+  ausgelassene Nacht setzt die *aktuelle* Serie zurück (die längste bleibt als
+  Bestwert erhalten und zählt für den Erfolg).
+
+**Wichtig fürs Verständnis**: Kategorie- und Sammel-Erfolge werten `state.unlocked`
+zur Laufzeit aus (nicht per Zähler) - `evaluate()` geht die Erfolge deshalb in
+einer festen Reihenfolge durch (erst die "echten" Erfolge, dann Kategorien, dann
+Sammler), damit ein einzelnes Ereignis, das zufällig eine ganze Kategorie
+komplettiert, im selben Zug auch den Kategorie- und ggf. Sammel-Erfolg mit
+freischaltet.
+
+Getestet: alle neuen Regeln einzeln (inkl. Grenzwerte, Deckelung erfundener
+Werte, Streak-Lücken, Server-Merge), ein Durchlauf, der wirklich ALLE 53
+Erfolge nacheinander freischaltet (inkl. "Vollständig" als letzten), sowie
+die Client-Ereignisse (Speed-Math-Level, SLF-Einzigartig, TTT-Unentschieden,
+täglicher Streak).
 
 ## 8. Bekannte Grenzen dieser ersten Version
 
