@@ -1,0 +1,6475 @@
+{
+ "ordering": {
+  "wm_titel": {
+   "label": "Einordnen: Fußball-Weltmeister (Jahr des ersten WM-Titels)",
+   "unit": "Jahr des ersten Titels",
+   "order": "asc",
+   "items": [
+    {
+     "id": "ury",
+     "name": "🇺🇾 Uruguay",
+     "value": 1930
+    },
+    {
+     "id": "ita",
+     "name": "🇮🇹 Italien",
+     "value": 1934
+    },
+    {
+     "id": "deu",
+     "name": "🇩🇪 Deutschland",
+     "value": 1954
+    },
+    {
+     "id": "bra",
+     "name": "🇧🇷 Brasilien",
+     "value": 1958
+    },
+    {
+     "id": "eng",
+     "name": "🏴 England",
+     "value": 1966
+    },
+    {
+     "id": "arg",
+     "name": "🇦🇷 Argentinien",
+     "value": 1978
+    },
+    {
+     "id": "fra",
+     "name": "🇫🇷 Frankreich",
+     "value": 1998
+    },
+    {
+     "id": "esp",
+     "name": "🇪🇸 Spanien",
+     "value": 2010
+    }
+   ]
+  },
+  "gebaeude": {
+   "label": "Einordnen: Gebäude (Höhe)",
+   "unit": "m",
+   "order": "desc",
+   "items": [
+    {
+     "id": "burj",
+     "name": "🏙️ Burj Khalifa (Dubai)",
+     "value": 828
+    },
+    {
+     "id": "merdeka",
+     "name": "🏙️ Merdeka 118 (Kuala Lumpur)",
+     "value": 679
+    },
+    {
+     "id": "shanghai",
+     "name": "🏙️ Shanghai Tower",
+     "value": 632
+    },
+    {
+     "id": "makkah",
+     "name": "🏙️ Abraj Al-Bait Clock Tower (Mekka)",
+     "value": 601
+    },
+    {
+     "id": "pingan",
+     "name": "🏙️ Ping An Finance Centre (Shenzhen)",
+     "value": 599
+    },
+    {
+     "id": "lotte",
+     "name": "🏙️ Lotte World Tower (Seoul)",
+     "value": 555
+    },
+    {
+     "id": "owtc",
+     "name": "🏙️ One World Trade Center (New York)",
+     "value": 541
+    },
+    {
+     "id": "citic",
+     "name": "🏙️ CITIC Tower (Peking)",
+     "value": 528
+    }
+   ]
+  },
+  "filme": {
+   "label": "Einordnen: Filme (Welteinspielergebnis)",
+   "unit": "Mrd. USD (ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "avatar",
+     "name": "🎬 Avatar",
+     "value": 2.9
+    },
+    {
+     "id": "avatar2",
+     "name": "🎬 Avatar: The Way of Water",
+     "value": 2.32
+    },
+    {
+     "id": "endgame",
+     "name": "🎬 Avengers: Endgame",
+     "value": 2.8
+    },
+    {
+     "id": "titanic",
+     "name": "🎬 Titanic",
+     "value": 2.26
+    },
+    {
+     "id": "starwars7",
+     "name": "🎬 Star Wars: Das Erwachen der Macht",
+     "value": 2.07
+    },
+    {
+     "id": "infinitywar",
+     "name": "🎬 Avengers: Infinity War",
+     "value": 2.05
+    },
+    {
+     "id": "lionking",
+     "name": "🎬 Der König der Löwen (2019)",
+     "value": 1.66
+    },
+    {
+     "id": "jurassicworld",
+     "name": "🎬 Jurassic World",
+     "value": 1.67
+    }
+   ]
+  },
+  "laender_flaeche": {
+   "label": "Einordnen: Länder (Fläche)",
+   "unit": "km²",
+   "order": "desc",
+   "items": [
+    {
+     "id": "rus",
+     "name": "🇷🇺 Russland",
+     "value": 17098242
+    },
+    {
+     "id": "can",
+     "name": "🇨🇦 Kanada",
+     "value": 9984670
+    },
+    {
+     "id": "usa",
+     "name": "🇺🇸 USA",
+     "value": 9833517
+    },
+    {
+     "id": "chn",
+     "name": "🇨🇳 China",
+     "value": 9596961
+    },
+    {
+     "id": "bra",
+     "name": "🇧🇷 Brasilien",
+     "value": 8515767
+    },
+    {
+     "id": "aus",
+     "name": "🇦🇺 Australien",
+     "value": 7692024
+    },
+    {
+     "id": "ind",
+     "name": "🇮🇳 Indien",
+     "value": 3287263
+    },
+    {
+     "id": "arg",
+     "name": "🇦🇷 Argentinien",
+     "value": 2780400
+    }
+   ]
+  },
+  "staedte_einwohner": {
+   "label": "Einordnen: Städte (Einwohnerzahl)",
+   "unit": "Einwohner (Ballungsraum, ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "tokio",
+     "name": "🏯 Tokio",
+     "value": 37000000
+    },
+    {
+     "id": "delhi",
+     "name": "🕌 Delhi",
+     "value": 32000000
+    },
+    {
+     "id": "shanghai",
+     "name": "🏙️ Shanghai",
+     "value": 29000000
+    },
+    {
+     "id": "saopaulo",
+     "name": "🌆 São Paulo",
+     "value": 21800000
+    },
+    {
+     "id": "mexicocity",
+     "name": "🌵 Mexiko-Stadt",
+     "value": 22200000
+    },
+    {
+     "id": "kairo",
+     "name": "🏛️ Kairo",
+     "value": 20900000
+    },
+    {
+     "id": "mumbai",
+     "name": "🕌 Mumbai",
+     "value": 21500000
+    },
+    {
+     "id": "peking",
+     "name": "🏮 Peking",
+     "value": 20000000
+    }
+   ]
+  },
+  "unternehmen_boersenwert": {
+   "label": "Einordnen: Unternehmen (Börsenwert)",
+   "unit": "Mrd. USD (ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "apple",
+     "name": "🍎 Apple",
+     "value": 3400
+    },
+    {
+     "id": "microsoft",
+     "name": "🪟 Microsoft",
+     "value": 3100
+    },
+    {
+     "id": "nvidia",
+     "name": "🖥️ Nvidia",
+     "value": 3000
+    },
+    {
+     "id": "alphabet",
+     "name": "🔍 Alphabet (Google)",
+     "value": 2100
+    },
+    {
+     "id": "amazon",
+     "name": "📦 Amazon",
+     "value": 1900
+    },
+    {
+     "id": "saudiaramco",
+     "name": "🛢️ Saudi Aramco",
+     "value": 1800
+    },
+    {
+     "id": "meta",
+     "name": "📘 Meta",
+     "value": 1300
+    },
+    {
+     "id": "tesla",
+     "name": "🚗 Tesla",
+     "value": 800
+    }
+   ]
+  },
+  "formel1_siege": {
+   "label": "Einordnen: Formel 1 (Anzahl der Siege)",
+   "unit": "Rennsiege (Fahrer, ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "hamilton",
+     "name": "🏎️ Lewis Hamilton",
+     "value": 105
+    },
+    {
+     "id": "schumacher",
+     "name": "🏎️ Michael Schumacher",
+     "value": 91
+    },
+    {
+     "id": "verstappen",
+     "name": "🏎️ Max Verstappen",
+     "value": 65
+    },
+    {
+     "id": "vettel",
+     "name": "🏎️ Sebastian Vettel",
+     "value": 53
+    },
+    {
+     "id": "prost",
+     "name": "🏎️ Alain Prost",
+     "value": 51
+    },
+    {
+     "id": "senna",
+     "name": "🏎️ Ayrton Senna",
+     "value": 41
+    },
+    {
+     "id": "alonso",
+     "name": "🏎️ Fernando Alonso",
+     "value": 32
+    },
+    {
+     "id": "mansell",
+     "name": "🏎️ Nigel Mansell",
+     "value": 31
+    }
+   ]
+  },
+  "olympia_gold": {
+   "label": "Einordnen: Olympia (Goldmedaillen, Sommerspiele, Land)",
+   "unit": "Goldmedaillen (gesamt, ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "usa",
+     "name": "🇺🇸 USA",
+     "value": 1180
+    },
+    {
+     "id": "chn",
+     "name": "🇨🇳 China",
+     "value": 280
+    },
+    {
+     "id": "gbr",
+     "name": "🇬🇧 Großbritannien",
+     "value": 285
+    },
+    {
+     "id": "fra",
+     "name": "🇫🇷 Frankreich",
+     "value": 235
+    },
+    {
+     "id": "ita",
+     "name": "🇮🇹 Italien",
+     "value": 225
+    },
+    {
+     "id": "deu",
+     "name": "🇩🇪 Deutschland",
+     "value": 200
+    },
+    {
+     "id": "jpn",
+     "name": "🇯🇵 Japan",
+     "value": 180
+    },
+    {
+     "id": "aus",
+     "name": "🇦🇺 Australien",
+     "value": 160
+    }
+   ]
+  },
+  "fluesse_laenge": {
+   "label": "Einordnen: Flüsse (Länge)",
+   "unit": "km",
+   "order": "desc",
+   "items": [
+    {
+     "id": "nil",
+     "name": "🌊 Nil",
+     "value": 6650
+    },
+    {
+     "id": "amazonas",
+     "name": "🌊 Amazonas",
+     "value": 6400
+    },
+    {
+     "id": "jangtse",
+     "name": "🌊 Jangtse",
+     "value": 6300
+    },
+    {
+     "id": "mississippi",
+     "name": "🌊 Mississippi-Missouri",
+     "value": 6275
+    },
+    {
+     "id": "jenissei",
+     "name": "🌊 Jenissei",
+     "value": 5539
+    },
+    {
+     "id": "huanghe",
+     "name": "🌊 Gelber Fluss (Huang He)",
+     "value": 5464
+    },
+    {
+     "id": "ob",
+     "name": "🌊 Ob",
+     "value": 5410
+    },
+    {
+     "id": "kongo",
+     "name": "🌊 Kongo",
+     "value": 4700
+    }
+   ]
+  },
+  "berge_hoehe": {
+   "label": "Einordnen: Berge (Höhe)",
+   "unit": "m",
+   "order": "desc",
+   "items": [
+    {
+     "id": "everest",
+     "name": "⛰️ Mount Everest",
+     "value": 8849
+    },
+    {
+     "id": "k2",
+     "name": "⛰️ K2",
+     "value": 8611
+    },
+    {
+     "id": "kangchenjunga",
+     "name": "⛰️ Kangchenjunga",
+     "value": 8586
+    },
+    {
+     "id": "lhotse",
+     "name": "⛰️ Lhotse",
+     "value": 8516
+    },
+    {
+     "id": "makalu",
+     "name": "⛰️ Makalu",
+     "value": 8485
+    },
+    {
+     "id": "choyu",
+     "name": "⛰️ Cho Oyu",
+     "value": 8188
+    },
+    {
+     "id": "denali",
+     "name": "⛰️ Denali",
+     "value": 6190
+    },
+    {
+     "id": "kilimandscharo",
+     "name": "⛰️ Kilimandscharo",
+     "value": 5895
+    }
+   ]
+  },
+  "filme_animation": {
+   "label": "Einordnen: Filme – Animation (Welteinspielergebnis)",
+   "unit": "Mrd. USD (ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "lionking2019",
+     "name": "🎬 Der König der Löwen (2019)",
+     "value": 1.66
+    },
+    {
+     "id": "frozen2",
+     "name": "🎬 Die Eiskönigin II",
+     "value": 1.45
+    },
+    {
+     "id": "mariobrosfilm",
+     "name": "🎬 Der Super Mario Bros. Film",
+     "value": 1.36
+    },
+    {
+     "id": "frozen1",
+     "name": "🎬 Die Eiskönigin",
+     "value": 1.28
+    },
+    {
+     "id": "minions",
+     "name": "🎬 Minions",
+     "value": 1.16
+    },
+    {
+     "id": "toystory4",
+     "name": "🎬 Toy Story 4",
+     "value": 1.07
+    },
+    {
+     "id": "findetdorie",
+     "name": "🎬 Findet Dorie",
+     "value": 1.03
+    },
+    {
+     "id": "zoomania",
+     "name": "🎬 Zoomania",
+     "value": 1.02
+    }
+   ]
+  },
+  "trashtv_staffeln": {
+   "label": "Einordnen: Trash-TV Deutschland (Anzahl der Staffeln)",
+   "unit": "Staffeln (Stand 2026, ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "dschungelcamp",
+     "name": "🌴 Ich bin ein Star – Holt mich hier raus!",
+     "value": 19
+    },
+    {
+     "id": "bachelor",
+     "name": "🌹 Der Bachelor",
+     "value": 16
+    },
+    {
+     "id": "bigbrother",
+     "name": "🏠 Big Brother",
+     "value": 13
+    },
+    {
+     "id": "promibigbrother",
+     "name": "🏠 Promi Big Brother",
+     "value": 12
+    },
+    {
+     "id": "loveisland",
+     "name": "💋 Love Island",
+     "value": 11
+    },
+    {
+     "id": "kampfrealitystars",
+     "name": "🏝️ Kampf der Realitystars",
+     "value": 6
+    },
+    {
+     "id": "temptationisland",
+     "name": "🏖️ Temptation Island",
+     "value": 8
+    },
+    {
+     "id": "areyoutheone",
+     "name": "💑 Are You The One",
+     "value": 4
+    },
+    {
+     "id": "bauersuchtfrau",
+     "name": "🚜 Bauer sucht Frau",
+     "value": 21
+    }
+   ],
+   "germanOnly": true
+  },
+  "trashtv_kdrs_sieger": {
+   "label": "Einordnen: Kampf der Realitystars (Sieger nach Staffel)",
+   "unit": "Staffel-Nr.",
+   "order": "asc",
+   "items": [
+    {
+     "id": "kdrs_s1",
+     "name": "🏆 Kevin Pannewitz",
+     "value": 1
+    },
+    {
+     "id": "kdrs_s2",
+     "name": "🏆 Loona",
+     "value": 2
+    },
+    {
+     "id": "kdrs_s3",
+     "name": "🏆 Elena Miras",
+     "value": 3
+    },
+    {
+     "id": "kdrs_s4",
+     "name": "🏆 Serkan Yavuz",
+     "value": 4
+    },
+    {
+     "id": "kdrs_s5",
+     "name": "🏆 Calvin Kleinen",
+     "value": 5
+    },
+    {
+     "id": "kdrs_s6",
+     "name": "🏆 Tara Tabitha",
+     "value": 6
+    }
+   ],
+   "germanOnly": true
+  },
+  "trashtv_sommerhaus_sieger": {
+   "label": "Einordnen: Sommerhaus der Stars (Sieger nach Staffel)",
+   "unit": "Staffel-Nr.",
+   "order": "asc",
+   "items": [
+    {
+     "id": "shs_s1",
+     "name": "🏆 Xenia von Sachsen & Rajab Hassan",
+     "value": 1
+    },
+    {
+     "id": "shs_s2",
+     "name": "🏆 Nico Schwanz & Saskia Atzerodt",
+     "value": 2
+    },
+    {
+     "id": "shs_s3",
+     "name": "🏆 Iris & Uwe Abel",
+     "value": 3
+    },
+    {
+     "id": "shs_s4",
+     "name": "🏆 Elena Miras & Mike Heiter",
+     "value": 4
+    },
+    {
+     "id": "shs_s5",
+     "name": "🏆 Caro & Andreas Robens",
+     "value": 5
+    },
+    {
+     "id": "shs_s6",
+     "name": "🏆 Lars Steinhöfel & Dominik Schmitt",
+     "value": 6
+    },
+    {
+     "id": "shs_s7",
+     "name": "🏆 Antonia Hemmer & Patrick Romer",
+     "value": 7
+    },
+    {
+     "id": "shs_s8",
+     "name": "🏆 Samira & Serkan Yavuz",
+     "value": 8
+    },
+    {
+     "id": "shs_s9",
+     "name": "🏆 Sam Dylan & Rafi Rachek",
+     "value": 9
+    },
+    {
+     "id": "shs_s10",
+     "name": "🏆 Edda Pilz & Michael Klotz",
+     "value": 10
+    }
+   ],
+   "germanOnly": true
+  },
+  "trashtv_lol_sieger": {
+   "label": "Einordnen: LOL – Last One Laughing (Sieger nach Staffel)",
+   "unit": "Staffel-Nr.",
+   "order": "asc",
+   "items": [
+    {
+     "id": "lol_s1",
+     "name": "😂 Torsten Sträter",
+     "value": 1
+    },
+    {
+     "id": "lol_s2",
+     "name": "😂 Max Giermann",
+     "value": 2
+    },
+    {
+     "id": "lol_s3",
+     "name": "😂 Anke Engelke",
+     "value": 3
+    },
+    {
+     "id": "lol_s4",
+     "name": "😂 Kurt Krömer & Michael Mittermeier",
+     "value": 4
+    },
+    {
+     "id": "lol_s5",
+     "name": "😂 Mirja Boes",
+     "value": 5
+    },
+    {
+     "id": "lol_s6",
+     "name": "😂 Ralf Schmitz",
+     "value": 6
+    }
+   ],
+   "germanOnly": true
+  },
+  "trashtv_dschungelcamp_sieger": {
+   "label": "Einordnen: Ich bin ein Star (Sieger nach Staffel)",
+   "unit": "Staffel-Nr.",
+   "order": "asc",
+   "items": [
+    {
+     "id": "ibes_s1",
+     "name": "👑 Costa Cordalis",
+     "value": 1
+    },
+    {
+     "id": "ibes_s2",
+     "name": "👑 Désirée Nick",
+     "value": 2
+    },
+    {
+     "id": "ibes_s3",
+     "name": "👑 Ross Antony",
+     "value": 3
+    },
+    {
+     "id": "ibes_s4",
+     "name": "👑 Ingrid van Bergen",
+     "value": 4
+    },
+    {
+     "id": "ibes_s5",
+     "name": "👑 Peer Kusmagk",
+     "value": 5
+    },
+    {
+     "id": "ibes_s6",
+     "name": "👑 Brigitte Nielsen",
+     "value": 6
+    },
+    {
+     "id": "ibes_s7",
+     "name": "👑 Joey Heindle",
+     "value": 7
+    },
+    {
+     "id": "ibes_s8",
+     "name": "👑 Melanie Müller",
+     "value": 8
+    },
+    {
+     "id": "ibes_s9",
+     "name": "👑 Maren Gilzer",
+     "value": 9
+    },
+    {
+     "id": "ibes_s10",
+     "name": "👑 Menderes Bagci",
+     "value": 10
+    },
+    {
+     "id": "ibes_s11",
+     "name": "👑 Marc Terenzi",
+     "value": 11
+    },
+    {
+     "id": "ibes_s12",
+     "name": "👑 Jenny Frankhauser",
+     "value": 12
+    },
+    {
+     "id": "ibes_s13",
+     "name": "👑 Evelyn Burdecki",
+     "value": 13
+    },
+    {
+     "id": "ibes_s14",
+     "name": "👑 Prince Damien",
+     "value": 14
+    },
+    {
+     "id": "ibes_s15",
+     "name": "👑 Filip Pavlovic",
+     "value": 15
+    },
+    {
+     "id": "ibes_s16",
+     "name": "👑 Djamila Rowe",
+     "value": 16
+    },
+    {
+     "id": "ibes_s17",
+     "name": "👑 Lucy Diakovska",
+     "value": 17
+    },
+    {
+     "id": "ibes_s18",
+     "name": "👑 Lilly Becker",
+     "value": 18
+    },
+    {
+     "id": "ibes_s19",
+     "name": "👑 Gil Ofarim",
+     "value": 19
+    }
+   ],
+   "germanOnly": true
+  },
+  "haeuser_groesse": {
+   "label": "Einordnen: Häuser (Wohnfläche)",
+   "unit": "m² Wohnfläche (ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "istana_nurul_iman",
+     "name": "🏰 Istana Nurul Iman (Sultanspalast, Brunei)",
+     "value": 200000
+    },
+    {
+     "id": "buckingham",
+     "name": "🏰 Buckingham Palace",
+     "value": 77000
+    },
+    {
+     "id": "versailles",
+     "name": "🏰 Schloss Versailles",
+     "value": 67000
+    },
+    {
+     "id": "falaknuma",
+     "name": "🏰 Falaknuma Palace (Hyderabad)",
+     "value": 34000
+    },
+    {
+     "id": "antilia",
+     "name": "🏠 Antilia (Mumbai)",
+     "value": 27000
+    },
+    {
+     "id": "biltmore",
+     "name": "🏠 Biltmore Estate (USA)",
+     "value": 16300
+    },
+    {
+     "id": "chatsworth",
+     "name": "🏠 Chatsworth House (UK)",
+     "value": 13000
+    },
+    {
+     "id": "cadzan",
+     "name": "🏠 Ca' d'Zan (Ringling-Anwesen)",
+     "value": 9300
+    },
+    {
+     "id": "witanhurst",
+     "name": "🏠 Witanhurst (London)",
+     "value": 9000
+    },
+    {
+     "id": "blenheim",
+     "name": "🏠 Blenheim Palace (UK)",
+     "value": 7000
+    },
+    {
+     "id": "xanadu2",
+     "name": "🏠 Xanadu 2.0 (Bill Gates' Haus)",
+     "value": 6100
+    },
+    {
+     "id": "hearstcastle",
+     "name": "🏠 Hearst Castle (USA)",
+     "value": 5600
+    },
+    {
+     "id": "spellingmanor",
+     "name": "🏠 The Manor (Spelling-Anwesen)",
+     "value": 5300
+    },
+    {
+     "id": "updown_court",
+     "name": "🏠 Updown Court (UK)",
+     "value": 4600
+    },
+    {
+     "id": "kensington",
+     "name": "🏠 Kensington Palace (Privatwohnungen)",
+     "value": 2700
+    },
+    {
+     "id": "playboy_mansion",
+     "name": "🏠 Playboy Mansion",
+     "value": 2100
+    }
+   ]
+  },
+  "dinos_groesse": {
+   "label": "Einordnen: Dinosaurier (Länge)",
+   "unit": "m Länge (ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "supersaurus",
+     "name": "🦕 Supersaurus",
+     "value": 39
+    },
+    {
+     "id": "patagotitan",
+     "name": "🦕 Patagotitan",
+     "value": 37
+    },
+    {
+     "id": "argentinosaurus",
+     "name": "🦕 Argentinosaurus",
+     "value": 35
+    },
+    {
+     "id": "diplodocus",
+     "name": "🦕 Diplodocus",
+     "value": 27
+    },
+    {
+     "id": "apatosaurus",
+     "name": "🦕 Apatosaurus (Brontosaurus)",
+     "value": 23
+    },
+    {
+     "id": "brachiosaurus",
+     "name": "🦕 Brachiosaurus",
+     "value": 21
+    },
+    {
+     "id": "spinosaurus",
+     "name": "🦖 Spinosaurus",
+     "value": 15
+    },
+    {
+     "id": "giganotosaurus",
+     "name": "🦖 Giganotosaurus",
+     "value": 13
+    },
+    {
+     "id": "trex",
+     "name": "🦖 Tyrannosaurus Rex",
+     "value": 12
+    },
+    {
+     "id": "allosaurus",
+     "name": "🦖 Allosaurus",
+     "value": 10
+    },
+    {
+     "id": "triceratops",
+     "name": "🦕 Triceratops",
+     "value": 9
+    },
+    {
+     "id": "stegosaurus",
+     "name": "🦕 Stegosaurus",
+     "value": 8
+    },
+    {
+     "id": "ankylosaurus",
+     "name": "🦕 Ankylosaurus",
+     "value": 6.5
+    },
+    {
+     "id": "parasaurolophus",
+     "name": "🦕 Parasaurolophus",
+     "value": 6
+    },
+    {
+     "id": "velociraptor",
+     "name": "🦖 Velociraptor",
+     "value": 2
+    },
+    {
+     "id": "compsognathus",
+     "name": "🦖 Compsognathus",
+     "value": 1
+    }
+   ]
+  },
+  "objekte_groesse": {
+   "label": "Einordnen: Größenvergleich",
+   "unit": "m (ca.)",
+   "order": "desc",
+   "items": [
+    {
+     "id": "sandkorn",
+     "name": "🏖️ Sandkorn",
+     "value": 0.0005
+    },
+    {
+     "id": "floh",
+     "name": "🦟 Floh",
+     "value": 0.003
+    },
+    {
+     "id": "ameise",
+     "name": "🐜 Ameise",
+     "value": 0.005
+    },
+    {
+     "id": "schneeflocke",
+     "name": "❄️ Schneeflocke",
+     "value": 0.005
+    },
+    {
+     "id": "marienkaefer",
+     "name": "🐞 Marienkäfer",
+     "value": 0.007
+    },
+    {
+     "id": "reiskorn",
+     "name": "🍚 Reiskorn",
+     "value": 0.007
+    },
+    {
+     "id": "stecknadel",
+     "name": "📌 Stecknadel",
+     "value": 0.03
+    },
+    {
+     "id": "buerorklammer",
+     "name": "📎 Büroklammer",
+     "value": 0.03
+    },
+    {
+     "id": "kakerlake",
+     "name": "🪳 Kakerlake",
+     "value": 0.04
+    },
+    {
+     "id": "streichholz",
+     "name": "🔥 Streichholz",
+     "value": 0.045
+    },
+    {
+     "id": "euromuenze",
+     "name": "🪙 1-Euro-Münze",
+     "value": 0.023
+    },
+    {
+     "id": "wuerfel",
+     "name": "🎲 Spielwürfel",
+     "value": 0.016
+    },
+    {
+     "id": "biene",
+     "name": "🐝 Biene",
+     "value": 0.015
+    },
+    {
+     "id": "kolibri",
+     "name": "🐦 Kolibri",
+     "value": 0.1
+    },
+    {
+     "id": "maus_tier",
+     "name": "🐭 Maus",
+     "value": 0.08
+    },
+    {
+     "id": "golfball",
+     "name": "⛳ Golfball",
+     "value": 0.043
+    },
+    {
+     "id": "batterie_aa",
+     "name": "🔋 AA-Batterie",
+     "value": 0.05
+    },
+    {
+     "id": "tennisball",
+     "name": "🎾 Tennisball",
+     "value": 0.067
+    },
+    {
+     "id": "smartphone",
+     "name": "📱 Smartphone",
+     "value": 0.15
+    },
+    {
+     "id": "hamster",
+     "name": "🐹 Hamster",
+     "value": 0.12
+    },
+    {
+     "id": "ratte",
+     "name": "🐀 Ratte",
+     "value": 0.25
+    },
+    {
+     "id": "fussball_ball",
+     "name": "⚽ Fußball (Ball)",
+     "value": 0.22
+    },
+    {
+     "id": "buch",
+     "name": "📖 Buch (Taschenbuch)",
+     "value": 0.19
+    },
+    {
+     "id": "baguette",
+     "name": "🥖 Baguette",
+     "value": 0.65
+    },
+    {
+     "id": "katze",
+     "name": "🐈 Hauskatze",
+     "value": 0.46
+    },
+    {
+     "id": "hase",
+     "name": "🐇 Feldhase",
+     "value": 0.6
+    },
+    {
+     "id": "pikachu",
+     "name": "⚡ Pikachu",
+     "value": 0.4
+    },
+    {
+     "id": "spongebob",
+     "name": "🧽 SpongeBob Schwammkopf",
+     "value": 0.6
+    },
+    {
+     "id": "gitarre",
+     "name": "🎸 Akustikgitarre",
+     "value": 1.0
+    },
+    {
+     "id": "yoda",
+     "name": "👽 Yoda (Star Wars)",
+     "value": 0.66
+    },
+    {
+     "id": "regenschirm",
+     "name": "☂️ Regenschirm (aufgespannt)",
+     "value": 1.0
+    },
+    {
+     "id": "hund_gross",
+     "name": "🐕 Großer Hund (z.B. Deutsche Dogge)",
+     "value": 1.0
+    },
+    {
+     "id": "fahrrad",
+     "name": "🚲 Fahrrad",
+     "value": 1.1
+    },
+    {
+     "id": "mensch",
+     "name": "🧍 Mensch (Durchschnittsgröße)",
+     "value": 1.7
+    },
+    {
+     "id": "strauss_vogel",
+     "name": "🦩 Flamingo",
+     "value": 1.4
+    },
+    {
+     "id": "kuehlschrank",
+     "name": "🧊 Kühlschrank",
+     "value": 1.8
+    },
+    {
+     "id": "tuer",
+     "name": "🚪 Standard-Zimmertür",
+     "value": 2.0
+    },
+    {
+     "id": "basketballspieler",
+     "name": "🏀 Sehr großer Basketballspieler",
+     "value": 2.2
+    },
+    {
+     "id": "bigbird",
+     "name": "🐤 Big Bird (Sesamstraße)",
+     "value": 2.4
+    },
+    {
+     "id": "pferd",
+     "name": "🐴 Pferd",
+     "value": 2.4
+    },
+    {
+     "id": "kuh",
+     "name": "🐄 Kuh",
+     "value": 2.5
+    },
+    {
+     "id": "smart_auto",
+     "name": "🚗 Smart (Kleinstwagen)",
+     "value": 2.7
+    },
+    {
+     "id": "mittelklassewagen",
+     "name": "🚙 Mittelklasse-Auto",
+     "value": 4.5
+    },
+    {
+     "id": "krokodil",
+     "name": "🐊 Salzwasserkrokodil",
+     "value": 5.0
+    },
+    {
+     "id": "giraffe",
+     "name": "🦒 Giraffe",
+     "value": 5.5
+    },
+    {
+     "id": "kleinbus",
+     "name": "🚐 Kleinbus",
+     "value": 5.5
+    },
+    {
+     "id": "segelboot",
+     "name": "⛵ Kleines Segelboot",
+     "value": 6.0
+    },
+    {
+     "id": "elefant",
+     "name": "🐘 Afrikanischer Elefant",
+     "value": 6.5
+    },
+    {
+     "id": "limousine_lang",
+     "name": "🚘 Stretch-Limousine",
+     "value": 8.9
+    },
+    {
+     "id": "t_rex",
+     "name": "🦖 Tyrannosaurus Rex",
+     "value": 12.0
+    },
+    {
+     "id": "doppeldeckerbus",
+     "name": "🚌 Doppeldeckerbus",
+     "value": 11.0
+    },
+    {
+     "id": "optimus_prime",
+     "name": "🤖 Optimus Prime (Transformers)",
+     "value": 10.0
+    },
+    {
+     "id": "king_kong",
+     "name": "🦍 King Kong (2005er Film)",
+     "value": 25.0
+    },
+    {
+     "id": "blauwal",
+     "name": "🐋 Blauwal",
+     "value": 30.0
+    },
+    {
+     "id": "tennisplatz",
+     "name": "🎾 Tennisplatz (Länge)",
+     "value": 23.8
+    },
+    {
+     "id": "wohnhaus_3stock",
+     "name": "🏠 Wohnhaus (3 Stockwerke)",
+     "value": 10.0
+    },
+    {
+     "id": "windrad_fluegel",
+     "name": "💨 Windkraftanlage (Nabenhöhe)",
+     "value": 100.0
+    },
+    {
+     "id": "fussballfeld",
+     "name": "⚽ Fußballfeld (Länge)",
+     "value": 105.0
+    },
+    {
+     "id": "godzilla",
+     "name": "🦎 Godzilla (Film-Version 2014)",
+     "value": 108.0
+    },
+    {
+     "id": "freiheitsstatue",
+     "name": "🗽 Freiheitsstatue (mit Sockel)",
+     "value": 93.0
+    },
+    {
+     "id": "kreuzfahrtschiff_klein",
+     "name": "🚢 Kleineres Kreuzfahrtschiff",
+     "value": 200.0
+    },
+    {
+     "id": "titanic",
+     "name": "🚢 Titanic",
+     "value": 269.0
+    },
+    {
+     "id": "eiffelturm",
+     "name": "🗼 Eiffelturm",
+     "value": 330.0
+    },
+    {
+     "id": "kreuzfahrtschiff_gross",
+     "name": "🛳️ Symphony of the Seas",
+     "value": 362.0
+    },
+    {
+     "id": "koelner_dom",
+     "name": "⛪ Kölner Dom",
+     "value": 157.0
+    },
+    {
+     "id": "cheops_pyramide",
+     "name": "🔺 Cheops-Pyramide",
+     "value": 147.0
+    },
+    {
+     "id": "burj_khalifa",
+     "name": "🏙️ Burj Khalifa",
+     "value": 828.0
+    },
+    {
+     "id": "golden_gate_bridge",
+     "name": "🌉 Golden Gate Bridge (Hauptspannweite)",
+     "value": 1280.0
+    },
+    {
+     "id": "central_park",
+     "name": "🌳 Central Park (Länge)",
+     "value": 4000.0
+    },
+    {
+     "id": "flughafen_runway",
+     "name": "🛫 Startbahn (großer Flughafen)",
+     "value": 4000.0
+    },
+    {
+     "id": "zugspitze",
+     "name": "🏔️ Zugspitze (Höhe)",
+     "value": 2962.0
+    },
+    {
+     "id": "mount_everest",
+     "name": "🏔️ Mount Everest (Höhe)",
+     "value": 8849.0
+    },
+    {
+     "id": "marianengraben",
+     "name": "🌊 Marianengraben (Tiefe)",
+     "value": 10935.0
+    },
+    {
+     "id": "death_star",
+     "name": "⭐ Todesstern (Star Wars)",
+     "value": 120000.0
+    },
+    {
+     "id": "manhattan_laenge",
+     "name": "🏙️ Manhattan (Länge)",
+     "value": 21000.0
+    },
+    {
+     "id": "bodensee_laenge",
+     "name": "🌊 Bodensee (Länge)",
+     "value": 63000.0
+    },
+    {
+     "id": "english_channel",
+     "name": "🌊 Ärmelkanal (kürzeste Breite)",
+     "value": 33000.0
+    },
+    {
+     "id": "mauna_kea",
+     "name": "🌋 Mauna Kea (Basis bis Gipfel)",
+     "value": 10200.0
+    },
+    {
+     "id": "hoover_damm",
+     "name": "🌊 Hoover-Staudamm (Höhe)",
+     "value": 221.0
+    },
+    {
+     "id": "great_wall_segment",
+     "name": "🧱 Chinesische Mauer (sichtbares Segment)",
+     "value": 8850000.0
+    },
+    {
+     "id": "bienenstock",
+     "name": "🐝 Bienenstock",
+     "value": 0.5
+    },
+    {
+     "id": "spinnennetz",
+     "name": "🕸️ Spinnennetz (groß)",
+     "value": 1.5
+    },
+    {
+     "id": "surfbrett",
+     "name": "🏄 Surfbrett",
+     "value": 2.0
+    },
+    {
+     "id": "klavier_fluegel",
+     "name": "🎹 Konzertflügel",
+     "value": 2.7
+    },
+    {
+     "id": "schulbus",
+     "name": "🚌 Amerikanischer Schulbus",
+     "value": 12.0
+    },
+    {
+     "id": "segelschiff",
+     "name": "⛵ Großsegler (Viermaster)",
+     "value": 100.0
+    },
+    {
+     "id": "gletscher_zunge",
+     "name": "🧊 Gletscherzunge (kleiner Alpengletscher)",
+     "value": 3000.0
+    },
+    {
+     "id": "regenbogen_basis",
+     "name": "🌈 Regenbogen (Basisabstand, ca.)",
+     "value": 2000.0
+    },
+    {
+     "id": "staudamm_drei_schluchten",
+     "name": "🌊 Drei-Schluchten-Staudamm (Länge)",
+     "value": 2335.0
+    },
+    {
+     "id": "wal_hai",
+     "name": "🐳 Walhai",
+     "value": 12.0
+    },
+    {
+     "id": "anakonda",
+     "name": "🐍 Grüne Anakonda",
+     "value": 6.0
+    },
+    {
+     "id": "straussenvogel",
+     "name": "🦤 Strauß",
+     "value": 2.7
+    },
+    {
+     "id": "panzer",
+     "name": "🪖 Kampfpanzer (z.B. Leopard 2)",
+     "value": 9.7
+    },
+    {
+     "id": "u_boot",
+     "name": "🚤 U-Boot (Angriffs-U-Boot)",
+     "value": 110.0
+    },
+    {
+     "id": "achterbahn",
+     "name": "🎢 Große Achterbahn (Höhe)",
+     "value": 130.0
+    },
+    {
+     "id": "staumauer_talsperre",
+     "name": "🌊 Große Staumauer (Höhe)",
+     "value": 285.0
+    },
+    {
+     "id": "space_shuttle",
+     "name": "🚀 Space Shuttle",
+     "value": 37.0
+    },
+    {
+     "id": "saturn_v_rakete",
+     "name": "🚀 Saturn-V-Rakete",
+     "value": 111.0
+    },
+    {
+     "id": "iss",
+     "name": "🛰️ Internationale Raumstation (ISS, Länge)",
+     "value": 109.0
+    },
+    {
+     "id": "wolkenkratzer_mittel",
+     "name": "🏢 Durchschnittlicher Wolkenkratzer",
+     "value": 200.0
+    },
+    {
+     "id": "moby_dick_wal",
+     "name": "🐋 Pottwal",
+     "value": 20.0
+    }
+   ]
+  },
+  "planeten_abstand": {
+   "label": "Planeten nach Abstand von der Sonne",
+   "unit": "Mio. km von der Sonne",
+   "order": "asc",
+   "items": [
+    {
+     "id": "merkur",
+     "name": "☿️ Merkur",
+     "value": 57.9
+    },
+    {
+     "id": "venus",
+     "name": "🌕 Venus",
+     "value": 108.2
+    },
+    {
+     "id": "erde",
+     "name": "🌍 Erde",
+     "value": 149.6
+    },
+    {
+     "id": "mars",
+     "name": "🔴 Mars",
+     "value": 227.9
+    },
+    {
+     "id": "jupiter",
+     "name": "🟠 Jupiter",
+     "value": 778.5
+    },
+    {
+     "id": "saturn",
+     "name": "🪐 Saturn",
+     "value": 1434.0
+    },
+    {
+     "id": "uranus",
+     "name": "🔷 Uranus",
+     "value": 2871.0
+    },
+    {
+     "id": "neptun",
+     "name": "🔵 Neptun",
+     "value": 4495.0
+    }
+   ]
+  }
+ },
+ "higherLower": {
+  "einwohner": {
+   "label": "Mehr oder Weniger: Einwohner",
+   "unit": "Einwohner (ca.)",
+   "order": "desc",
+   "seedId": "deu",
+   "items": [
+    {
+     "id": "deu",
+     "name": "🇩🇪 Deutschland",
+     "value": 84000000
+    },
+    {
+     "id": "fra",
+     "name": "🇫🇷 Frankreich",
+     "value": 68000000
+    },
+    {
+     "id": "ita",
+     "name": "🇮🇹 Italien",
+     "value": 59000000
+    },
+    {
+     "id": "esp",
+     "name": "🇪🇸 Spanien",
+     "value": 47000000
+    },
+    {
+     "id": "jpn",
+     "name": "🇯🇵 Japan",
+     "value": 124000000
+    },
+    {
+     "id": "usa",
+     "name": "🇺🇸 USA",
+     "value": 335000000
+    },
+    {
+     "id": "ind",
+     "name": "🇮🇳 Indien",
+     "value": 1428000000
+    },
+    {
+     "id": "bra",
+     "name": "🇧🇷 Brasilien",
+     "value": 216000000
+    },
+    {
+     "id": "gbr",
+     "name": "🇬🇧 Vereinigtes Königreich",
+     "value": 67000000
+    },
+    {
+     "id": "nga",
+     "name": "🇳🇬 Nigeria",
+     "value": 223000000
+    }
+   ]
+  },
+  "musik": {
+   "label": "Mehr oder Weniger: Musik (Streams)",
+   "unit": "Mio. Streams (ca.)",
+   "order": "desc",
+   "seedId": "shapeofyou",
+   "items": [
+    {
+     "id": "shapeofyou",
+     "name": "🎵 Ed Sheeran – Shape of You",
+     "value": 4000
+    },
+    {
+     "id": "blinding",
+     "name": "🎵 The Weeknd – Blinding Lights",
+     "value": 4700
+    },
+    {
+     "id": "dance",
+     "name": "🎵 Lady Gaga – Shallow",
+     "value": 1800
+    },
+    {
+     "id": "rockstar",
+     "name": "🎵 Post Malone – rockstar",
+     "value": 2500
+    },
+    {
+     "id": "sunflower",
+     "name": "🎵 Post Malone & Swae Lee – Sunflower",
+     "value": 2900
+    },
+    {
+     "id": "seeyou",
+     "name": "🎵 Lewis Capaldi – Someone You Loved",
+     "value": 2750
+    },
+    {
+     "id": "despacito",
+     "name": "🎵 Luis Fonsi – Despacito",
+     "value": 3700
+    },
+    {
+     "id": "stayed",
+     "name": "🎵 The Kid LAROI & Justin Bieber – Stay",
+     "value": 2400
+    }
+   ]
+  },
+  "serien": {
+   "label": "Mehr oder Weniger: Serien (Episodenanzahl)",
+   "unit": "Episoden",
+   "order": "desc",
+   "seedId": "friends",
+   "items": [
+    {
+     "id": "friends",
+     "name": "📺 Friends",
+     "value": 236
+    },
+    {
+     "id": "simpsons",
+     "name": "📺 Die Simpsons",
+     "value": 750
+    },
+    {
+     "id": "greys",
+     "name": "📺 Grey's Anatomy",
+     "value": 430
+    },
+    {
+     "id": "office",
+     "name": "📺 The Office (US)",
+     "value": 201
+    },
+    {
+     "id": "got",
+     "name": "📺 Game of Thrones",
+     "value": 73
+    },
+    {
+     "id": "breakingbad",
+     "name": "📺 Breaking Bad",
+     "value": 62
+    },
+    {
+     "id": "strangerthings",
+     "name": "📺 Stranger Things",
+     "value": 42
+    },
+    {
+     "id": "sherlock",
+     "name": "📺 Sherlock",
+     "value": 13
+    }
+   ]
+  },
+  "gehalt": {
+   "label": "Mehr oder Weniger: Berufe (Durchschnittsgehalt)",
+   "unit": "€ brutto/Jahr (ca.)",
+   "order": "desc",
+   "seedId": "arzt",
+   "items": [
+    {
+     "id": "arzt",
+     "name": "👨‍⚕️ Facharzt/Fachärztin",
+     "value": 95000
+    },
+    {
+     "id": "pilot",
+     "name": "✈️ Verkehrspilot/in",
+     "value": 110000
+    },
+    {
+     "id": "anwalt",
+     "name": "⚖️ Rechtsanwalt/anwältin",
+     "value": 75000
+    },
+    {
+     "id": "lehrer",
+     "name": "👩‍🏫 Lehrer/in",
+     "value": 58000
+    },
+    {
+     "id": "ingenieur",
+     "name": "⚙️ Ingenieur/in",
+     "value": 68000
+    },
+    {
+     "id": "krankenpfleger",
+     "name": "🩺 Krankenpfleger/in",
+     "value": 38000
+    },
+    {
+     "id": "polizist",
+     "name": "👮 Polizist/in",
+     "value": 48000
+    },
+    {
+     "id": "bäcker",
+     "name": "🥐 Bäcker/in",
+     "value": 30000
+    }
+   ]
+  },
+  "kaderwert": {
+   "label": "Mehr oder Weniger: Fußball (Kaderwert)",
+   "unit": "Mio. € (ca.)",
+   "order": "desc",
+   "seedId": "mancity",
+   "items": [
+    {
+     "id": "mancity",
+     "name": "⚽ Manchester City",
+     "value": 1300
+    },
+    {
+     "id": "realmadrid",
+     "name": "⚽ Real Madrid",
+     "value": 1100
+    },
+    {
+     "id": "arsenal",
+     "name": "⚽ FC Arsenal",
+     "value": 1080
+    },
+    {
+     "id": "psg",
+     "name": "⚽ Paris Saint-Germain",
+     "value": 1050
+    },
+    {
+     "id": "liverpool",
+     "name": "⚽ FC Liverpool",
+     "value": 980
+    },
+    {
+     "id": "fcbarcelona",
+     "name": "⚽ FC Barcelona",
+     "value": 950
+    },
+    {
+     "id": "fcbayern",
+     "name": "⚽ FC Bayern München",
+     "value": 850
+    },
+    {
+     "id": "dortmund",
+     "name": "⚽ Borussia Dortmund",
+     "value": 450
+    }
+   ]
+  },
+  "immobilien_preis": {
+   "label": "Mehr oder Weniger: Immobilien (Quadratmeterpreis)",
+   "unit": "€/m² (Stadtdurchschnitt, ca.)",
+   "order": "desc",
+   "seedId": "berlin",
+   "items": [
+    {
+     "id": "berlin",
+     "name": "🏠 Berlin",
+     "value": 6000
+    },
+    {
+     "id": "monaco",
+     "name": "🏠 Monaco",
+     "value": 47000
+    },
+    {
+     "id": "hongkong",
+     "name": "🏠 Hongkong",
+     "value": 28000
+    },
+    {
+     "id": "london",
+     "name": "🏠 London",
+     "value": 19000
+    },
+    {
+     "id": "newyork",
+     "name": "🏠 New York",
+     "value": 16000
+    },
+    {
+     "id": "paris",
+     "name": "🏠 Paris",
+     "value": 11000
+    },
+    {
+     "id": "zuerich",
+     "name": "🏠 Zürich",
+     "value": 16500
+    },
+    {
+     "id": "singapur",
+     "name": "🏠 Singapur",
+     "value": 22000
+    }
+   ]
+  },
+  "apps_downloads": {
+   "label": "Mehr oder Weniger: Apps (Downloads)",
+   "unit": "Mrd. Downloads (ca.)",
+   "order": "desc",
+   "seedId": "spotify",
+   "items": [
+    {
+     "id": "spotify",
+     "name": "📱 Spotify",
+     "value": 1.0
+    },
+    {
+     "id": "whatsapp",
+     "name": "📱 WhatsApp",
+     "value": 6.5
+    },
+    {
+     "id": "tiktok",
+     "name": "📱 TikTok",
+     "value": 4.5
+    },
+    {
+     "id": "instagram",
+     "name": "📱 Instagram",
+     "value": 4.0
+    },
+    {
+     "id": "facebook",
+     "name": "📱 Facebook",
+     "value": 6.0
+    },
+    {
+     "id": "messenger",
+     "name": "📱 Messenger",
+     "value": 4.8
+    },
+    {
+     "id": "snapchat",
+     "name": "📱 Snapchat",
+     "value": 1.8
+    },
+    {
+     "id": "zoom",
+     "name": "📱 Zoom",
+     "value": 1.1
+    }
+   ]
+  },
+  "videospiele_verkaeufe": {
+   "label": "Mehr oder Weniger: Videospiele (Verkaufszahlen)",
+   "unit": "Mio. verkaufte Einheiten (ca.)",
+   "order": "desc",
+   "seedId": "mariokart8",
+   "items": [
+    {
+     "id": "mariokart8",
+     "name": "🎮 Mario Kart 8 (Deluxe)",
+     "value": 68
+    },
+    {
+     "id": "minecraft",
+     "name": "🎮 Minecraft",
+     "value": 300
+    },
+    {
+     "id": "gtav",
+     "name": "🎮 Grand Theft Auto V",
+     "value": 210
+    },
+    {
+     "id": "tetris",
+     "name": "🎮 Tetris (alle Versionen)",
+     "value": 100
+    },
+    {
+     "id": "wiisports",
+     "name": "🎮 Wii Sports",
+     "value": 82
+    },
+    {
+     "id": "pubg",
+     "name": "🎮 PUBG: Battlegrounds",
+     "value": 75
+    },
+    {
+     "id": "supermario",
+     "name": "🎮 Super Mario Bros. (1985)",
+     "value": 40
+    },
+    {
+     "id": "pokemonrb",
+     "name": "🎮 Pokémon Rot/Blau",
+     "value": 31
+    }
+   ]
+  },
+  "buecher_verkaeufe": {
+   "label": "Mehr oder Weniger: Bücher (verkaufte Exemplare)",
+   "unit": "Mio. verkaufte Exemplare (ca.)",
+   "order": "desc",
+   "seedId": "alchemist",
+   "items": [
+    {
+     "id": "alchemist",
+     "name": "📖 Der Alchimist (Paulo Coelho)",
+     "value": 65
+    },
+    {
+     "id": "hobbit",
+     "name": "📖 Der Hobbit",
+     "value": 140
+    },
+    {
+     "id": "lotr",
+     "name": "📖 Der Herr der Ringe",
+     "value": 150
+    },
+    {
+     "id": "harrypotter1",
+     "name": "📖 Harry Potter und der Stein der Weisen",
+     "value": 120
+    },
+    {
+     "id": "littleprince",
+     "name": "📖 Der kleine Prinz",
+     "value": 200
+    },
+    {
+     "id": "donquijote",
+     "name": "📖 Don Quijote",
+     "value": 500
+    },
+    {
+     "id": "davincicode",
+     "name": "📖 Sakrileg (Dan Brown)",
+     "value": 80
+    },
+    {
+     "id": "agathachristie",
+     "name": "📖 Und dann gab's keines mehr (Agatha Christie)",
+     "value": 100
+    }
+   ]
+  },
+  "prominente_follower": {
+   "label": "Mehr oder Weniger: Prominente (Social-Media-Follower)",
+   "unit": "Mio. Follower (eine Plattform, ca.)",
+   "order": "desc",
+   "seedId": "ronaldo",
+   "items": [
+    {
+     "id": "ronaldo",
+     "name": "⚽ Cristiano Ronaldo",
+     "value": 630
+    },
+    {
+     "id": "messi",
+     "name": "⚽ Lionel Messi",
+     "value": 500
+    },
+    {
+     "id": "selenagomez",
+     "name": "🎤 Selena Gomez",
+     "value": 420
+    },
+    {
+     "id": "kyliejenner",
+     "name": "💄 Kylie Jenner",
+     "value": 400
+    },
+    {
+     "id": "therock",
+     "name": "🎬 Dwayne Johnson",
+     "value": 390
+    },
+    {
+     "id": "arianagrande",
+     "name": "🎤 Ariana Grande",
+     "value": 380
+    },
+    {
+     "id": "kimkardashian",
+     "name": "💄 Kim Kardashian",
+     "value": 360
+    },
+    {
+     "id": "beyonce",
+     "name": "🎤 Beyoncé",
+     "value": 320
+    }
+   ]
+  },
+  "basketball_gehalt": {
+   "label": "Mehr oder Weniger: Basketball (Jahresgehalt)",
+   "unit": "Mio. USD/Jahr (ca.)",
+   "order": "desc",
+   "seedId": "curry",
+   "items": [
+    {
+     "id": "curry",
+     "name": "🏀 Stephen Curry",
+     "value": 55
+    },
+    {
+     "id": "lebron",
+     "name": "🏀 LeBron James",
+     "value": 52
+    },
+    {
+     "id": "durant",
+     "name": "🏀 Kevin Durant",
+     "value": 50
+    },
+    {
+     "id": "giannis",
+     "name": "🏀 Giannis Antetokounmpo",
+     "value": 48
+    },
+    {
+     "id": "embiid",
+     "name": "🏀 Joel Embiid",
+     "value": 51
+    },
+    {
+     "id": "doncic",
+     "name": "🏀 Luka Dončić",
+     "value": 43
+    },
+    {
+     "id": "tatum",
+     "name": "🏀 Jayson Tatum",
+     "value": 35
+    },
+    {
+     "id": "morant",
+     "name": "🏀 Ja Morant",
+     "value": 34
+    }
+   ]
+  },
+  "autos_speed": {
+   "label": "Mehr oder Weniger: Autos (Höchstgeschwindigkeit)",
+   "unit": "km/h",
+   "order": "desc",
+   "seedId": "golf8",
+   "items": [
+    {
+     "id": "golf8",
+     "name": "🚗 VW Golf 8 (Basismodell)",
+     "value": 198
+    },
+    {
+     "id": "bugattichiron",
+     "name": "🚗 Bugatti Chiron Super Sport",
+     "value": 440
+    },
+    {
+     "id": "ssctuatara",
+     "name": "🚗 SSC Tuatara",
+     "value": 455
+    },
+    {
+     "id": "koenigseggjesko",
+     "name": "🚗 Koenigsegg Jesko Absolut",
+     "value": 480
+    },
+    {
+     "id": "venom",
+     "name": "🚗 Hennessey Venom F5",
+     "value": 484
+    },
+    {
+     "id": "porsche911",
+     "name": "🚗 Porsche 911 Carrera",
+     "value": 293
+    },
+    {
+     "id": "teslamodels",
+     "name": "🚗 Tesla Model S Plaid",
+     "value": 322
+    },
+    {
+     "id": "mclarenf1",
+     "name": "🚗 McLaren F1",
+     "value": 386
+    }
+   ]
+  },
+  "kaderwert_bundesliga": {
+   "label": "Mehr oder Weniger: Fußball – Bundesliga (Kaderwert)",
+   "unit": "Mio. € (ca.)",
+   "order": "desc",
+   "seedId": "bayern",
+   "items": [
+    {
+     "id": "bayern",
+     "name": "⚽ FC Bayern München",
+     "value": 800
+    },
+    {
+     "id": "leverkusen",
+     "name": "⚽ Bayer Leverkusen",
+     "value": 550
+    },
+    {
+     "id": "dortmund",
+     "name": "⚽ Borussia Dortmund",
+     "value": 450
+    },
+    {
+     "id": "leipzig",
+     "name": "⚽ RB Leipzig",
+     "value": 400
+    },
+    {
+     "id": "frankfurt",
+     "name": "⚽ Eintracht Frankfurt",
+     "value": 280
+    },
+    {
+     "id": "stuttgart",
+     "name": "⚽ VfB Stuttgart",
+     "value": 250
+    },
+    {
+     "id": "gladbach",
+     "name": "⚽ Borussia Mönchengladbach",
+     "value": 180
+    },
+    {
+     "id": "bremen",
+     "name": "⚽ SV Werder Bremen",
+     "value": 140
+    }
+   ],
+   "germanOnly": true
+  },
+  "kaderwert_2liga": {
+   "label": "Mehr oder Weniger: Fußball – 2. Bundesliga (Kaderwert)",
+   "unit": "Mio. € (ca.)",
+   "order": "desc",
+   "seedId": "schalke",
+   "items": [
+    {
+     "id": "schalke",
+     "name": "⚽ FC Schalke 04",
+     "value": 40
+    },
+    {
+     "id": "hsv",
+     "name": "⚽ Hamburger SV",
+     "value": 45
+    },
+    {
+     "id": "koeln",
+     "name": "⚽ 1. FC Köln",
+     "value": 38
+    },
+    {
+     "id": "hannover",
+     "name": "⚽ Hannover 96",
+     "value": 30
+    },
+    {
+     "id": "duesseldorf",
+     "name": "⚽ Fortuna Düsseldorf",
+     "value": 25
+    },
+    {
+     "id": "stpauli",
+     "name": "⚽ FC St. Pauli",
+     "value": 35
+    },
+    {
+     "id": "paderborn",
+     "name": "⚽ SC Paderborn 07",
+     "value": 15
+    },
+    {
+     "id": "karlsruhe",
+     "name": "⚽ Karlsruher SC",
+     "value": 12
+    }
+   ],
+   "germanOnly": true
+  },
+  "kaderwert_laliga": {
+   "label": "Mehr oder Weniger: Fußball – La Liga (Kaderwert)",
+   "unit": "Mio. € (ca.)",
+   "order": "desc",
+   "seedId": "realmadrid2",
+   "items": [
+    {
+     "id": "realmadrid2",
+     "name": "⚽ Real Madrid",
+     "value": 1100
+    },
+    {
+     "id": "barcelona2",
+     "name": "⚽ FC Barcelona",
+     "value": 950
+    },
+    {
+     "id": "atletico",
+     "name": "⚽ Atlético Madrid",
+     "value": 500
+    },
+    {
+     "id": "villarreal",
+     "name": "⚽ FC Villarreal",
+     "value": 205
+    },
+    {
+     "id": "realsociedad",
+     "name": "⚽ Real Sociedad",
+     "value": 220
+    },
+    {
+     "id": "athletic",
+     "name": "⚽ Athletic Bilbao",
+     "value": 195
+    },
+    {
+     "id": "betis",
+     "name": "⚽ Real Betis",
+     "value": 180
+    },
+    {
+     "id": "sevilla",
+     "name": "⚽ FC Sevilla",
+     "value": 170
+    }
+   ]
+  },
+  "kaderwert_premierleague": {
+   "label": "Mehr oder Weniger: Fußball – Premier League (Kaderwert)",
+   "unit": "Mio. € (ca.)",
+   "order": "desc",
+   "seedId": "mancity2",
+   "items": [
+    {
+     "id": "mancity2",
+     "name": "⚽ Manchester City",
+     "value": 1300
+    },
+    {
+     "id": "arsenal2",
+     "name": "⚽ FC Arsenal",
+     "value": 1080
+    },
+    {
+     "id": "liverpool2",
+     "name": "⚽ FC Liverpool",
+     "value": 980
+    },
+    {
+     "id": "chelsea",
+     "name": "⚽ FC Chelsea",
+     "value": 900
+    },
+    {
+     "id": "manutd",
+     "name": "⚽ Manchester United",
+     "value": 750
+    },
+    {
+     "id": "tottenham",
+     "name": "⚽ Tottenham Hotspur",
+     "value": 650
+    },
+    {
+     "id": "newcastle",
+     "name": "⚽ Newcastle United",
+     "value": 500
+    },
+    {
+     "id": "astonvilla",
+     "name": "⚽ Aston Villa",
+     "value": 450
+    }
+   ]
+  },
+  "musik_rock": {
+   "label": "Mehr oder Weniger: Musik – Rock (Streams)",
+   "unit": "Mio. Streams (ca.)",
+   "order": "desc",
+   "seedId": "bohemianrhapsody",
+   "items": [
+    {
+     "id": "bohemianrhapsody",
+     "name": "🎸 Queen – Bohemian Rhapsody",
+     "value": 2200
+    },
+    {
+     "id": "hotelcalifornia",
+     "name": "🎸 Eagles – Hotel California",
+     "value": 1900
+    },
+    {
+     "id": "sweetchild",
+     "name": "🎸 Guns N' Roses – Sweet Child O' Mine",
+     "value": 1850
+    },
+    {
+     "id": "numb",
+     "name": "🎸 Linkin Park – Numb",
+     "value": 1800
+    },
+    {
+     "id": "smellslikespirit",
+     "name": "🎸 Nirvana – Smells Like Teen Spirit",
+     "value": 1500
+    },
+    {
+     "id": "entersandman",
+     "name": "🎸 Metallica – Enter Sandman",
+     "value": 1400
+    },
+    {
+     "id": "highwaytohell",
+     "name": "🎸 AC/DC – Highway to Hell",
+     "value": 1300
+    },
+    {
+     "id": "livinonaprayer",
+     "name": "🎸 Bon Jovi – Livin' on a Prayer",
+     "value": 1150
+    }
+   ]
+  },
+  "musik_hiphop": {
+   "label": "Mehr oder Weniger: Musik – HipHop (Streams)",
+   "unit": "Mio. Streams (ca.)",
+   "order": "desc",
+   "seedId": "godsplan",
+   "items": [
+    {
+     "id": "godsplan",
+     "name": "🎤 Drake – God's Plan",
+     "value": 2300
+    },
+    {
+     "id": "sickomode",
+     "name": "🎤 Travis Scott – SICKO MODE",
+     "value": 2100
+    },
+    {
+     "id": "oldtownroad",
+     "name": "🎤 Lil Nas X – Old Town Road",
+     "value": 2000
+    },
+    {
+     "id": "humble",
+     "name": "🎤 Kendrick Lamar – HUMBLE.",
+     "value": 1900
+    },
+    {
+     "id": "loseyourself",
+     "name": "🎤 Eminem – Lose Yourself",
+     "value": 1800
+    },
+    {
+     "id": "hotlinebling",
+     "name": "🎤 Drake – Hotline Bling",
+     "value": 1400
+    },
+    {
+     "id": "indacluv",
+     "name": "🎤 50 Cent – In Da Club",
+     "value": 1200
+    },
+    {
+     "id": "empirestate",
+     "name": "🎤 Jay-Z ft. Alicia Keys – Empire State of Mind",
+     "value": 1000
+    }
+   ]
+  },
+  "musik_klassik": {
+   "label": "Mehr oder Weniger: Musik – Klassik (Streams)",
+   "unit": "Mio. Streams (ca.)",
+   "order": "desc",
+   "seedId": "clairdelune",
+   "items": [
+    {
+     "id": "clairdelune",
+     "name": "🎻 Debussy – Clair de Lune",
+     "value": 500
+    },
+    {
+     "id": "moonlightsonata",
+     "name": "🎻 Beethoven – Mondscheinsonate",
+     "value": 420
+    },
+    {
+     "id": "fuerelise",
+     "name": "🎻 Beethoven – Für Elise",
+     "value": 450
+    },
+    {
+     "id": "fourseasons",
+     "name": "🎻 Vivaldi – Der Frühling (Die vier Jahreszeiten)",
+     "value": 380
+    },
+    {
+     "id": "canonind",
+     "name": "🎻 Pachelbel – Kanon in D",
+     "value": 400
+    },
+    {
+     "id": "kleinenachtmusik",
+     "name": "🎻 Mozart – Eine kleine Nachtmusik",
+     "value": 350
+    },
+    {
+     "id": "nocturne",
+     "name": "🎻 Chopin – Nocturne Op. 9 Nr. 2",
+     "value": 300
+    },
+    {
+     "id": "avemaria",
+     "name": "🎻 Schubert – Ave Maria",
+     "value": 250
+    }
+   ]
+  },
+  "serien_anime": {
+   "label": "Mehr oder Weniger: Serien – Anime (Episodenanzahl)",
+   "unit": "Episoden (ca.)",
+   "order": "desc",
+   "seedId": "onepiece",
+   "items": [
+    {
+     "id": "onepiece",
+     "name": "📺 One Piece",
+     "value": 1100
+    },
+    {
+     "id": "pokemon",
+     "name": "📺 Pokémon",
+     "value": 1200
+    },
+    {
+     "id": "conan",
+     "name": "📺 Detektiv Conan",
+     "value": 1130
+    },
+    {
+     "id": "naruto",
+     "name": "📺 Naruto (inkl. Shippuden)",
+     "value": 720
+    },
+    {
+     "id": "bleach",
+     "name": "📺 Bleach",
+     "value": 410
+    },
+    {
+     "id": "dbz",
+     "name": "📺 Dragon Ball Z",
+     "value": 291
+    },
+    {
+     "id": "aot",
+     "name": "📺 Attack on Titan",
+     "value": 94
+    },
+    {
+     "id": "opm",
+     "name": "📺 One Punch Man",
+     "value": 36
+    }
+   ]
+  },
+  "manga_verkaeufe": {
+   "label": "Mehr oder Weniger: Manga (verkaufte Bände)",
+   "unit": "Mio. verkaufte Bände (ca.)",
+   "order": "desc",
+   "seedId": "onepiecemanga",
+   "items": [
+    {
+     "id": "onepiecemanga",
+     "name": "📖 One Piece",
+     "value": 520
+    },
+    {
+     "id": "conanmanga",
+     "name": "📖 Detektiv Conan",
+     "value": 270
+    },
+    {
+     "id": "dragonballmanga",
+     "name": "📖 Dragon Ball",
+     "value": 260
+    },
+    {
+     "id": "narutomanga",
+     "name": "📖 Naruto",
+     "value": 250
+    },
+    {
+     "id": "demonslayermanga",
+     "name": "📖 Demon Slayer",
+     "value": 155
+    },
+    {
+     "id": "aotmanga",
+     "name": "📖 Attack on Titan",
+     "value": 145
+    },
+    {
+     "id": "mhamanga",
+     "name": "📖 My Hero Academia",
+     "value": 85
+    },
+    {
+     "id": "deathnotemanga",
+     "name": "📖 Death Note",
+     "value": 47
+    }
+   ]
+  },
+  "planeten_durchmesser": {
+   "label": "Planeten nach Durchmesser",
+   "unit": "km Durchmesser",
+   "order": "desc",
+   "items": [
+    {
+     "id": "merkur",
+     "name": "☿️ Merkur",
+     "value": 4879
+    },
+    {
+     "id": "mars",
+     "name": "🔴 Mars",
+     "value": 6779
+    },
+    {
+     "id": "venus",
+     "name": "🌕 Venus",
+     "value": 12104
+    },
+    {
+     "id": "erde",
+     "name": "🌍 Erde",
+     "value": 12742
+    },
+    {
+     "id": "neptun",
+     "name": "🔵 Neptun",
+     "value": 49244
+    },
+    {
+     "id": "uranus",
+     "name": "🔷 Uranus",
+     "value": 50724
+    },
+    {
+     "id": "saturn",
+     "name": "🪐 Saturn",
+     "value": 116460
+    },
+    {
+     "id": "jupiter",
+     "name": "🟠 Jupiter",
+     "value": 139820
+    }
+   ]
+  }
+ },
+ "guessPicture": {
+  "flaggen_erraten": {
+   "label": "Bild erraten: Flaggen",
+   "promptType": "emoji",
+   "items": [
+    {
+     "id": "f_de",
+     "promptValue": "🇩🇪",
+     "answer": "Deutschland"
+    },
+    {
+     "id": "f_fr",
+     "promptValue": "🇫🇷",
+     "answer": "Frankreich"
+    },
+    {
+     "id": "f_it",
+     "promptValue": "🇮🇹",
+     "answer": "Italien"
+    },
+    {
+     "id": "f_es",
+     "promptValue": "🇪🇸",
+     "answer": "Spanien"
+    },
+    {
+     "id": "f_jp",
+     "promptValue": "🇯🇵",
+     "answer": "Japan"
+    },
+    {
+     "id": "f_br",
+     "promptValue": "🇧🇷",
+     "answer": "Brasilien"
+    },
+    {
+     "id": "f_ca",
+     "promptValue": "🇨🇦",
+     "answer": "Kanada"
+    },
+    {
+     "id": "f_au",
+     "promptValue": "🇦🇺",
+     "answer": "Australien"
+    },
+    {
+     "id": "f_gb",
+     "promptValue": "🇬🇧",
+     "answer": "Vereinigtes Königreich",
+     "alt": [
+      "Großbritannien",
+      "England",
+      "UK"
+     ]
+    },
+    {
+     "id": "f_eg",
+     "promptValue": "🇪🇬",
+     "answer": "Ägypten"
+    },
+    {
+     "id": "f_us",
+     "promptValue": "🇺🇸",
+     "answer": "USA",
+     "alt": [
+      "Vereinigte Staaten",
+      "United States"
+     ]
+    },
+    {
+     "id": "f_cn",
+     "promptValue": "🇨🇳",
+     "answer": "China"
+    },
+    {
+     "id": "f_ru",
+     "promptValue": "🇷🇺",
+     "answer": "Russland"
+    },
+    {
+     "id": "f_in",
+     "promptValue": "🇮🇳",
+     "answer": "Indien"
+    },
+    {
+     "id": "f_mx",
+     "promptValue": "🇲🇽",
+     "answer": "Mexiko"
+    },
+    {
+     "id": "f_ar",
+     "promptValue": "🇦🇷",
+     "answer": "Argentinien"
+    },
+    {
+     "id": "f_za",
+     "promptValue": "🇿🇦",
+     "answer": "Südafrika"
+    },
+    {
+     "id": "f_kr",
+     "promptValue": "🇰🇷",
+     "answer": "Südkorea"
+    },
+    {
+     "id": "f_tr",
+     "promptValue": "🇹🇷",
+     "answer": "Türkei"
+    },
+    {
+     "id": "f_gr",
+     "promptValue": "🇬🇷",
+     "answer": "Griechenland"
+    },
+    {
+     "id": "f_pt",
+     "promptValue": "🇵🇹",
+     "answer": "Portugal"
+    },
+    {
+     "id": "f_nl",
+     "promptValue": "🇳🇱",
+     "answer": "Niederlande"
+    },
+    {
+     "id": "f_se",
+     "promptValue": "🇸🇪",
+     "answer": "Schweden"
+    },
+    {
+     "id": "f_ch",
+     "promptValue": "🇨🇭",
+     "answer": "Schweiz"
+    },
+    {
+     "id": "f_pl",
+     "promptValue": "🇵🇱",
+     "answer": "Polen"
+    },
+    {
+     "id": "f_ie",
+     "promptValue": "🇮🇪",
+     "answer": "Irland"
+    },
+    {
+     "id": "f_at",
+     "promptValue": "🇦🇹",
+     "answer": "Österreich"
+    },
+    {
+     "id": "f_no",
+     "promptValue": "🇳🇴",
+     "answer": "Norwegen"
+    }
+   ]
+  },
+  "tiere_erraten": {
+   "label": "Bild erraten: Tiere",
+   "promptType": "emoji",
+   "items": [
+    {
+     "id": "t_loewe",
+     "promptValue": "🦁",
+     "answer": "Löwe"
+    },
+    {
+     "id": "t_elefant",
+     "promptValue": "🐘",
+     "answer": "Elefant"
+    },
+    {
+     "id": "t_giraffe",
+     "promptValue": "🦒",
+     "answer": "Giraffe"
+    },
+    {
+     "id": "t_pinguin",
+     "promptValue": "🐧",
+     "answer": "Pinguin"
+    },
+    {
+     "id": "t_hai",
+     "promptValue": "🦈",
+     "answer": "Hai"
+    },
+    {
+     "id": "t_affe",
+     "promptValue": "🐒",
+     "answer": "Affe"
+    },
+    {
+     "id": "t_delfin",
+     "promptValue": "🐬",
+     "answer": "Delfin"
+    },
+    {
+     "id": "t_zebra",
+     "promptValue": "🦓",
+     "answer": "Zebra"
+    },
+    {
+     "id": "t_fledermaus",
+     "promptValue": "🦇",
+     "answer": "Fledermaus"
+    },
+    {
+     "id": "t_kaenguru",
+     "promptValue": "🦘",
+     "answer": "Känguru"
+    },
+    {
+     "id": "t_baer",
+     "promptValue": "🐻",
+     "answer": "Bär"
+    },
+    {
+     "id": "t_panda",
+     "promptValue": "🐼",
+     "answer": "Panda"
+    },
+    {
+     "id": "t_koala",
+     "promptValue": "🐨",
+     "answer": "Koala"
+    },
+    {
+     "id": "t_tiger",
+     "promptValue": "🐯",
+     "answer": "Tiger"
+    },
+    {
+     "id": "t_wolf",
+     "promptValue": "🐺",
+     "answer": "Wolf"
+    },
+    {
+     "id": "t_fuchs",
+     "promptValue": "🦊",
+     "answer": "Fuchs"
+    },
+    {
+     "id": "t_adler",
+     "promptValue": "🦅",
+     "answer": "Adler"
+    },
+    {
+     "id": "t_eule",
+     "promptValue": "🦉",
+     "answer": "Eule"
+    },
+    {
+     "id": "t_schildkroete",
+     "promptValue": "🐢",
+     "answer": "Schildkröte"
+    },
+    {
+     "id": "t_schlange",
+     "promptValue": "🐍",
+     "answer": "Schlange"
+    },
+    {
+     "id": "t_krokodil",
+     "promptValue": "🐊",
+     "answer": "Krokodil"
+    },
+    {
+     "id": "t_nashorn",
+     "promptValue": "🦏",
+     "answer": "Nashorn"
+    },
+    {
+     "id": "t_kamel",
+     "promptValue": "🐪",
+     "answer": "Kamel"
+    },
+    {
+     "id": "t_hirsch",
+     "promptValue": "🦌",
+     "answer": "Hirsch"
+    },
+    {
+     "id": "t_pfau",
+     "promptValue": "🦚",
+     "answer": "Pfau"
+    },
+    {
+     "id": "t_igel",
+     "promptValue": "🦔",
+     "answer": "Igel"
+    },
+    {
+     "id": "t_oktopus",
+     "promptValue": "🐙",
+     "answer": "Oktopus",
+     "alt": [
+      "Krake",
+      "Tintenfisch"
+     ]
+    }
+   ]
+  }
+ },
+ "chronology": {
+  "mcu_chrono": {
+   "label": "Chronologie: Marvel Cinematic Universe (Handlungschronologie)",
+   "unit": "Handlungsjahr (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "mcu_cap1",
+     "name": "🎬 Captain America: The First Avenger",
+     "value": 1942
+    },
+    {
+     "id": "mcu_capmarvel",
+     "name": "🎬 Captain Marvel",
+     "value": 1995
+    },
+    {
+     "id": "mcu_ironman1",
+     "name": "🎬 Iron Man",
+     "value": 2010
+    },
+    {
+     "id": "mcu_thor1",
+     "name": "🎬 Thor",
+     "value": 2011
+    },
+    {
+     "id": "mcu_avengers1",
+     "name": "🎬 The Avengers",
+     "value": 2012
+    },
+    {
+     "id": "mcu_ironman3",
+     "name": "🎬 Iron Man 3",
+     "value": 2013
+    },
+    {
+     "id": "mcu_gotg1",
+     "name": "🎬 Guardians of the Galaxy",
+     "value": 2014
+    },
+    {
+     "id": "mcu_ageofultron",
+     "name": "🎬 Avengers: Age of Ultron",
+     "value": 2015
+    },
+    {
+     "id": "mcu_civilwar",
+     "name": "🎬 Captain America: Civil War",
+     "value": 2016
+    },
+    {
+     "id": "mcu_infinitywar",
+     "name": "🎬 Avengers: Infinity War",
+     "value": 2018
+    }
+   ]
+  },
+  "xmen_chrono": {
+   "label": "Chronologie: X-Men Filme (Handlungschronologie)",
+   "unit": "Handlungsjahr (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "xmen_firstclass",
+     "name": "🎬 X-Men: First Class",
+     "value": 1962
+    },
+    {
+     "id": "xmen_dofp",
+     "name": "🎬 X-Men: Days of Future Past",
+     "value": 1973
+    },
+    {
+     "id": "xmen_originswolverine",
+     "name": "🎬 X-Men Origins: Wolverine",
+     "value": 1979
+    },
+    {
+     "id": "xmen_apocalypse",
+     "name": "🎬 X-Men: Apocalypse",
+     "value": 1983
+    },
+    {
+     "id": "xmen_darkphoenix",
+     "name": "🎬 X-Men: Dark Phoenix",
+     "value": 1992
+    },
+    {
+     "id": "xmen_1",
+     "name": "🎬 X-Men",
+     "value": 2000
+    },
+    {
+     "id": "xmen_2",
+     "name": "🎬 X2: X-Men United",
+     "value": 2003
+    },
+    {
+     "id": "xmen_laststand",
+     "name": "🎬 X-Men: The Last Stand",
+     "value": 2006
+    },
+    {
+     "id": "xmen_wolverine2",
+     "name": "🎬 The Wolverine",
+     "value": 2013
+    },
+    {
+     "id": "xmen_logan",
+     "name": "🎬 Logan",
+     "value": 2029
+    }
+   ]
+  },
+  "starwars_chrono": {
+   "label": "Chronologie: Star Wars (Handlungschronologie)",
+   "unit": "Jahre relativ zur Schlacht von Yavin (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "sw_phantom",
+     "name": "🎬 Die dunkle Bedrohung",
+     "value": -32
+    },
+    {
+     "id": "sw_clones",
+     "name": "🎬 Angriff der Klonkrieger",
+     "value": -22
+    },
+    {
+     "id": "sw_sith",
+     "name": "🎬 Die Rache der Sith",
+     "value": -19
+    },
+    {
+     "id": "sw_solo",
+     "name": "🎬 Solo: A Star Wars Story",
+     "value": -13
+    },
+    {
+     "id": "sw_rogueone",
+     "name": "🎬 Rogue One",
+     "value": -1
+    },
+    {
+     "id": "sw_newhope",
+     "name": "🎬 Eine neue Hoffnung",
+     "value": 0
+    },
+    {
+     "id": "sw_empire",
+     "name": "🎬 Das Imperium schlägt zurück",
+     "value": 3
+    },
+    {
+     "id": "sw_jedi",
+     "name": "🎬 Die Rückkehr der Jedi-Ritter",
+     "value": 4
+    },
+    {
+     "id": "sw_forceawakens",
+     "name": "🎬 Das Erwachen der Macht",
+     "value": 34
+    },
+    {
+     "id": "sw_lastjedi",
+     "name": "🎬 Die letzten Jedi",
+     "value": 35
+    }
+   ]
+  },
+  "startrek_chrono": {
+   "label": "Chronologie: Star Trek Filme (Handlungschronologie)",
+   "unit": "Sternzeit-Jahr (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "st_2009",
+     "name": "🖖 Star Trek (2009)",
+     "value": 2258
+    },
+    {
+     "id": "st_darkness",
+     "name": "🖖 Into Darkness",
+     "value": 2259
+    },
+    {
+     "id": "st_beyond",
+     "name": "🖖 Beyond",
+     "value": 2263
+    },
+    {
+     "id": "st_motionpicture",
+     "name": "🖖 Der Film (1979)",
+     "value": 2273
+    },
+    {
+     "id": "st_wok",
+     "name": "🖖 Der Zorn des Khan",
+     "value": 2285
+    },
+    {
+     "id": "st_voyagehome",
+     "name": "🖖 Zurück in die Gegenwart",
+     "value": 2286
+    },
+    {
+     "id": "st_undiscovered",
+     "name": "🖖 Das unentdeckte Land",
+     "value": 2293
+    },
+    {
+     "id": "st_firstcontact",
+     "name": "🖖 Der erste Kontakt",
+     "value": 2373
+    },
+    {
+     "id": "st_insurrection",
+     "name": "🖖 Der Aufstand",
+     "value": 2375
+    },
+    {
+     "id": "st_nemesis",
+     "name": "🖖 Nemesis",
+     "value": 2379
+    }
+   ]
+  },
+  "twd_chrono": {
+   "label": "Chronologie: The Walking Dead Universe (empfohlene Chronologie)",
+   "unit": "Position in der Chronologie",
+   "order": "asc",
+   "items": [
+    {
+     "id": "twd_fear",
+     "name": "🧟 Fear the Walking Dead",
+     "value": 1
+    },
+    {
+     "id": "twd_main",
+     "name": "🧟 The Walking Dead",
+     "value": 2
+    },
+    {
+     "id": "twd_tales",
+     "name": "🧟 Tales of the Walking Dead",
+     "value": 3
+    },
+    {
+     "id": "twd_worldbeyond",
+     "name": "🧟 World Beyond",
+     "value": 4
+    },
+    {
+     "id": "twd_oneswholive",
+     "name": "🧟 The Ones Who Live",
+     "value": 5
+    },
+    {
+     "id": "twd_daryl",
+     "name": "🧟 Daryl Dixon",
+     "value": 6
+    },
+    {
+     "id": "twd_deadcity",
+     "name": "🧟 Dead City",
+     "value": 7
+    }
+   ]
+  },
+  "middleearth_chrono": {
+   "label": "Chronologie: Mittelerde – Der Herr der Ringe Universum (Handlungschronologie)",
+   "unit": "Drittes Zeitalter, Jahr (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "me_hobbit1",
+     "name": "🎬 Der Hobbit: Eine unerwartete Reise",
+     "value": 2941
+    },
+    {
+     "id": "me_hobbit2",
+     "name": "🎬 Der Hobbit: Smaugs Einöde",
+     "value": 2941.5
+    },
+    {
+     "id": "me_hobbit3",
+     "name": "🎬 Der Hobbit: Die Schlacht der fünf Heere",
+     "value": 2942
+    },
+    {
+     "id": "me_fellowship",
+     "name": "🎬 Die Gefährten",
+     "value": 3018
+    },
+    {
+     "id": "me_twotowers",
+     "name": "🎬 Die zwei Türme",
+     "value": 3018.5
+    },
+    {
+     "id": "me_return",
+     "name": "🎬 Die Rückkehr des Königs",
+     "value": 3019
+    }
+   ]
+  },
+  "harrypotter_chrono": {
+   "label": "Chronologie: Harry-Potter-Universum (Handlungschronologie)",
+   "unit": "Handlungsjahr (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "hp_fb1",
+     "name": "🎬 Phantastische Tierwesen und wo sie zu finden sind",
+     "value": 1926
+    },
+    {
+     "id": "hp_fb2",
+     "name": "🎬 Grindelwalds Verbrechen",
+     "value": 1927
+    },
+    {
+     "id": "hp_fb3",
+     "name": "🎬 Dumbledores Geheimnisse",
+     "value": 1932
+    },
+    {
+     "id": "hp_1",
+     "name": "🎬 Harry Potter und der Stein der Weisen",
+     "value": 1991
+    },
+    {
+     "id": "hp_2",
+     "name": "🎬 Harry Potter und die Kammer des Schreckens",
+     "value": 1992
+    },
+    {
+     "id": "hp_3",
+     "name": "🎬 Harry Potter und der Gefangene von Askaban",
+     "value": 1993
+    },
+    {
+     "id": "hp_4",
+     "name": "🎬 Harry Potter und der Feuerkelch",
+     "value": 1994
+    },
+    {
+     "id": "hp_5",
+     "name": "🎬 Harry Potter und der Orden des Phönix",
+     "value": 1995
+    },
+    {
+     "id": "hp_6",
+     "name": "🎬 Harry Potter und der Halbblutprinz",
+     "value": 1996
+    },
+    {
+     "id": "hp_7a",
+     "name": "🎬 Harry Potter und die Heiligtümer des Todes 1",
+     "value": 1997
+    },
+    {
+     "id": "hp_7b",
+     "name": "🎬 Harry Potter und die Heiligtümer des Todes 2",
+     "value": 1998
+    }
+   ]
+  },
+  "conjuring_chrono": {
+   "label": "Chronologie: The Conjuring Universe (Handlungschronologie)",
+   "unit": "Handlungsjahr",
+   "order": "asc",
+   "items": [
+    {
+     "id": "con_nun1",
+     "name": "🎬 The Nun",
+     "value": 1952
+    },
+    {
+     "id": "con_annabellecreation",
+     "name": "🎬 Annabelle: Creation",
+     "value": 1955
+    },
+    {
+     "id": "con_nun2",
+     "name": "🎬 The Nun 2",
+     "value": 1956
+    },
+    {
+     "id": "con_annabelle1",
+     "name": "🎬 Annabelle",
+     "value": 1970
+    },
+    {
+     "id": "con_conjuring1",
+     "name": "🎬 Conjuring – Die Heimsuchung",
+     "value": 1971
+    },
+    {
+     "id": "con_lallorona",
+     "name": "🎬 Der Fluch der Llorona",
+     "value": 1973
+    },
+    {
+     "id": "con_conjuring2",
+     "name": "🎬 Conjuring 2",
+     "value": 1977
+    },
+    {
+     "id": "con_devilmademedoit",
+     "name": "🎬 Conjuring 3: Im Bann des Dämons",
+     "value": 1981
+    }
+   ]
+  },
+  "assassinscreed_chrono": {
+   "label": "Chronologie: Assassin's Creed (Handlungszeit im Spiel)",
+   "unit": "Jahr der Spielhandlung",
+   "order": "asc",
+   "items": [
+    {
+     "id": "ac_odyssey",
+     "name": "🎮 Assassin's Creed Odyssey",
+     "value": -431
+    },
+    {
+     "id": "ac_origins",
+     "name": "🎮 Assassin's Creed Origins",
+     "value": -49
+    },
+    {
+     "id": "ac_1",
+     "name": "🎮 Assassin's Creed",
+     "value": 1191
+    },
+    {
+     "id": "ac_2",
+     "name": "🎮 Assassin's Creed II",
+     "value": 1476
+    },
+    {
+     "id": "ac_brotherhood",
+     "name": "🎮 Assassin's Creed: Brotherhood",
+     "value": 1500
+    },
+    {
+     "id": "ac_revelations",
+     "name": "🎮 Assassin's Creed: Revelations",
+     "value": 1511
+    },
+    {
+     "id": "ac_blackflag",
+     "name": "🎮 Assassin's Creed IV: Black Flag",
+     "value": 1715
+    },
+    {
+     "id": "ac_3",
+     "name": "🎮 Assassin's Creed III",
+     "value": 1754
+    },
+    {
+     "id": "ac_unity",
+     "name": "🎮 Assassin's Creed: Unity",
+     "value": 1789
+    },
+    {
+     "id": "ac_syndicate",
+     "name": "🎮 Assassin's Creed: Syndicate",
+     "value": 1868
+    }
+   ]
+  },
+  "uncharted_chrono": {
+   "label": "Chronologie: Uncharted-Spiele (Erscheinungsjahr)",
+   "unit": "Erscheinungsjahr",
+   "order": "asc",
+   "items": [
+    {
+     "id": "unc_drakesfortune",
+     "name": "🎮 Drake's Fortune",
+     "value": 2007
+    },
+    {
+     "id": "unc_amongthieves",
+     "name": "🎮 Uncharted 2: Among Thieves",
+     "value": 2009
+    },
+    {
+     "id": "unc_drakesdeception",
+     "name": "🎮 Uncharted 3: Drake's Deception",
+     "value": 2011
+    },
+    {
+     "id": "unc_goldenabyss",
+     "name": "🎮 Golden Abyss",
+     "value": 2012
+    },
+    {
+     "id": "unc_athiefsend",
+     "name": "🎮 Uncharted 4: A Thief's End",
+     "value": 2016
+    },
+    {
+     "id": "unc_lostlegacy",
+     "name": "🎮 The Lost Legacy",
+     "value": 2017
+    }
+   ]
+  },
+  "pokemon_anime_chrono": {
+   "label": "Chronologie: Pokémon-Anime-Serien (Erstausstrahlung)",
+   "unit": "Erstausstrahlung",
+   "order": "asc",
+   "items": [
+    {
+     "id": "pkmanime_indigo",
+     "name": "📺 Indigo League (Kanto)",
+     "value": 1997
+    },
+    {
+     "id": "pkmanime_advgen",
+     "name": "📺 Advanced Generation (Hoenn)",
+     "value": 2002
+    },
+    {
+     "id": "pkmanime_dp",
+     "name": "📺 Diamant & Perle (Sinnoh)",
+     "value": 2006
+    },
+    {
+     "id": "pkmanime_bw",
+     "name": "📺 Schwarz & Weiß (Einall)",
+     "value": 2010
+    },
+    {
+     "id": "pkmanime_xy",
+     "name": "📺 XY (Kalos)",
+     "value": 2013
+    },
+    {
+     "id": "pkmanime_sm",
+     "name": "📺 Sonne & Mond (Alola)",
+     "value": 2016
+    },
+    {
+     "id": "pkmanime_journeys",
+     "name": "📺 Reisen (Galar)",
+     "value": 2019
+    },
+    {
+     "id": "pkmanime_horizons",
+     "name": "📺 Horizonte",
+     "value": 2023
+    }
+   ]
+  },
+  "pokemon_games_chrono": {
+   "label": "Chronologie: Pokémon-Hauptspiele (Erscheinungsjahr)",
+   "unit": "Erscheinungsjahr",
+   "order": "asc",
+   "items": [
+    {
+     "id": "pkmgame_rgb",
+     "name": "🎮 Rot/Grün/Blau (Kanto)",
+     "value": 1996
+    },
+    {
+     "id": "pkmgame_gs",
+     "name": "🎮 Gold/Silber (Johto)",
+     "value": 1999
+    },
+    {
+     "id": "pkmgame_rs",
+     "name": "🎮 Rubin/Saphir (Hoenn)",
+     "value": 2002
+    },
+    {
+     "id": "pkmgame_dp",
+     "name": "🎮 Diamant/Perle (Sinnoh)",
+     "value": 2006
+    },
+    {
+     "id": "pkmgame_bw",
+     "name": "🎮 Schwarz/Weiß (Einall)",
+     "value": 2010
+    },
+    {
+     "id": "pkmgame_xy",
+     "name": "🎮 X/Y (Kalos)",
+     "value": 2013
+    },
+    {
+     "id": "pkmgame_sm",
+     "name": "🎮 Sonne/Mond (Alola)",
+     "value": 2016
+    },
+    {
+     "id": "pkmgame_swsh",
+     "name": "🎮 Schwert/Schild (Galar)",
+     "value": 2019
+    },
+    {
+     "id": "pkmgame_sv",
+     "name": "🎮 Karmesin/Purpur (Paldea)",
+     "value": 2022
+    }
+   ]
+  },
+  "residentevil_chrono": {
+   "label": "Chronologie: Resident Evil (Handlungschronologie)",
+   "unit": "Handlungsjahr (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "re_0",
+     "name": "🎮 Resident Evil 0",
+     "value": 1998.1
+    },
+    {
+     "id": "re_1",
+     "name": "🎮 Resident Evil",
+     "value": 1998.2
+    },
+    {
+     "id": "re_3",
+     "name": "🎮 Resident Evil 3: Nemesis",
+     "value": 1998.3
+    },
+    {
+     "id": "re_cv",
+     "name": "🎮 Resident Evil: Code Veronica",
+     "value": 1998.4
+    },
+    {
+     "id": "re_4",
+     "name": "🎮 Resident Evil 4",
+     "value": 2004
+    },
+    {
+     "id": "re_5",
+     "name": "🎮 Resident Evil 5",
+     "value": 2009
+    },
+    {
+     "id": "re_6",
+     "name": "🎮 Resident Evil 6",
+     "value": 2013
+    },
+    {
+     "id": "re_7",
+     "name": "🎮 Resident Evil 7: Biohazard",
+     "value": 2017
+    },
+    {
+     "id": "re_village",
+     "name": "🎮 Resident Evil Village",
+     "value": 2021
+    }
+   ]
+  },
+  "cod_release": {
+   "label": "Chronologie: Call of Duty (Erscheinungsjahr)",
+   "unit": "Erscheinungsjahr",
+   "order": "asc",
+   "items": [
+    {
+     "id": "cod_1",
+     "name": "🎮 Call of Duty",
+     "value": 2003
+    },
+    {
+     "id": "cod_4",
+     "name": "🎮 Modern Warfare",
+     "value": 2007
+    },
+    {
+     "id": "cod_waw",
+     "name": "🎮 World at War",
+     "value": 2008
+    },
+    {
+     "id": "cod_bo1",
+     "name": "🎮 Black Ops",
+     "value": 2010
+    },
+    {
+     "id": "cod_bo2",
+     "name": "🎮 Black Ops II",
+     "value": 2012
+    },
+    {
+     "id": "cod_aw",
+     "name": "🎮 Advanced Warfare",
+     "value": 2014
+    },
+    {
+     "id": "cod_wwii",
+     "name": "🎮 WWII",
+     "value": 2017
+    },
+    {
+     "id": "cod_mw19",
+     "name": "🎮 Modern Warfare (2019)",
+     "value": 2019
+    },
+    {
+     "id": "cod_bocw",
+     "name": "🎮 Black Ops Cold War",
+     "value": 2020
+    },
+    {
+     "id": "cod_mw2",
+     "name": "🎮 Modern Warfare II (2022)",
+     "value": 2022
+    }
+   ]
+  },
+  "cod_story": {
+   "label": "Chronologie: Call of Duty (Handlungsjahr)",
+   "unit": "Handlungsjahr (ca.)",
+   "order": "asc",
+   "items": [
+    {
+     "id": "cod_1b",
+     "name": "🎮 Call of Duty",
+     "value": 1942
+    },
+    {
+     "id": "cod_wwiib",
+     "name": "🎮 WWII",
+     "value": 1944
+    },
+    {
+     "id": "cod_wawb",
+     "name": "🎮 World at War",
+     "value": 1945
+    },
+    {
+     "id": "cod_bo1b",
+     "name": "🎮 Black Ops",
+     "value": 1968
+    },
+    {
+     "id": "cod_bocwb",
+     "name": "🎮 Black Ops Cold War",
+     "value": 1981
+    },
+    {
+     "id": "cod_4b",
+     "name": "🎮 Modern Warfare",
+     "value": 2011
+    },
+    {
+     "id": "cod_mw19b",
+     "name": "🎮 Modern Warfare (2019)",
+     "value": 2019
+    },
+    {
+     "id": "cod_mw2b",
+     "name": "🎮 Modern Warfare II (2022)",
+     "value": 2022
+    },
+    {
+     "id": "cod_bo2b",
+     "name": "🎮 Black Ops II",
+     "value": 2025
+    },
+    {
+     "id": "cod_awb",
+     "name": "🎮 Advanced Warfare",
+     "value": 2054
+    }
+   ]
+  },
+  "serien_erscheinungsjahr": {
+   "label": "Chronologie: Serien & Filme nach Erscheinungsjahr (Sitcom/Cartoon/Anime)",
+   "unit": "Erscheinungsjahr",
+   "order": "asc",
+   "items": [
+    {
+     "id": "serienchrono_friends_illbethere",
+     "name": "📺 Friends",
+     "value": 1994
+    },
+    {
+     "id": "serienchrono_bigbangtheory_theme",
+     "name": "📺 The Big Bang Theory",
+     "value": 2007
+    },
+    {
+     "id": "serienchrono_himym_heybeautiful",
+     "name": "📺 How I Met Your Mother",
+     "value": 2005
+    },
+    {
+     "id": "serienchrono_seinfeld_theme",
+     "name": "📺 Seinfeld",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_theoffice_theme",
+     "name": "📺 The Office (US)",
+     "value": 2005
+    },
+    {
+     "id": "serienchrono_twoandahalfmen_theme",
+     "name": "📺 Two and a Half Men",
+     "value": 2003
+    },
+    {
+     "id": "serienchrono_brooklyn99_theme",
+     "name": "📺 Brooklyn Nine-Nine",
+     "value": 2013
+    },
+    {
+     "id": "serienchrono_modernfamily_theme",
+     "name": "📺 Modern Family",
+     "value": 2009
+    },
+    {
+     "id": "serienchrono_scrubs_theme",
+     "name": "📺 Scrubs",
+     "value": 2001
+    },
+    {
+     "id": "serienchrono_cheers_theme",
+     "name": "📺 Cheers",
+     "value": 1982
+    },
+    {
+     "id": "serienchrono_spongebob_theme",
+     "name": "🎨 SpongeBob Schwammkopf",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_simpsons_theme",
+     "name": "🎨 Die Simpsons",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_phineasferb_theme",
+     "name": "🎨 Phineas und Ferb",
+     "value": 2007
+    },
+    {
+     "id": "serienchrono_naruto_bluebird",
+     "name": "🎌 Naruto Shippuden",
+     "value": 2008
+    },
+    {
+     "id": "serienchrono_onepiece_weare",
+     "name": "🎌 One Piece",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_dbz_rockthedragon",
+     "name": "🎌 Dragon Ball Z",
+     "value": 1996
+    },
+    {
+     "id": "serienchrono_wwm_intro",
+     "name": "📺 Wer wird Millionär?",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_naruto_harukakanata",
+     "name": "🎌 Naruto",
+     "value": 2003
+    },
+    {
+     "id": "serienchrono_detectiveconan_theme",
+     "name": "🎌 Detektiv Conan",
+     "value": 1996
+    },
+    {
+     "id": "serienchrono_pokemon_theme",
+     "name": "🎌 Pokémon",
+     "value": 1997
+    },
+    {
+     "id": "serienchrono_digimon_butterfly",
+     "name": "🎌 Digimon Adventure",
+     "value": 1999
+    },
+    {
+     "id": "serienchrono_bleach_asterisk",
+     "name": "🎌 Bleach",
+     "value": 2004
+    },
+    {
+     "id": "serienchrono_aot_gurennoyumiya",
+     "name": "🎌 Attack on Titan",
+     "value": 2013
+    },
+    {
+     "id": "serienchrono_jjk_kaikaikitan",
+     "name": "🎌 Jujutsu Kaisen",
+     "value": 2020
+    },
+    {
+     "id": "serienchrono_sao_crossingfield",
+     "name": "🎌 Sword Art Online",
+     "value": 2012
+    },
+    {
+     "id": "serienchrono_ducktales_theme",
+     "name": "🎨 DuckTales",
+     "value": 1987
+    },
+    {
+     "id": "serienchrono_gooftroop_theme",
+     "name": "🎨 Goofy und Max (Goof Troop)",
+     "value": 1992
+    },
+    {
+     "id": "serienchrono_mickeymouseclubhouse_theme",
+     "name": "🎨 Micky Maus Wunderhaus",
+     "value": 2006
+    },
+    {
+     "id": "serienchrono_chipndale_theme",
+     "name": "🎨 Chip und Chap: Die Ritter des Rechts",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_darkwingduck_theme",
+     "name": "🎨 Darkwing Duck",
+     "value": 1991
+    },
+    {
+     "id": "serienchrono_liloandstitch_theme",
+     "name": "🎨 Lilo & Stitch",
+     "value": 2002
+    },
+    {
+     "id": "serienchrono_jackiechanadventures_theme",
+     "name": "🎨 Jackie Chan Adventures",
+     "value": 2000
+    },
+    {
+     "id": "serienchrono_sailormoon_moonlightdensetsu",
+     "name": "🎌 Sailor Moon",
+     "value": 1992
+    },
+    {
+     "id": "serienchrono_ranma_dontmakemewild",
+     "name": "🎌 Ranma ½",
+     "value": 1989
+    },
+    {
+     "id": "serienchrono_fullhouse_theme",
+     "name": "📺 Full House",
+     "value": 1987
+    },
+    {
+     "id": "serienchrono_freshprince_theme",
+     "name": "📺 Fresh Prince of Bel-Air",
+     "value": 1990
+    },
+    {
+     "id": "serienchrono_parksandrec_theme",
+     "name": "📺 Parks and Recreation",
+     "value": 2009
+    },
+    {
+     "id": "serienchrono_mha_theday",
+     "name": "🎌 My Hero Academia",
+     "value": 2016
+    },
+    {
+     "id": "serienchrono_demonslayer_gurenge",
+     "name": "🎌 Demon Slayer",
+     "value": 2019
+    },
+    {
+     "id": "serienchrono_deathnote_theworld",
+     "name": "🎌 Death Note",
+     "value": 2006
+    },
+    {
+     "id": "serienchrono_xmen_animatedseries_theme",
+     "name": "🎨 X-Men: The Animated Series",
+     "value": 1992
+    },
+    {
+     "id": "serienchrono_spiderman_animatedseries_theme",
+     "name": "🎨 Spider-Man: The Animated Series",
+     "value": 1994
+    }
+   ]
+  }
+ },
+ "guessMusic": {
+  "musik_kernliste": {
+   "label": "Musik raten: Kernliste (Charts & Deutschrap)",
+   "items": [
+    {
+     "id": "mj_billiejean",
+     "youtubeId": "Zi_XLOBDo_Y",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Billie Jean",
+     "artist": "Michael Jackson",
+     "year": 1983,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_thriller",
+     "youtubeId": "sOnqjkJTMaA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Thriller",
+     "artist": "Michael Jackson",
+     "year": 1982,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_beatit",
+     "youtubeId": "oRdxUFDoQe0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Beat It",
+     "artist": "Michael Jackson",
+     "year": 1983,
+     "genre": "Rock/Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_smoothcriminal",
+     "youtubeId": "sFvENQBc-F8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Smooth Criminal",
+     "artist": "Michael Jackson",
+     "year": 1988,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "mj_maninthemirror",
+     "youtubeId": "PivWY9wn5ps",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Man in the Mirror",
+     "artist": "Michael Jackson",
+     "year": 1988,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "em_loseyourself",
+     "youtubeId": "_Yhyp-_hX2s",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Lose Yourself",
+     "artist": "Eminem",
+     "year": 2002,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_withoutme",
+     "youtubeId": "YVkUvmDQ3HY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Without Me",
+     "artist": "Eminem",
+     "year": 2002,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_realslimshady",
+     "youtubeId": "eJO5HU_7_1w",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "The Real Slim Shady",
+     "artist": "Eminem",
+     "year": 2000,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_stan",
+     "youtubeId": "gOMhN-hfMtY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Stan",
+     "artist": "Eminem feat. Dido",
+     "year": 2000,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "em_notafraid",
+     "youtubeId": "j5-yKhDd64s",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Not Afraid",
+     "artist": "Eminem",
+     "year": 2010,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "jb_sorry",
+     "youtubeId": "fRh_vgS2dFE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Sorry",
+     "artist": "Justin Bieber",
+     "year": 2015,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "jb_baby",
+     "youtubeId": "kffacxfA7G4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Baby",
+     "artist": "Justin Bieber feat. Ludacris",
+     "year": 2010,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "jb_loveyourself",
+     "youtubeId": "oyEuk8j8imI",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Love Yourself",
+     "artist": "Justin Bieber",
+     "year": 2015,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "jb_peaches",
+     "youtubeId": "tQ0yjYUFKAE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Peaches",
+     "artist": "Justin Bieber feat. Daniel Caesar & Giveon",
+     "year": 2021,
+     "genre": "Pop/R&B",
+     "cover": null
+    },
+    {
+     "id": "jb_whatdoyoumean",
+     "youtubeId": "DK_0jXPuIr0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "What Do You Mean?",
+     "artist": "Justin Bieber",
+     "year": 2015,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "dr_godsplan",
+     "youtubeId": "xpVfcZ0ZcFM",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "God's Plan",
+     "artist": "Drake",
+     "year": 2018,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "dr_onedance",
+     "youtubeId": "u4RFOL9lKUI",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "One Dance",
+     "artist": "Drake feat. Wizkid & Kyla",
+     "year": 2016,
+     "genre": "Pop/Dancehall",
+     "cover": null
+    },
+    {
+     "id": "dr_hotlinebling",
+     "youtubeId": "uxpDa-c-4Mc",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Hotline Bling",
+     "artist": "Drake",
+     "year": 2015,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "dr_inmyfeelings",
+     "youtubeId": "DRS_PpOrUZ4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "In My Feelings",
+     "artist": "Drake",
+     "year": 2018,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "dr_startedfromthebottom",
+     "youtubeId": "RubBzkZzpUA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Started From the Bottom",
+     "artist": "Drake",
+     "year": 2013,
+     "genre": "Hip-Hop",
+     "cover": null
+    },
+    {
+     "id": "rh_umbrella",
+     "youtubeId": "CvBfHwUxHIk",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Umbrella",
+     "artist": "Rihanna feat. Jay-Z",
+     "year": 2007,
+     "genre": "Pop/R&B",
+     "cover": null
+    },
+    {
+     "id": "rh_diamonds",
+     "youtubeId": "lWA2pjMjpBs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Diamonds",
+     "artist": "Rihanna",
+     "year": 2012,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "rh_work",
+     "youtubeId": "HL1UzIK-flA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Work",
+     "artist": "Rihanna feat. Drake",
+     "year": 2016,
+     "genre": "Pop/Dancehall",
+     "cover": null
+    },
+    {
+     "id": "rh_wefoundlove",
+     "youtubeId": "HxKAPkzI4o8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "We Found Love",
+     "artist": "Rihanna feat. Calvin Harris",
+     "year": 2011,
+     "genre": "Pop/EDM",
+     "cover": null
+    },
+    {
+     "id": "rh_stay",
+     "youtubeId": "JF8BRvqGCNs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Stay",
+     "artist": "Rihanna feat. Mikky Ekko",
+     "year": 2013,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "cb_nurnochgucci",
+     "youtubeId": "G-iwLoyH6ZE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Nur noch Gucci",
+     "artist": "Capital Bra",
+     "year": 2017,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "cb_tilidin",
+     "youtubeId": "bY6059rr7BU",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Tilidin",
+     "artist": "Capital Bra feat. Samra",
+     "year": 2019,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "cb_onenightstand",
+     "youtubeId": "P-_iVRTAFQ8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "One Night Stand",
+     "artist": "Capital Bra",
+     "year": 2018,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "sa_skandal",
+     "youtubeId": "cDJO-A_2Xzs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Skandal",
+     "artist": "Samra feat. AK Ausserkontrolle",
+     "year": 2023,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "ap_roller",
+     "youtubeId": "Fo3DAhiNKQo",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Roller",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_astronaut",
+     "youtubeId": "xyno53dCO7Q",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Astronaut",
+     "artist": "Sido feat. Andreas Bourani",
+     "year": 2015,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "si_meinblock",
+     "youtubeId": "H4odG4d_88g",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Mein Block",
+     "artist": "Sido",
+     "year": 2004,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_schlechtesvorbild",
+     "youtubeId": "9jjvlT78pU4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Schlechtes Vorbild",
+     "artist": "Sido",
+     "year": 2006,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_bilderimkopf",
+     "youtubeId": "RveIJFR7LV4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Bilder im Kopf",
+     "artist": "Sido",
+     "year": 2012,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "si_augenauf",
+     "youtubeId": "i5-NnEGU29I",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Augen auf",
+     "artist": "Sido",
+     "year": 2008,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_allesverloren",
+     "youtubeId": "kU_x44EhOSw",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Alles verloren",
+     "artist": "Bushido",
+     "year": 2007,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_alleswirdgut",
+     "youtubeId": "Sa5fqBVISmU",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Alles wird gut",
+     "artist": "Bushido",
+     "year": 2010,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_sonnenbankflavour",
+     "youtubeId": "Pp0yxAkclGY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Sonnenbank Flavour",
+     "artist": "Bushido",
+     "year": 2006,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bu_fuerimmerjung",
+     "youtubeId": "kxRRRkXNRcY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Für immer jung",
+     "artist": "Bushido feat. Karel Gott",
+     "year": 2008,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "cr_easy",
+     "youtubeId": "4wOoLLDXbDY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Easy",
+     "artist": "Cro",
+     "year": 2012,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "cr_traum",
+     "youtubeId": "8WQMBv2deYQ",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Traum",
+     "artist": "Cro",
+     "year": 2014,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "cr_whatever",
+     "youtubeId": "vGrfFzagzHs",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Whatever",
+     "artist": "Cro",
+     "year": 2013,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "cr_badchick",
+     "youtubeId": "PySC3RGhZJU",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Bad Chick",
+     "artist": "Cro",
+     "year": 2014,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "kollegah_king",
+     "youtubeId": "HbtGDZf9Ts8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "King",
+     "artist": "Kollegah",
+     "year": 2014,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "kollegah_alpha",
+     "youtubeId": "O3UBOOZw-FE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Alpha",
+     "artist": "Kollegah",
+     "year": 2014,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "kollegah_kobrakopf",
+     "youtubeId": "2NN7yrBoq1Q",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Kobrakopf",
+     "artist": "Kollegah feat. Farid Bang & Haftbefehl",
+     "year": 2011,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "jbg2",
+     "youtubeId": "pEwClXPD3w0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Jung brutal gutaussehend 2",
+     "artist": "Kollegah & Farid Bang",
+     "year": 2013,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "jbg3_sturmmaske",
+     "youtubeId": "e4eHhgwHCME",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Sturmmaske auf (Intro)",
+     "artist": "Kollegah & Farid Bang",
+     "year": 2017,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "rafcamora_anthrazitforever",
+     "youtubeId": "32seMOFN5zE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Anthrazit Forever",
+     "artist": "RAF Camora",
+     "year": 2024,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "bonezmc_rafcamora_ohnemeinteam",
+     "youtubeId": "0aZvBvXyx7M",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Ohne mein Team",
+     "artist": "Bonez MC & RAF Camora feat. Maxwell",
+     "year": 2016,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "marteria_aliens",
+     "youtubeId": "TPBTJzGiE4Q",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Aliens",
+     "artist": "Marteria feat. Teutilla",
+     "year": 2017,
+     "genre": "Deutschrap/Pop",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_berlinlebtwnz",
+     "youtubeId": "-AJrxrNaS8c",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Berlin lebt wie nie zuvor",
+     "artist": "Samra & Capital Bra",
+     "year": 2019,
+     "genre": "Deutschrap",
+     "cover": null
+    },
+    {
+     "id": "arianagrande_thankunext",
+     "youtubeId": "gl1aHhXnN1k",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "thank u, next",
+     "artist": "Ariana Grande",
+     "year": 2018,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "arianagrande_7rings",
+     "youtubeId": "QYh6mYIJG2Y",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "7 rings",
+     "artist": "Ariana Grande",
+     "year": 2019,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "arianagrande_problem",
+     "youtubeId": "iS1g8G_njx8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Problem",
+     "artist": "Ariana Grande feat. Iggy Azalea",
+     "year": 2014,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "billieeilish_badguy",
+     "youtubeId": "DyDfgMOUjCI",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "bad guy",
+     "artist": "Billie Eilish",
+     "year": 2019,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "billieeilish_oceaneyes",
+     "youtubeId": "viimfQi_pUw",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Ocean Eyes",
+     "artist": "Billie Eilish",
+     "year": 2016,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "billieeilish_happierthanever",
+     "youtubeId": "5GJWxDKyk3A",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Happier Than Ever",
+     "artist": "Billie Eilish",
+     "year": 2021,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "brunomars_uptownfunk",
+     "youtubeId": "OPf0YbXqDm0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Uptown Funk",
+     "artist": "Mark Ronson feat. Bruno Mars",
+     "year": 2014,
+     "genre": "Funk/Pop",
+     "cover": null
+    },
+    {
+     "id": "brunomars_24kmagic",
+     "youtubeId": "UqyT8IEBkvY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "24K Magic",
+     "artist": "Bruno Mars",
+     "year": 2016,
+     "genre": "Funk/Pop",
+     "cover": null
+    },
+    {
+     "id": "brunomars_justthewayyouare",
+     "youtubeId": "LjhCEhWiKXk",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Just the Way You Are",
+     "artist": "Bruno Mars",
+     "year": 2010,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "edsheeran_shapeofyou",
+     "youtubeId": "JGwWNGJdvx8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Shape of You",
+     "artist": "Ed Sheeran",
+     "year": 2017,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "edsheeran_perfect",
+     "youtubeId": "2Vv-BfVoq4g",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Perfect",
+     "artist": "Ed Sheeran",
+     "year": 2017,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "edsheeran_thinkingoutloud",
+     "youtubeId": "lp-EO5I60KA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Thinking Out Loud",
+     "artist": "Ed Sheeran",
+     "year": 2014,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "lilpeep_awfulthings",
+     "youtubeId": "zOujzvtwZ6M",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Awful Things",
+     "artist": "Lil Peep feat. Lil Tracy",
+     "year": 2017,
+     "genre": "Emo-Rap",
+     "cover": null
+    },
+    {
+     "id": "lilpeep_benztruck",
+     "youtubeId": "3rkJ3L5Ce80",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Benz Truck (гелик)",
+     "artist": "Lil Peep",
+     "year": 2017,
+     "genre": "Emo-Rap",
+     "cover": null
+    },
+    {
+     "id": "lilpeep_savethatshit",
+     "youtubeId": "WvV5TbJc9tQ",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Save That Shit",
+     "artist": "Lil Peep",
+     "year": 2017,
+     "genre": "Emo-Rap",
+     "cover": null
+    },
+    {
+     "id": "helenefischer_atemlos",
+     "youtubeId": "haECT-SerHk",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Atemlos durch die Nacht",
+     "artist": "Helene Fischer",
+     "year": 2013,
+     "genre": "Schlager",
+     "cover": null
+    },
+    {
+     "id": "andreaberg_tausendmalbelogen",
+     "youtubeId": "nCI0czAbXEE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Du hast mich tausendmal belogen",
+     "artist": "Andrea Berg",
+     "year": 2001,
+     "genre": "Schlager",
+     "cover": null
+    },
+    {
+     "id": "djoetzi_einstern",
+     "youtubeId": "2Ua9af7xC9c",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Ein Stern (der deinen Namen trägt)",
+     "artist": "DJ Ötzi & Nik P.",
+     "year": 2007,
+     "genre": "Schlager",
+     "cover": null
+    },
+    {
+     "id": "diearzte_schreinachliebe",
+     "youtubeId": "6X9CEi8wkBc",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Schrei nach Liebe",
+     "artist": "Die Ärzte",
+     "year": 1993,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "diearzte_junge",
+     "youtubeId": "hk2W2jXdSk0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Junge",
+     "artist": "Die Ärzte",
+     "year": 2007,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "boehseonkelz_dankefuernichts",
+     "youtubeId": "6kP-xraRWOk",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Danke für nichts",
+     "artist": "Böhse Onkelz",
+     "year": 1995,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "tokiohotel_durchdenmonsun",
+     "youtubeId": "ANykNQtmEyA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Durch den Monsun",
+     "artist": "Tokio Hotel",
+     "year": 2005,
+     "genre": "Pop/Rock",
+     "cover": null
+    },
+    {
+     "id": "tokiohotel_rettemich",
+     "youtubeId": "usLgw5siebQ",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Rette mich",
+     "artist": "Tokio Hotel",
+     "year": 2006,
+     "genre": "Pop/Rock",
+     "cover": null
+    },
+    {
+     "id": "linkinpark_intheend",
+     "youtubeId": "eVTXPUF4Oz4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "In the End",
+     "artist": "Linkin Park",
+     "year": 2000,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "linkinpark_numb",
+     "youtubeId": "kdxT-kY0DTQ",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Numb",
+     "artist": "Linkin Park",
+     "year": 2003,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "linkinpark_faint",
+     "youtubeId": "NMTuC8WUxds",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Faint",
+     "artist": "Linkin Park",
+     "year": 2003,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "fallinginreverse_popularmonster",
+     "youtubeId": "jakpo7tj7Qw",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Popular Monster",
+     "artist": "Falling In Reverse",
+     "year": 2019,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "fallinginreverse_watchtheworldburn",
+     "youtubeId": "qMXESlny4-I",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Watch The World Burn",
+     "artist": "Falling In Reverse",
+     "year": 2023,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "fallinginreverse_zombified",
+     "youtubeId": "YDDz1Er2IXA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "ZOMBIFIED",
+     "artist": "Falling In Reverse",
+     "year": 2022,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "fromfalltospring_beastmode",
+     "youtubeId": "Xx5SUHdR3G4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "BEASTMODE",
+     "artist": "From Fall to Spring",
+     "year": 2022,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "fromfalltospring_blackheart",
+     "youtubeId": "U8fOSNJ3E7Y",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "BLACK HEART",
+     "artist": "From Fall to Spring",
+     "year": 2021,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "fromfalltospring_rise",
+     "youtubeId": "gb7y7UNGK1A",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "RISE",
+     "artist": "From Fall to Spring",
+     "year": 2021,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "fromfalltospring_br4infck",
+     "youtubeId": "nDkd1nef5jY",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "BR4INFCK",
+     "artist": "From Fall to Spring",
+     "year": 2021,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "acdc_tnt",
+     "youtubeId": "rB9-McrpJew",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "T.N.T.",
+     "artist": "AC/DC",
+     "year": 1976,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "queen_wewillrockyou",
+     "youtubeId": "-tJYN-eG1zk",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "We Will Rock You",
+     "artist": "Queen",
+     "year": 1977,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "simongarfunkel_soundofsilence",
+     "youtubeId": "4fWyzwo1xg0",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "The Sound of Silence",
+     "artist": "Simon & Garfunkel",
+     "year": 1964,
+     "genre": "Folk Rock",
+     "cover": null
+    },
+    {
+     "id": "juergendrews_einbett",
+     "youtubeId": "rwR_sBscmMo",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Ein Bett im Kornfeld",
+     "artist": "Jürgen Drews (feat. Ben Zucker)",
+     "year": 2020,
+     "genre": "Ballermann/Schlager",
+     "cover": null
+    },
+    {
+     "id": "cultureclub_karmachameleon",
+     "youtubeId": "JmcA9LIIXWw",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Karma Chameleon",
+     "artist": "Culture Club",
+     "year": 1983,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "lynyrdskynyrd_sweethomealabama",
+     "youtubeId": "-35W_FWCT9Q",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Sweet Home Alabama",
+     "artist": "Lynyrd Skynyrd",
+     "year": 1974,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "proclaimers_500miles",
+     "youtubeId": "gy5t5pPa0SE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "I'm Gonna Be (500 Miles)",
+     "artist": "The Proclaimers",
+     "year": 1988,
+     "genre": "Rock/Pop",
+     "cover": null
+    },
+    {
+     "id": "depechemode_justcantgetenough",
+     "youtubeId": "_6FBfAQ-NDE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Just Can't Get Enough",
+     "artist": "Depeche Mode",
+     "year": 1981,
+     "genre": "Synth-Pop",
+     "cover": null
+    },
+    {
+     "id": "philcollins_intheairtonight",
+     "youtubeId": "YkADj0TPrJA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "In the Air Tonight",
+     "artist": "Phil Collins",
+     "year": 1981,
+     "genre": "Pop/Rock",
+     "cover": null
+    },
+    {
+     "id": "survivor_eyeofthetiger",
+     "youtubeId": "btPJPFnesV4",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Eye of the Tiger",
+     "artist": "Survivor",
+     "year": 1982,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "chuckberry_johnnybgoode",
+     "youtubeId": "uFeZ_x--aRg",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Johnny B. Goode",
+     "artist": "Chuck Berry",
+     "year": 1958,
+     "genre": "Rock 'n' Roll",
+     "cover": null
+    },
+    {
+     "id": "backstreetboys_iwantitthatway",
+     "youtubeId": "4fndeDfaWCg",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "I Want It That Way",
+     "artist": "Backstreet Boys",
+     "year": 1999,
+     "genre": "Pop",
+     "cover": null
+    },
+    {
+     "id": "ccr_fortunateson",
+     "youtubeId": "ZWijx_AgPiA",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Fortunate Son",
+     "artist": "Creedence Clearwater Revival",
+     "year": 1969,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "ccr_badmoonrising",
+     "youtubeId": "zUQiUFZ5RDw",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Bad Moon Rising",
+     "artist": "Creedence Clearwater Revival",
+     "year": 1969,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "elvis_jailhouserock",
+     "youtubeId": "PpsUOOfb-vE",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Jailhouse Rock",
+     "artist": "Elvis Presley",
+     "year": 1957,
+     "genre": "Rock 'n' Roll",
+     "cover": null
+    },
+    {
+     "id": "benking_standbyme",
+     "youtubeId": "z5i9vT8wGY8",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Stand By Me",
+     "artist": "Ben E. King",
+     "year": 1961,
+     "genre": "Soul/R&B",
+     "cover": null
+    },
+    {
+     "id": "dollyparton_jolene",
+     "youtubeId": "5m71Jbi7NkU",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Jolene",
+     "artist": "Dolly Parton",
+     "year": 1973,
+     "genre": "Country",
+     "cover": null
+    },
+    {
+     "id": "royorbison_prettywoman",
+     "youtubeId": "3KFvoDDs0XM",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Oh, Pretty Woman",
+     "artist": "Roy Orbison",
+     "year": 1964,
+     "genre": "Rock 'n' Roll",
+     "cover": null
+    },
+    {
+     "id": "rhcp_cantstop",
+     "youtubeId": "8DyziWtkfBw",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Can't Stop",
+     "artist": "Red Hot Chili Peppers",
+     "year": 2002,
+     "genre": "Rock",
+     "cover": null
+    },
+    {
+     "id": "daslumpenpack_dummbist",
+     "youtubeId": "Tw0GoC59pFI",
+     "startSeconds": 45,
+     "clipSeconds": 10,
+     "title": "Kann es sein, dass du dumm bist?",
+     "artist": "Das Lumpenpack",
+     "year": 2022,
+     "genre": "Deutschrock",
+     "cover": null
+    },
+    {
+     "id": "sido_issa",
+     "youtubeId": "NBZ30B8VYqo",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "ISSA",
+     "artist": "Sido",
+     "year": 2026,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_dulmichnicht",
+     "youtubeId": "AMA_SNE_qEc",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Du liebst mich nicht",
+     "artist": "Sido",
+     "year": 2023,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_rollenderstein",
+     "youtubeId": "jCqYm2Hb-ig",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Rollender Stein",
+     "artist": "Sido",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_mitdir",
+     "youtubeId": "9VAFU492-Dk",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Mit Dir",
+     "artist": "Sido",
+     "year": 2021,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_bozza_sterne",
+     "youtubeId": "howTT2QBUi8",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Sterne",
+     "artist": "Sido feat. Bozza",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_liebstdumich",
+     "youtubeId": "WKb0ohIhfG8",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Liebst Du Mich",
+     "artist": "Sido",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "sido_medizin",
+     "youtubeId": "PHW1RLjm1-w",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Medizin",
+     "artist": "Sido feat. Jamule",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_bamba",
+     "youtubeId": "oglRrpIsVaE",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "BAMBA",
+     "artist": "Luciano feat. BIA & AITCH",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_beautifulgirl",
+     "youtubeId": "BWUR1e6fMtw",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Beautiful Girl",
+     "artist": "Luciano",
+     "year": 2022,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_meer",
+     "youtubeId": "rTQJiDqfBhM",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Meer",
+     "artist": "Luciano",
+     "year": 2018,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_ballin",
+     "youtubeId": "wMU49zQ_stM",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "BALLIN",
+     "artist": "Luciano",
+     "year": 2018,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "luciano_suv",
+     "youtubeId": "Tcm_GYyNWhI",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "SUV",
+     "artist": "Luciano",
+     "year": 2021,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_roller",
+     "youtubeId": "Fo3DAhiNKQo",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Roller",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_200kmh",
+     "youtubeId": "GoFfNGhdY0k",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "200 km/h",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_keinproblem",
+     "youtubeId": "6Wm4c4N1zm0",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "KEIN PROBLEM",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_wiesotust",
+     "youtubeId": "vmj2Ab1GknA",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Wieso tust Du dir das an?",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_fame",
+     "youtubeId": "YPuUpulF1ag",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "FAME",
+     "artist": "Apache 207",
+     "year": 2020,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "apache207_brotnachhause",
+     "youtubeId": "KLqoiLuikCI",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Brot nach Hause",
+     "artist": "Apache 207",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "udolindenberg_apache207_komet",
+     "youtubeId": "0nYDnTTJgFI",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Komet",
+     "artist": "Udo Lindenberg x Apache 207",
+     "year": 2023,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_tilidin",
+     "youtubeId": "bY6059rr7BU",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Tilidin",
+     "artist": "Capital Bra & Samra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "samra_capitalbra_huracan",
+     "youtubeId": "Q5km12ioQmw",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Huracan",
+     "artist": "Samra & Capital Bra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_lea_110",
+     "youtubeId": "dab3fgqboeA",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "110",
+     "artist": "Capital Bra x Samra x LEA",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_wirticken",
+     "youtubeId": "V39cyakHKTw",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Wir ticken",
+     "artist": "Capital Bra & Samra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    },
+    {
+     "id": "capitalbra_samra_nummer1",
+     "youtubeId": "HKa_M9YOs9Y",
+     "startSeconds": 30,
+     "clipSeconds": 10,
+     "title": "Nummer 1",
+     "artist": "Capital Bra x Samra",
+     "year": 2019,
+     "genre": "Hip-Hop/Rap",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_mix": {
+   "label": "Serien-Intros raten: Gemischt",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "friends_illbethere",
+     "youtubeId": "S8PNXgLhkT0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Friends",
+     "artist": "",
+     "year": 1994,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "bigbangtheory_theme",
+     "youtubeId": "20i5eqwK178",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "The Big Bang Theory",
+     "artist": "",
+     "year": 2007,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "himym_heybeautiful",
+     "youtubeId": "xRyqIbwYaQo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "How I Met Your Mother",
+     "artist": "",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "seinfeld_theme",
+     "youtubeId": "RWak0i_iqnM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Seinfeld",
+     "artist": "",
+     "year": 1989,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "theoffice_theme",
+     "youtubeId": "tFXjflvbBJo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "The Office (US)",
+     "artist": "",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "twoandahalfmen_theme",
+     "youtubeId": "KxNrJljt_WI",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Two and a Half Men",
+     "artist": "",
+     "year": 2003,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "brooklyn99_theme",
+     "youtubeId": "ourfSzoC7pA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Brooklyn Nine-Nine",
+     "artist": "",
+     "year": 2013,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "modernfamily_theme",
+     "youtubeId": "_0eWsQSG1cM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Modern Family",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "scrubs_theme",
+     "youtubeId": "c9JsIvG-daY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Scrubs",
+     "artist": "",
+     "year": 2001,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "cheers_theme",
+     "youtubeId": "LgDv32UkEGU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Cheers",
+     "artist": "",
+     "year": 1982,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "spongebob_theme",
+     "youtubeId": "pFfUunOS1a4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
+     "year": 1999,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_theme",
+     "youtubeId": "Fttst9dG6Ko",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "phineasferb_theme",
+     "youtubeId": "IQL3B4o5rLk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Phineas und Ferb",
+     "artist": "",
+     "year": 2007,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "naruto_bluebird",
+     "youtubeId": "aJRu5ltxXjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto Shippuden",
+     "artist": "",
+     "year": 2008,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_weare",
+     "youtubeId": "0OdExTY2D8M",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "dbz_rockthedragon",
+     "youtubeId": "BelpF2B44Zo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Dragon Ball Z",
+     "artist": "",
+     "year": 1996,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "wwm_intro",
+     "youtubeId": "jN-3bzAzPHU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Wer wird Millionär?",
+     "artist": "",
+     "year": 1999,
+     "genre": "TV-Show",
+     "cover": null
+    },
+    {
+     "id": "naruto_harukakanata",
+     "youtubeId": "RiQrbSuLrsU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto",
+     "artist": "",
+     "year": 2003,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "naruto_diver",
+     "youtubeId": "P1yJ51DH-18",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto Shippuden",
+     "artist": "",
+     "year": 2010,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_believe",
+     "youtubeId": "bhrgZDJygqY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 2000,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "spongebob_fun",
+     "youtubeId": "64fetbSh89s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
+     "year": 2001,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_bartman",
+     "youtubeId": "B-W6punNMjU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1990,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "detectiveconan_theme",
+     "youtubeId": "7EYcOntuD7s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Detektiv Conan",
+     "artist": "",
+     "year": 1996,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "pokemon_theme",
+     "youtubeId": "u2zRgqms2qo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Pokémon",
+     "artist": "",
+     "year": 1997,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "digimon_butterfly",
+     "youtubeId": "GItIzDCzsWM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Digimon Adventure",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "bleach_asterisk",
+     "youtubeId": "wW9TwZdWpjw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Bleach",
+     "artist": "",
+     "year": 2004,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "aot_gurennoyumiya",
+     "youtubeId": "2c1s_gXDiVk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Attack on Titan",
+     "artist": "",
+     "year": 2013,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "jjk_kaikaikitan",
+     "youtubeId": "GwaRztMaoY0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jujutsu Kaisen",
+     "artist": "",
+     "year": 2020,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "sao_crossingfield",
+     "youtubeId": "6Y1swEeFwYo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sword Art Online",
+     "artist": "",
+     "year": 2012,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "ducktales_theme",
+     "youtubeId": "CenzjSEkDDA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "DuckTales",
+     "artist": "",
+     "year": 1987,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "gooftroop_theme",
+     "youtubeId": "En8-0p39kPU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Goofy und Max (Goof Troop)",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "mickeymouseclubhouse_theme",
+     "youtubeId": "N6uDZw7-3z8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Micky Maus Wunderhaus",
+     "artist": "",
+     "year": 2006,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "chipndale_theme",
+     "youtubeId": "N0PJfIO64EU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Chip und Chap: Die Ritter des Rechts",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "darkwingduck_theme",
+     "youtubeId": "JXEDr0DN3m8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Darkwing Duck",
+     "artist": "",
+     "year": 1991,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "liloandstitch_theme",
+     "youtubeId": "Kiz5pS4piOU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Lilo & Stitch",
+     "artist": "",
+     "year": 2002,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "jackiechanadventures_theme",
+     "youtubeId": "rqo6rNsPQG8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jackie Chan Adventures",
+     "artist": "",
+     "year": 2000,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "sailormoon_moonlightdensetsu",
+     "youtubeId": "UMTWuNkIWHw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sailor Moon",
+     "artist": "",
+     "year": 1992,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "ranma_dontmakemewild",
+     "youtubeId": "F4SAzwQxeoM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Ranma ½",
+     "artist": "",
+     "year": 1989,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "fullhouse_theme",
+     "youtubeId": "Xo348kPPboE",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Full House",
+     "artist": "",
+     "year": 1987,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "freshprince_theme",
+     "youtubeId": "NpnQ2oIRgB0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Fresh Prince of Bel-Air",
+     "artist": "",
+     "year": 1990,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "parksandrec_theme",
+     "youtubeId": "QDIxi99xbOg",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Parks and Recreation",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "mha_theday",
+     "youtubeId": "L1FdEBTJXus",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "My Hero Academia",
+     "artist": "",
+     "year": 2016,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "demonslayer_gurenge",
+     "youtubeId": "b_QlWCXBDik",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Demon Slayer",
+     "artist": "",
+     "year": 2019,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "deathnote_theworld",
+     "youtubeId": "EtGhFQ88mjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Death Note",
+     "artist": "",
+     "year": 2006,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "xmen_animatedseries_theme",
+     "youtubeId": "tQjdm8BdJO4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "X-Men: The Animated Series",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "spiderman_animatedseries_theme",
+     "youtubeId": "dIqVNxmdtPk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Spider-Man: The Animated Series",
+     "artist": "",
+     "year": 1994,
+     "genre": "Cartoon",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_sitcom": {
+   "label": "Serien-Intros raten: Sitcom",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "friends_illbethere",
+     "youtubeId": "S8PNXgLhkT0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Friends",
+     "artist": "",
+     "year": 1994,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "bigbangtheory_theme",
+     "youtubeId": "20i5eqwK178",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "The Big Bang Theory",
+     "artist": "",
+     "year": 2007,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "himym_heybeautiful",
+     "youtubeId": "xRyqIbwYaQo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "How I Met Your Mother",
+     "artist": "",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "seinfeld_theme",
+     "youtubeId": "RWak0i_iqnM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Seinfeld",
+     "artist": "",
+     "year": 1989,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "theoffice_theme",
+     "youtubeId": "tFXjflvbBJo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "The Office (US)",
+     "artist": "",
+     "year": 2005,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "twoandahalfmen_theme",
+     "youtubeId": "KxNrJljt_WI",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Two and a Half Men",
+     "artist": "",
+     "year": 2003,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "brooklyn99_theme",
+     "youtubeId": "ourfSzoC7pA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Brooklyn Nine-Nine",
+     "artist": "",
+     "year": 2013,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "modernfamily_theme",
+     "youtubeId": "_0eWsQSG1cM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Modern Family",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "scrubs_theme",
+     "youtubeId": "c9JsIvG-daY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Scrubs",
+     "artist": "",
+     "year": 2001,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "cheers_theme",
+     "youtubeId": "LgDv32UkEGU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Cheers",
+     "artist": "",
+     "year": 1982,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "fullhouse_theme",
+     "youtubeId": "Xo348kPPboE",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Full House",
+     "artist": "",
+     "year": 1987,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "freshprince_theme",
+     "youtubeId": "NpnQ2oIRgB0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Fresh Prince of Bel-Air",
+     "artist": "",
+     "year": 1990,
+     "genre": "Sitcom",
+     "cover": null
+    },
+    {
+     "id": "parksandrec_theme",
+     "youtubeId": "QDIxi99xbOg",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Parks and Recreation",
+     "artist": "",
+     "year": 2009,
+     "genre": "Sitcom",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_cartoon": {
+   "label": "Serien-Intros raten: Cartoon",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "spongebob_theme",
+     "youtubeId": "pFfUunOS1a4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
+     "year": 1999,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_theme",
+     "youtubeId": "Fttst9dG6Ko",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "phineasferb_theme",
+     "youtubeId": "IQL3B4o5rLk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Phineas und Ferb",
+     "artist": "",
+     "year": 2007,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "spongebob_fun",
+     "youtubeId": "64fetbSh89s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "SpongeBob Schwammkopf",
+     "artist": "",
+     "year": 2001,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "simpsons_bartman",
+     "youtubeId": "B-W6punNMjU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Die Simpsons",
+     "artist": "",
+     "year": 1990,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "ducktales_theme",
+     "youtubeId": "CenzjSEkDDA",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "DuckTales",
+     "artist": "",
+     "year": 1987,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "gooftroop_theme",
+     "youtubeId": "En8-0p39kPU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Goofy und Max (Goof Troop)",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "mickeymouseclubhouse_theme",
+     "youtubeId": "N6uDZw7-3z8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Micky Maus Wunderhaus",
+     "artist": "",
+     "year": 2006,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "chipndale_theme",
+     "youtubeId": "N0PJfIO64EU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Chip und Chap: Die Ritter des Rechts",
+     "artist": "",
+     "year": 1989,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "darkwingduck_theme",
+     "youtubeId": "JXEDr0DN3m8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Darkwing Duck",
+     "artist": "",
+     "year": 1991,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "liloandstitch_theme",
+     "youtubeId": "Kiz5pS4piOU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Lilo & Stitch",
+     "artist": "",
+     "year": 2002,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "jackiechanadventures_theme",
+     "youtubeId": "rqo6rNsPQG8",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jackie Chan Adventures",
+     "artist": "",
+     "year": 2000,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "xmen_animatedseries_theme",
+     "youtubeId": "tQjdm8BdJO4",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "X-Men: The Animated Series",
+     "artist": "",
+     "year": 1992,
+     "genre": "Cartoon",
+     "cover": null
+    },
+    {
+     "id": "spiderman_animatedseries_theme",
+     "youtubeId": "dIqVNxmdtPk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Spider-Man: The Animated Series",
+     "artist": "",
+     "year": 1994,
+     "genre": "Cartoon",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_anime": {
+   "label": "Serien-Intros raten: Anime",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "naruto_bluebird",
+     "youtubeId": "aJRu5ltxXjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto Shippuden",
+     "artist": "",
+     "year": 2008,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_weare",
+     "youtubeId": "0OdExTY2D8M",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "dbz_rockthedragon",
+     "youtubeId": "BelpF2B44Zo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Dragon Ball Z",
+     "artist": "",
+     "year": 1996,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "naruto_harukakanata",
+     "youtubeId": "RiQrbSuLrsU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto",
+     "artist": "",
+     "year": 2003,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "naruto_diver",
+     "youtubeId": "P1yJ51DH-18",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Naruto Shippuden",
+     "artist": "",
+     "year": 2010,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "onepiece_believe",
+     "youtubeId": "bhrgZDJygqY",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "One Piece",
+     "artist": "",
+     "year": 2000,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "detectiveconan_theme",
+     "youtubeId": "7EYcOntuD7s",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Detektiv Conan",
+     "artist": "",
+     "year": 1996,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "pokemon_theme",
+     "youtubeId": "u2zRgqms2qo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Pokémon",
+     "artist": "",
+     "year": 1997,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "digimon_butterfly",
+     "youtubeId": "GItIzDCzsWM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Digimon Adventure",
+     "artist": "",
+     "year": 1999,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "bleach_asterisk",
+     "youtubeId": "wW9TwZdWpjw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Bleach",
+     "artist": "",
+     "year": 2004,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "aot_gurennoyumiya",
+     "youtubeId": "2c1s_gXDiVk",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Attack on Titan",
+     "artist": "",
+     "year": 2013,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "jjk_kaikaikitan",
+     "youtubeId": "GwaRztMaoY0",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Jujutsu Kaisen",
+     "artist": "",
+     "year": 2020,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "sao_crossingfield",
+     "youtubeId": "6Y1swEeFwYo",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sword Art Online",
+     "artist": "",
+     "year": 2012,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "sailormoon_moonlightdensetsu",
+     "youtubeId": "UMTWuNkIWHw",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Sailor Moon",
+     "artist": "",
+     "year": 1992,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "ranma_dontmakemewild",
+     "youtubeId": "F4SAzwQxeoM",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Ranma ½",
+     "artist": "",
+     "year": 1989,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "mha_theday",
+     "youtubeId": "L1FdEBTJXus",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "My Hero Academia",
+     "artist": "",
+     "year": 2016,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "demonslayer_gurenge",
+     "youtubeId": "b_QlWCXBDik",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Demon Slayer",
+     "artist": "",
+     "year": 2019,
+     "genre": "Anime",
+     "cover": null
+    },
+    {
+     "id": "deathnote_theworld",
+     "youtubeId": "EtGhFQ88mjc",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Death Note",
+     "artist": "",
+     "year": 2006,
+     "genre": "Anime",
+     "cover": null
+    }
+   ]
+  },
+  "serienintros_tvshow": {
+   "label": "Serien-Intros raten: TV-Sendungen",
+   "noArtist": true,
+   "items": [
+    {
+     "id": "wwm_intro",
+     "youtubeId": "jN-3bzAzPHU",
+     "startSeconds": 0,
+     "clipSeconds": 10,
+     "title": "Wer wird Millionär?",
+     "artist": "",
+     "year": 1999,
+     "genre": "TV-Show",
+     "cover": null
+    }
+   ]
+  }
+ },
+ "nennsBlitz": {
+  "laender_allgemein": {
+   "label": "Länder: Allgemein (weltweit)"
+  },
+  "laender_europa": {
+   "label": "Länder: Europa"
+  },
+  "laender_nichteuropa": {
+   "label": "Länder: Nicht-Europa (Asien, Afrika, Amerika, Ozeanien)"
+  },
+  "laender_bundeslaender": {
+   "label": "Bundesländer (Deutschland)"
+  },
+  "laender_bundeslaender_hauptstaedte": {
+   "label": "Bundesländer-Hauptstädte (Deutschland)"
+  },
+  "tiere_rassen_allgemein": {
+   "label": "Tierarten: Allgemein"
+  },
+  "tiere_hunde": {
+   "label": "Tierarten: Hunde"
+  },
+  "tiere_katzen": {
+   "label": "Tierarten: Katzen"
+  },
+  "tiere_fische": {
+   "label": "Tierarten: Fische"
+  },
+  "tiere_voegel": {
+   "label": "Tierarten: Vögel"
+  },
+  "marvel_charaktere": {
+   "label": "Marvel-Charaktere"
+  },
+  "disney_charaktere": {
+   "label": "Disney-Charaktere"
+  },
+  "dc_charaktere": {
+   "label": "DC-Charaktere"
+  },
+  "dschungelcamp_kandidaten": {
+   "label": "Ich bin ein Star – Kandidat:innen"
+  },
+  "promibb_kandidaten": {
+   "label": "Promi Big Brother – Kandidat:innen"
+  },
+  "naruto_charaktere": {
+   "label": "Naruto-Charaktere"
+  },
+  "onepiece_charaktere": {
+   "label": "One Piece – Charaktere"
+  },
+  "dragonball_charaktere": {
+   "label": "Dragonball-Charaktere"
+  },
+  "streamer_twitch_1mio": {
+   "label": "Twitch-Streamer mit über 1 Mio. Followern"
+  },
+  "fussball_mannschaften_allgemein": {
+   "label": "Fußball: Mannschaften (Bundesliga, LaLiga, usw.)"
+  },
+  "fussball_championssieger": {
+   "label": "Fußball: Champions-League-Sieger"
+  },
+  "fussball_beidfuessig": {
+   "label": "Fußball: Spieler, die beidfüßig sind"
+  },
+  "planeten": {
+   "label": "Planeten (unser Sonnensystem)"
+  },
+  "essen_gerichte": {
+   "label": "Essen (Gerichte & Lebensmittel)"
+  },
+  "fastfood_ketten": {
+   "label": "Fastfood-Ketten"
+  },
+  "suessigkeiten": {
+   "label": "Süßigkeiten"
+  },
+  "marken_allgemein": {
+   "label": "Marken (bekannte Brands)"
+  },
+  "bands": {
+   "label": "Bands (Musikgruppen)"
+  },
+  "musikinstrumente": {
+   "label": "Musikinstrumente"
+  },
+  "simpsons_charaktere": {
+   "label": "Simpsons-Charaktere"
+  },
+  "cartoon_charaktere": {
+   "label": "Cartoon-Charaktere (allgemein)"
+  },
+  "anime_charaktere_allgemein": {
+   "label": "Anime-Charaktere (allgemein)"
+  }
+ }
+}

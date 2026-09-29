@@ -2840,6 +2840,55 @@ Erfolge nacheinander freischaltet (inkl. "Vollständig" als letzten), sowie
 die Client-Ereignisse (Speed-Math-Level, SLF-Einzigartig, TTT-Unentschieden,
 täglicher Streak).
 
+## 8ddd. Bugfix: Erfolge-Button war doppelt
+
+Der Button stand versehentlich zweimal: im Hauptmenü (neben "Statistik") und
+am Ende der Statistik-Seite. Der in der Statistik-Seite ist raus - das
+Hauptmenü ist der bessere Platz, ein Tipp vom Startbildschirm statt erst
+durch die Statistik zu müssen.
+
+## 8eee. Hintergrundmusik + Einstellungen-Button (Musik/Sprache)
+
+Auf Wunsch 6 hochgeladene Titel eingebaut, unter `public/audio/`:
+
+- **Menü-Musik** (rotiert überall im Spiel, außer bei Tic Tac Toe): "Final
+  Showdown" (liegt als .mp3 UND .m4a vor - beide als `<source>`-Alternativen,
+  der Browser wählt selbst das unterstützte Format; ich bin davon ausgegangen,
+  dass das derselbe Titel in zwei Formaten ist, nicht zwei verschiedene Songs),
+  "Der letzte Schlag", "The Final Duel", "Wissens-Quest". Reihenfolge wird bei
+  jedem Durchlauf neu gemischt, kein Titel wiederholt sich, bevor nicht alle
+  anderen dran waren.
+- **Tic-Tac-Game.mp3**: läuft AUSSCHLIESSLICH während Tic Tac Toe (Bot, Online,
+  UND im Party-Raum, sobald eine Runde dieses Typs läuft), in Dauerschleife.
+  Sobald man Tic Tac Toe verlässt (Hauptmenü oder im Party-Raum eine andere
+  Rundenart), geht es sofort mit der Menü-Musik weiter (nicht von vorn - die
+  Umschaltung ist beim Zurückwechseln unterbrechungsfrei).
+- Die Audio-Elemente werden per JavaScript erzeugt (nicht fest im HTML), damit
+  das ständige Neuzeichnen der Bildschirme (jeder Screen-Wechsel ersetzt den
+  Inhalt komplett) die laufende Musik nicht jedes Mal neu startet - nur ein
+  echter Zonenwechsel (Menü ↔ Tic Tac Toe) wechselt den Titel.
+- Browser blockieren Ton, bevor man einmal getippt/geklickt hat (Autoplay-
+  Schutz) - die Musik startet automatisch beim ersten Tipp irgendwo auf der
+  Seite, nicht erst beim Öffnen der Einstellungen.
+
+**Neuer Button "⚙️ Einstellungen"** im Hauptmenü (ersetzt die bisher immer
+sichtbaren Sprach-Kästchen dort) öffnet ein Overlay mit:
+- **Musik**: an/aus, merkt sich die Wahl (localStorage), zeigt den gerade
+  laufenden Titel.
+- **Sprache**: dieselbe Auswahl wie bisher, nur jetzt im Overlay statt fest im
+  Menü sichtbar.
+
+Der Button sitzt bewusst nur im Hauptmenü (wie die Sprachauswahl es vorher auch
+war) - falls er auch auf anderen Bildschirmen erreichbar sein soll, sag
+Bescheid.
+
+Getestet: Zonen-Umschaltung (inkl. "gleiche Zone → kein Neustart", Dauerschleife
+bei Tic Tac Toe, automatischer nächster Titel bei Menü-Musik, Musik aus/an),
+Mischung ohne Wiederholung, Einstellung bleibt über einen Neustart erhalten,
+Einstellungen-Overlay, Party-Raum-Umschaltung zwischen Runden (inkl.
+"ticTacToeSkipped"), und dass der Server alle 6 Dateien mit dem richtigen
+Inhaltstyp ausliefert (kein Pfad-Ausbruch, keine fremde Datei erreichbar).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

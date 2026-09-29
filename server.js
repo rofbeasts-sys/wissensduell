@@ -3090,7 +3090,7 @@ function arenaLeaderboard() {
 /* ------------------------------------------------------------------------ */
 /* HTTP: statische Dateien aus /public                                       */
 /* ------------------------------------------------------------------------ */
-const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml" };
+const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
 // Sicherheits-Header. Bewusst KEINE strikte script-src-CSP: die Seite nutzt
 // Inline-Skripte/onclick-Handler und die YouTube-IFrame-API (Musik raten) -
 // das ginge ohne Umbau + Browsertest kaputt. Diese Direktiven sind unkritisch.
