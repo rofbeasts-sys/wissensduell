@@ -1746,19 +1746,35 @@ function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`
    <source>-Alternativen angeboten, der Browser wählt selbst das
    unterstützte Format (typischer Fallback-Zweck zweier Formate).
    ============================================================================ */
-const MENU_MUSIC_TRACKS = [
+// Ausfallsicherung, bis die ECHTE Liste vom Server da ist (loadAudioTrackList
+// weiter unten) bzw. falls das mal fehlschlägt - danach werden beide durch
+// den tatsächlichen Ordnerinhalt von public/audio ersetzt (Dateien dort
+// werden automatisch erkannt, keine Code-Änderung mehr nötig).
+let MENU_MUSIC_TRACKS = [
   { name: "Final Showdown", files: ["Final_Showdown.mp3", "Final_Showdown.m4a"] },
   { name: "Der letzte Schlag", files: ["Der_letzte_Schlag.mp3"] },
   { name: "The Final Duel", files: ["The_Final_Duel.mp3"] },
   { name: "Wissens-Quest", files: ["Wissens-Quest.mp3"] }
 ];
-const TTT_MUSIC_TRACK = { name: "Tic-Tac-Game", files: ["Tic-Tac-Game.mp3"] };
+let TTT_MUSIC_TRACK = { name: "Tic-Tac-Game", files: ["Tic-Tac-Game.mp3"] };
+// Fragt den Server, welche Dateien wirklich in public/audio liegen, und
+// ersetzt die obige Ausfallliste damit. Wird einmal beim Start aufgerufen;
+// da die Musik ohnehin erst nach dem ersten Tipp beginnt (Autoplay-Schutz),
+// ist die echte Liste in aller Regel längst da, bevor der erste Titel gewählt wird.
+async function loadAudioTrackList(){
+  try{
+    const res = await apiCall("/api/audio-tracks", {});
+    if(res && Array.isArray(res.menu) && res.menu.length) MENU_MUSIC_TRACKS = res.menu;
+    if(res && res.ttt && Array.isArray(res.ttt.files) && res.ttt.files.length) TTT_MUSIC_TRACK = res.ttt;
+  }catch(e){ /* Ausfallsicherung oben bleibt bestehen */ }
+}
 
 let audioZone = "menu";              // "menu" | "ttt" - welche Musik gerade dran ist
 let bgAudioEl = null;                // aktuell spielendes <audio>-Element
 let bgAudioTrackName = null;         // Titelname für die Einstellungen-Anzeige
 let menuMusicQueue = [];             // gemischte Restliste noch nicht gespielter Menü-Titel
 let musicEnabled = (function(){ try{ return localStorage.getItem("wq_music") !== "0"; }catch(e){ return true; } })();
+let musicVolume = (function(){ try{ const v = parseInt(localStorage.getItem("wq_volume"), 10); return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 45; }catch(e){ return 45; } })();
 let audioUnlocked = false;           // Browser blocken Ton, bis die Person einmal getippt/geklickt hat
 
 function shuffleTracks(arr){
@@ -1786,7 +1802,7 @@ function startTrack(track){
     el.appendChild(src);
   });
   el.load();
-  el.volume = 0.45;
+  el.volume = musicVolume / 100;
   if(audioZone === "ttt") el.loop = true; // ein einzelner Titel läuft in Dauerschleife
   el.onended = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // nächster Menü-Titel
   el.onerror = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // defekte Quelle überspringen
@@ -1806,6 +1822,12 @@ function setMusicEnabled(on){
   try{ localStorage.setItem("wq_music", on ? "1" : "0"); }catch(e){}
   if(on){ if(audioUnlocked) startTrack(currentZoneTrack()); }
   else stopBgMusic();
+}
+// Wirkt sofort auf den laufenden Titel (kein Neustart nötig), 0-100.
+function setMusicVolume(v){
+  musicVolume = Math.max(0, Math.min(100, parseInt(v, 10) || 0));
+  try{ localStorage.setItem("wq_volume", String(musicVolume)); }catch(e){}
+  if(bgAudioEl) bgAudioEl.volume = musicVolume / 100;
 }
 function unlockAudioOnce(){
   if(audioUnlocked) return;
@@ -2289,6 +2311,12 @@ function renderSettingsModal(){
       <div class="settings-section">
         <div class="settings-label">Musik</div>
         <button class="btn ${musicEnabled ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleMusicSetting()">${musicEnabled ? '🔊 Musik An' : '🔇 Musik Aus'}</button>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+          <span>🔈</span>
+          <input type="range" min="0" max="100" value="${musicVolume}" style="flex:1;" oninput="setMusicVolume(this.value); document.getElementById('musicVolLabel').textContent=this.value+'%'" ${musicEnabled ? '' : 'disabled'}>
+          <span>🔊</span>
+        </div>
+        <div id="musicVolLabel" class="settings-track">${musicVolume}%</div>
         ${musicEnabled && bgAudioTrackName ? `<div class="settings-track">Läuft gerade: ${esc(bgAudioTrackName)}</div>` : ``}
       </div>
       <div class="settings-section">
@@ -6753,8 +6781,15 @@ function renderPartyGameEnd(msg){
 }
 
 /* ---------------------------------- START ---------------------------------- */
+// Kein eigener "Start"-Bildschirm mehr (fühlte sich wie ein extra Play-Knopf an) -
+// direkt ins Hauptmenü. Browser blockieren Ton trotzdem, bis irgendwo wirklich
+// getippt/geklickt wurde (Autoplay-Schutz, gilt in jedem Browser) - das übernimmt
+// unauffällig im Hintergrund der globale Klick-Zuhörer (siehe unlockAudioOnce
+// weiter oben): der allererste Tipp, egal worauf, startet die Musik dann von
+// selbst, ohne dass man extra irgendwo draufdrücken muss.
 renderMainMenu();
 restoreAccountSession().then(() => { if(account) renderMainMenu(); });
+loadAudioTrackList(); // echte Titelliste aus public/audio nachladen (im Hintergrund)
 </script>
 </body>
 </html>
