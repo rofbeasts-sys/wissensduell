@@ -141,6 +141,10 @@
   .sm-choices{ display:grid; grid-template-columns:1fr 1fr; gap:14px; justify-items:center; margin-top:26px; }
   .sm-choice{ width:min(38vw,130px); height:min(38vw,130px); border-radius:50%; border:3px solid var(--accent-2); background:rgba(255,255,255,0.06); color:inherit; font-size:30px; font-weight:800; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
   .sm-choice:active{ transform:scale(.92); background:var(--accent-2); color:#08110c; }
+  .oos-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:22px; }
+  .oos-choice{ padding:20px 8px; border-radius:16px; border:3px solid #ffb020; background:rgba(255,255,255,0.06); color:inherit; font-size:26px; font-weight:800; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
+  .oos-choice:active{ transform:scale(.94); }
+  .oos-choice:disabled{ opacity:.22; pointer-events:none; border-color:var(--text-dim); }
   .timer-bar{ height:8px; background:var(--bg-alt); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
   .timer-fill{ height:100%; background:linear-gradient(90deg,var(--accent-2),var(--accent)); transition:width .2s linear, background .3s ease; }
   .timer-fill.warn{ background:linear-gradient(90deg,var(--warn),var(--danger)); }
@@ -1593,7 +1597,8 @@ const MODE_STAT_DEFS = [
   { key:"higherlower", label:"Mehr oder Weniger",  tracksCorrect:true },
   { key:"music",       label:"Musik raten",       tracksCorrect:false },
   { key:"picture",     label:"Bild erraten",      tracksCorrect:false },
-  { key:"speedmath",   label:"Speed Math",        tracksCorrect:true }
+  { key:"speedmath",   label:"Speed Math",        tracksCorrect:true },
+  { key:"orderofspeed", label:"Order of Speed",   tracksCorrect:true }
 ];
 function freshModeStats(){
   const s = {};
@@ -2674,7 +2679,8 @@ function renderSpeedMathEntry(profile){
       <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
         ${SPEEDMATH_DURATIONS.map(d => `<button class="btn btn-primary btn-block" onclick="startSpeedMathGame(${d.sec})">${d.label}</button>`).join("")}
       </div>
-      <button class="btn btn-ghost btn-block" style="margin-top:16px; background:var(--accent-2); color:#08110c;" onclick="startSpeedMathMilestoneFlow(profile)">🏔️ MEILENSTEIN-MODUS (50 Level)</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:16px; background:var(--accent-2); color:#08110c;" onclick="startSpeedMathMilestoneFlow(speedMathProfile)">🏔️ MEILENSTEIN-MODUS (50 Level)</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px; background:#ffb020; color:#2a1900;" onclick="startOrderOfSpeedFlow(speedMathProfile)">🔢 ORDER OF SPEED</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
@@ -2834,7 +2840,6 @@ function finishSpeedMath(){
    ============================================================================ */
 const SPEEDMATH_LEVEL_COUNT = 50;
 const SPEEDMATH_DAILY_HEARTS = 3;
-const SPEEDMATH_CHECKPOINT_EVERY = 5;
 
 function speedMathLevelConfig(level){
   level = Math.max(1, Math.min(SPEEDMATH_LEVEL_COUNT, level));
@@ -2849,9 +2854,11 @@ function speedMathLevelConfig(level){
   // in den obersten Leveln) - haelt die Grundrechenarten-Logik identisch,
   // nur der Wertebereich steigt.
   const maxOperand = Math.min(10 + Math.floor((tier-1) * 1.1), 20);
-  const pointsNeeded = 300 + (level-1) * 120;
-  const streakTarget = Math.min(2 + Math.floor((tier-1)/2), 5);
-  return { level, tier, ops, label, maxOperand, pointsNeeded, streakTarget };
+  // Levelziel (auf Wunsch, wie bei den Brain-Test-Klassen): eine durchgehende
+  // Serie ohne EINE einzige falsche Antwort - waechst von 10 (Level 1) auf
+  // 40 (Level 50), bei "20" liegt es etwa in der Mitte (~Level 15).
+  const streakTarget = Math.min(10 + Math.floor((level-1) * 0.7), 40);
+  return { level, tier, ops, label, maxOperand, streakTarget };
 }
 
 function speedMathGenerateLevelProblem(config){
@@ -2888,7 +2895,7 @@ function speedMathRefreshHearts(profile){
   }
 }
 
-let speedMathLevelSession = null; // { profile, level, config, points, streak, questionsInBlock, currentProblem }
+let speedMathLevelSession = null; // { profile, level, config, streak, currentProblem }
 
 function startSpeedMathMilestoneFlow(profile){
   achvRecord({ t:"speedmath", level: profile.speedMathLevel||1 }, profile);
@@ -2906,16 +2913,16 @@ function renderSpeedMathMilestoneEntry(profile){
   renderApp(`
     <div class="panel">
       <div class="picker-title">SPEED MATH – MEILENSTEIN</div>
-      <div class="picker-sub">${profile.name} – 50 Level, steigende Schwierigkeit, Punkte sammeln.</div>
+      <div class="picker-sub">${profile.name} – 50 Level, steigende Schwierigkeit, fehlerfreie Serien schaffen.</div>
       <div class="result-item" style="margin:16px 0;">
         <div class="n">Level ${level} / ${SPEEDMATH_LEVEL_COUNT}</div>
-        <div class="l">${config.label} · ${config.ops.join(' ')} · Zahlen bis ${config.maxOperand} · Ziel: ${config.pointsNeeded} Punkte</div>
+        <div class="l">${config.label} · ${config.ops.join(' ')} · Zahlen bis ${config.maxOperand} · Ziel: ${config.streakTarget} in Folge ohne einen Fehler</div>
       </div>
       <div class="picker-sub" style="text-align:center; font-size:20px;">${'❤️'.repeat(hearts)}${'🖤'.repeat(SPEEDMATH_DAILY_HEARTS-hearts)}</div>
       <div class="picker-sub" style="text-align:center; margin-top:4px;">${hearts>0 ? 'Herzen übrig heute' : "Keine Herzen mehr heute – morgen geht's weiter!"}</div>
-      <p style="color:var(--text-dim); font-size:12px; margin-top:14px; text-align:center;">+100 pro richtiger Antwort · -50 pro Fehler · +50 Bonus bei jeder 5er-Serie<br>Alle 5 Fragen: Serie muss mind. ${config.streakTarget} erreicht haben, sonst ein Herz weg</p>
+      <p style="color:var(--text-dim); font-size:12px; margin-top:14px; text-align:center;">Löse ${config.streakTarget} Aufgaben in Folge richtig, ohne eine einzige falsche Antwort.<br>Jeder Fehler setzt die Serie zurück und kostet ein Herz.</p>
       <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startSpeedMathLevel()" ${hearts<=0?'disabled':''}>${hearts>0?'LEVEL STARTEN':'HEUTE KEINE HERZEN MEHR'}</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderSpeedMathEntry(profile)">${t('btn_back')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderSpeedMathEntry(speedMathProfile)">${t('btn_back')}</button>
     </div>
   `);
 }
@@ -2928,7 +2935,7 @@ function startSpeedMathLevel(){
   const config = speedMathLevelConfig(level);
   speedMathLevelSession = {
     profile, level, config,
-    points: 0, streak: 0, questionsInBlock: 0,
+    streak: 0,
     currentProblem: speedMathGenerateLevelProblem(config)
   };
   renderSpeedMathLevelGame();
@@ -2938,14 +2945,14 @@ function renderSpeedMathLevelGame(){
   const s = speedMathLevelSession;
   const c = s.currentProblem;
   const hearts = s.profile.speedMathHearts ?? 0;
-  const pct = Math.max(0, Math.min(100, (s.points / s.config.pointsNeeded) * 100));
+  const pct = Math.max(0, Math.min(100, (s.streak / s.config.streakTarget) * 100));
   renderApp(`
     <div class="panel">
       <div class="picker-title">LEVEL ${s.level} – ${s.config.label}</div>
-      <div class="picker-sub" style="text-align:center;">${'❤️'.repeat(hearts)}${'🖤'.repeat(SPEEDMATH_DAILY_HEARTS-hearts)} · Serie: ${s.streak}</div>
+      <div class="picker-sub" style="text-align:center;">${'❤️'.repeat(hearts)}${'🖤'.repeat(SPEEDMATH_DAILY_HEARTS-hearts)}</div>
       <div class="timer-wrap" style="margin:10px 0;">
         <div class="timer-bar"><div class="timer-fill" style="width:${pct}%"></div></div>
-        <div class="timer-num">${s.points} / ${s.config.pointsNeeded}</div>
+        <div class="timer-num">Serie: ${s.streak} / ${s.config.streakTarget}</div>
       </div>
       <div class="question-text" style="text-align:center; font-size:40px; font-weight:800; margin:24px 0;">${c.a} ${c.op} ${c.b} = ?</div>
       ${speedMathChoicesHtml(c, "speedMathLevelSubmit")}
@@ -2954,39 +2961,28 @@ function renderSpeedMathLevelGame(){
   `);
 }
 
+// Levelbestehen (auf Wunsch, wie bei den Brain-Test-Klassen): eine
+// durchgehende Serie richtiger Antworten OHNE eine einzige falsche dazwischen.
+// Jeder Fehler setzt die Serie sofort auf 0 zurueck und kostet ein Herz -
+// man kann es direkt danach wieder versuchen, solange noch Herzen da sind.
 function speedMathLevelSubmit(val){
   const s = speedMathLevelSession;
   if(!s) return;
   const correct = val === s.currentProblem.answer;
   if(correct){
     achvRecord({t:"gen",n:1}, s.profile);
-    s.points += 100;
     s.streak += 1;
-    if(s.streak > 0 && s.streak % 5 === 0) s.points += 50; // Bonus bei jeder 5er-Serie
+    if(s.streak >= s.config.streakTarget){
+      finishSpeedMathLevel(true);
+      return;
+    }
   } else {
-    s.points -= 50;
     s.streak = 0;
-  }
-  s.questionsInBlock += 1;
-
-  // Level sofort bestanden, sobald genug Punkte erreicht sind - Vorrang
-  // vor der Kontrollpunkt-Prüfung.
-  if(s.points >= s.config.pointsNeeded){
-    finishSpeedMathLevel(true);
-    return;
-  }
-
-  // Kontrollpunkt alle 5 Fragen: aktuelle Serie muss das Level-Ziel
-  // erreicht haben, sonst ein Herz weg.
-  if(s.questionsInBlock >= SPEEDMATH_CHECKPOINT_EVERY){
-    s.questionsInBlock = 0;
-    if(s.streak < s.config.streakTarget){
-      s.profile.speedMathHearts = Math.max(0, (s.profile.speedMathHearts||0) - 1);
-      if(s.profile.isAccount) syncAccountStats(s.profile); else saveProfiles();
-      if(s.profile.speedMathHearts <= 0){
-        finishSpeedMathLevel(false);
-        return;
-      }
+    s.profile.speedMathHearts = Math.max(0, (s.profile.speedMathHearts||0) - 1);
+    if(s.profile.isAccount) syncAccountStats(s.profile); else saveProfiles();
+    if(s.profile.speedMathHearts <= 0){
+      finishSpeedMathLevel(false);
+      return;
     }
   }
 
@@ -3018,17 +3014,178 @@ function finishSpeedMathLevel(won){
       <div class="result-title">${won ? '🎉 LEVEL GESCHAFFT!' : '💔 KEINE HERZEN MEHR'}</div>
       <div class="result-sub">${won ? (leveledUp ? `Weiter zu Level ${s.level+1}!` : 'Alle 50 Level geschafft – stark!') : "Für heute ist Schluss – morgen gibt's wieder 3 Herzen."}</div>
       <div class="result-grid" style="margin-top:14px;">
-        <div class="result-item pos"><div class="n">${s.points}</div><div class="l">Erreichte Punkte (Ziel: ${s.config.pointsNeeded})</div></div>
+        <div class="result-item pos"><div class="n">${s.streak}</div><div class="l">Erreichte Serie (Ziel: ${s.config.streakTarget})</div></div>
         <div class="result-item"><div class="n">Level ${s.level}</div><div class="l">${s.config.label}</div></div>
       </div>
       <div class="actions-row" style="margin-top:18px;">
         ${won ? `<button class="btn btn-primary" onclick="startSpeedMathLevel()">NÄCHSTES LEVEL</button>` : ``}
-        <button class="btn ${won?'btn-ghost':'btn-primary'}" onclick="renderSpeedMathMilestoneEntry(profile)">ZUR ÜBERSICHT</button>
+        <button class="btn ${won?'btn-ghost':'btn-primary'}" onclick="renderSpeedMathMilestoneEntry(speedMathProfile)">ZUR ÜBERSICHT</button>
         <button class="btn btn-ghost" onclick="renderMainMenu()">HAUPTMENÜ</button>
       </div>
     </div>
   `);
   speedMathLevelSession = null;
+}
+
+/* ============================================================================
+   SPEED MATH – "ORDER OF SPEED": Zahlen von 1-1000 erscheinen durcheinander,
+   in jeder Runde gilt eine von drei Regeln (aufsteigend / absteigend / nur
+   die geraden Zahlen) - richtig antippen in der richtigen Reihenfolge, ein
+   falscher Tipp beendet die Runde sofort (wie beim normalen Speed Math: kein
+   Verweilen, direkt weiter zur nächsten Runde). Zeitbasiert wie der freie
+   Speed-Math-Modus (1/2/3/5 Minuten), Punktestand = richtige/falsche Runden.
+   ============================================================================ */
+const ORDEROFSPEED_MIN = 1, ORDEROFSPEED_MAX = 1000, ORDEROFSPEED_COUNT = 5;
+const ORDEROFSPEED_RULES = ["asc", "desc", "even"];
+let orderOfSpeedSession = null; // { profile, durationSec, remaining, correct, wrong, round, timerId }
+
+function orderOfSpeedUniqueNumbers(n, min, max){
+  const set = new Set();
+  while(set.size < n){ set.add(min + Math.floor(Math.random()*(max-min+1))); }
+  return Array.from(set);
+}
+function orderOfSpeedShuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+function orderOfSpeedRuleText(rule){
+  if(rule === "asc") return "Tippe die Zahlen von KLEIN nach GROSS";
+  if(rule === "desc") return "Tippe die Zahlen von GROSS nach KLEIN";
+  return "Tippe NUR die GERADEN Zahlen (aufsteigend)";
+}
+function orderOfSpeedGenerateRound(){
+  const rule = ORDEROFSPEED_RULES[Math.floor(Math.random()*ORDEROFSPEED_RULES.length)];
+  let numbers, sequence;
+  if(rule === "even"){
+    // Anzahl gerader Zahlen bewusst 2-4 (nie 0 oder alle 5) - sonst waere
+    // die Aufgabe entweder unloesbar oder ohne echte Auswahl.
+    const evenCount = 2 + Math.floor(Math.random()*3); // 2..4
+    const oddCount = ORDEROFSPEED_COUNT - evenCount;
+    const evens = new Set();
+    while(evens.size < evenCount) evens.add(2 * (1 + Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2))));
+    const odds = new Set();
+    while(odds.size < oddCount) odds.add(1 + 2 * Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2)));
+    numbers = [...evens, ...odds];
+    sequence = [...evens].sort((a,b)=>a-b);
+  } else {
+    numbers = orderOfSpeedUniqueNumbers(ORDEROFSPEED_COUNT, ORDEROFSPEED_MIN, ORDEROFSPEED_MAX);
+    sequence = numbers.slice().sort((a,b) => rule === "asc" ? a-b : b-a);
+  }
+  return { rule, display: orderOfSpeedShuffle(numbers), sequence, nextIndex:0, done:[] };
+}
+
+function startOrderOfSpeedFlow(profile){
+  renderOrderOfSpeedEntry(profile);
+}
+function renderOrderOfSpeedEntry(profile){
+  speedMathProfile = profile;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🔢 ORDER OF SPEED</div>
+      <div class="picker-sub">${profile.name} – Zahlen von 1 bis 1000 tauchen durcheinander auf. Tippe sie in der richtigen Reihenfolge an: aufsteigend, absteigend, oder nur die geraden Zahlen.</div>
+      <div class="picker-sub" style="margin-top:14px;">Wie lange möchtest du spielen?</div>
+      <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
+        ${SPEEDMATH_DURATIONS.map(d => `<button class="btn btn-primary btn-block" onclick="startOrderOfSpeedGame(${d.sec})">${d.label}</button>`).join("")}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="renderSpeedMathEntry(speedMathProfile)">${t('btn_back')}</button>
+    </div>
+  `);
+}
+function startOrderOfSpeedGame(durationSec){
+  clearInterval(orderOfSpeedSession && orderOfSpeedSession.timerId);
+  orderOfSpeedSession = {
+    profile: speedMathProfile, durationSec, remaining: durationSec,
+    correct: 0, wrong: 0, round: orderOfSpeedGenerateRound(), timerId: null
+  };
+  renderOrderOfSpeedGame();
+  orderOfSpeedSession.timerId = setInterval(() => {
+    if(!orderOfSpeedSession) return;
+    orderOfSpeedSession.remaining -= 0.1;
+    if(orderOfSpeedSession.remaining <= 0){
+      orderOfSpeedSession.remaining = 0;
+      clearInterval(orderOfSpeedSession.timerId);
+      finishOrderOfSpeed();
+    } else {
+      updateOrderOfSpeedTimerUI();
+    }
+  }, 100);
+}
+function renderOrderOfSpeedGame(){
+  const s = orderOfSpeedSession;
+  const r = s.round;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🔢 ORDER OF SPEED</div>
+      <div class="picker-sub" style="text-align:center;">✓ ${s.correct} richtig · ✕ ${s.wrong} falsch</div>
+      <div class="timer-wrap" style="margin:10px 0;">
+        <div class="timer-bar"><div id="orderOfSpeedTimerFill" class="timer-fill" style="width:${Math.max(0,(s.remaining/s.durationSec)*100)}%"></div></div>
+        <div id="orderOfSpeedTimerNum" class="timer-num">${Math.ceil(s.remaining)}s</div>
+      </div>
+      <div class="picker-sub" style="text-align:center; font-weight:800; font-size:16px; margin-top:10px;">${orderOfSpeedRuleText(r.rule)}</div>
+      <div class="oos-grid">
+        ${r.display.map(v => `<button class="oos-choice" ${r.done.includes(v)?'disabled':''} onclick="orderOfSpeedTap(${v})">${v}</button>`).join("")}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:20px;" onclick="exitOrderOfSpeed()">${t('btn_back')}</button>
+    </div>
+  `);
+}
+function updateOrderOfSpeedTimerUI(){
+  const s = orderOfSpeedSession;
+  const fill = document.getElementById("orderOfSpeedTimerFill");
+  const num = document.getElementById("orderOfSpeedTimerNum");
+  if(!fill || !num || !s) return;
+  fill.style.width = Math.max(0, (s.remaining/s.durationSec)*100) + "%";
+  num.textContent = Math.ceil(s.remaining) + "s";
+}
+function orderOfSpeedTap(value){
+  const s = orderOfSpeedSession;
+  if(!s || !s.round) return;
+  const r = s.round;
+  if(r.done.includes(value)) return; // bereits angetippte Zahl ignorieren
+  if(value === r.sequence[r.nextIndex]){
+    r.done.push(value);
+    r.nextIndex++;
+    if(r.nextIndex >= r.sequence.length){
+      achvRecord({t:"gen",n:1}, s.profile);
+      s.correct++;
+      s.round = orderOfSpeedGenerateRound();
+    }
+  } else {
+    s.wrong++;
+    s.round = orderOfSpeedGenerateRound();
+  }
+  renderOrderOfSpeedGame();
+}
+function exitOrderOfSpeed(){
+  if(orderOfSpeedSession){ clearInterval(orderOfSpeedSession.timerId); orderOfSpeedSession = null; }
+  renderSpeedMathEntry(speedMathProfile);
+}
+function finishOrderOfSpeed(){
+  const s = orderOfSpeedSession;
+  const profile = s.profile;
+  const durationSec = s.durationSec;
+  profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
+  if(!profile.modeStats) profile.modeStats = freshModeStats();
+  const entry = profile.modeStats.orderofspeed || {played:0, correct:0};
+  entry.played = (entry.played||0) + 1;
+  entry.correct = (entry.correct||0) + s.correct;
+  profile.modeStats.orderofspeed = entry;
+  if(profile.isAccount) syncAccountStats(profile); else saveProfiles();
+  renderApp(`
+    <div class="panel">
+      <div class="result-title">⏱️ ZEIT UM!</div>
+      <div class="result-grid" style="margin-top:14px;">
+        <div class="result-item pos"><div class="n">${s.correct}</div><div class="l">Runden richtig gelöst</div></div>
+        <div class="result-item neg"><div class="n">${s.wrong}</div><div class="l">Falsch</div></div>
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-primary" onclick="startOrderOfSpeedGame(${durationSec})">NOCHMAL</button>
+        <button class="btn btn-ghost" onclick="renderSpeedMathEntry(speedMathProfile)">ZU SPEED MATH</button>
+      </div>
+    </div>
+  `);
+  orderOfSpeedSession = null;
 }
 
 function startTicTacToeFlow(){
