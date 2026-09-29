@@ -116,6 +116,14 @@
   .qcount{ font-size:13px; color:var(--text-dim); font-weight:600; }
   .qcat{ font-size:12px; padding:4px 10px; border-radius:999px; background:var(--bg-alt); border:1px solid var(--line); color:var(--accent-2); font-weight:700; }
   .timer-wrap{ margin-bottom:16px; }
+  .settings-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.62); display:flex; align-items:center; justify-content:center; z-index:5000; padding:20px; }
+  .settings-overlay.hidden{ display:none; }
+  .settings-panel{ background:#151b2a; border:2px solid var(--line); border-radius:18px; padding:22px; max-width:360px; width:100%; max-height:85vh; overflow-y:auto; }
+  .settings-title{ font-weight:800; font-size:18px; text-align:center; }
+  .settings-section{ margin-top:18px; }
+  .settings-label{ font-size:12px; color:var(--text-dim); font-weight:800; margin-bottom:8px; text-transform:uppercase; letter-spacing:.5px; }
+  .settings-track{ font-size:11px; color:var(--text-dim); margin-top:6px; text-align:center; }
+  .settings-fab{ display:block; margin:0 auto; width:auto; }
   .achv-toast{ position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:9999; display:flex; gap:12px; align-items:center; background:#151b2a; border:2px solid var(--accent-2); border-radius:16px; padding:12px 18px; box-shadow:0 8px 30px rgba(0,0,0,.5); animation:achvIn .35s ease; max-width:92vw; }
   .achv-toast .ic{ font-size:30px; }
   @keyframes achvIn{ from{ transform:translate(-50%,30px); opacity:0; } to{ transform:translate(-50%,0); opacity:1; } }
@@ -277,6 +285,7 @@
 </head>
 <body>
 <div id="app"></div>
+<div id="settingsOverlay" class="settings-overlay hidden"></div>
 
 <script src="/achievements.js"></script>
 <script>
@@ -1726,6 +1735,88 @@ function renderApp(html){ document.getElementById("app").innerHTML = html; }
 function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`; }
 // HTML-Escaping fuer ALLES, was von Nutzern stammt (Namen, Antworten, eigene
 // Kategorien) und per innerHTML angezeigt wird - verhindert eingeschleusten Code.
+/* ============================================================================
+   HINTERGRUNDMUSIK: rotierende Menü-Titel überall im Spiel, außer bei
+   Tic Tac Toe (eigener Titel, nur dort). Die <audio>-Elemente werden per
+   JavaScript erzeugt (nicht in der HTML-Vorlage), damit sie beim Neuzeichnen
+   des Bildschirms (renderApp ersetzt #app komplett) NICHT jedes Mal neu
+   gestartet werden - nur ein Wechsel der "Zone" (Menü <-> Tic Tac Toe)
+   wechselt wirklich den Titel.
+   "Final Showdown" liegt als .mp3 UND .m4a vor - beide werden als
+   <source>-Alternativen angeboten, der Browser wählt selbst das
+   unterstützte Format (typischer Fallback-Zweck zweier Formate).
+   ============================================================================ */
+const MENU_MUSIC_TRACKS = [
+  { name: "Final Showdown", files: ["Final_Showdown.mp3", "Final_Showdown.m4a"] },
+  { name: "Der letzte Schlag", files: ["Der_letzte_Schlag.mp3"] },
+  { name: "The Final Duel", files: ["The_Final_Duel.mp3"] },
+  { name: "Wissens-Quest", files: ["Wissens-Quest.mp3"] }
+];
+const TTT_MUSIC_TRACK = { name: "Tic-Tac-Game", files: ["Tic-Tac-Game.mp3"] };
+
+let audioZone = "menu";              // "menu" | "ttt" - welche Musik gerade dran ist
+let bgAudioEl = null;                // aktuell spielendes <audio>-Element
+let bgAudioTrackName = null;         // Titelname für die Einstellungen-Anzeige
+let menuMusicQueue = [];             // gemischte Restliste noch nicht gespielter Menü-Titel
+let musicEnabled = (function(){ try{ return localStorage.getItem("wq_music") !== "0"; }catch(e){ return true; } })();
+let audioUnlocked = false;           // Browser blocken Ton, bis die Person einmal getippt/geklickt hat
+
+function shuffleTracks(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  return a;
+}
+function nextMenuTrack(){
+  if(menuMusicQueue.length === 0) menuMusicQueue = shuffleTracks(MENU_MUSIC_TRACKS);
+  return menuMusicQueue.shift();
+}
+function currentZoneTrack(){ return audioZone === "ttt" ? TTT_MUSIC_TRACK : nextMenuTrack(); }
+
+function stopBgMusic(){
+  if(bgAudioEl){ bgAudioEl.pause(); bgAudioEl.onended = null; bgAudioEl.onerror = null; bgAudioEl = null; }
+}
+function startTrack(track){
+  stopBgMusic();
+  bgAudioTrackName = track.name;
+  if(!musicEnabled || !audioUnlocked || typeof document === "undefined" || !document.createElement) return; // erst starten, wenn erlaubt & entsperrt
+  const el = document.createElement("audio");
+  track.files.forEach(f => {
+    const src = document.createElement("source");
+    src.src = "/audio/" + encodeURIComponent(f);
+    el.appendChild(src);
+  });
+  el.load();
+  el.volume = 0.45;
+  if(audioZone === "ttt") el.loop = true; // ein einzelner Titel läuft in Dauerschleife
+  el.onended = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // nächster Menü-Titel
+  el.onerror = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // defekte Quelle überspringen
+  el.play().catch(() => {}); // Autoplay evtl. noch nicht erlaubt - wird beim nächsten Tipp nachgeholt
+  bgAudioEl = el;
+}
+// Wechselt zwischen "menu" (rotierende Titel) und "ttt" (fester Titel). Wird
+// von den jeweiligen Bildschirm-Einstiegspunkten aufgerufen; ruhig oft
+// aufrufbar - wenn die Zone gleich bleibt, passiert nichts (kein Neustart).
+function setAudioZone(zone){
+  if(zone === audioZone) return;
+  audioZone = zone;
+  startTrack(currentZoneTrack());
+}
+function setMusicEnabled(on){
+  musicEnabled = on;
+  try{ localStorage.setItem("wq_music", on ? "1" : "0"); }catch(e){}
+  if(on){ if(audioUnlocked) startTrack(currentZoneTrack()); }
+  else stopBgMusic();
+}
+function unlockAudioOnce(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  if(musicEnabled) startTrack(currentZoneTrack());
+}
+if(typeof document !== "undefined" && document.addEventListener){
+  document.addEventListener("click", unlockAudioOnce, { once:true });
+  document.addEventListener("touchstart", unlockAudioOnce, { once:true });
+}
+
 function esc(v){
   return String(v == null ? "" : v).replace(/[&<>"']/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[ch]));
 }
@@ -1803,6 +1894,7 @@ function achvToastNext(){
   setTimeout(() => { try{ el.remove(); }catch(e){} achvToastBusy = false; achvToastNext(); }, 3800);
 }
 function startAchievementsFlow(){
+  setAudioZone("menu");
   if(account){ renderAchievements(account.profile); return; }
   if(profiles.length > 0){
     let id = null; try{ id = localStorage.getItem(LAST_PROFILE_KEY); }catch(e){}
@@ -1952,6 +2044,7 @@ function dedicatedGameMode(gm){ return DEDICATED_MODES[gm] ? gm : "mixed"; }
 function dedicatedScreenTitle(gm){ return DEDICATED_MODES[gm] ? DEDICATED_MODES[gm].screenTitle : null; }
 function dedicatedBackFn(gm){ return DEDICATED_MODES[gm] ? "startDedicatedMenu('"+gm+"')" : "renderMainMenu()"; }
 function startDedicatedMenu(gm){
+  setAudioZone("menu");
   const m = DEDICATED_MODES[gm];
   if(!m) { renderMainMenu(); return; }
   // Stadt Land Fluss und Nenn's Blitz bewerten offene Antworten normalerweise
@@ -1999,6 +2092,7 @@ function startDedicatedMenu(gm){
 const ARENA_BLOCKS_PER_MATCH_CLIENT = 4; // muss zu ARENA_BLOCKS_PER_MATCH im Server passen
 
 function startArenaFlow(){
+  setAudioZone("menu");
   if(!account){
     postLoginRedirect = startArenaFlow;
     renderAccountAuth('login');
@@ -2174,6 +2268,10 @@ function setLang(code){
   currentLang = code;
   try{ localStorage.setItem("wq_lang", code); }catch(e){}
   renderMainMenu();
+  // Overlay bleibt offen (falls gerade sichtbar) und aktualisiert nur seinen Inhalt,
+  // damit die aktive Sprache dort sofort markiert erscheint.
+  const overlay = document.getElementById("settingsOverlay");
+  if(overlay && !overlay.classList.contains("hidden")) renderSettingsModal();
 }
 function langSwitcherHtml(){
   return `
@@ -2181,6 +2279,35 @@ function langSwitcherHtml(){
       ${AVAILABLE_LANGS.map(l => `<button class="lang-chip ${currentLang===l.code?'active':''}" onclick="setLang('${l.code}')" title="${l.name}">${l.label}</button>`).join("")}
     </div>
   `;
+}
+function renderSettingsModal(){
+  const overlay = document.getElementById("settingsOverlay");
+  if(!overlay) return;
+  overlay.innerHTML = `
+    <div class="settings-panel" onclick="event.stopPropagation()">
+      <div class="settings-title">⚙️ Einstellungen</div>
+      <div class="settings-section">
+        <div class="settings-label">Musik</div>
+        <button class="btn ${musicEnabled ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleMusicSetting()">${musicEnabled ? '🔊 Musik An' : '🔇 Musik Aus'}</button>
+        ${musicEnabled && bgAudioTrackName ? `<div class="settings-track">Läuft gerade: ${esc(bgAudioTrackName)}</div>` : ``}
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">Sprache</div>
+        ${langSwitcherHtml()}
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="closeSettings()">Schließen</button>
+    </div>
+  `;
+  overlay.classList.remove("hidden");
+  overlay.onclick = closeSettings; // Klick auf den abgedunkelten Hintergrund schließt
+}
+function closeSettings(){
+  const overlay = document.getElementById("settingsOverlay");
+  if(overlay) overlay.classList.add("hidden");
+}
+function toggleMusicSetting(){
+  setMusicEnabled(!musicEnabled);
+  renderSettingsModal(); // Knopf-Text/Titel-Anzeige aktualisieren, Overlay bleibt offen
 }
 
 const I18N = {
@@ -2263,6 +2390,7 @@ function t(key){
 }
 
 function renderMainMenu(){
+  setAudioZone("menu");
   // Kleiner Helfer für eine dedizierte-Modus-Karte (Einordnen, Mehr oder
   // Weniger, Nenn's Blitz, Musik raten, Stadt Land Fluss) - holt Icon/
   // Titel/Sprachsperre aus DEDICATED_MODES, damit nichts doppelt gepflegt
@@ -2279,7 +2407,7 @@ function renderMainMenu(){
     `;
   };
   renderApp(`
-    ${langSwitcherHtml()}
+    <button class="btn btn-ghost settings-fab" onclick="renderSettingsModal()">⚙️ Einstellungen</button>
     ${accountIndicatorHtml()}
     <div class="menu-hero">
       <h1>${t('app_title')}</h1>
@@ -2371,11 +2499,11 @@ function statCardHtml(p, extraArena){
           </div>
         `;}).join("")}
       </div>
-      <button class="btn btn-ghost btn-block" style="margin-top:12px;" onclick="startAchievementsFlow()">🏆 Erfolge</button>
     </div>
   `;
 }
 function renderStatistik(){
+  setAudioZone("menu");
   const showLocalHint = !account && profiles.length===0;
   renderApp(`
     <div class="panel">
@@ -2485,6 +2613,7 @@ const SPEEDMATH_DURATIONS = [
 ];
 
 function startSpeedMathFlow(){
+  setAudioZone("menu");
   if(account){ renderSpeedMathEntry(accountAsProfile()); return; }
   if(profiles.length > 0){
     const lastId = localStorage.getItem(LAST_PROFILE_KEY);
@@ -2864,6 +2993,7 @@ function finishSpeedMathLevel(won){
 }
 
 function startTicTacToeFlow(){
+  setAudioZone("ttt"); // eigener Titel nur hier, solange man im Tic-Tac-Toe-Bereich ist
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE</div>
@@ -3871,6 +4001,7 @@ function tttFinishGame(winner){
 
 const LAST_PROFILE_KEY = "wq_last_profile_id";
 function startSoloFlow(){
+  setAudioZone("menu");
   if(account){ renderKlassenOverview(accountAsProfile()); return; }
   // Jedes Gerät gehört normalerweise einer Person -> sobald ein lokales
   // Profil existiert, direkt damit starten statt jedes Mal danach zu fragen.
@@ -4438,6 +4569,7 @@ function wsUrl(){
 
 let pendingCreateGameMode = "mixed";
 function startPartyFlow(gameMode){
+  setAudioZone("menu");
   pendingCreateGameMode = dedicatedGameMode(gameMode);
   const backTarget = dedicatedBackFn(pendingCreateGameMode);
   if(location.protocol !== "http:" && location.protocol !== "https:"){
@@ -4738,6 +4870,7 @@ function roundPlanReady(room){
 
 function partyHandleMessage(msg){
   if(!party) return;
+  setAudioZone(/^ticTacToe/.test(msg.type) ? "ttt" : "menu");
   achvOnPartyMessage(msg);
   if(party.arenaMode){
     if(msg.type === "gameEnd"){ finishArenaMatch(); return; }
