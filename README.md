@@ -2889,6 +2889,77 @@ Einstellungen-Overlay, Party-Raum-Umschaltung zwischen Runden (inkl.
 "ticTacToeSkipped"), und dass der Server alle 6 Dateien mit dem richtigen
 Inhaltstyp ausliefert (kein Pfad-Ausbruch, keine fremde Datei erreichbar).
 
+## 8fff. Start-Bildschirm: Musik spielt spürbar sofort beim Öffnen
+
+Problem: Browser blockieren Ton grundsätzlich, bis einmal wirklich getippt/
+geklickt wurde (Autoplay-Schutz - gilt in jedem Browser, lässt sich nicht per
+Code umgehen). Bisher passierte das zufällig beim ersten Menü-Klick, wirkte
+also nicht wie "die Musik geht beim Öffnen los".
+
+Neu: Vor dem Hauptmenü erscheint jetzt ein kurzer **Start-Bildschirm** ("🔊 Zum
+Start antippen", in allen 7 Sprachen). Der eine Tipp darauf ist genau die vom
+Browser verlangte Geste - die Musik startet dadurch spürbar in dem Moment, in
+dem man antippt, direkt bevor das Menü erscheint. Die Konto-Anmeldung lädt im
+Hintergrund weiter, ohne den Start-Bildschirm wegzuräumen.
+
+Getestet: Start-Bildschirm erscheint zuerst (nicht das Menü), vor dem Antippen
+läuft keine Musik, Konto-Ankunft VOR dem Tippen räumt den Bildschirm nicht weg,
+nach dem Tippen erscheinen Menü UND Musik gleichzeitig, doppeltes Antippen hat
+keine Wirkung mehr.
+
+## 8ggg. Start-Bildschirm wieder raus + Lautstärkeregler
+
+Auf Wunsch zurückgenommen: der extra "Zum Start antippen"-Bildschirm fühlte
+sich wie ein Play-Knopf an. Jetzt geht es direkt ins Hauptmenü; die Musik
+startet weiterhin automatisch beim ALLERERSTEN Tipp irgendwo auf der Seite
+(nicht auf einen bestimmten Knopf) - das war technisch schon vorher so
+eingebaut, nur der zusätzliche Bildschirm davor ist raus. Ein Tipp bleibt
+zwingend nötig, das ist eine Browser-Regel (Autoplay-Schutz gegen Ton ohne
+Interaktion) und lässt sich durch keinen Code umgehen.
+
+Neu in den **Einstellungen**: ein **Lautstärkeregler** (0-100 %) unter dem
+Musik-An/Aus-Knopf. Wirkt sofort auf den gerade laufenden Titel, ohne ihn neu
+zu starten. Merkt sich die Wahl (localStorage), Standard 45 %. Ist der Regler
+bei ausgeschalteter Musik deaktiviert, bleibt der zuletzt eingestellte Wert
+erhalten und gilt wieder, sobald Musik An geschaltet wird.
+
+Getestet: kein Start-Bildschirm mehr, Musik startet durch den ersten Tipp
+irgendwo, gespeicherte/Standard-Lautstärke wird beim Start übernommen, Regler
+ändert die laufende Musik sofort, Wertebereich wird auf 0-100 gedeckelt
+(auch bei ungültiger Eingabe), Anzeige im Einstellungen-Fenster inkl.
+deaktiviertem Zustand bei ausgeschalteter Musik.
+
+## 8hhh. Neue Songs werden automatisch erkannt (kein Code-Update mehr nötig)
+
+Auf Wunsch: die Titelliste steht nicht mehr fest im Code. Der Server liest den
+Ordner `public/audio/` bei jeder Anfrage live aus und schickt sie dem Browser.
+
+- **Einfach eine Datei in `public/audio/` hochladen** (.mp3, .m4a, .ogg, .wav,
+  .aac oder .flac) - taucht beim nächsten Laden automatisch im Menü-Pool auf,
+  ganz ohne dass am Code etwas geändert werden muss.
+- **Anzeigename** wird aus dem Dateinamen abgeleitet (Unterstriche/Bindestriche
+  werden zu Leerzeichen): `Mein_Neuer_Song.mp3` → "Mein Neuer Song".
+- **Gleicher Name, andere Endung** = derselbe Titel in mehreren Formaten
+  (wie bisher bei "Final Showdown" .mp3+.m4a) - wird automatisch
+  zusammengeführt, nicht als zwei Titel gezählt.
+- **Reserviert für Tic Tac Toe**: jede Datei, deren Name (Gross-/Kleinschreibung
+  und _/-/Leerzeichen egal) zu "tic-tac-game" passt, läuft NIE im Menü-Pool,
+  sondern nur während Tic Tac Toe - das gilt weiterhin unabhängig vom Dateiformat.
+- Wird eine Datei aus dem Ordner gelöscht, verschwindet sie ebenso automatisch
+  wieder aus der Liste.
+- Fehlt der Ordner ganz oder ist er leer, gibt's keinen Absturz, nur eine leere
+  Liste (bzw. beim Client bleibt dann die eingebaute Ausfallliste als Reserve).
+
+Neuer Endpunkt `/api/audio-tracks`, genutzt beim Programmstart
+(`loadAudioTrackList()`); Umgebungsvariable `AUDIO_DIR` nur für Tests, im
+Normalbetrieb ungenutzt.
+
+Getestet: Erkennung/Gruppierung/Umbenennung, neue Datei erscheint sofort,
+Nicht-Audio-Dateien werden ignoriert, gelöschte Datei verschwindet wieder,
+verschiedene Schreibweisen des Tic-Tac-Toe-Dateinamens, fehlender Ordner
+stürzt nicht ab, Client übernimmt die echte Liste bzw. bleibt bei der
+Ausfallliste, wenn der Server nicht erreichbar ist oder der Ordner leer war.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

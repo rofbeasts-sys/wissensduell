@@ -3091,6 +3091,46 @@ function arenaLeaderboard() {
 /* HTTP: statische Dateien aus /public                                       */
 /* ------------------------------------------------------------------------ */
 const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
+
+/* ------------------------------------------------------------------------ */
+/* Hintergrundmusik: Titelliste wird aus dem Ordner public/audio ausgelesen -  */
+/* neue Dateien dort erscheinen automatisch, ohne Code-Änderung.              */
+/* ------------------------------------------------------------------------ */
+// AUDIO_DIR per Umgebungsvariable überschreibbar (nur für Tests - im
+// Normalbetrieb ungenutzt, zeigt dann auf den echten public/audio-Ordner).
+const AUDIO_DIR = process.env.AUDIO_DIR || path.join(__dirname, "public", "audio");
+const AUDIO_EXTENSIONS = new Set([".mp3", ".m4a", ".ogg", ".wav", ".aac", ".flac"]);
+// Jede Datei, deren Name (ohne Endung, Gross/Klein und _/-/Leerzeichen egal)
+// zu "tic-tac-game" passt, ist reserviert für Tic Tac Toe und läuft NIE im
+// Menü-Pool mit.
+const TTT_TRACK_KEY = "tic-tac-game";
+function normalizeTrackKey(base) {
+  return base.toLowerCase().replace(/[_\s-]+/g, "-").trim();
+}
+function prettyTrackName(base) {
+  return base.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim() || base;
+}
+// Gruppiert Dateien mit demselben Namen (verschiedene Endung = derselbe
+// Titel in mehreren Formaten, z.B. .mp3 + .m4a als Fallback-Alternativen).
+function listAudioTracks() {
+  let files;
+  try { files = fs.readdirSync(AUDIO_DIR); } catch (e) { return { menu: [], ttt: null }; }
+  const groups = new Map(); // normalisierter Name -> { name, files: [] }
+  for (const f of files.sort()) {
+    const ext = path.extname(f).toLowerCase();
+    if (!AUDIO_EXTENSIONS.has(ext)) continue;
+    const base = f.slice(0, f.length - ext.length);
+    const key = normalizeTrackKey(base);
+    if (!groups.has(key)) groups.set(key, { name: prettyTrackName(base), files: [] });
+    groups.get(key).files.push(f);
+  }
+  let ttt = null;
+  const menu = [];
+  for (const [key, track] of groups) {
+    if (key === TTT_TRACK_KEY && !ttt) ttt = track; else menu.push(track);
+  }
+  return { menu, ttt };
+}
 // Sicherheits-Header. Bewusst KEINE strikte script-src-CSP: die Seite nutzt
 // Inline-Skripte/onclick-Handler und die YouTube-IFrame-API (Musik raten) -
 // das ginge ohne Umbau + Browsertest kaputt. Diese Direktiven sind unkritisch.
@@ -3134,6 +3174,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned, payload.matchId);
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
+        else if (req.url === "/api/audio-tracks") result = listAudioTracks();
         else result = { ok: false, error: "Unbekannter Endpunkt." };
       } catch (e) {
         console.error("[API-Fehler]", req.url, e && e.stack || e);
