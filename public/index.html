@@ -1480,6 +1480,15 @@ function tttRankPillHtml(rankIndex){
 // KLASSE_QUESTIONS), wird auf den nächstniedrigeren befüllten Pool
 // zurückgefallen, damit das Spiel nicht abbricht, bis alle Klassen fertig
 // befüllt sind.
+// Die Fragen-Datensaetze wurden beim Erstellen nicht zufaellig durchmischt -
+// die richtige Antwort lag dadurch mit steigender Klasse zunehmend auf Feld 1
+// (Klasse 10: ~98%). Deshalb wird die Reihenfolge der Antworten bei jeder
+// Ausgabe neu gemischt - shared/klasseQuestions.json selbst bleibt unveraendert.
+function shuffleAnswerOrder(q){
+  const order = q.a.map((_,i)=>i);
+  for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
+  return { ...q, a: order.map(i=>q.a[i]), c: order.indexOf(q.c) };
+}
 function pickKlasseTestQuestions(klasseIndex){
   let klasseNum = Math.min(klasseIndex, KLASSEN.length-1) + 1;
   while(klasseNum > 1 && !(KLASSE_QUESTIONS[klasseNum] && KLASSE_QUESTIONS[klasseNum].length)) klasseNum--;
@@ -1489,7 +1498,7 @@ function pickKlasseTestQuestions(klasseIndex){
     const j = Math.floor(Math.random()*(i+1));
     [pool[i],pool[j]] = [pool[j],pool[i]];
   }
-  return pool.slice(0, test.questions);
+  return pool.slice(0, test.questions).map(shuffleAnswerOrder);
 }
 // Haupttest: 20 zufällige Fragen der Klasse (der Übungstest nimmt dagegen
 // alle 50).
@@ -1501,7 +1510,7 @@ function pickKlasseHaupttestQuestions(klasseIndex){
     const j = Math.floor(Math.random()*(i+1));
     [pool[i],pool[j]] = [pool[j],pool[i]];
   }
-  return pool.slice(0, BRAINTEST_MAIN_COUNT);
+  return pool.slice(0, BRAINTEST_MAIN_COUNT).map(shuffleAnswerOrder);
 }
 
 const RANKS = [
@@ -2360,6 +2369,8 @@ const I18N = {
   solo_party_desc: {de:"Spiele allein mehrere Runden mit wechselnden Modi: Wissenstest, Einordnen, Mehr oder Weniger.", en:"Play several rounds alone with changing modes: quiz, ordering, higher-or-lower.", ja:"クイズ、並べ替え、オーバー・アンダーなど、モードを変えながら一人で複数ラウンドをプレイ。", zh:"独自游玩多轮不同模式：问答、排序、大小猜谜。", fr:"Joue seul plusieurs manches avec des modes variés : quiz, classement, plus ou moins.", it:"Gioca da solo più round con modalità diverse: quiz, ordinamento, più o meno.", es:"Juega varias rondas solo con modos variados: cuestionario, ordenar, más o menos."},
 
   btn_back: {de:"ZURÜCK", en:"BACK", ja:"戻る", zh:"返回", fr:"RETOUR", it:"INDIETRO", es:"ATRÁS"},
+  btn_cancel_test: {de:"Test abbrechen", en:"Cancel test", ja:"テストを中止", zh:"取消测试", fr:"Annuler le test", it:"Annulla il test", es:"Cancelar prueba"},
+  confirm_exit_test: {de:"Test wirklich abbrechen? Dein bisheriger Fortschritt in dieser Runde geht verloren.", en:"Really cancel the test? Your progress in this round will be lost.", ja:"本当にテストを中止しますか？このラウンドの進行状況は失われます。", zh:"确定要取消测试吗？本轮的进度将会丢失。", fr:"Vraiment annuler le test\u00a0? Votre progression dans cette manche sera perdue.", it:"Vuoi davvero annullare il test? I progressi di questo turno andranno persi.", es:"\u00bfSeguro que quieres cancelar la prueba? Se perder\u00e1 tu progreso en esta ronda."},
   btn_cancel: {de:"ABBRECHEN", en:"CANCEL", ja:"キャンセル", zh:"取消", fr:"ANNULER", it:"ANNULLA", es:"CANCELAR"},
   btn_leave_room: {de:"RAUM VERLASSEN", en:"LEAVE ROOM", ja:"ルームを退出", zh:"离开房间", fr:"QUITTER LA SALLE", it:"ABBANDONA STANZA", es:"SALIR DE LA SALA"},
   btn_confirm: {de:"BESTÄTIGEN", en:"CONFIRM", ja:"確定", zh:"确认", fr:"CONFIRMER", it:"CONFERMA", es:"CONFIRMAR"},
@@ -4157,7 +4168,7 @@ function renderSoloQuestion(){
       </div>
       <div id="explanationBox" class="explanation hidden"></div>
       <button id="soloNextBtn" class="btn btn-primary btn-block hidden" style="margin-top:14px;" onclick="soloNextQuestion()">WEITER</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="exitSoloTest()">${t('btn_back')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:28px; opacity:.7;" onclick="exitSoloTest()">✕ ${t('btn_cancel_test')}</button>
     </div>
   `);
   startSoloTimer();
@@ -4166,11 +4177,19 @@ function renderSoloQuestion(){
 // das als bestandenen/nicht bestandenen Versuch gegen das Profil zu werten
 // (roundsPlayed/consecutiveFails bleiben unverändert - der Test wurde ja
 // nicht zu Ende gespielt).
+// Bugfix (auf Wunsch): der "Zurück"-Knopf stand direkt unter "WEITER" und
+// loeschte bei einem versehentlichen Tipp SOFORT den gesamten Testfortschritt,
+// ohne Rueckfrage. Jetzt: erst ab echtem Fortschritt (mind. 1 Frage
+// beantwortet) eine Bestaetigung, sonst (ganz am Anfang, nichts zu verlieren)
+// direkt raus wie bisher. Zusaetzlich mehr Abstand + eindeutigerer Text statt
+// des generischen "ZURÜCK", damit der Knopf nicht mit "WEITER" verwechselt wird.
 function exitSoloTest(){
-  if(solo){
-    clearInterval(solo.timerId);
-    solo = null;
-  }
+  if(!solo){ renderMainMenu(); return; }
+  const hasProgress = (solo.correct||0) > 0 || (solo.wrong||0) > 0 || (solo.qIndex||0) > 0;
+  if(hasProgress && !confirm(t('confirm_exit_test'))) return;
+  clearInterval(solo.timerId);
+  clearTimeout(solo.advanceTimer);
+  solo = null;
   renderMainMenu();
 }
 
