@@ -2960,6 +2960,63 @@ verschiedene Schreibweisen des Tic-Tac-Toe-Dateinamens, fehlender Ordner
 stürzt nicht ab, Client übernimmt die echte Liste bzw. bleibt bei der
 Ausfallliste, wenn der Server nicht erreichbar ist oder der Ordner leer war.
 
+## 8iii. Wissensfragen: Antwortreihenfolge gemischt (Bugfix)
+
+Gemeldet: gefühlt liegt die richtige Antwort öfter auf Feld 2/3. Geprüft und
+bestätigt - und schlimmer als gedacht:
+- Allgemeiner Wissenstest-Pool (590 Fragen): richtige Antwort lag zu **65 %**
+  auf Feld 2 (Feld 4 fast nie: 1,4 %).
+- Brain-Test-Fragen: wurde mit steigender Klasse immer schlimmer - **Klasse
+  10: 98 % auf Feld 1**. Man hätte praktisch immer "A" tippen können.
+
+Ursache: die Original-Datensätze wurden beim Erstellen nie zufällig
+durchmischt. Behoben durch eine neue Funktion `shuffleAnswerOrder()` (Server
+UND Client, gleiche Logik), die die Reihenfolge der vier Antworten bei
+**jeder Ausgabe an eine Person neu würfelt** - die Original-JSON-Dateien
+bleiben unverändert, nur was rausgeht wird gemischt. Eingebaut an allen 6
+Stellen, wo Fragen ausgegeben werden: Bot-Quiz, Party-Raum-Quiz, Arena-Quiz,
+Online-Tic-Tac-Toe-Duell, Brain-Test-Übungstest, Brain-Test-Haupttest (inkl.
+Wiederholung).
+
+Getestet (`test/answer-shuffle.test.js`): Mischfunktion selbst (2000
+Durchläufe, richtige Zuordnung bleibt garantiert korrekt, andere Felder
+unangetastet), Code-Beleg für alle 4 Server-Einsatzstellen, Bot-Quizfragen
+über die echte API (400 Stichproben: von 65 % auf einem Feld zu gleichmäßig
+~20-28 %), Party-Raum-Quiz (30 Stichproben, echter Server-Test), Brain Test
+alle 10 Klassen inkl. der schlimmsten Klasse 10 (bestätigt: von 98 % auf
+einem Feld zu gleichmäßig verteilt). Arena und Online-TTT-Duell nutzen
+denselben Code-Pfad (Beleg im Code) bzw. wurden einzeln erfolgreich
+durchgespielt, ein vollständiger Mehrfachrunden-Livetest für diese beiden
+ist an einer Umgebungseinschränkung der Testumgebung selbst gescheitert
+(mehrere schnelle Verbindungsauf-/-abbauten hintereinander), nicht am Code.
+
+## 8jjj. Brain Test: "Zurück" versehentlich gedrückt löschte alles (Bugfix)
+
+Gemeldet: der "Zurück"-Knopf stand zu nah am "WEITER"-Knopf, ein versehentlicher
+Tipp mitten im Test hat den kompletten Fortschritt sofort und ohne Rückfrage
+gelöscht.
+
+- Ab der ersten beantworteten Frage fragt jetzt eine **Bestätigung** nach
+  ("Test wirklich abbrechen? Dein bisheriger Fortschritt in dieser Runde geht
+  verloren."), bevor wirklich etwas verloren geht. Bricht man die Bestätigung
+  ab, bleibt der Test unverändert bestehen.
+- Ganz am Anfang (noch keine Frage beantwortet) geht's weiterhin direkt raus,
+  ohne unnötige Rückfrage - da gibt's ja nichts zu verlieren.
+- Knopf heißt jetzt "✕ Test abbrechen" statt des generischen "ZURÜCK", mit
+  deutlich mehr Abstand zu "WEITER" (28px statt 10px), damit er auch optisch
+  nicht mehr mit dem Weiter-Knopf verwechselt wird.
+- Gilt gleichermaßen für Übungstest, Haupttest und "Test wiederholen" (alle
+  drei laufen über denselben Bildschirm).
+- Neue Übersetzungen für den Knopftext und den Bestätigungstext in allen 7
+  Sprachen.
+
+Getestet (`test/exit-confirm.test.js`): kein Fortschritt → direkt raus ohne
+Rückfrage, mit Fortschritt → Rückfrage kommt, "Abbrechen" der Rückfrage
+rettet den Fortschritt (Test bleibt unverändert, kein Sprung ins Menü),
+"Bestätigen" verlässt wie gewünscht, gilt für Haupttest und Wiederholung
+gleichermaßen, korrekter Knopftext/Abstand, keine Timer-Leichen nach dem
+Abbrechen.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

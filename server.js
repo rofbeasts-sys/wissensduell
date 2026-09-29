@@ -99,6 +99,21 @@ const PORT = process.env.PORT || 3000;
 /* Datenbasis laden (zentral, getrennt vom Spielcode)                        */
 /* ------------------------------------------------------------------------ */
 const QUIZ_QUESTIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/quizQuestions.json"), "utf8"));
+
+// Die Fragen-Datensaetze wurden beim Erstellen nicht zufaellig durchmischt -
+// die richtige Antwort lag dadurch weit ueberproportional auf Feld 2 (beim
+// allgemeinen Wissenstest-Pool ~65%) bzw. mit steigender Klasse zunehmend auf
+// Feld 1 (Klasse 10: ~98%). Deshalb wird die Reihenfolge der Antworten bei
+// JEDER Auswahl neu gemischt - die Original-JSON-Dateien bleiben unveraendert,
+// nur die ausgelieferte Reihenfolge wird zufaellig.
+function shuffleAnswerOrder(q) {
+  const order = q.a.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return { ...q, a: order.map(i => q.a[i]), c: order.indexOf(q.c) };
+}
 // Klassen-Fragenpool (1-10, je 50 Fragen) - dieselbe Quelle, aus der auch der
 // Client sein KLASSE_QUESTIONS erzeugt (siehe public/index.html) - wird hier
 // für die Quiz-Blöcke im Arena-Match nach Liga/Klassenbereich gefiltert.
@@ -465,7 +480,7 @@ function tttStartDuel(room, cellIndex) {
     tttStartMathSprintDuel(room, cellIndex);
     return;
   }
-  const questions = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TTT_DUEL_QUESTIONS_PER_CELL);
+  const questions = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, TTT_DUEL_QUESTIONS_PER_CELL).map(shuffleAnswerOrder);
   room.duel = {
     cellIndex,
     type: "quiz",
@@ -780,7 +795,7 @@ function pickQuizQuestions(n) {
     if (pool.length === 0) pool = QUIZ_QUESTIONS.map((q, idx) => ({ ...q, idx })).filter(q => !usedIdx.has(q.idx));
     const chosen = pool[Math.floor(Math.random() * pool.length)];
     usedIdx.add(chosen.idx);
-    picks.push(chosen);
+    picks.push(shuffleAnswerOrder(chosen));
   }
   return picks;
 }
@@ -797,7 +812,7 @@ function pickKlasseRangeQuestions(klasseMin, klasseMax, n) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return pool.slice(0, n);
+  return pool.slice(0, n).map(shuffleAnswerOrder);
 }
 
 function startQuizRound(room) {
@@ -3064,7 +3079,7 @@ async function arenaFinishMatch(token, pointsEarned, matchId) {
 // (bei dem der Index natürlich geheim bleiben müsste).
 function randomQuizQuestions(count) {
   const n = Math.min(20, Math.max(1, Number(count) || 5));
-  const picked = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, n);
+  const picked = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, n).map(shuffleAnswerOrder);
   return { ok: true, questions: picked.map(q => ({ q: q.q, a: q.a, c: q.c, cat: q.cat, e: q.e || "" })) };
 }
 
