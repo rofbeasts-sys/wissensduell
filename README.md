@@ -3017,6 +3017,73 @@ rettet den Fortschritt (Test bleibt unverändert, kein Sprung ins Menü),
 gleichermaßen, korrekter Knopftext/Abstand, keine Timer-Leichen nach dem
 Abbrechen.
 
+## 8kkk. Speed-Math-Meilenstein: Klick-Bug behoben + Levelziel umgebaut
+
+**Bugfix - "MEILENSTEIN-MODUS"-Knopf tat beim Antippen nichts**: Ursache war
+`onclick="startSpeedMathMilestoneFlow(profile)"` (ohne `${}`) - beim echten
+Klick wertet der Browser das inline-`onclick` im GLOBALEN Scope aus, wo es
+keine Variable `profile` gibt (das war nur der lokale Funktionsparameter zur
+Render-Zeit). Ergebnis: ein stiller `ReferenceError`, nichts passierte. Betraf
+3 Stellen (Einstieg, "Zurück", "Zur Übersicht" nach Levelende) - alle jetzt auf
+die tatsächlich globale Variable `speedMathProfile` umgestellt.
+
+**Levelziel umgebaut, auf Wunsch wie beim Brain Test**: statt Punkte sammeln +
+Kontrollpunkt alle 5 Fragen jetzt eine einfache, durchgehende **Serie ohne
+eine einzige falsche Antwort**. Jeder Fehler setzt die Serie sofort auf 0
+zurück und kostet ein Herz; man kann direkt danach weiterversuchen, solange
+noch Herzen da sind. Das Ziel wächst von 10 (Level 1) auf 40 (Level 50) - bei
+Level 15 liegt es bei ca. 20 (dem Beispielwert aus der Anfrage). Das alte
+Punkte-/Bonus-/Kontrollpunkt-System ist komplett raus, ebenso die Anzeigen
+dazu (jetzt: "Serie: x / Ziel" statt Punkte-Fortschrittsbalken).
+
+Getestet: der echte Klickpfad an allen 3 vorher kaputten Stellen (Simulation
+eines echten Browser-Klicks - ein direkter Funktionsaufruf hätte den Bug NICHT
+gefunden, das ist extra im Test dokumentiert), Code-Suche nach demselben
+Fehlermuster an anderer Stelle (keine gefunden), sowie das neue Serien-System
+im Detail (Herzverlust bei Fehler, korrekte Rücksetzung, Levelaufstieg exakt
+bei Erreichen des Ziels, kein Bestehen bei einem Fehler unmittelbar davor,
+0 Herzen beendet die Runde, Erfolge zählen weiterhin korrekt).
+
+Beim Testen zwei bereits vorhandene, von dieser Änderung unabhängige
+Testschwächen gefunden und behoben: ein Zufalls-Test mit zu engen Grenzen bei
+kleiner Stichprobe (30 statt z.B. 400 Versuche - reines Stichprobenrauschen,
+kein Bug), und ein Musik-Test, der gelegentlich einen zufällig gewürfelten
+Datensatz mit nur 1 Song traf (`serienintros_tvshow`) und dadurch auf einen
+nie kommenden "nächsten Song" wartete - jetzt wird für den Test gezielt der
+große Datensatz (129 Songs) gewählt.
+
+## 8lll. Neuer Speed-Math-Modus: "Order of Speed"
+
+Auf Wunsch: dritter Speed-Math-Modus, Knopf direkt unter "MEILENSTEIN-MODUS"
+im Speed-Math-Menü. Zahlen von 1 bis 1000 erscheinen durcheinander (5 pro
+Runde), du musst sie in der richtigen Reihenfolge antippen. Bei jeder Runde
+gilt zufällig eine von drei Regeln:
+- **Aufsteigend**: von der kleinsten zur größten Zahl
+- **Absteigend**: von der größten zur kleinsten Zahl
+- **Nur gerade Zahlen**: nur die geraden antippen (aufsteigend), die
+  ungeraden sind Ablenker und dürfen nicht angetippt werden - jede Runde hat
+  garantiert 2 bis 4 gerade Zahlen (nie 0, nie alle 5, sonst wäre die Aufgabe
+  unlösbar bzw. ohne echte Auswahl)
+
+Zeitbasiert wie der freie Speed-Math-Modus (1/2/3/5 Minuten, gleiche
+Dauer-Auswahl). Ein falscher Tipp (falsche Reihenfolge, oder bei "nur gerade"
+eine ungerade Zahl) zählt als Fehler und startet sofort eine neue Runde -
+kein Verweilen, passend zum "Speed"-Charakter der anderen Modi hier. Jede
+komplett und richtig gelöste Runde zählt auch für den allgemeinen "richtige
+Antworten"-Erfolg. Eigene Statistik-Kategorie ("Order of Speed") in der
+Übersicht.
+
+Getestet: Rundenerzeugung für alle drei Regeln (Wertebereich, keine
+Duplikate, korrekte Sortierung, bei "nur gerade" die 2-4-Grenze und dass die
+übrigen Zahlen wirklich ungerade sind), Antippen (richtige Reihenfolge rückt
+vor, bereits getippte Zahl wird ignoriert, falsche Zahl = sofortiger
+Rundenwechsel), komplette Runde zählt genau einmal (nicht pro Zahl), Erfolge
+laufen mit, Zeitablauf beendet sauber und speichert die Statistik, kein
+Timer-Leck. Extra geprüft: der beim Meilenstein-Modus gefundene
+onclick-Scoping-Bug (Verweis auf eine nicht-globale Variable) wurde hier NICHT
+wiederholt - eigener Test mit echter Klick-Simulation bestätigt das explizit,
+und eine Code-Suche im neuen Abschnitt fand keine weiteren Fälle.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

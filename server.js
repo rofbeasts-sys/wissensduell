@@ -2774,7 +2774,7 @@ function defaultStats() {
     achv: Achv.newState(),
     modeStats: freshModeStats() };
 }
-const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture", "speedmath"];
+const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture", "speedmath", "orderofspeed"];
 function freshModeStats() {
   const s = {};
   MODE_STAT_KEYS.forEach(k => { s[k] = { played: 0, correct: 0 }; });
