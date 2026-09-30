@@ -2814,7 +2814,8 @@ async function registerUser(username, password, ip) {
     avatar: null,
     stats: defaultStats(),
     tokens: [{ token, createdAt: Date.now() }],
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    friends: [], incomingRequests: [], outgoingRequests: []
   };
   users.push(user);
   if (!(await saveUsers())) {
@@ -2935,6 +2936,232 @@ async function saveUserStats(token, stats) {
   }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
+}
+
+/* ------------------------------------------------------------------------ */
+/* Freunde: Anfragen, Liste, Online-Status, Chat                             */
+/* ------------------------------------------------------------------------ */
+// Online-Status pro Konto (nicht gespeichert, nur waehrend der Server laeuft):
+// Benutzername (klein) -> Set der offenen WebSocket-Verbindungen (mehrere
+// Geraete/Tabs moeglich).
+const onlineAccounts = new Map();
+function accountIsOnline(username) {
+  const set = onlineAccounts.get(username.toLowerCase());
+  return !!set && set.size > 0;
+}
+function accountDisconnect(ws) {
+  if (!ws.accountUsername) return;
+  const set = onlineAccounts.get(ws.accountUsername);
+  if (!set) return;
+  set.delete(ws);
+  if (set.size === 0) {
+    onlineAccounts.delete(ws.accountUsername);
+    const user = findUserByName(ws.accountUsername);
+    if (user) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOffline", username: user.username }));
+  }
+}
+function achievementCount(user) {
+  const unlocked = user.stats && user.stats.achv && user.stats.achv.unlocked;
+  return unlocked ? Object.keys(unlocked).length : 0;
+}
+function friendSummary(user) {
+  return { username: user.username, avatar: user.avatar || null, online: accountIsOnline(user.username), achievements: achievementCount(user) };
+}
+function areFriends(a, b) {
+  return (a.friends || []).some(f => f.toLowerCase() === b.username.toLowerCase());
+}
+async function friendsList(token) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const friends = (me.friends || []).map(name => findUserByName(name)).filter(Boolean).map(friendSummary);
+  const incoming = (me.incomingRequests || []).filter(name => findUserByName(name));
+  const outgoing = (me.outgoingRequests || []).filter(name => findUserByName(name));
+  return { ok: true, friends, incoming, outgoing };
+}
+async function friendsSearch(token, query) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const q = (typeof query === "string" ? query : "").trim().toLowerCase();
+  if (q.length < 2) return { ok: true, results: [] };
+  const results = users
+    .filter(u => u !== me && u.username.toLowerCase().includes(q))
+    .slice(0, 20)
+    .map(u => ({
+      username: u.username, avatar: u.avatar || null,
+      isFriend: areFriends(me, u),
+      requestSent: (me.outgoingRequests || []).some(n => n.toLowerCase() === u.username.toLowerCase()),
+      requestIncoming: (me.incomingRequests || []).some(n => n.toLowerCase() === u.username.toLowerCase())
+    }));
+  return { ok: true, results };
+}
+async function friendsRequest(token, targetUsername) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const target = findUserByName(targetUsername);
+  if (!target) return { ok: false, error: "Diesen Benutzernamen gibt es nicht." };
+  if (target === me) return { ok: false, error: "Du kannst dich nicht selbst hinzufügen." };
+  if (areFriends(me, target)) return { ok: false, error: "Ihr seid bereits befreundet." };
+  if (!me.outgoingRequests) me.outgoingRequests = [];
+  if (!target.incomingRequests) target.incomingRequests = [];
+  if (me.outgoingRequests.some(n => n.toLowerCase() === target.username.toLowerCase())) {
+    return { ok: false, error: "Anfrage wurde bereits gesendet." };
+  }
+  // Hat die Zielperson mir bereits selbst eine Anfrage geschickt? Dann statt
+  // einer zweiten Anfrage direkt zu Freunden machen (freundlicher Ablauf).
+  if ((me.incomingRequests || []).some(n => n.toLowerCase() === target.username.toLowerCase())) {
+    return friendsAccept(token, target.username);
+  }
+  me.outgoingRequests.push(target.username);
+  target.incomingRequests.push(me.username);
+  if (!(await saveUsers())) {
+    me.outgoingRequests = me.outgoingRequests.filter(n => n !== target.username);
+    target.incomingRequests = target.incomingRequests.filter(n => n !== me.username);
+    return SERVICE_DOWN;
+  }
+  notifyAccount(target.username, { type: "friendRequestReceived", from: friendSummary(me) });
+  return { ok: true };
+}
+async function friendsAccept(token, fromUsername) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const from = findUserByName(fromUsername);
+  if (!from) return { ok: false, error: "Diesen Benutzernamen gibt es nicht." };
+  if (!(me.incomingRequests || []).some(n => n.toLowerCase() === from.username.toLowerCase())) {
+    return { ok: false, error: "Keine offene Anfrage von dieser Person." };
+  }
+  me.incomingRequests = me.incomingRequests.filter(n => n.toLowerCase() !== from.username.toLowerCase());
+  from.outgoingRequests = (from.outgoingRequests || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
+  if (!me.friends) me.friends = []; if (!from.friends) from.friends = [];
+  if (!areFriends(me, from)) me.friends.push(from.username);
+  if (!areFriends(from, me)) from.friends.push(me.username);
+  await saveUsers();
+  notifyAccount(from.username, { type: "friendRequestAccepted", by: friendSummary(me) });
+  return { ok: true, friends: (await friendsList(token)).friends };
+}
+async function friendsDecline(token, fromUsername) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const from = findUserByName(fromUsername);
+  me.incomingRequests = (me.incomingRequests || []).filter(n => n.toLowerCase() !== (fromUsername||"").toLowerCase());
+  if (from) from.outgoingRequests = (from.outgoingRequests || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
+  await saveUsers();
+  return { ok: true };
+}
+async function friendsCancel(token, targetUsername) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const target = findUserByName(targetUsername);
+  me.outgoingRequests = (me.outgoingRequests || []).filter(n => n.toLowerCase() !== (targetUsername||"").toLowerCase());
+  if (target) target.incomingRequests = (target.incomingRequests || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
+  await saveUsers();
+  return { ok: true };
+}
+async function friendsRemove(token, targetUsername) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const target = findUserByName(targetUsername);
+  me.friends = (me.friends || []).filter(n => n.toLowerCase() !== (targetUsername||"").toLowerCase());
+  if (target) target.friends = (target.friends || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
+  await saveUsers();
+  return { ok: true };
+}
+
+/* ---- Chat: 1:1-Nachrichten zwischen Freunden, persistiert ---- */
+const CONVERSATIONS_FILE = process.env.CONVERSATIONS_FILE || path.join(__dirname, "data", "conversations.json");
+const UPSTASH_CONVERSATIONS_KEY = "wissensduell_conversations";
+let conversations = {}; // "user1|user2" (Kleinbuchstaben, alphabetisch sortiert) -> [{from, text, ts}]
+let conversationsLoaded = false;
+function conversationKey(a, b) {
+  return [a.toLowerCase(), b.toLowerCase()].sort().join("|");
+}
+async function loadConversationsOnce() {
+  if (USE_UPSTASH) {
+    try {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_CONVERSATIONS_KEY}`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      const parsed = data && data.result ? JSON.parse(data.result) : {};
+      conversations = (parsed && typeof parsed === "object" && !Array.isArray(parsed)) ? parsed : {};
+      conversationsLoaded = true;
+      return true;
+    } catch (e) {
+      console.error("Konnte Chatverlauf nicht aus Upstash laden (Speichern bleibt gesperrt):", e.message);
+      return false;
+    }
+  }
+  try {
+    conversations = JSON.parse(fs.readFileSync(CONVERSATIONS_FILE, "utf8"));
+    if (!conversations || typeof conversations !== "object" || Array.isArray(conversations)) conversations = {};
+    conversationsLoaded = true; return true;
+  } catch (e) {
+    if (e.code === "ENOENT") { conversations = {}; conversationsLoaded = true; return true; }
+    try { conversations = JSON.parse(fs.readFileSync(CONVERSATIONS_FILE + ".bak", "utf8")); conversationsLoaded = true; return true; }
+    catch (e2) { console.error("conversations.json nicht lesbar, auch keine brauchbare Sicherung:", e.message); return false; }
+  }
+}
+let convLoadingPromise = null;
+function loadConversations() {
+  if (!convLoadingPromise) convLoadingPromise = loadConversationsOnce().finally(() => { convLoadingPromise = null; });
+  return convLoadingPromise;
+}
+async function ensureConversationsLoaded() { return conversationsLoaded ? true : await loadConversations(); }
+async function saveConversations() {
+  if (!conversationsLoaded) return false;
+  if (USE_UPSTASH) {
+    try {
+      const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_CONVERSATIONS_KEY}`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(conversations) });
+      return res.ok;
+    } catch (e) { console.error("Konnte Chatverlauf nicht in Upstash speichern:", e.message); return false; }
+  }
+  try {
+    fs.mkdirSync(path.dirname(CONVERSATIONS_FILE), { recursive: true });
+    const tmp = CONVERSATIONS_FILE + ".tmp";
+    fs.writeFileSync(tmp, JSON.stringify(conversations), "utf8");
+    try { fs.copyFileSync(CONVERSATIONS_FILE, CONVERSATIONS_FILE + ".bak"); } catch (e) { /* noch keine alte Datei */ }
+    fs.renameSync(tmp, CONVERSATIONS_FILE);
+    return true;
+  } catch (e) { console.error("Konnte Chatverlauf nicht speichern:", e.message); return false; }
+}
+const CHAT_MAX_LEN = 500;
+const CHAT_MAX_HISTORY = 300; // je Unterhaltung - aeltere Nachrichten werden verworfen
+async function chatHistory(token, withUsername) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const me = findUserByToken(token);
+  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  const other = findUserByName(withUsername);
+  if (!other || !areFriends(me, other)) return { ok: false, error: "Ihr seid nicht (mehr) befreundet." };
+  if (!(await ensureConversationsLoaded())) return SERVICE_DOWN;
+  return { ok: true, messages: conversations[conversationKey(me.username, other.username)] || [] };
+}
+// Speichert eine Chatnachricht UND liefert sie live aus, falls die
+// Zielperson gerade online ist. Wird vom WebSocket-Handler aufgerufen.
+async function sendChatMessage(fromUser, toUsername, text) {
+  const to = findUserByName(toUsername);
+  if (!to || !areFriends(fromUser, to)) return { ok: false, error: "Ihr seid nicht (mehr) befreundet." };
+  const clean = cleanStr(text, CHAT_MAX_LEN);
+  if (!clean) return { ok: false, error: "Leere Nachricht." };
+  if (!(await ensureConversationsLoaded())) return SERVICE_DOWN;
+  const key = conversationKey(fromUser.username, to.username);
+  const list = conversations[key] || (conversations[key] = []);
+  const message = { from: fromUser.username, text: clean, ts: Date.now() };
+  list.push(message);
+  if (list.length > CHAT_MAX_HISTORY) list.splice(0, list.length - CHAT_MAX_HISTORY);
+  await saveConversations();
+  notifyAccount(to.username, { type: "chatMessage", from: fromUser.username, text: clean, ts: message.ts });
+  return { ok: true, message };
+}
+// Schickt eine Nachricht an ALLE offenen Verbindungen dieses Kontos (falls online).
+function notifyAccount(username, msg) {
+  const set = onlineAccounts.get(username.toLowerCase());
+  if (!set) return;
+  for (const ws of set) { try { send(ws, msg); } catch (e) { /* Verbindung evtl. schon weg */ } }
 }
 
 /* ------------------------------------------------------------------------ */
@@ -3190,6 +3417,14 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
         else if (req.url === "/api/audio-tracks") result = listAudioTracks();
+        else if (req.url === "/api/friends-list") result = await friendsList(payload.token);
+        else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query);
+        else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username);
+        else if (req.url === "/api/friends-accept") result = await friendsAccept(payload.token, payload.username);
+        else if (req.url === "/api/friends-decline") result = await friendsDecline(payload.token, payload.username);
+        else if (req.url === "/api/friends-cancel") result = await friendsCancel(payload.token, payload.username);
+        else if (req.url === "/api/friends-remove") result = await friendsRemove(payload.token, payload.username);
+        else if (req.url === "/api/chat-history") result = await chatHistory(payload.token, payload.username);
         else result = { ok: false, error: "Unbekannter Endpunkt." };
       } catch (e) {
         console.error("[API-Fehler]", req.url, e && e.stack || e);
@@ -3256,7 +3491,7 @@ wss.on("connection", (ws, req) => {
     if (Date.now() - ws.lastSeen > WS_DEAD_AFTER_MS) { ws.terminate(); return; }
     ws.ping();
   }, WS_PING_EVERY_MS);
-  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); });
+  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); accountDisconnect(ws); });
 
   ws.on("message", (raw) => {
     // Nachrichten-Eimer: zu schnelle Nachrichten werden verworfen, Dauerfeuer kappt die Verbindung
@@ -3280,6 +3515,33 @@ wss.on("connection", (ws, req) => {
     // Textfelder muessen Strings sein - sonst leer (verhindert .trim()/.toUpperCase()-Abstuerze)
     for (const k of ["name", "text", "code"]) { if (k in msg && typeof msg[k] !== "string") msg[k] = ""; }
     if (typeof msg.text === "string") msg.text = cleanStr(msg.text, 60);
+
+    // Freunde/Chat: eigener, von den Party-/TTT-Raeumen unabhaengiger Kanal -
+    // eine Verbindung meldet sich per Konto-Token an, danach gilt sie als
+    // "online" fuer ihre Freundesliste und kann Chatnachrichten senden/live
+    // empfangen. Bewusst VOR der allgemeinen text-Bereinigung oben nicht
+    // relevant, da chatText separat (mit eigenem, laengerem Limit) bereinigt wird.
+    if (msg.action === "accountConnect") {
+      const user = findUserByToken(typeof msg.token === "string" ? msg.token : "");
+      if (!user) { send(ws, { type: "accountConnectResult", ok: false }); return; }
+      ws.accountUsername = user.username.toLowerCase();
+      let set = onlineAccounts.get(ws.accountUsername);
+      if (!set) { set = new Set(); onlineAccounts.set(ws.accountUsername, set); }
+      const wasOffline = set.size === 0;
+      set.add(ws);
+      send(ws, { type: "accountConnectResult", ok: true });
+      if (wasOffline) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOnline", username: user.username }));
+      return;
+    }
+    if (msg.action === "chatSend") {
+      if (!ws.accountUsername) return;
+      const me = findUserByName(ws.accountUsername);
+      if (!me) return;
+      sendChatMessage(me, typeof msg.to === "string" ? msg.to : "", typeof msg.chatText === "string" ? msg.chatText : "")
+        .then(r => send(ws, { type: "chatSendResult", ok: !!r.ok, error: r.error || null, to: msg.to, message: r.message || null }))
+        .catch(() => send(ws, { type: "chatSendResult", ok: false, error: "Interner Fehler.", to: msg.to }));
+      return;
+    }
 
     if (msg.action === "createRoom") {
       const room = createRoom(ws, cleanStr(msg.name, 20) || "Host", msg.language, msg.gameMode);
@@ -3681,6 +3943,7 @@ wss.on("connection", (ws, req) => {
 /* ------------------------------------------------------------------------ */
 (async () => {
   await loadUsers();
+  await loadConversations();
   server.listen(PORT, () => {
     const nets = os.networkInterfaces();
     const addresses = [];

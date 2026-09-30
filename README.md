@@ -3084,6 +3084,102 @@ onclick-Scoping-Bug (Verweis auf eine nicht-globale Variable) wurde hier NICHT
 wiederholt - eigener Test mit echter Klick-Simulation bestätigt das explizit,
 und eine Code-Suche im neuen Abschnitt fand keine weiteren Fälle.
 
+## 8mmm. "Order of Speed" erweitert: mehr Regeln, Punkte, Level, Bewegung, Flackern
+
+Auf Wunsch ausgebaut:
+
+- **Vierte Regel "nur ungerade Zahlen"** dazu (analog zu "nur gerade"), macht
+  jetzt 4 Regeln statt 3.
+- **Kreisförmige Anordnung** statt Gitter - die Zahlen tauchen jetzt rund um
+  die Mitte des Bildschirms verteilt auf.
+- **Punkte**: 100 pro richtigem Tipp (nicht erst pro fertiger Runde).
+- **Level-Leiste**: füllt sich mit den Punkten, ist sie voll, steigt das Level
+  SOFORT - auch mitten in einer laufenden Runde, nicht erst am Rundenende.
+  Überschuss-Punkte gehen dabei nicht verloren, sie zählen gleich für die
+  nächste Stufe mit. Zielpunktzahl wächst pro Level (Level 1: 500 Punkte / 5
+  Tipps, Level 10: 1.400 Punkte / 14 Tipps).
+- **Wird mit dem Level automatisch schwerer**:
+  - mehr Zahlen pro Runde (5 am Anfang, bis zu 9 in hohen Leveln)
+  - **ab Level 4** bewegen sich die Zahlen (Positionen wechseln alle 2,5 s)
+  - **ab Level 7** werden sie zusätzlich alle paar Sekunden kurz (0,7 s)
+    unsichtbar (die Kreise bleiben als Umriss sichtbar, nur die Ziffer
+    verschwindet kurz - man muss sich merken, wo welche Zahl war)
+
+Ergebnisbildschirm zeigt jetzt zusätzlich Punkte und erreichtes Level.
+
+Getestet: alle vier Regeln (inkl. neu "ungerade"), Schwierigkeits-Skalierung
+mit dem Level, Punktevergabe (100 pro Tipp, keine bei Fehlern/Wiederholung),
+Level-Aufstieg inkl. Grenzfall "genau voll" und "mitten in der Runde" (mit
+Überschuss-Erhalt, laufende Runde bleibt bestehen), mehrfacher Levelsprung
+auf einmal, Bewegungs-/Flacker-Timer schalten sich exakt ab Level 4 bzw. 7
+zu (vorher nicht), werden bei neuer Runde und nach Levelaufstieg korrekt neu
+gesetzt, und beim Verlassen/Zeitablauf restlos aufgeräumt (kein Timer-Leck),
+Kreis-Positionsberechnung, sowie erneut der echte Klickpfad (kein Wiederauf-
+leben des onclick-Scoping-Bugs vom Meilenstein-Modus).
+
+## 8nnn. Neues Feature: Freunde + Chat
+
+Auf Wunsch: Freunde hinzufügen/verknüpfen, sehen ob sie online sind, ihre
+Erfolge-Anzahl einsehen, und mit ihnen schreiben. Setzt ein Konto voraus
+(neuer "👥 Freunde"-Knopf neben der Kontoanzeige, nur sichtbar wenn
+angemeldet - ohne Konto führt der Knopf erst zur Anmeldung und danach direkt
+zu Freunden).
+
+**Freunde-Bildschirm**:
+- Suche nach Benutzername (ab 2 Zeichen), zeigt passend zum Status: schon
+  befreundet / Anfrage bereits gesendet / hat dich selbst angefragt (dann
+  direkt "Annehmen" statt einer zweiten Anfrage) / noch nichts, "Hinzufügen"
+- Eingehende Anfragen: Annehmen oder Ablehnen
+- Ausgehende Anfragen: Zurückziehen
+- Freundesliste: **grüner Punkt bei Online-Personen**, **Erfolge-Anzahl**
+  (🏆, aus dem bereits vorhandenen Erfolge-System berechnet), Knopf für den
+  Chat, Entfernen (mit Bestätigung)
+- Schickt die Gegenseite ebenfalls eine Anfrage, werden beide automatisch
+  Freunde (kein doppeltes Bestätigen nötig)
+
+**Chat**: 1:1-Unterhaltung mit jedem Freund, eigene Nachrichten rechts
+hervorgehoben. Läuft über eine eigene, dauerhafte WebSocket-Verbindung
+(unabhängig von Party-/Tic-Tac-Toe-Räumen) - solange sie offen ist, gilt man
+für die eigene Freundesliste als online; baut sich bei Verbindungsverlust
+automatisch neu auf (3 Sekunden Wartezeit), trennt sich sauber beim
+Abmelden. Nachrichten werden dauerhaft gespeichert (übersteht einen
+Serverneustart) und, falls die Zielperson gerade online ist, sofort live
+zugestellt; sonst wartet die Nachricht im Verlauf, bis sie den Chat öffnet.
+Zeichenlimit 500, HTML wird beim Anzeigen escaped (kein XSS über
+Chatnachrichten möglich).
+
+Technisch neu: `onlineAccounts` (Server, nur im Arbeitsspeicher, keine
+Persistenz nötig), `conversations.json` als eigene, nach demselben
+Sicherheitsmuster wie `users.json` geschützte Datei (atomar geschrieben,
+mit `.bak`-Sicherung, Speichern nur nach erfolgreichem Laden). Neue
+HTTP-Endpunkte: `/api/friends-list`, `/api/friends-search`,
+`/api/friends-request`, `/api/friends-accept`, `/api/friends-decline`,
+`/api/friends-cancel`, `/api/friends-remove`, `/api/chat-history`. Neue
+WebSocket-Aktionen im bestehenden Kanal: `accountConnect`, `chatSend`.
+
+Beim Testen einen echten Fehler gefunden und behoben: der Test-Hilfsordner
+hatte für die neue `conversations.json` noch keinen eigenen Testpfad
+vorgesehen (anders als bei `users.json` schon lange der Fall) - dadurch
+wäre bei jedem Testlauf versehentlich in den echten Projektordner
+geschrieben worden. Jetzt bekommt jeder Testserver automatisch einen
+eigenen, isolierten Pfad dafür, genau wie bei den Nutzerdaten.
+
+Getestet (`test/friends.test.js`, Server, 42 Prüfungen; `test/friends-client.test.js`,
+Client, 40 Prüfungen): Suche (inkl. Mindestlänge, sich selbst nie im
+Ergebnis), Anfrage senden/annehmen/ablehnen/zurückziehen/doppelt verhindert/
+an sich selbst verhindert/an nicht existierende Person verhindert,
+gegenseitige Anfrage führt direkt zur Freundschaft, Freund entfernen (auf
+beiden Seiten), Erfolge-Anzahl korrekt aus dem Erfolge-Stand berechnet,
+Online-Status inkl. Live-Meldungen bei An-/Abmeldung an alle Freunde,
+Chat nur zwischen echten Freunden (sonst verweigert), Speicherung +
+Live-Zustellung, lange Nachrichten gekürzt, HTML-Zeichen entfernt, leere
+Nachrichten verworfen, ungültiger Token stürzt nichts ab, übersteht einen
+Serverneustart. Client-seitig zusätzlich: Menü-Knopf nur mit Konto,
+Weiterleitung zur Anmeldung ohne Konto, WebSocket-Verbindungsaufbau/
+-abbau/Wiederverbindung, Live-Aktualisierung der offenen Freundesliste
+und des offenen Chats ohne manuelles Neuladen, HTML-Escaping beim
+Anzeigen, Bestätigung vorm Entfernen.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
