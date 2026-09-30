@@ -65,7 +65,7 @@
   .menu-hero{ text-align:center; margin: 30px 0 26px; }
   .menu-hero h1{
     font-size:42px; margin:0 0 8px; letter-spacing:-1px;
-    background:linear-gradient(120deg,var(--text) 30%,var(--accent-2) 100%);
+    background:linear-gradient(120deg,var(--text) 10%,var(--accent) 55%,var(--accent-2) 100%);
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .menu-hero p{ color:var(--text-dim); margin:0; font-size:14px; }
@@ -74,16 +74,31 @@
   .menu-section-title{ font-size:13px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--text-dim); margin:22px 0 10px; }
   .menu-section-title:first-of-type{ margin-top:6px; }
   .mode-card{
-    background:var(--bg-alt); border:1.5px solid var(--line); border-radius:16px;
+    background:var(--bg-alt); border:1.5px solid color-mix(in srgb, var(--accent) 30%, var(--line)); border-radius:16px;
     padding:26px 20px; text-align:left; cursor:pointer; color:var(--text);
-    transition:border-color .15s ease, transform .1s ease;
+    transition:border-color .15s ease, transform .1s ease, box-shadow .15s ease;
+    box-shadow:0 0 18px -10px rgba(198,255,61,.5);
   }
-  .mode-card:hover{ border-color:var(--accent); }
-  .mode-card:active{ transform:scale(0.98); }
-  .mode-card .icon{ font-size:26px; margin-bottom:10px; }
+  .mode-card:hover{ border-color:var(--accent); box-shadow:0 0 24px -6px rgba(198,255,61,.55); }
+  .mode-card:active{ transform:scale(0.98); border-color:var(--accent); }
+  .mode-card .icon{ font-size:26px; margin-bottom:10px; filter:drop-shadow(0 0 8px rgba(198,255,61,.5)); }
   .mode-card h3{ margin:0 0 6px; font-size:19px; }
   .mode-card p{ margin:0; color:var(--text-dim); font-size:13px; line-height:1.5; }
   .menu-secondary{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; }
+
+  /* Tic Tac Toe: "gedrückte Taste"-Optik statt flacher Fläche, X/O leuchten
+     in den beiden Akzentfarben (Neon-Glow per text-shadow). */
+  .ttt-cell{
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    font-size:34px; font-weight:900; border-radius:14px;
+    background:linear-gradient(150deg, var(--panel-2), var(--bg-alt));
+    border:1px solid rgba(255,255,255,0.07);
+    box-shadow:0 5px 0 rgba(0,0,0,.5), 0 8px 16px -4px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.06);
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .ttt-cell:active{ transform:translateY(4px); box-shadow:0 1px 0 rgba(0,0,0,.5), 0 2px 6px -2px rgba(0,0,0,.5); }
+  .ttt-cell.x{ color:var(--accent); text-shadow:0 0 16px rgba(198,255,61,.7), 0 2px 1px rgba(0,0,0,.6); }
+  .ttt-cell.o{ color:var(--accent-2); text-shadow:0 0 16px rgba(61,224,255,.7), 0 2px 1px rgba(0,0,0,.6); }
 
   .btn{ appearance:none; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:15px; border-radius:14px; padding:14px 24px; transition:transform .12s ease, box-shadow .12s ease, background .2s ease; }
   .btn:active{ transform:scale(0.97); }
@@ -3802,7 +3817,7 @@ function renderTttMpGame(){
       ` : `
         <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
           ${tttMp.board.map((c,i) => `
-            <div onclick="${isQuizmix ? 'tttQuizmixTap('+i+')' : 'tttMpMove('+i+')'}" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${cellClickable(i)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+            <div onclick="${isQuizmix ? 'tttQuizmixTap('+i+')' : 'tttMpMove('+i+')'}" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${cellClickable(i)?'pointer':'default'};">${c||''}</div>
           `).join("")}
         </div>
         ${tttMp.opponentLeft ? `
@@ -4023,7 +4038,7 @@ function renderTtqbGame(){
       <div class="picker-sub">${tttRankPillHtml(ttqb.rankIndex)} · ${ttqb.gameOver ? '' : (myTurn ? 'Du bist dran – tippe auf ein leeres Feld.' : 'Der Bot wählt gerade ein Feld …')}</div>
       <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttqb.board.map((c,i) => `
-          <div onclick="tttQuizmixBotTap(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !ttqb.gameOver && myTurn)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+          <div onclick="tttQuizmixBotTap(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttqb.gameOver && myTurn)?'pointer':'default'};">${c||''}</div>
         `).join("")}
       </div>
       ${ttqb.gameOver ? `
@@ -4359,7 +4374,7 @@ function renderTtqGame(){
       <div class="picker-sub">Schwierigkeit: ${ttq.difficultyName} · höchstens 3 Symbole je Seite</div>
       <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttq.board.map((c,i) => `
-          <div onclick="ttqPlayerMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !ttq.gameOver && ttq.playerTurn)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+          <div onclick="ttqPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttq.gameOver && ttq.playerTurn)?'pointer':'default'};">${c||''}</div>
         `).join("")}
       </div>
       ${ttq.gameOver ? `
@@ -4411,7 +4426,7 @@ function renderTttGame(){
       <div class="picker-sub">Gegen: ${tttRankPillHtml(ttt.rankIndex)}</div>
       <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttt.board.map((c,i) => `
-          <div onclick="tttPlayerMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && ttt.playerTurn && !ttt.gameOver)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+          <div onclick="tttPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && ttt.playerTurn && !ttt.gameOver)?'pointer':'default'};">${c||''}</div>
         `).join("")}
       </div>
       ${ttt.gameOver ? `
@@ -6406,7 +6421,7 @@ function renderPartyTicTacToe(msg){
       <div class="picker-sub">${esc(teamNameFor('X'))} (X) gegen ${esc(teamNameFor('O'))} (O)</div>
       <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${msg.board.map((c,i) => `
-          <div onclick="partyTicTacToeMove(${i})" style="aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.06); cursor:${(!c && !msg.gameOver && myTurn)?'pointer':'default'}; color:${c==='X'?'var(--accent)':'var(--accent-2)'};">${c||''}</div>
+          <div onclick="partyTicTacToeMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !msg.gameOver && myTurn)?'pointer':'default'};">${c||''}</div>
         `).join("")}
       </div>
       ${msg.gameOver ? `

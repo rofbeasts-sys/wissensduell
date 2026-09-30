@@ -61,7 +61,16 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match(req))
+        .catch(() =>
+          // Netz weg: aus dem Cache holen. Ist dort (noch) nichts hinterlegt
+          // (z.B. gleich der allererste Start), NIE mit "nichts" antworten -
+          // das lässt die App gar nicht erst öffnen. Stattdessen eine
+          // einfache Offline-Meldung zeigen statt eines kaputten Ladevorgangs.
+          caches.match(req).then((cached) => cached || new Response(
+            "<!doctype html><meta charset='utf-8'><body style='background:#0a0d16;color:#eef0fb;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;padding:20px;'>Keine Verbindung. Bitte nochmal versuchen, sobald du online bist.</body>",
+            { headers: { "Content-Type": "text/html; charset=utf-8" } }
+          ))
+        )
     );
     return;
   }
