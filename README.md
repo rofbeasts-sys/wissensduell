@@ -3273,6 +3273,172 @@ Handy-Browser prüfen: `deine-seite.de/manifest.json` und
 `deine-seite.de/icons/icon-512.png` sollten beide etwas anzeigen (den
 JSON-Text bzw. das Blitz-Symbol), nicht "Not found".
 
+## 8rrr. Speed-Math-Meilenstein: Zeitdruck pro Aufgabe
+
+Auf Wunsch: das Levelziel (Serie ohne Fehler) hatte bisher gar kein
+Zeitlimit - man konnte sich beliebig lange Zeit lassen. Jetzt läuft für
+**jede einzelne Aufgabe** eine eigene Uhr:
+
+- Level 1: 6 Sekunden pro Aufgabe
+- wird mit steigendem Level knapper (dieselben 10 Schwierigkeitsstufen wie
+  bei den Rechenarten), nie unter 2,5 Sekunden
+- Zeit abgelaufen zählt **genau wie eine falsche Antwort**: Serie zurück auf
+  0, ein Herz weg, direkt weiter mit einer neuen Aufgabe und wieder voller
+  Zeit
+- Eine eigene, zweite Leiste unter der Serien-Anzeige zeigt die verbleibende
+  Zeit (Farbverlauf Cyan → Pink, wird zum Ende hin auffälliger)
+- Übersichtsseite nennt jetzt auch die Sekundenzahl pro Aufgabe
+
+Beim Testen einen echten, kleinen Fehler in der eigenen Umsetzung gefunden:
+nach vielen 0,1-Sekunden-Schritten in Folge landet eine Fließkommazahl nicht
+immer exakt bei 0 (z. B. 0,0000000000046 statt 0) - dadurch hätte der
+Ablauf gelegentlich einen ganzen Wimpernschlag (100ms) zu spät ausgelöst.
+Behoben mit einer kleinen Toleranzschwelle (0,05 statt exakt 0).
+
+Getestet: Zeit schrumpft korrekt mit dem Level (nie unter 2,5s), abgelaufene
+Zeit wird wie eine falsche Antwort behandelt (Herzverlust, Serie zurück,
+neue Aufgabe mit frischer Zeit), rechtzeitige richtige Antwort setzt die
+Zeit für die nächste Aufgabe zurück ohne Herzverlust, 0 Herzen durch
+Zeitablauf beendet die Runde genauso sauber wie durch eine falsche Antwort,
+kein Timer-Leck beim Verlassen/Levelaufstieg/Rundenende, Zeitleiste
+erscheint auf dem Spielbildschirm.
+
+## 8sss. Politik-Fragen erweitert + Brain Test auf Englisch (neu)
+
+**Politik als Kategorie gab es schon** (26 Fragen im Wissenstest-Pool, 15 im
+Brain Test) - auf Wunsch deutlich ausgebaut:
+- Wissenstest-Pool (`shared/quizQuestions.json`, genutzt von Party-Raum,
+  Bot-Quiz, Arena): +25 neue Fragen (Bundestag, EU, Grundgesetz,
+  Gewaltenteilung, UNO, Wahlrecht, Föderalismus u.a.) - jetzt 51 insgesamt.
+- Brain Test (`shared/klasseQuestions.json` + der gleiche Inhalt eingebettet
+  in `public/index.html`, da Brain Test rein clientseitig läuft): +10 neue
+  Fragen, verteilt auf Klasse 2/4/6/8/10 mit passend steigendem
+  Schwierigkeitsgrad - jetzt 25 insgesamt.
+- Ein separater, älterer Fragenpool für den lokalen Pass-&-Play-Mehrspieler
+  hatte bereits 51 Politik-Fragen, wurde nicht angetastet (schon gut
+  abgedeckt).
+- Zwei neue Fragen stellten sich beim Testen als wortgleiche Duplikate zu
+  bereits vorhandenen heraus (`"Wie viele Bundesländer..."`,
+  `"Wie heißt das deutsche Parlament?"`) - ersetzt durch zwei andere.
+
+**Brain Test auf Englisch (komplett neu)**: bisher gab es Brain Test nur auf
+Deutsch, unabhängig von der eingestellten Oberflächensprache. Jetzt: eine
+komplett eigene, neu geschriebene englischsprachige Allgemeinwissen-
+Fragenbank (`shared/klasseQuestionsEN.json`, zusätzlich eingebettet in
+`public/index.html` als `KLASSE_QUESTIONS_EN`) - 250 Fragen auf 10 Klassen
+verteilt (25 je Klasse, Schwierigkeit steigt von Klasse 1 bis 10), darunter
+44 Fragen mit London/UK-Bezug und 54 mit Amerika/USA-Bezug, wie gewünscht.
+Sobald die Oberfläche auf Englisch steht, verwendet Brain Test automatisch
+diese Datenbank - kein zusätzlicher Umschalter nötig, es folgt einfach der
+bestehenden Sprachauswahl in den Einstellungen. Für alle anderen Sprachen
+(noch keine eigene Fragenbank) bleibt es beim gewohnten Deutsch.
+
+(Zum Umfang: ursprünglich 250 Fragen - seither auf 500 aufgestockt und auf
+50/20-Struktur gebracht, siehe Abschnitt 8ttt weiter unten.)
+
+Getestet: neue Politik-Fragen strukturell gültig und ohne Duplikate (im
+gesamten Pool, nicht nur innerhalb der Kategorie), Brain-Test-JSON-Datei und
+eingebetteter Client-Datensatz stimmen überein, alle 10 englischen Klassen
+haben mindestens 20 Fragen (strukturell gültig, keine Duplikate), London/UK-
+und Amerika/USA-Themen wie gewünscht vertreten und über mehrere Klassen
+verteilt, Sprachumschaltung wählt bei Englisch wirklich die neue Datenbank
+und bei jeder anderen (noch nicht übersetzten) Sprache weiterhin Deutsch
+statt fälschlich Englisch, ein kompletter 20-Fragen-Testdurchlauf auf
+Englisch funktioniert ohne Absturz, deutsche Fragen bleiben bei Deutsch
+unverändert nutzbar.
+
+## 8ttt. Englischer Brain Test: jetzt 50/20-Struktur + echter britischer Schulstoff
+
+Auf Wunsch erweitert:
+
+- **Genau wie beim deutschen Original**: 50 Fragen je Klasse (500 insgesamt
+  statt vorher 250), Übungstest zeigt alle 50, Haupttest wählt 20 davon aus -
+  identischer Aufbau, nur die Sprache und die Themen sind anders.
+- **Echter britischer Schulstoff statt nur Allgemeinwissen**: die 250 neuen
+  Fragen orientieren sich am britischen National Curriculum, mit denselben
+  Fächern wie beim deutschen Original (dort Mathe/Deutsch/Sachkunde/...), nur
+  britisch: **Maths** (Bruchrechnung, Gleichungen, bis hin zu Ableitungen und
+  Integralen in Klasse 9/10), **English** (Wortarten, Stilmittel wie Simile/
+  Metapher/Alliteration, bis zu literarischen Fachbegriffen wie "dramatic
+  irony" oder "bildungsroman" in höheren Klassen), **Science** (Photosynthese,
+  Zellteilung, Newtons Gesetze, bis zu chemischen Gleichungen und Genetik),
+  **History** (britische Geschichte: Römer, Wikinger, Tudors, Battle of
+  Britain, Brexit-Referendum u.v.m.), **Geography** sowie **Citizenship**
+  (Wirtschaft/Politik für die höheren Klassen, passend zu den neuen
+  Politik-Fragen im deutschen Teil).
+- Schwierigkeit steigt weiterhin von Klasse 1 (einfache Addition, Alphabet)
+  bis Klasse 10 (Kettenregel, Petrarca-Sonett-Struktur, Doppler-Effekt).
+
+Beim Zusammenführen ist eine wortgleiche Dopplung zu einer bereits
+vorhandenen Frage aufgefallen ("What is the powerhouse of the cell
+called?") - durch eine andere ersetzt, bevor irgendetwas gespeichert wurde.
+
+Getestet: alle 10 Klassen haben jetzt genau 50 Fragen (500 insgesamt, keine
+Duplikate), Übungstest liefert alle 50, Haupttest weiterhin genau 20, alle
+Fragen strukturell gültig, die neuen Schulfächer (Maths/English/Science/
+History/Citizenship) sind spürbar vertreten und jede Klasse hat einen
+erkennbaren Fächer-Mix statt nur einer Kategorie, London/UK- und Amerika/
+USA-Themen weiterhin über mehrere Klassen verteilt vorhanden.
+
+## 8uuu. Nenn's Blitz jetzt auch bei Englisch spielbar (war komplett gesperrt)
+
+Gemeldet: bei anderen Modi (z. B. Einordnen, Mehr oder Weniger) gibt es
+längst Kategorien, die auch bei Englisch als Party-Sprache funktionieren -
+bei Nenn's Blitz aber gar nichts, da die komplette Rundenart pauschal als
+"germanOnly" markiert war.
+
+Grund war eine zu grobe Markierung: **alle** 30 Nenn's-Blitz-Kategorien
+waren als "nur Deutsch" gesperrt, obwohl die meisten (Bands, Marvel-/Disney-/
+DC-Charaktere, Anime-Charaktere, Tierarten, Länder weltweit, Planeten, Essen,
+Fastfood-Ketten, Marken, Twitch-Streamer, ...) genauso gut auf Englisch
+genannt werden können wie auf Deutsch - da steckt nichts Deutschlandspezifisches
+drin. Jetzt bleiben nur die **wirklich** deutschlandspezifischen Kategorien
+gesperrt: Bundesländer, Bundesländer-Hauptstädte, sowie die deutschen
+TV-Formate "Ich bin ein Star" (Dschungelcamp) und Promi Big Brother - dazu
+vorsichtshalber auch die Fußball-Kategorien (Bundesliga-Rahmen). Alle
+anderen 24 Kategorien sind jetzt auch bei Englisch (und jeder anderen
+Sprache außer Deutsch) verfügbar.
+
+Zusätzlich eine **neue Kategorie "Weltweit bekannte Stars"** (Schauspiel,
+Musik, Sport) als internationaler Ersatz für die ausdrücklich
+ausgeschlossenen deutschen TV-Kandidat:innen-Formate.
+
+Technisch: `germanOnly` wird jetzt (wie bei allen anderen Rundentypen schon
+länger) **je Kategorie einzeln** aus den Datensätzen gelesen
+(`shared/partyDatasets.json`), statt pauschal für die ganze Rundenart im
+Code fest eingetragen zu sein.
+
+Getestet: nur die vier wirklich deutschlandspezifischen Kategorien (plus
+Fußball) bleiben markiert, alle anderen sind es nicht, neue Kategorie
+"Weltweit bekannte Stars" existiert und erwähnt keine deutschen TV-Formate,
+ein echter Server bestätigt direkt über den Raumstatus
+(`availableRoundDefs`): bei Englisch sind Bands/Marvel/die neue Stars-
+Kategorie in der Liste, Bundesländer und Dschungelcamp NICHT; bei Deutsch
+sind weiterhin alle Kategorien da. Eine komplette Nenn's-Blitz-Runde mit
+einer internationalen Kategorie (Marvel-Charaktere) wurde bei Englisch
+tatsächlich durchgespielt (Start + Antwort abgeben), keine Regression bei
+Deutsch.
+
+## 8vvv. "Test wiederholen"-Button schöner gestaltet
+
+Auf Wunsch: eigener Button-Stil statt der bisher genutzten, eigentlich für
+kleine Daumen-hoch/runter-Knöpfe gedachten Klasse. Jetzt: Farbverlauf
+(Orange-Töne, passend zum bestehenden Warnfarbton), abgerundete Pillenform,
+Schatten für mehr Tiefe, spürbares Einsinken beim Antippen.
+
+Dabei einen echten Layout-Fehler gefunden: auf schmalen Bildschirmen wurde
+der Button vom rechten Bildschirmrand abgeschnitten, weil die Zeile
+(Klassen-Name + "Bestanden" + Button) keinen Zeilenumbruch erlaubte. Jetzt
+bricht die Zeile bei Bedarf um - der Button landet dann sauber in einer
+eigenen Zeile darunter, statt über den Rand hinauszuragen. Mit einem echten
+Browser (Playwright) nachgesehen und bestätigt.
+
+Getestet: neue Klasse wird genutzt (nicht mehr die alte generische),
+erscheint nur bei bereits bestandenen Klassen, nicht bei der aktuellen/noch
+nicht erreichten, eigene CSS-Regel mit Farbverlauf/Schatten/Pillenform/
+Tipp-Reaktion vorhanden, Zeilenumbruch ist aktiv, die ähnlich aufgebaute
+Tic-Tac-Toe-Rangübersicht (hat keinen Wiederholen-Knopf) bleibt unverändert.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

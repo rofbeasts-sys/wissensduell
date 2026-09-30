@@ -245,9 +245,13 @@ function buildRoundDefPool() {
   });
   Object.entries(DATASETS.nennsBlitz || {}).forEach(([key, ds]) => {
     // Reine Freitext-Kategorie ohne Lösungsliste (siehe Abschnitt "RUNDE:
-    // nennsBlitz" weiter unten) – germanOnly, da alle Kategorien deutsch-
-    // sprachig ausgerichtet sind (Bundesländer, Bundesliga, etc.).
-    pool.push({ id: "blitz_" + key, kind: "nennsBlitz", label: "Nenn's Blitz: " + ds.label, datasetGroup: "nennsBlitz", datasetKey: key, germanOnly: true });
+    // nennsBlitz" weiter unten). Anders als frueher NICHT mehr pauschal
+    // germanOnly: die meisten Kategorien (Bands, Marvel/Disney/DC-Charaktere,
+    // Tierarten, Laender, Planeten, ...) lassen sich unabhaengig von der
+    // Sprache nennen - nur die wirklich Deutschland-spezifischen (siehe
+    // germanOnly-Markierung direkt am jeweiligen Datensatz in
+    // shared/partyDatasets.json) bleiben aussen vor.
+    pool.push({ id: "blitz_" + key, kind: "nennsBlitz", label: "Nenn's Blitz: " + ds.label, datasetGroup: "nennsBlitz", datasetKey: key, germanOnly: !!ds.germanOnly });
   });
   return pool;
 }
