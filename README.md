@@ -3228,6 +3228,51 @@ primärer Knopf ist mit dunklem Text lesbar. Zusätzlich mit einem echten
 Browser (Playwright) nachgesehen, wie es aussieht - Screenshot bestätigt:
 Titel und Verläufe zeigen die neue Palette wie gewünscht.
 
+## 8ppp. Farben: deutlich mehr Neon-Grün + Tic Tac Toe in 3D
+
+Gemeldet: nach der letzten Farbumstellung war kaum Lime/Grün zu sehen. Grund:
+die Menü-Kacheln zeigten die neue Farbe nur beim Hover (auf dem Handy also
+so gut wie nie) und der Titel-Verlauf ging nur Weiß→Cyan, Lime kam darin gar
+nicht vor.
+
+- **Titel "BRAIN PULSE"**: Verlauf jetzt Weiß → Lime → Cyan (vorher nur
+  Weiß → Cyan) - über den ganzen Schriftzug hinweg sichtbar bunter/neon.
+- **Menü-Kacheln**: durchgehend sichtbarer Lime-Rand plus sanftes Leuchten
+  (vorher: nur ein schlichter grauer Rand, Lime kam nur beim Hover, was auf
+  Touch-Geräten praktisch nie ausgelöst wird).
+- **Tic Tac Toe in 3D**: die Spielfelder waren bisher flache, einfarbige
+  Flächen ohne jede Tiefe. Jetzt: eine "gedrückte Taste"-Optik mit echtem
+  Schlagschatten (sieht aus wie eine leicht erhabene Taste, sackt beim
+  Antippen sichtbar ein) und X/O leuchten mit einem Neon-Glow in Lime bzw.
+  Cyan. Betraf 5 Stellen im Code (Bot klassisch, Bot Quantum, Bot QuizMix,
+  Online-Mehrspieler, Party-Raum) - jetzt über eine gemeinsame CSS-Klasse
+  (`.ttt-cell`) geregelt statt fünffach wiederholtem Inline-Stil, damit alle
+  fünf garantiert gleich aussehen.
+
+Mit einem echten Browser (Playwright) nachgesehen, wie es jetzt aussieht -
+Screenshots bestätigen: Menü und Tic-Tac-Toe-Brett zeigen deutlich sichtbares
+Neon-Lime, das Spielbrett hat spürbare Tiefe.
+
+## 8qqq. PWA-Bugfix: fehlendes Netz beim ersten Start konnte die App gar nicht erst öffnen
+
+Beim erneuten Durchsehen des Service Workers einen echten Fehler gefunden:
+War beim allerersten Öffnen (oder nach einer Weile ohne Nutzung) gerade kein
+Netz da UND der Zwischenspeicher noch leer, hat der Service Worker mit
+"nichts" geantwortet - das lässt eine Seite gar nicht erst laden, statt
+einfach eine Fehlermeldung zu zeigen. Jetzt: in diesem Fall erscheint eine
+einfache "Keine Verbindung"-Meldung statt eines kaputten/leeren
+Ladevorgangs.
+
+Das behebt einen möglichen Fall von "installiert, öffnet sich aber nicht" -
+ob das bei dir die Ursache war, kann ich ohne Zugriff auf dein Gerät bzw.
+deine Live-Seite nicht von hier aus prüfen. Die wahrscheinlichere Ursache
+für "kein Icon sichtbar" ist allerdings, dass der neue Ordner
+`public/icons/` bzw. `manifest.json`/`sw.js` noch nicht (vollständig) auf
+der Live-Seite gelandet sind - das lässt sich in 10 Sekunden direkt im
+Handy-Browser prüfen: `deine-seite.de/manifest.json` und
+`deine-seite.de/icons/icon-512.png` sollten beide etwas anzeigen (den
+JSON-Text bzw. das Blitz-Symbol), nicht "Not found".
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
