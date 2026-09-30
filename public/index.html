@@ -4,11 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Brain Pulse</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a0d16">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Brain Pulse">
 <style>
   :root{
     --bg:#0a0d16; --bg-alt:#10141f; --panel:#151b2b; --panel-2:#1c2338; --line:#262e46;
-    --text:#eef0fb; --text-dim:#9aa3c0; --accent:#7c6cf0; --accent-2:#21d6b8;
-    --danger:#ff4d6a; --warn:#ffb443;
+    --text:#eef0fb; --text-dim:#9aa3c0; --accent:#c6ff3d; --accent-2:#3de0ff;
+    --danger:#ff5da2; --warn:#ffb443;
     --rank-none:#6b7280; --rank-listed:#7f93c2; --rank-bronze:#b6754a; --rank-silver:#b9c1d4;
     --rank-gold:#e3b23c; --rank-diamond:#3fd0e0; --rank-platin:#bfe3e0; --rank-master:#e0466e; --rank-grand:#f2c14e;
   }
@@ -80,7 +87,7 @@
 
   .btn{ appearance:none; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:15px; border-radius:14px; padding:14px 24px; transition:transform .12s ease, box-shadow .12s ease, background .2s ease; }
   .btn:active{ transform:scale(0.97); }
-  .btn-primary{ background:linear-gradient(120deg,var(--accent),#5a4bd8); color:white; box-shadow:0 10px 24px -8px rgba(124,108,240,.6); }
+  .btn-primary{ background:linear-gradient(120deg,var(--accent),var(--accent-2)); color:#0a0d16; box-shadow:0 10px 24px -8px rgba(198,255,61,.4); }
   .btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--text); }
   .btn-block{ width:100%; }
   .btn:disabled{ opacity:.4; cursor:not-allowed; }
@@ -7255,6 +7262,13 @@ function renderPartyGameEnd(msg){
 renderMainMenu();
 restoreAccountSession().then(() => { if(account) renderMainMenu(); });
 loadAudioTrackList(); // echte Titelliste aus public/audio nachladen (im Hintergrund)
+// PWA: macht das Spiel installierbar (Startbildschirm-Symbol) und erlaubt
+// einen Notbetrieb ohne Verbindung. "serviceWorker" gibt es nicht in jedem
+// Browser (und nie über http:// außer localhost) - Prüfung davor, damit
+// das Spiel dort trotzdem ganz normal weiterläuft.
+if(typeof navigator !== "undefined" && navigator.serviceWorker){
+  navigator.serviceWorker.register("/sw.js").catch(() => {});
+}
 </script>
 </body>
 </html>
