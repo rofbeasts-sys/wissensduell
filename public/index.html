@@ -141,10 +141,21 @@
   .sm-choices{ display:grid; grid-template-columns:1fr 1fr; gap:14px; justify-items:center; margin-top:26px; }
   .sm-choice{ width:min(38vw,130px); height:min(38vw,130px); border-radius:50%; border:3px solid var(--accent-2); background:rgba(255,255,255,0.06); color:inherit; font-size:30px; font-weight:800; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
   .sm-choice:active{ transform:scale(.92); background:var(--accent-2); color:#08110c; }
-  .oos-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:22px; }
-  .oos-choice{ padding:20px 8px; border-radius:16px; border:3px solid #ffb020; background:rgba(255,255,255,0.06); color:inherit; font-size:26px; font-weight:800; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; }
-  .oos-choice:active{ transform:scale(.94); }
-  .oos-choice:disabled{ opacity:.22; pointer-events:none; border-color:var(--text-dim); }
+  .friend-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 4px; border-bottom:1px solid var(--line); }
+  .friend-row:last-child{ border-bottom:none; }
+  .friend-row-actions{ display:flex; gap:6px; flex-shrink:0; }
+  .friend-dot{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--text-dim); margin-right:7px; vertical-align:middle; }
+  .friend-dot.online{ background:#3ddc73; box-shadow:0 0 6px #3ddc73; }
+  .friend-achv{ font-size:12px; color:var(--text-dim); margin-left:6px; }
+  .btn-sm{ padding:6px 12px; font-size:12px; }
+  .chat-messages{ margin-top:12px; max-height:50vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding:4px; }
+  .chat-bubble{ align-self:flex-start; background:rgba(255,255,255,0.08); border-radius:14px 14px 14px 4px; padding:9px 14px; max-width:80%; font-size:14px; word-break:break-word; }
+  .chat-bubble.mine{ align-self:flex-end; background:var(--accent-2); color:#08110c; border-radius:14px 14px 4px 14px; }
+  .oos-circle{ position:relative; width:100%; max-width:320px; aspect-ratio:1/1; margin:22px auto 0; }
+  .oos-circle-choice{ position:absolute; transform:translate(-50%,-50%); width:60px; height:60px; border-radius:50%; border:3px solid #ffb020; background:rgba(255,255,255,0.06); color:inherit; font-size:16px; font-weight:800; display:flex; align-items:center; justify-content:center; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; user-select:none; transition:left .5s ease, top .5s ease; }
+  .oos-circle-choice:active{ transform:translate(-50%,-50%) scale(.92); }
+  .oos-circle-choice:disabled{ opacity:.18; pointer-events:none; border-color:var(--text-dim); }
+  .oos-circle-choice.hidden-num{ color:transparent; border-style:dashed; }
   .timer-bar{ height:8px; background:var(--bg-alt); border-radius:999px; overflow:hidden; border:1px solid var(--line); }
   .timer-fill{ height:100%; background:linear-gradient(90deg,var(--accent-2),var(--accent)); transition:width .2s linear, background .3s ease; }
   .timer-fill.warn{ background:linear-gradient(90deg,var(--warn),var(--danger)); }
@@ -1644,7 +1655,7 @@ async function restoreAccountSession(){
   const token = localStorage.getItem(ACCOUNT_TOKEN_KEY);
   if(!token) return;
   const result = await apiCall("/api/session", { token });
-  if(result.ok){ account = { token, profile: result.profile }; }
+  if(result.ok){ account = { token, profile: result.profile }; connectFriendsWs(); }
   // Token nur loeschen, wenn der Server eindeutig "ungueltig" meldet - NICHT bei
   // Netzproblemen oder wenn der Kontodienst gerade nicht erreichbar ist
   // (sonst wuerde man bei jeder kurzen Stoerung ausgeloggt).
@@ -1653,7 +1664,7 @@ async function restoreAccountSession(){
 
 function accountIndicatorHtml(){
   if(account){
-    return `<div class="account-bar">👤 ${esc(account.profile.username)} · <button class="account-link" onclick="logoutAccount()">Abmelden</button></div>`;
+    return `<div class="account-bar">👤 ${esc(account.profile.username)} · <button class="account-link" onclick="startFriendsFlow()">👥 Freunde</button> · <button class="account-link" onclick="logoutAccount()">Abmelden</button></div>`;
   }
   return `<div class="account-bar"><button class="account-link" onclick="renderAccountAuth('login')">Anmelden</button></div>`;
 }
@@ -1698,6 +1709,7 @@ async function submitAccountAuth(mode){
   }
   account = { token: result.token, profile: result.profile };
   try{ localStorage.setItem(ACCOUNT_TOKEN_KEY, result.token); }catch(e){}
+  connectFriendsWs();
   if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
   else renderMainMenu();
 }
@@ -1706,7 +1718,187 @@ async function logoutAccount(){
   if(account) await apiCall("/api/logout", { token: account.token });
   account = null;
   try{ localStorage.removeItem(ACCOUNT_TOKEN_KEY); }catch(e){}
+  disconnectFriendsWs();
   renderMainMenu();
+}
+
+/* ============================================================================
+   FREUNDE + CHAT: eigene, dauerhafte WebSocket-Verbindung (unabhaengig von
+   Party-/Tic-Tac-Toe-Raeumen), meldet sich beim Server per Konto-Token an -
+   solange sie offen ist, gilt man fuer die eigene Freundesliste als "online".
+   ============================================================================ */
+let friendsWs = null;
+let friendsWsReconnectTimer = null;
+let friendsScreenOpen = false;       // true, waehrend die Freundesliste angezeigt wird
+let activeChatWith = null;           // Benutzername des gerade offenen Chats (oder null)
+let friendsDataCache = { friends: [], incoming: [], outgoing: [] };
+let chatMessagesCache = {};          // Benutzername -> Array von {from, text, ts}
+
+function connectFriendsWs(){
+  if(!account) return;
+  if(friendsWs && (friendsWs.readyState === 0 || friendsWs.readyState === 1)) return; // schon verbunden/im Aufbau
+  clearTimeout(friendsWsReconnectTimer);
+  try{ friendsWs = new WebSocket(wsUrl()); }catch(e){ return; }
+  friendsWs.onopen = () => { if(account) friendsWs.send(JSON.stringify({ action:"accountConnect", token:account.token })); };
+  friendsWs.onmessage = (ev) => {
+    let msg; try{ msg = JSON.parse(ev.data); }catch(e){ return; }
+    handleFriendsWsMessage(msg);
+  };
+  friendsWs.onclose = () => {
+    friendsWs = null;
+    if(account) friendsWsReconnectTimer = setTimeout(connectFriendsWs, 3000); // Verbindung verloren -> weiter versuchen, solange man angemeldet ist
+  };
+  friendsWs.onerror = () => {};
+}
+function disconnectFriendsWs(){
+  clearTimeout(friendsWsReconnectTimer);
+  if(friendsWs){ try{ friendsWs.onclose = null; friendsWs.close(); }catch(e){} friendsWs = null; }
+}
+function handleFriendsWsMessage(msg){
+  if(msg.type === "friendOnline" || msg.type === "friendOffline"){
+    const f = friendsDataCache.friends.find(x => x.username === msg.username);
+    if(f) f.online = (msg.type === "friendOnline");
+    if(friendsScreenOpen && !activeChatWith) renderFriendsList();
+  } else if(msg.type === "chatMessage"){
+    if(!chatMessagesCache[msg.from]) chatMessagesCache[msg.from] = [];
+    chatMessagesCache[msg.from].push({ from: msg.from, text: msg.text, ts: msg.ts });
+    if(activeChatWith === msg.from) renderChatScreen(msg.from);
+  } else if(msg.type === "friendRequestReceived" || msg.type === "friendRequestAccepted"){
+    if(friendsScreenOpen && !activeChatWith) loadAndRenderFriendsList();
+  }
+}
+
+function startFriendsFlow(){
+  if(!account){ postLoginRedirect = startFriendsFlow; renderAccountAuth('login'); return; }
+  connectFriendsWs();
+  loadAndRenderFriendsList();
+}
+async function loadAndRenderFriendsList(){
+  const r = await apiCall("/api/friends-list", { token: account.token });
+  if(r.ok){ friendsDataCache = { friends: r.friends, incoming: r.incoming, outgoing: r.outgoing }; }
+  renderFriendsList();
+}
+function renderFriendsList(){
+  friendsScreenOpen = true; activeChatWith = null;
+  const d = friendsDataCache;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">👥 FREUNDE</div>
+      <input id="friendSearchInput" type="text" placeholder="Benutzername suchen…" maxlength="20" style="margin-top:10px;" oninput="friendsSearchDebounced()">
+      <div id="friendSearchResults"></div>
+      ${d.incoming.length ? `
+        <div class="picker-sub" style="margin-top:18px; font-weight:800; color:var(--accent-2);">Anfragen erhalten</div>
+        ${d.incoming.map(name => `
+          <div class="friend-row">
+            <span>${esc(name)}</span>
+            <div class="friend-row-actions">
+              <button class="btn btn-primary btn-sm" onclick="respondFriendRequest('${esc(name)}',true)">Annehmen</button>
+              <button class="btn btn-ghost btn-sm" onclick="respondFriendRequest('${esc(name)}',false)">Ablehnen</button>
+            </div>
+          </div>`).join("")}
+      ` : ``}
+      ${d.outgoing.length ? `
+        <div class="picker-sub" style="margin-top:18px; font-weight:800; color:var(--text-dim);">Gesendete Anfragen</div>
+        ${d.outgoing.map(name => `
+          <div class="friend-row">
+            <span>${esc(name)}</span>
+            <button class="btn btn-ghost btn-sm" onclick="cancelFriendRequestNow('${esc(name)}')">Zurückziehen</button>
+          </div>`).join("")}
+      ` : ``}
+      <div class="picker-sub" style="margin-top:18px; font-weight:800;">Deine Freunde (${d.friends.length})</div>
+      ${d.friends.length===0 ? `<p style="color:var(--text-dim); font-size:13px; margin-top:8px;">Noch keine Freunde - such oben nach einem Benutzernamen.</p>` : ``}
+      ${d.friends.map(f => `
+        <div class="friend-row">
+          <span><span class="friend-dot ${f.online?'online':''}"></span>${esc(f.username)} <span class="friend-achv">🏆 ${f.achievements}</span></span>
+          <div class="friend-row-actions">
+            <button class="btn btn-primary btn-sm" onclick="openChat('${esc(f.username)}')">💬 Chat</button>
+            <button class="btn btn-ghost btn-sm" onclick="removeFriendNow('${esc(f.username)}')">Entfernen</button>
+          </div>
+        </div>`).join("")}
+      <button class="btn btn-ghost btn-block" style="margin-top:20px;" onclick="friendsScreenOpen=false; renderMainMenu()">${t('btn_back')}</button>
+    </div>
+  `);
+}
+let friendsSearchTimer = null;
+function friendsSearchDebounced(){
+  clearTimeout(friendsSearchTimer);
+  friendsSearchTimer = setTimeout(friendsSearchNow, 300);
+}
+async function friendsSearchNow(){
+  const box = document.getElementById("friendSearchInput");
+  const resultsEl = document.getElementById("friendSearchResults");
+  if(!box || !resultsEl) return;
+  const q = box.value.trim();
+  if(q.length < 2){ resultsEl.innerHTML = ""; return; }
+  const r = await apiCall("/api/friends-search", { token: account.token, query: q });
+  if(!r.ok){ resultsEl.innerHTML = ""; return; }
+  resultsEl.innerHTML = r.results.map(u => `
+    <div class="friend-row">
+      <span>${esc(u.username)}</span>
+      ${u.isFriend ? `<span class="friend-achv">Schon befreundet</span>`
+        : u.requestSent ? `<span class="friend-achv">Anfrage gesendet</span>`
+        : u.requestIncoming ? `<button class="btn btn-primary btn-sm" onclick="respondFriendRequest('${esc(u.username)}',true)">Annehmen</button>`
+        : `<button class="btn btn-primary btn-sm" onclick="sendFriendRequestNow('${esc(u.username)}')">+ Hinzufügen</button>`}
+    </div>`).join("") || `<p style="color:var(--text-dim); font-size:13px; margin-top:8px;">Niemand gefunden.</p>`;
+}
+async function sendFriendRequestNow(username){
+  await apiCall("/api/friends-request", { token: account.token, username });
+  await loadAndRenderFriendsList();
+  friendsSearchNow();
+}
+async function respondFriendRequest(username, accept){
+  await apiCall(accept ? "/api/friends-accept" : "/api/friends-decline", { token: account.token, username });
+  loadAndRenderFriendsList();
+}
+async function cancelFriendRequestNow(username){
+  await apiCall("/api/friends-cancel", { token: account.token, username });
+  loadAndRenderFriendsList();
+}
+async function removeFriendNow(username){
+  if(!confirm(`${username} wirklich aus deiner Freundesliste entfernen?`)) return;
+  await apiCall("/api/friends-remove", { token: account.token, username });
+  loadAndRenderFriendsList();
+}
+
+async function openChat(username){
+  activeChatWith = username;
+  if(!chatMessagesCache[username]){
+    const r = await apiCall("/api/chat-history", { token: account.token, username });
+    chatMessagesCache[username] = r.ok ? r.messages : [];
+  }
+  renderChatScreen(username);
+}
+function renderChatScreen(username){
+  const msgs = chatMessagesCache[username] || [];
+  const me = account.profile.username;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">💬 ${esc(username)}</div>
+      <div id="chatMessages" class="chat-messages">
+        ${msgs.length===0 ? `<p style="color:var(--text-dim); font-size:13px; text-align:center; margin-top:20px;">Noch keine Nachrichten - schreib als Erste/r!</p>` : ``}
+        ${msgs.map(m => `<div class="chat-bubble ${m.from===me?'mine':''}">${esc(m.text)}</div>`).join("")}
+      </div>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <input id="chatInput" type="text" placeholder="Nachricht…" maxlength="500" style="flex:1;" onkeydown="if(event.key==='Enter')sendChatMessageNow('${esc(username)}')">
+        <button class="btn btn-primary" onclick="sendChatMessageNow('${esc(username)}')">Senden</button>
+      </div>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="activeChatWith=null; renderFriendsList()">${t('btn_back')}</button>
+    </div>
+  `);
+  const box = document.getElementById("chatMessages");
+  if(box) box.scrollTop = box.scrollHeight;
+}
+function sendChatMessageNow(username){
+  const input = document.getElementById("chatInput");
+  const text = (input.value || "").trim();
+  if(!text || !friendsWs || friendsWs.readyState !== 1) return;
+  friendsWs.send(JSON.stringify({ action:"chatSend", to:username, chatText:text }));
+  // Optimistisch sofort anzeigen (Server bestaetigt/liefert im Hintergrund zu) -
+  // fuehlt sich beim eigenen Schreiben ohne Wartezeit an.
+  if(!chatMessagesCache[username]) chatMessagesCache[username] = [];
+  chatMessagesCache[username].push({ from: account.profile.username, text, ts: Date.now() });
+  input.value = "";
+  renderChatScreen(username);
 }
 
 function accountAsProfile(){
@@ -3028,17 +3220,34 @@ function finishSpeedMathLevel(won){
 }
 
 /* ============================================================================
-   SPEED MATH – "ORDER OF SPEED": Zahlen von 1-1000 erscheinen durcheinander,
-   in jeder Runde gilt eine von drei Regeln (aufsteigend / absteigend / nur
-   die geraden Zahlen) - richtig antippen in der richtigen Reihenfolge, ein
-   falscher Tipp beendet die Runde sofort (wie beim normalen Speed Math: kein
-   Verweilen, direkt weiter zur nächsten Runde). Zeitbasiert wie der freie
-   Speed-Math-Modus (1/2/3/5 Minuten), Punktestand = richtige/falsche Runden.
+   SPEED MATH – "ORDER OF SPEED": Zahlen von 1-1000 erscheinen durcheinander
+   (kreisförmig angeordnet), in jeder Runde gilt eine von vier Regeln
+   (aufsteigend / absteigend / nur die geraden / nur die ungeraden Zahlen) -
+   richtig antippen in der richtigen Reihenfolge. Pro richtigem Tipp 100
+   Punkte; ist die Level-Leiste voll, sofort ein Level höher und schwerer
+   (mehr Zahlen; ab Level 4 bewegen sie sich, ab Level 7 werden sie
+   zwischendurch kurz unsichtbar). Ein falscher Tipp beendet die laufende
+   Runde sofort (kein Verweilen), Zeitbasiert wie der freie Speed-Math-Modus.
    ============================================================================ */
-const ORDEROFSPEED_MIN = 1, ORDEROFSPEED_MAX = 1000, ORDEROFSPEED_COUNT = 5;
-const ORDEROFSPEED_RULES = ["asc", "desc", "even"];
-let orderOfSpeedSession = null; // { profile, durationSec, remaining, correct, wrong, round, timerId }
+const ORDEROFSPEED_MIN = 1, ORDEROFSPEED_MAX = 1000;
+const ORDEROFSPEED_RULES = ["asc", "desc", "even", "odd"];
+const ORDEROFSPEED_MOVE_LEVEL = 4;             // ab diesem Level bewegen sich die Zahlen
+const ORDEROFSPEED_FLICKER_LEVEL = 7;          // ab diesem Level werden sie kurz unsichtbar
+const ORDEROFSPEED_MOVE_INTERVAL_MS = 2500;
+const ORDEROFSPEED_FLICKER_INTERVAL_MS = 3200;
+const ORDEROFSPEED_FLICKER_DURATION_MS = 700;
+let orderOfSpeedSession = null; // { profile, durationSec, remaining, points, level, levelPoints, levelTarget, correct, wrong, round, timerId, moveTimerId, flickerTimerId, flickerRevealTimeoutId }
 
+function orderOfSpeedCountForLevel(level){
+  // 5 Zahlen am Anfang, langsam wachsend, bei 9 gedeckelt (muss noch auf den
+  // Kreis passen).
+  return Math.min(5 + Math.floor((level-1)/2), 9);
+}
+function orderOfSpeedLevelTarget(level){
+  // Anzahl richtiger Tipps, um dieses Level zu schaffen, waechst um 1 pro
+  // Level (Level 1: 5 Tipps, Level 10: 14 Tipps) - mal 100 Punkte je Tipp.
+  return (5 + (level-1)) * 100;
+}
 function orderOfSpeedUniqueNumbers(n, min, max){
   const set = new Set();
   while(set.size < n){ set.add(min + Math.floor(Math.random()*(max-min+1))); }
@@ -3052,27 +3261,40 @@ function orderOfSpeedShuffle(arr){
 function orderOfSpeedRuleText(rule){
   if(rule === "asc") return "Tippe die Zahlen von KLEIN nach GROSS";
   if(rule === "desc") return "Tippe die Zahlen von GROSS nach KLEIN";
-  return "Tippe NUR die GERADEN Zahlen (aufsteigend)";
+  if(rule === "even") return "Tippe NUR die GERADEN Zahlen (aufsteigend)";
+  return "Tippe NUR die UNGERADEN Zahlen (aufsteigend)";
 }
-function orderOfSpeedGenerateRound(){
+function orderOfSpeedGenerateRound(level){
+  const count = orderOfSpeedCountForLevel(level);
   const rule = ORDEROFSPEED_RULES[Math.floor(Math.random()*ORDEROFSPEED_RULES.length)];
   let numbers, sequence;
-  if(rule === "even"){
-    // Anzahl gerader Zahlen bewusst 2-4 (nie 0 oder alle 5) - sonst waere
-    // die Aufgabe entweder unloesbar oder ohne echte Auswahl.
-    const evenCount = 2 + Math.floor(Math.random()*3); // 2..4
-    const oddCount = ORDEROFSPEED_COUNT - evenCount;
-    const evens = new Set();
-    while(evens.size < evenCount) evens.add(2 * (1 + Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2))));
-    const odds = new Set();
-    while(odds.size < oddCount) odds.add(1 + 2 * Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2)));
-    numbers = [...evens, ...odds];
-    sequence = [...evens].sort((a,b)=>a-b);
+  if(rule === "even" || rule === "odd"){
+    // Anzahl Zielzahlen bewusst 2-4 (nie 0, nie alle) - sonst waere die
+    // Aufgabe unloesbar bzw. ohne echte Auswahl unter den Ablenkern.
+    const wantCount = Math.min(count-1, 2 + Math.floor(Math.random()*3));
+    const otherCount = count - wantCount;
+    const mkEven = () => 2 * (1 + Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2)));
+    const mkOdd  = () => 1 + 2 * Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2));
+    const want = new Set(); while(want.size < wantCount) want.add(rule === "even" ? mkEven() : mkOdd());
+    const other = new Set(); while(other.size < otherCount) other.add(rule === "even" ? mkOdd() : mkEven());
+    numbers = [...want, ...other];
+    sequence = [...want].sort((a,b)=>a-b);
   } else {
-    numbers = orderOfSpeedUniqueNumbers(ORDEROFSPEED_COUNT, ORDEROFSPEED_MIN, ORDEROFSPEED_MAX);
+    numbers = orderOfSpeedUniqueNumbers(count, ORDEROFSPEED_MIN, ORDEROFSPEED_MAX);
     sequence = numbers.slice().sort((a,b) => rule === "asc" ? a-b : b-a);
   }
-  return { rule, display: orderOfSpeedShuffle(numbers), sequence, nextIndex:0, done:[] };
+  return { rule, display: orderOfSpeedShuffle(numbers), sequence, nextIndex:0, done:[], hidden:false };
+}
+// Positionen gleichmäßig auf einem Kreis verteilt (Prozentwerte innerhalb
+// eines quadratischen Containers).
+function orderOfSpeedCirclePositions(n){
+  const cx=50, cy=50, r=38;
+  const pos = [];
+  for(let i=0;i<n;i++){
+    const angle = (2*Math.PI*i/n) - Math.PI/2;
+    pos.push({ left:(cx + r*Math.cos(angle)).toFixed(1)+"%", top:(cy + r*Math.sin(angle)).toFixed(1)+"%" });
+  }
+  return pos;
 }
 
 function startOrderOfSpeedFlow(profile){
@@ -3083,7 +3305,7 @@ function renderOrderOfSpeedEntry(profile){
   renderApp(`
     <div class="panel">
       <div class="picker-title">🔢 ORDER OF SPEED</div>
-      <div class="picker-sub">${profile.name} – Zahlen von 1 bis 1000 tauchen durcheinander auf. Tippe sie in der richtigen Reihenfolge an: aufsteigend, absteigend, oder nur die geraden Zahlen.</div>
+      <div class="picker-sub">${profile.name} – Zahlen von 1 bis 1000 tauchen im Kreis auf. Tippe sie in der richtigen Reihenfolge an: aufsteigend, absteigend, nur gerade oder nur ungerade. 100 Punkte pro Tipp, volle Leiste = nächstes Level (wird sofort schwerer - ab Level ${ORDEROFSPEED_MOVE_LEVEL} bewegen sie sich, ab Level ${ORDEROFSPEED_FLICKER_LEVEL} werden sie kurz unsichtbar).</div>
       <div class="picker-sub" style="margin-top:14px;">Wie lange möchtest du spielen?</div>
       <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
         ${SPEEDMATH_DURATIONS.map(d => `<button class="btn btn-primary btn-block" onclick="startOrderOfSpeedGame(${d.sec})">${d.label}</button>`).join("")}
@@ -3092,12 +3314,62 @@ function renderOrderOfSpeedEntry(profile){
     </div>
   `);
 }
+function orderOfSpeedClearTimers(s){
+  clearInterval(s.moveTimerId); s.moveTimerId = null;
+  clearInterval(s.flickerTimerId); s.flickerTimerId = null;
+  clearTimeout(s.flickerRevealTimeoutId); s.flickerRevealTimeoutId = null;
+}
+// Startet (bzw. erneuert) die Bewegungs-/Flacker-Hintergrundtimer passend
+// zum AKTUELLEN Level - wird sowohl bei jeder neuen Runde als auch sofort
+// nach einem Levelaufstieg mitten in einer Runde aufgerufen.
+function orderOfSpeedEnsureTimers(s){
+  orderOfSpeedClearTimers(s);
+  if(s.level >= ORDEROFSPEED_MOVE_LEVEL){
+    s.moveTimerId = setInterval(() => {
+      if(!orderOfSpeedSession || !orderOfSpeedSession.round) return;
+      orderOfSpeedSession.round.display = orderOfSpeedShuffle(orderOfSpeedSession.round.display);
+      renderOrderOfSpeedGame();
+    }, ORDEROFSPEED_MOVE_INTERVAL_MS);
+  }
+  if(s.level >= ORDEROFSPEED_FLICKER_LEVEL){
+    s.flickerTimerId = setInterval(() => {
+      if(!orderOfSpeedSession || !orderOfSpeedSession.round) return;
+      orderOfSpeedSession.round.hidden = true;
+      renderOrderOfSpeedGame();
+      orderOfSpeedSession.flickerRevealTimeoutId = setTimeout(() => {
+        if(!orderOfSpeedSession || !orderOfSpeedSession.round) return;
+        orderOfSpeedSession.round.hidden = false;
+        renderOrderOfSpeedGame();
+      }, ORDEROFSPEED_FLICKER_DURATION_MS);
+    }, ORDEROFSPEED_FLICKER_INTERVAL_MS);
+  }
+}
+function orderOfSpeedStartRound(s){
+  clearTimeout(s.flickerRevealTimeoutId); s.flickerRevealTimeoutId = null;
+  s.round = orderOfSpeedGenerateRound(s.level);
+  orderOfSpeedEnsureTimers(s);
+}
+// Leiste voll (evtl. mehrfach auf einmal) -> Level steigt, Timer sofort an
+// die neue Stufe angepasst. Gibt zurueck, ob mindestens 1x aufgestiegen wurde.
+function orderOfSpeedCheckLevelUp(s){
+  let leveled = false;
+  while(s.levelPoints >= s.levelTarget){
+    s.levelPoints -= s.levelTarget;
+    s.level++;
+    s.levelTarget = orderOfSpeedLevelTarget(s.level);
+    leveled = true;
+  }
+  if(leveled) orderOfSpeedEnsureTimers(s);
+  return leveled;
+}
 function startOrderOfSpeedGame(durationSec){
-  clearInterval(orderOfSpeedSession && orderOfSpeedSession.timerId);
+  if(orderOfSpeedSession){ clearInterval(orderOfSpeedSession.timerId); orderOfSpeedClearTimers(orderOfSpeedSession); }
   orderOfSpeedSession = {
     profile: speedMathProfile, durationSec, remaining: durationSec,
-    correct: 0, wrong: 0, round: orderOfSpeedGenerateRound(), timerId: null
+    points:0, level:1, levelPoints:0, levelTarget: orderOfSpeedLevelTarget(1),
+    correct:0, wrong:0, round:null, timerId:null, moveTimerId:null, flickerTimerId:null, flickerRevealTimeoutId:null
   };
+  orderOfSpeedStartRound(orderOfSpeedSession);
   renderOrderOfSpeedGame();
   orderOfSpeedSession.timerId = setInterval(() => {
     if(!orderOfSpeedSession) return;
@@ -3114,17 +3386,21 @@ function startOrderOfSpeedGame(durationSec){
 function renderOrderOfSpeedGame(){
   const s = orderOfSpeedSession;
   const r = s.round;
+  const pos = orderOfSpeedCirclePositions(r.display.length);
+  const levelPct = Math.max(0, Math.min(100, (s.levelPoints/s.levelTarget)*100));
   renderApp(`
     <div class="panel">
       <div class="picker-title">🔢 ORDER OF SPEED</div>
-      <div class="picker-sub" style="text-align:center;">✓ ${s.correct} richtig · ✕ ${s.wrong} falsch</div>
+      <div class="picker-sub" style="text-align:center;">Level ${s.level} · ${s.points} Punkte · ✕ ${s.wrong} falsch</div>
       <div class="timer-wrap" style="margin:10px 0;">
         <div class="timer-bar"><div id="orderOfSpeedTimerFill" class="timer-fill" style="width:${Math.max(0,(s.remaining/s.durationSec)*100)}%"></div></div>
         <div id="orderOfSpeedTimerNum" class="timer-num">${Math.ceil(s.remaining)}s</div>
       </div>
-      <div class="picker-sub" style="text-align:center; font-weight:800; font-size:16px; margin-top:10px;">${orderOfSpeedRuleText(r.rule)}</div>
-      <div class="oos-grid">
-        ${r.display.map(v => `<button class="oos-choice" ${r.done.includes(v)?'disabled':''} onclick="orderOfSpeedTap(${v})">${v}</button>`).join("")}
+      <div class="picker-sub" style="text-align:center; font-size:11px; margin-top:6px;">Level-Fortschritt (${s.levelPoints}/${s.levelTarget})</div>
+      <div class="timer-bar" style="height:8px;"><div style="width:${levelPct}%; height:100%; background:#ffb020; border-radius:6px;"></div></div>
+      <div class="picker-sub" style="text-align:center; font-weight:800; font-size:16px; margin-top:14px;">${orderOfSpeedRuleText(r.rule)}</div>
+      <div class="oos-circle">
+        ${r.display.map((v,i) => `<button class="oos-circle-choice ${r.hidden?'hidden-num':''}" style="left:${pos[i].left}; top:${pos[i].top};" ${r.done.includes(v)?'disabled':''} onclick="orderOfSpeedTap(${v})">${v}</button>`).join("")}
       </div>
       <button class="btn btn-ghost btn-block" style="margin-top:20px;" onclick="exitOrderOfSpeed()">${t('btn_back')}</button>
     </div>
@@ -3146,23 +3422,33 @@ function orderOfSpeedTap(value){
   if(value === r.sequence[r.nextIndex]){
     r.done.push(value);
     r.nextIndex++;
+    s.points += 100;
+    s.levelPoints += 100;
     if(r.nextIndex >= r.sequence.length){
-      achvRecord({t:"gen",n:1}, s.profile);
       s.correct++;
-      s.round = orderOfSpeedGenerateRound();
+      achvRecord({t:"gen",n:1}, s.profile);
+      orderOfSpeedCheckLevelUp(s);
+      orderOfSpeedStartRound(s);
+    } else {
+      orderOfSpeedCheckLevelUp(s); // Level kann auch MITTEN in einer Runde voll werden
     }
   } else {
     s.wrong++;
-    s.round = orderOfSpeedGenerateRound();
+    orderOfSpeedStartRound(s);
   }
   renderOrderOfSpeedGame();
 }
 function exitOrderOfSpeed(){
-  if(orderOfSpeedSession){ clearInterval(orderOfSpeedSession.timerId); orderOfSpeedSession = null; }
+  if(orderOfSpeedSession){
+    clearInterval(orderOfSpeedSession.timerId);
+    orderOfSpeedClearTimers(orderOfSpeedSession);
+    orderOfSpeedSession = null;
+  }
   renderSpeedMathEntry(speedMathProfile);
 }
 function finishOrderOfSpeed(){
   const s = orderOfSpeedSession;
+  orderOfSpeedClearTimers(s);
   const profile = s.profile;
   const durationSec = s.durationSec;
   profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
@@ -3176,6 +3462,8 @@ function finishOrderOfSpeed(){
     <div class="panel">
       <div class="result-title">⏱️ ZEIT UM!</div>
       <div class="result-grid" style="margin-top:14px;">
+        <div class="result-item pos"><div class="n">${s.points}</div><div class="l">Punkte</div></div>
+        <div class="result-item"><div class="n">Level ${s.level}</div><div class="l">Erreicht</div></div>
         <div class="result-item pos"><div class="n">${s.correct}</div><div class="l">Runden richtig gelöst</div></div>
         <div class="result-item neg"><div class="n">${s.wrong}</div><div class="l">Falsch</div></div>
       </div>
@@ -3187,6 +3475,7 @@ function finishOrderOfSpeed(){
   `);
   orderOfSpeedSession = null;
 }
+
 
 function startTicTacToeFlow(){
   setAudioZone("ttt"); // eigener Titel nur hier, solange man im Tic-Tac-Toe-Bereich ist
