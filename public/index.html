@@ -158,6 +158,8 @@
   .achv-bar div{ height:100%; background:var(--accent-2); }
   .achv-num{ font-size:11px; color:var(--text-dim); margin-top:3px; }
   .achv-date{ font-size:11px; color:var(--accent-2); margin-top:3px; }
+  .repeat-btn{ display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border-radius:20px; border:none; background:linear-gradient(135deg, var(--warn), #ff9d1f); color:#2a1500; font-weight:800; font-size:12.5px; cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; white-space:nowrap; box-shadow:0 4px 12px -4px rgba(255,180,67,.65); transition:transform .1s ease, box-shadow .1s ease; }
+  .repeat-btn:active{ transform:scale(.94); box-shadow:0 2px 6px -2px rgba(255,180,67,.5); }
   .thumb-btn{ min-width:52px; padding:8px 10px; border-radius:12px; border:2px solid var(--line); background:rgba(255,255,255,0.05); color:inherit; font-size:15px; cursor:pointer; touch-action:manipulation; }
   .thumb-btn.on{ border-color:var(--danger); background:rgba(255,80,80,0.18); }
   .sm-choices{ display:grid; grid-template-columns:1fr 1fr; gap:14px; justify-items:center; margin-top:26px; }
@@ -922,11 +924,12 @@ const QUESTIONS = [{q:"Welcher ist der größte Ozean der Erde?",a:["Atlantik","
 {q:"In welchem Land fand die Fußball-Weltmeisterschaft 2006 statt?",a:["Frankreich","Deutschland","Südafrika","Brasilien"],c:1,cat:"Sport",d:1,e:"Das 'Sommermärchen' 2006 fand in Deutschland statt."},
 {q:"Wie viele Ecken hat ein reguläres Fußballfeld?",a:["2","4","6","8"],c:1,cat:"Sport",d:1,e:"Vier Ecken, markiert mit Eckfahnen."},
 {q:"Wie wird ein 0:0-Ergebnis nach 90 Minuten im Fußball umgangssprachlich genannt?",a:["Shutout","Torlos","Golden Goal","Remis ohne Tore"],c:1,cat:"Sport",d:2,e:"Ein torloses Unentschieden wird oft als 'torlos' oder '0:0' bezeichnet."}];
-// Brain Test: fester 50-Fragen-Pool je Klasse (echter Schulstoff, 1=Grundschule
-// bis 10=Realschulabschluss-Niveau). Aktuell befüllt: Klasse 1-3 (150 Fragen).
-// Klasse 4-10 folgen in einer weiteren Lieferung - bis dahin fällt
-// pickKlasseTestQuestions() für unbefüllte Klassen auf den nächstniedrigeren
-// befüllten Pool zurück (siehe dortige Fallback-Logik weiter unten).
+// Brain Test: fester Fragen-Pool je Klasse (echter Schulstoff, 1=Grundschule
+// bis 10=Realschulabschluss-Niveau), alle 10 Klassen befüllt (500 Fragen,
+// inkl. Politik-Fragen in Klasse 2/4/6/8/10). Es gibt zusätzlich
+// KLASSE_QUESTIONS_EN (weiter unten) mit einer eigenen englischsprachigen
+// Allgemeinwissen-Fragenbank, die anstelle dieser hier verwendet wird,
+// sobald die Oberfläche auf Englisch steht (siehe klasseQuestionsPool()).
 const KLASSE_QUESTIONS = {
 1: [
 {q:"Wie viel ist 3 + 4?",a:["6","7","8","5"],c:1,cat:"Mathe",d:1,e:"3 plus 4 ergibt 7."},
@@ -1030,7 +1033,9 @@ const KLASSE_QUESTIONS = {
 {q:"Welches Tier legt Eier?",a:["Hund","Katze","Huhn","Pferd"],c:2,cat:"Sachkunde",d:1,e:"Hühner legen Eier."},
 {q:"Was ist der größte Planet, auf dem wir leben, genannt?",a:["Mond","Erde","Sonne","Mars"],c:1,cat:"Sachkunde",d:1,e:"Wir leben auf dem Planeten Erde."},
 {q:"Wie nennt man Wasser, das gefroren ist?",a:["Dampf","Eis","Nebel","Regen"],c:1,cat:"Sachkunde",d:1,e:"Gefrorenes Wasser nennt man Eis."},
-{q:"Welche Jahreszeit ist meistens am kältesten?",a:["Sommer","Frühling","Herbst","Winter"],c:3,cat:"Sachkunde",d:1,e:"Der Winter ist meistens die kälteste Jahreszeit."}
+{q:"Welche Jahreszeit ist meistens am kältesten?",a:["Sommer","Frühling","Herbst","Winter"],c:3,cat:"Sachkunde",d:1,e:"Der Winter ist meistens die kälteste Jahreszeit."},
+{q:"Wer ist der Chef einer Stadt oder Gemeinde?",a:["Der Lehrer","Der Bürgermeister","Der Polizist","Der Arzt"],c:1,cat:"Politik",d:2,e:"Der Bürgermeister leitet die Verwaltung einer Stadt oder Gemeinde."},
+{q:"Wie nennt man es, wenn viele Menschen entscheiden, wer sie regieren soll?",a:["Eine Wahl","Ein Fest","Ein Spiel","Eine Pause"],c:0,cat:"Politik",d:2,e:"Bei einer Wahl entscheiden die Bürger, wer sie vertreten soll."}
 ],
 3: [
 {q:"Wie viel ist 6 x 7?",a:["40","41","42","43"],c:2,cat:"Mathe",d:1,e:"6 mal 7 ergibt 42."},
@@ -1134,7 +1139,9 @@ const KLASSE_QUESTIONS = {
 {q:"Welche Währung wird in vielen EU-Ländern benutzt?",a:["Dollar","Euro","Pfund","Yen"],c:1,cat:"Sachkunde",d:2,e:"Der Euro ist die gemeinsame Währung vieler EU-Länder."},
 {q:"Was versteht man unter 'Klima'?",a:["Das Wetter an einem einzigen Tag","Das durchschnittliche Wetter über lange Zeit","Nur die Temperatur","Nur der Regen"],c:1,cat:"Sachkunde",d:2,e:"Klima beschreibt das durchschnittliche Wetter einer Region über viele Jahre."},
 {q:"Was ist der Unterschied zwischen Fluss und See?",a:["Ein Fluss fließt, ein See ist stehendes Gewässer","Kein Unterschied","Ein See ist salzig, ein Fluss süß","Flüsse sind immer größer"],c:0,cat:"Sachkunde",d:2,e:"Ein Fluss fließt, ein See ist ein stehendes Gewässer."},
-{q:"Was zeigt der Maßstab auf einer Landkarte an?",a:["Das Verhältnis von Karte zu echter Größe","Die Uhrzeit","Die Bevölkerungszahl","Die Höhe der Berge"],c:0,cat:"Sachkunde",d:2,e:"Der Maßstab zeigt, wie die Karte im Verhältnis zur echten Größe verkleinert ist."}
+{q:"Was zeigt der Maßstab auf einer Landkarte an?",a:["Das Verhältnis von Karte zu echter Größe","Die Uhrzeit","Die Bevölkerungszahl","Die Höhe der Berge"],c:0,cat:"Sachkunde",d:2,e:"Der Maßstab zeigt, wie die Karte im Verhältnis zur echten Größe verkleinert ist."},
+{q:"In welchem Gebäude arbeitet die deutsche Bundesregierung hauptsächlich?",a:["Im Bundestag in Berlin","Im Kölner Dom","Im Brandenburger Tor","Im Schloss Neuschwanstein"],c:0,cat:"Politik",d:4,e:"Der Bundestag hat seinen Sitz im Reichstagsgebäude in Berlin."},
+{q:"Wie heißt die Hauptstadt Deutschlands?",a:["München","Hamburg","Berlin","Frankfurt"],c:2,cat:"Politik",d:4,e:"Berlin ist seit 1990 wieder Hauptstadt des vereinten Deutschlands."}
 ],
 5: [
 {q:"Wie viel ist 3/5 + 1/5?",a:["4/5","4/10","2/5","1/5"],c:0,cat:"Mathe",d:2,e:"3/5 + 1/5 = 4/5 (gleicher Nenner, Zähler addieren)."},
@@ -1238,7 +1245,9 @@ const KLASSE_QUESTIONS = {
 {q:"Was ist ein Parlament?",a:["Eine gewählte Versammlung, die Gesetze beschließt","Ein Gericht","Eine Zeitung","Eine Schule"],c:0,cat:"Politik",d:3,e:"Ein Parlament ist eine gewählte Versammlung, die über Gesetze entscheidet."},
 {q:"Was macht ein Bürgermeister?",a:["Leitet eine Stadt oder Gemeinde","Leitet ein ganzes Land","Ist Richter","Ist Lehrer"],c:0,cat:"Politik",d:3,e:"Ein Bürgermeister leitet die Verwaltung einer Stadt oder Gemeinde."},
 {q:"Was ist eine Wahl in der Demokratie?",a:["Bürger stimmen ab, wer sie vertreten soll","Ein Fußballspiel","Eine Schulaufgabe","Ein Fest"],c:0,cat:"Politik",d:3,e:"Bei einer Wahl bestimmen Bürger, wer sie im Parlament oder als Regierung vertritt."},
-{q:"Was ist der Unterschied zwischen Tropen und Polargebieten?",a:["Tropen sind heiß, Polargebiete sind kalt","Kein Unterschied","Tropen sind kalt","Polargebiete sind immer trocken"],c:0,cat:"Erdkunde",d:3,e:"Die Tropen liegen am Äquator und sind heiß, Polargebiete an den Polen sind kalt."}
+{q:"Was ist der Unterschied zwischen Tropen und Polargebieten?",a:["Tropen sind heiß, Polargebiete sind kalt","Kein Unterschied","Tropen sind kalt","Polargebiete sind immer trocken"],c:0,cat:"Erdkunde",d:3,e:"Die Tropen liegen am Äquator und sind heiß, Polargebiete an den Polen sind kalt."},
+{q:"Was macht der Bundestag hauptsächlich?",a:["Er verkauft Waren","Er beschließt Gesetze","Er organisiert Sportfeste","Er baut Straßen"],c:1,cat:"Politik",d:6,e:"Der Bundestag ist das gesetzgebende Organ Deutschlands."},
+{q:"Wie oft werden in Deutschland Bundestagswahlen abgehalten?",a:["Jedes Jahr","Alle 4 Jahre","Alle 10 Jahre","Nie"],c:1,cat:"Politik",d:6,e:"Regulär finden alle 4 Jahre Bundestagswahlen statt."}
 ],
 7: [
 {q:"Löse die Gleichung: x + 5 = 12. Was ist x?",a:["5","6","7","8"],c:2,cat:"Mathe",d:3,e:"x = 12 - 5 = 7."},
@@ -1342,7 +1351,9 @@ const KLASSE_QUESTIONS = {
 {q:"Was zeigt der pH-Wert 7 an?",a:["Neutral (weder sauer noch basisch)","Sehr sauer","Sehr basisch","Giftig"],c:0,cat:"Chemie",d:3,e:"Ein pH-Wert von 7 gilt als neutral, wie bei reinem Wasser."},
 {q:"Was ist Oxidation (einfach erklärt)?",a:["Eine Reaktion, bei der ein Stoff Sauerstoff aufnimmt oder Elektronen abgibt","Das Schmelzen eines Stoffes","Das Gefrieren eines Stoffes","Das Verdampfen von Wasser"],c:0,cat:"Chemie",d:3,e:"Oxidation bezeichnet z.B. die Reaktion mit Sauerstoff, wie beim Rosten von Eisen."},
 {q:"Was verursacht den Treibhauseffekt hauptsächlich?",a:["Treibhausgase wie CO2, die Wärme in der Atmosphäre halten","Kalte Luft","Der Mond","Vulkanausbrüche allein"],c:0,cat:"Erdkunde",d:3,e:"Treibhausgase wie CO2 halten Wärme in der Atmosphäre zurück und verstärken die Erderwärmung."},
-{q:"Was ist eine Klimazone?",a:["Ein Gebiet mit einem typischen, ähnlichen Klima","Eine Zeitzone","Eine politische Grenze","Eine Meeresströmung"],c:0,cat:"Erdkunde",d:3,e:"Klimazonen fassen Gebiete mit ähnlichem, typischem Klima zusammen."}
+{q:"Was ist eine Klimazone?",a:["Ein Gebiet mit einem typischen, ähnlichen Klima","Eine Zeitzone","Eine politische Grenze","Eine Meeresströmung"],c:0,cat:"Erdkunde",d:3,e:"Klimazonen fassen Gebiete mit ähnlichem, typischem Klima zusammen."},
+{q:"Was ist die Gewaltenteilung?",a:["Die Aufteilung der Polizei in Bezirke","Die Trennung von Gesetzgebung, Regierung und Gerichten","Die Aufteilung des Militärs","Die Trennung der Bundesländer"],c:1,cat:"Politik",d:8,e:"Legislative, Exekutive und Judikative kontrollieren sich gegenseitig."},
+{q:"Wofür steht die Abkürzung EU?",a:["Europäische Union","Einheitliche Universität","Europäische Unternehmen","Englische Union"],c:0,cat:"Politik",d:8,e:"Die EU ist ein Zusammenschluss von 27 europäischen Staaten."}
 ],
 9: [
 {q:"Löse die quadratische Gleichung x² - 9 = 0.",a:["x = 3 oder x = -3","x = 9","x = 3 nur","x = -9"],c:0,cat:"Mathe",d:4,e:"x² = 9, also x = 3 oder x = -3."},
@@ -1446,7 +1457,9 @@ const KLASSE_QUESTIONS = {
 {q:"Was ist eine Redoxreaktion?",a:["Eine Reaktion mit gleichzeitiger Oxidation und Reduktion","Eine Reaktion nur mit Wasser","Eine rein physikalische Veränderung","Eine Reaktion ohne Elektronenübertragung"],c:0,cat:"Chemie",d:4,e:"Bei einer Redoxreaktion finden Oxidation und Reduktion gleichzeitig statt (Elektronenübertragung)."},
 {q:"Was ist Elektrolyse?",a:["Zersetzung eines Stoffes durch elektrischen Strom","Erhitzen eines Stoffes","Mischen zweier Flüssigkeiten","Kühlen eines Gases"],c:0,cat:"Chemie",d:4,e:"Bei der Elektrolyse wird eine chemische Verbindung mithilfe von elektrischem Strom zerlegt."},
 {q:"Was versteht man unter nachhaltiger Entwicklung?",a:["Entwicklung, die heutige Bedürfnisse deckt, ohne künftige Generationen zu gefährden","Nur wirtschaftliches Wachstum","Verzicht auf jegliche Entwicklung","Nur Umweltschutz ohne Wirtschaft"],c:0,cat:"Politik",d:4,e:"Nachhaltige Entwicklung verbindet heutige Bedürfnisse mit Rücksicht auf künftige Generationen."},
-{q:"Was ist ein Ökonomischer Kreislauf (Grundidee)?",a:["Das Zusammenspiel von Haushalten, Unternehmen und Staat in der Wirtschaft","Nur der Handel mit Aktien","Der Kreislauf des Wassers","Ein biologischer Vorgang"],c:0,cat:"Politik",d:4,e:"Der Wirtschaftskreislauf beschreibt, wie Güter, Geld und Leistungen zwischen Haushalten, Unternehmen und Staat fließen."}
+{q:"Was ist ein Ökonomischer Kreislauf (Grundidee)?",a:["Das Zusammenspiel von Haushalten, Unternehmen und Staat in der Wirtschaft","Nur der Handel mit Aktien","Der Kreislauf des Wassers","Ein biologischer Vorgang"],c:0,cat:"Politik",d:4,e:"Der Wirtschaftskreislauf beschreibt, wie Güter, Geld und Leistungen zwischen Haushalten, Unternehmen und Staat fließen."},
+{q:"Was prüft das Bundesverfassungsgericht?",a:["Ob Gesetze mit dem Grundgesetz vereinbar sind","Den Bundeshaushalt","Die Außenpolitik","Wahlergebnisse in anderen Ländern"],c:0,cat:"Politik",d:10,e:"Es ist die höchste Instanz zum Schutz der Verfassung."},
+{q:"Was versteht man unter dem 'Konstruktiven Misstrauensvotum'?",a:["Der Bundestag kann den Kanzler nur stürzen, wenn gleichzeitig ein Nachfolger gewählt wird","Der Bundespräsident kann jederzeit Neuwahlen ausrufen","Eine Volksabstimmung über den Kanzler","Ein Gesetz zur Parteienfinanzierung"],c:0,cat:"Politik",d:10,e:"Diese Regel im Grundgesetz soll Regierungskrisen ohne Nachfolgeregelung verhindern."}
 ]
 };
 
@@ -1526,10 +1539,549 @@ function shuffleAnswerOrder(q){
   for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [order[i],order[j]]=[order[j],order[i]]; }
   return { ...q, a: order.map(i=>q.a[i]), c: order.indexOf(q.c) };
 }
+// Brain Test auf Englisch (auf Wunsch): allgemeinwissen-Fragen in englischer
+// Sprache, inkl. London/UK- und Amerika/USA-Themen sowie echtem britischem
+// Schulstoff (Maths, English, Science, History, Geography, Citizenship nach
+// dem britischen National Curriculum), statt der deutschen Schulfach-Fragen.
+// 50 Fragen je Klasse wie beim deutschen Original (Übungstest 50, Haupttest
+// 20 davon). Wird verwendet, wenn die Oberflaeche auf Englisch steht (siehe
+// pickKlasseTestQuestions/pickKlasseHaupttestQuestions unten).
+const KLASSE_QUESTIONS_EN = {
+1: [
+{q:"What color is the sky on a clear day?",a:["Green","Blue","Red","Yellow"],c:1,cat:"General Knowledge",d:1,e:"On a clear day, the sky looks blue."},
+{q:"How many legs does a dog have?",a:["2","4","6","8"],c:1,cat:"Animals",d:1,e:"Dogs are four-legged animals."},
+{q:"What do bees make?",a:["Milk","Honey","Bread","Juice"],c:1,cat:"Animals",d:1,e:"Bees make honey from flower nectar."},
+{q:"Which animal says 'moo'?",a:["Cat","Dog","Cow","Duck"],c:2,cat:"Animals",d:1,e:"Cows make a 'moo' sound."},
+{q:"What shape has three sides?",a:["Circle","Square","Triangle","Star"],c:2,cat:"General Knowledge",d:1,e:"A triangle has exactly three sides."},
+{q:"How many days are in one week?",a:["5","6","7","8"],c:2,cat:"General Knowledge",d:1,e:"A week has seven days."},
+{q:"What do you use to see in the dark?",a:["A spoon","A flashlight","A book","A shoe"],c:1,cat:"General Knowledge",d:1,e:"A flashlight makes light so you can see in the dark."},
+{q:"Which fruit is yellow and curved?",a:["Apple","Banana","Grape","Cherry"],c:1,cat:"General Knowledge",d:1,e:"A banana is yellow and curved."},
+{q:"What is the capital city of England?",a:["Paris","London","Berlin","Rome"],c:1,cat:"London/UK",d:1,e:"London is the capital of England and the United Kingdom."},
+{q:"What season comes after winter?",a:["Summer","Spring","Autumn","Winter again"],c:1,cat:"General Knowledge",d:1,e:"Spring follows winter."},
+{q:"How many wheels does a bicycle have?",a:["1","2","3","4"],c:1,cat:"General Knowledge",d:1,e:"A bicycle has two wheels."},
+{q:"What do we call baby dogs?",a:["Kittens","Puppies","Cubs","Chicks"],c:1,cat:"Animals",d:1,e:"Baby dogs are called puppies."},
+{q:"Which is the biggest animal in the ocean?",a:["Shark","Blue whale","Dolphin","Octopus"],c:1,cat:"Animals",d:1,e:"The blue whale is the largest animal on Earth."},
+{q:"What do plants need to grow?",a:["Sunlight and water","Only darkness","Only sand","Only ice"],c:0,cat:"Nature",d:1,e:"Plants need sunlight and water to grow."},
+{q:"What is the famous clock tower in London called?",a:["Big Ben","Tower Bridge","The Shard","London Eye"],c:0,cat:"London/UK",d:1,e:"Big Ben is the nickname for the famous clock at the Houses of Parliament."},
+{q:"How many colors are in a rainbow?",a:["5","6","7","8"],c:2,cat:"Nature",d:1,e:"A rainbow has seven colors."},
+{q:"What is the opposite of hot?",a:["Warm","Cold","Wet","Dry"],c:1,cat:"General Knowledge",d:1,e:"Cold is the opposite of hot."},
+{q:"Which meal do people usually eat in the morning?",a:["Dinner","Breakfast","Lunch","Supper"],c:1,cat:"General Knowledge",d:1,e:"Breakfast is the first meal of the day."},
+{q:"What flag color combination does the USA flag have?",a:["Red, white and blue","Green, white and red","Black, red and yellow","Blue and yellow"],c:0,cat:"America/USA",d:1,e:"The American flag is red, white and blue with stars and stripes."},
+{q:"How many months are in a year?",a:["10","11","12","13"],c:2,cat:"General Knowledge",d:1,e:"A year has twelve months."},
+{q:"What do you call a place where you borrow books?",a:["A bakery","A library","A garage","A zoo"],c:1,cat:"General Knowledge",d:1,e:"A library is where you can borrow books."},
+{q:"Which animal is known as man's best friend?",a:["Cat","Dog","Fish","Bird"],c:1,cat:"Animals",d:1,e:"Dogs are often called man's best friend."},
+{q:"What do you wear on your feet?",a:["Gloves","Shoes","Hats","Scarves"],c:1,cat:"General Knowledge",d:1,e:"Shoes are worn on your feet."},
+{q:"What is frozen water called?",a:["Steam","Ice","Rain","Fog"],c:1,cat:"Nature",d:1,e:"When water freezes, it becomes ice."},
+{q:"Which of these is a fruit?",a:["Carrot","Apple","Potato","Onion"],c:1,cat:"General Knowledge",d:1,e:"An apple is a fruit, the others are vegetables."},
+{q:"How many is 2 + 2?",a:["3","4","5","6"],c:1,cat:"Maths",d:1,e:"2 plus 2 equals 4."},
+{q:"How many is 5 - 2?",a:["2","3","4","5"],c:1,cat:"Maths",d:1,e:"5 minus 2 equals 3."},
+{q:"Which letter comes after 'B' in the alphabet?",a:["A","C","D","E"],c:1,cat:"English",d:1,e:"The alphabet goes A, B, C, D..."},
+{q:"What do we call a word that names a person, place or thing?",a:["A verb","A noun","An adjective","A number"],c:1,cat:"English",d:1,e:"A noun is a naming word."},
+{q:"Which part of your body do you use to smell?",a:["Ears","Nose","Eyes","Hands"],c:1,cat:"Science",d:1,e:"We use our nose to smell things."},
+{q:"How many eyes does a person usually have?",a:["1","2","3","4"],c:1,cat:"Science",d:1,e:"People usually have two eyes."},
+{q:"What is the flag of the United Kingdom called?",a:["The Union Jack","The Star Flag","The Red Cross","The White Rose"],c:0,cat:"Citizenship",d:1,e:"The UK flag is nicknamed the Union Jack."},
+{q:"Which of these is a shape with no corners?",a:["Square","Circle","Triangle","Rectangle"],c:1,cat:"Maths",d:1,e:"A circle is round and has no corners."},
+{q:"How many is 10 - 5?",a:["4","5","6","7"],c:1,cat:"Maths",d:1,e:"10 minus 5 equals 5."},
+{q:"What do we call a word that describes an action, like 'run' or 'jump'?",a:["A noun","A verb","An adjective","A pronoun"],c:1,cat:"English",d:1,e:"A verb is a doing or action word."},
+{q:"Which season comes after summer in the UK?",a:["Winter","Spring","Autumn","Summer again"],c:2,cat:"Science",d:1,e:"In the UK, autumn follows summer."},
+{q:"How many sides does a square have?",a:["3","4","5","6"],c:1,cat:"Maths",d:1,e:"A square has four equal sides."},
+{q:"What do plants need to grow, along with water?",a:["Sunlight","Darkness","Salt","Ice"],c:0,cat:"Science",d:1,e:"Plants need sunlight and water to grow well."},
+{q:"Which word means more than one 'cat'?",a:["Cats","Cat's","Cates","Catss"],c:0,cat:"English",d:1,e:"Adding 's' to 'cat' makes it plural: cats."},
+{q:"How many is 3 + 5?",a:["7","8","9","6"],c:1,cat:"Maths",d:1,e:"3 plus 5 equals 8."},
+{q:"What is the name of the school subject where you learn about numbers?",a:["English","Maths","Art","Music"],c:1,cat:"Citizenship",d:1,e:"Maths is the subject about numbers and counting."},
+{q:"Which animal is known for saying 'baa'?",a:["Cow","Sheep","Pig","Horse"],c:1,cat:"Science",d:1,e:"Sheep make a 'baa' sound."},
+{q:"What do we call the beginning letter of a sentence that should be a capital?",a:["A small letter","A capital letter","A number","A symbol"],c:1,cat:"English",d:1,e:"Sentences begin with a capital letter."},
+{q:"How many is 4 + 4?",a:["6","7","8","9"],c:2,cat:"Maths",d:1,e:"4 plus 4 equals 8."},
+{q:"Which of these is a primary colour?",a:["Green","Red","Purple","Orange"],c:1,cat:"Science",d:1,e:"Red is one of the three primary colours, along with blue and yellow."},
+{q:"What do we call a place where children go to learn?",a:["A hospital","A school","A shop","A farm"],c:1,cat:"Citizenship",d:1,e:"Children go to school to learn."},
+{q:"How many is 9 - 4?",a:["4","5","6","3"],c:1,cat:"Maths",d:1,e:"9 minus 4 equals 5."},
+{q:"Which word describes something, like 'big' or 'red'?",a:["A verb","An adjective","A noun","A conjunction"],c:1,cat:"English",d:1,e:"An adjective describes a noun."},
+{q:"What is the name for baby sheep?",a:["Calf","Lamb","Kid","Foal"],c:1,cat:"Science",d:1,e:"A baby sheep is called a lamb."},
+{q:"How many is 6 + 3?",a:["8","9","10","7"],c:1,cat:"Maths",d:1,e:"6 plus 3 equals 9."}
+],
+2: [
+{q:"What is the largest planet in our solar system?",a:["Earth","Jupiter","Mars","Venus"],c:1,cat:"Science",d:2,e:"Jupiter is the largest planet in our solar system."},
+{q:"How many continents are there on Earth?",a:["5","6","7","8"],c:2,cat:"Geography",d:2,e:"There are seven continents on Earth."},
+{q:"What is the capital of the United States?",a:["New York","Washington, D.C.","Los Angeles","Chicago"],c:1,cat:"America/USA",d:2,e:"Washington, D.C. is the capital of the United States."},
+{q:"Which ocean is the largest?",a:["Atlantic","Indian","Pacific","Arctic"],c:2,cat:"Geography",d:2,e:"The Pacific Ocean is the largest ocean on Earth."},
+{q:"What do we call the River that flows through London?",a:["The Seine","The Thames","The Rhine","The Danube"],c:1,cat:"London/UK",d:2,e:"The River Thames flows through the city of London."},
+{q:"How many sides does a hexagon have?",a:["5","6","7","8"],c:1,cat:"General Knowledge",d:2,e:"A hexagon has six sides."},
+{q:"What gas do humans need to breathe to stay alive?",a:["Carbon dioxide","Oxygen","Nitrogen","Helium"],c:1,cat:"Science",d:2,e:"Humans need oxygen to survive."},
+{q:"Which country is famous for the Eiffel Tower?",a:["Italy","Spain","France","Germany"],c:2,cat:"Geography",d:2,e:"The Eiffel Tower is located in Paris, France."},
+{q:"What is the tallest mountain in the world?",a:["K2","Mount Everest","Mont Blanc","Kilimanjaro"],c:1,cat:"Geography",d:2,e:"Mount Everest is the tallest mountain above sea level."},
+{q:"How many teeth does an adult human usually have?",a:["20","28","32","36"],c:2,cat:"Science",d:2,e:"Adults usually have 32 teeth, including wisdom teeth."},
+{q:"What is the famous statue in New York Harbor called?",a:["The Statue of Liberty","The Statue of Freedom","Lady America","The Golden Lady"],c:0,cat:"America/USA",d:2,e:"The Statue of Liberty is a famous landmark in New York."},
+{q:"Which animal is the King of the Jungle?",a:["Tiger","Lion","Elephant","Bear"],c:1,cat:"Animals",d:2,e:"The lion is often called the King of the Jungle."},
+{q:"What is the smallest country in the world?",a:["Monaco","Vatican City","Malta","Liechtenstein"],c:1,cat:"Geography",d:2,e:"Vatican City is the smallest country in the world by area."},
+{q:"How many players are on a football (soccer) team on the field?",a:["9","10","11","12"],c:2,cat:"Sport",d:2,e:"A football team has 11 players on the field."},
+{q:"What is the name of the famous British royal family's main London home?",a:["Windsor Castle","Buckingham Palace","Kensington Castle","Downing Palace"],c:1,cat:"London/UK",d:2,e:"Buckingham Palace is the official London residence of the British monarch."},
+{q:"Which planet is known as the Red Planet?",a:["Venus","Mars","Saturn","Mercury"],c:1,cat:"Science",d:2,e:"Mars appears red because of iron oxide on its surface."},
+{q:"What is the largest mammal in the world?",a:["Elephant","Blue whale","Giraffe","Hippopotamus"],c:1,cat:"Animals",d:2,e:"The blue whale is the largest mammal on Earth."},
+{q:"Which US state is famous for Hollywood?",a:["Texas","Florida","California","Nevada"],c:2,cat:"America/USA",d:2,e:"Hollywood is located in Los Angeles, California."},
+{q:"What do caterpillars turn into?",a:["Bees","Butterflies","Spiders","Beetles"],c:1,cat:"Animals",d:2,e:"Caterpillars transform into butterflies or moths."},
+{q:"How many strings does a standard guitar have?",a:["4","5","6","7"],c:2,cat:"General Knowledge",d:2,e:"A standard guitar has six strings."},
+{q:"Which desert is the largest hot desert in the world?",a:["Gobi","Sahara","Kalahari","Mojave"],c:1,cat:"Geography",d:2,e:"The Sahara Desert in Africa is the largest hot desert."},
+{q:"What is the main language spoken in the United Kingdom?",a:["French","English","German","Spanish"],c:1,cat:"London/UK",d:2,e:"English is the main language spoken in the UK."},
+{q:"What do you call a young cat?",a:["Puppy","Kitten","Cub","Foal"],c:1,cat:"Animals",d:2,e:"A young cat is called a kitten."},
+{q:"How many hearts does an octopus have?",a:["1","2","3","4"],c:2,cat:"Animals",d:2,e:"An octopus has three hearts."},
+{q:"Which shape has four equal sides?",a:["Rectangle","Square","Triangle","Circle"],c:1,cat:"General Knowledge",d:2,e:"A square has four equal sides."},
+{q:"How many is 7 x 2?",a:["12","14","16","9"],c:1,cat:"Maths",d:2,e:"7 times 2 equals 14."},
+{q:"What do we call the study of living things?",a:["Chemistry","Biology","Physics","Geology"],c:1,cat:"Science",d:2,e:"Biology is the study of living things."},
+{q:"Which Roman numeral means 5?",a:["I","V","X","L"],c:1,cat:"Maths",d:2,e:"The Roman numeral V represents the number 5."},
+{q:"Who were the people who invaded Britain and built long straight roads?",a:["The Vikings","The Romans","The Normans","The Saxons"],c:1,cat:"History",d:2,e:"The Romans invaded Britain and were known for building straight roads."},
+{q:"What do we call a sentence that asks something?",a:["A statement","A question","An exclamation","A command"],c:1,cat:"English",d:2,e:"A question sentence usually ends with a question mark."},
+{q:"How many is 20 divided by 4?",a:["4","5","6","8"],c:1,cat:"Maths",d:2,e:"20 divided by 4 equals 5."},
+{q:"What are the three states of matter?",a:["Hot, cold, warm","Solid, liquid, gas","Big, small, medium","Fast, slow, still"],c:1,cat:"Science",d:2,e:"Matter exists as a solid, liquid, or gas."},
+{q:"What is the capital city of the United Kingdom?",a:["Manchester","London","Birmingham","Liverpool"],c:1,cat:"Geography",d:2,e:"London is the capital city of the UK."},
+{q:"Which punctuation mark ends a question?",a:["Full stop","Question mark","Comma","Exclamation mark"],c:1,cat:"English",d:2,e:"A question mark (?) ends a question."},
+{q:"How many is 8 x 3?",a:["21","24","27","18"],c:1,cat:"Maths",d:2,e:"8 times 3 equals 24."},
+{q:"What do bees collect from flowers to make honey?",a:["Pollen and nectar","Water only","Leaves","Soil"],c:0,cat:"Science",d:2,e:"Bees collect nectar and pollen from flowers to make honey."},
+{q:"Which sea surrounds the British Isles to the west, between Britain and Ireland?",a:["The North Sea","The Irish Sea","The Baltic Sea","The Mediterranean Sea"],c:1,cat:"Geography",d:2,e:"The Irish Sea lies between Great Britain and Ireland."},
+{q:"How many is 15 + 15?",a:["25","30","35","20"],c:1,cat:"Maths",d:2,e:"15 plus 15 equals 30."},
+{q:"What do we call words that rhyme, like 'cat' and 'hat'?",a:["Rhyming words","Synonyms","Antonyms","Homophones"],c:0,cat:"English",d:2,e:"Words that sound alike at the end are rhyming words."},
+{q:"Which King signed the Magna Carta in 1215?",a:["King Henry VIII","King John","King Richard I","King Edward I"],c:1,cat:"History",d:2,e:"King John signed the Magna Carta in 1215."},
+{q:"How many is 100 - 45?",a:["45","55","65","50"],c:1,cat:"Maths",d:2,e:"100 minus 45 equals 55."},
+{q:"What force pulls objects down towards the ground?",a:["Magnetism","Gravity","Friction","Push"],c:1,cat:"Science",d:2,e:"Gravity pulls objects down towards the Earth."},
+{q:"Which country is directly north of England?",a:["Wales","Scotland","Ireland","France"],c:1,cat:"Geography",d:2,e:"Scotland lies to the north of England."},
+{q:"What is a group of words that expresses a complete thought called?",a:["A syllable","A sentence","A paragraph","A letter"],c:1,cat:"English",d:2,e:"A sentence is a group of words that makes complete sense."},
+{q:"How many is 9 x 4?",a:["32","36","40","28"],c:1,cat:"Maths",d:2,e:"9 times 4 equals 36."},
+{q:"What do we call an animal that only eats plants?",a:["Carnivore","Herbivore","Omnivore","Predator"],c:1,cat:"Science",d:2,e:"A herbivore only eats plants."},
+{q:"Which famous bridge crosses the River Thames near the Tower of London?",a:["London Bridge","Tower Bridge","Millennium Bridge","Westminster Bridge"],c:1,cat:"Geography",d:2,e:"Tower Bridge is the famous bridge near the Tower of London."},
+{q:"What do we call the opposite of a word, like 'hot' and 'cold'?",a:["A synonym","An antonym","A homophone","A rhyme"],c:1,cat:"English",d:2,e:"An antonym is a word with the opposite meaning."},
+{q:"How many is 50 divided by 5?",a:["5","10","15","20"],c:1,cat:"Maths",d:2,e:"50 divided by 5 equals 10."},
+{q:"Which people from Scandinavia raided and settled in Britain, known for their longships?",a:["The Romans","The Vikings","The Normans","The Celts"],c:1,cat:"History",d:2,e:"The Vikings came from Scandinavia and were known for their longships."}
+],
+3: [
+{q:"What is the chemical symbol for water?",a:["H2O","O2","CO2","H2"],c:0,cat:"Science",d:3,e:"Water is made of two hydrogen atoms and one oxygen atom, H2O."},
+{q:"Who wrote the famous plays 'Romeo and Juliet' and 'Hamlet'?",a:["Charles Dickens","William Shakespeare","Jane Austen","Mark Twain"],c:1,cat:"Literature",d:3,e:"William Shakespeare, an English playwright, wrote both plays."},
+{q:"What is the currency used in the United Kingdom?",a:["Euro","Pound Sterling","Dollar","Franc"],c:1,cat:"London/UK",d:3,e:"The Pound Sterling (£) is the official currency of the UK."},
+{q:"How many states are there in the United States of America?",a:["48","50","52","55"],c:1,cat:"America/USA",d:3,e:"The USA consists of 50 states."},
+{q:"What is the largest organ in the human body?",a:["Heart","Liver","Skin","Brain"],c:2,cat:"Science",d:3,e:"Skin is the largest organ of the human body."},
+{q:"Which famous London wheel is a popular tourist attraction?",a:["The London Eye","The Ferris Wheel","The Thames Wheel","The Millennium Wheel"],c:0,cat:"London/UK",d:3,e:"The London Eye is a giant observation wheel on the South Bank of the Thames."},
+{q:"What is the process by which plants make their own food called?",a:["Digestion","Photosynthesis","Respiration","Evaporation"],c:1,cat:"Science",d:3,e:"Plants use photosynthesis to convert sunlight into energy."},
+{q:"Which US President is on the one-dollar bill?",a:["Abraham Lincoln","George Washington","Thomas Jefferson","John Adams"],c:1,cat:"America/USA",d:3,e:"George Washington, the first US President, is on the one-dollar bill."},
+{q:"What is the longest river in the world?",a:["Amazon","Nile","Mississippi","Yangtze"],c:1,cat:"Geography",d:3,e:"The Nile in Africa is generally considered the longest river."},
+{q:"How many bones are in the adult human body?",a:["186","206","226","246"],c:1,cat:"Science",d:3,e:"An adult human skeleton has 206 bones."},
+{q:"What is the name of the famous prison island near San Francisco?",a:["Rikers Island","Alcatraz","Ellis Island","Angel Island"],c:1,cat:"America/USA",d:3,e:"Alcatraz was a famous federal prison on an island in San Francisco Bay."},
+{q:"Which planet is closest to the sun?",a:["Venus","Earth","Mercury","Mars"],c:2,cat:"Science",d:3,e:"Mercury is the closest planet to the sun."},
+{q:"What do you call the study of animals?",a:["Botany","Zoology","Geology","Biology"],c:1,cat:"Science",d:3,e:"Zoology is the scientific study of animals."},
+{q:"Who was the first man to walk on the Moon?",a:["Buzz Aldrin","Neil Armstrong","Yuri Gagarin","John Glenn"],c:1,cat:"America/USA",d:3,e:"Neil Armstrong was the first person to walk on the Moon, in 1969."},
+{q:"What is the capital of Scotland?",a:["Glasgow","Edinburgh","Aberdeen","Dundee"],c:1,cat:"London/UK",d:3,e:"Edinburgh is the capital city of Scotland."},
+{q:"Which gas do plants absorb from the air?",a:["Oxygen","Carbon dioxide","Nitrogen","Hydrogen"],c:1,cat:"Science",d:3,e:"Plants absorb carbon dioxide for photosynthesis."},
+{q:"What is the name of the famous British spy character created by Ian Fleming?",a:["James Bond","Sherlock Holmes","Jason Bourne","John Steed"],c:0,cat:"London/UK",d:3,e:"James Bond, agent 007, is a fictional British spy."},
+{q:"How many strikes make an out in baseball?",a:["2","3","4","5"],c:1,cat:"America/USA",d:3,e:"Three strikes make an out in baseball."},
+{q:"What is the freezing point of water in Celsius?",a:["0°C","10°C","32°C","100°C"],c:0,cat:"Science",d:3,e:"Water freezes at 0 degrees Celsius."},
+{q:"Which continent is the Sahara Desert located on?",a:["Asia","Africa","Australia","South America"],c:1,cat:"Geography",d:3,e:"The Sahara is located in northern Africa."},
+{q:"What do you call a word that means the same as another word?",a:["Antonym","Synonym","Homonym","Acronym"],c:1,cat:"Literature",d:3,e:"A synonym has a similar meaning to another word."},
+{q:"What is the tallest building in London called?",a:["The Shard","Big Ben","Tower Bridge","The Gherkin"],c:0,cat:"London/UK",d:3,e:"The Shard is currently the tallest building in London."},
+{q:"Which planet has the most moons in our solar system?",a:["Jupiter","Saturn","Uranus","Neptune"],c:1,cat:"Science",d:3,e:"Saturn has more confirmed moons than any other planet."},
+{q:"What holiday do Americans celebrate on the 4th of July?",a:["Thanksgiving","Independence Day","Labor Day","Memorial Day"],c:1,cat:"America/USA",d:3,e:"Independence Day celebrates the USA's declaration of independence in 1776."},
+{q:"How many minutes are in a full day?",a:["1440","1240","1000","1600"],c:0,cat:"General Knowledge",d:3,e:"24 hours × 60 minutes = 1440 minutes."},
+{q:"How many is 12 x 12?",a:["124","144","132","154"],c:1,cat:"Maths",d:3,e:"12 times 12 equals 144."},
+{q:"What is the process by which plants make food using sunlight called?",a:["Respiration","Photosynthesis","Digestion","Evaporation"],c:1,cat:"Science",d:3,e:"Photosynthesis is how plants use sunlight to make food."},
+{q:"Which Tudor King had six wives?",a:["Henry VII","Henry VIII","Edward VI","Richard III"],c:1,cat:"History",d:3,e:"King Henry VIII of the Tudor dynasty famously had six wives."},
+{q:"What is a fraction that has the same value as 1/2?",a:["1/3","2/4","3/8","1/5"],c:1,cat:"Maths",d:3,e:"2/4 simplifies to 1/2, so they have the same value."},
+{q:"What do we call a word that joins two sentences, like 'and' or 'but'?",a:["A conjunction","A pronoun","A preposition","An adverb"],c:0,cat:"English",d:3,e:"A conjunction joins words or sentences together."},
+{q:"Which mountain range runs down much of Scotland?",a:["The Pennines","The Highlands","The Cotswolds","The Cambrians"],c:1,cat:"Geography",d:3,e:"The Scottish Highlands contain many of the UK's mountains."},
+{q:"How many degrees are in a right angle?",a:["45","90","180","360"],c:1,cat:"Maths",d:3,e:"A right angle measures 90 degrees."},
+{q:"What do we call the gas that humans breathe out?",a:["Oxygen","Carbon dioxide","Nitrogen","Hydrogen"],c:1,cat:"Science",d:3,e:"Humans breathe out carbon dioxide."},
+{q:"Which queen ruled for much of the 19th century, giving her name to an era of British history?",a:["Queen Anne","Queen Victoria","Queen Elizabeth I","Queen Mary"],c:1,cat:"History",d:3,e:"Queen Victoria's reign gave its name to the Victorian era."},
+{q:"What is 1/4 as a decimal?",a:["0.4","0.25","0.2","0.14"],c:1,cat:"Maths",d:3,e:"1/4 equals 0.25 as a decimal."},
+{q:"What do we call a word used in place of a noun, like 'he' or 'it'?",a:["A pronoun","A verb","An adjective","A preposition"],c:0,cat:"English",d:3,e:"A pronoun replaces a noun, e.g., 'he', 'she', 'it'."},
+{q:"Which is the longest river in the United Kingdom?",a:["The Thames","The Severn","The Trent","The Mersey"],c:1,cat:"Geography",d:3,e:"The River Severn is the longest river in the UK."},
+{q:"How many millilitres are in one litre?",a:["10","100","1000","10000"],c:2,cat:"Maths",d:3,e:"There are 1000 millilitres in one litre."},
+{q:"What is the name for an animal's habitat where it naturally lives?",a:["Its habitat","Its den only","Its migration","Its hibernation"],c:0,cat:"Science",d:3,e:"A habitat is the natural environment where an animal lives."},
+{q:"What was the name of the great fire that destroyed much of London in 1666?",a:["The Great Fire of London","The London Blitz","The Big Burn","The London Inferno"],c:0,cat:"History",d:3,e:"The Great Fire of London in 1666 destroyed much of the city."},
+{q:"How many is 7 squared (7 x 7)?",a:["14","42","49","56"],c:2,cat:"Maths",d:3,e:"7 squared (7 x 7) equals 49."},
+{q:"What do we call words that sound the same but have different spellings and meanings, like 'their' and 'there'?",a:["Synonyms","Homophones","Antonyms","Rhymes"],c:1,cat:"English",d:3,e:"Homophones sound alike but have different meanings and spellings."},
+{q:"Which body part pumps blood around the body?",a:["Lungs","Heart","Liver","Kidneys"],c:1,cat:"Science",d:3,e:"The heart pumps blood around the body."},
+{q:"What do we call the line of latitude at 0 degrees, dividing the Earth into north and south?",a:["Prime Meridian","The Equator","Tropic of Cancer","Arctic Circle"],c:1,cat:"Geography",d:3,e:"The Equator is the imaginary line at 0 degrees latitude."},
+{q:"How many is 6 x 7?",a:["36","42","48","40"],c:1,cat:"Maths",d:3,e:"6 times 7 equals 42."},
+{q:"What is the name for the story of someone's life written by themselves?",a:["A biography","An autobiography","A diary","A memoir"],c:1,cat:"English",d:3,e:"An autobiography is written by the person themselves about their own life."},
+{q:"Which invading force defeated King Harold at the Battle of Hastings in 1066?",a:["The Vikings","The Normans","The Romans","The Saxons"],c:1,cat:"History",d:3,e:"William of Normandy defeated Harold at Hastings in 1066."},
+{q:"What is the boiling point of water in Celsius?",a:["90°C","100°C","110°C","80°C"],c:1,cat:"Science",d:3,e:"Water boils at 100 degrees Celsius at sea level."},
+{q:"How many is 144 divided by 12?",a:["10","11","12","14"],c:2,cat:"Maths",d:3,e:"144 divided by 12 equals 12."},
+{q:"What do we call words that describe how an action happens, like 'quickly' or 'slowly'?",a:["Adjectives","Adverbs","Nouns","Prepositions"],c:1,cat:"English",d:3,e:"Adverbs describe verbs, often telling us how something is done."}
+],
+4: [
+{q:"What is the powerhouse of the cell called?",a:["Nucleus","Mitochondria","Ribosome","Cytoplasm"],c:1,cat:"Science",d:4,e:"Mitochondria produce energy for the cell."},
+{q:"Who was the first Prime Minister of the United Kingdom?",a:["Winston Churchill","Robert Walpole","Margaret Thatcher","Tony Blair"],c:1,cat:"London/UK",d:4,e:"Sir Robert Walpole is generally considered the first British Prime Minister."},
+{q:"How many amendments does the US Constitution have?",a:["21","27","30","33"],c:1,cat:"America/USA",d:4,e:"The US Constitution has 27 amendments."},
+{q:"Which layer of the Earth is the hottest?",a:["Crust","Mantle","Inner core","Outer core"],c:2,cat:"Science",d:4,e:"The inner core is the hottest layer of the Earth."},
+{q:"What year did World War II end?",a:["1943","1944","1945","1946"],c:2,cat:"History",d:4,e:"World War II ended in 1945."},
+{q:"Which British monarch had the longest reign in history?",a:["Queen Victoria","Queen Elizabeth II","King George III","King Henry VIII"],c:1,cat:"London/UK",d:4,e:"Queen Elizabeth II reigned for over 70 years, the longest of any British monarch."},
+{q:"What is the name of the US space agency?",a:["ESA","NASA","ROSCOSMOS","JAXA"],c:1,cat:"America/USA",d:4,e:"NASA is the National Aeronautics and Space Administration."},
+{q:"How many chambers does the human heart have?",a:["2","3","4","5"],c:2,cat:"Science",d:4,e:"The human heart has four chambers."},
+{q:"Who painted the Mona Lisa?",a:["Michelangelo","Leonardo da Vinci","Vincent van Gogh","Pablo Picasso"],c:1,cat:"Art",d:4,e:"Leonardo da Vinci painted the Mona Lisa in the early 16th century."},
+{q:"What is the driest continent on Earth?",a:["Africa","Australia","Antarctica","Asia"],c:2,cat:"Geography",d:4,e:"Antarctica is technically the driest continent, as it is a polar desert."},
+{q:"Which US city is known as the 'Big Apple'?",a:["Los Angeles","Chicago","New York City","Boston"],c:2,cat:"America/USA",d:4,e:"New York City is nicknamed the Big Apple."},
+{q:"What is the study of earthquakes called?",a:["Meteorology","Seismology","Geology","Volcanology"],c:1,cat:"Science",d:4,e:"Seismology is the scientific study of earthquakes."},
+{q:"Who wrote the 'Harry Potter' book series?",a:["J.R.R. Tolkien","J.K. Rowling","C.S. Lewis","Roald Dahl"],c:1,cat:"Literature",d:4,e:"J.K. Rowling, a British author, wrote the Harry Potter series."},
+{q:"Which ocean lies between the UK and the USA?",a:["Pacific","Indian","Atlantic","Arctic"],c:2,cat:"Geography",d:4,e:"The Atlantic Ocean separates the UK and the USA."},
+{q:"How many bones are there in the human hand (including wrist)?",a:["17","21","27","32"],c:2,cat:"Science",d:4,e:"Each hand, including the wrist, has 27 bones."},
+{q:"What is the name of the famous London Underground transit system's nickname?",a:["The Bus","The Tube","The Metro","The Rail"],c:1,cat:"London/UK",d:4,e:"Londoners call their underground railway 'the Tube'."},
+{q:"Which mountain range separates Europe and Asia?",a:["Alps","Andes","Ural Mountains","Himalayas"],c:2,cat:"Geography",d:4,e:"The Ural Mountains are often considered the border between Europe and Asia."},
+{q:"Who was the 16th President of the United States?",a:["George Washington","Abraham Lincoln","Thomas Jefferson","Theodore Roosevelt"],c:1,cat:"America/USA",d:4,e:"Abraham Lincoln was the 16th US President and led during the Civil War."},
+{q:"What is the hardest natural substance on Earth?",a:["Gold","Iron","Diamond","Quartz"],c:2,cat:"Science",d:4,e:"Diamond is the hardest known natural material."},
+{q:"What do you call a story that is not true but is entertaining, often with morals?",a:["A biography","A fable","A textbook","An essay"],c:1,cat:"Literature",d:4,e:"A fable is a short fictional story, often with animals, that teaches a lesson."},
+{q:"How many time zones does the continental United States have?",a:["2","4","6","8"],c:1,cat:"America/USA",d:4,e:"The continental US has four main time zones."},
+{q:"What is the capital of Wales?",a:["Swansea","Cardiff","Newport","Bangor"],c:1,cat:"London/UK",d:4,e:"Cardiff is the capital city of Wales."},
+{q:"Which gas makes up most of the Earth's atmosphere?",a:["Oxygen","Carbon dioxide","Nitrogen","Hydrogen"],c:2,cat:"Science",d:4,e:"Nitrogen makes up about 78% of the Earth's atmosphere."},
+{q:"What is the name of the ship that famously sank in 1912?",a:["Titanic","Lusitania","Britannic","Olympic"],c:0,cat:"History",d:4,e:"The RMS Titanic sank on its maiden voyage in 1912."},
+{q:"How many players are on a basketball team on the court at once?",a:["4","5","6","7"],c:1,cat:"America/USA",d:4,e:"Each basketball team has five players on the court."},
+{q:"How many is 15% of 200?",a:["20","30","25","35"],c:1,cat:"Maths",d:4,e:"15% of 200 is 30."},
+{q:"What is the name of the process of cell division that produces two identical cells?",a:["Meiosis","Mitosis","Fusion","Osmosis"],c:1,cat:"Science",d:4,e:"Mitosis is the type of cell division producing two identical daughter cells."},
+{q:"Which British Prime Minister led the country for most of World War II?",a:["Neville Chamberlain","Winston Churchill","Clement Attlee","Stanley Baldwin"],c:1,cat:"History",d:4,e:"Winston Churchill led Britain through most of WWII."},
+{q:"What is the perimeter of a rectangle with sides 5cm and 3cm?",a:["8cm","15cm","16cm","10cm"],c:2,cat:"Maths",d:4,e:"Perimeter = 2(5+3) = 16cm."},
+{q:"What literary device compares two things using 'like' or 'as'?",a:["Metaphor","Simile","Alliteration","Personification"],c:1,cat:"English",d:4,e:"A simile compares things using 'like' or 'as'."},
+{q:"Which English county is famous for its historic university city, home to a world-renowned university?",a:["Oxfordshire","Yorkshire","Kent","Cornwall"],c:0,cat:"Geography",d:4,e:"Oxfordshire is home to the famous University of Oxford."},
+{q:"What is the value of x in the equation x + 7 = 12?",a:["3","4","5","6"],c:2,cat:"Maths",d:4,e:"x + 7 = 12, so x = 5."},
+{q:"What are the tiny structures inside cells that contain genetic information?",a:["Ribosomes","Chromosomes","Mitochondria","Vacuoles"],c:1,cat:"Science",d:4,e:"Chromosomes carry genetic information (DNA) inside cells."},
+{q:"During which war did Britain and its allies fight against Napoleon at the Battle of Waterloo?",a:["The Napoleonic Wars","World War I","The Crimean War","The Boer War"],c:0,cat:"History",d:4,e:"The Battle of Waterloo (1815) was part of the Napoleonic Wars."},
+{q:"What is 3/4 + 1/4?",a:["1/2","1","4/8","1/4"],c:1,cat:"Maths",d:4,e:"3/4 + 1/4 = 4/4 = 1."},
+{q:"What do we call a story told from the first-person perspective, using 'I'?",a:["Third-person narrative","First-person narrative","Omniscient narrative","Second-person narrative"],c:1,cat:"English",d:4,e:"A first-person narrative is told using 'I' or 'we'."},
+{q:"Which industry, powered by steam engines, transformed Britain starting in the 18th century?",a:["The textile industry","The Industrial Revolution","The agricultural revolution","The digital revolution"],c:1,cat:"History",d:4,e:"The Industrial Revolution transformed Britain, starting with steam power."},
+{q:"What is the area of a rectangle with sides 6m and 4m?",a:["10m²","20m²","24m²","28m²"],c:2,cat:"Maths",d:4,e:"Area = 6 x 4 = 24m²."},
+{q:"What is the name for the process of blood moving oxygen around the body?",a:["Digestion","Circulation","Respiration","Excretion"],c:1,cat:"Science",d:4,e:"Circulation is the movement of blood carrying oxygen around the body."},
+{q:"What do we call words that give extra information about nouns and are placed before them, like 'the' or 'a'?",a:["Articles","Pronouns","Conjunctions","Interjections"],c:0,cat:"English",d:4,e:"'The' and 'a/an' are articles, a type of determiner."},
+{q:"Which sea lies to the east of England, between Britain and continental Europe?",a:["The Irish Sea","The North Sea","The Celtic Sea","The English Channel only"],c:1,cat:"Geography",d:4,e:"The North Sea lies to the east of England."},
+{q:"What is the mean (average) of 4, 6, and 8?",a:["5","6","7","8"],c:1,cat:"Maths",d:4,e:"(4+6+8)/3 = 18/3 = 6."},
+{q:"What do we call the process of a caterpillar changing into a butterfly?",a:["Evolution","Metamorphosis","Photosynthesis","Reproduction"],c:1,cat:"Science",d:4,e:"Metamorphosis is the transformation, e.g., caterpillar to butterfly."},
+{q:"Which British monarch's death in 1901 ended the Victorian era?",a:["Queen Victoria","King Edward VII","Queen Elizabeth I","King George III"],c:0,cat:"History",d:4,e:"Queen Victoria died in 1901, ending the Victorian era."},
+{q:"What is the value of 2 to the power of 5 (2^5)?",a:["10","16","32","64"],c:2,cat:"Maths",d:4,e:"2^5 = 2x2x2x2x2 = 32."},
+{q:"What do we call a word repeated at the start of nearby words for effect, like 'Peter Piper picked'?",a:["Alliteration","Rhyme","Onomatopoeia","Assonance"],c:0,cat:"English",d:4,e:"Alliteration is the repetition of initial consonant sounds."},
+{q:"Which type of rock is formed when magma cools and hardens?",a:["Sedimentary","Igneous","Metamorphic","Organic"],c:1,cat:"Science",d:4,e:"Igneous rock forms from cooled magma or lava."},
+{q:"How many vertices does a cube have?",a:["6","8","10","12"],c:1,cat:"Maths",d:4,e:"A cube has 8 vertices (corners)."},
+{q:"Which British explorer is known for leading expeditions to Antarctica in the early 20th century?",a:["Ernest Shackleton","Francis Drake","James Cook","Robert Falcon Scott (or Shackleton)"],c:0,cat:"History",d:4,e:"Ernest Shackleton was famous for his Antarctic expeditions."},
+{q:"What is the name for a word made by joining two words together, like 'football'?",a:["A compound word","A homophone","A synonym","A prefix"],c:0,cat:"English",d:4,e:"A compound word is formed by joining two words, e.g., 'foot' + 'ball'."}
+],
+5: [
+{q:"What is the powerhouse behind the Industrial Revolution, which began in Britain?",a:["Electricity","Steam power","Solar power","Nuclear power"],c:1,cat:"History",d:5,e:"Steam power drove the Industrial Revolution, which began in Britain in the 18th century."},
+{q:"Which branch of the US government makes laws?",a:["Executive","Legislative","Judicial","Military"],c:1,cat:"America/USA",d:5,e:"Congress, the legislative branch, is responsible for making laws."},
+{q:"What is the smallest bone in the human body?",a:["Femur","Stapes (in the ear)","Radius","Tibia"],c:1,cat:"Science",d:5,e:"The stapes, a tiny bone in the ear, is the smallest bone in the body."},
+{q:"Who was the British Prime Minister during most of World War II?",a:["Neville Chamberlain","Winston Churchill","Clement Attlee","Anthony Eden"],c:1,cat:"London/UK",d:5,e:"Winston Churchill led Britain through most of World War II."},
+{q:"What is the process of converting a liquid into a gas called?",a:["Condensation","Evaporation","Freezing","Sublimation"],c:1,cat:"Science",d:5,e:"Evaporation turns a liquid into a gas."},
+{q:"Which US document begins with 'We the People'?",a:["The Declaration of Independence","The US Constitution","The Bill of Rights","The Gettysburg Address"],c:1,cat:"America/USA",d:5,e:"The Constitution's preamble famously begins with 'We the People'."},
+{q:"What is the largest desert in the world (including cold deserts)?",a:["Sahara","Gobi","Antarctic Desert","Arabian Desert"],c:2,cat:"Geography",d:5,e:"The Antarctic Desert is the largest desert in the world by area."},
+{q:"Who wrote the novel '1984'?",a:["Aldous Huxley","George Orwell","Ray Bradbury","H.G. Wells"],c:1,cat:"Literature",d:5,e:"George Orwell, an English author, wrote the dystopian novel '1984'."},
+{q:"What is the unit used to measure electrical current?",a:["Volt","Watt","Ampere","Ohm"],c:2,cat:"Science",d:5,e:"Electrical current is measured in amperes (amps)."},
+{q:"Which famous wall divided a US-neighboring ideology in Cold War Europe (not in the US)?",a:["The Great Wall","The Berlin Wall","Hadrian's Wall","The Atlantic Wall"],c:1,cat:"History",d:5,e:"The Berlin Wall divided East and West Berlin during the Cold War."},
+{q:"What is the capital of Northern Ireland?",a:["Dublin","Belfast","Cork","Derry"],c:1,cat:"London/UK",d:5,e:"Belfast is the capital of Northern Ireland."},
+{q:"How many amendments make up the US Bill of Rights?",a:["8","10","12","14"],c:1,cat:"America/USA",d:5,e:"The Bill of Rights consists of the first 10 amendments to the Constitution."},
+{q:"What type of rock is formed from cooled lava or magma?",a:["Sedimentary","Igneous","Metamorphic","Organic"],c:1,cat:"Science",d:5,e:"Igneous rock forms when magma or lava cools and solidifies."},
+{q:"Which US President served the longest in office?",a:["Abraham Lincoln","Franklin D. Roosevelt","George Washington","Theodore Roosevelt"],c:1,cat:"America/USA",d:5,e:"Franklin D. Roosevelt served over 12 years, longer than any other US President."},
+{q:"What do you call a government led by a king or queen?",a:["Republic","Monarchy","Democracy","Dictatorship"],c:1,cat:"London/UK",d:5,e:"A monarchy is ruled by a king or queen."},
+{q:"Which vitamin does the human body produce when exposed to sunlight?",a:["Vitamin A","Vitamin C","Vitamin D","Vitamin K"],c:2,cat:"Science",d:5,e:"The skin produces Vitamin D when exposed to sunlight."},
+{q:"What is the name of the famous 1969 music festival held in New York State?",a:["Coachella","Woodstock","Glastonbury","Lollapalooza"],c:1,cat:"America/USA",d:5,e:"Woodstock was a famous music festival held in 1969."},
+{q:"Which country did the United Kingdom leave via 'Brexit'?",a:["The United Nations","The European Union","NATO","The Commonwealth"],c:1,cat:"London/UK",d:5,e:"Brexit refers to the UK's withdrawal from the European Union, completed in 2020."},
+{q:"What is the study of the stars and universe called?",a:["Geology","Astronomy","Biology","Meteorology"],c:1,cat:"Science",d:5,e:"Astronomy is the scientific study of celestial objects and the universe."},
+{q:"Which US city is the birthplace of jazz music?",a:["Chicago","New Orleans","Memphis","Nashville"],c:1,cat:"America/USA",d:5,e:"New Orleans, Louisiana, is widely considered the birthplace of jazz."},
+{q:"What is the name of the process by which the Earth's plates move?",a:["Plate tectonics","Erosion","Weathering","Photosynthesis"],c:0,cat:"Science",d:5,e:"Plate tectonics describes the movement of Earth's crustal plates."},
+{q:"Who is the author of 'Pride and Prejudice'?",a:["Charlotte Brontë","Jane Austen","Emily Brontë","George Eliot"],c:1,cat:"Literature",d:5,e:"Jane Austen, an English novelist, wrote 'Pride and Prejudice'."},
+{q:"What is the name given to a period of economic decline?",a:["Inflation","Recession","Boom","Surplus"],c:1,cat:"General Knowledge",d:5,e:"A recession is a period when the economy shrinks."},
+{q:"Which river flows through New York City?",a:["Mississippi River","Hudson River","Colorado River","Rio Grande"],c:1,cat:"America/USA",d:5,e:"The Hudson River flows past New York City."},
+{q:"What is the boiling point of water at sea level in Fahrenheit?",a:["100°F","180°F","212°F","250°F"],c:2,cat:"Science",d:5,e:"Water boils at 212°F (100°C) at sea level."},
+{q:"What is the value of x in 3x - 4 = 11?",a:["3","4","5","6"],c:2,cat:"Maths",d:5,e:"3x - 4 = 11, so 3x = 15, x = 5."},
+{q:"What is the name of the process by which cells divide to produce two identical daughter cells?",a:["Meiosis","Mitosis","Fusion","Osmosis"],c:1,cat:"Science",d:5,e:"Mitosis produces two genetically identical daughter cells."},
+{q:"Which British playwright wrote 'Romeo and Juliet' and 'Macbeth'?",a:["Christopher Marlowe","William Shakespeare","Ben Jonson","John Webster"],c:1,cat:"English",d:5,e:"William Shakespeare wrote both 'Romeo and Juliet' and 'Macbeth'."},
+{q:"What was the name of the 1832 Act that began expanding voting rights in Britain?",a:["The Reform Act","The Representation Act","The Suffrage Act","The Ballot Act"],c:0,cat:"History",d:5,e:"The Great Reform Act of 1832 began expanding the electorate."},
+{q:"What is the gradient (slope) of the line y = 2x + 3?",a:["1","2","3","5"],c:1,cat:"Maths",d:5,e:"In y = mx + c, the gradient m is 2."},
+{q:"What is the name for the force that opposes motion between two surfaces?",a:["Gravity","Friction","Tension","Upthrust"],c:1,cat:"Science",d:5,e:"Friction is the force that opposes motion between surfaces."},
+{q:"Which literary device gives human qualities to non-human things, like 'the wind whispered'?",a:["Simile","Personification","Metaphor","Hyperbole"],c:1,cat:"English",d:5,e:"Personification gives human traits to non-human things or ideas."},
+{q:"Which 1914-1918 conflict involved Britain and its Empire against Germany and its allies?",a:["World War I","World War II","The Boer War","The Crimean War"],c:0,cat:"History",d:5,e:"World War I (1914-1918) involved Britain against Germany and its allies."},
+{q:"What is 15% expressed as a fraction in its simplest form?",a:["3/20","1/15","3/15","1/20"],c:0,cat:"Maths",d:5,e:"15% = 15/100 = 3/20 in simplest form."},
+{q:"What is the name of the tiny basic unit of a chemical element?",a:["A molecule","An atom","A cell","An ion"],c:1,cat:"Science",d:5,e:"An atom is the smallest unit of a chemical element."},
+{q:"What do we call exaggeration used for effect, like 'I've told you a million times'?",a:["Hyperbole","Understatement","Irony","Metaphor"],c:0,cat:"English",d:5,e:"Hyperbole is deliberate exaggeration for emphasis or effect."},
+{q:"Which British ship, built in Belfast, famously sank on its maiden voyage in 1912?",a:["The Lusitania","The Titanic","The Britannic","The Olympic"],c:1,cat:"History",d:5,e:"RMS Titanic, built in Belfast, sank in 1912."},
+{q:"What is the circumference of a circle with radius 7cm (use π ≈ 22/7)?",a:["22cm","44cm","33cm","28cm"],c:1,cat:"Maths",d:5,e:"Circumference = 2πr = 2 x 22/7 x 7 = 44cm."},
+{q:"What is the name for a chemical reaction that releases heat?",a:["Endothermic","Exothermic","Neutral","Catalytic"],c:1,cat:"Science",d:5,e:"An exothermic reaction releases heat energy."},
+{q:"What tense is used in the sentence 'She had already left when I arrived'?",a:["Present simple","Past perfect","Future perfect","Present continuous"],c:1,cat:"English",d:5,e:"'Had already left' is the past perfect tense."},
+{q:"Which British social reformer is known for improving conditions in hospitals during the Crimean War?",a:["Florence Nightingale","Mary Seacole (or Nightingale)","Elizabeth Fry","Octavia Hill"],c:0,cat:"History",d:5,e:"Florence Nightingale is famous for reforming hospital care during the Crimean War."},
+{q:"What is the median of the numbers 3, 7, 9, 12, 15?",a:["7","9","12","10"],c:1,cat:"Maths",d:5,e:"The middle number when ordered is 9."},
+{q:"What is the name of the gas layer that protects Earth from harmful UV rays?",a:["Troposphere","Ozone layer","Stratosphere only","Ionosphere"],c:1,cat:"Science",d:5,e:"The ozone layer absorbs most harmful UV radiation from the sun."},
+{q:"What is the term for the main message or lesson of a story?",a:["The plot","The theme","The setting","The climax"],c:1,cat:"English",d:5,e:"The theme is the underlying message or lesson of a story."},
+{q:"Which century did the British Industrial Revolution begin in?",a:["17th century","18th century","19th century","20th century"],c:1,cat:"History",d:5,e:"The Industrial Revolution began in Britain in the 18th century."},
+{q:"What is 2/3 divided by 1/6?",a:["2","4","6","12"],c:1,cat:"Maths",d:5,e:"2/3 ÷ 1/6 = 2/3 x 6/1 = 4."},
+{q:"What do we call an organism that produces its own food through photosynthesis?",a:["A consumer","A producer","A decomposer","A predator"],c:1,cat:"Science",d:5,e:"Producers, like plants, make their own food through photosynthesis."},
+{q:"What is the term for a word's dictionary definition, as opposed to its emotional association?",a:["Connotation","Denotation","Etymology","Syntax"],c:1,cat:"English",d:5,e:"Denotation is a word's literal, dictionary meaning."},
+{q:"Which British act of Parliament abolished the slave trade in 1807?",a:["The Slave Trade Act","The Abolition Act","The Emancipation Act","The Reform Act"],c:0,cat:"History",d:5,e:"The Slave Trade Act 1807 abolished the slave trade in the British Empire."},
+{q:"What is the probability of rolling a 6 on a fair six-sided dice?",a:["1/2","1/3","1/6","1/12"],c:2,cat:"Maths",d:5,e:"There is a 1 in 6 chance of rolling any specific number."}
+],
+6: [
+{q:"What is the name of the theory that explains how species change over time?",a:["Theory of Relativity","Theory of Evolution","Big Bang Theory","String Theory"],c:1,cat:"Science",d:6,e:"Charles Darwin's theory of evolution explains how species change through natural selection."},
+{q:"Which document, signed in 1215, limited the power of the English king?",a:["The Bill of Rights","Magna Carta","The Constitution","The Treaty of Versailles"],c:1,cat:"London/UK",d:6,e:"Magna Carta was signed by King John in 1215, limiting royal power."},
+{q:"How many justices sit on the US Supreme Court?",a:["7","9","11","13"],c:1,cat:"America/USA",d:6,e:"The US Supreme Court has nine justices."},
+{q:"What is the chemical symbol for gold?",a:["Go","Gd","Au","Ag"],c:2,cat:"Science",d:6,e:"Gold's chemical symbol, Au, comes from the Latin word 'aurum'."},
+{q:"Which war was fought between the North and South regions of the USA (1861-1865)?",a:["The Revolutionary War","The Civil War","World War I","The War of 1812"],c:1,cat:"America/USA",d:6,e:"The American Civil War was fought between the Union and Confederacy."},
+{q:"What is the name of London's famous financial district?",a:["Soho","The City (Square Mile)","Camden","Mayfair"],c:1,cat:"London/UK",d:6,e:"The City of London, also called the Square Mile, is its financial district."},
+{q:"What is the term for a triangle with all sides of different lengths?",a:["Equilateral","Isosceles","Scalene","Right"],c:2,cat:"General Knowledge",d:6,e:"A scalene triangle has three sides of different lengths."},
+{q:"Which US amendment abolished slavery?",a:["13th Amendment","14th Amendment","15th Amendment","19th Amendment"],c:0,cat:"America/USA",d:6,e:"The 13th Amendment, ratified in 1865, abolished slavery in the United States."},
+{q:"What is the name of the force that pulls objects toward the Earth?",a:["Magnetism","Gravity","Friction","Momentum"],c:1,cat:"Science",d:6,e:"Gravity is the force that pulls objects toward the Earth."},
+{q:"Who was the first female Prime Minister of the United Kingdom?",a:["Theresa May","Margaret Thatcher","Liz Truss","Angela Merkel"],c:1,cat:"London/UK",d:6,e:"Margaret Thatcher became the UK's first female PM in 1979."},
+{q:"What is the powerhouse organ that filters blood in the human body?",a:["Liver","Kidney","Lungs","Stomach"],c:1,cat:"Science",d:6,e:"The kidneys filter waste products from the blood."},
+{q:"Which amendment to the US Constitution guarantees freedom of speech?",a:["First Amendment","Second Amendment","Fourth Amendment","Tenth Amendment"],c:0,cat:"America/USA",d:6,e:"The First Amendment protects freedom of speech, religion, and the press."},
+{q:"What do you call the imaginary line around the middle of the Earth?",a:["Prime Meridian","Equator","Tropic of Cancer","Arctic Circle"],c:1,cat:"Geography",d:6,e:"The equator divides the Earth into the Northern and Southern Hemispheres."},
+{q:"Which English author wrote 'A Christmas Carol'?",a:["Charles Dickens","Thomas Hardy","Oscar Wilde","Lewis Carroll"],c:0,cat:"Literature",d:6,e:"Charles Dickens wrote the classic novella 'A Christmas Carol'."},
+{q:"What is the name of the largest US federal law enforcement agency investigating crime?",a:["CIA","FBI","NSA","ATF"],c:1,cat:"America/USA",d:6,e:"The FBI (Federal Bureau of Investigation) investigates federal crimes."},
+{q:"What is the name for the study of weather and climate?",a:["Geology","Meteorology","Astronomy","Oceanography"],c:1,cat:"Science",d:6,e:"Meteorology is the scientific study of weather and the atmosphere."},
+{q:"Which British TV/radio broadcaster is publicly funded and world-famous?",a:["ITV","Sky News","BBC","Channel 4"],c:2,cat:"London/UK",d:6,e:"The BBC (British Broadcasting Corporation) is publicly funded."},
+{q:"What is the name of the wall of rock formed by coral in warm oceans?",a:["Coral reef","Rock shelf","Atoll ridge","Marine wall"],c:0,cat:"Nature",d:6,e:"Coral reefs are formed by colonies of tiny coral organisms."},
+{q:"Which US state is the largest by land area?",a:["Texas","California","Alaska","Montana"],c:2,cat:"America/USA",d:6,e:"Alaska is by far the largest US state by area."},
+{q:"What do you call the change from a solid directly to a gas?",a:["Condensation","Sublimation","Evaporation","Melting"],c:1,cat:"Science",d:6,e:"Sublimation is when a solid turns directly into a gas."},
+{q:"What is the name of the famous 221B Baker Street resident, a fictional detective?",a:["Hercule Poirot","Sherlock Holmes","Inspector Morse","James Bond"],c:1,cat:"London/UK",d:6,e:"Sherlock Holmes, created by Arthur Conan Doyle, lived at 221B Baker Street."},
+{q:"Which planet has a famous ring system visible from Earth with a telescope?",a:["Mars","Saturn","Mercury","Venus"],c:1,cat:"Science",d:6,e:"Saturn is famous for its bright, easily visible ring system."},
+{q:"What was the name of the ship the Pilgrims sailed to America in 1620?",a:["Santa Maria","Mayflower","Titanic","Beagle"],c:1,cat:"America/USA",d:6,e:"The Mayflower carried the Pilgrims to Plymouth in 1620."},
+{q:"What is the name for an animal that eats both plants and meat?",a:["Herbivore","Carnivore","Omnivore","Detritivore"],c:2,cat:"Science",d:6,e:"An omnivore eats both plants and animals."},
+{q:"Which mountain range runs through the western United States?",a:["Appalachian Mountains","Rocky Mountains","Andes","Alps"],c:1,cat:"America/USA",d:6,e:"The Rocky Mountains stretch through the western United States."},
+{q:"What is the value of x in the simultaneous equations x + y = 10 and x - y = 4?",a:["x=6, y=4","x=7, y=3","x=5, y=5","x=8, y=2"],c:1,cat:"Maths",d:6,e:"Adding the equations: 2x=14, x=7, then y=3."},
+{q:"What is the name of the process by which stars produce energy by fusing hydrogen into helium?",a:["Nuclear fission","Nuclear fusion","Radioactive decay","Combustion"],c:1,cat:"Science",d:6,e:"Nuclear fusion powers stars by combining hydrogen into helium."},
+{q:"Which 1066 battle saw William of Normandy defeat King Harold II?",a:["The Battle of Hastings","The Battle of Bosworth","The Battle of Agincourt","The Battle of Bannockburn"],c:0,cat:"History",d:6,e:"The Battle of Hastings in 1066 was won by William the Conqueror."},
+{q:"What is 20% of 350?",a:["60","65","70","75"],c:2,cat:"Maths",d:6,e:"20% of 350 = 0.2 x 350 = 70."},
+{q:"What literary term describes a hint or clue about what will happen later in a story?",a:["Flashback","Foreshadowing","Irony","Symbolism"],c:1,cat:"English",d:6,e:"Foreshadowing hints at events that will happen later in the narrative."},
+{q:"What is the name of London's ancient defensive fortress, founded by William the Conqueror?",a:["Windsor Castle","The Tower of London","Edinburgh Castle","Warwick Castle"],c:1,cat:"History",d:6,e:"The Tower of London was founded by William the Conqueror after 1066."},
+{q:"What is the surface area of a cube with side length 3cm?",a:["27cm²","54cm²","18cm²","36cm²"],c:1,cat:"Maths",d:6,e:"Surface area = 6 x side² = 6 x 9 = 54cm²."},
+{q:"What is the name of the chemical process where a metal reacts with oxygen to form rust?",a:["Reduction","Oxidation","Neutralisation","Electrolysis"],c:1,cat:"Science",d:6,e:"Oxidation, e.g., iron reacting with oxygen, causes rusting."},
+{q:"What figure of speech uses a word to imitate a sound, like 'buzz' or 'bang'?",a:["Onomatopoeia","Alliteration","Assonance","Sibilance"],c:0,cat:"English",d:6,e:"Onomatopoeia is when a word imitates the sound it describes."},
+{q:"Which Act of Parliament in 1707 united England and Scotland into Great Britain?",a:["Act of Settlement","Act of Union","Bill of Rights","Petition of Right"],c:1,cat:"History",d:6,e:"The Act of Union 1707 joined England and Scotland."},
+{q:"What is the solution to the inequality 2x + 3 > 11?",a:["x > 4","x > 5","x < 4","x < 5"],c:0,cat:"Maths",d:6,e:"2x+3>11 gives 2x>8, so x>4."},
+{q:"What is the name of the largest organ in the human body?",a:["The liver","The skin","The brain","The lungs"],c:1,cat:"Science",d:6,e:"The skin is the largest organ of the human body."},
+{q:"In grammar, what is the subject of the sentence 'The dog chased the cat'?",a:["Chased","The cat","The dog","Cat"],c:2,cat:"English",d:6,e:"'The dog' is the subject performing the action."},
+{q:"Which explorer, sailing for England, was the first to circumnavigate the globe (completing the journey)?",a:["Christopher Columbus","Francis Drake","James Cook","Walter Raleigh"],c:1,cat:"History",d:6,e:"Sir Francis Drake was the first Englishman to circumnavigate the globe."},
+{q:"What is the value of √144?",a:["11","12","13","14"],c:1,cat:"Maths",d:6,e:"The square root of 144 is 12."},
+{q:"What is the name for an animal that keeps a constant body temperature?",a:["Ectotherm","Endotherm","Poikilotherm","Cold-blooded"],c:1,cat:"Science",d:6,e:"Endotherms (like mammals) maintain a constant internal body temperature."},
+{q:"What is a metaphor?",a:["A comparison using 'like' or 'as'","A direct comparison saying one thing IS another","A word that imitates a sound","A repeated consonant sound"],c:1,cat:"English",d:6,e:"A metaphor directly states that one thing is another, e.g., 'time is money'."},
+{q:"Which British King was executed in 1649 during the English Civil War?",a:["Charles I","Charles II","James I","James II"],c:0,cat:"History",d:6,e:"King Charles I was executed in 1649 after the English Civil War."},
+{q:"What is the volume of a cuboid with dimensions 4cm x 3cm x 2cm?",a:["9cm³","24cm³","20cm³","18cm³"],c:1,cat:"Maths",d:6,e:"Volume = 4 x 3 x 2 = 24cm³."},
+{q:"What is the name of the process by which water vapour turns into liquid water?",a:["Evaporation","Condensation","Sublimation","Precipitation only"],c:1,cat:"Science",d:6,e:"Condensation is when water vapour becomes liquid water."},
+{q:"What is the term for the perspective from which a story is told?",a:["The plot","The narrative voice/point of view","The setting","The genre"],c:1,cat:"English",d:6,e:"Point of view (narrative voice) is the perspective from which a story is told."},
+{q:"Which British statesman served as Prime Minister and is known for the phrase 'Iron Curtain'?",a:["Clement Attlee","Winston Churchill","Anthony Eden","Harold Macmillan"],c:1,cat:"History",d:6,e:"Winston Churchill used the term 'Iron Curtain' in a famous 1946 speech."},
+{q:"What is the nth term formula for the sequence 3, 7, 11, 15?",a:["4n - 1","4n + 1","3n + 1","4n - 3"],c:0,cat:"Maths",d:6,e:"The sequence increases by 4 each time, starting from -1: 4n-1."},
+{q:"What is the name for the basic functional unit of the kidney?",a:["Neuron","Nephron","Alveolus","Villus"],c:1,cat:"Science",d:6,e:"The nephron is the basic filtering unit of the kidney."},
+{q:"What do we call a story where animals or objects represent human vices/virtues, often with a moral?",a:["A biography","A fable","A sonnet","An epic"],c:1,cat:"English",d:6,e:"A fable is a short story, often with animals, teaching a moral lesson."}
+],
+7: [
+{q:"What is the name of the economic system based on private ownership and free markets?",a:["Communism","Capitalism","Socialism","Feudalism"],c:1,cat:"General Knowledge",d:7,e:"Capitalism is an economic system based on private ownership and free markets."},
+{q:"Which English king had six wives?",a:["Henry VII","Henry VIII","Edward VI","Richard III"],c:1,cat:"London/UK",d:7,e:"King Henry VIII famously had six wives."},
+{q:"What is the name of the process by which cells divide to create two identical cells?",a:["Meiosis","Mitosis","Fusion","Fission"],c:1,cat:"Science",d:7,e:"Mitosis is cell division that produces two identical daughter cells."},
+{q:"Which US President is featured on Mount Rushmore alongside Washington, Jefferson, and Lincoln?",a:["Theodore Roosevelt","John F. Kennedy","Andrew Jackson","James Madison"],c:0,cat:"America/USA",d:7,e:"Theodore Roosevelt is one of the four presidents carved into Mount Rushmore."},
+{q:"What is the term for the imbalance when a country imports more than it exports?",a:["Trade surplus","Trade deficit","Inflation","GDP"],c:1,cat:"General Knowledge",d:7,e:"A trade deficit occurs when imports exceed exports."},
+{q:"Which famous scientist developed the theory of general relativity?",a:["Isaac Newton","Albert Einstein","Niels Bohr","Galileo Galilei"],c:1,cat:"Science",d:7,e:"Albert Einstein developed the theory of general relativity."},
+{q:"What is the UK's upper house of Parliament called?",a:["House of Commons","House of Lords","Senate","Privy Council"],c:1,cat:"London/UK",d:7,e:"The House of Lords is the unelected upper chamber of the UK Parliament."},
+{q:"Which US amendment gave women the right to vote?",a:["15th Amendment","19th Amendment","21st Amendment","26th Amendment"],c:1,cat:"America/USA",d:7,e:"The 19th Amendment, ratified in 1920, gave women the right to vote."},
+{q:"What is the name for a substance that speeds up a chemical reaction without being consumed?",a:["Reactant","Catalyst","Solvent","Enzyme inhibitor"],c:1,cat:"Science",d:7,e:"A catalyst speeds up reactions without being used up itself."},
+{q:"Which historical event is 'the Blitz' associated with in London?",a:["World War I bombing","World War II German bombing campaign","The Great Fire of London","The Plague"],c:1,cat:"London/UK",d:7,e:"The Blitz was the German bombing campaign against Britain during WWII."},
+{q:"What is the powerhouse branch of the US government headed by the President?",a:["Legislative","Executive","Judicial","Administrative"],c:1,cat:"America/USA",d:7,e:"The Executive branch, headed by the President, enforces laws."},
+{q:"What is the name of the layer of gases that protects Earth from harmful UV radiation?",a:["Troposphere","Ozone layer","Ionosphere","Stratosphere"],c:1,cat:"Science",d:7,e:"The ozone layer absorbs most of the sun's harmful UV radiation."},
+{q:"Which philosopher wrote 'The Social Contract'?",a:["John Locke","Jean-Jacques Rousseau","Immanuel Kant","Thomas Hobbes"],c:1,cat:"General Knowledge",d:7,e:"Jean-Jacques Rousseau wrote 'The Social Contract' in 1762."},
+{q:"What is the name of the US policy doctrine opposing European colonization in the Americas (1823)?",a:["Truman Doctrine","Monroe Doctrine","Marshall Plan","Manifest Destiny"],c:1,cat:"America/USA",d:7,e:"The Monroe Doctrine, announced in 1823, opposed further European colonization in the Americas."},
+{q:"Which unit measures the loudness of sound?",a:["Hertz","Decibel","Watt","Pascal"],c:1,cat:"Science",d:7,e:"Decibels (dB) measure the loudness of sound."},
+{q:"Who was the Queen of England for most of the 19th century, giving her name to an era?",a:["Queen Anne","Queen Victoria","Queen Mary","Queen Elizabeth I"],c:1,cat:"London/UK",d:7,e:"Queen Victoria's long reign gave its name to the Victorian era."},
+{q:"What is the name of the process where water vapor turns into liquid water?",a:["Evaporation","Condensation","Precipitation","Sublimation"],c:1,cat:"Science",d:7,e:"Condensation is when water vapor turns into liquid water."},
+{q:"Which US civil rights leader delivered the 'I Have a Dream' speech?",a:["Malcolm X","Martin Luther King Jr.","Rosa Parks","Frederick Douglass"],c:1,cat:"America/USA",d:7,e:"Martin Luther King Jr. delivered this famous speech in 1963."},
+{q:"What do economists call the total value of goods and services produced by a country in a year?",a:["GDP","CPI","Inflation rate","Trade balance"],c:0,cat:"General Knowledge",d:7,e:"GDP (Gross Domestic Product) measures a country's total economic output."},
+{q:"Which English university is older, Oxford or Cambridge?",a:["Cambridge","Oxford","They were founded the same year","Neither is in England"],c:1,cat:"London/UK",d:7,e:"Oxford University is generally considered the older of the two, founded around 1096."},
+{q:"What is the name of the basic unit of heredity?",a:["Cell","Gene","Chromosome","Protein"],c:1,cat:"Science",d:7,e:"A gene is the basic unit of heredity, made of DNA."},
+{q:"Which US war was fought partly over the issue of British impressment of American sailors?",a:["The Civil War","The War of 1812","World War I","The Spanish-American War"],c:1,cat:"America/USA",d:7,e:"The War of 1812 was fought partly due to British impressment of sailors."},
+{q:"What is the name for rock formed from compressed sediment, like sandstone?",a:["Igneous","Sedimentary","Metamorphic","Volcanic"],c:1,cat:"Science",d:7,e:"Sedimentary rock forms from compressed layers of sediment."},
+{q:"Which British author created the fantasy world of Middle-earth?",a:["C.S. Lewis","J.R.R. Tolkien","Terry Pratchett","Philip Pullman"],c:1,cat:"Literature",d:7,e:"J.R.R. Tolkien created Middle-earth in 'The Lord of the Rings'."},
+{q:"What is the name of the international organization founded in 1945 to maintain peace?",a:["The League of Nations","The United Nations","NATO","The European Union"],c:1,cat:"General Knowledge",d:7,e:"The United Nations was founded in 1945 after World War II."},
+{q:"What is the solution to the quadratic equation x² - 5x + 6 = 0?",a:["x=2, x=3","x=1, x=6","x=-2, x=-3","x=5, x=1"],c:0,cat:"Maths",d:7,e:"Factoring gives (x-2)(x-3)=0, so x=2 or x=3."},
+{q:"What is Newton's First Law of Motion also known as?",a:["The Law of Inertia","The Law of Acceleration","The Law of Reaction","The Law of Gravity"],c:0,cat:"Science",d:7,e:"Newton's First Law is often called the Law of Inertia."},
+{q:"Which 1832 Reform Act is linked to which British political development? What did it primarily change?",a:["It expanded who could vote","It abolished the monarchy","It created the NHS","It ended child labour"],c:0,cat:"History",d:7,e:"The 1832 Reform Act expanded voting rights to more men."},
+{q:"What is the equation of a straight line with gradient 3 passing through (0, 2)?",a:["y = 3x + 2","y = 2x + 3","y = 3x - 2","y = x + 3"],c:0,cat:"Maths",d:7,e:"Using y=mx+c with m=3 and c=2 (the y-intercept), y=3x+2."},
+{q:"What is the term for a play on words that exploits multiple meanings, often for humour?",a:["A pun","A simile","An oxymoron","A paradox"],c:0,cat:"English",d:7,e:"A pun uses multiple meanings of words for a witty or humorous effect."},
+{q:"Which 1940 air campaign saw the RAF defend Britain against the German Luftwaffe?",a:["The Battle of Britain","The Blitz","D-Day","Operation Overlord"],c:0,cat:"History",d:7,e:"The Battle of Britain (1940) was fought in the skies between the RAF and Luftwaffe."},
+{q:"What is the term for the point where a graph crosses the y-axis?",a:["The gradient","The y-intercept","The x-intercept","The origin"],c:1,cat:"Maths",d:7,e:"The y-intercept is where a line crosses the y-axis."},
+{q:"What is the name of the process of cell division that produces sex cells (gametes)?",a:["Mitosis","Meiosis","Binary fission","Budding"],c:1,cat:"Science",d:7,e:"Meiosis produces gametes with half the normal chromosome number."},
+{q:"What is dramatic irony?",a:["When the audience knows something a character does not","When a character says the opposite of what they mean","A play on words","An exaggeration for effect"],c:0,cat:"English",d:7,e:"Dramatic irony occurs when the audience knows more than the characters do."},
+{q:"Which 1944 military operation was the Allied invasion of Normandy, led partly by British forces?",a:["Operation Torch","D-Day (Operation Overlord)","Operation Market Garden","Operation Dynamo"],c:1,cat:"History",d:7,e:"D-Day, part of Operation Overlord, was the 1944 Allied invasion of Normandy."},
+{q:"What is the simplified form of the expression 3(x + 4) - 2x?",a:["x + 12","5x + 4","x + 4","5x + 12"],c:0,cat:"Maths",d:7,e:"3(x+4)-2x = 3x+12-2x = x+12."},
+{q:"What is the pH of a neutral solution, like pure water?",a:["0","7","14","10"],c:1,cat:"Science",d:7,e:"A neutral solution has a pH of 7."},
+{q:"What is an unreliable narrator?",a:["A narrator whose credibility is compromised","A narrator who speaks in the third person","A narrator who is also the author","A narrator with no name"],c:0,cat:"English",d:7,e:"An unreliable narrator's account of events should not be fully trusted."},
+{q:"Which British Empire dominion gained independence from Britain in 1947?",a:["Canada","India","Australia","South Africa"],c:1,cat:"History",d:7,e:"India gained independence from British rule in 1947."},
+{q:"What is the term for two angles that add up to 90 degrees?",a:["Supplementary angles","Complementary angles","Vertical angles","Corresponding angles"],c:1,cat:"Maths",d:7,e:"Complementary angles sum to 90 degrees."},
+{q:"What is the name of the process where plants lose water vapour through their leaves?",a:["Photosynthesis","Transpiration","Respiration","Germination"],c:1,cat:"Science",d:7,e:"Transpiration is the loss of water vapour from plant leaves."},
+{q:"What is a soliloquy in drama, used often by Shakespeare?",a:["A conversation between two characters","A speech a character gives alone, revealing inner thoughts","A song within a play","A stage direction"],c:1,cat:"English",d:7,e:"A soliloquy is when a character speaks their thoughts aloud, alone on stage."},
+{q:"Which British social welfare reforms, following WWII, created the modern welfare state, including the NHS?",a:["The Beveridge Report reforms","The Reform Acts","The Corn Laws repeal","The Factory Acts"],c:0,cat:"History",d:7,e:"The Beveridge Report (1942) laid the foundation for the post-war welfare state."},
+{q:"What is the term for the ratio of a circle's circumference to its diameter?",a:["Radius","Pi (π)","Area","Chord"],c:1,cat:"Maths",d:7,e:"Pi (π) is the ratio of a circle's circumference to its diameter."},
+{q:"What is the name of the process by which the body breaks down glucose to release energy without oxygen?",a:["Aerobic respiration","Anaerobic respiration","Photosynthesis","Digestion"],c:1,cat:"Science",d:7,e:"Anaerobic respiration releases energy from glucose without using oxygen."},
+{q:"What do we call the repeated use of a word or phrase for emphasis, common in speeches?",a:["Repetition","Alliteration","Assonance","Enjambment"],c:0,cat:"English",d:7,e:"Repetition emphasises an idea by repeating words or phrases."},
+{q:"What is the name of the 1215 charter that limited the power of the English monarchy?",a:["The Bill of Rights","Magna Carta","The Act of Settlement","The Petition of Right"],c:1,cat:"History",d:7,e:"Magna Carta (1215) limited the power of the king."},
+{q:"What is the expanded form of (x + 3)²?",a:["x² + 9","x² + 6x + 9","x² + 3x + 9","2x + 6"],c:1,cat:"Maths",d:7,e:"(x+3)² = x² + 6x + 9."},
+{q:"What is the name for the smallest unit that can carry out all life processes?",a:["An atom","A cell","A tissue","An organ"],c:1,cat:"Science",d:7,e:"The cell is the basic unit of life."},
+{q:"What is the term for the structure or organisation of a piece of writing?",a:["Theme","Structure","Genre","Tone"],c:1,cat:"English",d:7,e:"Structure refers to how a text is organised."}
+],
+8: [
+{q:"What is the name of the economic theory advocating minimal government intervention?",a:["Keynesianism","Laissez-faire","Socialism","Mercantilism"],c:1,cat:"General Knowledge",d:8,e:"Laissez-faire economics advocates minimal government intervention in markets."},
+{q:"Which act of the UK Parliament in 1832 began expanding voting rights?",a:["The Reform Act","The Bill of Rights","The Act of Union","The Magna Carta"],c:0,cat:"London/UK",d:8,e:"The Reform Act of 1832 began the process of expanding the electorate in Britain."},
+{q:"What is the name of the particle that carries a negative electric charge?",a:["Proton","Neutron","Electron","Positron"],c:2,cat:"Science",d:8,e:"Electrons carry a negative electric charge."},
+{q:"Which US Supreme Court case established 'separate but equal' in 1896?",a:["Brown v. Board of Education","Plessy v. Ferguson","Roe v. Wade","Marbury v. Madison"],c:1,cat:"America/USA",d:8,e:"Plessy v. Ferguson (1896) upheld racial segregation under 'separate but equal'."},
+{q:"What is the term for government spending exceeding its revenue?",a:["Budget surplus","Budget deficit","Trade balance","Fiscal neutrality"],c:1,cat:"General Knowledge",d:8,e:"A budget deficit occurs when spending exceeds revenue."},
+{q:"Which scientist proposed the laws of motion and universal gravitation?",a:["Albert Einstein","Isaac Newton","Galileo Galilei","Johannes Kepler"],c:1,cat:"Science",d:8,e:"Sir Isaac Newton formulated the laws of motion and universal gravitation."},
+{q:"What was the name of the 1948 system that provided free healthcare in the UK?",a:["The National Health Service (NHS)","The Welfare Act","The Beveridge Plan","The Social Fund"],c:0,cat:"London/UK",d:8,e:"The NHS, founded in 1948, provides free healthcare at the point of use in the UK."},
+{q:"Which US Supreme Court case in 1954 ended school segregation?",a:["Plessy v. Ferguson","Brown v. Board of Education","Dred Scott v. Sandford","Loving v. Virginia"],c:1,cat:"America/USA",d:8,e:"Brown v. Board of Education (1954) ruled school segregation unconstitutional."},
+{q:"What is the name of the process by which DNA is copied?",a:["Transcription","Translation","Replication","Mutation"],c:2,cat:"Science",d:8,e:"DNA replication is the process of copying a DNA molecule."},
+{q:"Which economic crisis began in the US in 1929 and spread globally?",a:["The Great Recession","The Great Depression","The Dot-com Bubble","The Oil Crisis"],c:1,cat:"America/USA",d:8,e:"The Great Depression began with the 1929 stock market crash."},
+{q:"What is the name given to the British constitutional principle that Parliament is the supreme legal authority?",a:["Rule of Law","Parliamentary Sovereignty","Judicial Review","Royal Prerogative"],c:1,cat:"London/UK",d:8,e:"Parliamentary Sovereignty means Parliament has ultimate legal authority in the UK."},
+{q:"Which force holds the nucleus of an atom together?",a:["Gravity","Electromagnetic force","Strong nuclear force","Weak nuclear force"],c:2,cat:"Science",d:8,e:"The strong nuclear force holds protons and neutrons together in the nucleus."},
+{q:"What is the name of the 1803 US land purchase that doubled the country's size?",a:["The Alaska Purchase","The Louisiana Purchase","The Gadsden Purchase","The Oregon Treaty"],c:1,cat:"America/USA",d:8,e:"The Louisiana Purchase in 1803 doubled the size of the United States."},
+{q:"What is the name of a market structure with only one seller?",a:["Oligopoly","Monopoly","Perfect competition","Duopoly"],c:1,cat:"General Knowledge",d:8,e:"A monopoly exists when a single seller dominates a market."},
+{q:"Which British Act of 1707 united England and Scotland into Great Britain?",a:["Act of Settlement","Act of Union","Bill of Rights","Petition of Right"],c:1,cat:"London/UK",d:8,e:"The Act of Union 1707 joined England and Scotland into the Kingdom of Great Britain."},
+{q:"What is the name for energy stored due to an object's position?",a:["Kinetic energy","Potential energy","Thermal energy","Chemical energy"],c:1,cat:"Science",d:8,e:"Potential energy is stored energy based on an object's position."},
+{q:"Which US law, passed in 1964, banned discrimination based on race, color, religion, sex, or national origin?",a:["The Voting Rights Act","The Civil Rights Act","The Fair Housing Act","The Equal Pay Act"],c:1,cat:"America/USA",d:8,e:"The Civil Rights Act of 1964 outlawed major forms of discrimination."},
+{q:"What is the name for the theory that all matter is made of tiny indivisible particles?",a:["Cell theory","Atomic theory","Wave theory","Quantum theory"],c:1,cat:"Science",d:8,e:"Atomic theory proposes that matter is made of small, indivisible atoms."},
+{q:"Which economic indicator measures the general rise in prices over time?",a:["GDP","Inflation","Unemployment rate","Interest rate"],c:1,cat:"General Knowledge",d:8,e:"Inflation measures the general increase in prices over time."},
+{q:"What is the name of London's ancient Roman-founded core area?",a:["Westminster","The City of London","Southwark","Greenwich"],c:1,cat:"London/UK",d:8,e:"The City of London was founded by the Romans as 'Londinium'."},
+{q:"Which chemical element has the atomic number 1?",a:["Helium","Hydrogen","Oxygen","Carbon"],c:1,cat:"Science",d:8,e:"Hydrogen, with one proton, has atomic number 1."},
+{q:"What is the name of the amendment process requiring approval by both Congress and the states?",a:["Judicial review","Constitutional amendment","Executive order","Filibuster"],c:1,cat:"America/USA",d:8,e:"Amending the US Constitution requires approval by Congress and the states."},
+{q:"Which term describes a government where power is divided between national and regional authorities?",a:["Unitary state","Federal system","Confederacy","Autocracy"],c:1,cat:"General Knowledge",d:8,e:"A federal system divides power between national and regional governments."},
+{q:"What is the name for the loss of biodiversity caused by habitat destruction?",a:["Deforestation","Extinction","Pollution","Erosion"],c:1,cat:"Science",d:8,e:"Extinction refers to species dying out, often due to habitat loss."},
+{q:"Which British document from 1689 limited the powers of the monarchy after the Glorious Revolution?",a:["Magna Carta","Bill of Rights","Act of Settlement","Petition of Right"],c:1,cat:"London/UK",d:8,e:"The Bill of Rights 1689 limited royal power and established parliamentary rights."},
+{q:"What is the derivative concept used to find the gradient of a curve at a point, introduced at this level?",a:["Integration","Differentiation","Simplification","Factorisation"],c:1,cat:"Maths",d:8,e:"Differentiation finds the gradient (rate of change) of a curve at a point."},
+{q:"What is Newton's Third Law of Motion?",a:["Objects at rest stay at rest","Force equals mass times acceleration","Every action has an equal and opposite reaction","Energy cannot be created or destroyed"],c:2,cat:"Science",d:8,e:"Newton's Third Law: every action has an equal and opposite reaction."},
+{q:"Which 1928 Act gave women in Britain equal voting rights to men?",a:["The Representation of the People Act 1928","The Suffrage Act 1918","The Equal Rights Act","The Reform Act 1928"],c:0,cat:"History",d:8,e:"The 1928 Act gave women equal voting rights (age 21) to men."},
+{q:"What is the solution set for the simultaneous equations y = x² and y = x + 2?",a:["x=2, x=-1","x=1, x=-2","x=2, x=1","x=-1, x=-2"],c:0,cat:"Maths",d:8,e:"Setting x²=x+2 gives x²-x-2=0, factoring to (x-2)(x+1)=0, so x=2 or x=-1."},
+{q:"What is the balanced chemical equation for the combustion of methane (CH4)?",a:["CH4 + O2 → CO2 + H2O","CH4 + 2O2 → CO2 + 2H2O","CH4 + O2 → CO + H2O","2CH4 + O2 → 2CO2 + H2O"],c:1,cat:"Science",d:8,e:"CH4 + 2O2 → CO2 + 2H2O is the balanced equation."},
+{q:"What is verbal irony?",a:["Saying the opposite of what you mean","A play on words","A hint about the future","A comparison using 'like'"],c:0,cat:"English",d:8,e:"Verbal irony is when what is said is the opposite of what is meant."},
+{q:"Which British monarch's abdication in 1936 caused a constitutional crisis?",a:["King George V","King Edward VIII","King George VI","King Edward VII"],c:1,cat:"History",d:8,e:"King Edward VIII abdicated in 1936 to marry Wallis Simpson."},
+{q:"What is the sum to infinity of the geometric series 1 + 1/2 + 1/4 + 1/8...?",a:["1","1.5","2","Infinity"],c:2,cat:"Maths",d:8,e:"Using a/(1-r) with a=1, r=1/2: 1/(1-0.5) = 2."},
+{q:"What is the name of the process by which genetic variation is introduced through crossing over during meiosis?",a:["Mutation","Genetic recombination","Cloning","Selection"],c:1,cat:"Science",d:8,e:"Genetic recombination (crossing over) introduces variation during meiosis."},
+{q:"What is a Shakespearean sonnet's typical rhyme scheme?",a:["ABAB CDCD EFEF GG","AABB CCDD EEFF GG","ABBA ABBA CDCDCD","AAAA BBBB CCCC DD"],c:0,cat:"English",d:8,e:"A Shakespearean sonnet typically follows ABAB CDCD EFEF GG."},
+{q:"Which 1948 Act established the NHS, offering free healthcare in Britain?",a:["The National Health Service Act 1946/1948","The National Insurance Act","The Beveridge Act","The Welfare State Act"],c:0,cat:"History",d:8,e:"The National Health Service Act (1946, implemented 1948) created the NHS."},
+{q:"What is the discriminant of the quadratic ax² + bx + c, used to determine the number of roots?",a:["b² - 4ac","b² + 4ac","4ac - b²","2b - 4ac"],c:0,cat:"Maths",d:8,e:"The discriminant is b² - 4ac."},
+{q:"What is the name for the force that keeps planets in orbit around the sun?",a:["Magnetic force","Gravitational force","Nuclear force","Electric force"],c:1,cat:"Science",d:8,e:"Gravitational force keeps planets in orbit around the sun."},
+{q:"What is a bildungsroman, a type of novel often studied at this level?",a:["A novel about war","A coming-of-age story tracing moral/psychological growth","A detective story","A novel written in verse"],c:1,cat:"English",d:8,e:"A bildungsroman focuses on the protagonist's psychological and moral growth."},
+{q:"Which British Prime Minister's policies in the 1980s emphasised privatisation and free markets?",a:["James Callaghan","Margaret Thatcher","Edward Heath","John Major"],c:1,cat:"History",d:8,e:"Margaret Thatcher's policies (Thatcherism) emphasised privatisation and free markets."},
+{q:"What is the general formula for the nth term of an arithmetic sequence with first term a and common difference d?",a:["a + (n-1)d","a + nd","an + d","a x d^n"],c:0,cat:"Maths",d:8,e:"The nth term formula is a + (n-1)d."},
+{q:"What is the name for a chemical bond formed by the sharing of electron pairs?",a:["Ionic bond","Covalent bond","Metallic bond","Hydrogen bond"],c:1,cat:"Science",d:8,e:"A covalent bond forms through the sharing of electron pairs."},
+{q:"What is the term for a text that explores good vs. evil and moral consequences, common in tragedy?",a:["Comedy","Tragedy","Satire","Farce"],c:1,cat:"English",d:8,e:"Tragedy often explores moral struggles between good and evil, with a downfall."},
+{q:"What was rationing, introduced in Britain during WWII, primarily aimed at controlling?",a:["Food and resources","Education","Voting rights","Transport"],c:0,cat:"History",d:8,e:"Rationing controlled the distribution of scarce food and resources during WWII."},
+{q:"What is the integral of 2x with respect to x?",a:["x²","x² + C","2x²","x + C"],c:1,cat:"Maths",d:8,e:"The integral of 2x is x² + C (C being the constant of integration)."},
+{q:"What is the term for organisms best suited to their environment surviving and reproducing?",a:["Natural selection","Genetic drift","Artificial selection","Mutation"],c:0,cat:"Science",d:8,e:"Natural selection favours organisms best adapted to their environment."},
+{q:"What is a motif in literature?",a:["The main character","A recurring element with symbolic significance","The setting of the story","The narrator's viewpoint"],c:1,cat:"English",d:8,e:"A motif is a recurring element that has symbolic importance in a text."},
+{q:"Which British colony's loss in 1776-83 is studied as a major turning point for the British Empire?",a:["India","The Thirteen American Colonies","Australia","Canada"],c:1,cat:"History",d:8,e:"Britain lost the Thirteen American Colonies after the American Revolution."},
+{q:"What is the equation for the volume of a sphere with radius r?",a:["4/3 πr³","4πr²","πr²h","2πr"],c:0,cat:"Maths",d:8,e:"The volume of a sphere is 4/3 πr³."},
+{q:"What is the name of the process where an enzyme speeds up a reaction without being consumed?",a:["Catalysis","Oxidation","Hydrolysis","Neutralisation"],c:0,cat:"Science",d:8,e:"Catalysis is when a substance speeds up a reaction without being used up."}
+],
+9: [
+{q:"What is the name of the economic theory that advocates government intervention to manage demand?",a:["Monetarism","Keynesian economics","Supply-side economics","Austrian economics"],c:1,cat:"General Knowledge",d:9,e:"Keynesian economics advocates government intervention to manage economic demand."},
+{q:"Which UK Prime Minister led the country into the European Economic Community in 1973?",a:["Harold Wilson","Edward Heath","James Callaghan","Margaret Thatcher"],c:1,cat:"London/UK",d:9,e:"Edward Heath led Britain into the EEC (predecessor to the EU) in 1973."},
+{q:"What is the name of the principle in physics stating energy cannot be created or destroyed?",a:["Law of Gravity","Conservation of Energy","Thermodynamics' Second Law","Newton's Third Law"],c:1,cat:"Science",d:9,e:"The Law of Conservation of Energy states energy cannot be created or destroyed, only transformed."},
+{q:"Which US Supreme Court case in 1803 established judicial review?",a:["Marbury v. Madison","McCulloch v. Maryland","Gibbons v. Ogden","Worcester v. Georgia"],c:0,cat:"America/USA",d:9,e:"Marbury v. Madison (1803) established the principle of judicial review."},
+{q:"What is the term for a currency that loses value rapidly due to excessive money supply?",a:["Deflation","Hyperinflation","Stagflation","Devaluation"],c:1,cat:"General Knowledge",d:9,e:"Hyperinflation is extremely rapid and out-of-control price inflation."},
+{q:"What is the name of the particle theorized to give other particles mass, confirmed in 2012?",a:["Quark","Higgs boson","Neutrino","Gluon"],c:1,cat:"Science",d:9,e:"The Higgs boson, confirmed at CERN in 2012, is linked to how particles gain mass."},
+{q:"Which 1919 treaty formally ended World War I and imposed heavy terms on Germany?",a:["Treaty of Versailles","Treaty of Paris","Treaty of London","Treaty of Rome"],c:0,cat:"History",d:9,e:"The Treaty of Versailles (1919) formally ended World War I."},
+{q:"What is the name of the UK's constitutional arrangement, being uncodified in a single document?",a:["Codified constitution","Uncodified constitution","Flexible statute","Rigid constitution"],c:1,cat:"London/UK",d:9,e:"The UK is unusual in having an uncodified constitution, not contained in one document."},
+{q:"Which economic policy tool involves a central bank adjusting interest rates?",a:["Fiscal policy","Monetary policy","Trade policy","Industrial policy"],c:1,cat:"General Knowledge",d:9,e:"Monetary policy involves central banks adjusting interest rates and money supply."},
+{q:"What is the name of the theory explaining the origin of the universe from a single point?",a:["Steady State Theory","Big Bang Theory","String Theory","Multiverse Theory"],c:1,cat:"Science",d:9,e:"The Big Bang Theory explains the universe's origin from an extremely hot, dense point."},
+{q:"Which amendment to the US Constitution addresses due process and equal protection?",a:["5th Amendment","14th Amendment","4th Amendment","9th Amendment"],c:1,cat:"America/USA",d:9,e:"The 14th Amendment guarantees equal protection and due process under the law."},
+{q:"What is the name of the legal principle that a person is innocent until proven guilty?",a:["Habeas corpus","Presumption of innocence","Double jeopardy","Due process"],c:1,cat:"General Knowledge",d:9,e:"The presumption of innocence is a fundamental principle of criminal law."},
+{q:"Which British political and economic philosophy is associated with Margaret Thatcher's policies in the 1980s?",a:["Thatcherism","Blairism","Keynesianism","Corbynism"],c:0,cat:"London/UK",d:9,e:"Thatcherism refers to free-market, privatization-focused policies of the 1980s."},
+{q:"What is the name for the scientific study of the chemical processes within living organisms?",a:["Biophysics","Biochemistry","Microbiology","Genetics"],c:1,cat:"Science",d:9,e:"Biochemistry studies chemical processes within and related to living organisms."},
+{q:"Which US foreign policy after WWII aimed to help rebuild Western Europe economically?",a:["The Truman Doctrine","The Marshall Plan","The Monroe Doctrine","NATO"],c:1,cat:"America/USA",d:9,e:"The Marshall Plan provided US aid to help rebuild Western Europe after WWII."},
+{q:"What is the term for a country's total debt owed to external creditors?",a:["Fiscal deficit","External debt","Trade deficit","National reserve"],c:1,cat:"General Knowledge",d:9,e:"External debt is money a country owes to foreign lenders."},
+{q:"Which subatomic particles are found in the nucleus of an atom?",a:["Electrons and photons","Protons and neutrons","Neutrons and electrons","Quarks and leptons only"],c:1,cat:"Science",d:9,e:"Protons and neutrons are found in the atomic nucleus."},
+{q:"What was the name of the UK referendum held in 2016 on EU membership?",a:["The Scottish Referendum","The Brexit Referendum","The Devolution Referendum","The AV Referendum"],c:1,cat:"London/UK",d:9,e:"The 2016 Brexit Referendum resulted in a vote to leave the European Union."},
+{q:"Which US political scandal in the 1970s led to a presidential resignation?",a:["Iran-Contra Affair","Watergate Scandal","Teapot Dome Scandal","Lewinsky Scandal"],c:1,cat:"America/USA",d:9,e:"The Watergate Scandal led to President Nixon's resignation in 1974."},
+{q:"What is the name for the branch of philosophy dealing with questions of right and wrong?",a:["Epistemology","Ethics","Metaphysics","Logic"],c:1,cat:"General Knowledge",d:9,e:"Ethics is the branch of philosophy concerned with morality."},
+{q:"Which scientist is credited with discovering penicillin?",a:["Louis Pasteur","Alexander Fleming","Marie Curie","Robert Koch"],c:1,cat:"Science",d:9,e:"Alexander Fleming, a Scottish scientist, discovered penicillin in 1928."},
+{q:"What is the name of the 1787 meeting where the US Constitution was drafted?",a:["The Continental Congress","The Constitutional Convention","The Federalist Congress","The Boston Convention"],c:1,cat:"America/USA",d:9,e:"The Constitutional Convention of 1787 drafted the US Constitution in Philadelphia."},
+{q:"Which term describes when a central bank increases the money supply to stimulate the economy?",a:["Quantitative tightening","Quantitative easing","Austerity","Devaluation"],c:1,cat:"General Knowledge",d:9,e:"Quantitative easing is when a central bank increases the money supply."},
+{q:"What is the name of London's oldest and most prestigious horse race, the Derby, associated with?",a:["Epsom","Ascot","Newmarket","Goodwood"],c:0,cat:"London/UK",d:9,e:"The Derby is a famous horse race held at Epsom Downs."},
+{q:"Which type of energy comes from the splitting of atomic nuclei?",a:["Solar energy","Nuclear fission energy","Wind energy","Geothermal energy"],c:1,cat:"Science",d:9,e:"Nuclear fission energy is released when atomic nuclei split apart."},
+{q:"What is the term for a market structure with only one seller controlling the entire market?",a:["Oligopoly","Monopoly","Perfect competition","Duopoly"],c:1,cat:"Citizenship",d:9,e:"A monopoly exists when a single seller dominates a market."},
+{q:"What is the SUVAT equation used to find final velocity given initial velocity, acceleration and time?",a:["v = u + at","s = ut + 1/2at²","v² = u² + 2as","s = (u+v)/2 x t"],c:0,cat:"Science",d:9,e:"v = u + at relates final velocity, initial velocity, acceleration and time."},
+{q:"Which UK constitutional principle means no one, including the government, is above the law?",a:["Parliamentary Sovereignty","The Rule of Law","Judicial Independence","Common Law"],c:1,cat:"Citizenship",d:9,e:"The Rule of Law means everyone is subject to the law equally."},
+{q:"What is the formula for compound interest, where P is principal, r is rate, and n is years?",a:["P(1+r)^n","P x r x n","P + rn","P(1-r)^n"],c:0,cat:"Maths",d:9,e:"Compound interest formula: A = P(1+r)^n."},
+{q:"What is the term for the study of how writers use language to create meaning and effect?",a:["Etymology","Stylistics","Phonetics","Syntax"],c:1,cat:"English",d:9,e:"Stylistics examines how language choices create meaning and effect in texts."},
+{q:"Which UK Prime Minister led Britain into the European Economic Community in 1973?",a:["Harold Wilson","Edward Heath","James Callaghan","Margaret Thatcher"],c:1,cat:"History",d:9,e:"Edward Heath led Britain into the EEC in 1973."},
+{q:"What is the process of solving simultaneous equations using matrices called?",a:["Substitution","Elimination","Matrix method (or Cramer's Rule)","Graphical method"],c:2,cat:"Maths",d:9,e:"The matrix method (or Cramer's Rule) can solve simultaneous equations."},
+{q:"What is the name of the type of chemical bond found in metals, involving delocalised electrons?",a:["Ionic bond","Covalent bond","Metallic bond","Hydrogen bond"],c:2,cat:"Science",d:9,e:"Metallic bonding involves a 'sea' of delocalised electrons."},
+{q:"What is a Petrarchan (Italian) sonnet's typical structure?",a:["Three quatrains and a couplet","An octave and a sestet","Fourteen unrhymed lines","Two sestets"],c:1,cat:"English",d:9,e:"A Petrarchan sonnet has an octave (8 lines) and a sestet (6 lines)."},
+{q:"Which UK Act extended the vote to all men and women over 21 in 1928?",a:["Representation of the People Act 1928","Reform Act 1867","Suffrage Act 1918","Ballot Act 1872"],c:0,cat:"History",d:9,e:"The 1928 Act gave full and equal voting rights to men and women over 21."},
+{q:"What is the general term for a function that maps every input to exactly one output?",a:["A relation","A function","A sequence","A series"],c:1,cat:"Maths",d:9,e:"A function maps every input to exactly one output."},
+{q:"What is the name of the fundamental unit of heredity, made of DNA?",a:["A chromosome","A gene","A protein","A nucleotide"],c:1,cat:"Science",d:9,e:"A gene is a segment of DNA that codes for a particular trait."},
+{q:"What is 'juxtaposition' in literary analysis?",a:["Placing two contrasting things close together for effect","Repeating a phrase for emphasis","A play on words","An exaggerated statement"],c:0,cat:"English",d:9,e:"Juxtaposition places contrasting elements together to highlight differences."},
+{q:"Which UK institution has been the final court of appeal since its creation in 2009?",a:["The House of Lords","The Supreme Court of the UK","The Privy Council","The High Court"],c:1,cat:"Citizenship",d:9,e:"The Supreme Court of the UK, established 2009, is the final court of appeal."},
+{q:"What is the term for a government policy of restricting spending to reduce national debt?",a:["Stimulus","Austerity","Expansionism","Protectionism"],c:1,cat:"Citizenship",d:9,e:"Austerity refers to policies reducing government spending to cut debt."},
+{q:"What is the trigonometric identity for sin²θ + cos²θ?",a:["0","1","tan θ","2"],c:1,cat:"Maths",d:9,e:"The Pythagorean identity states sin²θ + cos²θ = 1."},
+{q:"What is the name of the process where energy is transferred by electromagnetic waves without a medium?",a:["Conduction","Convection","Radiation","Induction"],c:2,cat:"Science",d:9,e:"Radiation transfers energy via electromagnetic waves, even through a vacuum."},
+{q:"What does 'pathetic fallacy' refer to in literature?",a:["A logical error in an argument","Attributing human emotions to nature/weather to reflect mood","A character's tragic flaw","An unreliable narrator"],c:1,cat:"English",d:9,e:"Pathetic fallacy gives nature human emotions to reflect the story's mood."},
+{q:"Which economic policy tool involves a central bank changing interest rates?",a:["Fiscal policy","Monetary policy","Trade policy","Industrial policy"],c:1,cat:"Citizenship",d:9,e:"Monetary policy involves central banks adjusting interest rates."},
+{q:"What is the formula for the sum of an arithmetic series with n terms, first term a, and last term l?",a:["n/2 (a + l)","n(a+l)","n/2 (a - l)","na + l"],c:0,cat:"Maths",d:9,e:"Sum = n/2 (a + l) for an arithmetic series."},
+{q:"What is the name of the process by which DNA is used to make a protein, via mRNA?",a:["Replication only","Transcription and translation","Mutation","Meiosis"],c:1,cat:"Science",d:9,e:"Transcription makes mRNA from DNA, then translation makes protein from mRNA."},
+{q:"What is an 'epiphany' in literary terms?",a:["A sudden realisation or insight a character experiences","A type of poem","A play on words","A long speech"],c:0,cat:"English",d:9,e:"An epiphany is a moment of sudden insight or understanding for a character."},
+{q:"Which 2016 UK referendum resulted in a vote to leave the European Union?",a:["The Scottish Independence Referendum","The Brexit Referendum","The AV Referendum","The Devolution Referendum"],c:1,cat:"History",d:9,e:"The 2016 Brexit Referendum resulted in a vote to leave the EU."},
+{q:"What is the formula relating force, mass and acceleration (Newton's Second Law)?",a:["F = ma","F = mv","F = m/a","F = m + a"],c:0,cat:"Science",d:9,e:"Newton's Second Law: Force = mass x acceleration."},
+{q:"What is 'unreliable narration' typically used to achieve in a novel?",a:["To create suspense and question the truth of events","To make the plot simpler","To avoid using dialogue","To shorten the novel"],c:0,cat:"English",d:9,e:"Unreliable narration makes readers question the truth of the story being told."}
+],
+10: [
+{q:"What is the name of the economic concept describing the trade-off between inflation and unemployment?",a:["Laffer Curve","Phillips Curve","Lorenz Curve","IS-LM Model"],c:1,cat:"General Knowledge",d:10,e:"The Phillips Curve illustrates the inverse relationship between inflation and unemployment."},
+{q:"Which principle in UK law means that no one, including the government, is above the law?",a:["Rule of Law","Parliamentary Sovereignty","Judicial Independence","Common Law"],c:0,cat:"London/UK",d:10,e:"The Rule of Law means everyone, including the government, is subject to the law."},
+{q:"What is the term for the phenomenon where subatomic particles can be in multiple states at once?",a:["Entanglement","Superposition","Wave collapse","Diffraction"],c:1,cat:"Science",d:10,e:"Superposition in quantum mechanics means particles can exist in multiple states simultaneously."},
+{q:"Which US Supreme Court case in 1973 addressed abortion rights?",a:["Roe v. Wade","Griswold v. Connecticut","Planned Parenthood v. Casey","Doe v. Bolton"],c:0,cat:"America/USA",d:10,e:"Roe v. Wade (1973) was a landmark case on abortion rights, later overturned in 2022."},
+{q:"What is the name of the economic policy of restricting government spending to reduce debt?",a:["Stimulus","Austerity","Expansionism","Protectionism"],c:1,cat:"General Knowledge",d:10,e:"Austerity refers to policies aimed at reducing government deficits through spending cuts."},
+{q:"Which theory in physics unifies electromagnetism, weak, and strong nuclear forces (but not gravity)?",a:["Grand Unified Theory","General Relativity","String Theory","Standard Model"],c:3,cat:"Science",d:10,e:"The Standard Model describes three of the four fundamental forces, excluding gravity."},
+{q:"What is the name of the system where the UK's devolved parliaments (Scotland, Wales, NI) hold certain powers?",a:["Federalism","Devolution","Confederation","Decentralization"],c:1,cat:"London/UK",d:10,e:"Devolution is the transfer of certain powers from the UK Parliament to regional parliaments."},
+{q:"Which US constitutional principle limits the power of any one branch of government?",a:["Federalism","Checks and balances","Judicial review","Due process"],c:1,cat:"America/USA",d:10,e:"Checks and balances ensure no single branch of government becomes too powerful."},
+{q:"What is the name for a market failure where one party has more information than another?",a:["Moral hazard","Information asymmetry","Externality","Adverse selection"],c:1,cat:"General Knowledge",d:10,e:"Information asymmetry occurs when one party has more or better information than another."},
+{q:"Which scientist's equations describe the relationship between electricity, magnetism, and light?",a:["Isaac Newton","James Clerk Maxwell","Michael Faraday","Nikola Tesla"],c:1,cat:"Science",d:10,e:"James Clerk Maxwell formulated the classical theory of electromagnetism."},
+{q:"What is the name of the 1948 UN document outlining fundamental human rights?",a:["The Geneva Convention","The Universal Declaration of Human Rights","The UN Charter","The Atlantic Charter"],c:1,cat:"General Knowledge",d:10,e:"The Universal Declaration of Human Rights was adopted by the UN in 1948."},
+{q:"Which term describes when courts interpret laws strictly as written, without broader interpretation?",a:["Judicial activism","Strict constructionism","Common law reasoning","Precedent-setting"],c:1,cat:"America/USA",d:10,e:"Strict constructionism is a judicial philosophy of interpreting the constitution narrowly."},
+{q:"What is the name of the UK institution that has final say on interpreting the law, since 2009?",a:["The House of Lords","The Supreme Court of the UK","The Privy Council","The High Court"],c:1,cat:"London/UK",d:10,e:"The Supreme Court of the UK, established in 2009, is the final court of appeal."},
+{q:"Which principle states that as more of a good is consumed, the additional satisfaction decreases?",a:["Law of supply","Law of diminishing marginal utility","Law of demand","Opportunity cost"],c:1,cat:"General Knowledge",d:10,e:"The law of diminishing marginal utility explains why extra units bring less satisfaction."},
+{q:"What is the name of the process where stars produce energy by fusing hydrogen into helium?",a:["Nuclear fission","Nuclear fusion","Radioactive decay","Gravitational collapse"],c:1,cat:"Science",d:10,e:"Nuclear fusion, combining hydrogen into helium, powers stars including our sun."},
+{q:"Which US economic policy under Reagan emphasized tax cuts to stimulate growth?",a:["The New Deal","Reaganomics","The Great Society","The Fair Deal"],c:1,cat:"America/USA",d:10,e:"Reaganomics emphasized tax cuts and deregulation to stimulate economic growth."},
+{q:"What is the term for goods that one person's use does not reduce availability for others, like national defense?",a:["Private goods","Public goods","Common goods","Club goods"],c:1,cat:"General Knowledge",d:10,e:"Public goods are non-excludable and non-rivalrous, like national defense."},
+{q:"Which British economist wrote 'The Wealth of Nations', a foundational work of economics?",a:["John Maynard Keynes","Adam Smith","David Ricardo","John Stuart Mill"],c:1,cat:"London/UK",d:10,e:"Adam Smith, a Scottish economist, wrote 'The Wealth of Nations' in 1776."},
+{q:"What is the name of the phenomenon where light bends around massive objects, predicted by general relativity?",a:["Refraction","Gravitational lensing","Diffraction","Redshift"],c:1,cat:"Science",d:10,e:"Gravitational lensing occurs when massive objects bend light, as predicted by Einstein."},
+{q:"Which US Supreme Court case in 2015 legalized same-sex marriage nationwide?",a:["Obergefell v. Hodges","United States v. Windsor","Lawrence v. Texas","Loving v. Virginia"],c:0,cat:"America/USA",d:10,e:"Obergefell v. Hodges (2015) legalized same-sex marriage across the United States."},
+{q:"What is the term for a situation where negotiating parties reach a mutually acceptable agreement?",a:["Stalemate","Consensus","Compromise","Arbitration"],c:2,cat:"General Knowledge",d:10,e:"A compromise is an agreement reached through mutual concession."},
+{q:"Which effect explains why the wavelength of light shifts as an object moves away from an observer?",a:["Doppler effect","Photoelectric effect","Tyndall effect","Compton effect"],c:0,cat:"Science",d:10,e:"The Doppler effect explains the shift in wavelength due to relative motion."},
+{q:"What is the name of the UK's central bank, responsible for monetary policy?",a:["Barclays","The Bank of England","HSBC","Lloyds Bank"],c:1,cat:"London/UK",d:10,e:"The Bank of England is the UK's central bank, founded in 1694."},
+{q:"Which term describes an economic system combining elements of capitalism and socialism?",a:["Mixed economy","Command economy","Barter economy","Gift economy"],c:0,cat:"General Knowledge",d:10,e:"A mixed economy combines features of both free-market capitalism and government intervention."},
+{q:"What is the name of the process by which the US Federal Reserve influences the economy?",a:["Fiscal policy","Monetary policy","Trade policy","Industrial policy"],c:1,cat:"America/USA",d:10,e:"The Federal Reserve conducts monetary policy to influence the US economy."},
+{q:"What is the term for the economic indicator measuring a country's total output of goods and services?",a:["Inflation rate","GDP (Gross Domestic Product)","CPI","Trade balance"],c:1,cat:"Citizenship",d:10,e:"GDP measures the total value of goods and services a country produces."},
+{q:"What is the equation for kinetic energy?",a:["KE = mgh","KE = 1/2 mv²","KE = Fd","KE = P/t"],c:1,cat:"Science",d:10,e:"Kinetic energy = 1/2 x mass x velocity squared."},
+{q:"What UK constitutional principle means Parliament can make or unmake any law, and no Parliament can bind a future one?",a:["Rule of Law","Parliamentary Sovereignty","Judicial Review","Devolution"],c:1,cat:"Citizenship",d:10,e:"Parliamentary Sovereignty means Parliament has supreme legal authority."},
+{q:"What is the derivative of x³ with respect to x?",a:["3x","x²","3x²","x³/3"],c:2,cat:"Maths",d:10,e:"Using the power rule, the derivative of x³ is 3x²."},
+{q:"What is 'dramatic monologue' as a poetic form, associated with poets like Robert Browning?",a:["A poem with two speakers in dialogue","A poem spoken by a single character revealing their psychology","A poem with no rhyme scheme","A short comedic poem"],c:1,cat:"English",d:10,e:"A dramatic monologue is spoken by one character, revealing their inner thoughts."},
+{q:"Which UK Act of Parliament, passed in 1998, incorporated the European Convention on Human Rights into UK law?",a:["The Human Rights Act 1998","The Bill of Rights 1689","The Equality Act 2010","The Constitutional Reform Act"],c:0,cat:"Citizenship",d:10,e:"The Human Rights Act 1998 incorporated the ECHR into UK domestic law."},
+{q:"What is the integral of 1/x with respect to x?",a:["ln|x| + C","x² + C","1/x² + C","e^x + C"],c:0,cat:"Maths",d:10,e:"The integral of 1/x is the natural logarithm ln|x| + C."},
+{q:"What is the name of the process by which stars more massive than the sun end their lives in a huge explosion?",a:["Nuclear fusion","A supernova","A black hole formation only","Nebula formation"],c:1,cat:"Science",d:10,e:"A supernova is the explosive death of a massive star."},
+{q:"What is a 'stream of consciousness' narrative technique, used by writers like Virginia Woolf?",a:["A linear, chronological plot","A technique presenting a character's continuous flow of thoughts","A story told only through dialogue","A poem with a strict rhyme scheme"],c:1,cat:"English",d:10,e:"Stream of consciousness presents a character's continuous, often unstructured, thoughts."},
+{q:"What economic term describes government policy using taxation and spending to influence the economy?",a:["Monetary policy","Fiscal policy","Trade policy","Supply-side policy"],c:1,cat:"Citizenship",d:10,e:"Fiscal policy uses government spending and taxation to influence the economy."},
+{q:"What is the formula for the sum of a geometric series with n terms, first term a, and common ratio r (r≠1)?",a:["a(1-r^n)/(1-r)","a + (n-1)r","n/2(a+l)","a x r^n"],c:0,cat:"Maths",d:10,e:"Sum of geometric series = a(1-r^n)/(1-r)."},
+{q:"What is the name of the phenomenon where light bends as it passes from one medium to another?",a:["Reflection","Refraction","Diffraction","Dispersion"],c:1,cat:"Science",d:10,e:"Refraction is the bending of light as it changes medium."},
+{q:"What does 'postmodernism' in literature often challenge or question?",a:["Traditional grammar rules only","Grand narratives, objective truth, and fixed meaning","The use of dialogue","Poetic rhyme schemes"],c:1,cat:"English",d:10,e:"Postmodern literature often questions objective truth and traditional narrative structures."},
+{q:"Which UK body is responsible for setting the base interest rate, to control inflation?",a:["HM Treasury","The Bank of England","The Financial Conduct Authority","The Office for National Statistics"],c:1,cat:"Citizenship",d:10,e:"The Bank of England's Monetary Policy Committee sets the base interest rate."},
+{q:"What is the value of the definite integral of 2x from x=0 to x=3?",a:["6","9","3","12"],c:1,cat:"Maths",d:10,e:"Integral of 2x is x²; evaluated from 0 to 3 gives 9-0=9."},
+{q:"What is the term for the smallest particle of an element that retains its chemical properties?",a:["A molecule","An atom","An ion","A compound"],c:1,cat:"Science",d:10,e:"An atom is the smallest unit of an element retaining its properties."},
+{q:"What is 'intertextuality' in literary theory?",a:["The relationship between texts, where one text references or is shaped by another","A grammatical error","The use of footnotes","A single narrator's perspective"],c:0,cat:"English",d:10,e:"Intertextuality refers to how texts reference, echo, or are shaped by other texts."},
+{q:"What is the term for goods where consumption by one does not reduce availability for others, e.g., street lighting?",a:["Private goods","Public goods","Merit goods","Demerit goods"],c:1,cat:"Citizenship",d:10,e:"Public goods are non-excludable and non-rivalrous, like street lighting."},
+{q:"What is the chain rule used for in calculus?",a:["Differentiating a function of a function (composite functions)","Integrating simple polynomials","Solving simultaneous equations","Finding the area under a curve"],c:0,cat:"Maths",d:10,e:"The chain rule differentiates composite functions."},
+{q:"What is the name of the effect where the wavelength of light or sound shifts due to relative motion?",a:["Doppler effect","Photoelectric effect","Compton effect","Tyndall effect"],c:0,cat:"Science",d:10,e:"The Doppler effect describes the shift in wavelength due to relative motion."},
+{q:"What is a key feature of Gothic literature, a genre studied at this level?",a:["Bright, cheerful settings","Elements of horror, mystery, and the supernatural","Strictly factual accounts","Simple, short sentences only"],c:1,cat:"English",d:10,e:"Gothic literature typically features horror, mystery, and supernatural elements."},
+{q:"What is the UK's principle of 'devolution' as applied to Scotland, Wales, and Northern Ireland?",a:["Full independence from the UK","Transfer of certain powers to regional parliaments/assemblies","Abolition of regional government","Merging regions into England"],c:1,cat:"Citizenship",d:10,e:"Devolution transfers specific powers to regional legislatures within the UK."},
+{q:"What is the formula connecting distance, initial velocity, time and acceleration: s = ?",a:["s = ut + 1/2at²","s = u + at","s = v²/2a","s = ut - at"],c:0,cat:"Maths",d:10,e:"The SUVAT equation s = ut + 1/2at² relates displacement to these variables."},
+{q:"What is the name for radiation emitted when an unstable atomic nucleus loses energy?",a:["Radioactive decay","Nuclear fusion","Ionisation only","Combustion"],c:0,cat:"Science",d:10,e:"Radioactive decay is the process by which unstable nuclei emit radiation."},
+{q:"What does 'unreliable narrator' combined with 'non-linear narrative' typically achieve in modernist fiction?",a:["A simple, easy-to-follow plot","Fragmentation reflecting psychological complexity and uncertainty","A strictly chronological retelling","A clear moral message"],c:1,cat:"English",d:10,e:"Modernist fiction often uses these techniques to reflect psychological complexity."}
+]
+};
+
+
+// Brain Test auf Englisch: sobald die Oberfläche auf Englisch steht, wird
+// automatisch die englische Fragenbank (allgemeinwissen statt Schulfächer)
+// verwendet - kein extra Umschalter nötig, folgt einfach der Sprachwahl in
+// den Einstellungen.
+function klasseQuestionsPool(){
+  return currentLang === "en" ? KLASSE_QUESTIONS_EN : KLASSE_QUESTIONS;
+}
 function pickKlasseTestQuestions(klasseIndex){
+  const KQ = klasseQuestionsPool();
   let klasseNum = Math.min(klasseIndex, KLASSEN.length-1) + 1;
-  while(klasseNum > 1 && !(KLASSE_QUESTIONS[klasseNum] && KLASSE_QUESTIONS[klasseNum].length)) klasseNum--;
-  const pool = (KLASSE_QUESTIONS[klasseNum] || []).slice();
+  while(klasseNum > 1 && !(KQ[klasseNum] && KQ[klasseNum].length)) klasseNum--;
+  const pool = (KQ[klasseNum] || []).slice();
   const test = KLASSE_TESTS[Math.min(klasseIndex, KLASSE_TESTS.length-1)];
   for(let i=pool.length-1;i>0;i--){
     const j = Math.floor(Math.random()*(i+1));
@@ -1540,9 +2092,10 @@ function pickKlasseTestQuestions(klasseIndex){
 // Haupttest: 20 zufällige Fragen der Klasse (der Übungstest nimmt dagegen
 // alle 50).
 function pickKlasseHaupttestQuestions(klasseIndex){
+  const KQ = klasseQuestionsPool();
   let klasseNum = Math.min(klasseIndex, KLASSEN.length-1) + 1;
-  while(klasseNum > 1 && !(KLASSE_QUESTIONS[klasseNum] && KLASSE_QUESTIONS[klasseNum].length)) klasseNum--;
-  const pool = (KLASSE_QUESTIONS[klasseNum] || []).slice();
+  while(klasseNum > 1 && !(KQ[klasseNum] && KQ[klasseNum].length)) klasseNum--;
+  const pool = (KQ[klasseNum] || []).slice();
   for(let i=pool.length-1;i>0;i--){
     const j = Math.floor(Math.random()*(i+1));
     [pool[i],pool[j]] = [pool[j],pool[i]];
@@ -3072,7 +3625,11 @@ function speedMathLevelConfig(level){
   // Serie ohne EINE einzige falsche Antwort - waechst von 10 (Level 1) auf
   // 40 (Level 50), bei "20" liegt es etwa in der Mitte (~Level 15).
   const streakTarget = Math.min(10 + Math.floor((level-1) * 0.7), 40);
-  return { level, tier, ops, label, maxOperand, streakTarget };
+  // Zeit pro Aufgabe (auf Wunsch, sonst zu einfach): startet bei 6 Sekunden,
+  // wird pro Schwierigkeitsstufe (dieselben 10 Stufen wie bei den
+  // Rechenarten) knapper, nie unter 2,5 Sekunden.
+  const timeLimit = Math.max(2.5, 6 - (tier-1) * 0.4);
+  return { level, tier, ops, label, maxOperand, streakTarget, timeLimit };
 }
 
 function speedMathGenerateLevelProblem(config){
@@ -3109,7 +3666,7 @@ function speedMathRefreshHearts(profile){
   }
 }
 
-let speedMathLevelSession = null; // { profile, level, config, streak, currentProblem }
+let speedMathLevelSession = null; // { profile, level, config, streak, currentProblem, remaining, timerId }
 
 function startSpeedMathMilestoneFlow(profile){
   achvRecord({ t:"speedmath", level: profile.speedMathLevel||1 }, profile);
@@ -3130,11 +3687,11 @@ function renderSpeedMathMilestoneEntry(profile){
       <div class="picker-sub">${profile.name} – 50 Level, steigende Schwierigkeit, fehlerfreie Serien schaffen.</div>
       <div class="result-item" style="margin:16px 0;">
         <div class="n">Level ${level} / ${SPEEDMATH_LEVEL_COUNT}</div>
-        <div class="l">${config.label} · ${config.ops.join(' ')} · Zahlen bis ${config.maxOperand} · Ziel: ${config.streakTarget} in Folge ohne einen Fehler</div>
+        <div class="l">${config.label} · ${config.ops.join(' ')} · Zahlen bis ${config.maxOperand} · Ziel: ${config.streakTarget} in Folge ohne einen Fehler · ${config.timeLimit.toFixed(1)}s pro Aufgabe</div>
       </div>
       <div class="picker-sub" style="text-align:center; font-size:20px;">${'❤️'.repeat(hearts)}${'🖤'.repeat(SPEEDMATH_DAILY_HEARTS-hearts)}</div>
       <div class="picker-sub" style="text-align:center; margin-top:4px;">${hearts>0 ? 'Herzen übrig heute' : "Keine Herzen mehr heute – morgen geht's weiter!"}</div>
-      <p style="color:var(--text-dim); font-size:12px; margin-top:14px; text-align:center;">Löse ${config.streakTarget} Aufgaben in Folge richtig, ohne eine einzige falsche Antwort.<br>Jeder Fehler setzt die Serie zurück und kostet ein Herz.</p>
+      <p style="color:var(--text-dim); font-size:12px; margin-top:14px; text-align:center;">Löse ${config.streakTarget} Aufgaben in Folge richtig, ohne eine einzige falsche Antwort - und das in jeweils ${config.timeLimit.toFixed(1)} Sekunden.<br>Ein Fehler ODER die Zeit läuft ab: Serie zurück auf 0, ein Herz weg.</p>
       <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startSpeedMathLevel()" ${hearts<=0?'disabled':''}>${hearts>0?'LEVEL STARTEN':'HEUTE KEINE HERZEN MEHR'}</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderSpeedMathEntry(speedMathProfile)">${t('btn_back')}</button>
     </div>
@@ -3150,9 +3707,44 @@ function startSpeedMathLevel(){
   speedMathLevelSession = {
     profile, level, config,
     streak: 0,
-    currentProblem: speedMathGenerateLevelProblem(config)
+    currentProblem: speedMathGenerateLevelProblem(config),
+    remaining: config.timeLimit, timerId: null
   };
   renderSpeedMathLevelGame();
+  speedMathLevelStartTimer();
+}
+// Zeit pro Aufgabe: laeuft unabhaengig davon ab, ob geantwortet wird. Laeuft
+// sie ab, zaehlt das genauso wie eine falsche Antwort (siehe
+// speedMathLevelMiss) - dieselbe Funktion wird von speedMathLevelSubmit UND
+// vom Timer aufgerufen, damit beide Wege exakt gleich behandelt werden.
+function speedMathLevelStartTimer(){
+  const s = speedMathLevelSession;
+  if(!s) return;
+  clearInterval(s.timerId);
+  s.remaining = s.config.timeLimit;
+  s.timerId = setInterval(() => {
+    if(!speedMathLevelSession) return;
+    speedMathLevelSession.remaining -= 0.1;
+    // 0.05 statt 0 als Schwelle: durch viele 0,1er-Schritte in Folge kann die
+    // Fließkommazahl den Nullpunkt knapp verfehlen (z.B. 0.00000000000458
+    // statt exakt 0) - ohne diesen kleinen Puffer würde der Ablauf dann
+    // einen ganzen Wimpernschlag (100ms) zu spät ausgelöst.
+    if(speedMathLevelSession.remaining <= 0.05){
+      speedMathLevelSession.remaining = 0;
+      clearInterval(speedMathLevelSession.timerId);
+      speedMathLevelMiss(); // Zeit abgelaufen = wie eine falsche Antwort
+    } else {
+      updateSpeedMathLevelTimerUI();
+    }
+  }, 100);
+}
+function updateSpeedMathLevelTimerUI(){
+  const s = speedMathLevelSession;
+  const fill = document.getElementById("smLevelTimerFill");
+  const num = document.getElementById("smLevelTimerNum");
+  if(!fill || !num || !s) return;
+  fill.style.width = Math.max(0, (s.remaining/s.config.timeLimit)*100) + "%";
+  num.textContent = s.remaining.toFixed(1) + "s";
 }
 
 function renderSpeedMathLevelGame(){
@@ -3168,9 +3760,13 @@ function renderSpeedMathLevelGame(){
         <div class="timer-bar"><div class="timer-fill" style="width:${pct}%"></div></div>
         <div class="timer-num">Serie: ${s.streak} / ${s.config.streakTarget}</div>
       </div>
+      <div class="timer-wrap" style="margin:4px 0 0;">
+        <div class="timer-bar" style="height:8px;"><div id="smLevelTimerFill" class="timer-fill" style="width:${Math.max(0,(s.remaining/s.config.timeLimit)*100)}%; background:linear-gradient(90deg,var(--accent-2),var(--danger));"></div></div>
+        <div id="smLevelTimerNum" class="timer-num" style="font-size:12px;">${s.remaining.toFixed(1)}s</div>
+      </div>
       <div class="question-text" style="text-align:center; font-size:40px; font-weight:800; margin:24px 0;">${c.a} ${c.op} ${c.b} = ?</div>
       ${speedMathChoicesHtml(c, "speedMathLevelSubmit")}
-      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="speedMathLevelSession=null; renderSpeedMathMilestoneEntry(speedMathProfile);">${t('btn_back')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="exitSpeedMathLevel()">${t('btn_back')}</button>
     </div>
   `);
 }
@@ -3184,28 +3780,47 @@ function speedMathLevelSubmit(val){
   if(!s) return;
   const correct = val === s.currentProblem.answer;
   if(correct){
+    clearInterval(s.timerId);
     achvRecord({t:"gen",n:1}, s.profile);
     s.streak += 1;
     if(s.streak >= s.config.streakTarget){
       finishSpeedMathLevel(true);
       return;
     }
+    s.currentProblem = speedMathGenerateLevelProblem(s.config);
+    renderSpeedMathLevelGame();
+    speedMathLevelStartTimer();
   } else {
-    s.streak = 0;
-    s.profile.speedMathHearts = Math.max(0, (s.profile.speedMathHearts||0) - 1);
-    if(s.profile.isAccount) syncAccountStats(s.profile); else saveProfiles();
-    if(s.profile.speedMathHearts <= 0){
-      finishSpeedMathLevel(false);
-      return;
-    }
+    speedMathLevelMiss(); // dieselbe Behandlung wie bei abgelaufener Zeit
   }
-
+}
+// Gemeinsame Behandlung fuer "falsch geantwortet" UND "Zeit abgelaufen" -
+// beides zaehlt gleich: Serie zurueck auf 0, ein Herz weg, neue Aufgabe mit
+// neu laufender Zeit (falls noch Herzen da sind).
+function speedMathLevelMiss(){
+  const s = speedMathLevelSession;
+  if(!s) return;
+  clearInterval(s.timerId);
+  s.streak = 0;
+  s.profile.speedMathHearts = Math.max(0, (s.profile.speedMathHearts||0) - 1);
+  if(s.profile.isAccount) syncAccountStats(s.profile); else saveProfiles();
+  if(s.profile.speedMathHearts <= 0){
+    finishSpeedMathLevel(false);
+    return;
+  }
   s.currentProblem = speedMathGenerateLevelProblem(s.config);
   renderSpeedMathLevelGame();
+  speedMathLevelStartTimer();
+}
+function exitSpeedMathLevel(){
+  if(speedMathLevelSession) clearInterval(speedMathLevelSession.timerId);
+  speedMathLevelSession = null;
+  renderSpeedMathMilestoneEntry(speedMathProfile);
 }
 
 function finishSpeedMathLevel(won){
   const s = speedMathLevelSession;
+  clearInterval(s.timerId);
   const profile = s.profile;
   profile.roundsPlayed = (profile.roundsPlayed||0) + 1;
   if(!profile.modeStats) profile.modeStats = freshModeStats();
@@ -4542,11 +5157,11 @@ function renderKlassenOverview(profile){
           const statusLabel = isDone ? '✓ Bestanden' : (isCurrent ? '▶ Aktuell' : 'Noch nicht erreicht');
           const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
           return `
-          <div class="leaderboard-row" style="${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
+          <div class="leaderboard-row" style="flex-wrap:wrap; row-gap:8px; ${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
             <span class="rank-pill ${k.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${k.name}</span>
             <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}</span>
             ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">Übung ${KLASSE_TESTS[i].questions} Fragen · ab ${KLASSE_TESTS[i].needed} richtig</span>` : ``}
-            ${isDone ? `<button class="thumb-btn" style="font-size:12px; white-space:nowrap;" onclick="beginSolo(klassenOverviewProfile, true, ${i})" title="Haupttest dieser Klasse erneut spielen (${KLASSE_TESTS[i].mainQuestions} Fragen)">🔁 Test wiederholen</button>` : ``}
+            ${isDone ? `<button class="repeat-btn" onclick="beginSolo(klassenOverviewProfile, true, ${i})" title="Haupttest dieser Klasse erneut spielen (${KLASSE_TESTS[i].mainQuestions} Fragen)">🔁 Test wiederholen</button>` : ``}
           </div>
         `;}).join("")}
       </div>
