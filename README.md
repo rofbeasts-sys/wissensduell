@@ -3180,6 +3180,54 @@ Weiterleitung zur Anmeldung ohne Konto, WebSocket-Verbindungsaufbau/
 und des offenen Chats ohne manuelles Neuladen, HTML-Escaping beim
 Anzeigen, Bestätigung vorm Entfernen.
 
+## 8ooo. Neue Farbpalette (wie im TikTok-Trailer) + PWA
+
+**Farben**: Das bisherige Lila/Türkis-Thema ist raus, das Spiel nutzt jetzt
+dieselbe Palette wie die Trailer-Vorschau:
+- Hauptfarbe (`--accent`): Lime `#c6ff3d` (vorher Lila `#7c6cf0`)
+- Zweitfarbe (`--accent-2`): Cyan `#3de0ff` (vorher Türkis `#21d6b8`)
+- Fehlerfarbe (`--danger`): Pink-Rot `#ff5da2` (vorher `#ff4d6a`, bleibt in
+  derselben Rot-Familie, damit "falsch/Fehler" weiterhin sofort erkennbar ist)
+- Warnfarbe (Orange) unverändert, passt farblich schon zur neuen Palette
+- Der primäre Knopf (Lime-zu-Cyan-Verlauf) hat jetzt **dunklen** statt
+  weißen Text - auf der jetzt hellen Fläche wäre weiße Schrift unlesbar
+  gewesen. Das ist zentral an einer Stelle (`.btn-primary`) geregelt und
+  wirkt automatisch überall.
+- Alle anderen Bildschirme funktionieren unverändert - die Farben werden
+  im Code fast überall über die zentralen Variablen bezogen, nur an einer
+  Stelle stand die alte Farbe fest eingetragen, das wurde mitgeändert.
+
+**PWA (installierbar)**: Neues `public/manifest.json` (Name, Icons,
+`display:standalone`, dunkles Theme passend zur neuen Palette),
+4 selbst erzeugte App-Icons in `public/icons/` (192px, 512px, ein
+"maskable" Icon für Android ohne weißen Rand, ein Apple-Touch-Icon für
+iOS - schlichter Lime-Blitz auf dunklem Grund), sowie ein neuer
+`public/sw.js` (Service Worker).
+
+Der Service Worker ist bewusst zurückhaltend: die Startseite selbst läuft
+"network-first" (online immer die aktuellste Version vom Server, Zwischen-
+speicher nur als Rückfallebene ohne Verbindung) - das unterläuft NICHT das
+bestehende "no-cache" für HTML/JS, das genau verhindern soll, dass jemand
+nach einem Update eine veraltete Version im Cache hängen bleibt. Nur Icons
+und das Manifest werden aggressiv zwischengespeichert (ändern sich praktisch
+nie). API-Aufrufe, Audiodateien, Fragen-Datensätze und alles andere werden
+vom Service Worker überhaupt nicht angefasst.
+
+Damit lässt sich das Spiel über den Browser "zum Startbildschirm hinzufügen"
+(Android: automatischer Installieren-Hinweis; iOS: Teilen → Zum Home-
+Bildschirm) und startet dann wie eine eigene App, ohne Adressleiste.
+
+Getestet (`test/pwa-and-colors.test.js`): Manifest/Icons/Service-Worker
+werden mit korrektem Inhaltstyp ausgeliefert, Service Worker bekommt
+ebenfalls "no-cache", Manifest-Inhalt ist gültig (Name, Icons inkl.
+maskable, Startmodus, Farben), Service Worker fängt nachweislich nur die
+App-Hülle ab und lässt API/Audio/Fremdes unangetastet durch, Kopfbereich
+verlinkt Manifest/Icons korrekt, Registrierung funktioniert wenn unterstützt
+und stürzt nicht ab wenn nicht, keine alten Farbwerte mehr im Code,
+primärer Knopf ist mit dunklem Text lesbar. Zusätzlich mit einem echten
+Browser (Playwright) nachgesehen, wie es aussieht - Screenshot bestätigt:
+Titel und Verläufe zeigen die neue Palette wie gewünscht.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
