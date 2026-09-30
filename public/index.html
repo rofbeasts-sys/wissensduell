@@ -3136,7 +3136,7 @@ const I18N = {
   solo_menu_sub: {de:"Wie möchtest du allein spielen?", en:"How do you want to play alone?", ja:"どのように一人でプレイしますか？", zh:"你想如何单人游玩？", fr:"Comment veux-tu jouer seul ?", it:"Come vuoi giocare da solo?", es:"¿Cómo quieres jugar solo?"},
   solo_quiz_title: {de:"WISSENSTEST", en:"QUIZ", ja:"クイズ", zh:"知识问答", fr:"QUIZ", it:"QUIZ", es:"CUESTIONARIO"},
   solo_quiz_desc: {de:"Der klassische Solo-Wissenstest: 5 Fragen, dein persönlicher Punktestand und Rang.", en:"The classic solo quiz: 5 questions, your personal score and rank.", ja:"定番のソロクイズ：5問、あなた自身のスコアとランク。", zh:"经典单人问答：5道题，你的个人分数与段位。", fr:"Le quiz solo classique : 5 questions, ton score et ton rang personnels.", it:"Il classico quiz in solitaria: 5 domande, il tuo punteggio e grado personali.", es:"El clásico cuestionario en solitario: 5 preguntas, tu puntuación y rango personales."},
-  solo_quiz_locked: {de:"Der Wissenstest ist aktuell nur auf Deutsch verfügbar (545 deutsche Fragen). Wechsle die Sprache oben auf Deutsch, um ihn zu spielen.", en:"The quiz is currently only available in German (545 German questions). Switch the language above to German to play it.", ja:"クイズは現在ドイツ語のみ対応しています（545問のドイツ語の問題）。プレイするには上の言語をドイツ語に切り替えてください。", zh:"该问答目前仅支持德语（545道德语题目）。请将上方语言切换为德语后再游玩。", fr:"Le quiz n'est actuellement disponible qu'en allemand (545 questions en allemand). Passe la langue ci-dessus à l'allemand pour y jouer.", it:"Il quiz è attualmente disponibile solo in tedesco (545 domande in tedesco). Cambia la lingua qui sopra in tedesco per giocarci.", es:"El cuestionario solo está disponible en alemán por ahora (545 preguntas en alemán). Cambia el idioma de arriba a alemán para jugarlo."},
+  solo_quiz_locked: {de:"Der Wissenstest ist aktuell nur auf Deutsch und Englisch verfügbar. Wechsle die Sprache oben auf Deutsch oder Englisch, um ihn zu spielen.", en:"The quiz is currently only available in German and English. Switch the language above to German or English to play it.", ja:"クイズは現在ドイツ語と英語のみ対応しています。プレイするには上の言語をドイツ語か英語に切り替えてください。", zh:"该问答目前仅支持德语和英语。请将上方语言切换为德语或英语后再游玩。", fr:"Le quiz n'est actuellement disponible qu'en allemand et en anglais. Passe la langue ci-dessus à l'allemand ou à l'anglais pour y jouer.", it:"Il quiz è attualmente disponibile solo in tedesco e inglese. Cambia la lingua qui sopra in tedesco o inglese per giocarci.", es:"El cuestionario solo está disponible en alemán e inglés por ahora. Cambia el idioma de arriba a alemán o inglés para jugarlo."},
   solo_party_title: {de:"PARTY-MODUS", en:"PARTY MODE", ja:"パーティーモード", zh:"聚会模式", fr:"MODE SOIRÉE", it:"MODALITÀ PARTY", es:"MODO FIESTA"},
   solo_party_desc: {de:"Spiele allein mehrere Runden mit wechselnden Modi: Wissenstest, Einordnen, Mehr oder Weniger.", en:"Play several rounds alone with changing modes: quiz, ordering, higher-or-lower.", ja:"クイズ、並べ替え、オーバー・アンダーなど、モードを変えながら一人で複数ラウンドをプレイ。", zh:"独自游玩多轮不同模式：问答、排序、大小猜谜。", fr:"Joue seul plusieurs manches avec des modes variés : quiz, classement, plus ou moins.", it:"Gioca da solo più round con modalità diverse: quiz, ordinamento, più o meno.", es:"Juega varias rondas solo con modos variados: cuestionario, ordenar, más o menos."},
 
@@ -3202,6 +3202,10 @@ function t(key){
 
 function renderMainMenu(){
   setAudioZone("menu");
+  // Brain Test hat mittlerweile sowohl eine deutsche als auch eine englische
+  // Fragendatenbank (siehe klasseQuestionsPool()) - nur bei den Sprachen ohne
+  // eigene Datenbank (noch) gesperrt zeigen.
+  const soloLangLocked = currentLang !== "de" && currentLang !== "en";
   // Kleiner Helfer für eine dedizierte-Modus-Karte (Einordnen, Mehr oder
   // Weniger, Nenn's Blitz, Musik raten, Stadt Land Fluss) - holt Icon/
   // Titel/Sprachsperre aus DEDICATED_MODES, damit nichts doppelt gepflegt
@@ -3224,10 +3228,10 @@ function renderMainMenu(){
       <h1>${t('app_title')}</h1>
     </div>
     <div class="menu-grid">
-      <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'startSoloFlow()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
+      <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
         <div class="icon">🎯</div>
         <h3>${t('menu_solo_title')}</h3>
-        <p>${currentLang!=='de' ? t('solo_quiz_locked') : t('menu_solo_desc')}</p>
+        <p>${soloLangLocked ? t('solo_quiz_locked') : t('menu_solo_desc')}</p>
       </div>
     </div>
 
