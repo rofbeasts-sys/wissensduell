@@ -3439,6 +3439,33 @@ nicht erreichten, eigene CSS-Regel mit Farbverlauf/Schatten/Pillenform/
 Tipp-Reaktion vorhanden, Zeilenumbruch ist aktiv, die ähnlich aufgebaute
 Tic-Tac-Toe-Rangübersicht (hat keinen Wiederholen-Knopf) bleibt unverändert.
 
+## 8www. Bugfix: Brain-Test-Kachel war bei Englisch weiterhin komplett gesperrt
+
+Gemeldet: Brain Test auf Englisch "geht immer noch nicht". War KEIN Cache-
+Problem (wie zuerst vermutet), sondern ein echter, von mir übersehener
+Fehler: Die Menü-Kachel selbst hatte eine **eigene, ältere Sperre**
+(`currentLang!=='de'` → komplett deaktiviert, "Nur auf Deutsch verfügbar"),
+die ich beim Einbau der englischen Fragendatenbank nicht aktualisiert hatte.
+Die englischen Fragen selbst haben die ganze Zeit einwandfrei funktioniert -
+man kam nur nie bis dahin, weil die Kachel im Hauptmenü das Antippen
+komplett blockiert hat.
+
+Jetzt: die Kachel ist nur noch gesperrt, wenn **weder** Deutsch **noch**
+Englisch eingestellt ist (also bei ja/zh/fr/it/es, die noch keine eigene
+Fragendatenbank haben). Sperrtext in allen 7 Sprachen entsprechend
+angepasst ("nur auf Deutsch UND Englisch verfügbar" statt nur Deutsch).
+Arena bleibt bewusst weiterhin gesperrt (hat wirklich nur die deutsche
+Datenbank, dort war die Meldung schon immer korrekt).
+
+Mit einem echten Browser (Playwright) nachgesehen und bestätigt: Kachel ist
+jetzt hell und antippbar bei Englisch, ein kompletter Testdurchlauf zeigt
+echte englische Fragen und Antworten.
+
+Getestet: Kachel ist bei Englisch nicht mehr gesperrt, zeigt die normale
+Beschreibung statt Sperrtext, Klick ist wirklich aktiv, Arena bleibt korrekt
+gesperrt, Deutsch funktioniert unverändert, eine dritte Sprache ohne eigene
+Datenbank (Französisch) bleibt weiterhin korrekt gesperrt.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
