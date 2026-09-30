@@ -1,7 +1,7 @@
 /* Fuehrt alle Test-Suiten nacheinander aus: npm test */
 const { spawnSync } = require("child_process");
 const path = require("path");
-const suites = ["client.test.js", "achievements.test.js", "security.test.js", "multiplayer.test.js", "achievements-online.test.js"];
+const suites = ["client.test.js", "achievements.test.js", "music.test.js", "answer-shuffle.test.js", "exit-confirm.test.js", "milestone-click.test.js", "speedmath-streak.test.js", "order-of-speed.test.js", "friends.test.js", "friends-client.test.js", "pwa-and-colors.test.js", "security.test.js", "multiplayer.test.js", "achievements-online.test.js"];
 let failed = 0;
 const started = Date.now();
 for (const f of suites) {

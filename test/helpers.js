@@ -22,8 +22,9 @@ async function startServer(env = {}) {
   const port = await freePort();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "bp-test-"));
   const usersFile = path.join(dir, "users.json");
+  const conversationsFile = path.join(dir, "conversations.json");
   const child = spawn("node", [path.join(__dirname, "..", "server.js")], {
-    cwd: dir, env: { ...process.env, PORT: String(port), USERS_FILE: usersFile, ...env }, stdio: ["ignore", "pipe", "pipe"]
+    cwd: dir, env: { ...process.env, PORT: String(port), USERS_FILE: usersFile, CONVERSATIONS_FILE: conversationsFile, ...env }, stdio: ["ignore", "pipe", "pipe"]
   });
   let stderr = "";
   child.stderr.on("data", d => stderr += d);
@@ -31,7 +32,7 @@ async function startServer(env = {}) {
     const t = setTimeout(() => rej(new Error("Server startet nicht")), 8000);
     child.stdout.on("data", d => { if (d.toString().includes("läuft")) { clearTimeout(t); res(); } });
   });
-  return { port, dir, usersFile, child, stderr: () => stderr, alive: () => child.exitCode === null,
+  return { port, dir, usersFile, conversationsFile, child, stderr: () => stderr, alive: () => child.exitCode === null,
     stop: async () => { try { child.kill("SIGKILL"); } catch (e) {} await sleep(100); } };
 }
 function post(port, url, obj, headers = {}) {
@@ -86,7 +87,7 @@ function wsConnect(port, { autoPong = true } = {}) {
   });
 }
 // Client-Skript (public/index.html) in einer Sandbox laden (ohne Browser)
-function loadClient({ fakeTime = false, fetchImpl = null, account = false } = {}) {
+function loadClient({ fakeTime = false, fetchImpl = null, account = false, localStorageData = null } = {}) {
   // fakeTime: eigene, steuerbare Uhr (advance(ms)) statt echter Timer
   let timers = [], now = 0, nid = 1;
   const fSetInterval = (fn, ms) => { const id = nid++; timers.push({ id, fn, ms, next: now + ms, type: "i" }); return id; };
@@ -97,14 +98,27 @@ function loadClient({ fakeTime = false, fetchImpl = null, account = false } = {}
   const code = html.match(/<script>([\s\S]*)<\/script>/)[1];
   const state = { last: "", els: {} };
   const app = { get innerHTML() { return state.last; }, set innerHTML(v) { state.last = v; state.renders = (state.renders || 0) + 1; } };
-  const mk = () => ({ style: {}, textContent: "", innerHTML: "", value: "", classList: { add() {}, remove() {}, toggle() {} }, focus() {}, disabled: false });
+  const mk = () => ({ style: {}, textContent: "", innerHTML: "", value: "", classList: { _l: [], add(c){ if(!this._l.includes(c)) this._l.push(c); }, remove(c){ this._l = this._l.filter(x=>x!==c); }, toggle(c){ this.contains(c)?this.remove(c):this.add(c); }, contains(c){ return this._l.includes(c); } }, focus() {}, disabled: false });
+  // Einfache WebSocket-Attrappe fuer Client-Code, der "new WebSocket(url)"
+  // aufruft (z.B. der Freunde-/Chat-Kanal). Jede Instanz landet in
+  // MockWebSocket.instances - Tests loesen open/message/close manuell aus
+  // (z.B. `sb.WebSocket.instances[0].onopen()`), es baut sich NIE von selbst
+  // eine echte Verbindung auf.
+  class MockWebSocket {
+    constructor(url) { this.url = url; this.readyState = 0; this.sent = []; MockWebSocket.instances.push(this); }
+    send(data) { this.sent.push(data); }
+    close() { this.readyState = 3; if (this.onclose) this.onclose(); }
+  }
+  MockWebSocket.instances = [];
   const sb = {
     document: { getElementById: id => id === "app" ? app : (state.els[id] || (state.els[id] = mk())), querySelectorAll() { return []; }, addEventListener() {}, createElement() { return {}; }, title: "" },
-    window: {}, navigator: { language: "de" }, localStorage: { getItem() { return null; }, setItem() {}, removeItem() {} },
+    window: {}, navigator: { language: "de" },
+    localStorage: (() => { const store = Object.assign({}, localStorageData); return { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = v; }, removeItem: k => { delete store[k]; }, _store: store }; })(),
     fetch: fetchImpl || (async () => ({ json: async () => ({}) })), console, Achv: require("../public/achievements.js"),
     setTimeout: fakeTime ? fSetTimeout : setTimeout, clearTimeout: fakeTime ? fClear : clearTimeout,
     setInterval: fakeTime ? fSetInterval : setInterval, clearInterval: fakeTime ? fClear : clearInterval,
-    location: { protocol: "https:", host: "t", href: "" }, alert() {}, confirm() { return true; }
+    location: { protocol: "https:", host: "t", href: "" }, alert() {}, confirm() { return true; },
+    WebSocket: MockWebSocket
   };
   vm.createContext(sb); vm.runInContext(code, sb);
   return { R: (s) => vm.runInContext(s, sb), state, sb, advance, activeIntervals: () => timers.filter(t => t.type === "i").length };

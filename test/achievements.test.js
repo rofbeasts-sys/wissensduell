@@ -312,7 +312,11 @@ section("Client: Ereignisse -> Erfolge");
   const g0 = st().gen.correct;
   R('speedMathProfile=p; startSpeedMathGame(60); speedMathSubmit(speedMath.current.answer); speedMathSubmit(speedMath.current.answer); speedMathSubmit(speedMath.current.answer+999); clearInterval(speedMath.timerId); speedMath=null;');
   ok("Speed Math frei: 2 richtige zaehlen, 1 falsche nicht", st().gen.correct === g0 + 2);
-  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,pointsNeeded:99999,streakTarget:1,label:"T",level:1,tier:1},points:0,streak:0,questionsInBlock:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}}; speedMathLevelSubmit(2);');
+  // streakTarget bewusst hoch, damit diese eine richtige Antwort NICHT gleich
+  // das ganze Level gewinnt (sonst wuerde p.speedMathLevel ungewollt
+  // hochgezaehlt und spaetere Pruefungen unten verfaelschen) - hier geht es
+  // nur darum, dass die Antwort fuer die "richtige Antworten"-Erfolge zaehlt.
+  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,streakTarget:99999,label:"T",level:1,tier:1},streak:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}}; speedMathLevelSubmit(2);');
   ok("Speed-Math-Level: richtige Aufgabe zaehlt", st().gen.correct === g0 + 3);
 
   // Party-Nachrichten
@@ -413,9 +417,9 @@ section("Client: Ereignisse -> Erfolge");
   ok("Freigeschaltete Erfolge sind markiert, gesperrte zeigen Fortschritt", state.last.includes("achv-card done") && state.last.includes("achv-bar") && state.last.includes("🔒"));
   ok("Fortschritt wird angezeigt (z. B. Brain Test 'x / 10')", /\d+ \/ 10/.test(state.last));
   R('renderMainMenu()');
-  ok("Hauptmenue hat einen Erfolge-Knopf", state.last.includes("startAchievementsFlow()"));
+  ok("Hauptmenue hat genau einen Erfolge-Knopf (nicht mehr 'bald verfuegbar')", (state.last.match(/startAchievementsFlow\(\)/g) || []).length === 1 && !state.last.includes("bald verfügbar"));
   R('renderStatistik()');
-  ok("Statistik-Seite: Erfolge-Knopf ist anklickbar (nicht mehr 'bald verfuegbar')", state.last.includes("startAchievementsFlow()") && !state.last.includes("bald verfügbar"));
+  ok("Statistik-Seite hat KEINEN eigenen Erfolge-Knopf mehr (Duplikat entfernt, Erfolge nur noch im Hauptmenue)", !state.last.includes("startAchievementsFlow()"));
 }
 
 // ------------------------------------------------------------------ Konto-Sync
@@ -423,13 +427,18 @@ section("Client: Konto-Abgleich mit dem Server");
 {
   const calls = [];
   const serverSaved = Achv.newState(); serverSaved.gen.correct = 5; // Server kennt nur diesen alten Stand
+  // Hinweis: beim Start laedt der Client im Hintergrund auch /api/audio-tracks -
+  // das faengt dieser generische fetchImpl-Mock MIT auf, ist fuer diesen Test
+  // aber irrelevant. Deshalb unten gezielt nach dem save-stats-Aufruf filtern,
+  // statt "der erste fetch-Aufruf" anzunehmen.
   const fetchImpl = async (url, opts) => { const body = JSON.parse(opts.body); calls.push({ url, body }); return { json: async () => ({ ok: true, profile: { username: "kto", klasse: 0, achv: serverSaved, modeStats: {} } }) }; };
   const C = loadClient({ fetchImpl }); const { R } = C;
   R('account={token:"T",profile:{username:"kto",klasse:0,achv:null,modeStats:{}}};');
   R('achvRecord({t:"gen",n:200});');
   ok("Erfolg am Konto wird lokal sofort gezaehlt und freigeschaltet", R("account.profile.achv.gen.correct") === 200 && !!R("account.profile.achv.unlocked.gen_100"));
   await sleep(1800);
-  ok("... und gesammelt an den Server geschickt (mit Zaehlern, ohne Sonderpfad)", calls.length >= 1 && calls[0].url === "/api/save-stats" && calls[0].body.stats.achv.gen.correct === 200);
+  const saveCall = calls.find(c => c.url === "/api/save-stats");
+  ok("... und gesammelt an den Server geschickt (mit Zaehlern, ohne Sonderpfad)", !!saveCall && saveCall.body.stats.achv.gen.correct === 200);
   ok("Serverantwort mit aelterem Stand ueberschreibt lokale Zaehler NICHT (Merge, Maximum)", R("account.profile.achv.gen.correct") === 200 && !!R("account.profile.achv.unlocked.gen_100"));
   R('achvRecord({t:"gen",n:1}); syncAccountStats(accountAsProfile());'); // Ereignis, waehrend die Anfrage laeuft
   R('achvRecord({t:"gen",n:5});');

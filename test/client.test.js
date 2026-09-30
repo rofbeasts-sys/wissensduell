@@ -43,23 +43,14 @@ section("Speed Math: Antwort-Kreise, Level-System, Sprint");
   ok("Level 1-5: nur + und -", ["+", "-"].join() === cfg(1).ops.join() && cfg(5).ops.join() === "+,-");
   ok("Level 6-10: zusaetzlich Mal, noch kein Geteilt", cfg(6).ops.includes("×") && !cfg(10).ops.includes("÷"));
   ok("Ab Level 11: alle vier Rechenarten", cfg(11).ops.length === 4 && cfg(50).label === "Experte");
-  ok("Punkteziel und Zahlenbereich steigen, Deckel 20", cfg(1).pointsNeeded < cfg(25).pointsNeeded && cfg(25).pointsNeeded < cfg(50).pointsNeeded && cfg(50).maxOperand <= 20);
-  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,pointsNeeded:99999,streakTarget:1,label:"T",level:1,tier:1},points:0,streak:0,questionsInBlock:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}}');
-  R('speedMathLevelSubmit(2)'); ok("+100 pro richtiger Antwort", R('speedMathLevelSession.points') === 100);
+  ok("Serienziel und Zahlenbereich steigen, Deckel 20/40", cfg(1).streakTarget < cfg(25).streakTarget && cfg(25).streakTarget < cfg(50).streakTarget && cfg(50).maxOperand <= 20 && cfg(50).streakTarget <= 40);
+  // Ausfuehrliche Pruefung des Level-Systems (Serie statt Punkte, Herzverlust,
+  // Levelaufstieg) steckt in test/speedmath-streak.test.js - hier nur der
+  // Basis-Rauchtest, dass die Kernfunktion ueberhaupt erreichbar ist.
+  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,streakTarget:2,label:"T",level:1,tier:1},streak:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}}');
+  R('speedMathLevelSubmit(2)'); ok("Richtige Antwort erhöht die Serie", R('speedMathLevelSession.streak') === 1);
   R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSubmit(9)');
-  ok("-50 pro Fehler, Serie zurueck auf 0", R('speedMathLevelSession.points') === 50 && R('speedMathLevelSession.streak') === 0);
-  R('speedMathLevelSession.points=0;speedMathLevelSession.streak=0;speedMathLevelSession.questionsInBlock=0;');
-  for (let i = 0; i < 5; i++) R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSubmit(2)');
-  ok("5er-Serie: 5x100 + 50 Bonus = 550", R('speedMathLevelSession.points') === 550);
-  R('var p2=createProfile("H"); p2.speedMathHearts=3; speedMathLevelSession={profile:p2,level:1,config:{ops:["+"],maxOperand:10,pointsNeeded:99999,streakTarget:5,label:"T",level:1,tier:1},points:0,streak:0,questionsInBlock:0,currentProblem:null}');
-  for (const right of [true, true, false, false, false]) R(`speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSubmit(${right ? 2 : 9})`);
-  ok("Kontrollpunkt mit zu niedriger Serie kostet ein Herz", R('p2.speedMathHearts') === 2);
-  R('var p3=createProfile("S"); p3.speedMathHearts=3; speedMathLevelSession={profile:p3,level:1,config:{ops:["+"],maxOperand:10,pointsNeeded:99999,streakTarget:3,label:"T",level:1,tier:1},points:0,streak:0,questionsInBlock:0,currentProblem:null}');
-  for (let i = 0; i < 5; i++) R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSubmit(2)');
-  ok("Kontrollpunkt mit ausreichender Serie: Herzen bleiben", R('p3.speedMathHearts') === 3);
-  R('var p4=createProfile("L"); p4.speedMathLevel=1; speedMathLevelSession={profile:p4,level:1,config:{ops:["+"],maxOperand:10,pointsNeeded:150,streakTarget:1,label:"T",level:1,tier:1},points:0,streak:0,questionsInBlock:0,currentProblem:null}');
-  for (let i = 0; i < 2; i++) R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSession&&speedMathLevelSubmit(2)');
-  ok("Punkteziel erreicht: Level steigt", R('p4.speedMathLevel') === 2);
+  ok("Falsche Antwort setzt die Serie zurueck", R('speedMathLevelSession.streak') === 0);
   R('var p5=createProfile("D"); p5.speedMathHearts=0; p5.speedMathHeartsDate="2020-01-01"; speedMathRefreshHearts(p5)');
   ok("Herzen: neuer Tag fuellt auf 3", R('p5.speedMathHearts') === 3);
   R('var p6=createProfile("D2"); p6.speedMathHearts=1; p6.speedMathHeartsDate=new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Berlin"}); speedMathRefreshHearts(p6)');
@@ -120,7 +111,11 @@ section("Brain Test: Uebungstest 50 (90 %), Haupttest 20 (80 %, Gesamtuhr 1:30),
   R('p.klasse=3; p.haupttestUnlockedForKlasse=-1; renderKlassenOverview(p)');
   ok("Klassenliste: 3 bestandene Klassen haben 'Test wiederholen'", (state.last.match(/Test wiederholen/g) || []).length === 3);
   begin('beginSolo(p,true,1)');
-  ok("Wiederholung Klasse 2: 20 Fragen aus Klasse 2, zaehlt nicht fuer den Aufstieg", R('solo.isRepeat') && R('solo.questions.length') === 20 && R("solo.questions.every(q=>KLASSE_QUESTIONS[2].includes(q))") && state.last.includes("zählt nicht für den Aufstieg"));
+  // Hinweis: seit der gemischten Antwortreihenfolge (answer-shuffle) sind die
+  // zurueckgegebenen Fragen-Objekte NEUE Kopien (gleicher Inhalt, andere
+  // Referenz) - deshalb hier per Fragetext statt per Objekt-Identitaet
+  // vergleichen.
+  ok("Wiederholung Klasse 2: 20 Fragen aus Klasse 2, zaehlt nicht fuer den Aufstieg", R('solo.isRepeat') && R('solo.questions.length') === 20 && R("solo.questions.every(q=>KLASSE_QUESTIONS[2].some(orig=>orig.q===q.q))") && state.last.includes("zählt nicht für den Aufstieg"));
   R('renderSoloQuestion()'); for (let i = 0; i < 20; i++) { advance(1000); R('handleSoloAnswer(solo.questions[solo.qIndex].c)'); advance(500); }
   ok("Wiederholung bestanden: Klasse + Freischaltung unveraendert", R('p.klasse') === 3 && R('p.haupttestUnlockedForKlasse') === -1 && !state.last.includes("Neuer Rang"));
   ok("Wiederholung: Knoepfe 'NOCHMAL WIEDERHOLEN' + 'ZUR UEBERSICHT'", state.last.includes("NOCHMAL WIEDERHOLEN") && state.last.includes("ZUR ÜBERSICHT"));
