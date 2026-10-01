@@ -223,7 +223,7 @@ function buildRoundDefPool() {
   const pool = [{ id: "quiz", kind: "knowledgeQuiz", label: "Wissenstest", germanOnly: true }];
   pool.push({ id: "tictactoe", kind: "ticTacToeGame", label: "Tic Tac Toe", germanOnly: false });
   Object.entries(DATASETS.ordering).forEach(([key, ds]) => {
-    pool.push({ id: "order_" + key, kind: "orderingGame", label: ds.label, datasetGroup: "ordering", datasetKey: key, germanOnly: !!ds.germanOnly });
+    pool.push({ id: "order_" + key, kind: "orderingGame", label: ds.label, datasetGroup: "ordering", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
   });
   // Chronologie und Bild erraten sind auf Wunsch vorübergehend komplett
   // draußen (kommen als späteres Patch-Update zurück) - Datensätze und
@@ -235,7 +235,7 @@ function buildRoundDefPool() {
   //   pool.push({ id: "chrono_" + key, kind: "chronologyGame", label: ds.label, datasetGroup: "chronology", datasetKey: key, germanOnly: !!ds.germanOnly });
   // });
   Object.entries(DATASETS.higherLower).forEach(([key, ds]) => {
-    pool.push({ id: "hilo_" + key, kind: "higherLowerGame", label: ds.label, datasetGroup: "higherLower", datasetKey: key, germanOnly: !!ds.germanOnly });
+    pool.push({ id: "hilo_" + key, kind: "higherLowerGame", label: ds.label, datasetGroup: "higherLower", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
   });
   // Object.entries(DATASETS.guessPicture || {}).forEach(([key, ds]) => {
   //   pool.push({ id: "guess_" + key, kind: "guessPicture", label: ds.label, datasetGroup: "guessPicture", datasetKey: key, germanOnly: !!ds.germanOnly });
@@ -251,7 +251,7 @@ function buildRoundDefPool() {
     // Sprache nennen - nur die wirklich Deutschland-spezifischen (siehe
     // germanOnly-Markierung direkt am jeweiligen Datensatz in
     // shared/partyDatasets.json) bleiben aussen vor.
-    pool.push({ id: "blitz_" + key, kind: "nennsBlitz", label: "Nenn's Blitz: " + ds.label, datasetGroup: "nennsBlitz", datasetKey: key, germanOnly: !!ds.germanOnly });
+    pool.push({ id: "blitz_" + key, kind: "nennsBlitz", label: "Nenn's Blitz: " + ds.label, datasetGroup: "nennsBlitz", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
   });
   return pool;
 }
@@ -723,7 +723,7 @@ function roomStateForClient(room) {
     roundMode: room.roundMode,
     gameMode: room.gameMode,
     roundDefs: room.roundDefs.map(r => r ? ({ id: r.id, kind: r.kind, label: r.label, categories: r.categories }) : null),
-    availableRoundDefs: roundDefPoolForLanguage(room.language, room.gameMode).map(r => ({ id: r.id, kind: r.kind, label: r.label })),
+    availableRoundDefs: roundDefPoolForLanguage(room.language, room.gameMode).map(r => ({ id: r.id, kind: r.kind, label: r.label, topicGroup: r.topicGroup || null })),
     language: room.language,
     botTierOptions: BOT_TIER_ORDER.map(key => ({ id: key, label: BOT_TIERS[key].label })),
     maxParticipants: MAX_PARTICIPANTS,
@@ -2775,6 +2775,7 @@ function defaultStats() {
     arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
     haupttestUnlockedForKlasse: -1,
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
+    coins: 0,
     achv: Achv.newState(),
     modeStats: freshModeStats() };
 }
@@ -2895,7 +2896,7 @@ async function saveUserStats(token, stats) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   if (!stats || typeof stats !== "object" || Array.isArray(stats)) return { ok: false, error: "Ungültige Eingabe." };
-  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank"];
+  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank", "coins"];
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
@@ -3235,6 +3236,7 @@ async function arenaStatus(token) {
     ok: true,
     hearts: user.stats.arenaHearts,
     maxHearts: ARENA_DAILY_HEARTS,
+    coins: user.stats.coins || 0,
     points: user.stats.arenaPoints,
     league: { index: league.index, name: league.name, klasseMin: league.klasseMin, klasseMax: league.klasseMax },
     nextLeague: nextLeague ? { name: nextLeague.name, pointsNeeded: Math.max(0, (league.promoteAt || 0) - user.stats.arenaPoints) } : null,
@@ -3251,6 +3253,25 @@ async function arenaStatus(token) {
 // ergeben real weit unter 100), und ein Match muss mind. 20 s gedauert haben.
 const ARENA_MAX_POINTS_PER_MATCH = 100;
 const ARENA_MIN_MATCH_MS = Number(process.env.ARENA_MIN_MATCH_MS) || 20000;
+
+// Shop: Münzen gegen ein Arena-Herz eintauschen. Serverautoritativ (wie der
+// Rest von Arena) - der Client kann nicht einfach behaupten, Herzen gekauft
+// zu haben. Aufgefüllte Herzen gehen nie über das normale Tageskontingent
+// hinaus (sonst würde der Münzen-Shop den eigentlichen Sinn der Herzen als
+// Tagesbremse aushebeln).
+const ARENA_HEART_COST = 20;
+async function arenaBuyHeart(token) {
+  if (!usersLoaded) return SERVICE_DOWN;
+  const user = findUserByToken(token);
+  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  refreshArenaHearts(user);
+  if ((user.stats.coins || 0) < ARENA_HEART_COST) return { ok: false, error: "Nicht genug Münzen." };
+  if (user.stats.arenaHearts >= ARENA_DAILY_HEARTS) return { ok: false, error: "Bereits volle Herzen." };
+  user.stats.coins -= ARENA_HEART_COST;
+  user.stats.arenaHearts += 1;
+  await saveUsers();
+  return { ok: true, coins: user.stats.coins, hearts: user.stats.arenaHearts, maxHearts: ARENA_DAILY_HEARTS };
+}
 
 async function arenaStartMatch(token) {
   if (!usersLoaded) return SERVICE_DOWN;
@@ -3417,6 +3438,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {});
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token);
         else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token);
+        else if (req.url === "/api/arena-buy-heart") result = await arenaBuyHeart(payload.token);
         else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned, payload.matchId);
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);

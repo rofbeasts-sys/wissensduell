@@ -3466,6 +3466,262 @@ Beschreibung statt Sperrtext, Klick ist wirklich aktiv, Arena bleibt korrekt
 gesperrt, Deutsch funktioniert unverändert, eine dritte Sprache ohne eigene
 Datenbank (Französisch) bleibt weiterhin korrekt gesperrt.
 
+## 8xxx. Brain Test wirklich komplett auf Englisch + "(WIFI)" entfernt
+
+Zu Recht gemeldet: die englischen FRAGEN funktionierten schon, aber der
+ganze Rahmen drumherum war weiterhin fest auf Deutsch - Klassenübersicht
+("Klasse 1", "Bestanden", "Aktuell", "Noch nicht erreicht", "Übung 50
+Fragen · ab 45 richtig"), der Zwischenbildschirm vor dem Test, der
+Fragenkopf ("Frage 1 von 50"), und vor allem der komplette Ergebnisbildschirm
+("RUNDE BEENDET", "Richtige Antworten", "Haupttest freigeschaltet" usw.).
+Alles davon war fest in deutschen Text geschrieben, nicht über das
+Sprachsystem geführt.
+
+Jetzt läuft der komplette Brain-Test-Ablauf (alle 4 Bildschirme) bei
+Englisch wirklich durchgehend auf Englisch - "Class 1" statt "Klasse 1",
+"ROUND OVER" statt "RUNDE BEENDET", "Main test for Class 1 unlocked!" statt
+"Haupttest für Klasse 1 freigeschaltet!" usw. Auch "Klasse 1" selbst wird
+jetzt sprachabhängig erzeugt (neue Funktion `klasseName()`), nicht mehr als
+fester deutscher Text im Datensatz gespeichert.
+
+**Zusätzlich**: "PARTY (WIFI)" heißt jetzt wieder schlicht "PARTY ROOM" -
+der "(WIFI)"-Zusatz im Titel ist raus, genau wie im deutschen Original
+("PARTY RAUM" ohne Zusatz; die Beschreibung erwähnt das Netzwerk ohnehin
+schon im Fließtext).
+
+Mit einem echten Browser (Playwright) alle vier Bildschirme nachgesehen und
+bestätigt: durchgehend Englisch, kein deutsches Wort mehr übrig.
+
+Getestet: Klassenübersicht, Zwischenbildschirm, Fragenkopf und
+Ergebnisbildschirm jeweils stichprobenartig auf alle wichtigen Textstellen
+geprüft (keine deutschen Reste mehr), Deutsch bleibt bei allen vier
+Bildschirmen unverändert nutzbar, "PARTY ROOM" ohne "WIFI"-Zusatz bei
+Englisch, "PARTY RAUM" unverändert bei Deutsch.
+
+## 8yyy. Order of Speed: Level 1 war viel zu schwer
+
+Gemeldet: kommt kaum über Level 7 hinaus, Level 1 schon zu schwer. Grund
+gefunden: die Zahlen wurden von **Level 1 an** aus dem kompletten Bereich
+1-1000 gezogen - man musste also direkt beim Einstieg dreistellige Zahlen
+wie 847, 391, 605 unter Zeitdruck vergleichen, noch bevor sich überhaupt
+etwas bewegt (ab Level 4) oder flackert (ab Level 7).
+
+Jetzt wächst der Zahlenbereich mit dem Level, dieselbe 5-Level-Stufung wie
+beim Speed-Math-Meilenstein:
+
+- Level 1-5: nur 1-20 (einstellige/kleine zweistellige Zahlen)
+- Level 6-10: 1-50
+- Level 11-15: 1-100
+- Level 16-20: 1-250
+- Level 21-25: 1-500
+- ab Level 26: der volle Bereich 1-1000
+
+Dadurch landet man bei Level 7 (wo das Flackern einsetzt) immer noch im
+überschaubaren 1-50-Bereich, statt gleichzeitig mit Bewegung/Flackern auch
+noch dreistellige Zahlen vergleichen zu müssen.
+
+Mit einem echten Browser nachgesehen: Level 1 zeigt jetzt tatsächlich
+kleine, leicht zu vergleichende Zahlen (1, 9, 10, 11, 19 statt z.B. 12, 58,
+391, 605, 847).
+
+Getestet: Zahlenbereich wächst stufenweise und erreicht ab Level 26
+wirklich wieder den vollen Bereich (nicht für immer bei 500 gedeckelt - das
+war ein eigener kleiner Fehler beim ersten Entwurf dieser Änderung, noch
+vor dem Testen aufgefallen und korrigiert), bestehender Test auf den
+Zahlenbereich pro Runde wurde auf den jetzt level-abhängigen Wert
+umgestellt statt fest 1-1000 anzunehmen.
+
+## 8zzz. Order of Speed: Zeit pro Zahl, genau wie beim Meilenstein
+
+Auf Wunsch: zusätzlich zur Gesamtzeit der Runde (60-180s) läuft jetzt für
+**jede einzelne Zahl** eine eigene Uhr, genau nach demselben Prinzip wie
+beim Speed-Math-Meilenstein-Modus:
+
+- Level 1: 6 Sekunden, um die nächste richtige Zahl zu finden und
+  anzutippen
+- wird pro Schwierigkeitsstufe knapper (dieselbe Formel wie beim
+  Meilenstein), nie unter 2,5 Sekunden
+- Zeit abgelaufen zählt **genau wie ein falscher Tipp**: ein Fehlversuch
+  mehr, sofort eine neue Runde mit neuen Zahlen
+- Rechtzeitig richtig getippt (auch mitten in einer Runde, bei der nächsten
+  Zahl) setzt die Zeit wieder auf die volle Länge zurück
+- Eigene, zweite Zeitleiste unter der Level-Fortschrittsanzeige (Farbverlauf
+  Cyan → Pink)
+
+Technisch dieselbe Fließkomma-Toleranzschwelle (0,05 statt exakt 0) wie beim
+Meilenstein übernommen, damit der Ablauf nicht durch Rechenungenauigkeit
+einen Wimpernschlag zu spät auslöst.
+
+Getestet: Zeitformel identisch zur Meilenstein-Formel, abgelaufene Zeit
+zählt wie ein Fehlversuch (neue Runde, kein Punktabzug), rechtzeitige
+richtige Antwort setzt die Zeit zurück, kein Timer-Leck beim Verlassen,
+Zeitleiste erscheint auf dem Spielbildschirm. Mit einem echten Browser
+nachgesehen und bestätigt.
+
+## 8aaa2. Einordnen & Mehr oder Weniger: mehr Kategorien + Themen-Gruppierung + kein redundanter Präfix mehr
+
+Auf Wunsch gleich drei Verbesserungen:
+
+**1. Themen-Gruppierung in der Kategorie-Auswahl** – statt einer langen,
+unsortierten Liste zeigt die Solo-Auswahl bei Einordnen und Mehr oder
+Weniger jetzt Überschriften wie bei einer Gemini-Vorschlagsliste: "Sport",
+"Geld & Wirtschaft", "Natur & Wissenschaft", "Kultur & Unterhaltung",
+"Geografie", "Alltag & Kurioses", "Kurioses & Vergleiche", "Deutsches TV".
+Jede der (jetzt 60) Kategorien ist einer Gruppe zugeordnet.
+
+**2. 18 neue Kategorien**, genau in den gewünschten Richtungen:
+- Einordnen (10 neu): Fußball-Länderspieltore, Champions-League-Titel,
+  Vereinswert, Weltmeistertitel nach Land, Stadion-Kapazität, Lebensmittel-
+  Kalorien, Fast-Food-Kalorien, Tier-Zungenlänge, Tier-Herzschlag, Sprachen
+  nach Sprecherzahl
+- Mehr oder Weniger (8 neu): Fußball-Jahresgehalt, Streamer-Einnahmen,
+  Spotify-Streams, Film-Produktionsbudget, YouTube-Abonnenten,
+  Unternehmensumsatz, Lebensmittel-Kalorien, Tier-Lebenserwartung
+
+Fußball ist jetzt mit 5 verschiedenen Blickwinkeln vertreten statt nur
+einem (Kaderwert), genau wie gewünscht ("Höhe, Länge, Wert, Siege, usw.").
+
+**3. Redundanter Präfix entfernt** – wo man ohnehin schon im Modus
+"Einordnen" oder "Mehr oder Weniger" ist, steht nicht mehr "Einordnen:
+Fußball..." als Titel, sondern nur noch "Fußball...". Gilt für die
+Kategorie-Chips in der Auswahl UND für den Titel während des Spiels selbst.
+(Die Rundenplan-Vorschau im Mehrspieler-Aufbau, die mehrere verschiedene
+Rundentypen gemischt zeigt, behält den Präfix bewusst - dort hilft er beim
+Unterscheiden.)
+
+Beim Testen zwei echte Fehler gefunden und behoben:
+- Die Werte der neuen Kategorien waren anfangs nicht auf die angegebene
+  Einheit skaliert (z.B. "Mio. €" in der Beschriftung, aber Rohzahlen in
+  den Millionen als Wert) - vor dem Speichern korrigiert.
+- Das neue Gruppen-Feld kam beim Client zunächst gar nicht an, weil eine
+  Stelle im Server nur drei bestimmte Felder durchgereicht hat - ergänzt.
+- Eine bereits bestehende Kategorie ("Planeten nach Durchmesser") hatte gar
+  keine seedId (das Element, das garantiert in jeder Runde vorkommt) - war
+  kein Absturzrisiko, aber inkonsistent zu allen anderen Kategorien, jetzt
+  ergänzt.
+
+Getestet: alle 60 Kategorien (inkl. aller neuen) strukturell gültig
+(Werteanzahl, eindeutige IDs, gültige Reihenfolge, Einheit, Themengruppe,
+gültige seedId), topicGroup kommt nachweislich beim Client an (echter
+Server-Test), shortLabel() entfernt den Präfix korrekt, gruppierte Anzeige
+zeigt Überschriften nur wo sinnvoll (Kategorien ohne Gruppe bleiben flache
+Liste), ein echter Testdurchlauf im Spiel selbst bestätigt den fehlenden
+Präfix. Mit einem echten Browser nachgesehen und bestätigt.
+
+## 8bbb2. Nenn's Blitz: dieselbe Themen-Gruppierung + 8 neue Kategorien
+
+Auf Wunsch dasselbe Prinzip wie gerade eben bei Einordnen/Mehr oder
+Weniger, jetzt auch für Nenn's Blitz. Da Nenn's Blitz keinen Solo-Modus hat
+(braucht echte Mitspieler zum Bewerten), läuft die Kategorie-Wahl über den
+Mehrspieler-Rundenbau - genau dort ist die Gruppierung jetzt eingebaut:
+ohne aktive Suche zeigt die Kategorie-Liste Themen-Überschriften ("Geografie",
+"Natur & Wissenschaft", "Entertainment & Medien", "Deutsches TV", "Sport",
+"Alltag, Konsum & Marken"), bei aktiver Suche bleibt es bei einer schlichten
+Trefferliste (Überschriften wären dort nur im Weg).
+
+**8 neue Kategorien**, genau wie im Beispiel-Screenshot gewünscht:
+- Alltag, Konsum & Marken: Autorennen/Automarken, Social-Media-Plattformen,
+  Technologie-Marken & Gadgets, Getränke (alkoholfrei & alkoholisch)
+- Entertainment & Medien: Hollywood-Schauspieler:innen, Bekannte Film-Genres,
+  Videospiel-Klassiker, Streaming-Dienste & TV-Sender
+
+Alle 8 sind international spielbar (nicht germanOnly), passend zur letzten
+Erweiterung. Alle bisherigen 33 Kategorien haben jetzt ebenfalls eine
+Themengruppe nachgetragen bekommen - macht zusammen 41 Kategorien.
+
+Getestet: alle Kategorien haben eine Gruppe, die 8 neuen sind korrekt
+zugeordnet und international spielbar, topicGroup kommt beim Client an
+(echter Server-Test, auch bei Englisch), Rundenbau zeigt die Überschriften
+ohne Suche und eine flache Trefferliste mit Suche, Präfix "Nenn's Blitz: "
+ist in der Liste weg, Bundesländer bleiben bei Englisch weiterhin
+ausgeschlossen (keine Regression). Mit einem echten Browser nachgesehen und
+bestätigt.
+
+## 8ccc2. Aufräumarbeiten: veraltete Texte raus, Statistik überarbeitet + farbig
+
+Mehrere kleine, auf Wunsch gemeldete Dinge:
+
+- **"Alle Geräte müssen im selben WLAN sein..."** (Party-Raum-Eingangsbildschirm)
+  und **"Andere Geräte treten mit dem Code bei, sobald sie diese Seite im
+  selben WLAN geöffnet haben"** (Lobby) sind raus - war veraltet, seit Party
+  Raum auch allgemein online läuft, nicht nur im selben WLAN.
+- **"Alle Daten werden lokal in deinem Browser gespeichert."** (Fußzeile im
+  Hauptmenü) ist raus - war seit den Konten/Freunden/Chat nicht mehr
+  durchgehend korrekt.
+- **"Eigener Modus – Solo oder mit Freunden"** auf den Mini-Spiel-Kacheln
+  (Einordnen, Mehr oder Weniger, Nenn's Blitz, Musik raten) ist raus. Der
+  Sperrhinweis ("Nur auf Deutsch verfügbar") bleibt bei den entsprechend
+  gesperrten Kacheln weiterhin bestehen.
+- **Statistik zeigt bei einem angemeldeten Konto nicht mehr zusätzlich alte
+  lokale Profile.** Das sah aus wie eine zweite, fremde Statistik, war aber
+  nur ein älteres, lokal auf dem Gerät gespeichertes Profil von vor der
+  Konto-Erstellung. Ohne Konto werden lokale Profile weiterhin ganz normal
+  angezeigt.
+- **Chronologie und Bild erraten** (beide aktuell nicht spielbar, siehe
+  schon länger bestehender Hinweis im Code) **erscheinen nicht mehr** in der
+  Spielmodus-Übersicht der Statistik. Falls sie zurückkommen, reicht es, die
+  entsprechenden Zeilen in `MODE_STAT_DEFS` wieder einzukommentieren -
+  eventuell schon vorhandene gespeicherte Werte für diese beiden Modi bleiben
+  unangetastet erhalten, sind nur unsichtbar.
+- **Statistik-Karten jetzt farbig statt einheitlich grau**: Siege (Lime),
+  Niederlagen (Pink), Siegquote (Cyan), Runden gespielt (Blau-Violett),
+  Arena-Werte (Orange) haben jetzt jeweils eine eigene Akzentfarbe. Die
+  Spielmodus-Karten (Einordnen, Mehr oder Weniger, Musik raten, Speed Math,
+  Order of Speed) haben jetzt zusätzlich ein Icon und eine individuelle
+  Farbe für Zahlen und oberen Rand.
+
+Mit einem echten Browser nachgesehen und bestätigt.
+
+Getestet: alle entfernten Texte kommen nirgends mehr vor, Sperrhinweis
+bleibt für tatsächlich gesperrte Kacheln erhalten, angemeldetes Konto zeigt
+kein zusätzliches altes lokales Profil mehr, ohne Konto funktioniert die
+lokale Profilanzeige weiterhin wie gewohnt, Chronologie/Bild erraten
+erscheinen nicht mehr in der Statistik (die anderen Modi weiterhin schon),
+Statistik-Karten haben nachweislich unterschiedliche Farbklassen und
+individuelle Modus-Farben/Icons.
+
+## 8ddd2. Neu: Münzen-Shop (Herzen in Arena & Meilenstein auffüllen)
+
+Auf Wunsch eine komplett neue kleine Wirtschaft:
+
+**Münzen verdienen:**
+- +5 Münzen pro **neu freigeschaltetem Erfolg** (nicht erneut bei bereits
+  freigeschalteten)
+- +10 Münzen pro **bestandenem Haupttest** im Brain Test (auch bei
+  Wiederholungen, nicht beim Übungstest) - mit sichtbarer "🪙 +10 Münzen
+  verdient!"-Meldung direkt im Ergebnisbildschirm
+
+**Neuer Shop-Bildschirm** (🪙-Knopf im Hauptmenü, neben Statistik/Erfolge):
+zeigt den aktuellen Münzstand und zwei Kaufoptionen:
+- **Speed-Math-Meilenstein-Herz** (15 Münzen) - rein clientseitig
+  abgewickelt, genau wie die Meilenstein-Herzen selbst schon immer
+  clientseitig verwaltet wurden; bei einem Konto wird das Ergebnis danach
+  ganz normal mitsynchronisiert
+- **Arena-Herz** (20 Münzen) - **serverautoritativ** geprüft und
+  abgewickelt (neuer Endpunkt `/api/arena-buy-heart`), da Arena-Herzen
+  schon immer serverseitig verwaltet werden und ein Kauf das nicht
+  unterlaufen darf. Braucht ein Konto (wie Arena selbst) - ohne Konto zeigt
+  der Shop stattdessen einen Hinweis statt eines kaputten Kaufversuchs.
+
+Wichtig: Käufe füllen Herzen **nie über das normale Tageskontingent
+hinaus** auf (max. 3 bei beiden) - sonst würde der Shop den eigentlichen
+Sinn der Herzen als Tagesbremse komplett aushebeln. Mehrfache Kaufversuche
+bei bereits vollen Herzen werden abgelehnt, ohne Münzen abzuziehen.
+
+Mit einem echten Server durchgespielt: Konto registriert, Münzen und ein
+verbrauchtes Arena-Herz gesetzt, beide Käufe tatsächlich getätigt und das
+Ergebnis (Münzstand sinkt, Herzen steigen) bestätigt - sowohl für ein Konto
+als auch für ein lokales Profil (dort zeigt Arena korrekt den
+Konto-Hinweis statt einer Kaufoption).
+
+Getestet: Münzvergabe bei neu freigeschalteten Erfolgen und bestandenen
+Haupttests (nicht bei Übungstests, nicht bei nicht bestandenen Tests),
+Meilenstein-Kauf clientseitig in allen Fällen (Erfolg, zu wenig Münzen,
+bereits voll), Arena-Kauf serverseitig in allen Fällen inkl. mehrfacher
+Kaufversuche bei vollen Herzen (kostet nie mehrfach Münzen), Shop-Bildschirm
+zeigt Münzstand und beide Optionen korrekt je nach Konto-Status, Shop ist
+vom Hauptmenü aus erreichbar.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
