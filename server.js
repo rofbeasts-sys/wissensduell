@@ -18,6 +18,8 @@
  * ---------------------------------------------------------------------------
  */
 const http = require("http");
+const https = require("https");
+const querystring = require("querystring");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -3273,6 +3275,129 @@ async function arenaBuyHeart(token) {
   return { ok: true, coins: user.stats.coins, hearts: user.stats.arenaHearts, maxHearts: ARENA_DAILY_HEARTS };
 }
 
+/* ============================================================================
+   ECHTGELD-SHOP: Münzen per Stripe Checkout kaufen.
+   Bewusst OHNE das "stripe"-npm-Paket umgesetzt (dieses Projekt hat keine
+   Abhängigkeiten, nur eingebaute Node-Module) - Stripes Schnittstelle ist
+   eine ganz normale HTTPS-API, das reicht hier völlig.
+   Erst aktiv, wenn STRIPE_SECRET_KEY und STRIPE_WEBHOOK_SECRET als
+   Umgebungsvariablen gesetzt sind - ohne die zeigt der Shop einen klaren
+   Hinweis statt etwas kaputt zu machen.
+   ============================================================================ */
+const COIN_PACKAGES = [
+  { id: "small", coins: 100, priceCents: 99, label: "100 Münzen" },
+  { id: "medium", coins: 600, priceCents: 499, label: "600 Münzen" },
+  { id: "large", coins: 1500, priceCents: 999, label: "1500 Münzen" }
+];
+function stripeConfigured() {
+  return !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
+}
+// Rohe HTTPS-Anfrage an Stripes API (Formular-kodiert, wie Stripe es
+// erwartet - kein JSON). Der geheime Schlüssel geht als HTTP-Basic-Auth-
+// Benutzername (Stripe-Konvention), das Passwort bleibt leer.
+function stripeApiRequest(apiPath, formParams) {
+  return new Promise((resolve, reject) => {
+    const body = querystring.stringify(formParams);
+    const req = https.request({
+      hostname: "api.stripe.com", path: apiPath, method: "POST",
+      auth: process.env.STRIPE_SECRET_KEY + ":",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "Content-Length": Buffer.byteLength(body) }
+    }, (res) => {
+      let data = "";
+      res.on("data", chunk => { data += chunk; });
+      res.on("end", () => {
+        try { resolve({ status: res.statusCode, json: JSON.parse(data) }); }
+        catch (e) { resolve({ status: res.statusCode, json: null }); }
+      });
+    });
+    req.on("error", reject);
+    req.write(body);
+    req.end();
+  });
+}
+// Erstellt eine Stripe-Checkout-Session fuer ein Muenzpaket. origin ist die
+// eigene Basis-URL (z.B. "https://dein-spiel.onrender.com"), damit Stripe
+// nach der Zahlung dorthin zurueckleiten kann.
+async function shopCreateCheckout(token, packageId, origin) {
+  if (!stripeConfigured()) return { ok: false, error: "Der Münzen-Kauf ist noch nicht eingerichtet." };
+  if (!usersLoaded) return SERVICE_DOWN;
+  const user = findUserByToken(token);
+  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  const pkg = COIN_PACKAGES.find(p => p.id === packageId);
+  if (!pkg) return { ok: false, error: "Unbekanntes Paket." };
+  const params = {
+    mode: "payment",
+    "line_items[0][price_data][currency]": "eur",
+    "line_items[0][price_data][product_data][name]": pkg.label + " – Brain Pulse",
+    "line_items[0][price_data][unit_amount]": String(pkg.priceCents),
+    "line_items[0][quantity]": "1",
+    success_url: origin + "/?shop=success",
+    cancel_url: origin + "/?shop=cancel",
+    "metadata[username]": user.username,
+    "metadata[coins]": String(pkg.coins),
+    "metadata[packageId]": pkg.id
+  };
+  let resp;
+  try { resp = await stripeApiRequest("/v1/checkout/sessions", params); }
+  catch (e) { return { ok: false, error: "Verbindung zu Stripe fehlgeschlagen." }; }
+  if (resp.status !== 200 || !resp.json || !resp.json.url) {
+    return { ok: false, error: (resp.json && resp.json.error && resp.json.error.message) || "Stripe hat den Kauf abgelehnt." };
+  }
+  return { ok: true, url: resp.json.url };
+}
+// Stripes Signaturschema (ohne SDK nachgebaut): Header hat die Form
+// "t=<Zeitstempel>,v1=<Signatur>[,v0=...]". Erwartete Signatur ist
+// HMAC-SHA256(Webhook-Secret, "<Zeitstempel>.<Rohkoerper>") als Hex,
+// zeitkonstant verglichen. Zusaetzlich ein 5-Minuten-Toleranzfenster gegen
+// Replay-Angriffe mit abgefangenen alten Anfragen.
+function verifyStripeSignature(rawBody, sigHeader, secret) {
+  if (!sigHeader || typeof sigHeader !== "string") return false;
+  const parts = Object.fromEntries(sigHeader.split(",").map(kv => kv.split("=")));
+  const timestamp = parts.t, signature = parts.v1;
+  if (!timestamp || !signature) return false;
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false; // 5 Minuten Toleranz
+  const expected = crypto.createHmac("sha256", secret).update(timestamp + "." + rawBody).digest("hex");
+  const a = Buffer.from(expected, "hex"), b = Buffer.from(signature, "hex");
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+// Verarbeitet ein tatsaechlich verifiziertes "checkout.session.completed"-
+// Ereignis: schreibt die Muenzen gut. Eigene Funktion (statt direkt im
+// Webhook-Handler), damit sich das ohne echte Stripe-Signatur testen laesst.
+// Idempotent ueber eine kurze Liste bereits verarbeiteter Session-IDs pro
+// Nutzer - Stripe kann denselben Webhook mehrfach zustellen (Netzwerk-
+// Wiederholungen), das darf nie doppelt Muenzen gutschreiben.
+const STRIPE_PROCESSED_SESSIONS_KEEP = 20;
+async function creditStripeCoins(session) {
+  const meta = session.metadata || {};
+  const username = meta.username;
+  const coins = Number(meta.coins);
+  if (!username || !Number.isFinite(coins) || coins <= 0) return { ok: false, error: "Unvollständige Metadaten." };
+  const user = findUserByName(username);
+  if (!user) return { ok: false, error: "Nutzer nicht gefunden." };
+  user.processedCheckoutSessions = user.processedCheckoutSessions || [];
+  if (user.processedCheckoutSessions.includes(session.id)) return { ok: true, alreadyProcessed: true };
+  user.stats.coins = (user.stats.coins || 0) + Math.round(coins);
+  user.processedCheckoutSessions.push(session.id);
+  if (user.processedCheckoutSessions.length > STRIPE_PROCESSED_SESSIONS_KEEP) {
+    user.processedCheckoutSessions = user.processedCheckoutSessions.slice(-STRIPE_PROCESSED_SESSIONS_KEEP);
+  }
+  await saveUsers();
+  return { ok: true, coinsCredited: Math.round(coins), newBalance: user.stats.coins };
+}
+async function handleStripeWebhook(rawBody, sigHeader) {
+  if (!stripeConfigured()) return { status: 503, body: "not configured" };
+  if (!verifyStripeSignature(rawBody, sigHeader, process.env.STRIPE_WEBHOOK_SECRET)) {
+    return { status: 400, body: "invalid signature" };
+  }
+  let event;
+  try { event = JSON.parse(rawBody); } catch (e) { return { status: 400, body: "invalid json" }; }
+  if (event && event.type === "checkout.session.completed") {
+    await creditStripeCoins(event.data.object);
+  }
+  return { status: 200, body: "ok" };
+}
+
 async function arenaStartMatch(token) {
   if (!usersLoaded) return SERVICE_DOWN;
   const user = findUserByToken(token);
@@ -3410,6 +3535,28 @@ const SECURITY_HEADERS = {
 const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
 
 const server = http.createServer((req, res) => {
+  // Stripe-Webhook: braucht den UNVERAENDERTEN Rohkoerper fuer die
+  // Signaturpruefung (siehe verifyStripeSignature) - deshalb ein eigener
+  // Zweig statt der generischen JSON-Behandlung unten, die den Koerper
+  // bereits geparst haette.
+  if (req.method === "POST" && req.url === "/webhook/stripe") {
+    let body = "", tooBig = false;
+    req.on("error", () => {});
+    req.on("data", chunk => {
+      if (tooBig) return;
+      body += chunk;
+      if (body.length > MAX_API_BODY) { tooBig = true; body = ""; res.writeHead(413, SECURITY_HEADERS); res.end(); req.destroy(); }
+    });
+    req.on("end", async () => {
+      if (tooBig) return;
+      let out;
+      try { out = await handleStripeWebhook(body, req.headers["stripe-signature"]); }
+      catch (e) { console.error("[Stripe-Webhook-Fehler]", e && e.stack || e); out = { status: 500, body: "error" }; }
+      res.writeHead(out.status, { "Content-Type": "text/plain", ...SECURITY_HEADERS });
+      res.end(out.body);
+    });
+    return;
+  }
   if (req.method === "POST" && typeof req.url === "string" && req.url.startsWith("/api/")) {
     let body = "";
     let tooBig = false;
@@ -3439,6 +3586,12 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token);
         else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token);
         else if (req.url === "/api/arena-buy-heart") result = await arenaBuyHeart(payload.token);
+        else if (req.url === "/api/shop-create-checkout") {
+          const proto = req.headers["x-forwarded-proto"] || (req.socket.encrypted ? "https" : "http");
+          const origin = proto + "://" + req.headers.host;
+          result = await shopCreateCheckout(payload.token, payload.packageId, origin);
+        }
+        else if (req.url === "/api/shop-packages") result = { ok: true, packages: COIN_PACKAGES };
         else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned, payload.matchId);
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);

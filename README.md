@@ -3722,6 +3722,133 @@ Kaufversuche bei vollen Herzen (kostet nie mehrfach Münzen), Shop-Bildschirm
 zeigt Münzstand und beide Optionen korrekt je nach Konto-Status, Shop ist
 vom Hauptmenü aus erreichbar.
 
+## 8eee2. Echtgeld-Münzenkauf (Stripe) – technisches Gerüst
+
+Auf Wunsch: Münzen lassen sich jetzt auch für echtes Geld kaufen, über
+Stripe Checkout. **Noch nicht sofort nutzbar** - braucht zuerst ein
+eigenes Stripe-Konto und zwei Schlüssel als Umgebungsvariablen, siehe
+Abschnitt "Einrichtung" unten. Ohne diese zeigt der Shop einen klaren
+Hinweis ("Der Münzen-Kauf ist noch nicht eingerichtet"), stürzt aber
+nirgends ab.
+
+**Drei feste Pakete** (Richtwerte, in `COIN_PACKAGES` in `server.js`
+jederzeit änderbar):
+- 100 Münzen – 0,99 €
+- 600 Münzen – 4,99 €
+- 1500 Münzen – 9,99 €
+
+**Wichtig zu Technik und Sicherheit:**
+- Bewusst **ohne das `stripe`-npm-Paket** umgesetzt - dieses Projekt hat
+  nie Abhängigkeiten gebraucht, nur eingebaute Node-Module. Stripes API ist
+  eine ganz normale HTTPS-Schnittstelle, das reicht hier völlig.
+- Der Ablauf: Client fordert eine Checkout-Session an
+  (`/api/shop-create-checkout`) → wird zu Stripes eigener, sicherer
+  Zahlungsseite weitergeleitet → zahlt dort (Kartendaten sehen wir nie) →
+  Stripe schickt **danach** einen Webhook an `/webhook/stripe` → **erst
+  dieser Webhook schreibt die Münzen gut**, nie der Rücksprung des Clients
+  allein (der wäre fälschbar - jemand könnte sonst einfach die
+  Erfolgs-Adresse aufrufen, ohne zu bezahlen).
+- Die Webhook-Signatur wird selbst nachgerechnet (Stripes dokumentiertes
+  Schema: HMAC-SHA256 aus Zeitstempel+Rohkörper, zeitkonstant verglichen,
+  5-Minuten-Toleranzfenster gegen wiederholte alte Anfragen).
+- Doppelt zugestellte Webhooks (Stripe wiederholt bei Netzwerkproblemen)
+  schreiben Münzen nur einmal gut (jede Konto merkt sich die letzten 20
+  bereits verarbeiteten Zahlungs-IDs).
+- Käufe sind an den **Kontonamen** gebunden (nicht an den Sitzungs-Token,
+  der könnte zwischen Kauf und Webhook ablaufen).
+
+**Einrichtung** (damit der Kauf wirklich funktioniert):
+1. Kostenloses Konto auf stripe.com anlegen
+2. Zwei Umgebungsvariablen beim Hosting-Anbieter setzen:
+   `STRIPE_SECRET_KEY` (aus dem Stripe-Dashboard) und
+   `STRIPE_WEBHOOK_SECRET` (beim Einrichten eines Webhooks im
+   Stripe-Dashboard auf `https://deine-seite.de/webhook/stripe` für das
+   Ereignis `checkout.session.completed` angezeigt)
+3. Fertig - sobald beide Variablen gesetzt sind, funktioniert der Kauf
+
+**Wichtiger Hinweis, der nichts mit Code zu tun hat** (siehe auch die
+Rückmeldung vor dieser Änderung): Sobald echtes Geld fließt, kommen in
+Deutschland in aller Regel ein angemeldetes Gewerbe, Impressumspflicht und
+ggf. Widerrufsrecht dazu - das ist keine Rechtsberatung, nur ein Hinweis,
+das vorher zu klären.
+
+Mit einem echten (selbst signierten) Webhook-Aufruf durchgetestet - echte
+Stripe-Testschlüssel habe ich hier nicht, konnte die eigentliche
+Checkout-Seite selbst deshalb nicht aufrufen, aber die komplette
+Webhook-Kette (Signaturprüfung, Gutschrift, doppelte Zustellung, falsche
+Signatur, abgelaufener Zeitstempel, falscher Ereignistyp) ist vollständig
+mit echten HTTP-Anfragen gegen den echten Server geprüft.
+
+Beim Testen zwei kleine, aber echte Fehler im Shop-Bildschirm selbst
+gefunden und behoben (betraf auch die bereits bestehenden
+Herz-Kauf-Knöpfe): die Bestätigungsmeldung nach einem Kauf wurde durch das
+anschließende Neuzeichnen des Bildschirms sofort wieder überschrieben,
+bevor man sie je zu sehen bekam.
+
+Getestet: ohne konfigurierte Schlüssel klare Fehlermeldung statt Absturz
+(sowohl beim Checkout-Start als auch am Webhook), alle drei Pakete korrekt
+abrufbar, Checkout-Erstellung lehnt ungültige Nutzer/Pakete ab, Webhook mit
+gültiger Signatur schreibt korrekt gut, falsche Signatur/falsches Secret/zu
+alter Zeitstempel werden allesamt abgelehnt, dreifach zugestellter Webhook
+schreibt nur einmal gut, andere Ereignistypen werden ignoriert (aber mit
+200 bestätigt, wie Stripe es erwartet), Shop-Bildschirm zeigt die drei
+Pakete mit korrekten Preisen bei einem Konto und nur einen Kontohinweis
+ohne Konto, Rückkehr von Stripe (?shop=success/cancel) wird erkannt und nur
+einmal angezeigt, die Bestätigungsmeldungen nach einem Kauf sind jetzt
+tatsächlich sichtbar.
+
+## 8fff2. Neuer Modus: Biologie – Körper entdecken (inkl. Sexualkunde)
+
+Auf Wunsch: ein neuer Solo-Modus "🧬 Biologie" im Hauptmenü. Eine Figur
+(Mann/Frau umschaltbar) mit antippbaren Körperstellen (Kopf, beide Hände,
+Herz, beide Füße direkt auf der Figur; Auge, Ohr, Lunge, Magen & Verdauung,
+Knochen & Skelett, Haut, Muskeln, Niere & Blase als Liste darunter, damit
+die Figur nicht überladen wird). Antippen startet 5 sachliche Fragen zu
+dieser Körperstelle (Schulbuch-Niveau, z.B. "Wie viele Knochen hat eine
+Hand?"). Beim ersten Abschluss eines Themas gibt es +3 Münzen, reiht sich
+also direkt in den bestehenden Münzen-Shop ein.
+
+**Sexualkunde als eigener, klar benannter Themenblock** (bewusst NICHT an
+eine Körperstelle auf der Figur gebunden, sondern wie im echten
+Biologiebuch ein eigenes Kapitel mit eigenem Button): Pubertät,
+Fortpflanzungsorgane, Menstruationszyklus, Schwangerschaft & Befruchtung,
+Verhütung & Gesundheit, Einverständnis & Grenzen - macht zusammen 6 Themen
+mit je 5 Fragen. Inhaltlich strikt auf dem Niveau, auf dem dieses Thema im
+echten deutschen Biologieunterricht ab Klasse 5/6 behandelt wird: rein
+sachlich-anatomisch und gesundheitsbezogen (z.B. "Wie heißt das Organ, in
+dem sich ein Embryo entwickelt?", "Welches Verhütungsmittel schützt
+zusätzlich vor Geschlechtskrankheiten?"). Das Thema "Einverständnis &
+Grenzen" behandelt explizit das Recht auf den eigenen Körper, "Nein sagen"
+und an wen man sich bei Problemen wenden kann (Vertrauenspersonen,
+Beratungsstellen) - selbst ein Standardbestandteil der schulischen
+Aufklärung.
+
+Insgesamt 90 neue Fragen (12 Körperteile × 5 + 6 Sexualkunde-Themen × 5),
+alle im selben Frage-Antwort-Format wie Brain Test, direkt im Client
+eingebettet (reiner Solo-Modus, keine Server-Daten nötig).
+
+**Bekannte Einschränkung**: der "schon abgeschlossen"-Status (verhindert
+mehrfache Münzen fürs selbe Thema) wird bei einem Konto aktuell nur
+innerhalb derselben Sitzung gemerkt, nicht dauerhaft servergespeichert -
+nach einem Neuladen der Seite ließe sich ein Thema theoretisch noch einmal
+für Münzen abschließen. Bei nur +3 Münzen pro Thema ist das Risiko gering,
+aber falls gewünscht lässt sich das bei Bedarf nachrüsten (ähnlich wie die
+Arena-Herzen serverseitig).
+
+Mit einem echten Browser durchgespielt: Mann/Frau-Umschaltung, ein
+kompletter 5-Fragen-Durchlauf (Herz) mit korrekter Münzvergabe, das
+Sexualkunde-Untermenü, Antworten mit Erklärung und "Weiter"-Button.
+
+Getestet: beide Fragenbanken strukturell gültig (4 Antworten, gültiger
+Index, Erklärung, keine Duplikate - auch bereichsübergreifend), inhaltliche
+Stichprobe auf sachliche Fachbegriffe statt umgangssprachlicher
+Formulierungen, Körperdiagramm zeigt Direkt-Hotspots + Restliste +
+Sexualkunde-Button, Mann/Frau-Umschaltung funktioniert, eine komplette
+Frage-Runde inkl. Antworten/Erklärung/Weiterschalten, Münzvergabe nur beim
+ersten Abschluss eines Themas (egal ob Körperteil oder Sexualkunde-Thema -
+eigene, getrennte Schlüssel verhindern Kollisionen), Abbrechen während
+einer Runde funktioniert sauber, Menüzugang vorhanden.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
