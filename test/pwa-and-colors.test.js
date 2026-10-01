@@ -31,7 +31,8 @@ const { ok, section, finish, startServer, get, loadClient, fs, path } = require(
   section("Service Worker: fängt nur die App-Hülle ab, rührt API/Audio/Fremdes nicht an");
   {
     const sw = fs.readFileSync(path.join(__dirname, "..", "public", "sw.js"), "utf8");
-    ok("Nutzt 'network-first' (fetch zuerst, Cache nur als Rückfallebene) für die Kernseite - nie 'cache-first' für die Seite selbst", /fetch\(req\)[\s\S]*?\.catch\(\(\) => caches\.match\(req\)\)/.test(sw));
+    ok("Nutzt 'network-first' (fetch zuerst, Cache nur als Rückfallebene) für die Kernseite - nie 'cache-first' für die Seite selbst", /fetch\(req\)[\s\S]*?\.catch\(\(\) =>[\s\S]*?caches\.match\(req\)/.test(sw));
+    ok("Fehlt sogar der Cache (z.B. allererster Start offline): eine Meldung statt eines kaputten/leeren Ladevorgangs", /cached \|\| new Response\(/.test(sw));
     ok("POST-Anfragen (die komplette /api/-Schnittstelle) werden ausdrücklich nie abgefangen", /req\.method !== "GET"\) return/.test(sw));
     ok("Alles außerhalb der App-Hülle/Icons (Audio, Fragen-Datensätze, Fremdes) wird ausdrücklich durchgereicht", /!isAppShellRequest\(url\) && !isStaticAsset\(url\)\) return/.test(sw));
   }

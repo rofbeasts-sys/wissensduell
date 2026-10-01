@@ -316,7 +316,7 @@ section("Client: Ereignisse -> Erfolge");
   // das ganze Level gewinnt (sonst wuerde p.speedMathLevel ungewollt
   // hochgezaehlt und spaetere Pruefungen unten verfaelschen) - hier geht es
   // nur darum, dass die Antwort fuer die "richtige Antworten"-Erfolge zaehlt.
-  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,streakTarget:99999,label:"T",level:1,tier:1},streak:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}}; speedMathLevelSubmit(2);');
+  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,streakTarget:99999,label:"T",level:1,tier:1,timeLimit:99},streak:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]},remaining:99,timerId:null}; speedMathLevelSubmit(2);');
   ok("Speed-Math-Level: richtige Aufgabe zaehlt", st().gen.correct === g0 + 3);
 
   // Party-Nachrichten

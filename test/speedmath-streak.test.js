@@ -20,7 +20,7 @@ const { ok, section, finish, loadClient } = require("./helpers");
   {
     const C = loadClient(); const { R } = C;
     R('var p=createProfile("T"); p.speedMathHearts=3;');
-    R('speedMathLevelSession = { profile:p, level:1, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:1,tier:1}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]} };');
+    R('speedMathLevelSession = { profile:p, level:1, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:1,tier:1,timeLimit:99}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}, remaining:99, timerId:null };');
     for (let i = 0; i < 3; i++) {
       R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]};');
       R('speedMathLevelSubmit(2);');
@@ -41,7 +41,7 @@ const { ok, section, finish, loadClient } = require("./helpers");
   {
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); p.speedMathLevel=1;');
-    R('speedMathLevelSession = { profile:p, level:1, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:1,tier:1}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]} };');
+    R('speedMathLevelSession = { profile:p, level:1, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:1,tier:1,timeLimit:99}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}, remaining:99, timerId:null };');
     for (let i = 0; i < 4; i++) {
       R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]};');
       R('speedMathLevelSubmit(2);');
@@ -57,7 +57,7 @@ const { ok, section, finish, loadClient } = require("./helpers");
   {
     const C = loadClient(); const { R } = C;
     R('var p=createProfile("T"); p.speedMathLevel=1; p.speedMathHearts=3;');
-    R('speedMathLevelSession = { profile:p, level:1, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:1,tier:1}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]} };');
+    R('speedMathLevelSession = { profile:p, level:1, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:1,tier:1,timeLimit:99}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}, remaining:99, timerId:null };');
     for (let i = 0; i < 4; i++) { R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]};'); R('speedMathLevelSubmit(2);'); }
     R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]};');
     R('speedMathLevelSubmit(999);'); // Fehler direkt VOR dem Ziel
@@ -68,7 +68,7 @@ const { ok, section, finish, loadClient } = require("./helpers");
   {
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); p.speedMathHearts=1;');
-    R('speedMathLevelSession = { profile:p, level:3, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:3,tier:1}, streak:2, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]} };');
+    R('speedMathLevelSession = { profile:p, level:3, config:{ops:["+"],maxOperand:10,streakTarget:5,label:"Test",level:3,tier:1,timeLimit:99}, streak:2, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}, remaining:99, timerId:null };');
     R('speedMathLevelSubmit(999);'); // letzter Fehler, Herzen auf 0
     ok("0 Herzen: Session beendet, kein Levelaufstieg", R('speedMathLevelSession') === null && R('p.speedMathLevel') !== 4);
     ok("Bildschirm zeigt 'KEINE HERZEN MEHR'", state.last.includes("KEINE HERZEN MEHR"));
@@ -78,10 +78,75 @@ const { ok, section, finish, loadClient } = require("./helpers");
   {
     const C = loadClient(); const { R } = C;
     R('var p=createProfile("T"); p.speedMathLevel=9;');
-    R('speedMathLevelSession = { profile:p, level:9, config:{ops:["+"],maxOperand:10,streakTarget:2,label:"Test",level:9,tier:2}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]} };');
+    R('speedMathLevelSession = { profile:p, level:9, config:{ops:["+"],maxOperand:10,streakTarget:2,label:"Test",level:9,tier:2,timeLimit:99}, streak:0, currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}, remaining:99, timerId:null };');
     R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSubmit(2);');
     R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSubmit(2);'); // Level 9 -> 10 bestanden
     ok("Level 10 erreicht: Erfolg 'Speed-Math-Level 10' schaltet sich frei", !!R('p.achv.unlocked.sm_level_10'));
+  }
+
+  section("Zeitdruck (auf Wunsch, sonst zu einfach): Zeit pro Aufgabe schrumpft mit dem Level");
+  {
+    const C = loadClient(); const { R } = C;
+    const cfg = (l) => R(`speedMathLevelConfig(${l})`);
+    ok("Level 1: 6 Sekunden pro Aufgabe", cfg(1).timeLimit === 6);
+    ok("Zeit wird mit steigendem Level knapper (Level 1 > Level 25 > Level 50)", cfg(1).timeLimit > cfg(25).timeLimit && cfg(25).timeLimit > cfg(50).timeLimit);
+    ok("Nie unter 2,5 Sekunden (bleibt spielbar)", cfg(50).timeLimit >= 2.5 && cfg(999).timeLimit >= 2.5);
+  }
+
+  section("Zeitdruck: abgelaufene Zeit zählt wie eine falsche Antwort");
+  {
+    const C = loadClient({ fakeTime: true }); const { R, advance } = C;
+    R('var p=createProfile("T"); speedMathProfile=p;');
+    R('startSpeedMathLevel();'); // setzt Herzen ueber speedMathRefreshHearts auf den Tagesstand (3)
+    ok("Zeit läuft beim Start mit der vollen Länge los", R('speedMathLevelSession.remaining') === R('speedMathLevelSession.config.timeLimit'));
+    const limit = R('speedMathLevelSession.config.timeLimit');
+    advance(limit * 1000 + 150); // knapp ueber die volle Zeit hinaus (nicht mehr, sonst tickt schon die naechste Aufgabe mit runter)
+    ok("Nach Ablauf der Zeit: ein Herz weg, Serie zurück auf 0 (wie bei einer falschen Antwort)", R('p.speedMathHearts') === 2 && R('speedMathLevelSession.streak') === 0);
+    ok("... und eine neue Aufgabe mit (nahezu) wieder voller Zeit ist da", Math.abs(R('speedMathLevelSession.remaining') - limit) < 0.15);
+  }
+
+  section("Zeitdruck: rechtzeitig richtig geantwortet setzt die Zeit für die nächste Aufgabe zurück");
+  {
+    const C = loadClient({ fakeTime: true }); const { R, advance } = C;
+    R('var p=createProfile("T"); speedMathProfile=p; startSpeedMathLevel();');
+    const limit = R('speedMathLevelSession.config.timeLimit');
+    advance((limit / 2) * 1000); // erst die Haelfte der Zeit verstreichen lassen
+    R('speedMathLevelSubmit(speedMathLevelSession.currentProblem.answer);'); // rechtzeitig richtig
+    ok("Nach rechtzeitiger richtiger Antwort läuft die Zeit für die nächste Aufgabe wieder voll", R('speedMathLevelSession.remaining') === limit);
+    ok("Kein Herzverlust bei rechtzeitiger richtiger Antwort", R('p.speedMathHearts') === (R('SPEEDMATH_DAILY_HEARTS')));
+  }
+
+  section("Zeitdruck: 0 Herzen durch Zeitablauf beendet die Runde korrekt (wie bei einer falschen Antwort)");
+  {
+    const C = loadClient({ fakeTime: true }); const { R, advance } = C;
+    R('var p=createProfile("T"); speedMathProfile=p; startSpeedMathLevel(); speedMathLevelSession.profile.speedMathHearts=1;');
+    const limit = R('speedMathLevelSession.config.timeLimit');
+    advance(limit * 1000 + 150);
+    ok("Bei 0 Herzen durch Zeitablauf: Sitzung beendet", R('speedMathLevelSession') === null);
+    ok("Ergebnisbildschirm zeigt 'KEINE HERZEN MEHR'", R('document.getElementById("app").innerHTML').includes("KEINE HERZEN MEHR"));
+    ok("Kein Timer bleibt aktiv im Hintergrund", C.activeIntervals() === 0);
+  }
+
+  section("Zeitdruck: kein Timer-Leck beim Verlassen, Levelaufstieg oder Rundenende");
+  {
+    const C = loadClient({ fakeTime: true }); const { R } = C;
+    R('var p=createProfile("T"); speedMathProfile=p; startSpeedMathLevel();');
+    ok("Timer läuft, solange gespielt wird", C.activeIntervals() > 0);
+    R('exitSpeedMathLevel();');
+    ok("'Zurück' räumt den Zeit-Timer sauber weg", C.activeIntervals() === 0);
+
+    R('startSpeedMathLevel(); speedMathLevelSession.config.streakTarget=1;');
+    R('speedMathLevelSubmit(speedMathLevelSession.currentProblem.answer);'); // Level sofort gewonnen
+    ok("Level gewonnen: auch dabei bleibt kein Timer aktiv", C.activeIntervals() === 0);
+  }
+
+  section("Anzeige: Zeitleiste erscheint auf dem Spielbildschirm, Übersicht nennt die Zeit pro Aufgabe");
+  {
+    const C = loadClient(); const { R, state } = C;
+    R('var p=createProfile("T"); startSpeedMathMilestoneFlow(p);');
+    ok("Übersichtsseite nennt die Sekunden pro Aufgabe", /\d(\.\d)?s pro Aufgabe/.test(state.last));
+    R('startSpeedMathLevel();');
+    ok("Spielbildschirm zeigt eine eigene Zeitleiste (zusätzlich zur Serien-Leiste)", state.last.includes('id="smLevelTimerFill"') && state.last.includes('id="smLevelTimerNum"'));
   }
 
   section("Anzeige: keine Reste des alten Punktesystems mehr auf den Bildschirmen");

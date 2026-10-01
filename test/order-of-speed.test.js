@@ -23,7 +23,8 @@ function realClick(R, fnName) {
       const r = R(`orderOfSpeedGenerateRound(${level})`);
       const expectedCount = R(`orderOfSpeedCountForLevel(${level})`);
       ok("Anzahl Zahlen entspricht der Stufe für dieses Level", r.display.length === expectedCount);
-      ok("Alle Zahlen im Bereich 1-1000", r.display.every(n => n >= 1 && n <= 1000));
+      const expectedMax = R(`orderOfSpeedMaxForLevel(${level})`);
+      ok("Alle Zahlen im für dieses Level passenden Bereich (wächst mit dem Level, nicht von Anfang an voll 1-1000)", r.display.every(n => n >= 1 && n <= expectedMax));
       ok("Keine doppelten Zahlen in einer Runde", new Set(r.display).size === r.display.length);
       if (r.rule === "asc") { asc++; ok("aufsteigend: Sequenz ist die sortierte (klein->gross) Liste aller Zahlen", JSON.stringify(r.sequence) === JSON.stringify(r.display.slice().sort((a,b)=>a-b))); }
       if (r.rule === "desc") { desc++; ok("absteigend: Sequenz ist die sortierte (gross->klein) Liste aller Zahlen", JSON.stringify(r.sequence) === JSON.stringify(r.display.slice().sort((a,b)=>b-a))); }
@@ -33,6 +34,64 @@ function realClick(R, fnName) {
     ok("Alle vier Regeln (inkl. neu: ungerade) kommen über viele Runden vor", asc>10 && desc>10 && even>10 && odd>10);
     ok("Schwierigkeit wächst mit dem Level: Level 1 hat weniger Zahlen als Level 9", R("orderOfSpeedCountForLevel(1)") < R("orderOfSpeedCountForLevel(9)"));
     ok("Zahlenanzahl ist bei 9 gedeckelt (passt auf den Kreis)", R("orderOfSpeedCountForLevel(999)") === 9);
+  }
+
+  section("Zahlenbereich (auf Wunsch entschärft): wächst mit dem Level, Level 1 nicht mehr voll 1-1000");
+  {
+    const C = loadClient(); const { R } = C;
+    ok("Level 1: kleiner, einsteigerfreundlicher Bereich (1-20)", R("orderOfSpeedMaxForLevel(1)") === 20);
+    ok("Level 5: noch im selben Bereich (1-20)", R("orderOfSpeedMaxForLevel(5)") === 20);
+    ok("Level 6: etwas größer (1-50)", R("orderOfSpeedMaxForLevel(6)") === 50);
+    ok("Level 7 (ab hier flackern die Zahlen): noch 1-50, nicht 1-1000 - genau das war vorher das Problem", R("orderOfSpeedMaxForLevel(7)") === 50);
+    ok("Bereich wächst mit dem Level stufenweise weiter (20 < 50 < 100 < 250 < 500 < 1000)", [1,6,11,16,21,26].map(l=>R(`orderOfSpeedMaxForLevel(${l})`)).every((v,i,a)=>i===0||v>a[i-1]));
+    ok("Erreicht irgendwann wieder den vollen Bereich bis 1000 (nicht für immer bei 500 gedeckelt)", R("orderOfSpeedMaxForLevel(26)") === 1000 && R("orderOfSpeedMaxForLevel(100)") === 1000);
+  }
+
+  section("Zeit pro Zahl (auf Wunsch, 'genauso wie beim Meilenstein'): Formel und Anzeige");
+  {
+    const C = loadClient(); const { R } = C;
+    ok("Level 1: 6 Sekunden pro Zahl (identisch zur Meilenstein-Formel)", R("orderOfSpeedTimeLimitForLevel(1)") === 6);
+    ok("Wird mit dem Level knapper", R("orderOfSpeedTimeLimitForLevel(1)") > R("orderOfSpeedTimeLimitForLevel(25)") && R("orderOfSpeedTimeLimitForLevel(25)") > R("orderOfSpeedTimeLimitForLevel(50)"));
+    ok("Nie unter 2,5 Sekunden", R("orderOfSpeedTimeLimitForLevel(999)") >= 2.5);
+  }
+
+  section("Zeit pro Zahl: abgelaufene Zeit zählt wie ein falscher Tipp");
+  {
+    const C = loadClient({ fakeTime: true }); const { R, advance } = C;
+    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(120);');
+    ok("Zeit läuft beim Rundenstart mit voller Länge los", R('orderOfSpeedSession.tapRemaining') === R('orderOfSpeedTimeLimitForLevel(orderOfSpeedSession.level)'));
+    const limit = R('orderOfSpeedTimeLimitForLevel(orderOfSpeedSession.level)');
+    advance(limit * 1000 + 150);
+    ok("Nach Ablauf der Zeit: ein Fehlversuch mehr (wie bei falschem Tipp)", R('orderOfSpeedSession.wrong') === 1);
+    ok("... und eine komplett neue Runde (neue Zahlen) ist da", R('orderOfSpeedSession.round') !== null);
+    ok("Punkte bleiben unangetastet (kein Punktabzug, nur wie ein Fehlversuch)", R('orderOfSpeedSession.points') === 0);
+  }
+
+  section("Zeit pro Zahl: rechtzeitig richtig getippt setzt die Zeit für die nächste Zahl zurück");
+  {
+    const C = loadClient({ fakeTime: true }); const { R, advance } = C;
+    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(120);');
+    const limit = R('orderOfSpeedTimeLimitForLevel(orderOfSpeedSession.level)');
+    advance((limit / 2) * 1000); // erst die Haelfte verstreichen lassen
+    R('orderOfSpeedTap(orderOfSpeedSession.round.sequence[0]);'); // rechtzeitig richtig
+    ok("Zeit für die nächste Zahl läuft wieder voll (keine Regression)", R('orderOfSpeedSession.tapRemaining') === limit);
+    ok("Kein Fehlversuch durch die rechtzeitige richtige Antwort", R('orderOfSpeedSession.wrong') === 0);
+  }
+
+  section("Zeit pro Zahl: kein Timer-Leck beim Verlassen oder Beenden");
+  {
+    const C = loadClient({ fakeTime: true }); const { R } = C;
+    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(120);');
+    ok("Zeit-Timer läuft während des Spiels", C.activeIntervals() > 0);
+    R('exitOrderOfSpeed();');
+    ok("'Zurück' räumt auch den neuen Zeit-Timer sauber weg", C.activeIntervals() === 0);
+  }
+
+  section("Zeit pro Zahl: Anzeige erscheint auf dem Spielbildschirm");
+  {
+    const C = loadClient(); const { R, state } = C;
+    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(120);');
+    ok("Eigene Zeitleiste pro Zahl ist da (zusätzlich zur Level-Leiste)", state.last.includes('id="oosTapTimerFill"') && state.last.includes('id="oosTapTimerNum"'));
   }
 
   section("Punkte: 100 pro richtigem Tipp, keine Punkte bei Fehlern");

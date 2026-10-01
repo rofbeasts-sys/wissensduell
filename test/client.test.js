@@ -47,7 +47,7 @@ section("Speed Math: Antwort-Kreise, Level-System, Sprint");
   // Ausfuehrliche Pruefung des Level-Systems (Serie statt Punkte, Herzverlust,
   // Levelaufstieg) steckt in test/speedmath-streak.test.js - hier nur der
   // Basis-Rauchtest, dass die Kernfunktion ueberhaupt erreichbar ist.
-  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,streakTarget:2,label:"T",level:1,tier:1},streak:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}}');
+  R('speedMathLevelSession={profile:p,level:1,config:{ops:["+"],maxOperand:10,streakTarget:2,label:"T",level:1,tier:1,timeLimit:99},streak:0,currentProblem:{a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]},remaining:99,timerId:null}');
   R('speedMathLevelSubmit(2)'); ok("Richtige Antwort erhöht die Serie", R('speedMathLevelSession.streak') === 1);
   R('speedMathLevelSession.currentProblem={a:1,b:1,op:"+",answer:2,choices:[2,3,4,5]}; speedMathLevelSubmit(9)');
   ok("Falsche Antwort setzt die Serie zurueck", R('speedMathLevelSession.streak') === 0);
