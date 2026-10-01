@@ -241,18 +241,29 @@
   .leaderboard-row .lright{ margin-left:auto; text-align:right; }
   .leaderboard-row .lpoints{ font-weight:800; font-size:17px; }
 
-  .stat-card{ background:var(--bg-alt); border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:10px; }
+  .shop-balance{ text-align:center; font-size:34px; font-weight:900; color:var(--warn); margin:10px 0 4px; }
+  .shop-item{ background:var(--bg-alt); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:14px; display:flex; flex-direction:column; gap:12px; }
+  .shop-item-head{ display:flex; align-items:center; gap:12px; }
+  .shop-item-head .icon{ font-size:28px; flex-shrink:0; }
+  .shop-item-title{ font-weight:800; font-size:15px; }
+  .shop-item-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .stat-card{ background:var(--bg-alt); border:1px solid rgba(198,255,61,.2); border-radius:14px; padding:16px 18px; margin-bottom:10px; }
   .stat-card .row1{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
   .stat-card .sname{ font-weight:800; font-size:16px; }
   .stat-mini{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  .stat-mini div{ background:var(--panel-2); border-radius:10px; padding:8px; text-align:center; }
-  .stat-mini .n{ font-weight:800; font-size:15px; }
-  .stat-mini .l{ font-size:10px; color:var(--text-dim); }
+  .stat-mini div{ background:var(--panel-2); border-radius:10px; padding:8px; text-align:center; border:1px solid var(--line); }
+  .stat-mini .n{ font-weight:800; font-size:16px; }
+  .stat-mini .l{ font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .stat-mini div.played{ border-color:rgba(124,139,255,.35); } .stat-mini div.played .n{ color:#9fb0ff; }
+  .stat-mini div.win{ border-color:rgba(198,255,61,.4); } .stat-mini div.win .n{ color:var(--accent); }
+  .stat-mini div.loss{ border-color:rgba(255,93,162,.4); } .stat-mini div.loss .n{ color:var(--danger); }
+  .stat-mini div.rate{ border-color:rgba(61,224,255,.4); } .stat-mini div.rate .n{ color:var(--accent-2); }
+  .stat-mini div.arena{ border-color:rgba(255,180,67,.4); } .stat-mini div.arena .n{ color:var(--warn); }
   .mode-stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; }
-  .mode-stat-card{ background:var(--panel-2); border-radius:10px; padding:10px 8px; text-align:center; min-width:0; }
+  .mode-stat-card{ background:var(--panel-2); border-radius:10px; padding:10px 8px; text-align:center; min-width:0; border:1px solid var(--line); border-top:2.5px solid var(--mc, var(--accent)); }
   .mode-stat-card .title{ font-size:12px; font-weight:700; margin-bottom:8px; overflow-wrap:break-word; }
   .mode-stat-card .values{ display:flex; justify-content:center; gap:18px; }
-  .mode-stat-card .values .n{ font-weight:800; font-size:17px; }
+  .mode-stat-card .values .n{ font-weight:800; font-size:17px; color:var(--mc, var(--accent)); }
   .mode-stat-card .values .l{ font-size:10px; color:var(--text-dim); }
 
   footer{ text-align:center; color:var(--text-dim); font-size:11px; margin-top:36px; }
@@ -277,6 +288,8 @@
   .builder-search:focus{ outline:none; border-color:var(--accent); }
   .builder-category-list{ display:flex; flex-direction:column; gap:6px; margin-top:8px; max-height:220px; overflow-y:auto; }
   .builder-category-item{ background:var(--bg-alt); border:1.5px solid var(--line); border-radius:10px; padding:10px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+  .builder-category-group-title{ font-size:11px; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em; margin:10px 0 2px; padding-left:2px; }
+  .builder-category-group-title:first-child{ margin-top:0; }
   .builder-category-item:hover{ border-color:var(--accent); }
   .builder-category-item.active{ border-color:var(--accent-2); background:color-mix(in srgb, var(--accent-2) 16%, var(--bg-alt)); color:var(--text); }
   .round-plan-list{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
@@ -1492,9 +1505,17 @@ const KLASSE_TESTS = KLASSEN.map(() => ({
   mainQuestions: BRAINTEST_MAIN_COUNT,
   mainNeeded: Math.ceil(BRAINTEST_MAIN_COUNT * BRAINTEST_MAIN_PCT)
 }));
+// "Klasse N" / "Class N" je nach Oberflächensprache - KLASSEN[i].name bleibt
+// als deutscher Basiswert stehen (u.a. für Achievements/Text, der immer
+// Deutsch ist), Anzeige-Texte laufen über diese Funktion.
+function klasseName(idx){
+  const n = Math.min(idx||0, KLASSEN.length-1) + 1;
+  return currentLang === "en" ? "Class " + n : "Klasse " + n;
+}
 function klassePillHtml(klasseIndex){
-  const k = KLASSEN[Math.min(klasseIndex||0, KLASSEN.length-1)] || KLASSEN[0];
-  return `<span class="rank-pill ${k.cls}"><span class="rank-dot"></span>${k.name}</span>`;
+  const idx = Math.min(klasseIndex||0, KLASSEN.length-1);
+  const k = KLASSEN[idx] || KLASSEN[0];
+  return `<span class="rank-pill ${k.cls}"><span class="rank-dot"></span>${klasseName(idx)}</span>`;
 }
 
 // Tic Tac Toe: eigene Gürtel-Rangliste (Anfänger bis Meister), bewusst
@@ -2177,14 +2198,20 @@ function saveProfiles(){
 // Bei Musik raten/Bild erraten wird nur "gespielt" gezählt, kein
 // "richtig" - dort läuft die Punktevergabe in Teilpunkten je Feld, nicht
 // als klares richtig/falsch wie bei den anderen drei.
+// Chronologie und Bild erraten sind auf Wunsch vorübergehend komplett aus
+// dem Spiel draußen (siehe DEDICATED_MODES weiter oben) - deshalb auch hier
+// nicht mehr in der Statistik-Anzeige, auch wenn ein altes Profil dafuer
+// noch gespeicherte Werte in modeStats haette (die bleiben dann einfach
+// unsichtbar, nicht geloescht - falls die Modi zurueckkommen, reicht es,
+// die beiden Zeilen hier wieder einzukommentieren).
 const MODE_STAT_DEFS = [
-  { key:"ordering",    label:"Einordnen",         tracksCorrect:true },
-  { key:"chronology",  label:"Chronologie",       tracksCorrect:true },
-  { key:"higherlower", label:"Mehr oder Weniger",  tracksCorrect:true },
-  { key:"music",       label:"Musik raten",       tracksCorrect:false },
-  { key:"picture",     label:"Bild erraten",      tracksCorrect:false },
-  { key:"speedmath",   label:"Speed Math",        tracksCorrect:true },
-  { key:"orderofspeed", label:"Order of Speed",   tracksCorrect:true }
+  { key:"ordering",    label:"Einordnen",         tracksCorrect:true,  icon:"🔢", color:"#c6ff3d" },
+  // { key:"chronology",  label:"Chronologie",       tracksCorrect:true },
+  { key:"higherlower", label:"Mehr oder Weniger",  tracksCorrect:true,  icon:"⚖️", color:"#3de0ff" },
+  { key:"music",       label:"Musik raten",       tracksCorrect:false, icon:"🎵", color:"#ff5da2" },
+  // { key:"picture",     label:"Bild erraten",      tracksCorrect:false },
+  { key:"speedmath",   label:"Speed Math",        tracksCorrect:true,  icon:"🧮", color:"#ffb443" },
+  { key:"orderofspeed", label:"Order of Speed",   tracksCorrect:true,  icon:"🔢", color:"#9fb0ff" }
 ];
 function freshModeStats(){
   const s = {};
@@ -2198,6 +2225,7 @@ function createProfile(name){
     correctAnswers:0, wrongAnswers:0, bestScore:0, tttRank:0, tttWinsAtRank:0,
     haupttestUnlockedForKlasse:-1,
     speedMathLevel:1, speedMathHearts:3, speedMathHeartsDate:null,
+    coins:0,
     achv: Achv.newState(),
     modeStats: freshModeStats() };
   profiles.push(p);
@@ -2484,6 +2512,7 @@ function accountAsProfile(){
     correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore, tttRank: p.tttRank || 0, tttWinsAtRank: p.tttWinsAtRank || 0,
     haupttestUnlockedForKlasse: typeof p.haupttestUnlockedForKlasse === "number" ? p.haupttestUnlockedForKlasse : -1,
     speedMathLevel: p.speedMathLevel || 1, speedMathHearts: typeof p.speedMathHearts === "number" ? p.speedMathHearts : 3, speedMathHeartsDate: p.speedMathHeartsDate || null,
+    coins: typeof p.coins === "number" ? p.coins : 0,
     modeStats: p.modeStats || freshModeStats(),
     isAccount: true
   };
@@ -2498,6 +2527,7 @@ async function syncAccountStats(profile){
       correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank, tttWinsAtRank: profile.tttWinsAtRank,
       haupttestUnlockedForKlasse: profile.haupttestUnlockedForKlasse,
       speedMathLevel: profile.speedMathLevel, speedMathHearts: profile.speedMathHearts, speedMathHeartsDate: profile.speedMathHeartsDate,
+      coins: profile.coins,
       achv: account.profile && account.profile.achv,
       modeStats: profile.modeStats
     }
@@ -2641,6 +2671,19 @@ function achvBerlinToday(){
   try{ return new Date().toLocaleDateString("sv-SE",{timeZone:"Europe/Berlin"}); }
   catch(e){ return new Date().toISOString().slice(0,10); }
 }
+// Münzen-Shop (auf Wunsch): Münzen fuellen Herzen in Arena und beim Speed-
+// Math-Meilenstein auf. Verdient werden sie durch neu freigeschaltete
+// Erfolge und bestandene Haupttests - beides Momente, die ohnehin schon
+// eine Erfolgsmeldung/einen Ergebnisbildschirm zeigen, der Muenzgewinn
+// reiht sich da natuerlich ein.
+const ACHV_COIN_REWARD = 5;      // pro neu freigeschaltetem Erfolg
+const HAUPTTEST_COIN_REWARD = 10; // pro bestandenem Haupttest (auch Wiederholungen)
+const ARENA_HEART_COST_CLIENT = 20; // nur fuer die Anzeige im Shop, die eigentliche Pruefung ist serverseitig
+const MILESTONE_HEART_COST = 15;
+function awardCoins(owner, amount){
+  if(!owner || !amount) return;
+  owner.coins = (owner.coins||0) + amount;
+}
 function achvEnsure(owner){
   if(!owner) return [];
   let newly = [];
@@ -2651,7 +2694,7 @@ function achvEnsure(owner){
   }
   // Taeglicher Streak: einmal pro Kalendertag zaehlen, unabhaengig vom obigen Merker
   newly = newly.concat(Achv.touchDaily(owner.achv, achvBerlinToday()));
-  if(newly.length){ achvToast(newly); achvPersist(owner); }
+  if(newly.length){ awardCoins(owner, newly.length * ACHV_COIN_REWARD); achvToast(newly); achvPersist(owner); }
   return newly;
 }
 let achvPersistTimer = null, achvDirtyOwner = null;
@@ -2676,7 +2719,7 @@ function achvRecord(evt, ownerHint){
   try{
     achvEnsure(owner);
     const newly = Achv.apply(owner.achv, evt);
-    if(newly.length) achvToast(newly);
+    if(newly.length){ awardCoins(owner, newly.length * ACHV_COIN_REWARD); achvToast(newly); }
     achvPersist(owner);
     return newly;
   }catch(e){ console.error("Erfolge:", e); return []; }
@@ -3126,7 +3169,7 @@ const I18N = {
 
   menu_solo_title: {de:"BRAIN TEST", en:"BRAIN TEST", ja:"BRAIN TEST", zh:"BRAIN TEST", fr:"BRAIN TEST", it:"BRAIN TEST", es:"BRAIN TEST"},
   menu_solo_desc: {de:"Spiele allein und verbessere deinen eigenen Punktestand und Rang.", en:"Play alone and improve your own score and rank.", ja:"一人でプレイして、自分のスコアとランクを上げよう。", zh:"独自游戏，提升你自己的分数和段位。", fr:"Joue seul et améliore ton propre score et ton rang.", it:"Gioca da solo e migliora il tuo punteggio e il tuo grado.", es:"Juega solo y mejora tu propia puntuación y rango."},
-  menu_party_title: {de:"PARTY RAUM", en:"PARTY (WIFI)", ja:"パーティー（Wi-Fi）", zh:"聚会模式（WiFi）", fr:"SOIRÉE (WIFI)", it:"PARTY (WIFI)", es:"FIESTA (WIFI)"},
+  menu_party_title: {de:"PARTY RAUM", en:"PARTY ROOM", ja:"パーティールーム", zh:"聚会房间", fr:"SALLE DE SOIRÉE", it:"STANZA PARTY", es:"SALA DE FIESTA"},
   menu_party_desc: {de:"Bis zu 6 Spieler auf eigenen Geräten im selben WLAN, mit Teams und mehreren Spielmodi.", en:"Up to 6 players on their own devices on the same network, with teams and multiple game modes.", ja:"同じネットワーク上で最大6人がそれぞれの端末で参加。チームと複数のゲームモード。", zh:"最多6名玩家在同一网络下用各自设备游玩，支持组队和多种模式。", fr:"Jusqu'à 6 joueurs sur leurs propres appareils sur le même réseau, avec équipes et plusieurs modes de jeu.", it:"Fino a 6 giocatori sui propri dispositivi nella stessa rete, con squadre e più modalità di gioco.", es:"Hasta 6 jugadores en sus propios dispositivos en la misma red, con equipos y varios modos de juego."},
   menu_ranking: {de:"RANKING", en:"RANKING", ja:"ランキング", zh:"排行榜", fr:"CLASSEMENT", it:"CLASSIFICA", es:"CLASIFICACIÓN"},
   menu_stats: {de:"STATISTIK", en:"STATISTICS", ja:"統計", zh:"统计", fr:"STATISTIQUES", it:"STATISTICHE", es:"ESTADÍSTICAS"},
@@ -3136,6 +3179,52 @@ const I18N = {
   solo_menu_sub: {de:"Wie möchtest du allein spielen?", en:"How do you want to play alone?", ja:"どのように一人でプレイしますか？", zh:"你想如何单人游玩？", fr:"Comment veux-tu jouer seul ?", it:"Come vuoi giocare da solo?", es:"¿Cómo quieres jugar solo?"},
   solo_quiz_title: {de:"WISSENSTEST", en:"QUIZ", ja:"クイズ", zh:"知识问答", fr:"QUIZ", it:"QUIZ", es:"CUESTIONARIO"},
   solo_quiz_desc: {de:"Der klassische Solo-Wissenstest: 5 Fragen, dein persönlicher Punktestand und Rang.", en:"The classic solo quiz: 5 questions, your personal score and rank.", ja:"定番のソロクイズ：5問、あなた自身のスコアとランク。", zh:"经典单人问答：5道题，你的个人分数与段位。", fr:"Le quiz solo classique : 5 questions, ton score et ton rang personnels.", it:"Il classico quiz in solitaria: 5 domande, il tuo punteggio e grado personali.", es:"El clásico cuestionario en solitario: 5 preguntas, tu puntuación y rango personales."},
+  braintest_title: {de:"BRAIN TEST", en:"BRAIN TEST", ja:"ブレインテスト", zh:"脑力测试", fr:"BRAIN TEST", it:"BRAIN TEST", es:"BRAIN TEST"},
+  braintest_overview_sub: {de:"alle Klassen im Überblick.", en:"all classes at a glance.", ja:"全クラスの概要。", zh:"所有班级一览。", fr:"toutes les classes en un coup d'œil.", it:"tutte le classi in un colpo d'occhio.", es:"todas las clases de un vistazo."},
+  braintest_passed: {de:"Bestanden", en:"Passed", ja:"合格", zh:"已通过", fr:"Réussi", it:"Superato", es:"Aprobado"},
+  braintest_current: {de:"Aktuell", en:"Current", ja:"現在", zh:"当前", fr:"Actuel", it:"Attuale", es:"Actual"},
+  braintest_not_reached: {de:"Noch nicht erreicht", en:"Not reached yet", ja:"未到達", zh:"尚未达到", fr:"Pas encore atteint", it:"Non ancora raggiunto", es:"Aún no alcanzado"},
+  braintest_practice_info: {de:"Übung {q} Fragen · ab {n} richtig", en:"Practice {q} questions · pass with {n} correct", ja:"練習{q}問 · {n}問正解で合格", zh:"练习{q}题 · 答对{n}题即通过", fr:"Entraînement {q} questions · réussite à {n} bonnes réponses", it:"Esercitazione {q} domande · supera con {n} corrette", es:"Práctica {q} preguntas · aprueba con {n} correctas"},
+  braintest_repeat: {de:"Test wiederholen", en:"Repeat test", ja:"テストをやり直す", zh:"重新测试", fr:"Refaire le test", it:"Ripeti il test", es:"Repetir prueba"},
+  braintest_repeat_title: {de:"Haupttest dieser Klasse erneut spielen ({n} Fragen)", en:"Replay this class's main test ({n} questions)", ja:"このクラスの本番テストをもう一度プレイ（{n}問）", zh:"重新进行该班级的正式测试（{n}题）", fr:"Rejouer le test principal de cette classe ({n} questions)", it:"Rigioca il test principale di questa classe ({n} domande)", es:"Repetir la prueba principal de esta clase ({n} preguntas)"},
+  braintest_start_practice: {de:"ÜBUNGSTEST STARTEN", en:"START PRACTICE TEST", ja:"練習テストを開始", zh:"开始练习测试", fr:"DÉMARRER LE TEST D'ENTRAÎNEMENT", it:"AVVIA TEST DI PRATICA", es:"INICIAR PRUEBA DE PRÁCTICA"},
+  braintest_continue_practice: {de:"ÜBUNGSTEST FORTSETZEN", en:"CONTINUE PRACTICE TEST", ja:"練習テストを続ける", zh:"继续练习测试", fr:"CONTINUER LE TEST D'ENTRAÎNEMENT", it:"CONTINUA TEST DI PRATICA", es:"CONTINUAR PRUEBA DE PRÁCTICA"},
+  braintest_start_main: {de:"HAUPTTEST STARTEN ({n} Fragen)", en:"START MAIN TEST ({n} questions)", ja:"本番テストを開始（{n}問）", zh:"开始正式测试（{n}题）", fr:"DÉMARRER LE TEST PRINCIPAL ({n} questions)", it:"AVVIA TEST PRINCIPALE ({n} domande)", es:"INICIAR PRUEBA PRINCIPAL ({n} preguntas)"},
+  braintest_unlock_hint: {de:"Ab 90% im Übungstest ({n} von {q}) schaltet sich der Haupttest mit {m} Fragen für {k} frei – der zählt für den Klassenaufstieg.", en:"Score 90% or more in the practice test ({n} of {q}) to unlock the main test with {m} questions for {k} – that's the one that counts for advancing.", ja:"練習テストで90%以上（{q}問中{n}問）正解すると、{k}の本番テスト（{m}問）が解放されます - 進級にはこちらが必要です。", zh:"练习测试达到90%（{q}题中答对{n}题）即可解锁{k}的正式测试（{m}题）- 该测试决定是否升级。", fr:"Obtiens 90% ou plus au test d'entraînement ({n} sur {q}) pour débloquer le test principal de {m} questions pour {k} – c'est celui qui compte pour la progression.", it:"Ottieni il 90% o più nel test di pratica ({n} su {q}) per sbloccare il test principale con {m} domande per {k} – è quello che conta per l'avanzamento.", es:"Consigue un 90% o más en la prueba de práctica ({n} de {q}) para desbloquear la prueba principal con {m} preguntas para {k} – esa es la que cuenta para avanzar."},
+  braintest_lets_go: {de:"LOS GEHT'S", en:"LET'S GO", ja:"スタート", zh:"开始", fr:"C'EST PARTI", it:"VIA", es:"¡VAMOS!"},
+  braintest_main_intro_repeat: {de:"Wiederholung Haupttest {k} (zählt nicht für den Aufstieg)", en:"Repeat main test {k} (doesn't count for advancing)", ja:"{k}の本番テストをやり直す（進級にはカウントされません）", zh:"重做{k}正式测试（不计入升级）", fr:"Refaire le test principal {k} (ne compte pas pour la progression)", it:"Ripeti il test principale {k} (non conta per l'avanzamento)", es:"Repetir prueba principal {k} (no cuenta para avanzar)"},
+  braintest_main_intro: {de:"Haupttest {k}{arrow}: {q} Fragen dieser Klasse · mindestens {n} richtig · insgesamt nur 1:30 Minuten für alle Fragen – nicht geschaffte zählen als falsch", en:"Main test {k}{arrow}: {q} questions from this class · at least {n} correct needed · only 1:30 minutes total for all questions – unanswered ones count as wrong", ja:"本番テスト {k}{arrow}：このクラスの{q}問 · 最低{n}問正解が必要 · 全問で1分30秒のみ - 未回答は不正解扱い", zh:"正式测试 {k}{arrow}：本班级{q}题 · 至少答对{n}题 · 所有题目共计1分30秒 - 未作答视为错误", fr:"Test principal {k}{arrow} : {q} questions de cette classe · au moins {n} bonnes réponses nécessaires · seulement 1:30 minute au total pour toutes les questions – celles sans réponse comptent comme fausses", it:"Test principale {k}{arrow}: {q} domande di questa classe · almeno {n} corrette necessarie · solo 1:30 minuti in totale per tutte le domande – quelle senza risposta contano come sbagliate", es:"Prueba principal {k}{arrow}: {q} preguntas de esta clase · se necesitan al menos {n} correctas · solo 1:30 minutos en total para todas las preguntas – las no respondidas cuentan como incorrectas"},
+  braintest_practice_intro: {de:"Übungstest {k}: alle {q} Fragen · mindestens {n} richtig (90%) · {t}s pro Frage · läuft komplett durch, egal wie es steht", en:"Practice test {k}: all {q} questions · at least {n} correct needed (90%) · {t}s per question · always runs through completely, no matter the score", ja:"練習テスト {k}：全{q}問 · 最低{n}問正解が必要（90%） · 1問あたり{t}秒 · 結果に関わらず最後まで続きます", zh:"练习测试 {k}：共{q}题 · 至少答对{n}题（90%） · 每题{t}秒 · 无论成绩如何都会完整进行", fr:"Test d'entraînement {k} : les {q} questions · au moins {n} bonnes réponses nécessaires (90%) · {t}s par question · se déroule entièrement, quel que soit le score", it:"Test di pratica {k}: tutte le {q} domande · almeno {n} corrette necessarie (90%) · {t}s per domanda · si svolge sempre per intero, indipendentemente dal punteggio", es:"Prueba de práctica {k}: las {q} preguntas · se necesitan al menos {n} correctas (90%) · {t}s por pregunta · siempre se completa entera, sin importar el resultado"},
+  braintest_question_count: {de:"Frage {x} von {y}", en:"Question {x} of {y}", ja:"質問 {x} / {y}", zh:"问题 {x} / {y}", fr:"Question {x} sur {y}", it:"Domanda {x} di {y}", es:"Pregunta {x} de {y}"},
+  braintest_correct_wrong: {de:"✓ {c} richtig · ✕ {w} falsch", en:"✓ {c} correct · ✕ {w} wrong", ja:"✓ {c}問正解 · ✕ {w}問不正解", zh:"✓ {c}题正确 · ✕ {w}题错误", fr:"✓ {c} bonnes · ✕ {w} fausses", it:"✓ {c} corrette · ✕ {w} sbagliate", es:"✓ {c} correctas · ✕ {w} incorrectas"},
+  braintest_answered_correct: {de:"Richtig beantwortet!", en:"Correct answer!", ja:"正解です！", zh:"回答正确！", fr:"Bonne réponse !", it:"Risposta corretta!", es:"¡Respuesta correcta!"},
+  braintest_answered_wrong: {de:"Das war leider falsch.", en:"That was wrong, unfortunately.", ja:"残念、不正解でした。", zh:"很遗憾，答错了。", fr:"Malheureusement, c'était faux.", it:"Purtroppo era sbagliato.", es:"Lamentablemente, era incorrecto."},
+  braintest_round_over: {de:"RUNDE BEENDET", en:"ROUND OVER", ja:"ラウンド終了", zh:"回合结束", fr:"MANCHE TERMINÉE", it:"ROUND TERMINATO", es:"RONDA TERMINADA"},
+  braintest_strong: {de:"Starke Leistung!", en:"Strong performance!", ja:"素晴らしい成績です！", zh:"表现出色！", fr:"Belle performance !", it:"Ottima prestazione!", es:"¡Gran actuación!"},
+  braintest_better_luck: {de:"Nächstes Mal klappt's besser.", en:"Next time will go better.", ja:"次はもっとうまくいきますよ。", zh:"下次会更好的。", fr:"La prochaine fois ira mieux.", it:"La prossima volta andrà meglio.", es:"La próxima vez irá mejor."},
+  braintest_new_rank: {de:"Neuer Rang erreicht: {k}!", en:"New rank reached: {k}!", ja:"新しいランクに到達：{k}！", zh:"达到新等级：{k}！", fr:"Nouveau rang atteint : {k} !", it:"Nuovo rango raggiunto: {k}!", es:"¡Nuevo rango alcanzado: {k}!"},
+  braintest_main_unlocked: {de:"🔓 Haupttest für {k} freigeschaltet!", en:"🔓 Main test for {k} unlocked!", ja:"🔓 {k}の本番テストが解放されました！", zh:"🔓 {k}的正式测试已解锁！", fr:"🔓 Test principal pour {k} débloqué !", it:"🔓 Test principale per {k} sbloccato!", es:"🔓 ¡Prueba principal de {k} desbloqueada!"},
+  braintest_correct_answers: {de:"Richtige Antworten (nötig: {n})", en:"Correct answers (needed: {n})", ja:"正解数（必要：{n}）", zh:"正确答案数（需要：{n}）", fr:"Bonnes réponses (nécessaire : {n})", it:"Risposte corrette (necessarie: {n})", es:"Respuestas correctas (necesarias: {n})"},
+  braintest_wrong_answers: {de:"Falsche Antworten", en:"Wrong answers", ja:"不正解数", zh:"错误答案数", fr:"Mauvaises réponses", it:"Risposte sbagliate", es:"Respuestas incorrectas"},
+  braintest_passed_big: {de:"✓ Bestanden", en:"✓ Passed", ja:"✓ 合格", zh:"✓ 已通过", fr:"✓ Réussi", it:"✓ Superato", es:"✓ Aprobado"},
+  braintest_failed_big: {de:"✕ Nicht bestanden", en:"✕ Not passed", ja:"✕ 不合格", zh:"✕ 未通过", fr:"✕ Échoué", it:"✕ Non superato", es:"✕ No aprobado"},
+  braintest_repeat_main_of: {de:"Wiederholung Haupttest {k}", en:"Repeat main test {k}", ja:"{k}の本番テストをやり直し", zh:"重做{k}正式测试", fr:"Répétition du test principal {k}", it:"Ripetizione test principale {k}", es:"Repetición prueba principal {k}"},
+  braintest_main_label: {de:"Haupttest", en:"Main test", ja:"本番テスト", zh:"正式测试", fr:"Test principal", it:"Test principale", es:"Prueba principal"},
+  braintest_practice_label: {de:"Übungstest", en:"Practice test", ja:"練習テスト", zh:"练习测试", fr:"Test d'entraînement", it:"Test di pratica", es:"Prueba de práctica"},
+  braintest_time_up: {de:" · ⏱ Zeit abgelaufen", en:" · ⏱ Time's up", ja:" · ⏱ 時間切れ", zh:" · ⏱ 时间到", fr:" · ⏱ Temps écoulé", it:" · ⏱ Tempo scaduto", es:" · ⏱ Se acabó el tiempo"},
+  braintest_needed_of: {de:" (nötig: {n}/{q})", en:" (needed: {n}/{q})", ja:"（必要：{n}/{q}）", zh:"（需要：{n}/{q}）", fr:" (nécessaire : {n}/{q})", it:" (necessarie: {n}/{q})", es:" (necesarias: {n}/{q})"},
+  braintest_current_class: {de:"Aktuelle Klasse", en:"Current class", ja:"現在のクラス", zh:"当前班级", fr:"Classe actuelle", it:"Classe attuale", es:"Clase actual"},
+  braintest_max_rank: {de:"Höchster Rang erreicht (vorerst)", en:"Highest rank reached (for now)", ja:"現時点での最高ランクに到達", zh:"已达到最高等级（暂时）", fr:"Rang le plus élevé atteint (pour l'instant)", it:"Rango più alto raggiunto (per ora)", es:"Rango más alto alcanzado (por ahora)"},
+  braintest_main_unlocked_repeatable: {de:"Haupttest ist freigeschaltet – jederzeit wiederholbar.", en:"Main test is unlocked – repeatable anytime.", ja:"本番テストが解放されています - いつでも再挑戦できます。", zh:"正式测试已解锁 - 随时可以重新挑战。", fr:"Le test principal est débloqué – rejouable à tout moment.", it:"Il test principale è sbloccato – ripetibile in qualsiasi momento.", es:"La prueba principal está desbloqueada – repetible en cualquier momento."},
+  braintest_main_unlock_at_90: {de:"Ab 90% im Übungstest wird der Haupttest freigeschaltet.", en:"Score 90% in the practice test to unlock the main test.", ja:"練習テストで90%以上正解すると本番テストが解放されます。", zh:"练习测试达到90%即可解锁正式测试。", fr:"Obtiens 90% au test d'entraînement pour débloquer le test principal.", it:"Ottieni il 90% nel test di pratica per sbloccare il test principale.", es:"Consigue un 90% en la prueba de práctica para desbloquear la prueba principal."},
+  braintest_repeat_again: {de:"NOCHMAL WIEDERHOLEN", en:"REPEAT AGAIN", ja:"もう一度やり直す", zh:"再次重做", fr:"REFAIRE ENCORE", it:"RIPETI ANCORA", es:"REPETIR DE NUEVO"},
+  braintest_to_overview: {de:"ZUR ÜBERSICHT", en:"TO OVERVIEW", ja:"概要へ", zh:"返回概览", fr:"VERS L'APERÇU", it:"VAI ALLA PANORAMICA", es:"VER RESUMEN"},
+  braintest_start_main_short: {de:"HAUPTTEST STARTEN", en:"START MAIN TEST", ja:"本番テストを開始", zh:"开始正式测试", fr:"DÉMARRER LE TEST PRINCIPAL", it:"AVVIA TEST PRINCIPALE", es:"INICIAR PRUEBA PRINCIPAL"},
+  braintest_practice_of: {de:"ÜBUNGSTEST {k}", en:"PRACTICE TEST {k}", ja:"練習テスト {k}", zh:"练习测试 {k}", fr:"TEST D'ENTRAÎNEMENT {k}", it:"TEST DI PRATICA {k}", es:"PRUEBA DE PRÁCTICA {k}"},
+  braintest_another_round: {de:"NOCH EINE RUNDE", en:"ANOTHER ROUND", ja:"もう一度プレイ", zh:"再来一轮", fr:"UNE AUTRE MANCHE", it:"UN ALTRO ROUND", es:"OTRA RONDA"},
+  braintest_main_menu: {de:"HAUPTMENÜ", en:"MAIN MENU", ja:"メインメニュー", zh:"主菜单", fr:"MENU PRINCIPAL", it:"MENU PRINCIPALE", es:"MENÚ PRINCIPAL"},
+  braintest_continue: {de:"WEITER", en:"CONTINUE", ja:"次へ", zh:"继续", fr:"CONTINUER", it:"CONTINUA", es:"CONTINUAR"},
+  braintest_to_results: {de:"ZUR RUNDENAUSWERTUNG", en:"TO RESULTS", ja:"結果へ", zh:"查看结果", fr:"VERS LES RÉSULTATS", it:"VAI AI RISULTATI", es:"VER RESULTADOS"},
   solo_quiz_locked: {de:"Der Wissenstest ist aktuell nur auf Deutsch und Englisch verfügbar. Wechsle die Sprache oben auf Deutsch oder Englisch, um ihn zu spielen.", en:"The quiz is currently only available in German and English. Switch the language above to German or English to play it.", ja:"クイズは現在ドイツ語と英語のみ対応しています。プレイするには上の言語をドイツ語か英語に切り替えてください。", zh:"该问答目前仅支持德语和英语。请将上方语言切换为德语或英语后再游玩。", fr:"Le quiz n'est actuellement disponible qu'en allemand et en anglais. Passe la langue ci-dessus à l'allemand ou à l'anglais pour y jouer.", it:"Il quiz è attualmente disponibile solo in tedesco e inglese. Cambia la lingua qui sopra in tedesco o inglese per giocarci.", es:"El cuestionario solo está disponible en alemán e inglés por ahora. Cambia el idioma de arriba a alemán o inglés para jugarlo."},
   solo_party_title: {de:"PARTY-MODUS", en:"PARTY MODE", ja:"パーティーモード", zh:"聚会模式", fr:"MODE SOIRÉE", it:"MODALITÀ PARTY", es:"MODO FIESTA"},
   solo_party_desc: {de:"Spiele allein mehrere Runden mit wechselnden Modi: Wissenstest, Einordnen, Mehr oder Weniger.", en:"Play several rounds alone with changing modes: quiz, ordering, higher-or-lower.", ja:"クイズ、並べ替え、オーバー・アンダーなど、モードを変えながら一人で複数ラウンドをプレイ。", zh:"独自游玩多轮不同模式：问答、排序、大小猜谜。", fr:"Joue seul plusieurs manches avec des modes variés : quiz, classement, plus ou moins.", it:"Gioca da solo più round con modalità diverse: quiz, ordinamento, più o meno.", es:"Juega varias rondas solo con modos variados: cuestionario, ordenar, más o menos."},
@@ -3147,7 +3236,7 @@ const I18N = {
   btn_leave_room: {de:"RAUM VERLASSEN", en:"LEAVE ROOM", ja:"ルームを退出", zh:"离开房间", fr:"QUITTER LA SALLE", it:"ABBANDONA STANZA", es:"SALIR DE LA SALA"},
   btn_confirm: {de:"BESTÄTIGEN", en:"CONFIRM", ja:"確定", zh:"确认", fr:"CONFIRMER", it:"CONFERMA", es:"CONFIRMAR"},
 
-  party_entry_title: {de:"PARTY RAUM", en:"PARTY (WIFI)", ja:"パーティー（Wi-Fi）", zh:"聚会模式（WiFi）", fr:"SOIRÉE (WIFI)", it:"PARTY (WIFI)", es:"FIESTA (WIFI)"},
+  party_entry_title: {de:"PARTY RAUM", en:"PARTY ROOM", ja:"パーティールーム", zh:"聚会房间", fr:"SALLE DE SOIRÉE", it:"STANZA PARTY", es:"SALA DE FIESTA"},
   party_entry_sub: {de:"Alle Geräte müssen im selben WLAN sein und diese Seite über die Adresse des Hosts geöffnet haben.", en:"All devices must be on the same network and have opened this page via the host's address.", ja:"すべての端末が同じネットワークに接続し、ホストのアドレスでこのページを開いている必要があります。", zh:"所有设备必须在同一网络下，并通过主机地址打开此页面。", fr:"Tous les appareils doivent être sur le même réseau et avoir ouvert cette page via l'adresse de l'hôte.", it:"Tutti i dispositivi devono essere sulla stessa rete e aver aperto questa pagina tramite l'indirizzo dell'host.", es:"Todos los dispositivos deben estar en la misma red y haber abierto esta página con la dirección del anfitrión."},
   party_name_placeholder: {de:"Dein Name", en:"Your name", ja:"あなたの名前", zh:"你的名字", fr:"Ton nom", it:"Il tuo nome", es:"Tu nombre"},
   party_create_room: {de:"RAUM ERSTELLEN", en:"CREATE ROOM", ja:"ルームを作成", zh:"创建房间", fr:"CRÉER UNE SALLE", it:"CREA STANZA", es:"CREAR SALA"},
@@ -3217,7 +3306,7 @@ function renderMainMenu(){
       <div class="mode-card ${locked ? 'locked' : ''}" onclick="${locked ? '' : `startDedicatedMenu('${gm}')`}" style="${locked ? 'opacity:.45; cursor:default;' : ''}">
         <div class="icon">${m.icon}</div>
         <h3>${m.title}</h3>
-        <p>${locked ? 'Nur auf Deutsch verfügbar' : 'Eigener Modus – Solo oder mit Freunden'}</p>
+        ${locked ? `<p>Nur auf Deutsch verfügbar</p>` : ``}
       </div>
     `;
   };
@@ -3275,8 +3364,9 @@ function renderMainMenu(){
     <div class="menu-secondary">
       <button class="btn btn-ghost" onclick="renderStatistik()">${t('menu_stats')}</button>
       <button class="btn btn-ghost" onclick="startAchievementsFlow()">🏆 Erfolge</button>
+      <button class="btn btn-ghost" onclick="startShopFlow()">🪙 Shop</button>
     </div>
-    <footer>${t('menu_footer')}</footer>
+
   `);
 }
 
@@ -3291,13 +3381,13 @@ function statCardHtml(p, extraArena){
       </div>
       <div class="picker-sub" style="margin:4px 0 8px;">${klassePillHtml(p.klasse||0)} <span style="margin-left:6px;">Aktuelle Klasse (Brain Test)</span></div>
       <div class="stat-mini">
-        <div><div class="n">${p.roundsPlayed}</div><div class="l">Runden gespielt</div></div>
-        <div><div class="n">${p.wins}</div><div class="l">Siege</div></div>
-        <div><div class="n">${p.losses}</div><div class="l">Niederlagen</div></div>
-        <div><div class="n">${winRate}%</div><div class="l">Siegquote</div></div>
+        <div class="played"><div class="n">${p.roundsPlayed}</div><div class="l">Runden gespielt</div></div>
+        <div class="win"><div class="n">${p.wins}</div><div class="l">Siege</div></div>
+        <div class="loss"><div class="n">${p.losses}</div><div class="l">Niederlagen</div></div>
+        <div class="rate"><div class="n">${winRate}%</div><div class="l">Siegquote</div></div>
         ${extraArena ? `
-        <div><div class="n">${extraArena.arenaPoints||0}</div><div class="l">Arena-Punkte</div></div>
-        <div><div class="n">${extraArena.arenaMatchesPlayed||0}</div><div class="l">Arena-Matches</div></div>
+        <div class="arena"><div class="n">${extraArena.arenaPoints||0}</div><div class="l">Arena-Punkte</div></div>
+        <div class="arena"><div class="n">${extraArena.arenaMatchesPlayed||0}</div><div class="l">Arena-Matches</div></div>
         ` : ``}
       </div>
       <div class="picker-sub" style="margin:16px 0 8px;">Nach Spielmodus:</div>
@@ -3305,8 +3395,8 @@ function statCardHtml(p, extraArena){
         ${MODE_STAT_DEFS.map(m => {
           const s = modeStats[m.key] || {played:0, correct:0};
           return `
-          <div class="mode-stat-card">
-            <div class="title">${m.label}</div>
+          <div class="mode-stat-card" style="--mc:${m.color};">
+            <div class="title">${m.icon} ${m.label}</div>
             <div class="values">
               <span><span class="n">${s.played}</span><br><span class="l">gespielt</span></span>
               ${m.tracksCorrect ? `<span><span class="n">${s.correct}</span><br><span class="l">richtig</span></span>` : ``}
@@ -3319,6 +3409,11 @@ function statCardHtml(p, extraArena){
 }
 function renderStatistik(){
   setAudioZone("menu");
+  // Angemeldet -> NUR die Konto-Statistik zeigen, nicht zusaetzlich noch
+  // alle lokal auf diesem Geraet gespeicherten (Alt-)Profile - das wirkte
+  // wie eine fremde zweite Statistik, obwohl es nur ein frueheres lokales
+  // Profil war. Lokale Profile bleiben nur relevant, wenn man NICHT
+  // angemeldet ist.
   const showLocalHint = !account && profiles.length===0;
   renderApp(`
     <div class="panel">
@@ -3326,7 +3421,7 @@ function renderStatistik(){
       <div class="picker-sub">${account ? 'Dein Konto-Profil gilt für alle Modi.' : 'Detaillierte Werte je gespeichertem Profil.'}</div>
       ${account ? statCardHtml(accountAsProfile(), account.profile) : ``}
       ${showLocalHint ? `<p style="color:var(--text-dim)">Noch keine Profile vorhanden.</p>` : ``}
-      ${profiles.map(p => statCardHtml(p)).join("")}
+      ${account ? `` : profiles.map(p => statCardHtml(p)).join("")}
       <div class="actions-row" style="margin-top:10px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">ZUM HAUPTMENÜ</button>
       </div>
@@ -3426,6 +3521,126 @@ const SPEEDMATH_DURATIONS = [
   {label:"3 Minuten", sec:180},
   {label:"5 Minuten", sec:300}
 ];
+
+/* ============================================================================
+   SHOP: Münzen gegen Herzen eintauschen (Speed-Math-Meilenstein + Arena)
+   ============================================================================ */
+let shopArenaInfo = null; // { hearts, maxHearts } - nur bei Konto befuellt, frisch vom Server
+let shopProfile = null;
+function startShopFlow(){
+  setAudioZone("menu");
+  if(account){ renderShop(accountAsProfile()); return; }
+  if(profiles.length > 0){
+    const lastId = localStorage.getItem(LAST_PROFILE_KEY);
+    const profile = profiles.find(p => p.id === lastId) || profiles[0];
+    renderShop(profile);
+    return;
+  }
+  renderProfilePicker("WER SPIELT?", "Wie heißt du?", [], renderShop, "renderMainMenu");
+}
+async function renderShop(profile){
+  if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
+  speedMathRefreshHearts(profile);
+  shopProfile = profile;
+  if(profile.isAccount){
+    // Arena-Herzen/Muenzen sind serverautoritativ - frischen Stand holen,
+    // statt dem evtl. veralteten lokalen Zwischenstand zu vertrauen.
+    const status = await apiCall("/api/arena-status", { token: account.token });
+    if(status.ok){
+      shopArenaInfo = { hearts: status.hearts, maxHearts: status.maxHearts };
+      account.profile.coins = status.coins; // lokalen Stand synchron halten
+      profile.coins = status.coins;
+    }
+  } else {
+    shopArenaInfo = null;
+  }
+  renderShopScreen();
+}
+function renderShopScreen(){
+  const profile = shopProfile;
+  const msHearts = profile.speedMathHearts||0;
+  const msFull = msHearts >= SPEEDMATH_DAILY_HEARTS;
+  const msAfford = (profile.coins||0) >= MILESTONE_HEART_COST;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🪙 SHOP</div>
+      <div class="picker-sub">${esc(profile.name)} – aktueller Münzstand</div>
+      <div class="shop-balance">🪙 ${profile.coins||0}</div>
+      <p style="color:var(--text-dim); font-size:12px; text-align:center; margin-top:-6px;">Münzen verdienst du durch neu freigeschaltete Erfolge (+${ACHV_COIN_REWARD}) und bestandene Haupttests (+${HAUPTTEST_COIN_REWARD}).</p>
+
+      <div class="shop-item">
+        <div class="shop-item-head">
+          <span class="icon">🧮</span>
+          <div>
+            <div class="shop-item-title">Speed-Math-Meilenstein-Herz</div>
+            <div class="shop-item-sub">${msHearts} / ${SPEEDMATH_DAILY_HEARTS} Herzen heute</div>
+          </div>
+        </div>
+        <button class="btn ${msFull||!msAfford?'btn-ghost':'btn-primary'}" ${msFull||!msAfford?'disabled':''} onclick="shopBuyMilestoneHeart()">
+          ${msFull ? 'Bereits volle Herzen' : `🪙 ${MILESTONE_HEART_COST} – Herz auffüllen`}
+        </button>
+      </div>
+
+      ${profile.isAccount ? `
+        <div class="shop-item">
+          <div class="shop-item-head">
+            <span class="icon">🏆</span>
+            <div>
+              <div class="shop-item-title">Arena-Herz</div>
+              <div class="shop-item-sub">${shopArenaInfo ? shopArenaInfo.hearts : '…'} / ${shopArenaInfo ? shopArenaInfo.maxHearts : '…'} Herzen heute</div>
+            </div>
+          </div>
+          <button class="btn ${(shopArenaInfo && shopArenaInfo.hearts>=shopArenaInfo.maxHearts)||!((profile.coins||0)>=ARENA_HEART_COST_CLIENT)?'btn-ghost':'btn-primary'}"
+            ${!shopArenaInfo || (shopArenaInfo.hearts>=shopArenaInfo.maxHearts) || !((profile.coins||0)>=ARENA_HEART_COST_CLIENT) ? 'disabled' : ''}
+            onclick="shopBuyArenaHeart()">
+            ${shopArenaInfo && shopArenaInfo.hearts>=shopArenaInfo.maxHearts ? 'Bereits volle Herzen' : `🪙 ${ARENA_HEART_COST_CLIENT} – Herz auffüllen`}
+          </button>
+        </div>
+      ` : `
+        <div class="shop-item" style="opacity:.6;">
+          <div class="shop-item-head">
+            <span class="icon">🏆</span>
+            <div>
+              <div class="shop-item-title">Arena-Herz</div>
+              <div class="shop-item-sub">Dafür brauchst du ein Konto (Arena läuft kontobasiert).</div>
+            </div>
+          </div>
+        </div>
+      `}
+
+      <div id="shopFeedback" class="explanation hidden" style="margin-top:14px;"></div>
+
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+function shopFeedback(msg, isError){
+  const el = document.getElementById("shopFeedback");
+  if(!el) return;
+  el.textContent = msg;
+  el.classList.remove("hidden");
+  if(isError) el.style.borderColor = "var(--danger)"; else el.style.borderColor = "var(--accent)";
+}
+function shopBuyMilestoneHeart(){
+  const ok = speedMathBuyHeart(shopProfile);
+  if(ok) shopFeedback("✓ Herz aufgefüllt!", false);
+  else shopFeedback(shopProfile.speedMathHearts>=SPEEDMATH_DAILY_HEARTS ? "Bereits volle Herzen." : "Nicht genug Münzen.", true);
+  renderShopScreen();
+}
+async function shopBuyArenaHeart(){
+  const result = await apiCall("/api/arena-buy-heart", { token: account.token });
+  if(result.ok){
+    shopArenaInfo = { hearts: result.hearts, maxHearts: result.maxHearts };
+    shopProfile.coins = result.coins;
+    account.profile.coins = result.coins;
+    shopFeedback("✓ Herz aufgefüllt!", false);
+  } else {
+    shopFeedback(result.error || "Kauf fehlgeschlagen.", true);
+  }
+  renderShopScreen();
+}
 
 function startSpeedMathFlow(){
   setAudioZone("menu");
@@ -3669,6 +3884,21 @@ function speedMathRefreshHearts(profile){
     profile.speedMathHeartsDate = today;
   }
 }
+// Meilenstein-Herz mit Muenzen kaufen. Rein clientseitig (wie die Herzen
+// selbst beim Meilenstein schon immer clientseitig verwaltet wurden) -
+// bei einem Konto wird das Ergebnis danach wie jede andere Aenderung ganz
+// normal synchronisiert (syncAccountStats), nicht als eigener serverseitig
+// geprueften Kauf wie bei Arena (dort sind Herzen serverautoritativ, hier
+// nicht).
+function speedMathBuyHeart(profile){
+  speedMathRefreshHearts(profile);
+  if((profile.coins||0) < MILESTONE_HEART_COST) return false;
+  if(profile.speedMathHearts >= SPEEDMATH_DAILY_HEARTS) return false;
+  profile.coins -= MILESTONE_HEART_COST;
+  profile.speedMathHearts += 1;
+  if(profile.isAccount) syncAccountStats(profile); else saveProfiles();
+  return true;
+}
 
 let speedMathLevelSession = null; // { profile, level, config, streak, currentProblem, remaining, timerId }
 
@@ -3877,12 +4107,30 @@ const ORDEROFSPEED_FLICKER_LEVEL = 7;          // ab diesem Level werden sie kur
 const ORDEROFSPEED_MOVE_INTERVAL_MS = 2500;
 const ORDEROFSPEED_FLICKER_INTERVAL_MS = 3200;
 const ORDEROFSPEED_FLICKER_DURATION_MS = 700;
-let orderOfSpeedSession = null; // { profile, durationSec, remaining, points, level, levelPoints, levelTarget, correct, wrong, round, timerId, moveTimerId, flickerTimerId, flickerRevealTimeoutId }
+let orderOfSpeedSession = null; // { profile, durationSec, remaining, points, level, levelPoints, levelTarget, correct, wrong, round, timerId, moveTimerId, flickerTimerId, flickerRevealTimeoutId, tapTimerId, tapRemaining }
 
 function orderOfSpeedCountForLevel(level){
   // 5 Zahlen am Anfang, langsam wachsend, bei 9 gedeckelt (muss noch auf den
   // Kreis passen).
   return Math.min(5 + Math.floor((level-1)/2), 9);
+}
+// Zahlenbereich waechst mit dem Level, statt von Anfang an voll 1-1000 zu
+// nutzen (auf Wunsch, war bei Level 1 schon viel zu schwer - dreistellige
+// Zahlen vergleichen UND zuordnen, bevor ueberhaupt Bewegen/Flackern
+// dazukommt). Dieselbe 5-Level-Stufung wie beim Speed-Math-Meilenstein.
+function orderOfSpeedMaxForLevel(level){
+  const tier = Math.ceil(level/5);
+  const ranges = [20, 50, 100, 250, 500, ORDEROFSPEED_MAX];
+  return ranges[Math.min(tier-1, ranges.length-1)];
+}
+// Zeit pro Zahl (auf Wunsch, "genauso wie beim Meilenstein"): dieselbe
+// Formel wie beim Speed-Math-Meilenstein-Modus (6s bei Level 1, wird pro
+// Schwierigkeitsstufe knapper, nie unter 2,5s). Läuft für die NÄCHSTE
+// richtige Zahl in der Reihenfolge, startet nach jedem richtigen Tipp neu.
+// Abgelaufene Zeit zählt genau wie ein falscher Tipp.
+function orderOfSpeedTimeLimitForLevel(level){
+  const tier = Math.ceil(level/5);
+  return Math.max(2.5, 6 - (tier-1) * 0.4);
 }
 function orderOfSpeedLevelTarget(level){
   // Anzahl richtiger Tipps, um dieses Level zu schaffen, waechst um 1 pro
@@ -3907,6 +4155,7 @@ function orderOfSpeedRuleText(rule){
 }
 function orderOfSpeedGenerateRound(level){
   const count = orderOfSpeedCountForLevel(level);
+  const max = orderOfSpeedMaxForLevel(level);
   const rule = ORDEROFSPEED_RULES[Math.floor(Math.random()*ORDEROFSPEED_RULES.length)];
   let numbers, sequence;
   if(rule === "even" || rule === "odd"){
@@ -3914,14 +4163,14 @@ function orderOfSpeedGenerateRound(level){
     // Aufgabe unloesbar bzw. ohne echte Auswahl unter den Ablenkern.
     const wantCount = Math.min(count-1, 2 + Math.floor(Math.random()*3));
     const otherCount = count - wantCount;
-    const mkEven = () => 2 * (1 + Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2)));
-    const mkOdd  = () => 1 + 2 * Math.floor(Math.random() * Math.floor(ORDEROFSPEED_MAX/2));
+    const mkEven = () => 2 * (1 + Math.floor(Math.random() * Math.floor(max/2)));
+    const mkOdd  = () => 1 + 2 * Math.floor(Math.random() * Math.floor(max/2));
     const want = new Set(); while(want.size < wantCount) want.add(rule === "even" ? mkEven() : mkOdd());
     const other = new Set(); while(other.size < otherCount) other.add(rule === "even" ? mkOdd() : mkEven());
     numbers = [...want, ...other];
     sequence = [...want].sort((a,b)=>a-b);
   } else {
-    numbers = orderOfSpeedUniqueNumbers(count, ORDEROFSPEED_MIN, ORDEROFSPEED_MAX);
+    numbers = orderOfSpeedUniqueNumbers(count, ORDEROFSPEED_MIN, max);
     sequence = numbers.slice().sort((a,b) => rule === "asc" ? a-b : b-a);
   }
   return { rule, display: orderOfSpeedShuffle(numbers), sequence, nextIndex:0, done:[], hidden:false };
@@ -3946,7 +4195,7 @@ function renderOrderOfSpeedEntry(profile){
   renderApp(`
     <div class="panel">
       <div class="picker-title">🔢 ORDER OF SPEED</div>
-      <div class="picker-sub">${profile.name} – Zahlen von 1 bis 1000 tauchen im Kreis auf. Tippe sie in der richtigen Reihenfolge an: aufsteigend, absteigend, nur gerade oder nur ungerade. 100 Punkte pro Tipp, volle Leiste = nächstes Level (wird sofort schwerer - ab Level ${ORDEROFSPEED_MOVE_LEVEL} bewegen sie sich, ab Level ${ORDEROFSPEED_FLICKER_LEVEL} werden sie kurz unsichtbar).</div>
+      <div class="picker-sub">${profile.name} – Zahlen tauchen im Kreis auf (Bereich wächst mit dem Level). Tippe sie in der richtigen Reihenfolge an: aufsteigend, absteigend, nur gerade oder nur ungerade. 100 Punkte pro Tipp, volle Leiste = nächstes Level (wird sofort schwerer - ab Level ${ORDEROFSPEED_MOVE_LEVEL} bewegen sie sich, ab Level ${ORDEROFSPEED_FLICKER_LEVEL} werden sie kurz unsichtbar). Für jede Zahl läuft außerdem eine eigene Uhr, die mit dem Level knapper wird (6s → 2,5s) - abgelaufene Zeit zählt wie ein falscher Tipp.</div>
       <div class="picker-sub" style="margin-top:14px;">Wie lange möchtest du spielen?</div>
       <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
         ${SPEEDMATH_DURATIONS.map(d => `<button class="btn btn-primary btn-block" onclick="startOrderOfSpeedGame(${d.sec})">${d.label}</button>`).join("")}
@@ -3959,6 +4208,40 @@ function orderOfSpeedClearTimers(s){
   clearInterval(s.moveTimerId); s.moveTimerId = null;
   clearInterval(s.flickerTimerId); s.flickerTimerId = null;
   clearTimeout(s.flickerRevealTimeoutId); s.flickerRevealTimeoutId = null;
+  clearInterval(s.tapTimerId); s.tapTimerId = null;
+}
+// Zeit pro Zahl: laeuft fuer die naechste richtige Zahl in der Reihenfolge,
+// startet nach jedem richtigen Tipp und nach jeder neuen Runde neu. Laeuft
+// sie ab, zaehlt das wie ein falscher Tipp (orderOfSpeedTap ruft bei Fehlern
+// dieselbe orderOfSpeedStartRound()-Logik auf - hier identisch nachgebaut,
+// damit Miss-durch-Zeit und Miss-durch-Falschtipp exakt gleich behandelt
+// werden).
+function orderOfSpeedStartTapTimer(s){
+  clearInterval(s.tapTimerId);
+  s.tapRemaining = orderOfSpeedTimeLimitForLevel(s.level);
+  s.tapTimerId = setInterval(() => {
+    if(!orderOfSpeedSession || !orderOfSpeedSession.round) return;
+    orderOfSpeedSession.tapRemaining -= 0.1;
+    // 0.05 statt 0 als Schwelle: nach vielen 0,1er-Schritten kann die
+    // Fließkommazahl den Nullpunkt knapp verfehlen (siehe derselbe Fix beim
+    // Speed-Math-Meilenstein).
+    if(orderOfSpeedSession.tapRemaining <= 0.05){
+      orderOfSpeedSession.wrong++;
+      orderOfSpeedStartRound(orderOfSpeedSession); // zaehlt wie falscher Tipp
+      renderOrderOfSpeedGame();
+    } else {
+      updateOrderOfSpeedTapTimerUI();
+    }
+  }, 100);
+}
+function updateOrderOfSpeedTapTimerUI(){
+  const s = orderOfSpeedSession;
+  const fill = document.getElementById("oosTapTimerFill");
+  const num = document.getElementById("oosTapTimerNum");
+  if(!fill || !num || !s) return;
+  const limit = orderOfSpeedTimeLimitForLevel(s.level);
+  fill.style.width = Math.max(0, (s.tapRemaining/limit)*100) + "%";
+  num.textContent = s.tapRemaining.toFixed(1) + "s";
 }
 // Startet (bzw. erneuert) die Bewegungs-/Flacker-Hintergrundtimer passend
 // zum AKTUELLEN Level - wird sowohl bei jeder neuen Runde als auch sofort
@@ -3989,6 +4272,7 @@ function orderOfSpeedStartRound(s){
   clearTimeout(s.flickerRevealTimeoutId); s.flickerRevealTimeoutId = null;
   s.round = orderOfSpeedGenerateRound(s.level);
   orderOfSpeedEnsureTimers(s);
+  orderOfSpeedStartTapTimer(s);
 }
 // Leiste voll (evtl. mehrfach auf einmal) -> Level steigt, Timer sofort an
 // die neue Stufe angepasst. Gibt zurueck, ob mindestens 1x aufgestiegen wurde.
@@ -4008,7 +4292,8 @@ function startOrderOfSpeedGame(durationSec){
   orderOfSpeedSession = {
     profile: speedMathProfile, durationSec, remaining: durationSec,
     points:0, level:1, levelPoints:0, levelTarget: orderOfSpeedLevelTarget(1),
-    correct:0, wrong:0, round:null, timerId:null, moveTimerId:null, flickerTimerId:null, flickerRevealTimeoutId:null
+    correct:0, wrong:0, round:null, timerId:null, moveTimerId:null, flickerTimerId:null, flickerRevealTimeoutId:null,
+    tapTimerId:null, tapRemaining:0
   };
   orderOfSpeedStartRound(orderOfSpeedSession);
   renderOrderOfSpeedGame();
@@ -4039,7 +4324,11 @@ function renderOrderOfSpeedGame(){
       </div>
       <div class="picker-sub" style="text-align:center; font-size:11px; margin-top:6px;">Level-Fortschritt (${s.levelPoints}/${s.levelTarget})</div>
       <div class="timer-bar" style="height:8px;"><div style="width:${levelPct}%; height:100%; background:#ffb020; border-radius:6px;"></div></div>
-      <div class="picker-sub" style="text-align:center; font-weight:800; font-size:16px; margin-top:14px;">${orderOfSpeedRuleText(r.rule)}</div>
+      <div class="timer-wrap" style="margin:8px 0 0;">
+        <div class="timer-bar" style="height:8px;"><div id="oosTapTimerFill" class="timer-fill" style="width:${Math.max(0,(s.tapRemaining/orderOfSpeedTimeLimitForLevel(s.level))*100)}%; background:linear-gradient(90deg,var(--accent-2),var(--danger));"></div></div>
+        <div id="oosTapTimerNum" class="timer-num" style="font-size:12px;">${s.tapRemaining.toFixed(1)}s</div>
+      </div>
+      <div class="picker-sub" style="text-align:center; font-weight:800; font-size:16px; margin-top:10px;">${orderOfSpeedRuleText(r.rule)}</div>
       <div class="oos-circle">
         ${r.display.map((v,i) => `<button class="oos-circle-choice ${r.hidden?'hidden-num':''}" style="left:${pos[i].left}; top:${pos[i].top};" ${r.done.includes(v)?'disabled':''} onclick="orderOfSpeedTap(${v})">${v}</button>`).join("")}
       </div>
@@ -4072,6 +4361,7 @@ function orderOfSpeedTap(value){
       orderOfSpeedStartRound(s);
     } else {
       orderOfSpeedCheckLevelUp(s); // Level kann auch MITTEN in einer Runde voll werden
+      orderOfSpeedStartTapTimer(s); // naechste Zahl in derselben Runde: Zeit laeuft neu
     }
   } else {
     s.wrong++;
@@ -5152,28 +5442,28 @@ function renderKlassenOverview(profile){
   const haupttestReady = (profile.haupttestUnlockedForKlasse ?? -1) === currentIdx;
   renderApp(`
     <div class="panel">
-      <div class="picker-title">BRAIN TEST</div>
-      <div class="picker-sub">${profile.name} – alle Klassen im Überblick.</div>
+      <div class="picker-title">${t('braintest_title')}</div>
+      <div class="picker-sub">${profile.name} – ${t('braintest_overview_sub')}</div>
       <div class="klassen-list" style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
         ${KLASSEN.map((k, i) => {
           const isDone = i < currentIdx;
           const isCurrent = i === currentIdx;
-          const statusLabel = isDone ? '✓ Bestanden' : (isCurrent ? '▶ Aktuell' : 'Noch nicht erreicht');
+          const statusLabel = isDone ? '✓ ' + t('braintest_passed') : (isCurrent ? '▶ ' + t('braintest_current') : t('braintest_not_reached'));
           const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
           return `
           <div class="leaderboard-row" style="flex-wrap:wrap; row-gap:8px; ${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
-            <span class="rank-pill ${k.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${k.name}</span>
+            <span class="rank-pill ${k.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${klasseName(i)}</span>
             <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}</span>
-            ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">Übung ${KLASSE_TESTS[i].questions} Fragen · ab ${KLASSE_TESTS[i].needed} richtig</span>` : ``}
-            ${isDone ? `<button class="repeat-btn" onclick="beginSolo(klassenOverviewProfile, true, ${i})" title="Haupttest dieser Klasse erneut spielen (${KLASSE_TESTS[i].mainQuestions} Fragen)">🔁 Test wiederholen</button>` : ``}
+            ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">${t('braintest_practice_info').replace('{q}', KLASSE_TESTS[i].questions).replace('{n}', KLASSE_TESTS[i].needed)}</span>` : ``}
+            ${isDone ? `<button class="repeat-btn" onclick="beginSolo(klassenOverviewProfile, true, ${i})" title="${t('braintest_repeat_title').replace('{n}', KLASSE_TESTS[i].mainQuestions)}">🔁 ${t('braintest_repeat')}</button>` : ``}
           </div>
         `;}).join("")}
       </div>
-      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, false)">${currentIdx===0 && !profile.klasse ? 'ÜBUNGSTEST STARTEN' : 'ÜBUNGSTEST FORTSETZEN'}</button>
+      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, false)">${currentIdx===0 && !profile.klasse ? t('braintest_start_practice') : t('braintest_continue_practice')}</button>
       ${haupttestReady ? `
-        <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true)">🔓 HAUPTTEST STARTEN (${KLASSE_TESTS[currentIdx].mainQuestions} Fragen)</button>
+        <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true)">🔓 ${t('braintest_start_main').replace('{n}', KLASSE_TESTS[currentIdx].mainQuestions)}</button>
       ` : `
-        <p class="picker-sub" style="text-align:center; margin-top:10px;">Ab 90% im Übungstest (${KLASSE_TESTS[currentIdx].needed} von ${KLASSE_TESTS[currentIdx].questions}) schaltet sich der Haupttest mit ${KLASSE_TESTS[currentIdx].mainQuestions} Fragen für ${KLASSEN[currentIdx].name} frei – der zählt für den Klassenaufstieg.</p>
+        <p class="picker-sub" style="text-align:center; margin-top:10px;">${t('braintest_unlock_hint').replace('{n}', KLASSE_TESTS[currentIdx].needed).replace('{q}', KLASSE_TESTS[currentIdx].questions).replace('{m}', KLASSE_TESTS[currentIdx].mainQuestions).replace('{k}', klasseName(currentIdx))}</p>
       `}
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
@@ -5221,11 +5511,13 @@ function beginSolo(profile, isHaupttest, repeatKlasseIdx){
       <div class="avatar-big" style="background:${avatarColor(profile.name)}">${initials(profile.name)}</div>
       <h2>${profile.name}</h2>
       ${isHaupttest ? `
-        <p>${isRepeat ? 'Wiederholung Haupttest '+currentKlasse.name+' (zählt nicht für den Aufstieg)' : 'Haupttest '+currentKlasse.name+(nextKlasse ? ' → '+nextKlasse.name : '')}: ${questions.length} Fragen dieser Klasse · mindestens ${testNeeded} richtig · insgesamt nur 1:30 Minuten für alle Fragen – nicht geschaffte zählen als falsch</p>
+        <p>${isRepeat
+            ? t('braintest_main_intro_repeat').replace('{k}', klasseName(klasseIndex))
+            : t('braintest_main_intro').replace('{k}', klasseName(klasseIndex)).replace('{arrow}', nextKlasse ? ' → '+klasseName(klasseIndex+1) : '').replace('{q}', questions.length).replace('{n}', testNeeded)}</p>
       ` : `
-        <p>Übungstest ${currentKlasse.name}: alle ${questions.length} Fragen · mindestens ${testNeeded} richtig (90%) · ${solo.timeLimit}s pro Frage · läuft komplett durch, egal wie es steht</p>
+        <p>${t('braintest_practice_intro').replace('{k}', klasseName(klasseIndex)).replace('{q}', questions.length).replace('{n}', testNeeded).replace('{t}', solo.timeLimit)}</p>
       `}
-      <button class="btn btn-primary" onclick="renderSoloQuestion()">LOS GEHT'S</button>
+      <button class="btn btn-primary" onclick="renderSoloQuestion()">${t('braintest_lets_go')}</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
@@ -5238,10 +5530,10 @@ function renderSoloQuestion(){
   renderApp(`
     <div class="panel">
       <div class="qmeta">
-        <div class="qcount">Frage ${solo.qIndex+1} von ${solo.questions.length}</div>
+        <div class="qcount">${t('braintest_question_count').replace('{x}', solo.qIndex+1).replace('{y}', solo.questions.length)}</div>
         <div class="qcat">${q.cat}</div>
       </div>
-      <div class="picker-sub" style="text-align:center; margin:-4px 0 8px;">✓ ${solo.correct} richtig · ✕ ${solo.wrong} falsch</div>
+      <div class="picker-sub" style="text-align:center; margin:-4px 0 8px;">${t('braintest_correct_wrong').replace('{c}', solo.correct).replace('{w}', solo.wrong)}</div>
       <div class="timer-wrap">
         <div class="timer-bar"><div id="timerFill" class="timer-fill" style="width:100%"></div></div>
         <div id="timerNum" class="timer-num">${Math.ceil(solo.totalTimer && solo.remaining > 0 ? solo.remaining : solo.timeLimit)}s</div>
@@ -5254,7 +5546,7 @@ function renderSoloQuestion(){
           </button>`).join("")}
       </div>
       <div id="explanationBox" class="explanation hidden"></div>
-      <button id="soloNextBtn" class="btn btn-primary btn-block hidden" style="margin-top:14px;" onclick="soloNextQuestion()">WEITER</button>
+      <button id="soloNextBtn" class="btn btn-primary btn-block hidden" style="margin-top:14px;" onclick="soloNextQuestion()">${t('braintest_continue')}</button>
       <button class="btn btn-ghost btn-block" style="margin-top:28px; opacity:.7;" onclick="exitSoloTest()">✕ ${t('btn_cancel_test')}</button>
     </div>
   `);
@@ -5357,7 +5649,7 @@ function handleSoloAnswer(selectedIdx){
 
   const explBox = document.getElementById("explanationBox");
   explBox.classList.remove("hidden");
-  explBox.textContent = q.e ? q.e : (isCorrect ? "Richtig beantwortet!" : "Das war leider falsch.");
+  explBox.textContent = q.e ? q.e : (isCorrect ? t('braintest_answered_correct') : t('braintest_answered_wrong'));
 
   // Auf Wunsch: KEIN vorzeitiges Ende mehr - weder beim Übungs- noch beim
   // Haupttest. Es müssen immer alle Fragen beantwortet werden, auch wenn
@@ -5366,7 +5658,7 @@ function handleSoloAnswer(selectedIdx){
 
   const nextBtn = document.getElementById("soloNextBtn");
   nextBtn.classList.remove("hidden");
-  nextBtn.textContent = solo.decided ? "ZUR RUNDENAUSWERTUNG" : "WEITER";
+  nextBtn.textContent = solo.decided ? t('braintest_to_results') : t('braintest_continue');
 }
 function soloNextQuestion(){
   if(solo.decided){ endSoloRound(); return; }
@@ -5417,6 +5709,8 @@ function endSoloRound(){
   solo.profile.correctAnswers += solo.correct;
   solo.profile.wrongAnswers += solo.wrong;
   if(passed) solo.profile.wins++; else solo.profile.losses++;
+  const earnedCoins = (solo.isHaupttest && passed) ? HAUPTTEST_COIN_REWARD : 0;
+  if(earnedCoins) awardCoins(solo.profile, earnedCoins);
   if(solo.profile.isAccount) syncAccountStats(solo.profile);
   else saveProfiles();
 
@@ -5424,34 +5718,35 @@ function endSoloRound(){
 
   renderApp(`
     <div class="panel">
-      <div class="result-title">RUNDE BEENDET</div>
-      <div class="result-sub">${passed ? "Starke Leistung!" : "Nächstes Mal klappt's besser."}</div>
-      ${rankChanged ? `<div class="rank-up-banner">Neuer Rang erreicht: ${rankAfter.name}!</div>` : ``}
-      ${justUnlockedHaupttest ? `<div class="rank-up-banner">🔓 Haupttest für ${rankBefore.name} freigeschaltet!</div>` : ``}
+      <div class="result-title">${t('braintest_round_over')}</div>
+      <div class="result-sub">${passed ? t('braintest_strong') : t('braintest_better_luck')}</div>
+      ${rankChanged ? `<div class="rank-up-banner">${t('braintest_new_rank').replace('{k}', klasseName(solo.profile.klasse||0))}</div>` : ``}
+      ${justUnlockedHaupttest ? `<div class="rank-up-banner">${t('braintest_main_unlocked').replace('{k}', klasseName(solo.startTier))}</div>` : ``}
+      ${earnedCoins ? `<div class="rank-up-banner" style="background:rgba(255,180,67,.15); border-color:var(--warn); color:var(--warn);">🪙 +${earnedCoins} Münzen verdient!</div>` : ``}
 
       <div class="result-grid">
-        <div class="result-item pos"><div class="n">${solo.correct}/${solo.questions.length}</div><div class="l">Richtige Antworten (nötig: ${solo.testNeeded})</div></div>
-        <div class="result-item neg"><div class="n">${solo.wrong}</div><div class="l">Falsche Antworten</div></div>
+        <div class="result-item pos"><div class="n">${solo.correct}/${solo.questions.length}</div><div class="l">${t('braintest_correct_answers').replace('{n}', solo.testNeeded)}</div></div>
+        <div class="result-item neg"><div class="n">${solo.wrong}</div><div class="l">${t('braintest_wrong_answers')}</div></div>
         <div class="result-item ${passed?'pos':''}" style="grid-column: span 2;">
-          <div class="n">${passed?'✓ Bestanden':'✕ Nicht bestanden'}</div>
-          <div class="l">${solo.isRepeat ? 'Wiederholung Haupttest '+rankBefore.name : (solo.isHaupttest ? 'Haupttest' : 'Übungstest')}${solo.timedOut?' · ⏱ Zeit abgelaufen':''}${passed?'':' (nötig: '+solo.testNeeded+'/'+solo.questions.length+')'}</div>
+          <div class="n">${passed? t('braintest_passed_big') : t('braintest_failed_big')}</div>
+          <div class="l">${solo.isRepeat ? t('braintest_repeat_main_of').replace('{k}', klasseName(solo.startTier)) : (solo.isHaupttest ? t('braintest_main_label') : t('braintest_practice_label'))}${solo.timedOut? t('braintest_time_up') :''}${passed?'': t('braintest_needed_of').replace('{n}', solo.testNeeded).replace('{q}', solo.questions.length)}</div>
         </div>
       </div>
 
       <div class="result-item" style="margin-bottom:20px;">
         <div class="n">${klassePillHtml(solo.profile.klasse||0)}</div>
         <div class="l">${solo.isHaupttest
-          ? (KLASSEN[(solo.profile.klasse||0)+1] ? 'Aktuelle Klasse' : "Höchster Rang erreicht (vorerst)")
-          : (canOfferHaupttest ? "Haupttest ist freigeschaltet – jederzeit wiederholbar." : "Ab 90% im Übungstest wird der Haupttest freigeschaltet.")}
+          ? (KLASSEN[(solo.profile.klasse||0)+1] ? t('braintest_current_class') : t('braintest_max_rank'))
+          : (canOfferHaupttest ? t('braintest_main_unlocked_repeatable') : t('braintest_main_unlock_at_90'))}
         </div>
       </div>
 
       <div class="actions-row">
-        ${solo.isRepeat ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.repeatKlasseIdx})">NOCHMAL WIEDERHOLEN</button>
-        <button class="btn btn-ghost" onclick="renderKlassenOverview(solo.profile)">ZUR ÜBERSICHT</button>` : `
-        ${canOfferHaupttest ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true)">HAUPTTEST STARTEN</button>` : ``}
-        <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">${solo.isHaupttest && passed ? 'ÜBUNGSTEST ' + (KLASSEN[solo.profile.klasse||0]||KLASSEN[0]).name.toUpperCase() : 'NOCH EINE RUNDE'}</button>`}
-        <button class="btn btn-ghost" onclick="renderMainMenu()">HAUPTMENÜ</button>
+        ${solo.isRepeat ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.repeatKlasseIdx})">${t('braintest_repeat_again')}</button>
+        <button class="btn btn-ghost" onclick="renderKlassenOverview(solo.profile)">${t('braintest_to_overview')}</button>` : `
+        ${canOfferHaupttest ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true)">${t('braintest_start_main_short')}</button>` : ``}
+        <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">${solo.isHaupttest && passed ? t('braintest_practice_of').replace('{k}', klasseName(solo.profile.klasse||0).toUpperCase()) : t('braintest_another_round')}</button>`}
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('braintest_main_menu')}</button>
       </div>
     </div>
   `);
@@ -5728,7 +6023,6 @@ function startPartyFlow(gameMode){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${pendingCreateGameMode==='slf' ? 'STADT LAND FLUSS – MULTIPLAYER' : (pendingCreateGameMode==='music' ? 'MUSIK RATEN – MULTIPLAYER' : (pendingCreateGameMode==='blitz' ? 'NENN\'S BLITZ – MULTIPLAYER' : t('party_entry_title')))}</div>
-      <div class="picker-sub">${t('party_entry_sub')}</div>
       <div class="picker-form" style="margin-bottom:14px;">
         ${account
           ? `<div class="explanation" style="text-align:left;">Du spielst als <b>${esc(account.profile.username)}</b> (angemeldetes Konto).</div>`
@@ -5931,8 +6225,8 @@ function renderSoloCategoryPicker(){
       <div class="picker-sub" style="margin-top:14px;">Kategorie – zufällig/gemischt oder eine bestimmte wählen.</div>
       <div class="chip-group" style="margin-top:10px;">
         <div class="chip-btn" onclick="chooseSoloCategory(null)">🎲 Zufällig / Gemischt</div>
-        ${room.availableRoundDefs.map(d => `<div class="chip-btn" onclick="chooseSoloCategory('${d.id}')">${d.label}</div>`).join("")}
       </div>
+      ${categoryChipsGroupedHtml(room.availableRoundDefs, 'chooseSoloCategory')}
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="partyLeave()">${t('btn_back')}</button>
       </div>
@@ -6226,7 +6520,6 @@ function renderPartyLobby(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${dedicatedScreenTitle(room.gameMode) || t('lobby_title')}</div>
-      <div class="picker-sub">${t('lobby_sub')}</div>
       <div class="code-display">${room.code}</div>
 
       ${DEDICATED_MODES[room.gameMode] && DEDICATED_MODES[room.gameMode].germanOnly ? `
@@ -6361,9 +6654,57 @@ const PARTY_MODE_META = {
   ticTacToeGame: "Tic Tac Toe"
 };
 const SLF_SUGGESTED_CATEGORIES = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Filmtitel","Promi","Getränk","Sportart"];
+// Entfernt das redundante "Einordnen: "/"Mehr oder Weniger: "/"Nenn's Blitz: "
+// usw. am Anfang eines Label - sinnvoll ueberall dort, wo ohnehin schon klar
+// ist, in welchem Modus man gerade ist (Titel waehrend des Spiels, Auswahl-
+// Chips innerhalb eines Modus). NICHT verwenden in Listen, die mehrere
+// verschiedene Rundentypen gemischt zeigen (z.B. die Rundenplan-Vorschau) -
+// dort hilft der Präfix beim Unterscheiden.
+function shortLabel(label){
+  const idx = (label||"").indexOf(": ");
+  return idx === -1 ? label : label.slice(idx + 2);
+}
 function builderCategoryLabel(def){
-  const idx = def.label.indexOf(": ");
-  return idx === -1 ? def.label : def.label.slice(idx + 2);
+  return shortLabel(def.label);
+}
+// Kategorie-Liste im Mehrspieler-Rundenbau: ohne aktive Suche gruppiert nach
+// Themenüberschrift (wie bei der Solo-Auswahl), mit aktiver Suche als
+// schlichte flache Trefferliste (Überschriften waeren bei einer gezielten
+// Suche nur im Weg).
+function builderCategoryListHtml(categories, catQuery, selectedDefId){
+  const itemHtml = d => `<div class="builder-category-item ${selectedDefId===d.id?'active':''}" onclick="builderSelectCategory('${d.id}')">${builderCategoryLabel(d)}</div>`;
+  if(catQuery) return categories.map(itemHtml).join("");
+  const grouped = {}; const flat = [];
+  categories.forEach(d => { if(d.topicGroup) (grouped[d.topicGroup] = grouped[d.topicGroup] || []).push(d); else flat.push(d); });
+  const groupNames = Object.keys(grouped);
+  if(groupNames.length === 0) return categories.map(itemHtml).join("");
+  return groupNames.map(g => `
+    <div class="builder-category-group-title">${esc(g)}</div>
+    ${grouped[g].map(itemHtml).join("")}
+  `).join("") + (flat.length ? `<div class="builder-category-group-title">Weitere</div>${flat.map(itemHtml).join("")}` : "");
+}
+// Kategorien nach Themengruppe sortiert mit Zwischenüberschriften anzeigen
+// (z.B. "Sport", "Geld & Wirtschaft", "Natur & Wissenschaft"), statt einer
+// einzigen langen, unübersichtlichen Liste. Kategorien ohne Themengruppe
+// (topicGroup fehlt, z.B. bei anderen Rundentypen als Einordnen/Mehr oder
+// Weniger) landen als schlichte flache Liste ohne Überschriften.
+function categoryChipsGroupedHtml(defs, onClickFn){
+  const grouped = {};
+  const flat = [];
+  defs.forEach(d => { if(d.topicGroup) (grouped[d.topicGroup] = grouped[d.topicGroup] || []).push(d); else flat.push(d); });
+  const groupNames = Object.keys(grouped);
+  if(groupNames.length === 0){
+    return `<div class="chip-group" style="margin-top:8px;">${flat.map(d => `<div class="chip-btn" onclick="${onClickFn}('${d.id}')">${esc(shortLabel(d.label))}</div>`).join("")}</div>`;
+  }
+  return groupNames.map(g => `
+    <div class="picker-sub" style="margin-top:14px; font-weight:700; color:var(--text);">${esc(g)}</div>
+    <div class="chip-group" style="margin-top:6px;">
+      ${grouped[g].map(d => `<div class="chip-btn" onclick="${onClickFn}('${d.id}')">${esc(shortLabel(d.label))}</div>`).join("")}
+    </div>
+  `).join("") + (flat.length ? `
+    <div class="picker-sub" style="margin-top:14px; font-weight:700; color:var(--text);">Weitere</div>
+    <div class="chip-group" style="margin-top:6px;">${flat.map(d => `<div class="chip-btn" onclick="${onClickFn}('${d.id}')">${esc(shortLabel(d.label))}</div>`).join("")}</div>
+  ` : "");
 }
 // Gleiche Kategorien wie im Hauptmenü (Modi / Mini Games), damit die
 // Rundenauswahl im Party Raum genauso gegliedert ist. Wissenstest hat im
@@ -6451,7 +6792,7 @@ function renderRoundBuilder(){
           <span class="label">🔍 Kategorie suchen</span>
           <input type="text" class="builder-search" placeholder="z.B. Gebäude" value="${b.categorySearch}" oninput="builderSetCategorySearch(this.value)">
           <div class="builder-category-list">
-            ${categories.length ? categories.map(d => `<div class="builder-category-item ${b.selectedDefId===d.id?'active':''}" onclick="builderSelectCategory('${d.id}')">${builderCategoryLabel(d)}</div>`).join("")
+            ${categories.length ? builderCategoryListHtml(categories, catQuery, b.selectedDefId)
               : `<span style="color:var(--text-dim); font-size:13px;">Keine Kategorie gefunden</span>`}
           </div>
         </div>
@@ -6641,7 +6982,7 @@ function renderPartyRoundIntro(msg){
   renderApp(`
     <div class="panel pass-card">
       <h2>${t('round_of')} ${msg.roundNumber} ${t('round_of_mid')} ${msg.totalRounds}</h2>
-      <p>${esc(msg.label)}</p>
+      <p>${esc(shortLabel(msg.label))}</p>
     </div>
   `);
 }
@@ -6770,7 +7111,7 @@ function renderPartyRank(msg){
 
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${esc(msg.label)}</div>
+      <div class="picker-title">${esc(shortLabel(msg.label))}</div>
       <div class="picker-sub">${msg.unit} · ${msg.order === 'desc' ? 'Höchster Wert zuerst' : 'Niedrigster Wert zuerst'}</div>
 
       ${party.soloMode ? `` : `<div class="turn-banner">${myTurn ? 'IHR SEID DRAN!' : esc(turnTeam?.name || '...') + ' ist dran'}</div>`}
@@ -6856,7 +7197,7 @@ function renderPartyRankAttempt(msg){
 function renderPartyRankReveal(msg){
   renderApp(`
     <div class="panel">
-      <div class="picker-title">AUFLÖSUNG: ${esc(msg.label)}</div>
+      <div class="picker-title">AUFLÖSUNG: ${esc(shortLabel(msg.label))}</div>
       <div class="rank-board" style="margin-top:14px;">
         ${msg.fullOrder.map(item => `
           <div class="rank-item-row"><span>${item.name}</span><span class="val">${item.value} ${msg.unit}</span></div>
@@ -6883,7 +7224,7 @@ function renderPartyOrdering(msg){
 
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${esc(msg.label)}</div>
+      <div class="picker-title">${esc(shortLabel(msg.label))}</div>
       <div class="picker-sub">${msg.unit} · ${msg.order === 'desc' ? 'Höchster Wert zuerst' : 'Niedrigster Wert zuerst'}</div>
 
       <div class="lives-row"><span>Deine Leben</span><div class="hearts">${hearts}</div></div>
@@ -7009,7 +7350,7 @@ function renderPartyOrderingFinal(msg){
   renderApp(`
     <div class="panel">
       <div class="picker-title">AUFLÖSUNG</div>
-      <div class="picker-sub">${esc(msg.label)}</div>
+      <div class="picker-sub">${esc(shortLabel(msg.label))}</div>
       <div class="party-players" style="margin-top:10px;">
         ${msg.results.map(r => {
           const player = msg.players.find(p=>p.id===r.playerId);
@@ -7071,7 +7412,7 @@ function renderPartyGuessItem(msg){
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">${msg.index+1} von ${msg.total}</div>
-        <div class="qcat">${esc(msg.label)}</div>
+        <div class="qcat">${esc(shortLabel(msg.label))}</div>
       </div>
       <div class="guess-points-badge" id="guessPointsBadge">5 Punkte</div>
       <div class="guess-image-wrap">
@@ -7190,7 +7531,7 @@ function renderPartyMusicItem(msg){
     <div class="panel">
       <div class="qmeta">
         <div class="qcount">${msg.index+1} von ${msg.total}</div>
-        <div class="qcat">${esc(msg.label)}</div>
+        <div class="qcat">${esc(shortLabel(msg.label))}</div>
       </div>
       <div class="guess-points-badge" id="musicCapBadge">bis zu ${msg.fieldMaxPoints} Punkte pro Feld</div>
       <div class="music-player-wrap">
@@ -7635,7 +7976,7 @@ function renderNennsBlitzAnswering(msg){
   party.nennsBlitzOwnAnswers = [];
   renderApp(`
     <div class="panel">
-      <div class="picker-title">${esc(msg.label)}</div>
+      <div class="picker-title">${esc(shortLabel(msg.label))}</div>
       <div class="picker-sub">Nenn so viele richtige Begriffe wie möglich!</div>
       <div class="timer-wrap" style="margin-top:10px;">
         <div class="timer-bar"><div id="blitzTimerFill" class="timer-fill" style="width:100%"></div></div>
@@ -7717,7 +8058,7 @@ function renderNennsBlitzReveal(msg){
   if(party.blitzTickerId) clearInterval(party.blitzTickerId);
   renderApp(`
     <div class="panel">
-      <div class="picker-title">AUFLÖSUNG: ${esc(msg.label)}</div>
+      <div class="picker-title">AUFLÖSUNG: ${esc(shortLabel(msg.label))}</div>
       <div class="picker-sub">👎 bei falschen Antworten (auch bei deinen eigenen), kein Zeitlimit</div>
       <div id="blitzThumbHint" class="picker-sub" style="font-size:12px;"></div>
       <div id="blitzList">${nennsBlitzListHtml()}</div>
@@ -7766,7 +8107,7 @@ function renderNennsBlitzFinal(msg){
   party.nennsBlitzThumbs = [];
   renderApp(`
     <div class="panel">
-      <div class="picker-title">ENDGÜLTIGE WERTUNG: ${esc(msg.label)}</div>
+      <div class="picker-title">ENDGÜLTIGE WERTUNG: ${esc(shortLabel(msg.label))}</div>
       <div class="round-plan-list" style="margin-top:10px;">
         ${msg.results.map(r => `<div class="round-plan-item"><span style="flex:1;">${esc(r.name)}</span><span class="val">${r.total} P.</span></div>`).join("")}
       </div>
