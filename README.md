@@ -3849,6 +3849,84 @@ ersten Abschluss eines Themas (egal ob Körperteil oder Sexualkunde-Thema -
 eigene, getrennte Schlüssel verhindern Kollisionen), Abbrechen während
 einer Runde funktioniert sauber, Menüzugang vorhanden.
 
+## 8ggg2. Brain Test: echte Duplikate gefunden + behoben, Biologie/Sexualkunde ergänzt
+
+Gemeldet: Fragen kommen in Klasse 3, 4 und 5 doppelt vor. Beim genauen
+Durchsuchen (nicht nur auf exakt gleichen Text, auch auf gleiche Fakten mit
+anderer Formulierung) zwei echte Treffer gefunden:
+- Klasse 3: "Was passiert bei Photosynthese in Pflanzen?" testete praktisch
+  dasselbe wie "Was ist Photosynthese?" in Klasse 5 - ersetzt durch eine
+  andere Sachkunde-Frage (Geschmackssinn/Zunge).
+- Klasse 4: "Was ist die EU?" und "Wofür steht die Abkürzung 'EU'?" standen
+  beide in derselben Klasse und fragten im Kern dasselbe - die zweite
+  ersetzt durch eine eigenständige Frage (Anzahl der EU-Mitgliedsstaaten).
+
+Beim ersten Versuch, das mit einer Textersetzung direkt im eingebetteten
+Code zu patchen, ist etwas schiefgegangen (ein zu gieriger Suchausdruck hat
+mehr Text erwischt als beabsichtigt und mehrere Fragen gelöscht) - beim
+Nachzählen sofort aufgefallen (Klasse 3 hatte plötzlich nur noch 44 statt 50
+Fragen), nichts davon gespeichert/ausgeliefert. Stattdessen sauber über die
+ohnehin vorhandene, unversehrte `shared/klasseQuestions.json` neu
+aufgebaut und von dort aus den eingebetteten Block komplett neu erzeugt.
+
+**Neue Fragen ergänzt, altersgerecht nach echtem Lehrplan verteilt** (nicht
+wortgleich mit dem eigenständigen Biologie-Modus, eigene Formulierungen):
+- Klasse 4 (Sachkunde-Niveau, wie der Rest der Klasse): einfache
+  Körperfragen (Zähne, Herz)
+- Klasse 5 (Biologie beginnt als Fach): Skelett, Nieren, Einstieg Pubertät
+- Klasse 6: Atmung, Haut, körperliche Pubertätsveränderungen
+- Klasse 7 (Fortpflanzungsorgane beginnen): Hoden, Eileiter, Genitalien-Begriff
+- Klasse 8 (Zyklus/Schwangerschaft): weiblicher Zyklus, Embryo-Entwicklung
+- Klasse 9 (Verhütung/Einverständnis): Pille, Einvernehmlichkeit
+- Klasse 10 (STI/Beratung): sexuell übertragbare Infektionen, Anlaufstellen
+
+18 neue Fragen insgesamt, Kategorie "Sachkunde" (Klasse 4, wie der Rest
+dieser Klasse) bzw. "Biologie" (Klasse 5-10, wie die bereits vorhandenen
+Biologie-Fragen dort).
+
+Getestet: beide gemeldeten (Near-)Duplikate bestätigt behoben, keine echten
+doppelten Fragen mehr im gesamten Datensatz (alle 10 Klassen), neue Fragen
+sind da und tragen die richtige Kategorie/Klassenstufe, keine
+Wortlaut-Überschneidung mit dem Biologie-Modus, Client-Einbettung und
+`shared/klasseQuestions.json` (Arena-Server-Quelle) sind weiterhin
+deckungsgleich, Haupttest liefert weiterhin exakt 20 und Übungstest exakt
+50 Fragen (feste Werte, unabhängig von der gewachsenen Pool-Größe pro
+Klasse).
+
+## 8hhh2. Brain Test nochmal durchleuchtet: 2 weitere Duplikate + Politik jetzt in jeder Klasse
+
+Auf Wunsch alle 10 Klassen nochmal komplett durchsucht (nicht nur 3/4/5
+wie beim letzten Mal). Zwei weitere echte Treffer gefunden:
+
+- **"Wie heißt die Hauptstadt von Deutschland?"** stand in Klasse 2
+  (Sachkunde) UND fast wortgleich nochmal in Klasse 4 (Politik) - die
+  Klasse-4-Version ersetzt durch eine andere Politik-Frage (wer vertritt
+  Deutschland nach außen).
+- **"Was ist die Gewaltenteilung?"** (Klasse 8) und "Was sind die drei
+  Gewalten im Staat (Gewaltenteilung)?" (Klasse 9) testeten im Kern
+  dasselbe Konzept nur einen Schritt weiter - die Klasse-9-Version ersetzt
+  durch eine andere Frage (Opposition im Parlament).
+
+**Politik jetzt in jeder einzelnen Klasse vertreten** - vorher hatten
+Klasse 1, 3 und 7 überhaupt keine Politik-Fragen, der Rest war
+unterschiedlich dicht. 7 neue, altersgerecht abgestufte Fragen ergänzt:
+- Klasse 1 (ganz einfach): "In welchem Land leben wir?", warum es Regeln gibt
+- Klasse 3: Rathaus, Bürgerinnen und Bürger
+- Klasse 7 (anspruchsvoller als die unteren Klassen): Wahlalter, Fraktion,
+  Volksabstimmung
+
+Jede Klasse hat jetzt mindestens 2 Politik-Fragen (Klasse 6 weiterhin die
+dichteste mit 5, Klasse 10 mit 8 als Höhepunkt zum Abschluss).
+
+Getestet: beide neuen (Near-)Duplikate bestätigt behoben, keine einzige
+echte doppelte Frage mehr im gesamten Datensatz (alle 10 Klassen
+zusammengenommen), jede Klasse hat mindestens 2 Politik-Fragen, die neuen
+Klasse-1/3-Fragen bleiben bewusst einfach (keine Fachbegriffe wie
+"Gewaltenteilung"), Klasse 7 nutzt bereits anspruchsvollere Begriffe,
+keine Kollision mit dem Wissenstest-Pool oder dem Biologie-Modus,
+Client-Einbettung und Server-JSON bleiben deckungsgleich, Haupt-/Übungstest
+funktionieren für die am stärksten veränderten Klassen weiterhin normal.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
