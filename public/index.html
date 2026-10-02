@@ -251,6 +251,13 @@
   .biology-chip.done{ border-color:var(--accent-2); color:var(--accent-2); }
   .biology-chip-wide{ grid-column:1/-1; background:var(--bg-alt); border:1.5px solid var(--warn); border-radius:12px; padding:12px; font-size:14px; font-weight:800; cursor:pointer; color:inherit; }
   .biology-chip-wide.done{ border-color:var(--accent-2); color:var(--accent-2); }
+  .bio-body-wrap{ display:flex; justify-content:center; margin:10px 0; }
+  .bio-body-svg{ width:200px; height:300px; }
+  .bio-hotspot{ fill:rgba(198,255,61,0.22); stroke:var(--accent); stroke-width:2; cursor:pointer; transition:fill .15s ease, r .15s ease; }
+  .bio-hotspot:hover, .bio-hotspot:active{ fill:rgba(198,255,61,0.5); }
+  .bio-legend{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:10px; }
+  .bio-legend-item{ background:var(--bg-alt); border:1px solid var(--line); border-radius:16px; padding:5px 10px; font-size:11px; font-weight:700; cursor:pointer; }
+  .bio-legend-item:active{ transform:scale(.95); }
   .shop-balance{ text-align:center; font-size:34px; font-weight:900; color:var(--warn); margin:10px 0 4px; }
   .shop-item{ background:var(--bg-alt); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin-top:14px; display:flex; flex-direction:column; gap:12px; }
   .shop-item-head{ display:flex; align-items:center; gap:12px; }
@@ -1009,7 +1016,9 @@ const KLASSE_QUESTIONS = {
 {q:"Was tragen wir bei Regen, damit wir trocken bleiben?",a:["Sonnenbrille","Regenschirm","Mütze","Schal"],c:1,cat:"Sachkunde",d:1,e:"Ein Regenschirm hält uns bei Regen trocken."},
 {q:"Wie viele Jahreszeiten gibt es?",a:["2","3","4","5"],c:2,cat:"Sachkunde",d:1,e:"Es gibt vier Jahreszeiten: Frühling, Sommer, Herbst, Winter."},
 {q:"Welcher Tag kommt direkt nach Montag?",a:["Sonntag","Dienstag","Mittwoch","Samstag"],c:1,cat:"Sachkunde",d:1,e:"Nach Montag kommt Dienstag."},
-{q:"Womit putzen wir uns die Zähne?",a:["Kamm","Zahnbürste","Löffel","Schwamm"],c:1,cat:"Sachkunde",d:1,e:"Wir putzen unsere Zähne mit einer Zahnbürste."}
+{q:"Womit putzen wir uns die Zähne?",a:["Kamm","Zahnbürste","Löffel","Schwamm"],c:1,cat:"Sachkunde",d:1,e:"Wir putzen unsere Zähne mit einer Zahnbürste."},
+{q:"Wie heißt das Land, in dem wir leben?",a:["Österreich","Deutschland","Frankreich","Italien"],c:1,cat:"Politik",d:1,e:"Wir leben in Deutschland."},
+{q:"Warum gibt es Regeln, an die sich alle halten müssen?",a:["Damit alle sicher und fair zusammenleben können","Aus Langeweile","Nur für Erwachsene","Es gibt keinen Grund"],c:0,cat:"Politik",d:1,e:"Regeln helfen, dass alle Menschen gut und sicher zusammenleben können."}
 ],
 2: [
 {q:"Wie viel ist 23 + 15?",a:["36","37","38","39"],c:2,cat:"Mathe",d:1,e:"23 plus 15 ergibt 38."},
@@ -1109,13 +1118,15 @@ const KLASSE_QUESTIONS = {
 {q:"Welches Meer grenzt im Norden an Deutschland?",a:["Mittelmeer","Nordsee und Ostsee","Atlantik","Schwarzes Meer"],c:1,cat:"Sachkunde",d:1,e:"Im Norden grenzt Deutschland an Nordsee und Ostsee."},
 {q:"Wofür braucht der Mensch Sauerstoff?",a:["Zum Atmen","Zum Sehen","Zum Hören","Zum Schmecken"],c:0,cat:"Sachkunde",d:1,e:"Menschen brauchen Sauerstoff zum Atmen."},
 {q:"Welches Organ hilft uns beim Denken?",a:["Herz","Gehirn","Magen","Lunge"],c:1,cat:"Sachkunde",d:1,e:"Das Gehirn ist für das Denken zuständig."},
-{q:"Was passiert bei Photosynthese in Pflanzen?",a:["Pflanzen produzieren mit Licht Energie","Pflanzen schlafen","Pflanzen fressen Insekten","Pflanzen frieren"],c:0,cat:"Sachkunde",d:1,e:"Bei der Photosynthese erzeugen Pflanzen mit Sonnenlicht Energie."},
+{q:"Welches Sinnesorgan ermöglicht uns das Schmecken?",a:["Die Nase","Die Zunge","Die Haut","Das Ohr"],c:1,cat:"Sachkunde",d:3,e:"Die Zunge trägt die Geschmacksknospen, mit denen wir schmecken."},
 {q:"Wie heißt der Erdteil, in dem die meisten Menschen leben?",a:["Asien","Europa","Afrika","Australien"],c:0,cat:"Sachkunde",d:1,e:"Asien ist der bevölkerungsreichste Kontinent."},
 {q:"Was ist ein Kompass?",a:["Ein Gerät zur Richtungsbestimmung","Ein Musikinstrument","Ein Kochgerät","Ein Spielzeug"],c:0,cat:"Sachkunde",d:1,e:"Ein Kompass zeigt die Himmelsrichtungen an."},
 {q:"Welche Himmelsrichtung zeigt die Kompassnadel normalerweise an?",a:["Süden","Norden","Osten","Westen"],c:1,cat:"Sachkunde",d:1,e:"Die Kompassnadel zeigt normalerweise nach Norden."},
 {q:"Wie nennt man die Zeit vor unserer heutigen Zeit, z.B. Ritter und Burgen?",a:["Steinzeit","Mittelalter","Neuzeit","Zukunft"],c:1,cat:"Sachkunde",d:1,e:"Ritter und Burgen gehören zum Mittelalter."},
 {q:"Was ist eine Landkarte?",a:["Ein Bild der Erdoberfläche von oben","Ein Foto vom Himmel","Ein Kalender","Ein Wörterbuch"],c:0,cat:"Sachkunde",d:1,e:"Eine Landkarte zeigt die Erdoberfläche von oben."},
-{q:"Was misst ein Thermometer?",a:["Die Zeit","Die Temperatur","Das Gewicht","Die Entfernung"],c:1,cat:"Sachkunde",d:1,e:"Ein Thermometer misst die Temperatur."}
+{q:"Was misst ein Thermometer?",a:["Die Zeit","Die Temperatur","Das Gewicht","Die Entfernung"],c:1,cat:"Sachkunde",d:1,e:"Ein Thermometer misst die Temperatur."},
+{q:"Wie heißt das Gebäude, in dem der Bürgermeister und die Stadtverwaltung arbeiten?",a:["Das Rathaus","Das Krankenhaus","Die Kirche","Der Bahnhof"],c:0,cat:"Politik",d:3,e:"Im Rathaus arbeiten der Bürgermeister und die Verwaltung einer Stadt."},
+{q:"Wie nennt man Menschen, die in einem Land leben und dort mitbestimmen dürfen?",a:["Gäste","Bürgerinnen und Bürger","Besucher","Touristen"],c:1,cat:"Politik",d:3,e:"Bürgerinnen und Bürger eines Landes dürfen dort z.B. bei Wahlen mitbestimmen."}
 ],
 4: [
 {q:"Wie viel ist 347 + 256?",a:["593","603","613","623"],c:1,cat:"Mathe",d:2,e:"347 plus 256 ergibt 603."},
@@ -1163,13 +1174,15 @@ const KLASSE_QUESTIONS = {
 {q:"Welches ist das größte Land der Erde (Fläche)?",a:["China","USA","Russland","Kanada"],c:2,cat:"Sachkunde",d:2,e:"Russland ist flächenmäßig das größte Land der Welt."},
 {q:"Wie nennt man die Linie, die die Erde in Nord- und Südhalbkugel teilt?",a:["Äquator","Nullmeridian","Polarkreis","Wendekreis"],c:0,cat:"Sachkunde",d:2,e:"Der Äquator teilt die Erde in Nord- und Südhalbkugel."},
 {q:"Was ist ein Vulkan?",a:["Ein Berg, aus dem Lava austreten kann","Ein tiefer See","Eine Höhle","Ein Wasserfall"],c:0,cat:"Sachkunde",d:2,e:"Ein Vulkan kann geschmolzenes Gestein (Lava) ausstoßen."},
-{q:"Wofür steht die Abkürzung 'EU'?",a:["Europäische Union","Europäischer Unterricht","Erd-Union","Europäisches Unternehmen"],c:0,cat:"Sachkunde",d:2,e:"EU steht für Europäische Union."},
+{q:"Wie viele Mitgliedsstaaten hat die Europäische Union ungefähr?",a:["Etwa 10","Etwa 27","Etwa 50","Etwa 80"],c:1,cat:"Sachkunde",d:4,e:"Die EU hat 27 Mitgliedsstaaten (Stand nach dem Austritt Großbritanniens)."},
 {q:"Welche Währung wird in vielen EU-Ländern benutzt?",a:["Dollar","Euro","Pfund","Yen"],c:1,cat:"Sachkunde",d:2,e:"Der Euro ist die gemeinsame Währung vieler EU-Länder."},
 {q:"Was versteht man unter 'Klima'?",a:["Das Wetter an einem einzigen Tag","Das durchschnittliche Wetter über lange Zeit","Nur die Temperatur","Nur der Regen"],c:1,cat:"Sachkunde",d:2,e:"Klima beschreibt das durchschnittliche Wetter einer Region über viele Jahre."},
 {q:"Was ist der Unterschied zwischen Fluss und See?",a:["Ein Fluss fließt, ein See ist stehendes Gewässer","Kein Unterschied","Ein See ist salzig, ein Fluss süß","Flüsse sind immer größer"],c:0,cat:"Sachkunde",d:2,e:"Ein Fluss fließt, ein See ist ein stehendes Gewässer."},
 {q:"Was zeigt der Maßstab auf einer Landkarte an?",a:["Das Verhältnis von Karte zu echter Größe","Die Uhrzeit","Die Bevölkerungszahl","Die Höhe der Berge"],c:0,cat:"Sachkunde",d:2,e:"Der Maßstab zeigt, wie die Karte im Verhältnis zur echten Größe verkleinert ist."},
 {q:"In welchem Gebäude arbeitet die deutsche Bundesregierung hauptsächlich?",a:["Im Bundestag in Berlin","Im Kölner Dom","Im Brandenburger Tor","Im Schloss Neuschwanstein"],c:0,cat:"Politik",d:4,e:"Der Bundestag hat seinen Sitz im Reichstagsgebäude in Berlin."},
-{q:"Wie heißt die Hauptstadt Deutschlands?",a:["München","Hamburg","Berlin","Frankfurt"],c:2,cat:"Politik",d:4,e:"Berlin ist seit 1990 wieder Hauptstadt des vereinten Deutschlands."}
+{q:"Wer vertritt Deutschland offiziell nach außen, bei Staatsbesuchen usw.?",a:["Der Bundeskanzler","Der Bundespräsident","Der Bürgermeister von Berlin","Der Bundestagspräsident"],c:1,cat:"Politik",d:4,e:"Der Bundespräsident vertritt Deutschland repräsentativ im Ausland."},
+{q:"Wie viele Zähne hat ein erwachsener Mensch normalerweise?",a:["20","28","32","40"],c:2,cat:"Sachkunde",d:4,e:"Ein Erwachsener hat normalerweise 32 Zähne (inkl. Weisheitszähne)."},
+{q:"Welches Organ pumpt das Blut durch den Körper?",a:["Die Lunge","Das Herz","Der Magen","Die Leber"],c:1,cat:"Sachkunde",d:4,e:"Das Herz pumpt das Blut durch den ganzen Körper."}
 ],
 5: [
 {q:"Wie viel ist 3/5 + 1/5?",a:["4/5","4/10","2/5","1/5"],c:0,cat:"Mathe",d:2,e:"3/5 + 1/5 = 4/5 (gleicher Nenner, Zähler addieren)."},
@@ -1221,7 +1234,10 @@ const KLASSE_QUESTIONS = {
 {q:"Was ist ein Gesetz?",a:["Eine verbindliche Regel in einem Staat","Ein Vorschlag","Eine Meinung","Ein Gedicht"],c:0,cat:"Politik",d:2,e:"Ein Gesetz ist eine verbindliche, von einem Staat festgelegte Regel."},
 {q:"Was ist der Unterschied zwischen Wetter und Klima?",a:["Wetter ist kurzfristig, Klima ist langfristig","Kein Unterschied","Wetter ist nur im Winter","Klima ändert sich täglich"],c:0,cat:"Erdkunde",d:2,e:"Wetter beschreibt kurzfristige Bedingungen, Klima das langfristige Muster."},
 {q:"Was ist ein Gletscher?",a:["Eine große, sich bewegende Eismasse","Ein tiefer See","Ein Vulkan","Eine Wüste"],c:0,cat:"Erdkunde",d:2,e:"Ein Gletscher ist eine große, langsam fließende Eismasse."},
-{q:"Was versteht man unter 'Erneuerbarer Energie'?",a:["Energie aus Quellen wie Sonne und Wind, die nicht ausgehen","Energie aus Kohle","Energie, die man kaufen muss","Nur Strom aus der Steckdose"],c:0,cat:"Sachkunde",d:2,e:"Erneuerbare Energien wie Sonne und Wind stehen dauerhaft zur Verfügung."}
+{q:"Was versteht man unter 'Erneuerbarer Energie'?",a:["Energie aus Quellen wie Sonne und Wind, die nicht ausgehen","Energie aus Kohle","Energie, die man kaufen muss","Nur Strom aus der Steckdose"],c:0,cat:"Sachkunde",d:2,e:"Erneuerbare Energien wie Sonne und Wind stehen dauerhaft zur Verfügung."},
+{q:"Wie viele Knochen hat das Skelett eines erwachsenen Menschen ungefähr?",a:["106","206","306","406"],c:1,cat:"Biologie",d:5,e:"Ein erwachsenes Skelett hat etwa 206 Knochen."},
+{q:"Welches Organ filtert das Blut und bildet daraus Urin?",a:["Die Niere","Die Lunge","Der Magen","Die Milz"],c:0,cat:"Biologie",d:5,e:"Die Nieren filtern Abfallstoffe aus dem Blut und bilden Urin."},
+{q:"Was ist die Pubertät?",a:["Eine Krankheit","Die Phase der körperlichen Entwicklung vom Kind zum Erwachsenen","Ein Schulfach","Eine Sportart"],c:1,cat:"Biologie",d:5,e:"Die Pubertät ist die Phase, in der sich der Körper vom Kind zum Erwachsenen entwickelt, meist zwischen 9 und 16 Jahren."}
 ],
 6: [
 {q:"Wie viel ist 2/3 - 1/6?",a:["1/2","1/3","3/6","1/6"],c:0,cat:"Mathe",d:3,e:"2/3 = 4/6, minus 1/6 ergibt 3/6 = 1/2."},
@@ -1275,7 +1291,10 @@ const KLASSE_QUESTIONS = {
 {q:"Was ist eine Wahl in der Demokratie?",a:["Bürger stimmen ab, wer sie vertreten soll","Ein Fußballspiel","Eine Schulaufgabe","Ein Fest"],c:0,cat:"Politik",d:3,e:"Bei einer Wahl bestimmen Bürger, wer sie im Parlament oder als Regierung vertritt."},
 {q:"Was ist der Unterschied zwischen Tropen und Polargebieten?",a:["Tropen sind heiß, Polargebiete sind kalt","Kein Unterschied","Tropen sind kalt","Polargebiete sind immer trocken"],c:0,cat:"Erdkunde",d:3,e:"Die Tropen liegen am Äquator und sind heiß, Polargebiete an den Polen sind kalt."},
 {q:"Was macht der Bundestag hauptsächlich?",a:["Er verkauft Waren","Er beschließt Gesetze","Er organisiert Sportfeste","Er baut Straßen"],c:1,cat:"Politik",d:6,e:"Der Bundestag ist das gesetzgebende Organ Deutschlands."},
-{q:"Wie oft werden in Deutschland Bundestagswahlen abgehalten?",a:["Jedes Jahr","Alle 4 Jahre","Alle 10 Jahre","Nie"],c:1,cat:"Politik",d:6,e:"Regulär finden alle 4 Jahre Bundestagswahlen statt."}
+{q:"Wie oft werden in Deutschland Bundestagswahlen abgehalten?",a:["Jedes Jahr","Alle 4 Jahre","Alle 10 Jahre","Nie"],c:1,cat:"Politik",d:6,e:"Regulär finden alle 4 Jahre Bundestagswahlen statt."},
+{q:"Welcher Muskel ist hauptsächlich für die Atmung verantwortlich?",a:["Der Bizeps","Das Zwerchfell","Der Wadenmuskel","Der Nackenmuskel"],c:1,cat:"Biologie",d:6,e:"Das Zwerchfell ist der wichtigste Atemmuskel."},
+{q:"Aus wie vielen Hauptschichten besteht die menschliche Haut?",a:["2","3","5","7"],c:1,cat:"Biologie",d:6,e:"Oberhaut, Lederhaut und Unterhaut sind die drei Hauptschichten der Haut."},
+{q:"Welche körperliche Veränderung ist in der Pubertät bei Jungen typisch?",a:["Der Stimmbruch","Zahnverlust","Haarausfall","Größenabnahme"],c:0,cat:"Biologie",d:6,e:"Der Stimmbruch (tiefere Stimme) ist eine typische Pubertätsveränderung bei Jungen."}
 ],
 7: [
 {q:"Löse die Gleichung: x + 5 = 12. Was ist x?",a:["5","6","7","8"],c:2,cat:"Mathe",d:3,e:"x = 12 - 5 = 7."},
@@ -1327,7 +1346,13 @@ const KLASSE_QUESTIONS = {
 {q:"Was ist das chemische Symbol für Wasserstoff?",a:["W","H","Ws","Wa"],c:1,cat:"Chemie",d:3,e:"Das chemische Symbol für Wasserstoff ist H."},
 {q:"Woraus besteht Wasser chemisch?",a:["Wasserstoff und Sauerstoff (H2O)","Nur Sauerstoff","Wasserstoff und Kohlenstoff","Stickstoff und Sauerstoff"],c:0,cat:"Chemie",d:3,e:"Wasser (H2O) besteht aus zwei Wasserstoff- und einem Sauerstoffatom."},
 {q:"Was ist ein Atom?",a:["Der kleinste Baustein der Materie, der ein Element ausmacht","Ein Molekül","Eine Zelle","Eine Flüssigkeit"],c:0,cat:"Chemie",d:3,e:"Ein Atom ist die kleinste Einheit eines chemischen Elements."},
-{q:"Was ist das Periodensystem?",a:["Eine Ordnung aller chemischen Elemente","Ein Kalender","Eine Landkarte","Eine mathematische Formel"],c:0,cat:"Chemie",d:3,e:"Das Periodensystem ordnet alle bekannten chemischen Elemente systematisch."}
+{q:"Was ist das Periodensystem?",a:["Eine Ordnung aller chemischen Elemente","Ein Kalender","Eine Landkarte","Eine mathematische Formel"],c:0,cat:"Chemie",d:3,e:"Das Periodensystem ordnet alle bekannten chemischen Elemente systematisch."},
+{q:"Wo werden beim Mann die Spermien gebildet?",a:["In der Blase","In den Hoden","In der Niere","Im Magen"],c:1,cat:"Biologie",d:7,e:"Spermien werden in den Hoden gebildet."},
+{q:"Wie heißt das Organ, in dem sich ein Embryo entwickelt?",a:["Der Eierstock","Die Gebärmutter","Der Eileiter","Die Blase"],c:1,cat:"Biologie",d:7,e:"Die Gebärmutter (Uterus) ist das Organ, in dem sich ein Embryo entwickelt."},
+{q:"Wie heißen die äußeren und inneren weiblichen Geschlechtsorgane zusammen, in medizinischer Fachsprache?",a:["Gelenke","Genitalien","Atemwege","Verdauungsorgane"],c:1,cat:"Biologie",d:7,e:"Genitalien ist der medizinische Fachbegriff für die Geschlechtsorgane."},
+{q:"Wie alt muss man in Deutschland mindestens sein, um bei einer Bundestagswahl wählen zu dürfen?",a:["14 Jahre","16 Jahre","18 Jahre","21 Jahre"],c:2,cat:"Politik",d:7,e:"Das aktive Wahlrecht beginnt mit Vollendung des 18. Lebensjahres."},
+{q:"Was ist eine Fraktion im Parlament?",a:["Ein einzelner Abgeordneter","Der Zusammenschluss von Abgeordneten derselben Partei","Ein Gerichtssaal","Eine Volksabstimmung"],c:1,cat:"Politik",d:7,e:"Eine Fraktion ist der Zusammenschluss der Abgeordneten einer Partei im Parlament."},
+{q:"Was passiert bei einer Volksabstimmung (Referendum)?",a:["Das Volk stimmt direkt über eine Sachfrage ab","Nur Politiker dürfen abstimmen","Ein Gericht entscheidet","Eine Partei entscheidet allein"],c:0,cat:"Politik",d:7,e:"Bei einer Volksabstimmung stimmt die Bevölkerung direkt über eine bestimmte Frage ab."}
 ],
 8: [
 {q:"Löse: 5x + 3 = 2x + 12. Was ist x?",a:["2","3","4","5"],c:1,cat:"Mathe",d:3,e:"5x - 2x = 12 - 3, also 3x = 9, x = 3."},
@@ -1381,7 +1406,10 @@ const KLASSE_QUESTIONS = {
 {q:"Was verursacht den Treibhauseffekt hauptsächlich?",a:["Treibhausgase wie CO2, die Wärme in der Atmosphäre halten","Kalte Luft","Der Mond","Vulkanausbrüche allein"],c:0,cat:"Erdkunde",d:3,e:"Treibhausgase wie CO2 halten Wärme in der Atmosphäre zurück und verstärken die Erderwärmung."},
 {q:"Was ist eine Klimazone?",a:["Ein Gebiet mit einem typischen, ähnlichen Klima","Eine Zeitzone","Eine politische Grenze","Eine Meeresströmung"],c:0,cat:"Erdkunde",d:3,e:"Klimazonen fassen Gebiete mit ähnlichem, typischem Klima zusammen."},
 {q:"Was ist die Gewaltenteilung?",a:["Die Aufteilung der Polizei in Bezirke","Die Trennung von Gesetzgebung, Regierung und Gerichten","Die Aufteilung des Militärs","Die Trennung der Bundesländer"],c:1,cat:"Politik",d:8,e:"Legislative, Exekutive und Judikative kontrollieren sich gegenseitig."},
-{q:"Wofür steht die Abkürzung EU?",a:["Europäische Union","Einheitliche Universität","Europäische Unternehmen","Englische Union"],c:0,cat:"Politik",d:8,e:"Die EU ist ein Zusammenschluss von 27 europäischen Staaten."}
+{q:"Wofür steht die Abkürzung EU?",a:["Europäische Union","Einheitliche Universität","Europäische Unternehmen","Englische Union"],c:0,cat:"Politik",d:8,e:"Die EU ist ein Zusammenschluss von 27 europäischen Staaten."},
+{q:"Wie lange dauert ein durchschnittlicher weiblicher Zyklus?",a:["Etwa 7 Tage","Etwa 28 Tage","Etwa 60 Tage","Etwa 90 Tage"],c:1,cat:"Biologie",d:8,e:"Ein Zyklus dauert im Durchschnitt etwa 28 Tage, kann aber individuell schwanken."},
+{q:"Wie nennt man eine befruchtete Eizelle in den ersten Entwicklungswochen?",a:["Embryo","Follikel","Hormon","Zygotenlos"],c:0,cat:"Biologie",d:8,e:"In den ersten Wochen nach der Befruchtung spricht man vom Embryo, später vom Fötus."},
+{q:"Wie heißt das Organ, über das ein ungeborenes Kind mit Nährstoffen versorgt wird?",a:["Die Plazenta","Die Leber","Die Niere","Die Lunge"],c:0,cat:"Biologie",d:8,e:"Die Plazenta versorgt das ungeborene Kind mit Nährstoffen und Sauerstoff."}
 ],
 9: [
 {q:"Löse die quadratische Gleichung x² - 9 = 0.",a:["x = 3 oder x = -3","x = 9","x = 3 nur","x = -9"],c:0,cat:"Mathe",d:4,e:"x² = 9, also x = 3 oder x = -3."},
@@ -1425,7 +1453,7 @@ const KLASSE_QUESTIONS = {
 {q:"Wann wurde Deutschland wiedervereinigt?",a:["1989","1990","1991","1992"],c:1,cat:"Geschichte",d:4,e:"Die deutsche Wiedervereinigung erfolgte am 3. Oktober 1990."},
 {q:"Was ist der Kalte Krieg?",a:["Politischer Konflikt zwischen USA/Westen und UdSSR/Ostblock ohne direkten Krieg","Ein Krieg im Winter","Ein Handelskrieg von heute","Ein Krieg zwischen Deutschland und Frankreich"],c:0,cat:"Geschichte",d:4,e:"Der Kalte Krieg war die Rivalität zwischen West und Ost nach 1945, ohne direkten militärischen Konflikt der Großmächte."},
 {q:"Was ist das Grundgesetz?",a:["Die Verfassung der Bundesrepublik Deutschland","Ein Gesetz zum Straßenverkehr","Ein EU-Vertrag","Ein Schulgesetz"],c:0,cat:"Politik",d:4,e:"Das Grundgesetz ist die deutsche Verfassung, seit 1949 in Kraft."},
-{q:"Was sind die drei Gewalten im Staat (Gewaltenteilung)?",a:["Legislative, Exekutive, Judikative","Regierung, Opposition, Volk","Polizei, Militär, Justiz","Bund, Länder, Gemeinden"],c:0,cat:"Politik",d:4,e:"Die Gewaltenteilung umfasst Gesetzgebung (Legislative), Ausführung (Exekutive) und Rechtsprechung (Judikative)."},
+{q:"Was versteht man unter 'Opposition' im Parlament?",a:["Die regierenden Parteien","Die nicht an der Regierung beteiligten Parteien","Ausländische Regierungen","Die Gerichte"],c:1,cat:"Politik",d:9,e:"Die Opposition kontrolliert und kritisiert die Regierungsparteien."},
 {q:"Was macht die Judikative?",a:["Rechtsprechung (Gerichte)","Gesetze machen","Gesetze ausführen","Wahlen organisieren"],c:0,cat:"Politik",d:4,e:"Die Judikative ist für die Rechtsprechung durch Gerichte zuständig."},
 {q:"Was ist der Bundestag?",a:["Das deutsche Parlament","Die deutsche Regierung","Ein Gericht","Eine Partei"],c:0,cat:"Politik",d:4,e:"Der Bundestag ist das direkt gewählte Parlament Deutschlands."},
 {q:"Was ist Radioaktivität (einfach erklärt)?",a:["Der spontane Zerfall instabiler Atomkerne unter Strahlung","Ein Lichteffekt","Eine chemische Reaktion mit Wasser","Ein magnetisches Phänomen"],c:0,cat:"Physik",d:4,e:"Radioaktivität ist der Zerfall instabiler Atomkerne, wobei Strahlung freigesetzt wird."},
@@ -1433,7 +1461,9 @@ const KLASSE_QUESTIONS = {
 {q:"Was ist ein Isotop?",a:["Atome des gleichen Elements mit unterschiedlicher Neutronenzahl","Ein Molekül","Eine Legierung","Ein chemisches Element"],c:0,cat:"Chemie",d:4,e:"Isotope sind Atome desselben Elements, die sich in der Anzahl der Neutronen unterscheiden."},
 {q:"Was ist eine exotherme Reaktion?",a:["Eine Reaktion, bei der Energie (Wärme) freigesetzt wird","Eine Reaktion, die Energie aufnimmt","Eine Reaktion ohne Energieänderung","Eine Reaktion nur mit Wasser"],c:0,cat:"Chemie",d:4,e:"Bei einer exothermen Reaktion wird Wärme an die Umgebung abgegeben."},
 {q:"Was ist eine endotherme Reaktion?",a:["Eine Reaktion, die Energie aufnimmt","Eine Reaktion, die Energie abgibt","Eine Reaktion ohne Wärme","Eine explosive Reaktion"],c:0,cat:"Chemie",d:4,e:"Bei einer endothermen Reaktion wird Energie (meist Wärme) aus der Umgebung aufgenommen."},
-{q:"Was ist ein Katalysator?",a:["Ein Stoff, der eine Reaktion beschleunigt, ohne selbst verbraucht zu werden","Ein Stoff, der Reaktionen verlangsamt","Ein Endprodukt einer Reaktion","Ein radioaktives Element"],c:0,cat:"Chemie",d:4,e:"Ein Katalysator beschleunigt chemische Reaktionen, ohne sich selbst zu verändern."}
+{q:"Was ist ein Katalysator?",a:["Ein Stoff, der eine Reaktion beschleunigt, ohne selbst verbraucht zu werden","Ein Stoff, der Reaktionen verlangsamt","Ein Endprodukt einer Reaktion","Ein radioaktives Element"],c:0,cat:"Chemie",d:4,e:"Ein Katalysator beschleunigt chemische Reaktionen, ohne sich selbst zu verändern."},
+{q:"Was ist die 'Pille' im Zusammenhang mit Verhütung?",a:["Ein Schmerzmittel","Ein hormonelles Mittel, das eine Schwangerschaft verhindern kann","Ein Vitaminpräparat","Ein Hustensaft"],c:1,cat:"Biologie",d:9,e:"Die Antibabypille ist ein hormonelles Verhütungsmittel."},
+{q:"Was versteht man unter Einvernehmlichkeit (Consent)?",a:["Dass alle Beteiligten freiwillig zustimmen","Ein Hormon","Eine Verhütungsmethode","Einen medizinischen Test"],c:0,cat:"Biologie",d:9,e:"Einvernehmlichkeit bedeutet, dass alle Beteiligten einer Handlung freiwillig und ohne Druck zustimmen."}
 ],
 10: [
 {q:"Löse mit der Mitternachtsformel: x² - 5x + 6 = 0. Lösungen?",a:["x=2 und x=3","x=1 und x=6","x=-2 und x=-3","x=5 und x=6"],c:0,cat:"Mathe",d:4,e:"Die Lösungen sind x=2 und x=3 (Probe: 2x3=6, 2+3=5)."},
@@ -1487,7 +1517,9 @@ const KLASSE_QUESTIONS = {
 {q:"Was versteht man unter nachhaltiger Entwicklung?",a:["Entwicklung, die heutige Bedürfnisse deckt, ohne künftige Generationen zu gefährden","Nur wirtschaftliches Wachstum","Verzicht auf jegliche Entwicklung","Nur Umweltschutz ohne Wirtschaft"],c:0,cat:"Politik",d:4,e:"Nachhaltige Entwicklung verbindet heutige Bedürfnisse mit Rücksicht auf künftige Generationen."},
 {q:"Was ist ein Ökonomischer Kreislauf (Grundidee)?",a:["Das Zusammenspiel von Haushalten, Unternehmen und Staat in der Wirtschaft","Nur der Handel mit Aktien","Der Kreislauf des Wassers","Ein biologischer Vorgang"],c:0,cat:"Politik",d:4,e:"Der Wirtschaftskreislauf beschreibt, wie Güter, Geld und Leistungen zwischen Haushalten, Unternehmen und Staat fließen."},
 {q:"Was prüft das Bundesverfassungsgericht?",a:["Ob Gesetze mit dem Grundgesetz vereinbar sind","Den Bundeshaushalt","Die Außenpolitik","Wahlergebnisse in anderen Ländern"],c:0,cat:"Politik",d:10,e:"Es ist die höchste Instanz zum Schutz der Verfassung."},
-{q:"Was versteht man unter dem 'Konstruktiven Misstrauensvotum'?",a:["Der Bundestag kann den Kanzler nur stürzen, wenn gleichzeitig ein Nachfolger gewählt wird","Der Bundespräsident kann jederzeit Neuwahlen ausrufen","Eine Volksabstimmung über den Kanzler","Ein Gesetz zur Parteienfinanzierung"],c:0,cat:"Politik",d:10,e:"Diese Regel im Grundgesetz soll Regierungskrisen ohne Nachfolgeregelung verhindern."}
+{q:"Was versteht man unter dem 'Konstruktiven Misstrauensvotum'?",a:["Der Bundestag kann den Kanzler nur stürzen, wenn gleichzeitig ein Nachfolger gewählt wird","Der Bundespräsident kann jederzeit Neuwahlen ausrufen","Eine Volksabstimmung über den Kanzler","Ein Gesetz zur Parteienfinanzierung"],c:0,cat:"Politik",d:10,e:"Diese Regel im Grundgesetz soll Regierungskrisen ohne Nachfolgeregelung verhindern."},
+{q:"Wie nennt man Infektionen, die hauptsächlich durch sexuellen Kontakt übertragen werden?",a:["Erkältungskrankheiten","Sexuell übertragbare Infektionen (STI)","Erbkrankheiten","Allergien"],c:1,cat:"Biologie",d:10,e:"STIs sind Infektionen, die hauptsächlich durch sexuellen Kontakt übertragen werden, z.B. Chlamydien oder HPV."},
+{q:"An wen können sich Jugendliche bei Fragen zu Körper oder Sexualität vertrauensvoll wenden?",a:["An niemanden","Z.B. an Ärzt:innen oder Beratungsstellen","Nur ans Internet","Nur an Gleichaltrige"],c:1,cat:"Biologie",d:10,e:"Ärzt:innen, Beratungsstellen (z.B. pro familia) und vertraute Erwachsene sind gute Anlaufstellen."}
 ]
 };
 
