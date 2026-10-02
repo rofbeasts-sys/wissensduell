@@ -117,8 +117,8 @@ function loadClient({ fakeTime = false, fetchImpl = null, account = false, local
     fetch: fetchImpl || (async () => ({ json: async () => ({}) })), console, Achv: require("../public/achievements.js"),
     setTimeout: fakeTime ? fSetTimeout : setTimeout, clearTimeout: fakeTime ? fClear : clearTimeout,
     setInterval: fakeTime ? fSetInterval : setInterval, clearInterval: fakeTime ? fClear : clearInterval,
-    location: { protocol: "https:", host: "t", href: "" }, alert() {}, confirm() { return true; },
-    WebSocket: MockWebSocket
+    location: { protocol: "https:", host: "t", href: "", search: "", pathname: "/" }, alert() {}, confirm() { return true; },
+    WebSocket: MockWebSocket, URLSearchParams, history: { replaceState() {} }
   };
   vm.createContext(sb); vm.runInContext(code, sb);
   return { R: (s) => vm.runInContext(s, sb), state, sb, advance, activeIntervals: () => timers.filter(t => t.type === "i").length };
