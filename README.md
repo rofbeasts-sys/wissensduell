@@ -3927,6 +3927,257 @@ keine Kollision mit dem Wissenstest-Pool oder dem Biologie-Modus,
 Client-Einbettung und Server-JSON bleiben deckungsgleich, Haupt-/Übungstest
 funktionieren für die am stärksten veränderten Klassen weiterhin normal.
 
+## 8iii2. Haupttest zieht jetzt aus der 50er-Auswahl des Übungstests
+
+Auf Wunsch klargestellt: Klassen dürfen und sollen gerne mehr als 50 Fragen
+im Pool haben (mehr Abwechslung bei Wiederholungen - einige Klassen haben
+inzwischen bis zu 56). Der Übungstest zieht davon trotzdem weiterhin nur
+eine zufällige 50er-Auswahl. Bisher zog der Haupttest seine 20 Fragen aber
+davon UNABHÄNGIG nochmal zufällig aus dem KOMPLETTEN (teils größeren) Pool -
+dadurch konnten im Haupttest Fragen auftauchen, die im direkt vorangegangenen
+Übungstest gar nicht vorkamen.
+
+Jetzt merkt sich jedes Profil die zuletzt gezogene 50er-Auswahl je Klasse
+(rein im Arbeitsspeicher, wird nie mitgespeichert oder zum Server
+synchronisiert) - der Haupttest zieht seine 20 Fragen danach aus genau
+dieser Auswahl, nicht mehr unabhängig aus dem ganzen Pool. Wird der
+Übungstest erneut gestartet, ersetzt die neue Ziehung die alte. Wird der
+Haupttest aufgerufen, ohne dass in der aktuellen Sitzung schon ein
+Übungstest gelaufen ist (z.B. direkt nach einem Neustart der Seite), fällt
+es sauber auf den kompletten Klassen-Pool zurück, statt mit einer leeren
+Liste abzubrechen.
+
+Getestet: Haupttest-Fragen kommen nachweislich alle aus der vorherigen
+50er-Ziehung (bei einer Klasse mit 56 Fragen im Pool geprüft), Rückfall auf
+den vollen Pool funktioniert ohne vorherigen Übungstest, zwei verschiedene
+Profile haben unabhängige, nicht vermischte Ziehungen, eine neue
+Übungstest-Ziehung ersetzt die alte korrekt, die gemerkte Auswahl wird
+nachweislich nie mitgespeichert (kein Auftauchen in `Object.keys()` oder
+`JSON.stringify()`), und der komplette echte Spielablauf über `beginSolo()`
+funktioniert genauso wie die direkten Funktionsaufrufe.
+
+## 8jjj2. Richtige Antwort war oft allein an ihrer Form erkennbar - behoben
+
+Gemeldet (ohne Bildbeispiele, die leider nicht ankamen - stattdessen
+automatisch durchsucht): bei vielen Fragen war die richtige Antwort allein
+dadurch zu erkennen, dass sie ein ganzer, ausformulierter Erklärsatz war,
+während die drei falschen Antworten nur einzelne Wörter oder sehr kurze
+Begriffe waren - unabhängig vom eigentlichen Wissen erratbar. Betraf **144
+von 535 Fragen (27%)**, über alle 10 Klassen verteilt.
+
+Beispiel vorher:
+```
+Was ist Lyrik?
+✓ Gedichte, oft mit Reim und Rhythmus     (ganzer Satz)
+  Theaterstücke                           (ein Wort)
+  Romane                                  (ein Wort)
+  Sachtexte                               (ein Wort)
+```
+
+Für alle 144 betroffenen Fragen wurden die drei falschen Antworten auf
+vergleichbare Länge und Satzform wie die richtige gebracht - **die richtige
+Antwort selbst wurde dabei nirgends verändert**, nur wie die Ablenker
+formuliert sind:
+```
+Was ist Lyrik?
+✓ Gedichte, oft mit Reim und Rhythmus
+  Für die Bühne geschriebene Theaterstücke
+  Längere, erzählende Geschichten (Romane)
+  Sachliche, informierende Texte
+```
+
+Automatisch nach dem Muster "richtige Antwort ist auffällig länger als alle
+drei falschen" durchsucht (alle 10 Klassen), dann jede einzelne der 144
+gefundenen Fragen von Hand überarbeitet. Nach der Überarbeitung bleiben nur
+noch 5 Grenzfälle übrig, bei denen die richtige Antwort ein eingebautes
+Beispiel in Anführungszeichen enthält (z.B. bei "Alliteration") - das sind
+keine echten Verräter mehr (alle vier Antworten sind weiterhin ganze
+Sätze), nur geringfügig länger durch das Beispiel.
+
+Getestet: höchstens noch 10 Grenzfälle im gesamten Datensatz (vorher 144),
+Stichprobe konkreter, vorher gemeldeter Fragen bestätigt vergleichbare
+Antwortlängen, die richtige Antwort wurde nachweislich bei keiner einzigen
+Frage verändert (nur die falschen), keine neuen strukturellen Fehler oder
+Duplikate durch die Überarbeitung, ein kompletter Haupttest-Durchlauf mit
+überarbeiteten Fragen funktioniert weiterhin normal.
+
+## 8kkk2. Biologie ohne Körperfigur, Themenliste wie bei den anderen Modi + mehr Fragen
+
+Auf Wunsch die Körperfigur (Mann/Frau-Diagramm mit antippbaren Stellen)
+komplett entfernt. Stattdessen eine gruppierte Themenliste im exakt
+gleichen Stil wie bei Einordnen/Mehr oder Weniger/Nenn's Blitz - zwei
+Gruppenüberschriften ("Körper", "Sexualkunde"), darunter alle 18 Themen als
+einfache Chips zum Antippen, keine Illustration, kein Mann/Frau-Umschalter
+mehr nötig.
+
+**Mehr Fragen je Thema**: jedes der 18 Themen (12 Körperteile + 6
+Sexualkunde-Unterthemen) hatte bisher exakt 5 Fragen und zeigte bei jeder
+Runde immer genau dieselben 5. Jetzt hat jedes Thema 8 Fragen im Pool (54
+neue Fragen insgesamt) - gespielt werden weiterhin 5 pro Runde, aber
+zufällig aus den 8 gezogen, sodass sich Wiederholungen eines Themas jetzt
+wirklich abwechseln.
+
+Beim Einfügen der 54 neuen Fragen sind 4 Überschneidungen mit bereits
+vorhandenen Fragen aufgefallen (3 mit anderen Biologie-Themen, 1 mit einer
+Brain-Test-Frage) - durch andere Fakten ersetzt, bevor etwas gespeichert
+wurde.
+
+Getestet: jedes Thema hat jetzt genau 8 Fragen (vorher 5), keine Körperfigur
+und keine Mann/Frau-Auswahl mehr im Markup, beide Gruppenüberschriften
+vorhanden, alle Themen als Chips mit derselben CSS-Klasse wie bei
+Einordnen/Mehr oder Weniger, eine Themenauswahl zieht nachweislich 5
+zufällige Fragen aus dem 8er-Pool (alle tatsächlich aus diesem Pool,
+wiederholtes Starten liefert nachweislich unterschiedliche Zusammenstellungen),
+keine neuen Duplikate oder Kollisionen, Münzvergabe/Fortschritts-Markierung
+funktionieren weiterhin wie zuvor.
+
+## 8lll2. Biologie: ~20 Fragen je Thema + Sexualkunde erst nach fehlerfreiem Körper-Durchlauf
+
+Auf Wunsch zwei Ergänzungen:
+
+**Pools auf ~20 Fragen je Thema erweitert** (vorher 8, davor 5): 199 neue,
+inhaltlich geprüfte Fragen geschrieben - alle 12 Körperthemen liegen jetzt
+bei 18-20, alle 6 Sexualkunde-Themen bei genau 20. Beim Einfügen ist eine
+Überschneidung mit einer bereits vorhandenen Herz-Frage aufgefallen und vor
+dem Speichern durch eine andere ersetzt worden. Gespielt werden weiterhin 5
+Fragen pro Runde, zufällig aus dem jeweils deutlich größeren Pool gezogen -
+bei 18-20 Fragen und nur 5 gezogenen ist die Wiederholungsrate bei
+mehrfachem Spielen jetzt sehr gering.
+
+**Sexualkunde ist jetzt gesperrt, bis alle 12 Körper-Themen einmal
+fehlerfrei (5/5) gelöst wurden.** Vorher war Sexualkunde von Anfang an
+frei zugänglich. Die Themenliste zeigt jetzt bei "Sexualkunde" einen
+Sperr-Hinweis mit Fortschrittsanzeige ("X / 12 geschafft"), solange noch
+nicht alle Körperthemen perfekt gelöst wurden - ein bloßes "schon mal
+versucht" reicht nicht, es muss wirklich 5 von 5 richtig sein. Jedes
+perfekt gelöste Körperthema wird in der Liste zusätzlich mit einem ✓
+markiert. Beim Erreichen der letzten fehlenden Perfektlösung erscheint eine
+Freischalt-Meldung direkt im Ergebnisbildschirm. Die Sperre gilt auch für
+einen direkten Funktionsaufruf, nicht nur für die Oberfläche.
+
+Getestet: jedes Thema hat jetzt mindestens 18 Fragen (vorher 8), keine
+neuen Duplikate oder Kollisionen durch die Erweiterung, Sexualkunde ist bei
+einem frischen Profil nachweislich gesperrt (inkl. direktem
+Funktionsaufruf, der ins Leere läuft), schaltet sich nachweislich erst
+frei, wenn wirklich alle 12 Körperthemen fehlerfrei gelöst wurden (ein
+einzelnes fehlendes Thema reicht zum Blockieren), ein nicht-perfekter
+Durchlauf zählt nachweislich nicht für die Freischaltung, die
+Freischalt-Meldung erscheint genau im richtigen Moment.
+
+## 8mmm2. Antworten wieder knapp/faktenbasiert (Stil "Mitternachtsformel") statt ausformulierter Sätze
+
+Beim letzten Duplikat-Fix (siehe oben) waren bei 144 Fragen die falschen
+Antwortoptionen auf ganze, ausformulierte Erklärsätze umgestellt worden
+("Eine gewählte Versammlung, die Gesetze beschließt" statt einfach
+"Gewählte Versammlung"). Auf Wunsch zurück zum knappen Wissens-/Fakten-Stil,
+wie bei der bereits bestehenden Frage "Was ist die Mitternachtsformel
+(p-q-Formel verwandt) für?" mit ihren kurzen Antworten wie "Lösen
+quadratischer Gleichungen".
+
+Alle 144 Fragen wurden auf kurze, 2-4-Wort-Begriffe/Kurzphrasen gekürzt -
+der sachliche Inhalt blieb identisch, nur die Formulierung wurde knapper.
+Wichtig dabei: alle vier Antwortoptionen bleiben weiterhin vergleichbar
+lang zueinander, damit die richtige Antwort nicht erneut allein durch Länge
+auffällt (das war ja der ursprüngliche, separate Fehler, der vorher behoben
+wurde) - nur eben jetzt auf Begriffs-Ebene kurz statt auf Satz-Ebene lang.
+
+Beispiel:
+```
+Was ist ein Parlament?          Was ist eine Metapher?
+✓ Gewählte Versammlung          ✓ Bildhafter Ausdruck
+  Gerichtsort                     Satzzeichen
+  Zeitung                         Zeitangabe
+  Lerneinrichtung                 Reimwort
+```
+
+Beim Kürzen ist mir ein eigener Fehler aufgefallen und noch vor dem
+Speichern behoben worden: bei einer Frage ("Was für ein Wort ist 'und'?")
+hatte ich aus Versehen eine ursprünglich falsche Antwort an die Position
+der richtigen gesetzt - beim Gegenchecken gegen die Originaldaten bemerkt
+und korrigiert.
+
+Getestet: das Vorbild "Mitternachtsformel" ist unverändert im knappen Stil,
+Stichprobe vorher betroffener Fragen bestätigt die neue Kürze bei
+weiterhin korrektem Sachinhalt, höchstens noch 5 minimale Ausreißer im
+gesamten Datensatz (vorher 144), keine hunderten langen Antworttexte mehr
+übrig, keine neuen Duplikate oder strukturellen Fehler, Gesamtzahl bleibt
+bei 535 Fragen, ein echter Spieldurchlauf mit einer der gekürzten Fragen
+funktioniert weiterhin korrekt.
+
+## 8nnn2. Alle 343 Biologie-/Sexualkunde-Fragen zusätzlich in den Brain Test übernommen
+
+Auf Wunsch: alle Fragen aus dem eigenständigen Biologie-Modus (12
+Körperteile + 6 Sexualkunde-Themen, 343 Fragen) sind jetzt zusätzlich auch
+im Brain Test enthalten, verteilt nach Thema auf passende Klassenstufen:
+
+- Klasse 3: Hand, Fuß (Sachkunde-Niveau)
+- Klasse 4: Auge, Ohr (Sachkunde-Niveau)
+- Klasse 5: Kopf & Gehirn, Haut, Pubertät (Biologie beginnt als Fach)
+- Klasse 6: Herz, Knochen & Skelett, Fortpflanzungsorgane
+- Klasse 7: Lunge, Magen & Verdauung, Menstruationszyklus
+- Klasse 8: Muskeln, Niere & Blase, Schwangerschaft
+- Klasse 9: Verhütung & Gesundheit
+- Klasse 10: Einverständnis & Grenzen
+
+Die Brain-Test-Pools sind dadurch deutlich gewachsen (z.B. Klasse 6 von 55
+auf 112, Klasse 7 von 56 auf 112). Übungstest und Haupttest liefern
+weiterhin genau 50 bzw. 20 Fragen (feste Werte, unabhängig von der
+gewachsenen Poolgröße) - mehr Pool heißt einfach mehr Abwechslung bei
+Wiederholungen.
+
+Beim Übertragen ist aufgefallen, dass 61 der übernommenen Fragen (die im
+Biologie-Modus nie gegen das "Längen-Verräter"-Muster geprüft wurden, weil
+das nur für den Brain Test eingeführt wurde) jetzt im Brain Test dasselbe
+Problem gehabt hätten wie vorher die 144 - mit derselben Sorgfalt gekürzt.
+Dabei sind mir zwei eigene Fehler unterlaufen und noch vor dem Speichern
+behoben worden: bei 14 Fragen hatte ich zunächst aus Versehen eine
+ursprünglich falsche Antwort an die Position der richtigen gesetzt - beim
+Gegenchecken gegen die Originaldaten bemerkt und korrigiert.
+
+Getestet: alle 343 Fragen sind nachweislich im Brain Test wiederzufinden,
+korrekte Verteilung auf die jeweils richtige Klassenstufe (stichprobenartig
+für jedes Thema geprüft), richtige Kategorie (Sachkunde in Klasse 3/4,
+sonst Biologie), keine neuen Duplikate oder strukturellen Fehler, höchstens
+noch vereinzelte Längen-Ausreißer im gesamten 878 Fragen umfassenden
+Datensatz, Client-Einbettung und Server-JSON bleiben deckungsgleich,
+Übungs- und Haupttest funktionieren bei den am stärksten gewachsenen
+Klassen weiterhin normal.
+
+## 8ooo2. Order of Speed: neue Level-Schwellen + Gedächtnis-Phase ab Level 45
+
+Die Grundmechanik fürs Bewegen und kurze Verschwinden der Zahlen gab es im
+Code bereits als Gerüst (vorher ab Level 4 bzw. 7), auf Wunsch die
+Schwellen angepasst und eine neue Stufe ergänzt:
+
+- **Ab Level 15**: die Zahlen bewegen sich (werden alle 2,5s neu angeordnet)
+- **Ab Level 25**: zusätzlich kurzes Verschwinden (0,7s alle 3,2s) - ab hier
+  automatisch "beides gleichzeitig", da Bewegen schon seit Level 15 läuft
+- **Neu, ab Level 45**: die Zahlen sind nur noch **5 Sekunden lang beim
+  Rundenbeginn sichtbar** (bewegen sich in dieser Zeit noch ganz normal
+  mit) und werden danach **dauerhaft verdeckt** - kein automatisches
+  Wiederaufdecken wie beim normalen Flackern mehr. Ab da muss aus dem
+  Gedächtnis getippt werden, die Positionen bleiben dabei antippbar (nur
+  die Zahl selbst ist unsichtbar), die Anordnung friert beim Verdecken ein,
+  damit sich die zuletzt gesehene Reihenfolge nicht mehr unbemerkt
+  verändert. Im Spiel erscheint dabei ein Hinweistext ("👀 Merken..." bzw.
+  "🧠 Aus dem Gedächtnis tippen!").
+
+Beim Umsetzen ein echtes Problem gefunden: der normale Pro-Zahl-Zeitdruck
+(bei Level 45 nur noch ~2,8s) lief anfangs schon WÄHREND der 5-Sekunden-
+Merkphase mit und hätte die Runde durch Zeitablauf ständig zurückgesetzt,
+noch bevor überhaupt mit dem Tippen begonnen werden durfte. Behoben: der
+Pro-Zahl-Timer startet bei Level 45+ jetzt bewusst erst NACH Ablauf der
+Merkphase, nicht schon während des reinen Hinsehens.
+
+Getestet: alle Schwellen exakt wie gewünscht (15/25, inkl. aller Level
+dazwischen und danach), Zahlen bleiben nach 5s zuverlässig und dauerhaft
+verdeckt (kein zyklisches Wiederaufdecken), der Pro-Zahl-Timer startet
+nachweislich NICHT während der Merkphase und erst danach, die Bewegung
+läuft während der Merkphase mit und friert beim Verdecken nachweislich
+ein, Antippen funktioniert auch bei verdeckten Zahlen weiterhin korrekt,
+die bestehende Order-of-Speed-Testsuite (858 Einzelprüfungen) wurde auf
+die neuen Schwellenwerte angepasst und läuft weiterhin komplett durch.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch
