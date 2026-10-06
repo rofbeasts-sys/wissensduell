@@ -4178,6 +4178,137 @@ ein, Antippen funktioniert auch bei verdeckten Zahlen weiterhin korrekt,
 die bestehende Order-of-Speed-Testsuite (858 Einzelprüfungen) wurde auf
 die neuen Schwellenwerte angepasst und läuft weiterhin komplett durch.
 
+## 8ppp2. Musik raten komplett aus dem Spiel entfernt (inkl. Erfolge und Statistik)
+
+Auf Wunsch entfernt - wichtig dabei: Es gibt zwei völlig getrennte
+"Musik"-Systeme im Code. Die **Hintergrundmusik der App** (Menü-Musik,
+Lautstärkeregler, Tic-Tac-Toe-Musik) ist davon **nicht** betroffen und
+bleibt vollständig erhalten - entfernt wurde ausschließlich der
+eigenständige **Spielmodus "Musik raten"** (Songs erraten).
+
+- Menüpunkt (Hauptmenü-Kachel) entfernt
+- Als Mehrspieler-Modus nicht mehr wählbar - ein Raum mit `gameMode:
+  "music"` fällt jetzt sauber auf den normalen Mix-Modus zurück, statt
+  abzustürzen
+- Keine Musik-Rundendefinitionen mehr im serverseitigen Rundenpool
+  (betrifft sowohl den eigenen Mini-Games-Menüpunkt als auch den
+  gemischten Modus)
+- **Erfolg "Feines Gehör"** (10 Songs ohne Wiederholung) und die komplette
+  **Erfolge-Kategorie "Musik raten"** entfernt - macht zusammen 2 weniger
+  (der einzelne Erfolg + sein automatischer Kategorie-Sammelerfolg), macht
+  jetzt 51 Erfolge in 7 Kategorien statt vorher 53 in 8
+- **"Musik raten" aus der Statistik-Übersicht** (Spielmodus-Aufschlüsselung)
+  entfernt
+
+Wie schon bei Chronologie/Bild erraten bleiben Datensätze und
+Spiel-Engine unangetastet im Code (nur auskommentiert/nicht mehr in den
+Pool aufgenommen) - das hält das Risiko eines Fehlers beim Entfernen klein,
+verglichen mit einem kompletten Herausreißen aller Funktionen. Anders als
+bei diesen beiden (die bewusst "vorübergehend" sind) ist das hier als
+dauerhafte Entfernung markiert.
+
+Getestet: Hauptmenü, Statistik und Erfolge-Seite laden alle sauber ohne
+JavaScript-Fehler (mit einem echten Browser bestätigt, keine Konsolen-
+Fehler), kein Absturz beim Versuch, trotzdem einen Musik-Raum zu erstellen
+(fällt nachweislich auf "mixed" zurück), kein Musik-Rundentyp mehr im
+verfügbaren Pool, die Erfolge-Logik verarbeitet "music"-Ereignisse jetzt
+folgenlos statt sie zu zählen, Gesamtzahl der Erfolge/Kategorien in den
+Tests auf die neuen, tatsächlichen Werte angepasst.
+
+## 8qqq2. Brain Test: Klassen-Detailbildschirm, 90%-Haupttest, Tagesversuche + Abstieg
+
+Auf Wunsch ein größeres Umbau des Fortschrittssystems:
+
+**Haupttest-Bestehensgrenze von 80% (16/20) auf 90% (18/20) angehoben.**
+
+**Neuer Klassen-Detailbildschirm**: Jede bereits erreichte oder bestandene
+Klasse in der Übersicht ist jetzt antippbar (nicht mehr nur ein kleiner
+Inline-Knopf) und öffnet einen eigenen Bildschirm mit:
+- dem zuletzt erzielten Übungstest-Punktestand (z.B. "45 / 50")
+- dem zuletzt erzielten Haupttest-Punktestand (z.B. "18 / 20")
+- Knöpfen, um Übungstest und/oder Haupttest dieser Klasse erneut zu
+  versuchen (Übungstest zieht dabei neue, frisch gewürfelte Fragen)
+
+**Tagesversuche + Sperrlogik**: Pro Klasse gibt es jetzt maximal 3 Versuche
+am selben Tag je Testart. Werden alle 3 verbraucht, ohne zu bestehen,
+greift statt eines einfachen "morgen nochmal" eine gezielte Sperre:
+- **Haupttest 3x nicht bestanden** → der Übungstest dieser Klasse muss mit
+  neu gezogenen Fragen erneut bestanden werden, bevor der Haupttest wieder
+  angeboten wird
+- **Übungstest 3x nicht bestanden** → Abstieg: der Haupttest der
+  VORHERIGEN Klasse muss erneut bestanden werden, bevor der Übungstest
+  dieser Klasse wieder angeboten wird. Klasse 1 kann nicht tiefer
+  absteigen (bleibt ohne Sperre frei wiederholbar).
+
+Beide Sperren sind in der Übersicht direkt sichtbar (🔒-Symbol an der
+betroffenen Klasse, passender Hinweistext + passender Knopf statt des
+normalen "Weiter"-Knopfs) und lösen sich automatisch auf, sobald die
+geforderte Gegenleistung erbracht wurde - dann werden auch die
+Tagesversuche der jeweils betroffenen Testart zurückgesetzt. Ein neuer
+Kalendertag allein hebt eine Sperre NICHT auf, nur das tatsächliche
+erneute Bestehen.
+
+Mit einem echten Browser durchgespielt und bestätigt (Klassen-
+Detailbildschirm mit Punktestand, Sperr-Hinweis mit passendem
+Wiederholen-Knopf).
+
+Getestet: neue 90%-Grenze (17/20 besteht nicht mehr, 18/20 besteht),
+Punktestand wird für Übungs- und Haupttest je Klasse korrekt gespeichert,
+beide Sperrarten lösen nach 3 Fehlversuchen korrekt aus, beide lösen sich
+durch die jeweils geforderte Gegenleistung korrekt wieder auf (inkl.
+zurückgesetzter Tagesversuche), eine NICHT bestandene Gegenleistung hebt
+die Sperre nicht auf, Klasse 1 bleibt ohne Abstiegssperre, das
+Sicherheitsnetz in `beginSolo()` weist einen direkten Aufruf trotz Sperre
+ab (kein Absturz), Klassen-Detailbildschirm und Übersicht zeigen Sperren
+und Punktestände korrekt an, eine normale Wiederholung einer bereits
+bestandenen Klasse (ohne Sperrbezug) aktualisiert weiterhin nur den
+Punktestand, ohne Klasse/Freischaltung zu verändern.
+
+## 8rrr2. Kritischer Fund beim Nachtesten: Kontos haben Brain-Test-Fortschritt nie gespeichert + neuer Reset-Knopf
+
+Beim Versuch, den neuen Brain-Test-Fortschritt (vorherige Änderung) erneut
+durchzutesten, kam die Rückmeldung, dass sich über Upstash nichts
+zurücksetzen ließ. Beim Nachsehen ein ernsterer, eigentlicher Fehler: die
+drei neuen Felder (`braintestScores`, `braintestGate`, `braintestDaily`)
+wurden beim letzten Mal nirgends mit einem angemeldeten KONTO
+synchronisiert - weder in `accountAsProfile()` (das Konto-Profil bekam die
+Felder beim Laden nie zu sehen), noch in `syncAccountStats()` (wurden beim
+Speichern nie mitgeschickt), noch serverseitig in `saveUserStats()` (keine
+Validierung dafür vorhanden). Für angemeldete Nutzer:innen gingen Punktestände,
+Sperren und Tagesversuche dadurch bei jeder Konto-Synchronisierung
+verloren bzw. kamen nie dort an - nur lokale (nicht angemeldete) Profile
+waren davon nicht betroffen, da die bei denen einfach als Teil des ganzen
+Profils gespeichert werden.
+
+Alle drei Stellen jetzt nachgezogen, inklusive einer eigenen, strikten
+Server-Validierung für diese verschachtelten Felder (ungültige
+Klassenindizes, unsinnige Punktestände wie "mehr richtig als insgesamt
+Fragen", unbekannte Sperrtypen oder kaputte Datumswerte werden abgelehnt,
+ohne die Anfrage insgesamt scheitern zu lassen).
+
+**Dazu ein neuer "↺ Fortschritt zurücksetzen"-Knopf** in der
+Klassenübersicht (nach dem Vorbild des bereits bestehenden
+Tic-Tac-Toe-Rang-Resets) - mit Sicherheitsabfrage, setzt NUR den
+Brain-Test-Fortschritt zurück (Klasse, Freischaltung, Punktestände,
+Sperren/Tagesversuche), rührt Münzen, Erfolge und andere Modi nicht an.
+Kein Umweg mehr über die Datenbank (Upstash) nötig, um einfach nochmal von
+vorne zu testen.
+
+Mit einem echten Server UND einem echten Browser (Konto-Login, drei echte
+Haupttest-Fehlversuche, echte Netzwerk-Synchronisierung) durchgespielt und
+bestätigt, dass die Sperre jetzt tatsächlich auf dem Server landet und
+einen erneuten Login übersteht.
+
+Getestet: alle drei Felder werden korrekt gespeichert und überstehen
+nachweislich einen erneuten Login (das war vorher der eigentliche Fehler),
+die neue Server-Validierung lehnt schadhafte Werte ab ohne abzustürzen,
+`accountAsProfile()` gibt die Felder jetzt korrekt weiter, ein kompletter
+End-zu-End-Ablauf mit echtem Server bestätigt die Sperre sowohl lokal als
+auch tatsächlich auf dem Server, der neue Reset-Knopf setzt alle drei
+Felder zuverlässig zurück, bricht korrekt ab bei verneinter
+Sicherheitsabfrage, und rührt nachweislich nichts anderes an (Münzen,
+andere Modus-Statistiken, Siege/Niederlagen bleiben unverändert).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

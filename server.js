@@ -242,9 +242,13 @@ function buildRoundDefPool() {
   // Object.entries(DATASETS.guessPicture || {}).forEach(([key, ds]) => {
   //   pool.push({ id: "guess_" + key, kind: "guessPicture", label: ds.label, datasetGroup: "guessPicture", datasetKey: key, germanOnly: !!ds.germanOnly });
   // });
-  Object.entries(DATASETS.guessMusic || {}).forEach(([key, ds]) => {
-    pool.push({ id: "music_" + key, kind: "guessMusic", label: ds.label, datasetGroup: "guessMusic", datasetKey: key, germanOnly: !!ds.germanOnly });
-  });
+  // Musik raten ist auf Wunsch komplett aus dem Spiel entfernt (inkl.
+  // Erfolge/Statistik, siehe achievements.js und MODE_STAT_DEFS im Client) -
+  // Datensaetze/Engine bleiben unangetastet im Code, hier wird bewusst
+  // NICHTS aus DATASETS.guessMusic in den Pool aufgenommen.
+  // Object.entries(DATASETS.guessMusic || {}).forEach(([key, ds]) => {
+  //   pool.push({ id: "music_" + key, kind: "guessMusic", label: ds.label, datasetGroup: "guessMusic", datasetKey: key, germanOnly: !!ds.germanOnly });
+  // });
   Object.entries(DATASETS.nennsBlitz || {}).forEach(([key, ds]) => {
     // Reine Freitext-Kategorie ohne Lösungsliste (siehe Abschnitt "RUNDE:
     // nennsBlitz" weiter unten). Anders als frueher NICHT mehr pauschal
@@ -272,7 +276,7 @@ const SLF_ROUND_DEF_POOL = [slfBuildRoundDef(null, null), slfBuildRoundDef(null,
 // dedizierte Modi lassen sich hier einfach durch eine weitere Zeile
 // ergänzen, ohne woanders im Server etwas anfassen zu müssen.
 const DEDICATED_MODE_KINDS = {
-  music: "guessMusic",
+  // music: "guessMusic", // auf Wunsch komplett entfernt (inkl. Erfolge/Statistik) - siehe buildRoundDefPool()
   blitz: "nennsBlitz",
   ordering: "orderingGame",
   // chronology: "chronologyGame", // vorübergehend draußen (Patch-Update später), siehe buildRoundDefPool()
@@ -2776,6 +2780,7 @@ function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
     arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
     haupttestUnlockedForKlasse: -1,
+    braintestScores: {}, braintestGate: null, braintestDaily: null,
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
     coins: 0,
     achv: Achv.newState(),
@@ -2935,6 +2940,47 @@ async function saveUserStats(token, stats) {
   }
   if (typeof stats.speedMathHeartsDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(stats.speedMathHeartsDate)) {
     user.stats.speedMathHeartsDate = stats.speedMathHeartsDate;
+  }
+  // Brain-Test-Fortschritt (Klassen-Punktestaende je Klasse, Sperre,
+  // Tagesversuche) - verschachtelt, deshalb eigene, strikte Validierung
+  // statt der generischen allowedKeys-Schleife oben.
+  if (stats.braintestScores && typeof stats.braintestScores === "object" && !Array.isArray(stats.braintestScores)) {
+    const clean = {};
+    for (const k of Object.keys(stats.braintestScores)) {
+      const idx = Number(k);
+      if (!Number.isInteger(idx) || idx < 0 || idx >= 10) continue;
+      const entry = stats.braintestScores[k];
+      if (!entry || typeof entry !== "object") continue;
+      const cleanEntry = {};
+      for (const type of ["practice", "main"]) {
+        const s = entry[type];
+        if (s && typeof s.correct === "number" && typeof s.total === "number" && Number.isFinite(s.correct) && Number.isFinite(s.total) && s.total > 0 && s.correct >= 0 && s.correct <= s.total) {
+          cleanEntry[type] = { correct: Math.round(s.correct), total: Math.round(s.total) };
+        }
+      }
+      if (Object.keys(cleanEntry).length) clean[idx] = cleanEntry;
+    }
+    user.stats.braintestScores = clean;
+  }
+  if (stats.braintestGate === null) {
+    user.stats.braintestGate = null;
+  } else if (stats.braintestGate && typeof stats.braintestGate === "object") {
+    const g = stats.braintestGate;
+    if (Number.isInteger(g.klasse) && g.klasse >= 0 && g.klasse < 10 && (g.type === "needPractice" || g.type === "needPriorMain")) {
+      user.stats.braintestGate = { klasse: g.klasse, type: g.type };
+    }
+  }
+  if (stats.braintestDaily === null) {
+    user.stats.braintestDaily = null;
+  } else if (stats.braintestDaily && typeof stats.braintestDaily === "object") {
+    const d = stats.braintestDaily;
+    if (Number.isInteger(d.klasse) && d.klasse >= 0 && d.klasse < 10 && typeof d.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.date)) {
+      user.stats.braintestDaily = {
+        klasse: d.klasse, date: d.date,
+        practiceAttempts: Math.max(0, Math.min(3, Math.round(Number(d.practiceAttempts) || 0))),
+        mainAttempts: Math.max(0, Math.min(3, Math.round(Number(d.mainAttempts) || 0)))
+      };
+    }
   }
   // Erfolge: Staende zusammenfuehren (Zaehler nie rueckwaerts, "freigeschaltet"
   // nur aus den Zaehlern berechnet - direktes Setzen von unlocked wirkt nicht)
