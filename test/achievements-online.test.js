@@ -135,35 +135,18 @@ const { ok, section, sleep, finish, startServer, wsConnect } = require("./helper
     ok("rankReveal enthaelt livesLeft je Team (Zahl 0-3), passend zu den Fehlern", !!rr.livesLeft && Number.isInteger(rr.livesLeft[team]) && rr.livesLeft[team] >= 0 && rr.livesLeft[team] <= 3 && rr.livesLeft[team] === Math.max(0, 3 - rr.mistakes[team]));
   }
 
-  // ------------------------------------------------------------- Musik
-  section("Musik raten: Abgabe meldet, ob wiederholt wurde");
+  // Musik raten ist auf Wunsch komplett aus dem Spiel entfernt (inkl.
+  // Erfolge/Statistik) - der zugehoerige End-zu-End-Test (Abgabe meldet, ob
+  // wiederholt wurde) ist damit hinfaellig: "gameMode:music" faellt jetzt
+  // automatisch auf "mixed" zurueck, und die Rundendefinitionen existieren
+  // serverseitig nicht mehr im Pool (siehe buildRoundDefPool() in server.js).
+  section("Musik raten ist nicht mehr als eigener Spielmodus waehlbar (faellt sauber auf 'mixed' zurueck, kein Absturz)");
   {
     const h = await wsConnect(P);
     h.send({ action: "createRoom", name: "Solo", language: "de", gameMode: "music" }); await sleep(250);
-    // Explizit den grossen Datensatz waehlen (129 Songs) statt den zufaellig
-    // gewuerfelten - "serienintros_tvshow" hat z.B. nur 1 Song, dann endet
-    // die Runde nach dem ersten Song statt zum naechsten weiterzugehen (das
-    // war die eigentliche Ursache des gelegentlichen Fehlschlags hier, kein
-    // Timing-Problem). Alle 5 Slots setzen, sonst wuerde eine unvollstaendige
-    // eigene Auswahl beim Start komplett zufaellig neu gewuerfelt.
-    h.send({ action: "setRoundMode", mode: "custom" });
-    for (let idx = 0; idx < 5; idx++) h.send({ action: "setRoundDef", index: idx, defId: "music_musik_kernliste" });
-    await sleep(100);
-    h.send({ action: "startGame" });
-    const it1 = await waitFor(() => h.find("musicItem"), 8000);
-    ok("Musik-Runde startet", !!it1);
-    h.send({ action: "guessSubmit", answers: { artist: "x", title: "y", year: "1999" } });
-    const s1 = await waitFor(() => h.find("musicPlayerSubmitted"));
-    ok("Abgabe ohne Wiederholung: replaysUsed = 0", !!s1 && s1.replaysUsed === 0);
-    const n = h.parsed.filter(m => m.type === "musicItem").length;
-    await waitFor(() => h.parsed.filter(m => m.type === "musicItem").length > n, 9000);
-    await sleep(150); // kurz setzen lassen, direkt nach dem Rundenwechsel kann der Server sonst noch mitten in der Umstellung sein
-    h.send({ action: "musicReplay" });
-    await waitFor(() => h.find("musicReplayGranted"), 5000); // auf die Bestaetigung des Servers warten, nicht raten
-    h.send({ action: "guessSubmit", answers: { artist: "x", title: "y", year: "1999" } });
-    const subs = await waitFor(() => h.parsed.filter(m => m.type === "musicPlayerSubmitted").length >= 2 && h.parsed.filter(m => m.type === "musicPlayerSubmitted")[1]);
-    ok("Abgabe NACH einer Wiederholung: replaysUsed = 1", !!subs && subs.replaysUsed === 1);
-    if (!subs || subs.replaysUsed !== 1) console.log("   DEBUG Musik:", JSON.stringify(h.parsed.filter(m => /music/i.test(m.type)).map(m => ({ t: m.type, r: m.replaysUsed, n: m.total }))));
+    const upd = h.find("roomUpdate");
+    ok("Raum wird trotz 'music' sauber erstellt, faellt aber auf 'mixed' zurueck", !!upd && upd.gameMode === "mixed");
+    ok("Kein Musik-Rundentyp mehr im verfuegbaren Pool", !(upd.availableRoundDefs || []).some(d => d.kind === "guessMusic"));
   }
   ok("Server lebt nach allen Abläufen", S.alive());
   await S.stop();

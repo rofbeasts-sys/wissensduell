@@ -1,50 +1,61 @@
-/* "Test wiederholen" sollte schöner aussehen (eigener Button-Stil statt der
- * generischen, schlichten Daumen-Knopf-Klasse) und durfte am rechten
- * Bildschirmrand nicht abgeschnitten werden. */
-const { ok, section, finish, loadClient } = require("./helpers");
+/* "Test wiederholen" lief frueher ueber einen kleinen Inline-Knopf direkt in
+ * der Klassenzeile. Auf Wunsch ersetzt durch einen eigenen Klassen-Detail-
+ * bildschirm (antippbare Zeile -> Popup mit bisherigen Ergebnissen +
+ * Wiederholen-Knoepfen) - dieser Test prueft die neue Umsetzung. */
+const { ok, section, finish, loadClient, fs, path } = require("./helpers");
 
 (async () => {
-  section("'Test wiederholen' nutzt einen eigenen, auffälligeren Button-Stil");
+  section("Klassenzeilen sind jetzt antippbar statt eines kleinen Inline-Knopfs");
   {
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); p.klasse=2; klassenOverviewProfile=p; renderKlassenOverview(p);');
     const html = state.last;
-    ok("Button ist da und nutzt die neue Klasse 'repeat-btn' statt der generischen 'thumb-btn'", html.includes('class="repeat-btn"') && !/thumb-btn"[^>]*>🔁 Test wiederholen/.test(html));
-    ok("Erscheint für jede bereits bestandene Klasse (hier 2x, Klasse 1 und 2)", (html.match(/class="repeat-btn"/g) || []).length === 2);
-    ok("Erscheint NICHT bei der aktuellen oder noch nicht erreichten Klasse", !html.includes('class="repeat-btn"') === false); // Gegenprobe unten praeziser
+    ok("Kein alter Inline-Knopf 'Test wiederholen' mehr in der Übersicht", !html.includes("🔁 Test wiederholen"));
+    ok("Bestandene UND aktuelle Klasse (hier 2+1=3x) rufen beim Antippen den Klassen-Detailbildschirm auf", (html.match(/onclick="renderBrainTestClassModal\(\d+\)"/g) || []).length === 3);
     const currentRowIdx = html.indexOf("Aktuell");
-    const afterCurrent = html.slice(currentRowIdx, currentRowIdx + 400);
-    ok("Kein Wiederholen-Button direkt in der 'Aktuell'-Zeile", !afterCurrent.slice(0, 50).includes("repeat-btn"));
+    const afterCurrent = html.slice(Math.max(0, currentRowIdx - 300), currentRowIdx);
+    ok("Die aktuelle Zeile ist EBENFALLS antippbar (für ihre eigene Übungstest-Wiederholung)", afterCurrent.includes("renderBrainTestClassModal"));
   }
 
-  section("Eigene CSS-Regel mit Farbverlauf statt der schlichten Standard-Optik");
+  section("Klassen-Detailbildschirm zeigt bisherige Ergebnisse und Wiederholen-Knöpfe");
   {
-    const fs = require("fs"), path = require("path");
-    const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
-    const rule = html.match(/\.repeat-btn\{[^}]*\}/);
-    ok("CSS-Regel für .repeat-btn existiert", !!rule);
-    ok("Nutzt einen Farbverlauf (nicht nur eine flache Fläche)", rule[0].includes("linear-gradient"));
-    ok("Hat einen Schatten für mehr Tiefe", rule[0].includes("box-shadow"));
-    ok("Abgerundete Pillenform (großer border-radius)", /border-radius:\s*20px/.test(rule[0]));
-    const activeRule = html.match(/\.repeat-btn:active\{[^}]*\}/);
-    ok("Reagiert sichtbar auf Antippen (eigener :active-Zustand)", !!activeRule);
+    const C = loadClient(); const { R, state } = C;
+    R(`
+      var p=createProfile("T"); p.klasse=2; p.haupttestUnlockedForKlasse=-1;
+      p.braintestScores = { 0: { practice:{correct:45,total:50}, main:{correct:18,total:20} } };
+      klassenOverviewProfile=p;
+      renderBrainTestClassModal(0);
+    `);
+    const html = state.last;
+    ok("Zeigt den bisherigen Übungstest-Punktestand (45 / 50)", html.includes("45 / 50"));
+    ok("Zeigt den bisherigen Haupttest-Punktestand (18 / 20)", html.includes("18 / 20"));
+    ok("Bietet 'Übungstest wiederholen' an", html.includes("Übungstest wiederholen"));
+    ok("Bietet 'Haupttest wiederholen' an", html.includes("Haupttest wiederholen"));
+    ok("Hat einen Zurück-Knopf zur Übersicht", html.includes("renderKlassenOverview"));
   }
 
-  section("Layout-Fix: die Zeile bricht bei wenig Platz um, statt den Button abzuschneiden");
+  section("Eine noch nie versuchte Testart zeigt '–' statt einer falschen Zahl");
   {
-    const fs = require("fs"), path = require("path");
+    const C = loadClient(); const { R, state } = C;
+    R('var p=createProfile("T"); p.klasse=1; klassenOverviewProfile=p; renderBrainTestClassModal(0);');
+    const html = state.last;
+    ok("Haupttest von Klasse 1 nie versucht -> zeigt '–'", /<div class="n">–<\/div>\s*<div class="l">Haupttest<\/div>/.test(html));
+  }
+
+  section("Layout-Fix bleibt erhalten: die Klassenzeile erlaubt weiterhin Zeilenumbruch");
+  {
     const html = fs.readFileSync(path.join(__dirname, "..", "public", "index.html"), "utf8");
-    const marker = '🔁 Test wiederholen';
+    const marker = 'renderBrainTestClassModal(${i})';
     const markerIdx = html.indexOf(marker);
-    const rowDecl = html.slice(Math.max(0, markerIdx - 900), markerIdx);
-    ok("Die Brain-Test-Klassenzeile erlaubt jetzt Zeilenumbruch (flex-wrap:wrap)", rowDecl.includes("flex-wrap:wrap"));
+    const rowDecl = html.slice(Math.max(0, markerIdx - 400), markerIdx);
+    ok("Die Brain-Test-Klassenzeile erlaubt weiterhin Zeilenumbruch (flex-wrap:wrap)", rowDecl.includes("flex-wrap:wrap"));
   }
 
-  section("Tic-Tac-Toe-Rangübersicht (ähnliches Layout, aber ohne Wiederholen-Knopf) bleibt unverändert");
+  section("Tic-Tac-Toe-Rangübersicht (ähnliches Layout) bleibt unverändert, kein Klassen-Detailbildschirm-Aufruf dort");
   {
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); tttOverviewProfile=p; renderTttRankOverview(p);');
-    ok("Kein 'repeat-btn' auf der TTT-Rangübersicht (die hat gar keinen Wiederholen-Knopf)", !state.last.includes("repeat-btn"));
+    ok("Kein 'renderBrainTestClassModal' auf der TTT-Rangübersicht", !state.last.includes("renderBrainTestClassModal"));
   }
 
   finish();

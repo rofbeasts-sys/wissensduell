@@ -1,7 +1,9 @@
 /* Speed-Math-Modus "Order of Speed": Zahlen 1-1000 im Kreis antippen (auf-
  * steigend / absteigend / nur gerade / nur ungerade). Punkte + Level-System:
  * 100 Punkte pro richtigem Tipp, volle Leiste = Level hoch = schwerer
- * (mehr Zahlen, ab Level 4 Bewegung, ab Level 7 kurzes Unsichtbarwerden). */
+ * (mehr Zahlen, ab Level 15 Bewegung, ab Level 25 kurzes Unsichtbarwerden -
+ * siehe test/order-of-speed-thresholds.test.js für die Level-45-
+ * Gedächtnis-Phase und die genauen Schwellenwerte im Detail). */
 const { ok, section, finish, loadClient } = require("./helpers");
 
 function realClick(R, fnName) {
@@ -142,20 +144,20 @@ function realClick(R, fnName) {
     ok("Level steigt korrekt (mind. 1x)", R('orderOfSpeedSession.level') >= 2);
   }
 
-  section("Bewegung ab Level 4, Flackern ab Level 7 - vorher nicht, danach ja, Timer werden sauber verwaltet");
+  section("Bewegung ab Level 15, Flackern ab Level 25 - vorher nicht, danach ja, Timer werden sauber verwaltet");
   {
     const C = loadClient({ fakeTime: true }); const { R, advance } = C;
     R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(120);');
     ok("Level 1: kein Bewegungs-Timer aktiv", R('orderOfSpeedSession.moveTimerId') === null);
     ok("Level 1: kein Flacker-Timer aktiv", R('orderOfSpeedSession.flickerTimerId') === null);
-    R('orderOfSpeedSession.level = 4; orderOfSpeedEnsureTimers(orderOfSpeedSession);');
-    ok("Ab Level 4: Bewegungs-Timer ist aktiv", R('orderOfSpeedSession.moveTimerId') !== null);
-    ok("Level 4 (noch unter 7): kein Flacker-Timer", R('orderOfSpeedSession.flickerTimerId') === null);
+    R('orderOfSpeedSession.level = 15; orderOfSpeedEnsureTimers(orderOfSpeedSession);');
+    ok("Ab Level 15: Bewegungs-Timer ist aktiv", R('orderOfSpeedSession.moveTimerId') !== null);
+    ok("Level 15 (noch unter 25): kein Flacker-Timer", R('orderOfSpeedSession.flickerTimerId') === null);
     const before = R('JSON.stringify(orderOfSpeedSession.round.display)');
     advance(2600); // ueber das Bewegungsintervall (2500ms) hinaus
     ok("Nach dem Bewegungsintervall: die Reihenfolge der Anzeige hat sich geändert", R('JSON.stringify(orderOfSpeedSession.round.display)') !== before);
-    R('orderOfSpeedSession.level = 7; orderOfSpeedEnsureTimers(orderOfSpeedSession);');
-    ok("Ab Level 7: Flacker-Timer ist zusätzlich aktiv", R('orderOfSpeedSession.flickerTimerId') !== null);
+    R('orderOfSpeedSession.level = 25; orderOfSpeedEnsureTimers(orderOfSpeedSession);');
+    ok("Ab Level 25: Flacker-Timer ist zusätzlich aktiv", R('orderOfSpeedSession.flickerTimerId') !== null);
     advance(3300); // ueber das Flacker-Intervall (3200ms) hinaus
     ok("Nach dem Flacker-Intervall: die Zahlen wurden kurz unsichtbar (hidden=true) und ein Rückstell-Timer läuft", R('orderOfSpeedSession.round.hidden') === true && R('orderOfSpeedSession.flickerRevealTimeoutId') !== null);
     advance(800); // ueber die Flacker-Dauer (700ms) hinaus
@@ -167,23 +169,23 @@ function realClick(R, fnName) {
   section("Neue Runde startet mit zum aktuellen Level passenden Timern (nicht mehr mit den alten)");
   {
     const C = loadClient({ fakeTime: true }); const { R } = C;
-    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(120); orderOfSpeedSession.level=5;');
+    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(120); orderOfSpeedSession.level=18;');
     R('orderOfSpeedStartRound(orderOfSpeedSession);');
-    ok("Neue Runde bei Level 5: Bewegungs-Timer korrekt aktiv (>=4)", R('orderOfSpeedSession.moveTimerId') !== null);
-    ok("... aber noch kein Flacker-Timer (<7)", R('orderOfSpeedSession.flickerTimerId') === null);
+    ok("Neue Runde bei Level 18: Bewegungs-Timer korrekt aktiv (>=15)", R('orderOfSpeedSession.moveTimerId') !== null);
+    ok("... aber noch kein Flacker-Timer (<25)", R('orderOfSpeedSession.flickerTimerId') === null);
     R('exitOrderOfSpeed();');
   }
 
   section("Zeitablauf beendet sauber, inkl. aller Zusatz-Timer, speichert Statistik");
   {
     const C = loadClient({ fakeTime: true }); const { R, advance } = C;
-    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(1); orderOfSpeedSession.level=8;'); // Level 8: Bewegung UND Flackern aktiv
+    R('var p=createProfile("T"); speedMathProfile=p; startOrderOfSpeedGame(1); orderOfSpeedSession.level=28;'); // Level 28: Bewegung UND Flackern aktiv
     R('orderOfSpeedEnsureTimers(orderOfSpeedSession);');
     ok("Vor Zeitablauf: Bewegungs- und Flacker-Timer beide aktiv", R('orderOfSpeedSession.moveTimerId') !== null && R('orderOfSpeedSession.flickerTimerId') !== null);
-    R('orderOfSpeedSession.points=500; orderOfSpeedSession.level=8; orderOfSpeedSession.correct=3; orderOfSpeedSession.wrong=1;');
+    R('orderOfSpeedSession.points=500; orderOfSpeedSession.level=28; orderOfSpeedSession.correct=3; orderOfSpeedSession.wrong=1;');
     advance(1200);
     ok("Sitzung beendet", R('orderOfSpeedSession') === null);
-    ok("Ergebnisbildschirm zeigt Punkte, Level und Runden", /500/.test(R('document.getElementById("app").innerHTML')) && /Level 8/.test(R('document.getElementById("app").innerHTML')));
+    ok("Ergebnisbildschirm zeigt Punkte, Level und Runden", /500/.test(R('document.getElementById("app").innerHTML')) && /Level 28/.test(R('document.getElementById("app").innerHTML')));
     ok("Statistik gespeichert", R('p.modeStats.orderofspeed.played') === 1 && R('p.modeStats.orderofspeed.correct') === 3);
     ok("Wirklich ALLE Timer (Haupttimer + Bewegung + Flackern) sind weg", C.activeIntervals() === 0);
   }

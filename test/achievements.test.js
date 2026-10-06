@@ -9,7 +9,7 @@ const ids = (list) => list.slice().sort().join(",");
 (async () => {
 // ================================================================== Regelwerk
 section("Regelwerk: Definitionen");
-ok("53 Erfolge, alle IDs eindeutig", Achv.DEFS.length === 53 && new Set(Achv.DEFS.map(d => d.id)).size === 53);
+ok("51 Erfolge, alle IDs eindeutig (Musik raten entfernt: -2, der einzelne Erfolg + dessen Kategorie-Sammelerfolg)", Achv.DEFS.length === 51 && new Set(Achv.DEFS.map(d => d.id)).size === 51);
 ok("jeder Erfolg gehoert zu einer bekannten Kategorie und hat Titel/Beschreibung", Achv.DEFS.every(d => Achv.CATEGORIES.some(c => c.id === d.cat) && d.title && d.desc && d.icon));
 ok("frischer Stand: nichts freigeschaltet", Object.keys(fresh().unlocked).length === 0);
 
@@ -58,14 +58,13 @@ section("Nenn's Blitz");
   ok("Bestwert sinkt nie", (() => { Achv.apply(s, { t: "blitz", total: 3 }); return s.blitz.best === 50; })());
 }
 
-section("Musik");
+section("Musik raten ist auf Wunsch komplett entfernt (inkl. Erfolge) - das Ereignis 'music' loest nichts mehr aus");
 {
   const s = fresh();
-  for (let i = 0; i < 9; i++) Achv.apply(s, { t: "music", n: 1 });
-  ok("9 Songs ohne Wiederholung: noch nicht", !has(s, "music_10_noreplay"));
-  const tenth = Achv.apply(s, { t: "music", n: 1 });
-  ok("10. Song -> Erfolg", tenth.includes("music_10_noreplay"));
-  ok("... die Kategorie Musik hat nur diesen einen Erfolg, ist damit ebenfalls komplett", tenth.includes("cat_music"));
+  for (let i = 0; i < 15; i++) Achv.apply(s, { t: "music", n: 1 });
+  ok("Kein 'music_10_noreplay'-Erfolg mehr vorhanden (Definition entfernt)", !has(s, "music_10_noreplay"));
+  ok("Keine 'cat_music'-Kategorie mehr vorhanden", !has(s, "cat_music"));
+  ok("Unbekanntes Ereignis 'music' schaltet still gar nichts frei (kein Absturz)", Achv.apply(s, { t: "music", n: 1 }).length === 0);
 }
 
 section("Stadt Land Fluss");
@@ -205,7 +204,7 @@ section("Eigene Ideen: Kategorie-Abschluss + Sammler (haengen von den echten Erf
   for (const n of [10, 15, 20, 30, 50]) Achv.apply(s, { t: "blitz", total: n });
   for (let i = 0; i < 100; i++) Achv.apply(s, { t: "blitz", total: 10 });
   ok("Alle Nenn's-Blitz-Erfolge frei -> 'Nenn's Blitz gemeistert' im SELBEN Aufruf erkannt", has(s, "cat_blitz"));
-  ok("andere Kategorien sind davon unberuehrt", !has(s, "cat_music") && !has(s, "cat_ttt"));
+  ok("andere Kategorien sind davon unberuehrt", !has(s, "cat_ttt"));
   const c = fresh();
   ok("0 Erfolge: kein Sammler", !has(c, "collector_5"));
   for (let i = 0; i < 4; i++) Achv.apply(c, { t: "blitz", total: [10, 15, 20, 30][i] });
@@ -228,7 +227,6 @@ section("Eigene Ideen: Kategorie-Abschluss + Sammler (haengen von den echten Erf
   for (let i = 0; i < 9; i++) Achv.apply(all, { t: "ordering", finished: true, flawless: true });
   for (const n of [10, 15, 20, 30, 50]) Achv.apply(all, { t: "blitz", total: n });
   for (let i = 0; i < 9; i++) Achv.apply(all, { t: "blitz", total: 1000 });
-  Achv.apply(all, { t: "music", n: 10 });
   for (let i = 0; i < 13; i++) Achv.apply(all, { t: "slf", allFilled: true, firstFull: true, uniqueCount: 8 }); // uniqueCount ist pro Ereignis auf 8 gedeckelt
   for (let i = 0; i < 37; i++) Achv.apply(all, { t: "slf", allFilled: true, firstFull: true, uniqueCount: 0 });
   Achv.apply(all, { t: "tttRank", rank: 6 });
@@ -340,13 +338,9 @@ section("Client: Ereignisse -> Erfolge");
   ok("Mehr/Weniger: ohne Fehler -> 'ohne Verlust'", !!st().unlocked.mow_flawless);
   msg({ type: "nennsBlitzFinal", results: [{ playerId: "o", total: 50 }, { playerId: "me", total: 16 }] });
   ok("Nenn's Blitz: MEIN Ergebnis (16) zaehlt, nicht das des Gegners (50)", st().unlocked.blitz_15 && !st().unlocked.blitz_20);
-  for (let i = 0; i < 12; i++) msg({ type: "musicPlayerSubmitted", playerId: "me", replaysUsed: i < 9 ? 0 : 1, correct: { title: true } });
-  ok("Musik: nur richtige Songs OHNE Wiederholung zaehlen (9 von 12)", st().music.noReplay === 9 && !st().unlocked.music_10_noreplay);
-  msg({ type: "musicPlayerSubmitted", playerId: "me", replaysUsed: 0, correct: { title: false, artist: true } });
-  msg({ type: "musicPlayerSubmitted", playerId: "o", replaysUsed: 0, correct: { title: true } });
-  ok("Musik: falscher Titel und fremde Abgabe zaehlen nicht", st().music.noReplay === 9);
-  msg({ type: "musicPlayerSubmitted", playerId: "me", replaysUsed: 0, correct: { title: true } });
-  ok("Musik: 10. Song ohne Wiederholung -> Erfolg", !!st().unlocked.music_10_noreplay);
+  // Musik raten ist auf Wunsch komplett aus dem Spiel entfernt (inkl.
+  // Erfolge) - "musicPlayerSubmitted"-Nachrichten loesen daher bewusst
+  // nichts mehr aus, siehe eigener Test dafuer weiter oben.
   msg({ type: "slfReveal", categories: ["Stadt", "Land"], answers: { me: { Stadt: "Bonn", Land: "" } }, firstFullId: null, humanCount: 2 });
   ok("SLF: ein Feld leer -> kein Erfolg", !st().unlocked.slf_all_fields);
   msg({ type: "slfReveal", categories: ["Stadt", "Land"], answers: { me: { Stadt: "Bonn", Land: "Bulgarien" } }, firstFullId: "o", humanCount: 2 });
@@ -413,7 +407,7 @@ section("Client: Ereignisse -> Erfolge");
 
   // Erfolge-Seite
   R('achvOwner=function(){return p}; renderAchievements(p);');
-  ok("Erfolge-Seite zeigt Zaehler '... von 53 freigeschaltet' und alle 8 Kategorien", /von 53 freigeschaltet/.test(state.last) && Achv.CATEGORIES.every(c => state.last.includes(c.title.replace(/'/g, "&#39;"))));
+  ok("Erfolge-Seite zeigt Zaehler '... von 51 freigeschaltet' und alle 7 Kategorien (Musik raten entfernt)", /von 51 freigeschaltet/.test(state.last) && Achv.CATEGORIES.every(c => state.last.includes(c.title.replace(/'/g, "&#39;"))));
   ok("Freigeschaltete Erfolge sind markiert, gesperrte zeigen Fortschritt", state.last.includes("achv-card done") && state.last.includes("achv-bar") && state.last.includes("🔒"));
   ok("Fortschritt wird angezeigt (z. B. Brain Test 'x / 10')", /\d+ \/ 10/.test(state.last));
   R('renderMainMenu()');

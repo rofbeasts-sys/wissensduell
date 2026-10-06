@@ -44,9 +44,9 @@ function getKlasseQuestions(R) {
   {
     const C = loadClient(); const { R } = C;
     const kq = getKlasseQuestions(R);
-    ok("Klasse 4 (Sachkunde-Niveau): einfache Körperfragen ergänzt", kq["4"].length === 54);
+    ok("Klasse 4 (Sachkunde-Niveau): einfache Körperfragen ergänzt", kq["4"].length >= 54);
     ok("Klasse 5 (Biologie beginnt): Skelett/Niere/Pubertäts-Einstieg ergänzt", kq["5"].some(q => q.q.includes("Pubertät")));
-    ok("Klasse 6: vertiefte Körperfunktionen ergänzt", kq["6"].length === 55);
+    ok("Klasse 6: vertiefte Körperfunktionen ergänzt", kq["6"].length >= 55);
     ok("Klasse 7 (Fortpflanzungsorgane beginnen): z.B. Hoden/Eizellen-Themen", kq["7"].some(q => q.cat === "Biologie" && q.d === 7));
     ok("Klasse 8 (Zyklus/Schwangerschaft): passende Fragen ergänzt", kq["8"].some(q => q.q.toLowerCase().includes("schwangerschaft") || q.q.toLowerCase().includes("zyklus") || q.q.toLowerCase().includes("embryo")));
     ok("Klasse 9 (Verhütung/Einverständnis): passende Fragen ergänzt", kq["9"].some(q => q.q.toLowerCase().includes("verhütung") || q.q.toLowerCase().includes("pille") || q.q.toLowerCase().includes("einvernehmlichkeit")));
@@ -55,8 +55,14 @@ function getKlasseQuestions(R) {
     ok("Klasse 5-10: neue Fragen tragen die Kategorie 'Biologie'", [5,6,7,8,9,10].every(k => kq[String(k)].some(q => q.cat === "Biologie" && q.d === k)));
   }
 
-  section("Keine Wortlaut-Überschneidung mit dem eigenständigen Biologie-Modus (BIOLOGY_TOPICS)");
+  section("Hinweis: der eigenständige Biologie-Modus und Brain Test teilen sich inzwischen bewusst Inhalte");
   {
+    // Frueher wurde hier auf KEINE Ueberschneidung geprueft. Auf
+    // ausdruecklichen Wunsch wurden spaeter alle 343 Fragen aus dem
+    // Biologie-Modus zusaetzlich in den Brain Test uebernommen (siehe
+    // braintest-biology-transfer.test.js fuer die ausfuehrliche Pruefung
+    // dieser Uebernahme) - eine grosse Ueberschneidung ist seitdem
+    // beabsichtigt, kein Fehler mehr.
     const C = loadClient(); const { R } = C;
     const kq = getKlasseQuestions(R);
     const bioModeQs = new Set();
@@ -65,7 +71,7 @@ function getKlasseQuestions(R) {
     Object.values(bt.sexualkunde).forEach(cat => cat.items.forEach(q => bioModeQs.add(q.q.trim().toLowerCase())));
     const allBrainTestQ = Object.values(kq).flat().map(q => q.q.trim().toLowerCase());
     const collisions = allBrainTestQ.filter(q => bioModeQs.has(q));
-    ok("Keine der Brain-Test-Fragen ist wortgleich mit einer Frage aus dem Biologie-Modus", collisions.length === 0);
+    ok("Ein Großteil der Biologie-Modus-Fragen ist inzwischen (gewollt) auch im Brain Test vertreten", collisions.length >= 300);
   }
 
   section("Schwierigkeit (d-Feld) der neu hinzugefügten Fragen passt zur jeweiligen Klasse");

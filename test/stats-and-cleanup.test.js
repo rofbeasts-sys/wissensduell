@@ -57,7 +57,8 @@ const { ok, section, finish, loadClient, fs, path } = require("./helpers");
     `);
     ok("'Chronologie' kommt nicht mehr vor", !state.last.includes("Chronologie"));
     ok("'Bild erraten' kommt nicht mehr vor", !state.last.includes("Bild erraten"));
-    ok("Die weiterhin spielbaren Modi sind da (Einordnen, Mehr oder Weniger, Musik raten, Speed Math, Order of Speed)", ["Einordnen", "Mehr oder Weniger", "Musik raten", "Speed Math", "Order of Speed"].every(m => state.last.includes(m)));
+    ok("Die weiterhin spielbaren Modi sind da (Einordnen, Mehr oder Weniger, Speed Math, Order of Speed)", ["Einordnen", "Mehr oder Weniger", "Speed Math", "Order of Speed"].every(m => state.last.includes(m)));
+    ok("Musik raten ist auf Wunsch komplett entfernt, erscheint auch hier nicht mehr", !state.last.includes("Musik raten"));
   }
 
   section("Statistik: Karten sind jetzt farblich unterschieden (nicht mehr alle gleich)");

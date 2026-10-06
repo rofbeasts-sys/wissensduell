@@ -92,7 +92,7 @@ section("Brain Test: Uebungstest 50 (90 %), Haupttest 20 (80 %, Gesamtuhr 1:30),
   ok("Durchfallen rechnerisch sicher: Test laeuft trotzdem weiter", !stopped && R('solo.qIndex') === 8);
 
   begin('p.klasse=0; p.haupttestUnlockedForKlasse=0; beginSolo(p,true)');
-  ok("Haupttest: 20 Fragen, 16 richtig, Gesamtzeit 90 s", R('solo.questions.length') === 20 && R('solo.testNeeded') === 16 && R('solo.timeLimit') === 90 && R('solo.totalTimer'));
+  ok("Haupttest: 20 Fragen, 18 richtig (90% - auf Wunsch von 80% angehoben), Gesamtzeit 90 s", R('solo.questions.length') === 20 && R('solo.testNeeded') === 18 && R('solo.timeLimit') === 90 && R('solo.totalTimer'));
   ok("Startseite nennt 1:30 Gesamtzeit", state.last.includes("1:30 Minuten"));
   R('renderSoloQuestion()');
   for (let i = 0; i < 3; i++) { advance(10000); R('handleSoloAnswer(solo.questions[solo.qIndex].c)'); advance(500); }
@@ -109,7 +109,7 @@ section("Brain Test: Uebungstest 50 (90 %), Haupttest 20 (80 %, Gesamtuhr 1:30),
   ok("'Noch eine Runde' startet den UEBUNGSTEST (Luecke geschlossen, Haupttest bleibt gesperrt)", !R('solo.isHaupttest') && R('solo.questions.length') === 50);
 
   R('p.klasse=3; p.haupttestUnlockedForKlasse=-1; renderKlassenOverview(p)');
-  ok("Klassenliste: 3 bestandene Klassen haben 'Test wiederholen'", (state.last.match(/Test wiederholen/g) || []).length === 3);
+  ok("Klassenliste: 3 bestandene + die aktuelle Klasse sind antippbar (4x, oeffnen den Klassen-Detailbildschirm)", (state.last.match(/renderBrainTestClassModal/g) || []).length === 4);
   begin('beginSolo(p,true,1)');
   // Hinweis: seit der gemischten Antwortreihenfolge (answer-shuffle) sind die
   // zurueckgegebenen Fragen-Objekte NEUE Kopien (gleicher Inhalt, andere
