@@ -1876,7 +1876,16 @@ const KLASSEN = [
 // - Haupttest: 20 zufällige Fragen der Klasse, 80% nötig (16/20) für den
 //   Klassenaufstieg.
 const BRAINTEST_PRACTICE_COUNT = 50, BRAINTEST_PRACTICE_PCT = 0.9;
-const BRAINTEST_MAIN_COUNT = 20,     BRAINTEST_MAIN_PCT = 0.8;
+const BRAINTEST_MAIN_COUNT = 20,     BRAINTEST_MAIN_PCT = 0.9; // auf Wunsch von 80% (16/20) auf 90% (18/20) angehoben
+// Pro Klasse maximal 3 Versuche am selben Tag je Testart. Wird diese
+// Grenze erreicht, OHNE zu bestehen, greift statt eines einfachen
+// "morgen nochmal" eine gezielte Sperre (siehe braintestGate* weiter
+// unten): Haupttest 3x nicht geschafft -> Uebungstest muss mit frisch
+// gezogenen Fragen erneut bestanden werden, bevor der Haupttest wieder
+// angeboten wird. Uebungstest 3x nicht geschafft -> Abstieg: der
+// Haupttest der VORHERIGEN Klasse muss erneut bestanden werden, bevor
+// der Uebungstest der aktuellen Klasse wieder angeboten wird.
+const BRAINTEST_MAX_DAILY_ATTEMPTS = 3;
 // Haupttest: EINE gemeinsame Gesamtzeit fuer alle Fragen (1:30 Minuten) statt
 // eines Zeitlimits pro Frage. Nicht beantwortete Fragen zaehlen als falsch.
 const BRAINTEST_MAIN_TOTAL_SEC = 90;
@@ -1889,6 +1898,31 @@ const KLASSE_TESTS = KLASSEN.map(() => ({
 // "Klasse N" / "Class N" je nach Oberflächensprache - KLASSEN[i].name bleibt
 // als deutscher Basiswert stehen (u.a. für Achievements/Text, der immer
 // Deutsch ist), Anzeige-Texte laufen über diese Funktion.
+function braintestToday(){
+  try{ return new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Berlin'}); }catch(e){ return new Date().toISOString().slice(0,10); }
+}
+// Tagesversuche je Klasse - wird automatisch zurueckgesetzt, sobald sich der
+// Kalendertag (Europe/Berlin) ODER die betroffene Klasse aendert. Die SPERRE
+// (profile.braintestGate) ist davon bewusst getrennt: sie bleibt auch ueber
+// einen Tageswechsel hinweg bestehen, bis die geforderte Gegenaktion (ein
+// erneut bestandener Test) sie aufhebt - ein neuer Tag allein reicht nicht,
+// um sich daran vorbeizuwarten.
+function braintestEnsureDaily(profile, klasseIdx){
+  const today = braintestToday();
+  if(!profile.braintestDaily || profile.braintestDaily.klasse !== klasseIdx || profile.braintestDaily.date !== today){
+    profile.braintestDaily = { klasse: klasseIdx, date: today, practiceAttempts: 0, mainAttempts: 0 };
+  }
+  return profile.braintestDaily;
+}
+function braintestGateFor(profile, klasseIdx, type){
+  const g = profile.braintestGate;
+  return !!(g && g.klasse === klasseIdx && g.type === type);
+}
+function braintestRecordScore(profile, klasseIdx, isMain, correct, total){
+  if(!profile.braintestScores) profile.braintestScores = {};
+  profile.braintestScores[klasseIdx] = profile.braintestScores[klasseIdx] || {};
+  profile.braintestScores[klasseIdx][isMain ? "main" : "practice"] = { correct, total };
+}
 function klasseName(idx){
   const n = Math.min(idx||0, KLASSEN.length-1) + 1;
   return currentLang === "en" ? "Class " + n : "Klasse " + n;
@@ -2616,7 +2650,6 @@ const MODE_STAT_DEFS = [
   { key:"ordering",    label:"Einordnen",         tracksCorrect:true,  icon:"🔢", color:"#c6ff3d" },
   // { key:"chronology",  label:"Chronologie",       tracksCorrect:true },
   { key:"higherlower", label:"Mehr oder Weniger",  tracksCorrect:true,  icon:"⚖️", color:"#3de0ff" },
-  { key:"music",       label:"Musik raten",       tracksCorrect:false, icon:"🎵", color:"#ff5da2" },
   // { key:"picture",     label:"Bild erraten",      tracksCorrect:false },
   { key:"speedmath",   label:"Speed Math",        tracksCorrect:true,  icon:"🧮", color:"#ffb443" },
   { key:"orderofspeed", label:"Order of Speed",   tracksCorrect:true,  icon:"🔢", color:"#9fb0ff" }
@@ -2920,6 +2953,7 @@ function accountAsProfile(){
     score: p.score, tier: p.tier || 0, klasse: p.klasse || 0, consecutiveFails: p.consecutiveFails || 0, roundsPlayed: p.roundsPlayed, wins: p.wins, losses: p.losses,
     correctAnswers: p.correctAnswers, wrongAnswers: p.wrongAnswers, bestScore: p.bestScore, tttRank: p.tttRank || 0, tttWinsAtRank: p.tttWinsAtRank || 0,
     haupttestUnlockedForKlasse: typeof p.haupttestUnlockedForKlasse === "number" ? p.haupttestUnlockedForKlasse : -1,
+    braintestScores: p.braintestScores || {}, braintestGate: p.braintestGate || null, braintestDaily: p.braintestDaily || null,
     speedMathLevel: p.speedMathLevel || 1, speedMathHearts: typeof p.speedMathHearts === "number" ? p.speedMathHearts : 3, speedMathHeartsDate: p.speedMathHeartsDate || null,
     coins: typeof p.coins === "number" ? p.coins : 0,
     modeStats: p.modeStats || freshModeStats(),
@@ -2935,6 +2969,7 @@ async function syncAccountStats(profile){
       score: profile.score, tier: profile.tier, klasse: profile.klasse, consecutiveFails: profile.consecutiveFails, roundsPlayed: profile.roundsPlayed, wins: profile.wins, losses: profile.losses,
       correctAnswers: profile.correctAnswers, wrongAnswers: profile.wrongAnswers, bestScore: profile.bestScore, tttRank: profile.tttRank, tttWinsAtRank: profile.tttWinsAtRank,
       haupttestUnlockedForKlasse: profile.haupttestUnlockedForKlasse,
+      braintestScores: profile.braintestScores, braintestGate: profile.braintestGate, braintestDaily: profile.braintestDaily,
       speedMathLevel: profile.speedMathLevel, speedMathHearts: profile.speedMathHearts, speedMathHeartsDate: profile.speedMathHeartsDate,
       coins: profile.coins,
       achv: account.profile && account.profile.achv,
@@ -3283,14 +3318,15 @@ if(!AVAILABLE_LANGS.some(l => l.code === currentLang)) currentLang = "de";
    ============================================================================ */
 const DEDICATED_MODES = {
   slf:        { icon:"🗺️", title:"Stadt Land Fluss",    screenTitle:"STADT LAND FLUSS",    germanOnly:true  },
-  music:      { icon:"🎵", title:"Musik raten",          screenTitle:"MUSIK RATEN",          germanOnly:false },
   blitz:      { icon:"⚡", title:"Nenn's Blitz",          screenTitle:"NENN'S BLITZ",         germanOnly:true  },
   ordering:   { icon:"🔢", title:"Einordnen",             screenTitle:"EINORDNEN",             germanOnly:false },
-  // chronology und picture sind auf Wunsch vorübergehend komplett draußen
-  // (kommen als späteres Patch-Update zurück) - Code/Engine dafür bleibt
-  // serverseitig unangetastet, hier nur die Menüpunkte entfernt. Zum
-  // Reaktivieren: Zeilen wieder einkommentieren UND server.js
-  // (buildRoundDefPool + DEDICATED_MODE_KINDS) entsprechend rückgängig machen.
+  // chronology, picture und music sind auf Wunsch komplett draußen (music
+  // dauerhaft entfernt inkl. Erfolge/Statistik, chronology/picture nur
+  // vorübergehend - kommen evtl. als spaeteres Patch-Update zurueck). Die
+  // Engine fuer chronology/picture bleibt serverseitig unangetastet, hier
+  // nur die Menüpunkte entfernt. Zum Reaktivieren dieser beiden: Zeilen
+  // wieder einkommentieren UND server.js (buildRoundDefPool +
+  // DEDICATED_MODE_KINDS) entsprechend rückgängig machen.
   // chronology: { icon:"📅", title:"Chronologie",           screenTitle:"CHRONOLOGIE",           germanOnly:false },
   higherlower:{ icon:"⚖️", title:"Mehr oder Weniger",     screenTitle:"MEHR ODER WENIGER",     germanOnly:false }
   // picture:    { icon:"🖼️", title:"Bild erraten",          screenTitle:"BILD ERRATEN",          germanOnly:false }
@@ -3752,7 +3788,6 @@ function renderMainMenu(){
       ${dedicatedCard('ordering')}
       ${dedicatedCard('higherlower')}
       ${dedicatedCard('blitz')}
-      ${dedicatedCard('music')}
       <div class="mode-card" onclick="startSpeedMathFlow()">
         <div class="icon">🧮</div>
         <h3>Speed Math</h3>
@@ -6477,12 +6512,60 @@ function startSoloFlow(){
 // Übersicht aller 10 Klassen mit Status (bestanden/aktuell/noch nicht
 // erreicht), bevor der eigentliche Aufstiegstest losgeht - ersetzt den
 // direkten Sprung in beginSolo(), der zuvor keinen Überblick gab.
+// Klassen-Detailbildschirm: zeigt die zuletzt erreichten Punktzahlen
+// (Übungstest X/50, Haupttest Y/20) fuer eine einzelne Klasse und bietet
+// an, Uebungstest und/oder Haupttest dieser Klasse zu wiederholen -
+// erreichbar durch Antippen einer Zeile in der Klassenuebersicht.
+function renderBrainTestClassModal(klasseIdx){
+  const profile = klassenOverviewProfile;
+  const currentIdx = Math.min(profile.klasse || 0, KLASSE_TESTS.length - 1);
+  const isDone = klasseIdx < currentIdx;
+  const isCurrent = klasseIdx === currentIdx;
+  const scores = (profile.braintestScores && profile.braintestScores[klasseIdx]) || {};
+  const practiceScore = scores.practice ? `${scores.practice.correct} / ${scores.practice.total}` : '–';
+  const mainScore = scores.main ? `${scores.main.correct} / ${scores.main.total}` : '–';
+  const gateNeedsPractice = braintestGateFor(profile, klasseIdx, "needPractice");
+  const gateNeedsPriorMain = braintestGateFor(profile, klasseIdx, "needPriorMain");
+  const haupttestAvailable = isDone || (isCurrent && profile.haupttestUnlockedForKlasse === klasseIdx);
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">${klasseName(klasseIdx)}</div>
+      <div class="picker-sub">Bisherige Ergebnisse dieser Klasse</div>
+
+      <div class="stat-mini" style="margin-top:12px;">
+        <div class="rate"><div class="n">${practiceScore}</div><div class="l">Übungstest</div></div>
+        <div class="win"><div class="n">${mainScore}</div><div class="l">Haupttest</div></div>
+      </div>
+
+      ${gateNeedsPractice ? `
+        <div class="rank-up-banner" style="margin-top:14px; background:rgba(255,93,162,.15); border-color:var(--danger); color:var(--danger);">🔒 ${BRAINTEST_MAX_DAILY_ATTEMPTS}x nicht bestanden – zuerst den Übungstest mit neuen Fragen erneut bestehen.</div>
+      ` : ``}
+      ${gateNeedsPriorMain ? `
+        <div class="rank-up-banner" style="margin-top:14px; background:rgba(255,93,162,.15); border-color:var(--danger); color:var(--danger);">🔒 ${BRAINTEST_MAX_DAILY_ATTEMPTS}x nicht bestanden – zuerst den Haupttest von ${klasseName(klasseIdx-1)} erneut bestehen.</div>
+      ` : ``}
+
+      ${(isDone || isCurrent) && !gateNeedsPriorMain ? `
+        <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, false${isDone ? ', '+klasseIdx : ''})">🔁 Übungstest wiederholen (${BRAINTEST_PRACTICE_COUNT} neue Fragen)</button>
+      ` : ``}
+      ${haupttestAvailable && !gateNeedsPractice ? `
+        <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true, ${isDone ? klasseIdx : undefined})">🔁 Haupttest wiederholen</button>
+      ` : ``}
+      ${gateNeedsPriorMain ? `
+        <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, true, ${klasseIdx-1})">🔁 Haupttest ${klasseName(klasseIdx-1)} wiederholen</button>
+      ` : ``}
+
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="renderKlassenOverview(klassenOverviewProfile)">${t('btn_back')}</button>
+    </div>
+  `);
+}
 let klassenOverviewProfile = null;
 function renderKlassenOverview(profile){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
   klassenOverviewProfile = profile;
   const currentIdx = Math.min(profile.klasse || 0, KLASSEN.length - 1);
-  const haupttestReady = (profile.haupttestUnlockedForKlasse ?? -1) === currentIdx;
+  const gateNeedsPractice = braintestGateFor(profile, currentIdx, "needPractice");
+  const gateNeedsPriorMain = braintestGateFor(profile, currentIdx, "needPriorMain");
+  const haupttestReady = (profile.haupttestUnlockedForKlasse ?? -1) === currentIdx && !gateNeedsPractice;
   renderApp(`
     <div class="panel">
       <div class="picker-title">${t('braintest_title')}</div>
@@ -6493,24 +6576,50 @@ function renderKlassenOverview(profile){
           const isCurrent = i === currentIdx;
           const statusLabel = isDone ? '✓ ' + t('braintest_passed') : (isCurrent ? '▶ ' + t('braintest_current') : t('braintest_not_reached'));
           const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
+          const tappable = isDone || isCurrent;
+          const gateIcon = braintestGateFor(profile, i, "needPractice") || braintestGateFor(profile, i, "needPriorMain") ? ' 🔒' : '';
           return `
-          <div class="leaderboard-row" style="flex-wrap:wrap; row-gap:8px; ${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
+          <div class="leaderboard-row" style="flex-wrap:wrap; row-gap:8px; ${tappable?'cursor:pointer;':''} ${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}" ${tappable ? `onclick="renderBrainTestClassModal(${i})"` : ``}>
             <span class="rank-pill ${k.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${klasseName(i)}</span>
-            <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}</span>
+            <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}${gateIcon}</span>
             ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">${t('braintest_practice_info').replace('{q}', KLASSE_TESTS[i].questions).replace('{n}', KLASSE_TESTS[i].needed)}</span>` : ``}
-            ${isDone ? `<button class="repeat-btn" onclick="beginSolo(klassenOverviewProfile, true, ${i})" title="${t('braintest_repeat_title').replace('{n}', KLASSE_TESTS[i].mainQuestions)}">🔁 ${t('braintest_repeat')}</button>` : ``}
           </div>
         `;}).join("")}
       </div>
-      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, false)">${currentIdx===0 && !profile.klasse ? t('braintest_start_practice') : t('braintest_continue_practice')}</button>
-      ${haupttestReady ? `
-        <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true)">🔓 ${t('braintest_start_main').replace('{n}', KLASSE_TESTS[currentIdx].mainQuestions)}</button>
+      ${gateNeedsPriorMain ? `
+        <div class="rank-up-banner" style="margin-top:16px; background:rgba(255,93,162,.15); border-color:var(--danger); color:var(--danger);">🔒 ${BRAINTEST_MAX_DAILY_ATTEMPTS}x nicht bestanden – zuerst den Haupttest von ${klasseName(currentIdx-1)} erneut bestehen.</div>
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="beginSolo(klassenOverviewProfile, true, ${currentIdx-1})">🔁 Haupttest ${klasseName(currentIdx-1)} wiederholen</button>
       ` : `
-        <p class="picker-sub" style="text-align:center; margin-top:10px;">${t('braintest_unlock_hint').replace('{n}', KLASSE_TESTS[currentIdx].needed).replace('{q}', KLASSE_TESTS[currentIdx].questions).replace('{m}', KLASSE_TESTS[currentIdx].mainQuestions).replace('{k}', klasseName(currentIdx))}</p>
+        <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="beginSolo(klassenOverviewProfile, false)">${currentIdx===0 && !profile.klasse ? t('braintest_start_practice') : t('braintest_continue_practice')}</button>
+        ${haupttestReady ? `
+          <button class="btn btn-primary btn-block" style="margin-top:10px; background:var(--accent-2);" onclick="beginSolo(klassenOverviewProfile, true)">🔓 ${t('braintest_start_main').replace('{n}', KLASSE_TESTS[currentIdx].mainQuestions)}</button>
+        ` : gateNeedsPractice ? `
+          <div class="rank-up-banner" style="margin-top:10px; background:rgba(255,93,162,.15); border-color:var(--danger); color:var(--danger);">🔒 ${BRAINTEST_MAX_DAILY_ATTEMPTS}x nicht bestanden – der Übungstest muss mit neuen Fragen erneut bestanden werden.</div>
+        ` : `
+          <p class="picker-sub" style="text-align:center; margin-top:10px;">${t('braintest_unlock_hint').replace('{n}', KLASSE_TESTS[currentIdx].needed).replace('{q}', KLASSE_TESTS[currentIdx].questions).replace('{m}', KLASSE_TESTS[currentIdx].mainQuestions).replace('{k}', klasseName(currentIdx))}</p>
+        `}
       `}
+      <button class="btn btn-ghost btn-block" style="margin-top:14px; opacity:.7; font-size:12px;" onclick="braintestResetProgress()">↺ Fortschritt zurücksetzen</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
+}
+// Setzt NUR den Brain-Test-Fortschritt zurueck (Klasse, Freischaltung,
+// gespeicherte Punktestaende, Sperren/Tagesversuche) - ruehrt bewusst
+// nichts anderes an (Muenzen, Erfolge, andere Modi, das Konto an sich
+// bleiben unangetastet). Gedacht z.B. zum eigenen Durchtesten von vorne,
+// ohne dafuer an der Datenbank (Upstash) selbst herumschrauben zu muessen.
+function braintestResetProgress(){
+  const profile = klassenOverviewProfile;
+  if(!confirm("Wirklich den kompletten Brain-Test-Fortschritt zurücksetzen? Du startest wieder bei Klasse 1, alle gespeicherten Punktestände und eventuelle Sperren werden gelöscht. Münzen, Erfolge und andere Modi bleiben unangetastet.")) return;
+  profile.klasse = 0;
+  profile.haupttestUnlockedForKlasse = -1;
+  profile.braintestScores = {};
+  profile.braintestGate = null;
+  profile.braintestDaily = null;
+  if(profile.isAccount) syncAccountStats(profile);
+  else saveProfiles();
+  renderKlassenOverview(profile);
 }
 
 // repeatKlasseIdx (optional): "Test wiederholen" bei einer bereits bestandenen
@@ -6521,12 +6630,25 @@ function beginSolo(profile, isHaupttest, repeatKlasseIdx){
   const currentKlasseIdx = Math.min(profile.klasse || 0, KLASSE_TESTS.length - 1);
   const isRepeat = Number.isInteger(repeatKlasseIdx) && repeatKlasseIdx >= 0 && repeatKlasseIdx < currentKlasseIdx;
   const klasseIndex = isRepeat ? repeatKlasseIdx : currentKlasseIdx;
-  if(isRepeat) isHaupttest = true;
+  // isHaupttest bleibt bei einer Wiederholung so, wie es uebergeben wurde -
+  // eine Wiederholung kann sowohl der Uebungstest ALS AUCH der Haupttest
+  // einer aelteren, bereits bestandenen Klasse sein (z.B. aus dem
+  // Klassen-Detailbildschirm heraus).
   // Sicherheitsnetz: der Haupttest laesst sich nur starten, wenn er fuer die
   // AKTUELLE Klasse freigeschaltet ist (Uebungstest >= 90%). Sonst -> Uebungstest.
   // (Vorher startete "NOCH EINE RUNDE" nach einem bestandenen Haupttest direkt
   // den Haupttest der naechsten Klasse und umging so den Uebungstest.)
   if(!isRepeat && isHaupttest && (profile.haupttestUnlockedForKlasse ?? -1) !== klasseIndex) isHaupttest = false;
+  // Sicherheitsnetz gegen die beiden Sperren (siehe braintestGate* weiter
+  // oben) - die Buttons in der Uebersicht sollten das schon verhindern,
+  // hier zusaetzlich nochmal abgesichert, falls doch ein veralteter Button
+  // gedrueckt wird. "needPractice": Haupttest gesperrt, bis der Uebungstest
+  // erneut bestanden wurde. "needPriorMain": Uebungstest gesperrt, bis der
+  // Haupttest der VORHERIGEN Klasse erneut bestanden wurde.
+  if(!isRepeat && isHaupttest && braintestGateFor(profile, klasseIndex, "needPractice")) isHaupttest = false;
+  if(!isRepeat && !isHaupttest && braintestGateFor(profile, klasseIndex, "needPriorMain") && klasseIndex > 0){
+    renderKlassenOverview(profile); return;
+  }
   const test = KLASSE_TESTS[klasseIndex];
   const currentKlasse = KLASSEN[klasseIndex] || KLASSEN[0];
   const nextKlasse = KLASSEN[klasseIndex + 1];
@@ -6725,26 +6847,65 @@ function endSoloRound(){
   }
   const rankBefore = KLASSEN[solo.startTier] || KLASSEN[0];
   let justUnlockedHaupttest = false;
+  let justGated = null; // "needPractice" | "needPriorMain" - fuer den Hinweis im Ergebnisbildschirm
 
   if(solo.isRepeat){
-    // Wiederholung einer bereits bestandenen Klasse: Klasse und
-    // Freischaltung bleiben unangetastet (nur die Statistik zaehlt mit).
+    // Wiederholung einer bereits bestandenen Klasse (Uebungs- ODER
+    // Haupttest): Klasse und Freischaltung bleiben unangetastet, nur der
+    // zuletzt erzielte Punktestand dieser Klasse wird aktualisiert.
+    braintestRecordScore(solo.profile, solo.startTier, solo.isHaupttest, solo.correct, solo.questions.length);
+    // Ausnahme: loest eine bestandene HAUPTTEST-Wiederholung gerade die
+    // "Abstiegs"-Sperre der NAECHSTEN Klasse auf (siehe "needPriorMain"),
+    // wird diese hier aufgehoben und die Tagesversuche fuer den
+    // Uebungstest dieser naechsten Klasse wieder auf 0 gesetzt (frische 3
+    // Versuche).
+    if(solo.isHaupttest && passed && braintestGateFor(solo.profile, solo.startTier + 1, "needPriorMain")){
+      solo.profile.braintestGate = null;
+      solo.profile.braintestDaily = { klasse: solo.startTier + 1, date: braintestToday(), practiceAttempts: 0, mainAttempts: 0 };
+    }
   } else if(solo.isHaupttest){
+    braintestRecordScore(solo.profile, solo.startTier, true, solo.correct, solo.questions.length);
+    const daily = braintestEnsureDaily(solo.profile, solo.startTier);
+    daily.mainAttempts++;
     if(passed){
       solo.profile.consecutiveFails = 0;
+      solo.profile.braintestGate = null; // falls aus einem frueheren Durchlauf noch eine Sperre haengen geblieben waere
       if(KLASSEN[solo.startTier + 1]) solo.profile.klasse = solo.startTier + 1;
       // Für die neue Klasse muss der Haupttest erst wieder über den
       // Übungstest freigeschaltet werden.
       solo.profile.haupttestUnlockedForKlasse = -1;
+    } else if(daily.mainAttempts >= BRAINTEST_MAX_DAILY_ATTEMPTS){
+      // 3x am selben Tag nicht bestanden: Haupttest wird gesperrt, bis der
+      // Uebungstest dieser Klasse mit frisch gezogenen Fragen erneut
+      // bestanden wurde (siehe "needPractice"-Pruefung in beginSolo()).
+      solo.profile.braintestGate = { klasse: solo.startTier, type: "needPractice" };
+      justGated = "needPractice";
     }
-    // Bei Nichtbestehen: keine Rückstufung mehr, der Haupttest bleibt
-    // einfach frei wiederholbar (auf Wunsch - "egal in welcher Klasse er
-    // ist" - kein Fehlversuchs-Zähler mehr, der zur Rückstufung führt).
-  } else if(passed && solo.profile.haupttestUnlockedForKlasse !== solo.startTier){
-    // Übungstest: KEINE Klassen-Änderung mehr - ab 90% schaltet sich
-    // stattdessen der Haupttest für diese Klasse frei.
-    solo.profile.haupttestUnlockedForKlasse = solo.startTier;
-    justUnlockedHaupttest = true;
+  } else {
+    braintestRecordScore(solo.profile, solo.startTier, false, solo.correct, solo.questions.length);
+    const daily = braintestEnsureDaily(solo.profile, solo.startTier);
+    daily.practiceAttempts++;
+    if(passed){
+      if(solo.profile.haupttestUnlockedForKlasse !== solo.startTier){
+        // Übungstest: KEINE Klassen-Änderung mehr - ab 90% schaltet sich
+        // stattdessen der Haupttest für diese Klasse frei.
+        solo.profile.haupttestUnlockedForKlasse = solo.startTier;
+        justUnlockedHaupttest = true;
+      }
+      if(braintestGateFor(solo.profile, solo.startTier, "needPractice")){
+        // Die "needPractice"-Sperre ist damit aufgehoben - frische 3
+        // Haupttest-Versuche fuer diese Klasse.
+        solo.profile.braintestGate = null;
+        daily.mainAttempts = 0;
+      }
+    } else if(daily.practiceAttempts >= BRAINTEST_MAX_DAILY_ATTEMPTS && solo.startTier > 0){
+      // 3x am selben Tag nicht bestanden: Abstieg - der Haupttest der
+      // VORHERIGEN Klasse muss erneut bestanden werden, bevor der
+      // Uebungstest dieser Klasse wieder angeboten wird. Klasse 1 kann
+      // nicht tiefer absteigen, bleibt also ohne Sperre frei wiederholbar.
+      solo.profile.braintestGate = { klasse: solo.startTier, type: "needPriorMain" };
+      justGated = "needPriorMain";
+    }
   }
 
   const rankAfter = KLASSEN[solo.profile.klasse || 0] || KLASSEN[0];
@@ -6759,7 +6920,8 @@ function endSoloRound(){
   if(solo.profile.isAccount) syncAccountStats(solo.profile);
   else saveProfiles();
 
-  const canOfferHaupttest = !solo.isHaupttest && solo.profile.haupttestUnlockedForKlasse === solo.startTier;
+  const canOfferHaupttest = !solo.isHaupttest && solo.profile.haupttestUnlockedForKlasse === solo.startTier && !braintestGateFor(solo.profile, solo.startTier, "needPractice");
+  const needsPriorMainNow = !solo.isHaupttest && braintestGateFor(solo.profile, solo.startTier, "needPriorMain");
 
   renderApp(`
     <div class="panel">
@@ -6767,6 +6929,8 @@ function endSoloRound(){
       <div class="result-sub">${passed ? t('braintest_strong') : t('braintest_better_luck')}</div>
       ${rankChanged ? `<div class="rank-up-banner">${t('braintest_new_rank').replace('{k}', klasseName(solo.profile.klasse||0))}</div>` : ``}
       ${justUnlockedHaupttest ? `<div class="rank-up-banner">${t('braintest_main_unlocked').replace('{k}', klasseName(solo.startTier))}</div>` : ``}
+      ${justGated === "needPractice" ? `<div class="rank-up-banner" style="background:rgba(255,93,162,.15); border-color:var(--danger); color:var(--danger);">🔒 ${BRAINTEST_MAX_DAILY_ATTEMPTS}x nicht bestanden – der Übungstest muss mit neuen Fragen erneut bestanden werden, bevor der Haupttest wieder möglich ist.</div>` : ``}
+      ${justGated === "needPriorMain" ? `<div class="rank-up-banner" style="background:rgba(255,93,162,.15); border-color:var(--danger); color:var(--danger);">🔒 ${BRAINTEST_MAX_DAILY_ATTEMPTS}x nicht bestanden – der Haupttest von ${klasseName(solo.startTier-1)} muss erneut bestanden werden, bevor es hier weitergeht.</div>` : ``}
       ${earnedCoins ? `<div class="rank-up-banner" style="background:rgba(255,180,67,.15); border-color:var(--warn); color:var(--warn);">🪙 +${earnedCoins} Münzen verdient!</div>` : ``}
 
       <div class="result-grid">
@@ -6790,7 +6954,8 @@ function endSoloRound(){
         ${solo.isRepeat ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.repeatKlasseIdx})">${t('braintest_repeat_again')}</button>
         <button class="btn btn-ghost" onclick="renderKlassenOverview(solo.profile)">${t('braintest_to_overview')}</button>` : `
         ${canOfferHaupttest ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true)">${t('braintest_start_main_short')}</button>` : ``}
-        <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">${solo.isHaupttest && passed ? t('braintest_practice_of').replace('{k}', klasseName(solo.profile.klasse||0).toUpperCase()) : t('braintest_another_round')}</button>`}
+        ${needsPriorMainNow ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.startTier-1})">🔁 Haupttest ${klasseName(solo.startTier-1)} wiederholen</button>` : `
+        <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">${solo.isHaupttest && passed ? t('braintest_practice_of').replace('{k}', klasseName(solo.profile.klasse||0).toUpperCase()) : t('braintest_another_round')}</button>`}`}
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('braintest_main_menu')}</button>
       </div>
     </div>

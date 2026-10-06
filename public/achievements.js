@@ -27,7 +27,6 @@
     { id: "ordering",  title: "Einordnen", icon: "📊" },
     { id: "mow",       title: "Mehr oder Weniger", icon: "⚖️" },
     { id: "blitz",     title: "Nenn's Blitz", icon: "⚡" },
-    { id: "music",     title: "Musik raten", icon: "🎵" },
     { id: "slf",       title: "Stadt Land Fluss", icon: "✏️" },
     { id: "ttt",       title: "Tic Tac Toe", icon: "⭕" },
     { id: "general",   title: "Allgemein", icon: "🌟" }
@@ -50,8 +49,6 @@
     { id: "mow_flawless", cat: "mow", icon: "❤️", title: "Ohne Verlust", desc: "Schaffe eine Mehr-oder-Weniger-Runde, ohne ein Leben zu verlieren.", progress: P(s => s.mow.flawless, 1) },
     // ---------------------------------------------------------------- Nenn's Blitz
     ...[10, 15, 20, 30, 50].map(n => ({ id: "blitz_" + n, cat: "blitz", icon: "⚡", title: "Blitz " + n, desc: "Schaffe " + n + " gültige Antworten in einer Nenn's-Blitz-Runde.", progress: P(s => s.blitz.best, n) })),
-    // ---------------------------------------------------------------- Musik
-    { id: "music_10_noreplay", cat: "music", icon: "👂", title: "Feines Gehör", desc: "Errate 10 Songs, ohne noch einmal zuzuhören.", progress: P(s => s.music.noReplay, 10) },
     // ---------------------------------------------------------------- Stadt Land Fluss
     { id: "slf_all_fields", cat: "slf", icon: "📝", title: "Alle Felder", desc: "Schreibe in jedes Feld etwas.", progress: P(s => s.slf.allFilled, 1) },
     { id: "slf_first_1",    cat: "slf", icon: "🥇", title: "Schnellster Stift", desc: "Sei in einer Mehrspielerrunde als Erste/r mit allen Feldern fertig.", progress: P(s => s.slf.firstFull, 1) },
@@ -116,7 +113,6 @@
       ord: { completed: 0, flawless: 0 },
       mow: { completed: 0, flawless: 0 },
       blitz: { best: 0, total: 0 },
-      music: { noReplay: 0 },
       slf: { allFilled: 0, firstFull: 0, unique: 0 },
       ttt: { maxRank: 0, win3: 0, quantumWins: 0, quizmixWins: 0, quizmix3: 0, quizmix3Perfect: 0, meisterDraws: 0 },
       gen: { correct: 0 },
@@ -125,7 +121,7 @@
       unlocked: {}
     };
   }
-  const CAPS = { perfectRuns: 1e6, completed: 1e7, flawless: 1e7, best: 1000, total: 1e7, noReplay: 1e7, allFilled: 1e7, firstFull: 1e7, unique: 1e7,
+  const CAPS = { perfectRuns: 1e6, completed: 1e7, flawless: 1e7, best: 1000, total: 1e7, allFilled: 1e7, firstFull: 1e7, unique: 1e7,
     maxRank: 6, win3: 1e7, quantumWins: 1e7, quizmixWins: 1e7, quizmix3: 1e7, quizmix3Perfect: 1e7, meisterDraws: 1e6, correct: 1e9, level: 50, current: 1e5, longest: 1e5 };
   const num = (v, cap) => { v = Number(v); return Number.isFinite(v) && v > 0 ? Math.min(Math.floor(v), cap) : 0; };
   const flags = (a) => Array.from({ length: KLASSEN }, (_, i) => (Array.isArray(a) && a[i] ? 1 : 0));
@@ -140,7 +136,6 @@
     s.ord.completed = g(raw.ord, "completed", CAPS.completed); s.ord.flawless = g(raw.ord, "flawless", CAPS.flawless);
     s.mow.completed = g(raw.mow, "completed", CAPS.completed); s.mow.flawless = g(raw.mow, "flawless", CAPS.flawless);
     s.blitz.best = g(raw.blitz, "best", CAPS.best); s.blitz.total = g(raw.blitz, "total", CAPS.total);
-    s.music.noReplay = g(raw.music, "noReplay", CAPS.noReplay);
     s.slf.allFilled = g(raw.slf, "allFilled", CAPS.allFilled); s.slf.firstFull = g(raw.slf, "firstFull", CAPS.firstFull); s.slf.unique = g(raw.slf, "unique", CAPS.unique);
     for (const k of ["maxRank", "win3", "quantumWins", "quizmixWins", "quizmix3", "quizmix3Perfect", "meisterDraws"]) s.ttt[k] = g(raw.ttt, k, CAPS[k]);
     s.gen.correct = g(raw.gen, "correct", CAPS.correct);
@@ -226,7 +221,6 @@
         state.blitz.best = Math.max(state.blitz.best, num(evt.total, CAPS.best));
         state.blitz.total = Math.min(CAPS.total, state.blitz.total + num(evt.total, CAPS.best));
         break;
-      case "music": state.music.noReplay = Math.min(CAPS.noReplay, state.music.noReplay + num(evt.n, 1000)); break;
       case "slf": {
         if (evt.allFilled) state.slf.allFilled++;
         if (evt.firstFull) state.slf.firstFull++;
@@ -257,7 +251,7 @@
     for (let i = 0; i < KLASSEN; i++) { out.bt.passed[i] = a.bt.passed[i] | b.bt.passed[i]; out.bt.perfect[i] = a.bt.perfect[i] | b.bt.perfect[i]; out.bt.fast[i] = a.bt.fast[i] | b.bt.fast[i]; }
     const mx = (o, x, y) => { for (const k of Object.keys(o)) if (typeof o[k] === "number") o[k] = Math.max(x[k], y[k]); };
     mx(out.bt, a.bt, b.bt); mx(out.ord, a.ord, b.ord); mx(out.mow, a.mow, b.mow); mx(out.blitz, a.blitz, b.blitz);
-    mx(out.music, a.music, b.music); mx(out.slf, a.slf, b.slf); mx(out.ttt, a.ttt, b.ttt); mx(out.gen, a.gen, b.gen);
+    mx(out.slf, a.slf, b.slf); mx(out.ttt, a.ttt, b.ttt); mx(out.gen, a.gen, b.gen);
     mx(out.sm, a.sm, b.sm);
     // Streak: laengste Serie ist das Maximum, "aktuell" + "letzter Tag" kommen vom
     // Stand mit dem SPAETEREN Datum (der andere ist veraltet und wuerde die Serie
