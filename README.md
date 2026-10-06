@@ -4309,6 +4309,140 @@ Felder zuverlässig zurück, bricht korrekt ab bei verneinter
 Sicherheitsabfrage, und rührt nachweislich nichts anderes an (Münzen,
 andere Modus-Statistiken, Siege/Niederlagen bleiben unverändert).
 
+## 8sss2. Brain Test: Reset wird zu Prestige + kaufbarer Extra-Versuch
+
+Auf Wunsch der zuvor gebaute "Fortschritt zurücksetzen"-Knopf zu einem
+echten Prestige-System ausgebaut:
+
+- **Prestige**: ein Zurücksetzen bringt jetzt 🪙 500 Münzen, bis zu 100 Mal
+  möglich (Zähler wird mitgezählt und angezeigt, z.B. "Prestige (7/100)").
+  Ist die Obergrenze erreicht, funktioniert das Zurücksetzen selbst
+  weiterhin, bringt aber keine Münzen mehr.
+- **Extra-Versuch kaufen**: ist man wegen 3 nicht bestandener
+  Haupttest-Versuche gesperrt ("Übungstest muss erneut bestanden werden"),
+  lässt sich für 🪙 150 Münzen EIN zusätzlicher Haupttest-Versuch
+  freikaufen - wirkt technisch wie ein zurückgenommener Fehlversuch (ein
+  Tagesversuch weniger, Sperre weg). Nur einmal pro Sperre möglich, wird
+  erst wieder verfügbar, sobald der Übungstest regulär erneut bestanden
+  wurde (dieselbe Stelle, an der sich auch die Sperre selbst normal
+  auflöst).
+
+Aus dem Fehler der letzten Änderung gelernt: beide neuen Felder
+(`braintestPrestige`, `braintestExtraAttemptUsed`) wurden diesmal direkt
+beim Bauen an allen drei nötigen Stellen angebunden (accountAsProfile,
+syncAccountStats, serverseitige Validierung in saveUserStats) - nicht
+erst nachtraeglich beim Testen gefunden.
+
+Getestet: Prestige vergibt korrekt Münzen und zählt hoch, bei erreichter
+Obergrenze (100) gibt es keine weiteren Münzen mehr (Zähler bleibt bei
+100), der Extra-Versuch-Kauf hebt die Sperre korrekt auf und macht den
+Haupttest nachweislich wieder startbar, ist nachweislich nur einmal pro
+Sperre möglich, wird nach einem erneut bestandenen Übungstest nachweislich
+wieder freigeschaltet, beide neuen Felder werden korrekt gespeichert und
+überstehen nachweislich einen erneuten Login (mit echtem Server geprüft),
+`accountAsProfile()` gibt beide Felder korrekt weiter, Prestige rührt
+nachweislich nichts anderes an (andere Modus-Statistiken, Erfolge bleiben
+unverändert). Mit einem echten Browser bestätigt: Sperr-Hinweis zeigt den
+Kauf-Knopf korrekt an, Prestige-Knopf zeigt den aktuellen Stand.
+
+## 8ttt2. Biologie: jede Runde beantwortet jetzt alle 20 Fragen des Themas
+
+Auf Wunsch: eine Biologie-Runde zu einem Thema spielt jetzt ALLE 20 Fragen
+des Themas durch, nicht mehr nur eine zufällige Auswahl von 5 daraus (nur
+die Reihenfolge wird bei jedem Durchlauf neu gemischt).
+
+Acht Themen lagen noch bei 18 Fragen, eines bei 19 (von der letzten
+Erweiterung übrig, als alle ungefähr gleich groß, aber noch nicht exakt 20
+waren) - mit 17 neuen Fragen auf exakt 20 je Thema aufgefüllt (jetzt 360
+Fragen im Biologie-Modus insgesamt). Diese 17 wurden konsequenterweise auch
+in den Brain Test übertragen (gleiche Themen-zu-Klasse-Zuordnung wie bei
+der letzten Übertragung), jetzt 895 Fragen dort insgesamt. Beim
+Übertragen erneut auf das "Längen-Verräter"-Muster geprüft - 6 der neuen
+Fragen hatten die richtige Antwort wieder auffällig länger als die
+falschen, nachgekürzt auf den etablierten knappen Stil.
+
+Mit einem echten Browser bestätigt: "Frage 1 von 20" statt "Frage 1 von 5".
+
+Getestet: jedes der 18 Themen hat jetzt exakt 20 Fragen, eine Runde zieht
+nachweislich alle 20 (nicht nur eine Teilmenge) und mischt dabei nur die
+Reihenfolge neu, der komplette Biologie-Test wurde auf "alle 20
+beantworten" umgeschrieben (50 Prüfungen), die 17 neuen Fragen sind
+nachweislich auch im Brain Test wiederzufinden (in der richtigen Klasse),
+das Längen-Verräter-Muster bleibt im gesamten, jetzt 895 Fragen
+umfassenden Brain-Test-Datensatz innerhalb der Toleranz.
+
+## 8uuu2. Order of Speed: neue Option "∞ Unendlich" neben den Zeitlimits
+
+Auf Wunsch eine zusätzliche Dauer-Option "∞ Unendlich (bis du selbst
+aufhörst)" neben den bestehenden 1/2/3/5-Minuten-Optionen. Kein
+automatischer Ablauf-Timer - das Spiel läuft beliebig lange weiter, der
+Pro-Zahl-Zeitdruck (der mit dem Level knapper wird) bleibt dabei ganz
+normal bestehen.
+
+Wichtiger Unterschied beim Beenden: bei den Zeitlimit-Varianten verwirft
+"Zurück" während des Spiels die Runde wie bisher still, ohne etwas zu
+speichern (das Spiel endet dort regulär automatisch durch Zeitablauf). Im
+Unendlich-Modus gibt es aber keinen automatischen Ablauf - "Zurück" ist
+hier das eigentliche Beenden und speichert deshalb die Statistik und zeigt
+den Ergebnisbildschirm, genau wie ein reguläres Rundenende. Die Überschrift
+dort heißt dann "🏁 BEENDET" statt "⏱️ ZEIT UM!", da ja kein Zeitablauf
+stattgefunden hat.
+
+Mit einem echten Browser bestätigt: kein Countdown-Balken mehr im
+Unendlich-Modus (stattdessen "∞ Unendlich"), der Pro-Zahl-Timer bleibt
+sichtbar und aktiv.
+
+Getestet: Unendlich-Option steht zusätzlich zu den vier Zeitlimits zur
+Verfügung, kein Ablauf-Timer wird gesetzt und das Spiel läuft nachweislich
+auch nach 30 simulierten Minuten noch, der Spielbildschirm zeigt "∞
+Unendlich" statt des Countdown-Balkens bei weiterhin vorhandenem
+Pro-Zahl-Timer, "Zurück" speichert im Unendlich-Modus nachweislich die
+Statistik und zeigt "BEENDET", während zeitbasierte Spiele unverändert
+weiterhin still über "Zurück" verworfen werden und bei echtem Zeitablauf
+weiterhin automatisch mit "ZEIT UM!" enden und speichern (keine Regression,
+mit der bestehenden 858 Einzelprüfungen umfassenden Order-of-Speed-Suite
+bestätigt).
+
+## 8vvv2. Brain Test: zwei Tasten entfernt, Haupttest-Zeit im Klassen-Popup
+
+Auf Wunsch die zwei Haupt-Tasten unten in der Brain-Test-Übersicht
+("Übungstest starten/fortsetzen", "Haupttest starten") entfernt - da man
+ja direkt auf die jeweilige Klasse tippen kann, um den Klassen-
+Detailbildschirm mit denselben Aktionen zu öffnen. Statt der Tasten steht
+dort jetzt ein kurzer, zustandsabhängiger Hinweistext ("Tippe auf Klasse 4
+oben, um weiterzumachen."). Die bei einer Sperre bisher doppelt
+vorhandenen Banner/Kauf-Knöpfe (einmal in der Übersicht, einmal im Popup)
+stecken jetzt nur noch im Popup - die Übersicht verweist nur noch per
+Hinweistext dorthin.
+
+**Zusätzlich**: der Klassen-Detailbildschirm zeigt jetzt auch, wie lange
+der letzte Haupttest-Versuch gedauert hat - relevant wegen des
+bestehenden Erfolgs "Schnellster Kopf" (jede Klasse in unter 1 Minute).
+Unter einer Minute erscheint die Zeit grün mit Blitz-Symbol ("⚡ 47s
+(unter 1 Min.)"), darüber schlicht mit Uhr-Symbol ("⏱️ 78s").
+
+Beim Umsetzen selbst einen Fehler gemacht und sofort korrigiert: der neue
+Hinweistext war zunächst hart auf Deutsch geschrieben statt über das
+Übersetzungssystem zu laufen - hätte die englische (und die anderen 5
+Sprachen) kaputt gemacht. Fünf neue Textbausteine ergänzt, vollständig in
+alle 7 Sprachen übersetzt, bevor der hartcodierte Text ersetzt wurde.
+
+Mit einem echten Browser bestätigt: keine der beiden Tasten mehr sichtbar,
+Popup zeigt die Zeit farblich wie beschrieben.
+
+Getestet: beide Tasten sind nachweislich aus der Übersicht verschwunden,
+der Hinweistext passt sich allen vier möglichen Zuständen korrekt an
+(Start/Weiter/Haupttest bereit/beide Sperrarten), bleibt dabei vollständig
+übersetzt (Englisch UND Deutsch mit dem neuen Text geprüft, keine
+Regression bei der bereits bestehenden Übersetzungs-Testsuite), die
+Haupttest-Zeit wird korrekt gespeichert (inkl. eines echten
+Haupttest-Durchlaufs mit simulierter Zeit) und im Popup angezeigt -
+grün hervorgehoben unter 1 Minute, schlicht darüber, kein Absturz bei noch
+nie versuchtem Haupttest, Server-Validierung lässt nur sinnvolle Werte zu
+und die Zeit übersteht nachweislich einen erneuten Login, der
+Kauf-Knopf für den Extra-Versuch erscheint jetzt nachweislich im Popup
+statt doppelt auch in der Übersicht.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

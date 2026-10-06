@@ -2780,7 +2780,7 @@ function defaultStats() {
   return { score: 0, tier: 0, klasse: 0, consecutiveFails: 0, roundsPlayed: 0, wins: 0, losses: 0, correctAnswers: 0, wrongAnswers: 0, bestScore: 0,
     arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
     haupttestUnlockedForKlasse: -1,
-    braintestScores: {}, braintestGate: null, braintestDaily: null,
+    braintestScores: {}, braintestGate: null, braintestDaily: null, braintestPrestige: 0, braintestExtraAttemptUsed: false,
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
     coins: 0,
     achv: Achv.newState(),
@@ -2903,7 +2903,7 @@ async function saveUserStats(token, stats) {
   const user = findUserByToken(token);
   if (!user) return { ok: false, error: "Nicht angemeldet." };
   if (!stats || typeof stats !== "object" || Array.isArray(stats)) return { ok: false, error: "Ungültige Eingabe." };
-  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank", "coins"];
+  const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank", "coins", "braintestPrestige"];
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
@@ -2955,7 +2955,9 @@ async function saveUserStats(token, stats) {
       for (const type of ["practice", "main"]) {
         const s = entry[type];
         if (s && typeof s.correct === "number" && typeof s.total === "number" && Number.isFinite(s.correct) && Number.isFinite(s.total) && s.total > 0 && s.correct >= 0 && s.correct <= s.total) {
-          cleanEntry[type] = { correct: Math.round(s.correct), total: Math.round(s.total) };
+          const cleaned = { correct: Math.round(s.correct), total: Math.round(s.total) };
+          if (type === "main" && typeof s.elapsedSec === "number" && Number.isFinite(s.elapsedSec) && s.elapsedSec >= 0) cleaned.elapsedSec = Math.round(s.elapsedSec);
+          cleanEntry[type] = cleaned;
         }
       }
       if (Object.keys(cleanEntry).length) clean[idx] = cleanEntry;
@@ -2969,6 +2971,9 @@ async function saveUserStats(token, stats) {
     if (Number.isInteger(g.klasse) && g.klasse >= 0 && g.klasse < 10 && (g.type === "needPractice" || g.type === "needPriorMain")) {
       user.stats.braintestGate = { klasse: g.klasse, type: g.type };
     }
+  }
+  if (typeof stats.braintestExtraAttemptUsed === "boolean") {
+    user.stats.braintestExtraAttemptUsed = stats.braintestExtraAttemptUsed;
   }
   if (stats.braintestDaily === null) {
     user.stats.braintestDaily = null;
