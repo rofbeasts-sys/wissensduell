@@ -4443,6 +4443,110 @@ und die Zeit übersteht nachweislich einen erneuten Login, der
 Kauf-Knopf für den Extra-Versuch erscheint jetzt nachweislich im Popup
 statt doppelt auch in der Übersicht.
 
+## 8www2. Profilbild: Emoji-Auswahl statt echter Bildgenerierung
+
+Auf Wunsch eine erste, einfache Profilbild-Funktion: eine feste Liste von
+40 Emojis (Gesichter, Tiere, Symbole) statt echter Fotos oder KI-generierter
+Bilder - deutlich schneller umzusetzen, keine Moderation nötig, passt zum
+bestehenden Icon-Stil der App.
+
+- Jedes neue Profil bekommt zufällig eins zugewiesen
+- Änderbar über die Statistik-Seite: das Emoji neben dem Namen antippen
+  öffnet eine Rasteransicht mit allen 40 Symbolen, das aktuell gewählte ist
+  hervorgehoben
+- Funktioniert sowohl für lokale Profile als auch für das angemeldete Konto
+  (eigene Kennung "account:<username>", wird über die bestehende
+  Konto-Synchronisierung gespeichert)
+
+Beim Bauen einen echten Fehler gefunden und behoben: der "Zurück"-Knopf
+sollte ursprünglich die bereits an anderer Stelle im Code verwendete Technik
+nutzen, eine Funktionsreferenz direkt als Zeichenkette in die onclick-
+Zeichenkette einzubetten. Das funktioniert bei einfachen Funktionen, zerstört
+aber bei komplexeren Funktionen mit vielen verschachtelten Anführungszeichen
+(wie renderStatistik) die Seite - die komplette Funktionsquelle landete dann
+als sichtbarer, kaputter Text auf der Seite. Stattdessen jetzt eine eigene
+Variable, die die Rücksprung-Funktion hält, und ein einfacher benannter
+Funktionsaufruf dafür.
+
+Getestet: neue Profile bekommen ein gültiges Zufalls-Emoji, die Statistik-
+Karte zeigt es antippbar an, der Picker zeigt alle 40 Symbole korrekt (inkl.
+eines gezielten Regressionstests für den gefundenen Darstellungsfehler),
+Auswahl ändert und speichert den Avatar korrekt (lokal UND fürs Konto über
+einen echten Server, übersteht nachweislich einen erneuten Login), "Zurück"
+führt wieder zum ursprünglichen Bildschirm, die Server-Validierung lehnt
+unsinnige Werte (leerer String, extrem lang, falscher Typ) ab, ohne
+abzustürzen. Mit einem echten Browser bestätigt.
+
+## 8xxx2. Statistik um Biologie, Stadt Land Fluss, Tic Tac Toe und Quantum erweitert
+
+Auf Wunsch vier bisher fehlende Modi ergänzt. Keiner der vier hatte bisher
+überhaupt eine eigene Rundenzählung in `modeStats` - über einen neuen
+gemeinsamen Helfer (`recordModeStat`) an den jeweils passenden Stellen
+nachgezogen:
+
+- **Biologie**: zählt pro abgeschlossenem Thema (richtige Antworten summiert)
+- **Stadt Land Fluss**: gibt es nur im Mehrspieler (kein Solo) - läuft über
+  denselben Mechanismus wie die Erfolge (`achvOwner()`), zeigt "Alle Felder"
+  als zweite Kennzahl statt des generischen "richtig"
+- **Tic Tac Toe**: deckt automatisch auch die Quizmix-Variante und
+  Online-Mehrspieler mit ab, da alle über dieselbe gemeinsame Funktion
+  (`tttApplyRankOutcome`) laufen - zeigt "Siege" statt "richtig"
+- **Quantum**: läuft bewusst komplett unabhängig von normalem Tic Tac Toe
+  (eigener Spielmodus ohne gemeinsamen Gürtel-Auf-/Abstieg), eigener Zähler,
+  zeigt ebenfalls "Siege"
+
+Dafür `MODE_STAT_DEFS` um ein optionales `correctLabel`-Feld erweitert
+(Standard bleibt "richtig", wird aber pro Modus überschreibbar) statt den
+Text weiter hart zu codieren.
+
+Getestet: alle vier neuen Modi sind in `MODE_STAT_DEFS` vorhanden mit den
+richtigen Labels, Biologie zählt ein abgeschlossenes Thema korrekt inkl.
+Anzahl richtiger Antworten, Tic Tac Toe zählt Sieg/Niederlage/Unentschieden
+korrekt (auch über den gemeinsamen Funktionsweg), Quantum läuft nachweislich
+komplett getrennt von normalem Tic Tac Toe, Stadt Land Fluss zählt nur bei
+einer eigenen Abgabe (nicht bei fremden), die Statistik-Seite zeigt alle vier
+neuen Kacheln mit den richtigen Labels, Konto-Synchronisierung mit einem
+echten Server bestätigt (inkl. eines kompletten Live-Durchlaufs: ein echter
+Quantum-Sieg über den normalen Spielablauf landet nachweislich auf dem
+Server und übersteht einen erneuten Login). Mit einem echten Browser
+bestätigt.
+
+## 8yyy2. Biologie-Fragen jetzt auch im englischen Brain Test
+
+Auf Wunsch (Teil 1 von 4 einer größeren Anfrage zur englischen Version -
+siehe "Noch offen" unten): alle 360 Biologie-/Sexualkunde-Fragen komplett
+ins Englische übersetzt und mit derselben Themen-zu-Klasse-Zuordnung wie
+beim Deutschen in den englischen Brain Test (`KLASSE_QUESTIONS_EN`)
+übernommen. Englischer Brain Test wächst dadurch von 500 auf **859
+Fragen** (Klasse 1/2 bleiben bei 50, da dort keine Biologie-Themen
+zugeordnet sind - Klasse 3-10 wachsen deutlich).
+
+Dabei gleich auf das bekannte "Längen-Verräter"-Muster geprüft (die
+richtige Antwort durch ausführlichere Formulierung erkennbar) - 77 der
+neuen Fragen waren betroffen und wurden auf denselben knappen Stil
+gekürzt, der beim Deutschen bereits etabliert ist.
+
+Ein älterer Test ging noch von genau 500 englischen Fragen aus (fest
+codierte Erwartung) - auf die neue, gewachsene Zahl angepasst.
+
+Getestet: englischer Brain Test hat jetzt nachweislich 859 Fragen, keine
+Duplikate, alle strukturell gültig, die neuen Fragen verteilen sich
+nachweislich auf die richtigen Klassen (z.B. Pubertät -> Klasse 5,
+Einverständnis & Grenzen -> Klasse 10), das Längen-Verräter-Muster bleibt
+bei den neuen Fragen die Ausnahme (unter 5%), ein echter Haupttest-
+Durchlauf in einer stark gewachsenen englischen Klasse funktioniert normal.
+
+**Noch offen aus der ursprünglichen, größeren Anfrage** (bewusst nicht in
+diesem Durchgang angegangen, da der Umfang zu groß für einen Durchgang
+war):
+- Server-Fehlermeldungen beim Anmelden/Registrieren sind aktuell fest auf
+  Deutsch verdrahtet, unabhängig von der eingestellten Sprache
+- Die 51 Erfolge (Titel/Beschreibungen) existieren aktuell nur auf
+  Deutsch, kein Englisch-Support im Code
+- Die ursprünglichen ~500 englischen Brain-Test-Fragen (vor dieser
+  Biologie-Erweiterung) wurden noch nicht einzeln auf Schwierigkeit/
+  Qualität durchgesehen
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

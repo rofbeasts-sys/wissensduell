@@ -2781,12 +2781,13 @@ function defaultStats() {
     arenaLeague: 0, arenaPoints: 0, arenaHearts: ARENA_DAILY_HEARTS, arenaHeartsDate: null, arenaMatchesPlayed: 0, tttRank: 0, tttWinsAtRank: 0,
     haupttestUnlockedForKlasse: -1,
     braintestScores: {}, braintestGate: null, braintestDaily: null, braintestPrestige: 0, braintestExtraAttemptUsed: false,
+    avatar: "🙂",
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
     coins: 0,
     achv: Achv.newState(),
     modeStats: freshModeStats() };
 }
-const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture", "speedmath", "orderofspeed"];
+const MODE_STAT_KEYS = ["ordering", "chronology", "higherlower", "music", "picture", "speedmath", "orderofspeed", "biology", "slf", "ttt", "quantum"];
 function freshModeStats() {
   const s = {};
   MODE_STAT_KEYS.forEach(k => { s[k] = { played: 0, correct: 0 }; });
@@ -2909,6 +2910,12 @@ async function saveUserStats(token, stats) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
     }
   });
+  // Profilbild: einfacher String (Emoji), aber kein Zahlenwert - eigene,
+  // lockere Pruefung (nicht leer, vernuenftige Laenge fuer ein einzelnes
+  // Emoji inkl. evtl. Mehrfach-Zeichen-Sequenzen wie Flaggen/ZWJ-Emojis).
+  if (typeof stats.avatar === "string" && stats.avatar.length > 0 && stats.avatar.length <= 16) {
+    user.stats.avatar = stats.avatar;
+  }
   // modeStats ist verschachtelt (kein einfacher Zahlenwert) - eigene,
   // strikte Validierung pro Modus statt der generischen allowedKeys-Schleife.
   if (stats.modeStats && typeof stats.modeStats === "object") {
