@@ -18,7 +18,7 @@ const { ok, section, finish, loadClient } = require("./helpers");
     ok("'Not reached yet' statt 'Noch nicht erreicht'", html.includes("Not reached yet"));
     ok("'Practice ... questions · pass with ... correct' statt 'Übung ... Fragen · ab ... richtig'", /Practice \d+ questions · pass with \d+ correct/.test(html));
     ok("Kein deutsches 'Übung'/'richtig' mehr im Haupttext", !html.includes("Übung ") && !/ richtig</.test(html));
-    ok("Start-Knopf sagt 'START PRACTICE TEST'", html.includes("START PRACTICE TEST"));
+    ok("Hinweistext sagt 'Tap Class 1 above to start the practice test.' (kein Knopf mehr, aber der Hinweis ist übersetzt)", html.includes("Tap Class 1 above to start the practice test."));
   }
 
   section("Zwischenbildschirm vor dem Test (beginSolo) komplett auf Englisch");
@@ -65,7 +65,7 @@ const { ok, section, finish, loadClient } = require("./helpers");
     R('currentLang="de"; var p=createProfile("Pluto"); klassenOverviewProfile=p; renderKlassenOverview(p);');
     const html = state.last;
     ok("Weiterhin 'Klasse 1', 'Aktuell', 'Noch nicht erreicht' bei Deutsch", html.includes("Klasse 1") && html.includes("Aktuell") && html.includes("Noch nicht erreicht"));
-    ok("Weiterhin 'ÜBUNGSTEST STARTEN' bei Deutsch", html.includes("ÜBUNGSTEST STARTEN"));
+    ok("Weiterhin deutscher Hinweistext ('Tippe auf Klasse 1 oben, um den Übungstest zu starten.')", html.includes("Tippe auf Klasse 1 oben, um den Übungstest zu starten."));
   }
 
   section("Party-Raum: 'PARTY (WIFI)' entfernt, heißt jetzt schlicht wie im Deutschen");

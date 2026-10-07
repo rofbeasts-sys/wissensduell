@@ -1,10 +1,10 @@
 /* Auf Wunsch: alle Fragen aus dem eigenständigen Biologie-Modus (Körper +
- * Sexualkunde, 343 Fragen) zusätzlich in den Brain Test übernommen,
+ * Sexualkunde, jetzt 360 Fragen) zusätzlich in den Brain Test übernommen,
  * verteilt nach Thema auf passende Klassenstufen. */
 const { ok, section, finish, loadClient, fs, path } = require("./helpers");
 
 (async () => {
-  section("Alle 343 Biologie-Modus-Fragen sind jetzt auch im Brain Test vertreten");
+  section("Alle 360 Biologie-Modus-Fragen sind jetzt auch im Brain Test vertreten");
   {
     const C = loadClient(); const { R } = C;
     const kq = R("KLASSE_QUESTIONS");
@@ -14,7 +14,7 @@ const { ok, section, finish, loadClient, fs, path } = require("./helpers");
     Object.values(bt.sexualkunde).forEach(cat => cat.items.forEach(q => bioModeQs.add(q.q.trim().toLowerCase())));
     const allBrainTestQ = new Set(Object.values(kq).flat().map(q => q.q.trim().toLowerCase()));
     const missing = [...bioModeQs].filter(q => !allBrainTestQ.has(q));
-    ok(`Alle Biologie-Modus-Fragen (343) sind im Brain Test wiederzufinden (fehlend: ${missing.length})`, missing.length === 0);
+    ok(`Alle 360 Biologie-Modus-Fragen sind im Brain Test wiederzufinden (fehlend: ${missing.length})`, missing.length === 0);
   }
 
   section("Themenweise Verteilung auf die richtigen Klassenstufen (einfache Körperteile früh, Sexualkunde aufsteigend)");

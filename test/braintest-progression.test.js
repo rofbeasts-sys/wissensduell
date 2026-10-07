@@ -37,7 +37,7 @@ function finishRound(R, correct, wrong) {
     ok("Übungstest-Punktestand gespeichert (47/50)", JSON.stringify(R("p.braintestScores[0].practice")) === JSON.stringify({ correct: 47, total: 50 }));
     R('beginSolo(p, true);');
     finishRound(R, 19, 1);
-    ok("Haupttest-Punktestand gespeichert (19/20)", JSON.stringify(R("p.braintestScores[0].main")) === JSON.stringify({ correct: 19, total: 20 }));
+    ok("Haupttest-Punktestand gespeichert (19/20)", R("p.braintestScores[0].main.correct") === 19 && R("p.braintestScores[0].main.total") === 20);
   }
 
   section("Tagesversuche: 3 Haupttest-Fehlversuche sperren den Haupttest (needPractice)");
@@ -144,7 +144,7 @@ function finishRound(R, correct, wrong) {
       renderKlassenOverview(p);
     `);
     const html = state.last;
-    ok("Zeigt den Sperr-Hinweis direkt in der Übersicht", html.includes("zuerst den Haupttest von Klasse 1 erneut bestehen"));
+    ok("Zeigt den Sperr-Hinweis direkt in der Übersicht (jetzt als Antipp-Aufforderung, kein eigener Knopf mehr nötig)", html.includes("Tippe auf Klasse 1 oben, um die Sperre aufzuheben"));
     ok("Zeigt ein Schloss-Symbol bei der gesperrten aktuellen Klasse", html.includes("🔒"));
   }
 
@@ -157,7 +157,7 @@ function finishRound(R, correct, wrong) {
       beginSolo(p, true, 0);
     `);
     finishRound(R, 20, 0);
-    ok("Punktestand aktualisiert (20/20)", JSON.stringify(R("p.braintestScores[0].main")) === JSON.stringify({ correct: 20, total: 20 }));
+    ok("Punktestand aktualisiert (20/20)", R("p.braintestScores[0].main.correct") === 20 && R("p.braintestScores[0].main.total") === 20);
     ok("Klasse bleibt unverändert (3)", R("p.klasse") === 3);
     ok("Übungstest-Wiederholung einer alten Klasse funktioniert ebenso", (() => {
       R('beginSolo(p, false, 0);');

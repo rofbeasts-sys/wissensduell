@@ -3,7 +3,8 @@
  * accountAsProfile() noch in syncAccountStats() noch serverseitig in
  * saveUserStats(). Für angemeldete Nutzer:innen gingen Punktestände,
  * Sperren und Tagesversuche dadurch bei jeder Konto-Synchronisierung
- * verloren. Jetzt behoben, dazu ein neuer "Fortschritt zurücksetzen"-Knopf
+ * verloren. Jetzt behoben, dazu ein neuer Reset-Knopf (inzwischen zum
+ * Prestige-System ausgebaut, siehe braintest-prestige.test.js)
  * (ohne Umweg über die Datenbank), analog zum bestehenden
  * Tic-Tac-Toe-Rang-Reset. */
 const { ok, section, finish, loadClient, startServer, post } = require("./helpers");
@@ -102,7 +103,7 @@ const { ok, section, finish, loadClient, startServer, post } = require("./helper
     await S.stop();
   }
 
-  section("Neuer 'Fortschritt zurücksetzen'-Knopf in der Klassenübersicht");
+  section("Reset-Knopf (jetzt 'Prestige') setzt die drei synchronisierten Felder korrekt zurück");
   {
     const C = loadClient(); const { R, state, sb } = C;
     sb.confirm = () => true;
@@ -112,8 +113,12 @@ const { ok, section, finish, loadClient, startServer, post } = require("./helper
       p.braintestGate = {klasse:3, type:"needPractice"};
       renderKlassenOverview(p);
     `);
-    ok("Knopf 'Fortschritt zurücksetzen' ist vorhanden", state.last.includes("Fortschritt zurücksetzen"));
-    R('braintestResetProgress();');
+    // Der Reset-Knopf ist inzwischen zum Prestige-System geworden (siehe
+    // eigene, ausfuehrliche test/braintest-prestige.test.js) - hier nur
+    // noch der grundlegende Rueckstell-Effekt auf die drei synchronisierten
+    // Felder, nicht mehr die Muenzbelohnung/Deckelung im Detail.
+    ok("Knopf 'Prestige' ist vorhanden", state.last.includes("Prestige"));
+    R('braintestPrestige();');
     ok("Klasse zurückgesetzt auf 0", R("klassenOverviewProfile.klasse") === 0);
     ok("haupttestUnlockedForKlasse zurückgesetzt auf -1", R("klassenOverviewProfile.haupttestUnlockedForKlasse") === -1);
     ok("braintestScores geleert", JSON.stringify(R("klassenOverviewProfile.braintestScores")) === "{}");
@@ -121,19 +126,19 @@ const { ok, section, finish, loadClient, startServer, post } = require("./helper
     ok("braintestDaily gelöscht", R("klassenOverviewProfile.braintestDaily") === null);
   }
 
-  section("'Fortschritt zurücksetzen' bricht ab, wenn die Sicherheitsabfrage verneint wird");
+  section("Prestige bricht ab, wenn die Sicherheitsabfrage verneint wird");
   {
     const C = loadClient(); const { R, sb } = C;
     sb.confirm = () => false;
     R(`
       var p = createProfile("T"); p.klasse=5;
       klassenOverviewProfile = p;
-      braintestResetProgress();
+      braintestPrestige();
     `);
     ok("Klasse bleibt unverändert, wenn die Abfrage verneint wird", R("klassenOverviewProfile.klasse") === 5);
   }
 
-  section("Reset rührt bewusst NICHTS anderes an (Münzen, andere Modi, Erfolge)");
+  section("Prestige rührt bewusst NICHTS anderes an (andere Modi, Erfolge) - Münzen steigen gezielt um die Prestige-Belohnung");
   {
     const C = loadClient(); const { R, sb } = C;
     sb.confirm = () => true;
@@ -141,9 +146,9 @@ const { ok, section, finish, loadClient, startServer, post } = require("./helper
       var p = createProfile("T"); p.klasse=3; p.coins=250; p.wins=10; p.losses=2;
       p.modeStats.ordering = {played:5, correct:4};
       klassenOverviewProfile = p;
-      braintestResetProgress();
+      braintestPrestige();
     `);
-    ok("Münzen bleiben unverändert", R("klassenOverviewProfile.coins") === 250);
+    ok("Münzen steigen gezielt um die Prestige-Belohnung (250 -> 750)", R("klassenOverviewProfile.coins") === 750);
     ok("Allgemeine Siege/Niederlagen bleiben unverändert", R("klassenOverviewProfile.wins") === 10 && R("klassenOverviewProfile.losses") === 2);
     ok("Andere Modus-Statistiken bleiben unverändert", JSON.stringify(R("klassenOverviewProfile.modeStats.ordering")) === JSON.stringify({ played: 5, correct: 4 }));
   }

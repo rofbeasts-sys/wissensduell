@@ -1,9 +1,10 @@
 /* Modus "Biologie": auf Wunsch OHNE Körperfigur (Mann/Frau-Diagramm) -
  * stattdessen eine gruppierte Themenliste im selben Stil wie Einordnen/
- * Mehr oder Weniger/Nenn's Blitz. Jedes Thema hat jetzt 8 Fragen im Pool
- * (vorher 5) für mehr Abwechslung, gespielt werden pro Runde weiterhin 5,
- * zufällig gezogen. Sexualkunde bleibt ein eigenständiger, klar benannter
- * Themenblock (Schulbuch-Niveau, rein sachlich-biologisch). */
+ * Mehr oder Weniger/Nenn's Blitz. Jedes Thema hat jetzt genau 20 Fragen im
+ * Pool, und auf Wunsch werden auch alle 20 gespielt (nicht mehr nur eine
+ * zufällige Auswahl von 5 daraus) - nur die Reihenfolge wird bei jedem
+ * Durchlauf neu gemischt. Sexualkunde bleibt ein eigenständiger, klar
+ * benannter Themenblock (Schulbuch-Niveau, rein sachlich-biologisch). */
 const { ok, section, finish, loadClient } = require("./helpers");
 
 function validQuestion(item) {
@@ -13,28 +14,35 @@ function validQuestion(item) {
     && Number.isInteger(item.c) && item.c >= 0 && item.c <= 3
     && typeof item.e === "string" && item.e.length > 0;
 }
+function answerAll(R, correct) {
+  const n = R('biologySession.items.length');
+  for (let i = 0; i < n; i++) {
+    R(`handleBiologyAnswer(${correct ? 'biologySession.items[biologySession.qIndex].c' : '-1'});`);
+    R('biologyNext();');
+  }
+}
 
 (async () => {
-  section("Datenbank: Körperteile (body) strukturell gültig, jetzt 8 Fragen je Thema");
+  section("Datenbank: Körperteile (body) strukturell gültig, jedes Thema genau 20 Fragen");
   {
     const C = loadClient(); const { R } = C;
     const body = R("BIOLOGY_TOPICS.body");
     const topics = Object.keys(body);
     ok("Mindestens 10 Körperteile vorhanden", topics.length >= 10);
-    ok("Jedes Thema hat jetzt mindestens 18 Fragen im Pool (vorher 5, dann 8 - jetzt nochmal deutlich mehr Abwechslung)", topics.every(k => body[k].items.length >= 18));
+    ok("Jedes Thema hat genau 20 Fragen im Pool", topics.every(k => body[k].items.length === 20));
     ok("Alle Fragen strukturell gültig (4 Antworten, gültiger Index, Erklärung)", topics.every(k => body[k].items.every(validQuestion)));
     ok("Jedes Thema hat ein Icon und ein Label", topics.every(k => body[k].icon && body[k].label));
     const allQs = topics.flatMap(k => body[k].items.map(it => it.q));
     ok("Keine doppelten Fragen innerhalb der Körperteile", new Set(allQs).size === allQs.length);
   }
 
-  section("Datenbank: Sexualkunde strukturell gültig, jetzt 8 Fragen je Thema, weiterhin sachlich");
+  section("Datenbank: Sexualkunde strukturell gültig, jedes Thema genau 20 Fragen, weiterhin sachlich");
   {
     const C = loadClient(); const { R } = C;
     const sk = R("BIOLOGY_TOPICS.sexualkunde");
     const topics = Object.keys(sk);
     ok("Mindestens 5 Sexualkunde-Themen vorhanden", topics.length >= 5);
-    ok("Jedes Thema hat jetzt mindestens 18 Fragen im Pool", topics.every(k => sk[k].items.length >= 18));
+    ok("Jedes Thema hat genau 20 Fragen im Pool", topics.every(k => sk[k].items.length === 20));
     ok("Alle Fragen strukturell gültig", topics.every(k => sk[k].items.every(validQuestion)));
     ok("Themen 'Pubertät' und 'Einverständnis & Grenzen' sind vertreten", !!sk.puberty && !!sk.consent_boundaries);
     const allQs = topics.flatMap(k => sk[k].items.map(it => it.q));
@@ -65,54 +73,57 @@ function validQuestion(item) {
     ok("Gruppenüberschrift 'Sexualkunde' vorhanden", html.includes(">Sexualkunde<"));
     ok("Alle Körperteile als Chips in der Liste (z.B. Auge, Ohr, Herz)", ["Auge", "Ohr", "Herz"].every(t => html.includes(t)));
     ok("Chips nutzen dieselbe CSS-Klasse wie bei Einordnen/Mehr oder Weniger (chip-btn)", /class="chip-btn[^"]*" onclick="startBiologyTopic/.test(html));
-    // Sexualkunde ist bei einem frischen Profil noch gesperrt (siehe eigener
-    // Testabschnitt weiter unten) - hier nur pruefen, dass ueberhaupt eine
-    // "Sexualkunde"-Gruppe als Gliederungspunkt existiert, nicht deren Inhalt.
   }
 
-  section("Themenauswahl zieht 5 zufällige Fragen aus dem 8er-Pool, Antworten funktionieren");
+  section("Themenauswahl spielt ALLE 20 Fragen des Themas, Antworten funktionieren");
   {
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); startBiologyFlow(); startBiologyTopic("body","herz");');
-    ok("Session mit 5 Fragen gestartet (aus einem größeren Pool)", R('biologySession.items.length') === 5);
-    ok("Alle 5 gezogenen Fragen stammen tatsächlich aus dem Herz-Pool", R('biologySession.items.every(q => BIOLOGY_TOPICS.body.herz.items.some(x=>x.q===q.q))'));
-    ok("Erste Frage wird angezeigt", state.last.includes("Frage 1 von 5"));
+    ok("Session mit allen 20 Fragen gestartet", R('biologySession.items.length') === 20);
+    ok("Alle 20 gezogenen Fragen stammen tatsächlich aus dem Herz-Pool (und sind alle enthalten)", (() => {
+      const texts = R('biologySession.items.map(q=>q.q)');
+      const poolTexts = R('BIOLOGY_TOPICS.body.herz.items.map(q=>q.q)');
+      return new Set(texts).size === 20 && poolTexts.every(t => texts.includes(t));
+    })());
+    ok("Erste Frage wird angezeigt", state.last.includes("Frage 1 von 20"));
 
     R('handleBiologyAnswer(biologySession.items[0].c);');
     ok("Richtige Antwort wird gezählt", R('biologySession.correct') === 1);
     ok("Erklärung erscheint nach der Antwort", !R('document.getElementById("bioExpl").classList.contains("hidden")'));
 
     R('biologyNext();');
-    ok("Zweite Frage wird angezeigt", state.last.includes("Frage 2 von 5"));
+    ok("Zweite Frage wird angezeigt", state.last.includes("Frage 2 von 20"));
   }
 
-  section("Zwei aufeinanderfolgende Ziehungen desselben Themas können unterschiedliche Fragen liefern (echte Abwechslung)");
+  section("Zwei aufeinanderfolgende Ziehungen desselben Themas unterscheiden sich in der Reihenfolge (alle 20 enthalten, aber neu gemischt)");
   {
     const C = loadClient(); const { R } = C;
     R('var p=createProfile("T"); startBiologyFlow();');
-    const sets = [];
-    for (let i = 0; i < 6; i++) {
+    const orders = [];
+    for (let i = 0; i < 4; i++) {
       R('startBiologyTopic("body","herz");');
-      sets.push(JSON.stringify(R('biologySession.items.map(q=>q.q)').sort()));
+      const texts = R('biologySession.items.map(q=>q.q)');
+      ok(`Ziehung ${i + 1}: enthält weiterhin alle 20 Fragen`, new Set(texts).size === 20);
+      orders.push(JSON.stringify(texts));
     }
-    ok("Mindestens zwei der 6 Ziehungen unterscheiden sich voneinander (großer Pool, nur 5 gezogen - nicht immer dieselben 5)", new Set(sets).size > 1);
+    ok("Mindestens zwei der 4 Ziehungen unterscheiden sich in der Reihenfolge (neu gemischt)", new Set(orders).size > 1);
   }
 
-  section("Abschluss eines Themas: Ergebnis, Münzen nur beim ERSTEN Mal");
+  section("Abschluss eines Themas (alle 20 beantwortet): Ergebnis, Münzen nur beim ERSTEN Mal");
   {
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); startBiologyFlow(); startBiologyTopic("body","herz");');
-    for (let i = 0; i < 5; i++) { R('handleBiologyAnswer(biologySession.items[biologySession.qIndex].c);'); R('biologyNext();'); }
-    ok("Ergebnisbildschirm zeigt 5/5", state.last.includes("5/5 richtig beantwortet"));
+    answerAll(R, true);
+    ok("Ergebnisbildschirm zeigt 20/20", state.last.includes("20/20 richtig beantwortet"));
     ok("Münzen beim ersten Abschluss vergeben (+3)", R('p.coins') === 3);
     ok("Thema ist jetzt als erledigt markiert", R('p.biologyDone.herz') === true);
 
     R('startBiologyTopic("body","herz");');
-    for (let i = 0; i < 5; i++) { R('handleBiologyAnswer(biologySession.items[biologySession.qIndex].c);'); R('biologyNext();'); }
+    answerAll(R, true);
     ok("Beim zweiten Mal keine weiteren Münzen (immer noch 3, nicht 6)", R('p.coins') === 3);
   }
 
-  section("Sexualkunde-Themen laufen über denselben Mechanismus, eigener 'erledigt'-Schlüssel");
+  section("Sexualkunde-Themen laufen über denselben Mechanismus (alle 20), eigener 'erledigt'-Schlüssel");
   {
     const C = loadClient(); const { R } = C;
     // Freischaltung direkt simulieren (das Freischalten selbst ist bereits
@@ -122,7 +133,8 @@ function validQuestion(item) {
       p.biologyPerfect = {}; Object.keys(BIOLOGY_TOPICS.body).forEach(k => p.biologyPerfect[k] = true);
       startBiologyTopic("sexualkunde","puberty");
     `);
-    for (let i = 0; i < 5; i++) { R('handleBiologyAnswer(biologySession.items[biologySession.qIndex].c);'); R('biologyNext();'); }
+    ok("Auch Sexualkunde-Sitzung hat alle 20 Fragen", R('biologySession.items.length') === 20);
+    answerAll(R, true);
     ok("Sexualkunde-Thema als erledigt markiert (eigener Schlüssel, kollidiert nicht mit Körperteilen)", R('p.biologyDone.sk_puberty') === true);
     ok("Münzen auch hier vergeben", R('p.coins') === 3);
   }
@@ -149,7 +161,7 @@ function validQuestion(item) {
     R('biologySession = null; startBiologyTopic("sexualkunde","puberty");');
     ok("Direkter Aufruf wird abgelehnt (keine Session gestartet, da noch gesperrt)", R('biologySession') === null);
   }
-  section("Sexualkunde schaltet sich frei, sobald alle 12 Körper-Themen einmal fehlerfrei (5/5) gelöst wurden");
+  section("Sexualkunde schaltet sich frei, sobald alle 12 Körper-Themen einmal fehlerfrei (jetzt 20/20) gelöst wurden");
   {
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); startBiologyFlow();');
@@ -157,26 +169,26 @@ function validQuestion(item) {
     // Alle bis auf das letzte Thema fehlerfrei durchspielen
     for (const key of bodyKeys.slice(0, -1)) {
       R(`startBiologyTopic("body","${key}");`);
-      for (let i = 0; i < 5; i++) { R('handleBiologyAnswer(biologySession.items[biologySession.qIndex].c);'); R('biologyNext();'); }
+      answerAll(R, true);
     }
     ok("Noch nicht freigeschaltet (ein Thema fehlt noch)", R('biologySexualkundeUnlocked(p)') === false);
 
     // Letztes Thema ebenfalls fehlerfrei
     const lastKey = bodyKeys[bodyKeys.length - 1];
     R(`startBiologyTopic("body","${lastKey}");`);
-    for (let i = 0; i < 5; i++) { R('handleBiologyAnswer(biologySession.items[biologySession.qIndex].c);'); R('biologyNext();'); }
+    answerAll(R, true);
     ok("Jetzt freigeschaltet (alle 12 Themen fehlerfrei)", R('biologySexualkundeUnlocked(p)') === true);
     ok("Meldung 'Sexualkunde freigeschaltet' erscheint genau in diesem Moment", state.last.includes("Sexualkunde freigeschaltet"));
 
     R('renderBiologyTopics(p);');
     ok("Sexualkunde-Themen sind jetzt als Chips anklickbar", R('document.getElementById("app").innerHTML').includes("startBiologyTopic('sexualkunde'"));
   }
-  section("Ein NICHT fehlerfreier Durchlauf zählt nicht für die Freischaltung (muss wirklich 5/5 sein)");
+  section("Ein NICHT fehlerfreier Durchlauf zählt nicht für die Freischaltung (muss wirklich 20/20 sein)");
   {
     const C = loadClient(); const { R } = C;
     R('var p=createProfile("T"); startBiologyFlow(); startBiologyTopic("body","herz");');
-    R('handleBiologyAnswer(-1);'); R('biologyNext();'); // bewusst falsch (ungueltiger Index)
-    for (let i = 0; i < 4; i++) { R('handleBiologyAnswer(biologySession.items[biologySession.qIndex].c);'); R('biologyNext();'); }
+    R('handleBiologyAnswer(-1);'); R('biologyNext();'); // bewusst falsch (ungueltiger Index), 1 von 20
+    for (let i = 0; i < 19; i++) { R('handleBiologyAnswer(biologySession.items[biologySession.qIndex].c);'); R('biologyNext();'); }
     ok("Thema ist als 'besucht' markiert", R('p.biologyDone.herz') === true);
     ok("...aber NICHT als 'perfekt' (eine Antwort war falsch)", !R('p.biologyPerfect.herz'));
   }

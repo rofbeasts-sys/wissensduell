@@ -49,14 +49,17 @@ function validQuestion(item) {
     ok("KLASSE_QUESTIONS_EN existiert mit allen 10 Klassen", R("Object.keys(KLASSE_QUESTIONS_EN).length") === 10);
     for (let k = 1; k <= 10; k++) {
       const count = R(`KLASSE_QUESTIONS_EN[${k}].length`);
-      ok(`Klasse ${k} (Englisch): genau 50 Fragen, wie beim deutschen Original`, count === 50);
+      // Seit der Biologie-Übernahme (siehe braintest-biology-english.test.js)
+      // haben Klasse 3-10 deutlich mehr als 50 Fragen - Klasse 1/2 blieben
+      // unverändert bei 50 (keine Biologie-Themen dort zugeordnet).
+      ok(`Klasse ${k} (Englisch): mindestens 50 Fragen vorhanden`, count >= 50);
     }
     const allValid = R(`Object.values(KLASSE_QUESTIONS_EN).flat().every(q => Array.isArray(q.a) && q.a.length===4 && new Set(q.a).size===4 && q.c>=0 && q.c<=3 && q.q && q.e)`);
     ok("Alle englischen Fragen sind strukturell gültig (4 unterschiedliche Antworten, gültiger Index, Erklärung)", allValid);
     const noDupes = R(`(() => { const qs = Object.values(KLASSE_QUESTIONS_EN).flat().map(q=>q.q); return new Set(qs).size === qs.length; })()`);
     ok("Keine doppelten Fragen über alle 10 Klassen hinweg", noDupes);
     const total = R("Object.values(KLASSE_QUESTIONS_EN).flat().length");
-    ok(`Insgesamt 500 Fragen, genau wie beim deutschen Original (${total})`, total === 500);
+    ok(`Insgesamt 859 Fragen (500 ursprünglich + 359 durch die Biologie-Übernahme)`, total === 859);
   }
 
   section("Englische Datenbank enthält wie gewünscht London/UK- und Amerika/USA-Themen");
