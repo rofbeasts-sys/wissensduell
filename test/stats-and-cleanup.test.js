@@ -21,7 +21,7 @@ const { ok, section, finish, loadClient, fs, path } = require("./helpers");
     R('renderMainMenu();');
     ok("Kein 'Eigener Modus' mehr auf den Mini-Spiel-Kacheln", !state.last.includes("Eigener Modus"));
     R('currentLang = "en"; renderMainMenu();');
-    ok("Gesperrte Kachel (z.B. Stadt Land Fluss bei Englisch) zeigt weiterhin einen Sperrhinweis", state.last.includes("Nur auf Deutsch verfügbar"));
+    ok("Gesperrte Kachel (z.B. Stadt Land Fluss bei Englisch) zeigt weiterhin einen Sperrhinweis", state.last.includes("Only available in German"));
     R('currentLang = "de";');
   }
 
@@ -57,7 +57,7 @@ const { ok, section, finish, loadClient, fs, path } = require("./helpers");
     `);
     ok("'Chronologie' kommt nicht mehr vor", !state.last.includes("Chronologie"));
     ok("'Bild erraten' kommt nicht mehr vor", !state.last.includes("Bild erraten"));
-    ok("Die weiterhin spielbaren Modi sind da (Einordnen, Mehr oder Weniger, Speed Math, Order of Speed)", ["Einordnen", "Mehr oder Weniger", "Speed Math", "Order of Speed"].every(m => state.last.includes(m)));
+    ok("Die weiterhin spielbaren Modi sind da (Drag and Drop, Higher or Lower, Speed Math, Order of Speed)", ["Drag and Drop", "Higher or Lower", "Speed Math", "Order of Speed"].every(m => state.last.includes(m)));
     ok("Musik raten ist auf Wunsch komplett entfernt, erscheint auch hier nicht mehr", !state.last.includes("Musik raten"));
   }
 

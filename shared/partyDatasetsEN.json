@@ -1,0 +1,544 @@
+{
+ "ordering": {
+  "wm_titel": {
+   "label": "Drag and Drop: Football World Cup winners (year of first title)",
+   "unit": "Year of first title",
+   "names": {
+    "ita": "🇮🇹 Italy",
+    "deu": "🇩🇪 Germany",
+    "bra": "🇧🇷 Brazil",
+    "arg": "🇦🇷 Argentina",
+    "fra": "🇫🇷 France",
+    "esp": "🇪🇸 Spain"
+   }
+  },
+  "gebaeude": {
+   "label": "Drag and Drop: Buildings (height)",
+   "names": {
+    "makkah": "🏙️ Abraj Al-Bait Clock Tower (Mecca)",
+    "citic": "🏙️ CITIC Tower (Beijing)"
+   }
+  },
+  "filme": {
+   "label": "Drag and Drop: Films (worldwide box office)",
+   "unit": "Bn USD (approx.)",
+   "names": {
+    "starwars7": "🎬 Star Wars: The Force Awakens",
+    "lionking": "🎬 The Lion King (2019)"
+   }
+  },
+  "laender_flaeche": {
+   "label": "Drag and Drop: Countries (area)",
+   "names": {
+    "rus": "🇷🇺 Russia",
+    "can": "🇨🇦 Canada",
+    "bra": "🇧🇷 Brazil",
+    "aus": "🇦🇺 Australia",
+    "ind": "🇮🇳 India",
+    "arg": "🇦🇷 Argentina"
+   }
+  },
+  "staedte_einwohner": {
+   "label": "Drag and Drop: Cities (population)",
+   "unit": "Population (metro area, approx.)",
+   "names": {
+    "tokio": "🏯 Tokyo",
+    "mexicocity": "🌵 Mexico City",
+    "kairo": "🏛️ Cairo",
+    "peking": "🏮 Beijing"
+   }
+  },
+  "unternehmen_boersenwert": {
+   "label": "Drag and Drop: Companies (market value)",
+   "unit": "Bn USD (approx.)"
+  },
+  "formel1_siege": {
+   "label": "Drag and Drop: Formula 1 (number of wins)",
+   "unit": "Race wins (driver, approx.)"
+  },
+  "olympia_gold": {
+   "label": "Drag and Drop: Olympics (gold medals, Summer Games, country)",
+   "unit": "Gold medals (total, approx.)",
+   "names": {
+    "gbr": "🇬🇧 Great Britain",
+    "fra": "🇫🇷 France",
+    "ita": "🇮🇹 Italy",
+    "deu": "🇩🇪 Germany",
+    "aus": "🇦🇺 Australia"
+   }
+  },
+  "fluesse_laenge": {
+   "label": "Drag and Drop: Rivers (length)",
+   "names": {
+    "nil": "🌊 Nile",
+    "amazonas": "🌊 Amazon",
+    "jangtse": "🌊 Yangtze",
+    "jenissei": "🌊 Yenisei",
+    "huanghe": "🌊 Yellow River (Huang He)",
+    "kongo": "🌊 Congo"
+   }
+  },
+  "berge_hoehe": {
+   "label": "Drag and Drop: Mountains (height)",
+   "names": {
+    "kilimandscharo": "⛰️ Kilimanjaro"
+   }
+  },
+  "filme_animation": {
+   "label": "Drag and Drop: Films – Animation (worldwide box office)",
+   "unit": "Bn USD (approx.)",
+   "names": {
+    "lionking2019": "🎬 The Lion King (2019)",
+    "frozen2": "🎬 Frozen II",
+    "mariobrosfilm": "🎬 The Super Mario Bros. Movie",
+    "frozen1": "🎬 Frozen",
+    "findetdorie": "🎬 Finding Dory",
+    "zoomania": "🎬 Zootopia"
+   }
+  },
+  "haeuser_groesse": {
+   "label": "Drag and Drop: Houses (living space)",
+   "unit": "m² living space (approx.)",
+   "names": {
+    "istana_nurul_iman": "🏰 Istana Nurul Iman (Sultan's palace, Brunei)",
+    "versailles": "🏰 Palace of Versailles",
+    "cadzan": "🏠 Ca' d'Zan (Ringling estate)",
+    "xanadu2": "🏠 Xanadu 2.0 (Bill Gates' house)",
+    "spellingmanor": "🏠 The Manor (Spelling estate)",
+    "kensington": "🏠 Kensington Palace (private apartments)"
+   }
+  },
+  "dinos_groesse": {
+   "label": "Drag and Drop: Dinosaurs (length)",
+   "unit": "m length (approx.)"
+  },
+  "objekte_groesse": {
+   "label": "Drag and Drop: Size comparison",
+   "unit": "m (approx.)",
+   "names": {
+    "sandkorn": "🏖️ Grain of sand",
+    "floh": "🦟 Flea",
+    "ameise": "🐜 Ant",
+    "schneeflocke": "❄️ Snowflake",
+    "marienkaefer": "🐞 Ladybug",
+    "reiskorn": "🍚 Grain of rice",
+    "stecknadel": "📌 Pin",
+    "buerorklammer": "📎 Paper clip",
+    "kakerlake": "🪳 Cockroach",
+    "streichholz": "🔥 Match",
+    "euromuenze": "🪙 1-euro coin",
+    "wuerfel": "🎲 Die",
+    "biene": "🐝 Bee",
+    "kolibri": "🐦 Hummingbird",
+    "maus_tier": "🐭 Mouse",
+    "golfball": "⛳ Golf ball",
+    "batterie_aa": "🔋 AA battery",
+    "tennisball": "🎾 Tennis ball",
+    "ratte": "🐀 Rat",
+    "fussball_ball": "⚽ Football (ball)",
+    "buch": "📖 Book (paperback)",
+    "katze": "🐈 House cat",
+    "hase": "🐇 Hare",
+    "spongebob": "🧽 SpongeBob SquarePants",
+    "gitarre": "🎸 Acoustic guitar",
+    "regenschirm": "☂️ Umbrella (open)",
+    "hund_gross": "🐕 Large dog (e.g. Great Dane)",
+    "fahrrad": "🚲 Bicycle",
+    "mensch": "🧍 Human (average height)",
+    "kuehlschrank": "🧊 Refrigerator",
+    "tuer": "🚪 Standard door",
+    "basketballspieler": "🏀 Very tall basketball player",
+    "bigbird": "🐤 Big Bird (Sesame Street)",
+    "pferd": "🐴 Horse",
+    "kuh": "🐄 Cow",
+    "smart_auto": "🚗 Smart car (microcar)",
+    "mittelklassewagen": "🚙 Mid-size car",
+    "krokodil": "🐊 Saltwater crocodile",
+    "kleinbus": "🚐 Minibus",
+    "segelboot": "⛵ Small sailboat",
+    "elefant": "🐘 African elephant",
+    "limousine_lang": "🚘 Stretch limousine",
+    "doppeldeckerbus": "🚌 Double-decker bus",
+    "king_kong": "🦍 King Kong (2005 film)",
+    "blauwal": "🐋 Blue whale",
+    "tennisplatz": "🎾 Tennis court (length)",
+    "wohnhaus_3stock": "🏠 House (3 floors)",
+    "windrad_fluegel": "💨 Wind turbine (hub height)",
+    "fussballfeld": "⚽ Football pitch (length)",
+    "godzilla": "🦎 Godzilla (2014 film version)",
+    "freiheitsstatue": "🗽 Statue of Liberty (with pedestal)",
+    "kreuzfahrtschiff_klein": "🚢 Small cruise ship",
+    "eiffelturm": "🗼 Eiffel Tower",
+    "koelner_dom": "⛪ Cologne Cathedral",
+    "cheops_pyramide": "🔺 Great Pyramid of Giza",
+    "golden_gate_bridge": "🌉 Golden Gate Bridge (main span)",
+    "central_park": "🌳 Central Park (length)",
+    "flughafen_runway": "🛫 Runway (large airport)",
+    "zugspitze": "🏔️ Zugspitze (height)",
+    "mount_everest": "🏔️ Mount Everest (height)",
+    "marianengraben": "🌊 Mariana Trench (depth)",
+    "death_star": "⭐ Death Star (Star Wars)",
+    "manhattan_laenge": "🏙️ Manhattan (length)",
+    "bodensee_laenge": "🌊 Lake Constance (length)",
+    "english_channel": "🌊 English Channel (narrowest width)",
+    "mauna_kea": "🌋 Mauna Kea (base to summit)",
+    "hoover_damm": "🌊 Hoover Dam (height)",
+    "great_wall_segment": "🧱 Great Wall of China (visible segment)",
+    "bienenstock": "🐝 Beehive",
+    "spinnennetz": "🕸️ Spider web (large)",
+    "surfbrett": "🏄 Surfboard",
+    "klavier_fluegel": "🎹 Concert grand piano",
+    "schulbus": "🚌 American school bus",
+    "segelschiff": "⛵ Tall ship (four-masted)",
+    "gletscher_zunge": "🧊 Glacier tongue (small Alpine glacier)",
+    "regenbogen_basis": "🌈 Rainbow (base distance, approx.)",
+    "staudamm_drei_schluchten": "🌊 Three Gorges Dam (length)",
+    "wal_hai": "🐳 Whale shark",
+    "anakonda": "🐍 Green anaconda",
+    "straussenvogel": "🦤 Ostrich",
+    "panzer": "🪖 Main battle tank (e.g. Leopard 2)",
+    "u_boot": "🚤 Submarine (attack submarine)",
+    "achterbahn": "🎢 Large roller coaster (height)",
+    "staumauer_talsperre": "🌊 Large dam wall (height)",
+    "saturn_v_rakete": "🚀 Saturn V rocket",
+    "iss": "🛰️ International Space Station (ISS, length)",
+    "wolkenkratzer_mittel": "🏢 Average skyscraper",
+    "moby_dick_wal": "🐋 Sperm whale"
+   }
+  },
+  "planeten_abstand": {
+   "label": "Planets by distance from the Sun",
+   "unit": "Million km from the Sun",
+   "names": {
+    "merkur": "☿️ Mercury",
+    "erde": "🌍 Earth",
+    "neptun": "🔵 Neptune"
+   }
+  },
+  "fussball_tore_laenderspiele": {
+   "label": "Drag and Drop: Football – international goals (record scorers)",
+   "unit": "Goals (approx.)"
+  },
+  "fussball_cl_titel": {
+   "label": "Drag and Drop: Football – Champions League titles (club)",
+   "unit": "Titles",
+   "names": {
+    "ac_milan": "⚽ AC Milan",
+    "bayern": "⚽ Bayern Munich",
+    "liverpool": "⚽ Liverpool FC",
+    "inter": "⚽ Inter Milan"
+   }
+  },
+  "fussball_vereinswert": {
+   "label": "Drag and Drop: Football – club value (estimated)",
+   "unit": "Million $ (approx.)",
+   "names": {
+    "liverpool2": "⚽ Liverpool FC",
+    "bayern2": "⚽ Bayern Munich",
+    "arsenal": "⚽ Arsenal FC"
+   }
+  },
+  "fussball_wm_siege_land": {
+   "label": "Drag and Drop: Football – World Cup titles by country",
+   "unit": "Titles",
+   "names": {
+    "brasilien_wm": "🇧🇷 Brazil",
+    "deutschland_wm": "🇩🇪 Germany",
+    "italien_wm": "🇮🇹 Italy",
+    "argentinien_wm": "🇦🇷 Argentina",
+    "frankreich_wm": "🇫🇷 France",
+    "spanien_wm": "🇪🇸 Spain"
+   }
+  },
+  "stadien_kapazitaet": {
+   "label": "Drag and Drop: Football stadiums (capacity)",
+   "unit": "Seats",
+   "names": {
+    "rungrado": "🏟️ Rungrado 1st of May Stadium"
+   }
+  },
+  "lebensmittel_kalorien": {
+   "label": "Drag and Drop: Food (calories per 100g)",
+   "names": {
+    "gurke": "🥒 Cucumber",
+    "apfel": "🍎 Apple",
+    "banane": "🍌 Banana",
+    "kartoffel": "🥔 Potato (boiled)",
+    "vollkornbrot": "🍞 Whole-grain bread",
+    "schokolade": "🍫 Milk chocolate",
+    "erdnussbutter": "🥜 Peanut butter",
+    "olivenoel": "🫒 Olive oil"
+   }
+  },
+  "fastfood_kalorien": {
+   "label": "Drag and Drop: Fast food (calories per serving)",
+   "names": {
+    "pommes_klein": "🍟 French fries (small)",
+    "doener": "🥙 Doner kebab",
+    "pizza_margherita": "🍕 Margherita pizza (whole)",
+    "whopper_menu": "🍔 Whopper meal",
+    "xxl_pizza": "🍕 XXL pizza (whole)"
+   }
+  },
+  "tiere_zungenlaenge": {
+   "label": "Drag and Drop: Animals (tongue length)",
+   "names": {
+    "katze_zunge": "🐱 Cat",
+    "mensch_zunge": "👅 Human",
+    "specht_zunge": "🐦 Green woodpecker",
+    "hund_zunge": "🐶 Dog (medium-sized)",
+    "chamaeleon_zunge": "🦎 Chameleon",
+    "ameisenbaer_zunge": "🐾 Anteater",
+    "blauwal_zunge": "🐋 Blue whale"
+   }
+  },
+  "tiere_herzschlag": {
+   "label": "Drag and Drop: Animals (heartbeats per minute)",
+   "unit": "Beats/min",
+   "names": {
+    "blauwal_herz": "🐋 Blue whale",
+    "elefant_herz": "🐘 Elephant",
+    "mensch_herz": "❤️ Human (resting pulse)",
+    "hund_herz": "🐶 Dog",
+    "katze_herz": "🐱 Cat",
+    "maus_herz": "🐭 Mouse",
+    "kolibri_herz": "🐦 Hummingbird",
+    "spitzmaus_herz": "🐾 Etruscan shrew"
+   }
+  },
+  "sprachen_sprecherzahl": {
+   "label": "Drag and Drop: Languages (native speakers worldwide)",
+   "unit": "Million speakers (approx.)",
+   "names": {
+    "mandarin": "🗣️ Mandarin Chinese",
+    "spanisch": "🗣️ Spanish",
+    "englisch": "🗣️ English",
+    "portugiesisch": "🗣️ Portuguese",
+    "bengali": "🗣️ Bengali",
+    "russisch": "🗣️ Russian",
+    "deutsch_sprache": "🗣️ German"
+   }
+  }
+ },
+ "higherLower": {
+  "einwohner": {
+   "label": "Higher or Lower: Population",
+   "unit": "Population (approx.)",
+   "names": {
+    "deu": "🇩🇪 Germany",
+    "fra": "🇫🇷 France",
+    "ita": "🇮🇹 Italy",
+    "esp": "🇪🇸 Spain",
+    "ind": "🇮🇳 India",
+    "bra": "🇧🇷 Brazil",
+    "gbr": "🇬🇧 United Kingdom"
+   }
+  },
+  "musik": {
+   "label": "Higher or Lower: Music (streams)",
+   "unit": "Million streams (approx.)"
+  },
+  "serien": {
+   "label": "Higher or Lower: TV series (number of episodes)",
+   "unit": "Episodes",
+   "names": {
+    "simpsons": "📺 The Simpsons"
+   }
+  },
+  "gehalt": {
+   "label": "Higher or Lower: Jobs (average salary)",
+   "unit": "€ gross/year (approx.)",
+   "names": {
+    "arzt": "👨‍⚕️ Medical specialist",
+    "pilot": "✈️ Airline pilot",
+    "anwalt": "⚖️ Lawyer",
+    "lehrer": "👩‍🏫 Teacher",
+    "ingenieur": "⚙️ Engineer",
+    "krankenpfleger": "🩺 Nurse",
+    "polizist": "👮 Police officer",
+    "bäcker": "🥐 Baker"
+   }
+  },
+  "kaderwert": {
+   "label": "Higher or Lower: Football (squad value)",
+   "unit": "Million € (approx.)",
+   "names": {
+    "arsenal": "⚽ Arsenal FC",
+    "liverpool": "⚽ Liverpool FC",
+    "fcbayern": "⚽ Bayern Munich"
+   }
+  },
+  "immobilien_preis": {
+   "label": "Higher or Lower: Real estate (price per square metre)",
+   "unit": "€/m² (city average, approx.)",
+   "names": {
+    "hongkong": "🏠 Hong Kong",
+    "zuerich": "🏠 Zurich",
+    "singapur": "🏠 Singapore"
+   }
+  },
+  "apps_downloads": {
+   "label": "Higher or Lower: Apps (downloads)",
+   "unit": "Bn downloads (approx.)"
+  },
+  "videospiele_verkaeufe": {
+   "label": "Higher or Lower: Video games (sales)",
+   "unit": "Million units sold (approx.)",
+   "names": {
+    "tetris": "🎮 Tetris (all versions)",
+    "pokemonrb": "🎮 Pokémon Red/Blue"
+   }
+  },
+  "buecher_verkaeufe": {
+   "label": "Higher or Lower: Books (copies sold)",
+   "unit": "Million copies sold (approx.)",
+   "names": {
+    "alchemist": "📖 The Alchemist (Paulo Coelho)",
+    "hobbit": "📖 The Hobbit",
+    "lotr": "📖 The Lord of the Rings",
+    "harrypotter1": "📖 Harry Potter and the Philosopher's Stone",
+    "littleprince": "📖 The Little Prince",
+    "donquijote": "📖 Don Quixote",
+    "davincicode": "📖 The Da Vinci Code (Dan Brown)",
+    "agathachristie": "📖 And Then There Were None (Agatha Christie)"
+   }
+  },
+  "prominente_follower": {
+   "label": "Higher or Lower: Celebrities (social media followers)",
+   "unit": "Million followers (one platform, approx.)"
+  },
+  "basketball_gehalt": {
+   "label": "Higher or Lower: Basketball (annual salary)",
+   "unit": "Million USD/year (approx.)"
+  },
+  "autos_speed": {
+   "label": "Higher or Lower: Cars (top speed)",
+   "names": {
+    "golf8": "🚗 VW Golf 8 (base model)"
+   }
+  },
+  "kaderwert_laliga": {
+   "label": "Higher or Lower: Football – La Liga (squad value)",
+   "unit": "Million € (approx.)",
+   "names": {
+    "villarreal": "⚽ Villarreal CF",
+    "sevilla": "⚽ Sevilla FC"
+   }
+  },
+  "kaderwert_premierleague": {
+   "label": "Higher or Lower: Football – Premier League (squad value)",
+   "unit": "Million € (approx.)",
+   "names": {
+    "arsenal2": "⚽ Arsenal FC",
+    "liverpool2": "⚽ Liverpool FC",
+    "chelsea": "⚽ Chelsea FC"
+   }
+  },
+  "musik_rock": {
+   "label": "Higher or Lower: Music – Rock (streams)",
+   "unit": "Million streams (approx.)"
+  },
+  "musik_hiphop": {
+   "label": "Higher or Lower: Music – Hip-hop (streams)",
+   "unit": "Million streams (approx.)"
+  },
+  "musik_klassik": {
+   "label": "Higher or Lower: Music – Classical (streams)",
+   "unit": "Million streams (approx.)",
+   "names": {
+    "moonlightsonata": "🎻 Beethoven – Moonlight Sonata",
+    "fourseasons": "🎻 Vivaldi – Spring (The Four Seasons)",
+    "canonind": "🎻 Pachelbel – Canon in D",
+    "nocturne": "🎻 Chopin – Nocturne Op. 9 No. 2"
+   }
+  },
+  "serien_anime": {
+   "label": "Higher or Lower: TV series – Anime (number of episodes)",
+   "unit": "Episodes (approx.)",
+   "names": {
+    "conan": "📺 Detective Conan",
+    "naruto": "📺 Naruto (incl. Shippuden)"
+   }
+  },
+  "manga_verkaeufe": {
+   "label": "Higher or Lower: Manga (volumes sold)",
+   "unit": "Million volumes sold (approx.)",
+   "names": {
+    "conanmanga": "📖 Detective Conan"
+   }
+  },
+  "planeten_durchmesser": {
+   "label": "Planets by diameter",
+   "unit": "km diameter",
+   "names": {
+    "merkur": "☿️ Mercury",
+    "erde": "🌍 Earth",
+    "neptun": "🔵 Neptune"
+   }
+  },
+  "fussball_jahresgehalt": {
+   "label": "Higher or Lower: Football (annual salary of top earners)",
+   "unit": "Million € (approx.)"
+  },
+  "streamer_einnahmen": {
+   "label": "Higher or Lower: Streaming (estimated annual earnings)",
+   "unit": "Million $ (approx.)"
+  },
+  "songs_streams_spotify": {
+   "label": "Higher or Lower: Songs (total Spotify streams)",
+   "unit": "Bn streams (approx.)"
+  },
+  "filme_produktionsbudget": {
+   "label": "Higher or Lower: Films (production budget)",
+   "unit": "Million $ (approx.)",
+   "names": {
+    "pirates4_budget": "🎬 Pirates of the Caribbean: On Stranger Tides"
+   }
+  },
+  "youtube_abonnenten": {
+   "label": "Higher or Lower: YouTube channels (subscribers)",
+   "unit": "Million subscribers (approx.)"
+  },
+  "unternehmen_jahresumsatz": {
+   "label": "Higher or Lower: Companies (annual revenue)",
+   "unit": "Bn $ (approx.)"
+  },
+  "lebensmittel_kalorien_hl": {
+   "label": "Higher or Lower: Food (calories per 100g)",
+   "names": {
+    "salat_kal": "🥬 Lettuce",
+    "tomate_kal": "🍅 Tomato",
+    "reis_kal": "🍚 Rice (cooked)",
+    "huehnerbrust_kal": "🍗 Chicken breast",
+    "nudeln_kal": "🍝 Pasta (cooked)",
+    "lachs_kal": "🐟 Salmon",
+    "kaese_kal": "🧀 Gouda cheese",
+    "walnuesse_kal": "🌰 Walnuts"
+   }
+  },
+  "tiere_lebenserwartung": {
+   "label": "Higher or Lower: Animals (life expectancy in the wild)",
+   "unit": "Years (approx.)",
+   "names": {
+    "maus_leben": "🐭 House mouse",
+    "katze_leben": "🐱 House cat",
+    "hund_leben": "🐶 Dog",
+    "elefant_leben": "🐘 African elephant",
+    "papagei_leben": "🦜 Macaw",
+    "schildkroete_leben": "🐢 Galápagos giant tortoise",
+    "blauwal_leben": "🐋 Blue whale",
+    "groenlandhai_leben": "🦈 Greenland shark"
+   }
+  }
+ },
+ "_groups": {
+  "Alltag & Kurioses": "Everyday & Curiosities",
+  "Geld & Wirtschaft": "Money & Economy",
+  "Geografie": "Geography",
+  "Kultur & Unterhaltung": "Culture & Entertainment",
+  "Kurioses & Vergleiche": "Curiosities & Comparisons",
+  "Natur & Wissenschaft": "Nature & Science",
+  "Sport": "Sports",
+  "Technik & Medien": "Tech & Media"
+ }
+}

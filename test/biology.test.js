@@ -115,12 +115,15 @@ function answerAll(R, correct) {
     R('var p=createProfile("T"); startBiologyFlow(); startBiologyTopic("body","herz");');
     answerAll(R, true);
     ok("Ergebnisbildschirm zeigt 20/20", state.last.includes("20/20 richtig beantwortet"));
-    ok("Münzen beim ersten Abschluss vergeben (+3)", R('p.coins') === 3);
+    // +3 fuers erstmalige Abschliessen PLUS +5 fuer den (seit der
+    // Biologie-Erfolge-Erweiterung) gleichzeitig neu freigeschalteten
+    // Erfolg "Erstes perfektes Thema" (20/20 = fehlerfrei) = 8 insgesamt.
+    ok("Münzen beim ersten Abschluss vergeben (+3 Thema, +5 gleichzeitig freigeschalteter Erfolg)", R('p.coins') === 8);
     ok("Thema ist jetzt als erledigt markiert", R('p.biologyDone.herz') === true);
 
     R('startBiologyTopic("body","herz");');
     answerAll(R, true);
-    ok("Beim zweiten Mal keine weiteren Münzen (immer noch 3, nicht 6)", R('p.coins') === 3);
+    ok("Beim zweiten Mal keine weiteren Münzen (weder Thema-Bonus noch Erfolg sind noch 'neu')", R('p.coins') === 8);
   }
 
   section("Sexualkunde-Themen laufen über denselben Mechanismus (alle 20), eigener 'erledigt'-Schlüssel");
@@ -136,7 +139,15 @@ function answerAll(R, correct) {
     ok("Auch Sexualkunde-Sitzung hat alle 20 Fragen", R('biologySession.items.length') === 20);
     answerAll(R, true);
     ok("Sexualkunde-Thema als erledigt markiert (eigener Schlüssel, kollidiert nicht mit Körperteilen)", R('p.biologyDone.sk_puberty') === true);
-    ok("Münzen auch hier vergeben", R('p.coins') === 3);
+    // Anders als im Test oben wurde p.biologyPerfect hier VOR dem Spielen
+    // schon mit allen 12 Koerper-Themen vorbelegt (um die Sexualkunde-
+    // Freischaltung zu simulieren). Da dies das ERSTE Erfolgs-Ereignis
+    // ueberhaupt fuer dieses Profil ist, meldet es den vollen aktuellen
+    // Stand (13 Themen, 13 davon perfekt) auf einmal - dadurch schalten
+    // mehrere Themen-Schwellen gleichzeitig frei statt nach und nach:
+    // bio_perfect_1 + bio_perfect_5 + bio_perfect_12 + bio_sexualkunde_unlocked
+    // (je +5 Muenzen) plus die regulaeren +3 fuers Thema = 23 insgesamt.
+    ok("Münzen auch hier vergeben (+3 Thema + 4x5 gleichzeitig freigeschaltete Erfolge = 23)", R('p.coins') === 23);
   }
 
   section("Abbrechen während einer Runde funktioniert, kein hängender Zustand");

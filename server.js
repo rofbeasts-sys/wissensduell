@@ -88,7 +88,10 @@ setInterval(() => { // aufraeumen, damit die Map nicht ewig waechst
   for (const [k, e] of rlStore) { if (now - e.windowStart > 3600000 && e.lockedUntil < now) rlStore.delete(k); }
   if (rlStore.size > 200000) rlStore.clear();
 }, 5 * 60 * 1000).unref();
-function waitText(sec) { return sec >= 90 ? Math.ceil(sec / 60) + " Minuten" : sec + " Sekunden"; }
+function waitText(sec, lang) {
+  if (lang === "en") return sec >= 90 ? Math.ceil(sec / 60) + " minutes" : sec + " seconds";
+  return sec >= 90 ? Math.ceil(sec / 60) + " Minuten" : sec + " Sekunden";
+}
 
 // Raumcode: nur String, nur Buchstaben/Ziffern, max 8 Zeichen.
 function cleanCode(v) {
@@ -121,6 +124,28 @@ function shuffleAnswerOrder(q) {
 // für die Quiz-Blöcke im Arena-Match nach Liga/Klassenbereich gefiltert.
 const KLASSE_QUESTIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/klasseQuestions.json"), "utf8"));
 const DATASETS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/partyDatasets.json"), "utf8"));
+// Englische Fassung der Drag-and-Drop-/Higher-or-Lower-Kategorien (Label,
+// Einheit, Gruppe, Elementnamen) - wird je nach Raumsprache darueber gelegt.
+// Jede Sprache ausser Deutsch bekommt Englisch (wie L() im Client).
+const DATASETS_EN = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/partyDatasetsEN.json"), "utf8"));
+function dsFor(group, key, language) {
+  const ds = DATASETS[group] && DATASETS[group][key];
+  if (!ds || language === "de") return ds;
+  const ov = DATASETS_EN[group] && DATASETS_EN[group][key];
+  if (!ov) return ds;
+  const names = ov.names || {};
+  return Object.assign({}, ds, {
+    label: ov.label || ds.label,
+    unit: ov.unit || ds.unit,
+    items: ds.items.map(it => names[it.id] ? Object.assign({}, it, { name: names[it.id] }) : it)
+  });
+}
+function localizeDef(def, language) {
+  if (!def || language === "de" || !def.datasetKey) return def;
+  const ov = DATASETS_EN[def.datasetGroup] && DATASETS_EN[def.datasetGroup][def.datasetKey];
+  if (!ov) return def;
+  return Object.assign({}, def, { label: ov.label || def.label, topicGroup: (DATASETS_EN._groups || {})[def.topicGroup] || def.topicGroup });
+}
 
 // Konfigurierbarer Punktabzug für Punktesystem 3 ("Punkteabzug").
 // Hier zentral anpassbar, ohne die restliche Logik zu berühren.
@@ -145,6 +170,11 @@ const BOT_TIERS = {
   wissenschaftler: { label: "Wissenschaftler",  prob: 0.95, quizMinPct: 0.1,  quizMaxPct: 0.45, rankDelayMin: 600,  rankDelayMax: 1300 }
 };
 const BOT_TIER_ORDER = ["dumm", "einsteiger", "schlau", "doktor", "wissenschaftler"];
+const BOT_TIER_LABELS_EN = { dumm: "Dumb", einsteiger: "Beginner", schlau: "Smart", doktor: "Doctor", wissenschaftler: "Scientist" };
+function botTierLabel(key, language) {
+  if (language !== "de" && BOT_TIER_LABELS_EN[key]) return BOT_TIER_LABELS_EN[key];
+  return (BOT_TIERS[key] && BOT_TIERS[key].label) || key;
+}
 const BOT_NAME_POOL = ["Alex", "Max", "Lisa", "Tom", "Anna", "Chris", "Ben", "Leon", "Sophie", "Daniel"];
 const DEFAULT_BOT_TIER = "schlau";
 const MAX_PARTICIPANTS = 6;
@@ -257,7 +287,7 @@ function buildRoundDefPool() {
     // Sprache nennen - nur die wirklich Deutschland-spezifischen (siehe
     // germanOnly-Markierung direkt am jeweiligen Datensatz in
     // shared/partyDatasets.json) bleiben aussen vor.
-    pool.push({ id: "blitz_" + key, kind: "nennsBlitz", label: "Nenn's Blitz: " + ds.label, datasetGroup: "nennsBlitz", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
+    pool.push({ id: "blitz_" + key, kind: "nennsBlitz", label: "Quick-Fire: " + ds.label, datasetGroup: "nennsBlitz", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
   });
   return pool;
 }
@@ -302,7 +332,7 @@ function findRoundDef(id) {
 }
 function roundDefPoolForLanguage(language, gameMode) {
   const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : (DEDICATED_POOLS[gameMode] || ROUND_DEF_POOL);
-  return language === "de" ? base : base.filter(r => !r.germanOnly);
+  return language === "de" ? base : base.filter(r => !r.germanOnly).map(r => localizeDef(r, language));
 }
 
 /* ------------------------------------------------------------------------ */
@@ -720,7 +750,7 @@ function roomStateForClient(room) {
     hostId: room.hostId,
     players: Array.from(room.players.values()).map(p => ({
       id: p.id, name: p.name, teamId: p.teamId, connected: p.connected,
-      isBot: !!p.isBot, botTier: p.botTier, botTierLabel: p.isBot ? (BOT_TIERS[p.botTier]?.label || p.botTier) : null
+      isBot: !!p.isBot, botTier: p.botTier, botTierLabel: p.isBot ? botTierLabel(p.botTier, room.language) : null
     })),
     teamMode: room.teamMode,
     teams: Array.from(room.teams.values()).map(t => ({ id: t.id, name: t.name, memberIds: t.memberIds, score: t.score })),
@@ -731,7 +761,7 @@ function roomStateForClient(room) {
     roundDefs: room.roundDefs.map(r => r ? ({ id: r.id, kind: r.kind, label: r.label, categories: r.categories }) : null),
     availableRoundDefs: roundDefPoolForLanguage(room.language, room.gameMode).map(r => ({ id: r.id, kind: r.kind, label: r.label, topicGroup: r.topicGroup || null })),
     language: room.language,
-    botTierOptions: BOT_TIER_ORDER.map(key => ({ id: key, label: BOT_TIERS[key].label })),
+    botTierOptions: BOT_TIER_ORDER.map(key => ({ id: key, label: botTierLabel(key, room.language) })),
     maxParticipants: MAX_PARTICIPANTS,
     phase: room.phase,
     currentRoundIndex: room.currentRoundIndex,
@@ -976,7 +1006,7 @@ function advanceQuizQuestion(room) {
 /* ------------------------------------------------------------------------ */
 function startRankingRound(room, def) {
   const group = def.datasetGroup;
-  const dsRaw = DATASETS[group][def.datasetKey];
+  const dsRaw = dsFor(group, def.datasetKey, room.language);
   const revealOnTurn = group === "higherLower";
   // Chronologie: alle Elemente liegen von Anfang an offen sichtbar im Pool,
   // das aktive Team wählt selbst, welches Element es als Nächstes versucht.
@@ -1335,7 +1365,7 @@ const ORDERING_HURRY_MS = 30000;       // Restzeit für alle anderen, sobald jem
 const ORDERING_POINTS_PER_CORRECT = 10;
 
 function startOrderingSimultaneousRound(room, def) {
-  const dsRaw = DATASETS.ordering[def.datasetKey];
+  const dsRaw = dsFor("ordering", def.datasetKey, room.language);
   const MAX_ROUND_ITEMS = 10;
   const allItems = dsRaw.items.map(it => ({ ...it }));
   const selected = allItems.length <= MAX_ROUND_ITEMS
@@ -2193,7 +2223,7 @@ function slfBuildRoundDef(categories, mode) {
     return {
       id: "slf_party",
       kind: "stadtLandFluss",
-      label: "Stadt Land Fluss: Party-Mix (10 zufällige Kategorien)",
+      label: "Scattergories: Party-Mix (10 zufällige Kategorien)",
       germanOnly: true,
       slfPartyMix: true,
       categories: null
@@ -2203,7 +2233,7 @@ function slfBuildRoundDef(categories, mode) {
   return {
     id: mode === "custom" ? "slf_custom" : "slf_original",
     kind: "stadtLandFluss",
-    label: "Stadt Land Fluss: " + (mode === "custom" ? "Eigene Kategorien (" + cats.join(", ") + ")" : "Original"),
+    label: "Scattergories: " + (mode === "custom" ? "Eigene Kategorien (" + cats.join(", ") + ")" : "Original"),
     germanOnly: true,
     categories: cats
   };
@@ -2705,6 +2735,50 @@ async function ensureUsersLoaded() {
   if (usersLoaded) return true;
   return await loadUsers();
 }
+// Server-Fehlermeldungen zweisprachig (de/en) - der Client schickt bei
+// jedem Aufruf sein aktuelles "lang" mit (siehe apiCall() im Client bzw.
+// das "language"-Feld bei WS-Nachrichten), Server faellt bei fehlendem/
+// unbekanntem Wert auf Deutsch zurueck (bisheriges Verhalten unveraendert).
+const ERR_TEXT = {
+  invalidInput: { de: "Ungültige Eingabe.", en: "Invalid input." },
+  usernameLength: { de: "Benutzername muss 3-20 Zeichen haben (Buchstaben, Zahlen, _).", en: "Username must be 3-20 characters (letters, numbers, _)." },
+  passwordLength: { de: "Passwort muss mindestens 6 Zeichen haben.", en: "Password must be at least 6 characters." },
+  usernameTaken: { de: "Dieser Benutzername ist bereits vergeben.", en: "This username is already taken." },
+  tooManyAccounts: { de: "Von diesem Anschluss wurden zu viele Konten angelegt. Bitte in ", en: "Too many accounts have been created from this connection. Please try again in " },
+  loginFailed: { de: "Benutzername oder Passwort ist falsch.", en: "Username or password is incorrect." },
+  tooManyAttempts: { de: "Zu viele Fehlversuche. Bitte in ", en: "Too many failed attempts. Please try again in " },
+  notLoggedIn: { de: "Nicht angemeldet.", en: "Not logged in." },
+  userNotFound: { de: "Diesen Benutzernamen gibt es nicht.", en: "This username doesn't exist." },
+  cantAddSelf: { de: "Du kannst dich nicht selbst hinzufügen.", en: "You can't add yourself." },
+  alreadyFriends: { de: "Ihr seid bereits befreundet.", en: "You're already friends." },
+  requestAlreadySent: { de: "Anfrage wurde bereits gesendet.", en: "Request has already been sent." },
+  noOpenRequest: { de: "Keine offene Anfrage von dieser Person.", en: "No open request from this person." },
+  notFriendsAnymore: { de: "Ihr seid nicht (mehr) befreundet.", en: "You're not (or no longer) friends." },
+  emptyMessage: { de: "Leere Nachricht.", en: "Empty message." },
+  notEnoughCoins: { de: "Nicht genug Münzen.", en: "Not enough coins." },
+  heartsAlreadyFull: { de: "Bereits volle Herzen.", en: "Hearts are already full." },
+  shopNotConfigured: { de: "Der Münzen-Kauf ist noch nicht eingerichtet.", en: "Coin purchases aren't set up yet." },
+  unknownPackage: { de: "Unbekanntes Paket.", en: "Unknown package." },
+  stripeFailed: { de: "Verbindung zu Stripe fehlgeschlagen.", en: "Connection to Stripe failed." },
+  incompleteMetadata: { de: "Unvollständige Metadaten.", en: "Incomplete metadata." },
+  userNotFoundShort: { de: "Nutzer nicht gefunden.", en: "User not found." },
+  noHeartsLeft: { de: "Keine Herzen mehr übrig. Morgen gibt's wieder welche!", en: "No hearts left. More tomorrow!" },
+  noActiveMatch: { de: "Kein laufendes Match (oder es wurde schon ausgewertet).", en: "No active match (or it has already been scored)." },
+  matchTooFast: { de: "Das Match wurde unrealistisch schnell beendet.", en: "The match finished unrealistically fast." },
+  tooManyRequests: { de: "Zu viele Anfragen. Bitte kurz warten.", en: "Too many requests. Please wait a moment." },
+  unknownEndpoint: { de: "Unbekannter Endpunkt.", en: "Unknown endpoint." },
+  internalErrorRetry: { de: "Interner Fehler. Bitte nochmal versuchen.", en: "Internal error. Please try again." },
+  internalError: { de: "Interner Fehler.", en: "Internal error." },
+  serviceDown: { de: "Der Kontodienst ist gerade nicht erreichbar. Bitte gleich nochmal versuchen.", en: "The account service isn't reachable right now. Please try again shortly." },
+  serverBusy: { de: "Der Server ist gerade ausgelastet. Bitte gleich nochmal versuchen.", en: "The server is currently busy. Please try again shortly." },
+  connectionFailed: { de: "Verbindung zum Server fehlgeschlagen.", en: "Connection to the server failed." },
+  stripeDeclined: { de: "Stripe hat den Kauf abgelehnt.", en: "Stripe declined the purchase." }
+};
+function et(key, lang) { const e = ERR_TEXT[key]; if (!e) return key; return (lang === "en" ? e.en : e.de) || e.de; }
+function errObj(key, lang, extra) { return { ok: false, error: et(key, lang) + (extra || "") }; }
+
+function serviceDownMsg(lang) { return { ok: false, unavailable: true, error: et("serviceDown", lang) }; }
+function busyMsg(lang) { return { ok: false, error: et("serverBusy", lang) }; }
 const SERVICE_DOWN = { ok: false, unavailable: true, error: "Der Kontodienst ist gerade nicht erreichbar. Bitte gleich nochmal versuchen." };
 
 // Gibt true zurueck, wenn wirklich gespeichert wurde.
@@ -2797,30 +2871,30 @@ function publicProfile(user) {
   return { username: user.username, avatar: user.avatar || null, ...user.stats };
 }
 
-async function registerUser(username, password, ip) {
+async function registerUser(username, password, ip, lang) {
   if (typeof username !== "string" || typeof password !== "string") {
-    return { ok: false, error: "Ungültige Eingabe." };
+    return errObj("invalidInput", lang);
   }
-  if (!(await ensureUsersLoaded())) return SERVICE_DOWN;
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   username = username.trim();
   if (username.length < 3 || username.length > 20 || !/^[a-zA-Z0-9_äöüÄÖÜß]+$/.test(username)) {
-    return { ok: false, error: "Benutzername muss 3-20 Zeichen haben (Buchstaben, Zahlen, _)." };
+    return errObj("usernameLength", lang);
   }
   if (!password || password.length < 6 || password.length > 200) {
-    return { ok: false, error: "Passwort muss mindestens 6 Zeichen haben." };
+    return errObj("passwordLength", lang);
   }
   if (findUserByName(username)) {
-    return { ok: false, error: "Dieser Benutzername ist bereits vergeben." };
+    return errObj("usernameTaken", lang);
   }
   const regWait = rlWait("r|" + ip);
-  if (regWait) return { ok: false, error: "Von diesem Anschluss wurden zu viele Konten angelegt. Bitte in " + waitText(regWait) + " erneut versuchen.", retryAfterSec: regWait };
-  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return BUSY;
+  if (regWait) return { ...errObj("tooManyAccounts", lang, waitText(regWait, lang) + (lang === "en" ? "." : " erneut versuchen.")), retryAfterSec: regWait };
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
   rlHit("r|" + ip, REGISTER_MAX_PER_IP, 3600000, 3600000);
   const salt = crypto.randomBytes(16).toString("hex");
   hashInFlight++;
   let passwordHash;
   try { passwordHash = await hashPassword(password, salt); } finally { hashInFlight--; }
-  if (findUserByName(username)) return { ok: false, error: "Dieser Benutzername ist bereits vergeben." }; // waehrend des Hashens vergeben
+  if (findUserByName(username)) return errObj("usernameTaken", lang); // waehrend des Hashens vergeben
   const token = crypto.randomBytes(24).toString("hex");
   const user = {
     username, salt, passwordHash,
@@ -2834,24 +2908,24 @@ async function registerUser(username, password, ip) {
   if (!(await saveUsers())) {
     // Nicht gespeichert -> Konto zurueckrollen statt so zu tun, als waere alles gut
     users = users.filter(u => u !== user);
-    return SERVICE_DOWN;
+    return serviceDownMsg(lang);
   }
   return { ok: true, token, profile: publicProfile(user) };
 }
 
-async function loginUser(username, password, ip) {
+async function loginUser(username, password, ip, lang) {
   if (typeof username !== "string" || typeof password !== "string" || password.length > 200) {
-    return { ok: false, error: "Benutzername oder Passwort ist falsch." };
+    return errObj("loginFailed", lang);
   }
-  if (!(await ensureUsersLoaded())) return SERVICE_DOWN;
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const uname = username.trim().toLowerCase().slice(0, 40);
   const kPair = "p|" + uname + "|" + ip, kIp = "i|" + ip, kUser = "u|" + uname;
   // Gesperrt? Dann ABLEHNEN, BEVOR gehasht wird (gesperrte Versuche kosten keine CPU)
   const wait = Math.max(rlWait(kPair), rlWait(kIp), rlWait(kUser));
-  if (wait) return { ok: false, error: "Zu viele Fehlversuche. Bitte in " + waitText(wait) + " erneut versuchen.", retryAfterSec: wait };
-  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return BUSY;
+  if (wait) return { ...errObj("tooManyAttempts", lang, waitText(wait, lang) + (lang === "en" ? "." : " erneut versuchen.")), retryAfterSec: wait };
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
   const user = findUserByName(username);
-  const genericError = { ok: false, error: "Benutzername oder Passwort ist falsch." };
+  const genericError = errObj("loginFailed", lang);
   const failed = () => {
     rlHit(kPair, AUTH_MAX_FAILS_PAIR, AUTH_WINDOW_MS, AUTH_LOCK_MS);
     rlHit(kIp, AUTH_MAX_FAILS_IP, AUTH_WINDOW_MS, AUTH_LOCK_MS);
@@ -2899,11 +2973,11 @@ async function logoutUser(token) {
   return { ok: true };
 }
 
-async function saveUserStats(token, stats) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function saveUserStats(token, stats, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
-  if (!user) return { ok: false, error: "Nicht angemeldet." };
-  if (!stats || typeof stats !== "object" || Array.isArray(stats)) return { ok: false, error: "Ungültige Eingabe." };
+  if (!user) return errObj("notLoggedIn", lang);
+  if (!stats || typeof stats !== "object" || Array.isArray(stats)) return errObj("invalidInput", lang);
   const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank", "coins", "braintestPrestige"];
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
@@ -3035,19 +3109,19 @@ function friendSummary(user) {
 function areFriends(a, b) {
   return (a.friends || []).some(f => f.toLowerCase() === b.username.toLowerCase());
 }
-async function friendsList(token) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function friendsList(token, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const friends = (me.friends || []).map(name => findUserByName(name)).filter(Boolean).map(friendSummary);
   const incoming = (me.incomingRequests || []).filter(name => findUserByName(name));
   const outgoing = (me.outgoingRequests || []).filter(name => findUserByName(name));
   return { ok: true, friends, incoming, outgoing };
 }
-async function friendsSearch(token, query) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function friendsSearch(token, query, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const q = (typeof query === "string" ? query : "").trim().toLowerCase();
   if (q.length < 2) return { ok: true, results: [] };
   const results = users
@@ -3061,42 +3135,42 @@ async function friendsSearch(token, query) {
     }));
   return { ok: true, results };
 }
-async function friendsRequest(token, targetUsername) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function friendsRequest(token, targetUsername, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const target = findUserByName(targetUsername);
-  if (!target) return { ok: false, error: "Diesen Benutzernamen gibt es nicht." };
-  if (target === me) return { ok: false, error: "Du kannst dich nicht selbst hinzufügen." };
-  if (areFriends(me, target)) return { ok: false, error: "Ihr seid bereits befreundet." };
+  if (!target) return errObj("userNotFound", lang);
+  if (target === me) return errObj("cantAddSelf", lang);
+  if (areFriends(me, target)) return errObj("alreadyFriends", lang);
   if (!me.outgoingRequests) me.outgoingRequests = [];
   if (!target.incomingRequests) target.incomingRequests = [];
   if (me.outgoingRequests.some(n => n.toLowerCase() === target.username.toLowerCase())) {
-    return { ok: false, error: "Anfrage wurde bereits gesendet." };
+    return errObj("requestAlreadySent", lang);
   }
   // Hat die Zielperson mir bereits selbst eine Anfrage geschickt? Dann statt
   // einer zweiten Anfrage direkt zu Freunden machen (freundlicher Ablauf).
   if ((me.incomingRequests || []).some(n => n.toLowerCase() === target.username.toLowerCase())) {
-    return friendsAccept(token, target.username);
+    return friendsAccept(token, target.username, lang);
   }
   me.outgoingRequests.push(target.username);
   target.incomingRequests.push(me.username);
   if (!(await saveUsers())) {
     me.outgoingRequests = me.outgoingRequests.filter(n => n !== target.username);
     target.incomingRequests = target.incomingRequests.filter(n => n !== me.username);
-    return SERVICE_DOWN;
+    return serviceDownMsg(lang);
   }
   notifyAccount(target.username, { type: "friendRequestReceived", from: friendSummary(me) });
   return { ok: true };
 }
-async function friendsAccept(token, fromUsername) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function friendsAccept(token, fromUsername, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const from = findUserByName(fromUsername);
-  if (!from) return { ok: false, error: "Diesen Benutzernamen gibt es nicht." };
+  if (!from) return errObj("userNotFound", lang);
   if (!(me.incomingRequests || []).some(n => n.toLowerCase() === from.username.toLowerCase())) {
-    return { ok: false, error: "Keine offene Anfrage von dieser Person." };
+    return errObj("noOpenRequest", lang);
   }
   me.incomingRequests = me.incomingRequests.filter(n => n.toLowerCase() !== from.username.toLowerCase());
   from.outgoingRequests = (from.outgoingRequests || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
@@ -3105,32 +3179,32 @@ async function friendsAccept(token, fromUsername) {
   if (!areFriends(from, me)) from.friends.push(me.username);
   await saveUsers();
   notifyAccount(from.username, { type: "friendRequestAccepted", by: friendSummary(me) });
-  return { ok: true, friends: (await friendsList(token)).friends };
+  return { ok: true, friends: (await friendsList(token, lang)).friends };
 }
-async function friendsDecline(token, fromUsername) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function friendsDecline(token, fromUsername, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const from = findUserByName(fromUsername);
   me.incomingRequests = (me.incomingRequests || []).filter(n => n.toLowerCase() !== (fromUsername||"").toLowerCase());
   if (from) from.outgoingRequests = (from.outgoingRequests || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
   await saveUsers();
   return { ok: true };
 }
-async function friendsCancel(token, targetUsername) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function friendsCancel(token, targetUsername, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const target = findUserByName(targetUsername);
   me.outgoingRequests = (me.outgoingRequests || []).filter(n => n.toLowerCase() !== (targetUsername||"").toLowerCase());
   if (target) target.incomingRequests = (target.incomingRequests || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
   await saveUsers();
   return { ok: true };
 }
-async function friendsRemove(token, targetUsername) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function friendsRemove(token, targetUsername, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const target = findUserByName(targetUsername);
   me.friends = (me.friends || []).filter(n => n.toLowerCase() !== (targetUsername||"").toLowerCase());
   if (target) target.friends = (target.friends || []).filter(n => n.toLowerCase() !== me.username.toLowerCase());
@@ -3196,23 +3270,23 @@ async function saveConversations() {
 }
 const CHAT_MAX_LEN = 500;
 const CHAT_MAX_HISTORY = 300; // je Unterhaltung - aeltere Nachrichten werden verworfen
-async function chatHistory(token, withUsername) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function chatHistory(token, withUsername, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
-  if (!me) return { ok: false, error: "Nicht angemeldet." };
+  if (!me) return errObj("notLoggedIn", lang);
   const other = findUserByName(withUsername);
-  if (!other || !areFriends(me, other)) return { ok: false, error: "Ihr seid nicht (mehr) befreundet." };
-  if (!(await ensureConversationsLoaded())) return SERVICE_DOWN;
+  if (!other || !areFriends(me, other)) return errObj("notFriendsAnymore", lang);
+  if (!(await ensureConversationsLoaded())) return serviceDownMsg(lang);
   return { ok: true, messages: conversations[conversationKey(me.username, other.username)] || [] };
 }
 // Speichert eine Chatnachricht UND liefert sie live aus, falls die
 // Zielperson gerade online ist. Wird vom WebSocket-Handler aufgerufen.
-async function sendChatMessage(fromUser, toUsername, text) {
+async function sendChatMessage(fromUser, toUsername, text, lang) {
   const to = findUserByName(toUsername);
-  if (!to || !areFriends(fromUser, to)) return { ok: false, error: "Ihr seid nicht (mehr) befreundet." };
+  if (!to || !areFriends(fromUser, to)) return errObj("notFriendsAnymore", lang);
   const clean = cleanStr(text, CHAT_MAX_LEN);
-  if (!clean) return { ok: false, error: "Leere Nachricht." };
-  if (!(await ensureConversationsLoaded())) return SERVICE_DOWN;
+  if (!clean) return errObj("emptyMessage", lang);
+  if (!(await ensureConversationsLoaded())) return serviceDownMsg(lang);
   const key = conversationKey(fromUser.username, to.username);
   const list = conversations[key] || (conversations[key] = []);
   const message = { from: fromUser.username, text: clean, ts: Date.now() };
@@ -3284,10 +3358,10 @@ function arenaLeagueInfo(user) {
   return { index: idx, ...ARENA_LEAGUES[idx] };
 }
 
-async function arenaStatus(token) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function arenaStatus(token, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
-  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  if (!user) return errObj("notLoggedIn", lang);
   refreshArenaHearts(user);
   await saveUsers();
   const league = arenaLeagueInfo(user);
@@ -3320,13 +3394,13 @@ const ARENA_MIN_MATCH_MS = Number(process.env.ARENA_MIN_MATCH_MS) || 20000;
 // hinaus (sonst würde der Münzen-Shop den eigentlichen Sinn der Herzen als
 // Tagesbremse aushebeln).
 const ARENA_HEART_COST = 20;
-async function arenaBuyHeart(token) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function arenaBuyHeart(token, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
-  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  if (!user) return errObj("notLoggedIn", lang);
   refreshArenaHearts(user);
-  if ((user.stats.coins || 0) < ARENA_HEART_COST) return { ok: false, error: "Nicht genug Münzen." };
-  if (user.stats.arenaHearts >= ARENA_DAILY_HEARTS) return { ok: false, error: "Bereits volle Herzen." };
+  if ((user.stats.coins || 0) < ARENA_HEART_COST) return errObj("notEnoughCoins", lang);
+  if (user.stats.arenaHearts >= ARENA_DAILY_HEARTS) return errObj("heartsAlreadyFull", lang);
   user.stats.coins -= ARENA_HEART_COST;
   user.stats.arenaHearts += 1;
   await saveUsers();
@@ -3376,13 +3450,13 @@ function stripeApiRequest(apiPath, formParams) {
 // Erstellt eine Stripe-Checkout-Session fuer ein Muenzpaket. origin ist die
 // eigene Basis-URL (z.B. "https://dein-spiel.onrender.com"), damit Stripe
 // nach der Zahlung dorthin zurueckleiten kann.
-async function shopCreateCheckout(token, packageId, origin) {
-  if (!stripeConfigured()) return { ok: false, error: "Der Münzen-Kauf ist noch nicht eingerichtet." };
-  if (!usersLoaded) return SERVICE_DOWN;
+async function shopCreateCheckout(token, packageId, origin, lang) {
+  if (!stripeConfigured()) return errObj("shopNotConfigured", lang);
+  if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
-  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  if (!user) return errObj("notLoggedIn", lang);
   const pkg = COIN_PACKAGES.find(p => p.id === packageId);
-  if (!pkg) return { ok: false, error: "Unbekanntes Paket." };
+  if (!pkg) return errObj("unknownPackage", lang);
   const params = {
     mode: "payment",
     "line_items[0][price_data][currency]": "eur",
@@ -3397,9 +3471,9 @@ async function shopCreateCheckout(token, packageId, origin) {
   };
   let resp;
   try { resp = await stripeApiRequest("/v1/checkout/sessions", params); }
-  catch (e) { return { ok: false, error: "Verbindung zu Stripe fehlgeschlagen." }; }
+  catch (e) { return errObj("stripeFailed", lang); }
   if (resp.status !== 200 || !resp.json || !resp.json.url) {
-    return { ok: false, error: (resp.json && resp.json.error && resp.json.error.message) || "Stripe hat den Kauf abgelehnt." };
+    return { ok: false, error: (resp.json && resp.json.error && resp.json.error.message) || et("stripeDeclined", lang) };
   }
   return { ok: true, url: resp.json.url };
 }
@@ -3456,13 +3530,13 @@ async function handleStripeWebhook(rawBody, sigHeader) {
   return { status: 200, body: "ok" };
 }
 
-async function arenaStartMatch(token) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function arenaStartMatch(token, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
-  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  if (!user) return errObj("notLoggedIn", lang);
   refreshArenaHearts(user);
   if (user.stats.arenaHearts <= 0) {
-    return { ok: false, error: "Keine Herzen mehr übrig. Morgen gibt's wieder welche!" };
+    return errObj("noHeartsLeft", lang);
   }
   user.stats.arenaHearts -= 1;
   const matchId = crypto.randomBytes(12).toString("hex");
@@ -3476,16 +3550,16 @@ async function arenaStartMatch(token) {
 // korrekter Antwort/gelöster Aufgabe, vom Client mitgezählt) auf das
 // Lifetime-Konto, prüft ob die aktuelle Liga damit überschritten wird
 // (Aufstieg - niemals Abstieg, siehe Kommentar oben) und speichert.
-async function arenaFinishMatch(token, pointsEarned, matchId) {
-  if (!usersLoaded) return SERVICE_DOWN;
+async function arenaFinishMatch(token, pointsEarned, matchId, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
-  if (!user) return { ok: false, error: "Nicht angemeldet." };
+  if (!user) return errObj("notLoggedIn", lang);
   const am = user.arenaActiveMatch;
   if (!am || typeof matchId !== "string" || am.id !== matchId) {
-    return { ok: false, error: "Kein laufendes Match (oder es wurde schon ausgewertet)." };
+    return errObj("noActiveMatch", lang);
   }
   if (Date.now() - am.startedAt < ARENA_MIN_MATCH_MS) {
-    return { ok: false, error: "Das Match wurde unrealistisch schnell beendet." };
+    return errObj("matchTooFast", lang);
   }
   user.arenaActiveMatch = null; // Match-ID ist nur einmal gueltig
   const rawPts = Number(pointsEarned);
@@ -3627,45 +3701,49 @@ const server = http.createServer((req, res) => {
     req.on("end", async () => {
       if (tooBig) return;
       let result;
+      let lang = "de"; // ausserhalb von try/catch deklariert, damit der Fehlerfall unten (Parsing-Fehler vor dem eigentlichen Setzen) ebenfalls die richtige Sprache kennt, falls schon ermittelt
       const ip = clientIp(req);
       try {
         if (rlHit("g|" + ip, API_MAX_PER_MIN_IP + 1, 60000, 60000).lockedUntil > Date.now()) { // +1: genau API_MAX_PER_MIN_IP Aufrufe sind erlaubt
           res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60", ...SECURITY_HEADERS });
-          return res.end(JSON.stringify({ ok: false, error: "Zu viele Anfragen. Bitte kurz warten." }));
+          return res.end(JSON.stringify(errObj("tooManyRequests", "de")));
         }
         let payload;
         try { payload = body ? JSON.parse(body) : {}; } catch (e) { payload = {}; }
         if (!payload || typeof payload !== "object" || Array.isArray(payload)) payload = {};
-        if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip);
-        else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip);
+        // Client schickt sein aktuelles "lang" mit jedem Aufruf mit (siehe
+        // apiCall() im Client) - unbekannt/fehlend faellt auf Deutsch zurueck.
+        lang = payload.lang === "en" ? "en" : "de";
+        if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang);
+        else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
-        else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {});
-        else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token);
-        else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token);
-        else if (req.url === "/api/arena-buy-heart") result = await arenaBuyHeart(payload.token);
+        else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
+        else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
+        else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token, lang);
+        else if (req.url === "/api/arena-buy-heart") result = await arenaBuyHeart(payload.token, lang);
         else if (req.url === "/api/shop-create-checkout") {
           const proto = req.headers["x-forwarded-proto"] || (req.socket.encrypted ? "https" : "http");
           const origin = proto + "://" + req.headers.host;
-          result = await shopCreateCheckout(payload.token, payload.packageId, origin);
+          result = await shopCreateCheckout(payload.token, payload.packageId, origin, lang);
         }
         else if (req.url === "/api/shop-packages") result = { ok: true, packages: COIN_PACKAGES };
-        else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned, payload.matchId);
+        else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned, payload.matchId, lang);
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
         else if (req.url === "/api/audio-tracks") result = listAudioTracks();
-        else if (req.url === "/api/friends-list") result = await friendsList(payload.token);
-        else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query);
-        else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username);
-        else if (req.url === "/api/friends-accept") result = await friendsAccept(payload.token, payload.username);
-        else if (req.url === "/api/friends-decline") result = await friendsDecline(payload.token, payload.username);
-        else if (req.url === "/api/friends-cancel") result = await friendsCancel(payload.token, payload.username);
-        else if (req.url === "/api/friends-remove") result = await friendsRemove(payload.token, payload.username);
-        else if (req.url === "/api/chat-history") result = await chatHistory(payload.token, payload.username);
-        else result = { ok: false, error: "Unbekannter Endpunkt." };
+        else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
+        else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
+        else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
+        else if (req.url === "/api/friends-accept") result = await friendsAccept(payload.token, payload.username, lang);
+        else if (req.url === "/api/friends-decline") result = await friendsDecline(payload.token, payload.username, lang);
+        else if (req.url === "/api/friends-cancel") result = await friendsCancel(payload.token, payload.username, lang);
+        else if (req.url === "/api/friends-remove") result = await friendsRemove(payload.token, payload.username, lang);
+        else if (req.url === "/api/chat-history") result = await chatHistory(payload.token, payload.username, lang);
+        else result = errObj("unknownEndpoint", lang);
       } catch (e) {
         console.error("[API-Fehler]", req.url, e && e.stack || e);
-        result = { ok: false, error: "Interner Fehler. Bitte nochmal versuchen." };
+        result = errObj("internalErrorRetry", lang);
       }
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store", ...SECURITY_HEADERS });
       res.end(JSON.stringify(result));
@@ -3774,9 +3852,9 @@ wss.on("connection", (ws, req) => {
       if (!ws.accountUsername) return;
       const me = findUserByName(ws.accountUsername);
       if (!me) return;
-      sendChatMessage(me, typeof msg.to === "string" ? msg.to : "", typeof msg.chatText === "string" ? msg.chatText : "")
+      sendChatMessage(me, typeof msg.to === "string" ? msg.to : "", typeof msg.chatText === "string" ? msg.chatText : "", msg.lang === "en" ? "en" : "de")
         .then(r => send(ws, { type: "chatSendResult", ok: !!r.ok, error: r.error || null, to: msg.to, message: r.message || null }))
-        .catch(() => send(ws, { type: "chatSendResult", ok: false, error: "Interner Fehler.", to: msg.to }));
+        .catch(() => send(ws, { type: "chatSendResult", ok: false, error: et("internalError", msg.lang === "en" ? "en" : "de"), to: msg.to }));
       return;
     }
 
@@ -3964,7 +4042,7 @@ wss.on("connection", (ws, req) => {
         if (isHost && room.phase === "lobby" && room.roundMode === "custom") {
           const def = findRoundDef(msg.defId);
           if (def && msg.index >= 0 && msg.index < room.roundCount) {
-            room.roundDefs[msg.index] = def;
+            room.roundDefs[msg.index] = localizeDef(def, room.language);
             pushRoomState(room);
           }
         }

@@ -4547,6 +4547,208 @@ war):
   Biologie-Erweiterung) wurden noch nicht einzeln auf Schwierigkeit/
   Qualität durchgesehen
 
+## 8zzz2. Erfolge: Biologie-Kategorie ergänzt, mehr Speed-Math-Stufen, alles ins Englische übersetzt
+
+Auf Wunsch (Teil 2 und 3 der größeren 4-teiligen Anfrage zur englischen
+Version):
+
+**Speed Math erweitert**: zwei neue, höhere Stufen (Level 75/100)
+zusätzlich zur bisherigen Obergrenze bei 50.
+
+**Komplett neue Erfolge-Kategorie "🧬 Biologie"** (vorher hatte Biologie als
+einzige Solo-Aktivität überhaupt keine Erfolgs-Anbindung): 8 neue Erfolge -
+Themen-Meilensteine (3/8/14/18 Themen erkundet, egal wie oft), fehlerfreie
+Durchläufe (1/5/12 Themen mit 20/20), und "Sexualkunde freigeschaltet".
+`topicsDone`/`perfectCount` sind dabei Gesamtzähler (aus
+`profile.biologyDone`/`biologyPerfect` abgeleitet, nicht pro Ereignis +1),
+damit Wiederholungen nicht doppelt zählen. Bereits vor diesem Update
+erspielter Fortschritt zählt rückwirkend (`backfill()`).
+
+Macht zusammen mit der automatisch generierten Kategorie-Sammelerfolg
+"Biologie gemeistert" **62 Erfolge in 8 Kategorien** (vorher 51 in 7).
+
+**Alle 62 Erfolge + alle 8 Kategorien ins Englische übersetzt.** Technisch
+über eine separate Übersetzungstabelle gelöst (`TEXT_EN` in
+`achievements.js`) statt die DEFS-Struktur umzubauen, da viele Einträge
+dort automatisch aus Zahlenlisten generiert werden (z.B. die
+Speed-Math-Stufen oder die Blitz-Meilensteine) - eine zweisprachige
+`{de,en}`-Struktur direkt dort hätte den Aufbau stark verkompliziert.
+`Achv.getTitle(id, lang)` / `getDesc(id, lang)` / `getCategoryTitle(catId,
+lang)` fallen bei fehlender Übersetzung automatisch auf Deutsch zurück -
+sind hier aber lückenlos für alle 62 IDs vorhanden. Die automatisch aus
+`CATEGORIES` generierten Kategorie-Sammelerfolge (`cat_*`) übersetzen sich
+dabei von selbst mit, ohne jeden einzeln pflegen zu müssen.
+
+Beim Testen auf eine erwartete Nebenwirkung gestoßen (kein Fehler, nur
+Testanpassung nötig): da Biologie jetzt Erfolge hat, löst das erste
+fehlerfreie Thema zusätzlich zur bisherigen Themen-Münzprämie (+3) auch
+die reguläre Erfolgs-Münzprämie (+5) aus - macht 8 statt 3 Münzen beim
+allerersten perfekten Abschluss, in einem Testfall mit vorbelegten
+Testdaten sogar mehrere Schwellen gleichzeitig (23 Münzen).
+
+Mit einem echten Browser bestätigt: Erfolge-Seite zeigt die neue Kategorie
+korrekt auf Deutsch UND komplett auf Englisch (inkl. Datumsformat:
+"unlocked on" statt "freigeschaltet am").
+
+Getestet: alle 62 Erfolge haben nachweislich eine englische Übersetzung
+(kein stiller Rückfall), alle 8 Kategorien ebenso, Stichproben auf
+inhaltliche Korrektheit (nicht nur Vorhandensein), Umschalten zwischen
+Deutsch/Englisch funktioniert ohne Vermischung, die neuen
+Biologie-Erfolge lösen bei echten Spieldurchläufen korrekt aus (inkl.
+Sexualkunde-Freischaltung im richtigen Moment), Gesamtzähler-/
+Kategorienanzahl-Tests in der bestehenden Suite auf die neuen Werte (62/8)
+angepasst.
+
+## 8aaaa2. Server-Fehlermeldungen (Login, Freunde, Shop, Arena, Chat) zweisprachig
+
+Auf Wunsch (Teil 3 von 4 der größeren Anfrage zur englischen Version):
+bisher waren sämtliche Server-Fehlermeldungen fest auf Deutsch - egal in
+welcher Sprache die Oberfläche lief. Wer die App auf Englisch nutzte,
+bekam bei einem falschen Passwort trotzdem "Benutzername oder Passwort
+ist falsch." zu sehen.
+
+**Technik**: eine zentrale `ERR_TEXT`-Tabelle in `server.js` mit 31
+Meldungen in je einer deutschen und englischen Fassung, dazu zwei kleine
+Helfer (`et(key, lang)`, `errObj(key, lang, extra)`). Der Client schickt
+bei **jedem** `apiCall()` automatisch sein aktuelles `lang` mit; der zentrale
+HTTP-Dispatcher liest es einmal aus und reicht es an alle betroffenen
+Funktionen durch (`registerUser`, `loginUser`, `saveUserStats`, alle
+sieben Freundschafts-Funktionen, `chatHistory`, `sendChatMessage`,
+`arenaStatus`/`arenaBuyHeart`/`arenaStartMatch`/`arenaFinishMatch`,
+`shopCreateCheckout`). Fehlt `lang` oder ist es unbekannt (z.B. "fr"),
+bleibt es beim bisherigen Deutsch - rückwärtskompatibel, keine Änderung
+für bestehende Aufrufer. Der Chat über WebSocket schickt `lang` ebenfalls
+mit der Nachricht.
+
+**Echter Fehler beim Testen gefunden und behoben**: die Sperr-Meldung nach
+zu vielen Fehlversuchen setzt sich aus einem Satz UND einer eingebetteten
+Zeitangabe zusammen. Der Satz war schon übersetzt, die Zeitangabe aber nicht
+- heraus kam "Too many failed attempts. Please try again in 10
+**Minuten**." (Mischmasch mitten im englischen Satz). `waitText()` kennt
+jetzt ebenfalls die Sprache ("10 minutes"/"90 seconds").
+
+**Bewusst NICHT übersetzt**: zwei interne Fehlermeldungen in der
+Stripe-Webhook-Verarbeitung (`creditStripeCoins`: "Unvollständige
+Metadaten", "Nutzer nicht gefunden") - das ist ein Server-zu-Server-
+Aufruf von Stripe, den nie ein Mensch zu sehen bekommt (landet nur in
+Server-Logs), eine Übersetzung brächte also nichts.
+
+Mit einem echten Browser bestätigt: die komplette Kette Client -> apiCall
+-> Server liefert bei `currentLang='en'` bzw. `'de'` die jeweils richtige
+Meldung.
+
+Getestet: Login-Fehler, Registrierungs-Validierung (zu kurzer Name, zu
+kurzes Passwort, Name vergeben), die Sperre mit eingebetteter Zeitangabe
+(inkl. Regressionsprüfung auf den gefundenen Fehler), Nicht-angemeldet,
+alle typischen Freunde-Fehlerfälle (nicht gefunden, selbst hinzufügen,
+bereits befreundet, Anfrage doppelt, keine offene Anfrage, Chat mit
+Nicht-Freund), Arena/Shop, unbekannter Endpunkt, jeweils auf Deutsch UND
+Englisch; Rückfall auf Deutsch ohne/mit unbekannter Sprachangabe;
+`apiCall()` schickt `lang` nachweislich mit; Netzwerkfehler-Meldung des
+Clients in beiden Sprachen; die Tabelle ist lückenlos (jeder Schlüssel hat
+eine deutsche UND eine englische Fassung, nirgends versehentlich
+identisch).
+
+**Noch offen aus der ursprünglichen, größeren Anfrage:** die
+ursprünglichen ~500 englischen Brain-Test-Fragen (vor der
+Biologie-Erweiterung) wurden noch nicht einzeln auf Schwierigkeit und
+Qualität durchgesehen.
+
+## 8bbbb2. Vier Modus-Namen überall einheitlich auf Englisch
+
+Auf Wunsch heißen vier Modi jetzt in **jeder** Sprache gleich (einfacher,
+weil es dann überall dieselben Namen sind) - nur die Namen, die Fragen
+selbst bleiben unverändert:
+
+| bisher (deutsch)    | jetzt                |
+|---------------------|----------------------|
+| Einordnen           | **Drag and Drop**    |
+| Mehr oder Weniger   | **Higher or Lower**  |
+| Stadt Land Fluss    | **Scattergories**    |
+| Nenn's Blitz        | **Quick-Fire**       |
+
+Umgestellt in: Menükarten und Bildschirmtitel (auch die Großschreibung,
+z.B. "DRAG AND DROP"), Statistik-Kacheln, Multiplayer-Titel, Rundenbau,
+den Beschreibungstext der Solo-Party (in allen 7 Sprachen), alle Erfolge
+(Kategorien und Beschreibungen, Deutsch UND Englisch - die englische Fassung
+hieß bisher "Sorting"/"More or Less"/"Quick Naming"), die Server-Labels
+(Scattergories, Quick-Fire) und die Präfixe in `partyDatasets.json` (je 29
+Einträge für Drag and Drop und Higher or Lower). Der Client schneidet den
+Präfix weiterhin generisch beim ersten ": " ab (`shortLabel`), das
+funktioniert mit den neuen Namen ohne Änderung.
+
+Nicht angefasst: Biologie, Brain Test, Speed Math, Order of Speed, Tic Tac
+Toe, Quantum (die heißen ohnehin schon so bzw. waren nicht gemeint).
+
+Beim Umbau nebenbei einen alten Fehler gefunden und behoben: die
+Biologie-Karte im Hauptmenü sagte noch "5 Fragen beantworten", obwohl
+jede Runde seit der letzten Erweiterung alle 20 Fragen des Themas spielt.
+
+Getestet: Hauptmenü auf Deutsch UND Englisch mit den neuen Namen und ohne
+die alten, Bildschirmtitel, Statistik, alle Erfolgstexte in beiden Sprachen
+(in keinem steht noch ein alter Name), Rundenbau/Multiplayer-Titel,
+Datensatz-Präfixe (JSON bleibt gültig), ein echter Server liefert die
+Labels mit den neuen Präfixen aus, und das Abschneiden des Präfixes. Fünf
+ältere Tests, die die alten Namen erwarteten, wurden angepasst.
+
+## 8cccc2. Englisch durchgehend: Oberfläche, Biologie-Modus, Party-Kategorien
+
+Auf Wunsch ("nun das englisch"): die englische Version soll rund laufen.
+Eine Bildschirm-für-Bildschirm-Prüfung der englischen Oberfläche zeigte
+viele Lücken - nur die Texte im I18N-Wörterbuch waren übersetzt, vieles
+andere (v.a. neuere Funktionen) war fest auf Deutsch geschrieben.
+
+**Oberfläche**: neuer Helfer `L(de, en)` neben `t()`: Deutsch bleibt
+Deutsch, JEDE andere Sprache bekommt Englisch (statt versehentlich
+Deutsch). Damit übersetzt: Hauptmenü, Einstellungen, Anmeldung/
+Registrierung, Freunde und Chat, Profilbild, Statistik, Arena, Shop,
+Biologie, Speed Math (inkl. Schwierigkeitsnamen), Order of Speed, Tic Tac
+Toe (inkl. Gürtelnamen "White belt" bis "Master", Ergebnistexte,
+Mehrspieler, Quizmix), Quantum, Brain-Test-Popup/Prestige/Extra-Versuch,
+lokaler Mehrspieler, Party-Einstieg und -Fehlermeldungen, Solo-Party,
+Rundenbau und die Rundenbildschirme (Quiz, Higher or Lower, Drag and
+Drop, Tic Tac Toe). Gürtel, Schwierigkeitsnamen und Dauer-Auswahl sind
+Getter, die sich bei jedem Zugriff nach der aktuellen Sprache richten.
+
+**Biologie-Modus**: bisher auch auf Englisch mit deutschen Fragen
+(die Übersetzung steckte nur im Brain Test). Jetzt gibt es
+`BIOLOGY_TOPICS_EN` (18 Themen x 20 Fragen) mit denselben
+Themen-Schlüsseln wie Deutsch - Fortschritt und Erfolge zählen dadurch
+sprachübergreifend. Dabei aufgefallen: die Antwortreihenfolge wurde nie
+gemischt (nur die Fragenreihenfolge), die übersetzten Fragen hatten die
+richtige Antwort im Quelltext immer vorn - jetzt wird pro Frage gemischt
+(gilt auch für Deutsch). Der Sperrtext nannte noch "(5/5)" statt 20/20.
+
+**Server**: in englischen Party-Räumen waren die 53 Drag-and-Drop- und
+Higher-or-Lower-Kategorien komplett deutsch (Labels, Einheiten,
+Themengruppen, Elementnamen). Neu: `shared/partyDatasetsEN.json` als
+Overlay (53 Labels, 33 Einheiten, 8 Gruppen, 249 Elementnamen), das der
+Server je nach Raumsprache über den Original-Datensatz legt (`dsFor`,
+`localizeDef`). Der Server kennt als Raumsprachen de/en/fr/es - alle außer
+Deutsch bekommen Englisch. Dazu englische Bot-Stufen (Dumb, Beginner,
+Smart, Doctor, Scientist).
+
+**Bewusst nicht übersetzt**: Scattergories und Quick-Fire (nur auf
+Deutsch spielbar, im Englischen gesperrt - deren Rundentexte und
+Wörterlisten bleiben deutsch). Für Japanisch/Chinesisch/Französisch/
+Italienisch/Spanisch gibt es für die neuen Texte kein eigenes Wörterbuch,
+sie zeigen Englisch.
+
+Getestet (neue Datei `english-complete.test.js`, 81 Prüfungen): `L()` in
+de/en/ja; Gegenprobe, dass die Prüfung Deutsch überhaupt erkennt; 23
+englische Bildschirme enthalten keinen deutschen Text (dabei einen echten
+Fund gemacht: den Kauftext im Brain-Test-Sperr-Popup); Deutsch bleibt
+unverändert; englischer Biologie-Pool vollständig und strukturell gültig,
+Antwortpositionen gemischt, Fortschritt unter denselben Schlüsseln; Overlay
+vollständig und konsistent zu den Originaldaten; Live-Server mit
+englischem, französischem und deutschem Raum (Labels, Gruppen, Einheit,
+Elementnamen, Bot-Stufen). Zwei ältere Tests, die den deutschen Sperrhinweis
+"Nur auf Deutsch verfügbar" in der englischen Oberfläche erwarteten, wurden
+auf "Only available in German" angepasst.
+
+**Noch offen**: die ursprünglichen ~500 englischen Brain-Test-Fragen
+wurden noch nicht einzeln auf Schwierigkeit/Qualität durchgesehen.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

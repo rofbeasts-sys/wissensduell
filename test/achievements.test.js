@@ -9,7 +9,7 @@ const ids = (list) => list.slice().sort().join(",");
 (async () => {
 // ================================================================== Regelwerk
 section("Regelwerk: Definitionen");
-ok("51 Erfolge, alle IDs eindeutig (Musik raten entfernt: -2, der einzelne Erfolg + dessen Kategorie-Sammelerfolg)", Achv.DEFS.length === 51 && new Set(Achv.DEFS.map(d => d.id)).size === 51);
+ok("62 Erfolge, alle IDs eindeutig (Musik raten entfernt, Biologie + mehr Speed-Math-Stufen ergänzt)", Achv.DEFS.length === 62 && new Set(Achv.DEFS.map(d => d.id)).size === 62);
 ok("jeder Erfolg gehoert zu einer bekannten Kategorie und hat Titel/Beschreibung", Achv.DEFS.every(d => Achv.CATEGORIES.some(c => c.id === d.cat) && d.title && d.desc && d.icon));
 ok("frischer Stand: nichts freigeschaltet", Object.keys(fresh().unlocked).length === 0);
 
@@ -236,7 +236,8 @@ section("Eigene Ideen: Kategorie-Abschluss + Sammler (haengen von den echten Erf
   for (let i = 0; i < 100; i++) Achv.apply(all, { t: "ttt", mode: "quizmix", in3: false });
   Achv.apply(all, { t: "ttt", mode: "quizmix", in3: true, allCorrect: true });
   Achv.apply(all, { t: "gen", n: 1000000 });
-  for (const n of [10, 25, 50]) Achv.apply(all, { t: "speedmath", level: n });
+  for (const n of [10, 25, 50, 75, 100]) Achv.apply(all, { t: "speedmath", level: n });
+  Achv.apply(all, { t: "biology", topicsDone: 18, perfectCount: 18, sexualkundeUnlocked: true });
   let d = "2026-03-01"; for (let i = 0; i < 100; i++) { Achv.touchDaily(all, d); d = new Date(new Date(d + "T12:00:00Z").getTime() + 86400000).toISOString().slice(0, 10); }
   const done = Achv.DEFS.filter(x => all.unlocked[x.id]);
   const missing = Achv.DEFS.filter(x => !all.unlocked[x.id]);
@@ -407,7 +408,7 @@ section("Client: Ereignisse -> Erfolge");
 
   // Erfolge-Seite
   R('achvOwner=function(){return p}; renderAchievements(p);');
-  ok("Erfolge-Seite zeigt Zaehler '... von 51 freigeschaltet' und alle 7 Kategorien (Musik raten entfernt)", /von 51 freigeschaltet/.test(state.last) && Achv.CATEGORIES.every(c => state.last.includes(c.title.replace(/'/g, "&#39;"))));
+  ok("Erfolge-Seite zeigt Zaehler '... von 62 freigeschaltet' und alle 8 Kategorien (inkl. Biologie)", /von 62 freigeschaltet/.test(state.last) && Achv.CATEGORIES.every(c => state.last.includes(c.title.replace(/'/g, "&#39;"))));
   ok("Freigeschaltete Erfolge sind markiert, gesperrte zeigen Fortschritt", state.last.includes("achv-card done") && state.last.includes("achv-bar") && state.last.includes("🔒"));
   ok("Fortschritt wird angezeigt (z. B. Brain Test 'x / 10')", /\d+ \/ 10/.test(state.last));
   R('renderMainMenu()');

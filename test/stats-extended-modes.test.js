@@ -18,7 +18,7 @@ const { ok, section, finish, loadClient, startServer, post } = require("./helper
     });
     ok("Tic Tac Toe zeigt 'Siege' statt 'richtig'", defs.find(d => d.key === "ttt").correctLabel === "Siege");
     ok("Quantum zeigt 'Siege' statt 'richtig'", defs.find(d => d.key === "quantum").correctLabel === "Siege");
-    ok("Stadt Land Fluss zeigt 'Alle Felder' statt 'richtig'", defs.find(d => d.key === "slf").correctLabel === "Alle Felder");
+    ok("Scattergories (Stadt Land Fluss) zeigt 'Alle Felder' statt 'richtig'", defs.find(d => d.key === "slf").correctLabel === "Alle Felder");
     ok("Biologie nutzt weiterhin den Standard-Begriff 'richtig'", !defs.find(d => d.key === "biology").correctLabel);
   }
 
@@ -75,11 +75,11 @@ const { ok, section, finish, loadClient, startServer, post } = require("./helper
     const C = loadClient(); const { R, state } = C;
     R('var p=createProfile("T"); renderStatistik();');
     const html = state.last;
-    ["Biologie", "Stadt Land Fluss", "Tic Tac Toe", "Quantum"].forEach(label => {
+    ["Biologie", "Scattergories", "Tic Tac Toe", "Quantum"].forEach(label => {
       ok(`Kachel '${label}' ist vorhanden`, html.includes(label));
     });
     ok("Zeigt 'Siege' bei Tic Tac Toe", /Tic Tac Toe[\s\S]{0,200}Siege/.test(html));
-    ok("Zeigt 'Alle Felder' bei Stadt Land Fluss", /Stadt Land\s*Fluss[\s\S]{0,200}Alle Felder/.test(html));
+    ok("Zeigt 'Alle Felder' bei Scattergories", /Scattergories[\s\S]{0,200}Alle Felder/.test(html));
   }
 
   section("Account: Avatar/modeStats-Erweiterung funktioniert genauso über syncAccountStats mit echtem Server");
