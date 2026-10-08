@@ -216,5 +216,28 @@ function signStripeBody(bodyStr, secret, timestamp) {
     ok("...verschwindet beim nächsten Neuzeichnen wieder (nur einmal gezeigt)", !R('document.getElementById("app").innerHTML').includes("Zahlung erfolgreich"));
   }
 
+  section("Checkout schaltet Stripe Managed Payments aus (sonst: 'product tax code is missing')");
+  {
+    const http = require("http");
+    const seen = [];
+    const mock = http.createServer((req, res) => {
+      let b = ""; req.on("data", d => b += d); req.on("end", () => {
+        seen.push(new URLSearchParams(b));
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ url: "https://checkout.stripe.test/c/abc" }));
+      });
+    });
+    await new Promise(r => mock.listen(0, "127.0.0.1", r));
+    const S = await startServer({ STRIPE_SECRET_KEY: "sk_test_dummy", STRIPE_WEBHOOK_SECRET: "whsec_dummy", STRIPE_API_BASE: "http://127.0.0.1:" + mock.address().port });
+    const reg = await post(S.port, "/api/register", { username: "MpTest", password: "test1234" });
+    const pk = (await post(S.port, "/api/shop-packages", {})).packages;
+    const pkgId = (pk && pk[0] && pk[0].id) || "small";
+    const r = await post(S.port, "/api/shop-create-checkout", { token: reg.token, packageId: pkgId });
+    ok("Checkout liefert die Stripe-Adresse", r.ok === true && r.url === "https://checkout.stripe.test/c/abc");
+    ok("Anfrage an Stripe enthält managed_payments[enabled]=false", seen.length === 1 && seen[0].get("managed_payments[enabled]") === "false");
+    ok("Euro, Einzelposten und Metadaten sind unverändert", seen[0].get("line_items[0][price_data][currency]") === "eur" && seen[0].get("metadata[username]") === "MpTest" && seen[0].get("mode") === "payment");
+    await S.stop(); mock.close();
+  }
+
   finish();
 })().catch(e => { console.error("TESTFEHLER:", e); process.exit(2); });

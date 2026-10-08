@@ -94,5 +94,39 @@ const { ok, section, finish, loadClient, startServer, post } = require("./helper
     ok("Ohne gesetztes Feld gibt es einen sinnvollen Rückfallwert (kein undefined)", R("accountAsProfile().avatar") !== undefined && R("AVATAR_EMOJIS.includes(accountAsProfile().avatar)"));
   }
 
+  section("Bild-Avatare: 9 Figuren, Dateien vorhanden, Picker zeigt Figuren + 40 Symbole, Auswahl wird gespeichert");
+  {
+    const fs = require("fs"), path = require("path");
+    const C = loadClient(); const { R, state } = C;
+    ok("9 Figuren definiert", R("AVATAR_IMAGES.length") === 9);
+    const files = R("AVATAR_IMAGES.map(i => i.file)");
+    ok("Jede Figur hat eine WebP-Datei", files.every(f => fs.existsSync(path.join(__dirname, "..", "public", "avatars", f + ".webp"))));
+    ok("Kennungen passen in die 16-Zeichen-Grenze des Servers", R("AVATAR_IMAGES.every(i => i.id.length <= 16)"));
+    R('var p = createProfile("T"); renderAvatarPicker(p.id, renderStatistik);');
+    const html = state.last;
+    ok("Picker zeigt alle 9 Bilder (eingebettet als Daten, unabhängig vom Ordner auf dem Server)", (html.match(/src="data:image\/webp;base64,/g) || []).length >= 9 && files.every(f => R(`AVATAR_DATA["${f}"]`).startsWith("data:image/webp;base64,")));
+    ok("Picker zeigt weiterhin alle 40 Symbole", R("AVATAR_EMOJIS").every(e => html.includes(e)));
+    R('avatarPickerChoose(p.id, "img:prof", false);');
+    ok("Auswahl speichert die Kennung", R("p.avatar") === "img:prof");
+    ok("Vorschau und hervorgehobener Knopf zeigen das Bild", R('AVATAR_DATA["prof"]').length > 1000 && state.last.includes(R('AVATAR_DATA["prof"]').slice(0, 80)) && /btn-primary[^>]*title="Professor"/.test(state.last));
+    R("renderStatistik();");
+    ok("Statistik zeigt das Bild statt Emoji", state.last.includes(R('AVATAR_DATA["prof"]').slice(0, 80)) && !state.last.includes("img:prof"));
+    ok("Unbekannte img:-Kennung fällt auf 🙂 zurück", R('avatarHtml("img:gibtsnicht", 30)') === "🙂");
+    ok("avatarBubbleHtml nutzt Bild bzw. Initialen", R('avatarBubbleHtml({name:"Zed",avatar:"img:cat"},"avatar-big",72,"ZE")').includes("data:image/webp;base64,") && R('avatarBubbleHtml({name:"Zed",avatar:"🐸"},"avatar-big",72,"ZE")').includes(">ZE<"));
+  }
+
+  section("Server: Bild-Kennung wird gespeichert und die Dateien werden als image/webp ausgeliefert");
+  {
+    const S = await startServer();
+    const reg = await post(S.port, "/api/register", { username: "AvatarImg", password: "test1234" });
+    const save = await post(S.port, "/api/save-stats", { token: reg.token, stats: { avatar: "img:robo2" } });
+    ok("img:robo2 wird akzeptiert", save.profile.avatar === "img:robo2");
+    const login = await post(S.port, "/api/login", { username: "AvatarImg", password: "test1234" });
+    ok("übersteht erneuten Login", login.profile.avatar === "img:robo2");
+    const r = await fetch(`http://127.0.0.1:${S.port}/avatars/robo2.webp`);
+    ok("Datei wird mit image/webp geliefert", r.status === 200 && r.headers.get("content-type") === "image/webp");
+    await S.stop();
+  }
+
   finish();
 })().catch(e => { console.error("TESTFEHLER:", e); process.exit(2); });

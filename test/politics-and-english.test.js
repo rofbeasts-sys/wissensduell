@@ -130,9 +130,9 @@ function validQuestion(item) {
     R('currentLang = "en"; renderMainMenu();');
     const html = R('document.getElementById("app").innerHTML');
     ok("Brain-Test-Kachel ist NICHT mehr gesperrt bei Englisch (keine 'locked'-Klasse)", !/mode-card locked"[^>]*onclick="">\s*<div class="icon">🎯/.test(html));
-    ok("... zeigt die normale Beschreibung, nicht den Sperrtext", html.includes("Play alone and improve") || !html.includes("only available in German and English") === false);
+    ok("... zeigt die normale Beschreibung, nicht den Sperrtext", html.includes("Play solo and rank up") || !html.includes("only available in German and English") === false);
     ok("Klick auf die Kachel ist wirklich aktiv (onclick ruft startSoloFlow auf, nicht leer)", /🎯[\s\S]{0,300}/.test(html) && html.includes("startSoloFlow()"));
-    ok("Arena bleibt weiterhin korrekt gesperrt bei Englisch (hat wirklich nur die deutsche Datenbank)", html.includes("Only available in German"));
+    ok("Arena ist vorerst gesperrt (Coming soon)", html.includes("Coming soon") && !html.includes("startArenaFlow()"));
 
     R('currentLang = "de"; renderMainMenu();');
     const htmlDe = R('document.getElementById("app").innerHTML');

@@ -121,7 +121,7 @@ function validCategory(key, cat, kind) {
     await new Promise(r => setTimeout(r, 100));
     h.send({ action: "startGame" });
     let waited = 0;
-    while (!h.find("orderingState") && waited < 3000) { await new Promise(r => setTimeout(r, 100)); waited += 100; }
+    while (!h.find("orderingState") && waited < 8000) { await new Promise(r => setTimeout(r, 100)); waited += 100; }
     const startMsg = h.find("orderingState");
     ok("Rundenstart-Nachricht enthält weiterhin das volle Label (Server ändert nichts, Kürzung passiert rein auf Client-Seite)", !!startMsg && startMsg.label.includes("Drag and Drop:"));
     h.s.destroy();

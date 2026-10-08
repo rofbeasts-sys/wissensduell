@@ -74,7 +74,7 @@ const germanLines = html => [...new Set(visible(html).filter(l => GERMAN.test(l)
     const C = loadClient(); const { R, state } = C;
     R('currentLang="de"; renderMainMenu();');
     const t = visible(state.last).join("\n");
-    ["Einstellungen", "Anmelden", "Online-Modus", "Kopfrechnen gegen die Uhr", "Körper entdecken", "Erfolge", "Drag and Drop"].forEach(w => ok(`[de] Menü enthält weiterhin '${w}'`, t.includes(w)));
+    ["Einstellungen", "Anmelden", "Online-Modus", "Schnell kopfrechnen", "Körper entdecken", "Erfolge", "Drag and Drop"].forEach(w => ok(`[de] Menü enthält weiterhin '${w}'`, t.includes(w)));
     R('currentLang="de"; renderAccountAuth("login");');
     ok("[de] Anmeldung: 'Noch kein Konto?'", visible(state.last).join("\n").includes("Noch kein Konto?"));
     R('currentLang="de"; var p=createProfile("T"); tttOverviewProfile=p; renderTttRankOverview(p);');
@@ -132,7 +132,7 @@ const germanLines = html => [...new Set(visible(html).filter(l => GERMAN.test(l)
     ok("Alle übersetzten Element-IDs gibt es im Original", badIds.length === 0);
     ok("Keine Einheit mit deutschem Text ohne Übersetzung", untranslatedUnits.length === 0);
     ok("Kein englisches Label enthält Umlaute oder alte Modus-Präfixe", Object.values(en.ordering).concat(Object.values(en.higherLower)).every(o => !/[äöüß]/.test(o.label) && !/Einordnen|Mehr oder Weniger/.test(o.label)));
-    ok("Alle 8 Themengruppen sind übersetzt", Object.keys(en._groups).length === 8);
+    ok("Alle 10 Themengruppen sind übersetzt (8 Party-Gruppen + 2 neue Quick-Fire-Gruppen)", Object.keys(en._groups).length === 10);
   }
 
   section("Live-Server: englischer Raum liefert englische Labels/Gruppen/Namen, deutscher Raum bleibt unverändert");

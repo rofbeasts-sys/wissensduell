@@ -21,7 +21,7 @@ const { ok, section, finish, loadClient, fs, path } = require("./helpers");
     R('renderMainMenu();');
     ok("Kein 'Eigener Modus' mehr auf den Mini-Spiel-Kacheln", !state.last.includes("Eigener Modus"));
     R('currentLang = "en"; renderMainMenu();');
-    ok("Gesperrte Kachel (z.B. Stadt Land Fluss bei Englisch) zeigt weiterhin einen Sperrhinweis", state.last.includes("Only available in German"));
+    ok("Gesperrte Kachel (Arena) zeigt einen Hinweis; Scattergories ist bei Englisch nicht mehr gesperrt", state.last.includes("Coming soon") && state.last.includes("startDedicatedMenu('slf')"));
     R('currentLang = "de";');
   }
 

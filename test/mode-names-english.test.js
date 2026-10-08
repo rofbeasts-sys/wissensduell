@@ -112,7 +112,7 @@ const OLD_NAMES = ["Einordnen", "Mehr oder Weniger", "Stadt Land Fluss", "Nenn's
   {
     const C = loadClient(); const { R, state } = C;
     R('renderMainMenu();');
-    ok("Zeigt '20 Fragen'", state.last.includes("alle 20 Fragen"));
+    ok("Biologie-Karte hat die kurze Beschreibung (ohne veraltete Fragenzahl)", state.last.includes("Körper entdecken – inkl. Sexualkunde.") && !/\b5 Fragen\b/.test(state.last));
     ok("Zeigt nicht mehr '5 Fragen beantworten'", !state.last.includes("5 Fragen beantworten"));
   }
 

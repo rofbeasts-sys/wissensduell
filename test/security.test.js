@@ -129,7 +129,7 @@ const { ok, section, sleep, finish, startServer, post, get, frame, wsConnect, fs
     const S = await startServer();
     const r = await get(S.port, "/");
     const h = r.headers;
-    ok("Sicherheits-Header gesetzt", h["x-content-type-options"] === "nosniff" && h["x-frame-options"] === "DENY" && /frame-ancestors 'none'/.test(h["content-security-policy"] || "") && h["referrer-policy"] === "no-referrer");
+    ok("Sicherheits-Header gesetzt", h["x-content-type-options"] === "nosniff" && h["x-frame-options"] === "SAMEORIGIN" && /frame-ancestors 'self'/.test(h["content-security-policy"] || "") && h["referrer-policy"] === "no-referrer");
     ok("index.html: no-cache (Updates kommen sofort an)", h["cache-control"] === "no-cache");
     ok("API: no-store", (await post(S.port, "/api/arena-leaderboard", {}))._headers["cache-control"] === "no-store");
     ok("Pfad-Ausbruch wird abgewehrt", (await get(S.port, "/../server.js")).status !== 200 && (await get(S.port, "/%2e%2e/server.js")).status !== 200 && (await get(S.port, "/..%2fserver.js")).status !== 200);
