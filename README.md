@@ -4749,6 +4749,62 @@ auf "Only available in German" angepasst.
 **Noch offen**: die ursprünglichen ~500 englischen Brain-Test-Fragen
 wurden noch nicht einzeln auf Schwierigkeit/Qualität durchgesehen.
 
+## 8dddd2. Profilbilder: 9 Gehirn-Figuren zusätzlich zu den Emojis
+
+Im Profilbild-Picker (Antippen des Bildes neben dem Namen in der Statistik) gibt es
+jetzt oben **9 Figuren** (Katze, Dame, Hund, Mädchen, Mann, Mann 2, Professor,
+Roboter, Roboter 2) und darunter weiterhin die **40 Symbole**.
+
+- Dateien: `public/avatars/<name>.webp` (192×192, je ca. 14 KB), zugeschnitten aus den
+  hochgeladenen PNGs und rund angezeigt.
+- Gespeichert wird nur die Kennung `img:<name>` (z. B. `img:prof`) im bisherigen Feld
+  `avatar`; der Server nimmt sie ohne Änderung an (max. 16 Zeichen). Alte Emoji-Avatare
+  funktionieren unverändert, eine unbekannte `img:`-Kennung zeigt 🙂.
+- Angezeigt wird das Bild in der Statistik, in der Konto-Leiste, in der Vorschau und
+  bei den Weitergabe-/Bestenlisten-Kacheln (statt der Initialen); ohne Bild bleiben
+  die Initialen.
+- Neue Profile bekommen weiterhin zufällig ein Emoji. Die Bild-Avatare gibt es nur
+  lokal und im Konto, nicht in Party-Räumen.
+- Tests: `test/avatar-picker.test.js` (34 Prüfungen, inkl. Dateien, Picker, Server, MIME).
+
+## 8eeee2. Arena vorerst offline, Quick-Fire und Scattergories auch auf Englisch
+
+- **Arena:** Die Kachel im Hauptmenü ist in allen Sprachen ausgegraut und zeigt
+  „Coming soon“. Die Server-Schnittstellen und der Code bleiben unverändert und
+  lassen sich später durch Zurücksetzen der Kachel wieder öffnen.
+- **Quick-Fire auf Englisch:** 34 Kategorien (alle außer Bundesländer, Dschungelcamp,
+  Promi Big Brother, Fußball) haben englische Namen und Gruppen
+  (`shared/partyDatasetsEN.json`, Abschnitt `nennsBlitz`). Die Kachel ist nicht mehr gesperrt.
+- **Scattergories auf Englisch:** Original-Kategorien (City, Country, River, Name,
+  Animal, Job, Plant, Color, Car brand, Celebrity), Party-Mix mit 50 englischen Kategorien
+  und englische Bot-Wörter für die sieben klassischen Felder. Die Kategorien werden erst
+  beim Rundenstart passend zur Raumsprache gewählt, die Sprache ist jetzt auch im
+  Scattergories-Raum umschaltbar; eigene Kategorien bleiben beim Wechsel erhalten.
+  Alle Sprachen außer Deutsch bekommen Englisch.
+- Bot-Antworten bei Quick-Fire heißen auf Englisch „Answer …“.
+- **Kurze Beschreibungen** (Deutsch/Englisch) auf den Menükarten: Brain Test, Party Raum,
+  Speed Math, Biologie und im Speed-Math-Kopftext.
+- **Speed Math:** Das Menü bietet nur noch Meilenstein-Modus und Order of Speed; die
+  Zeitwahl (1/2/3/5 Minuten) ist ausgeblendet (Code bleibt, Statistik bleibt erhalten).
+- Tests: `test/english-quickfire-scattergories.test.js` (36 Prüfungen), drei bestehende
+  Tests an das neue Verhalten angepasst.
+
+## 8ffff2. Chess World (eingebautes Schach-RPG)
+
+Ein fertiges Spiel des Entwicklers ("Chess World": Schach gegen KI mit Sammelfiguren,
+Fähigkeiten, Truhen, Quests und Rängen) ist als eigene Seite eingebaut.
+
+- Ort: `public/chess-world/` (`index.html`, `game.js`, `style.css`, `bild/cover.jpg`),
+  erreichbar unter `/chess-world/index.html`. Das Spiel bleibt eigenständig und speichert
+  seinen Stand wie bisher im Browser (`cw_v4`).
+- Hauptmenü: Karte „Chess World“ im Bereich Modi (nur auf Deutsch aktiv, das Spiel ist deutsch).
+- Änderungen am Original: die Werbung für „Realm of Roulette“ / „Andere Spiele“ ist
+  entfernt, oben links führt ein Pfeil zurück zu Brain Pulse.
+- Statistik: Zeile „♞ Chess World · Rang“ mit gespielten Partien und Siegen (liest `cw_v4`,
+  nur auf demselben Gerät/Browser).
+- Noch nicht verbunden: Münzen, Erfolge, Konto-Speicherstand und Englisch.
+- Tests: `test/chess-world.test.js` (16 Prüfungen).
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

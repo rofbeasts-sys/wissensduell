@@ -137,14 +137,20 @@ function dsFor(group, key, language) {
   return Object.assign({}, ds, {
     label: ov.label || ds.label,
     unit: ov.unit || ds.unit,
-    items: ds.items.map(it => names[it.id] ? Object.assign({}, it, { name: names[it.id] }) : it)
+    items: !ds.items ? ds.items : ds.items.map(it => names[it.id] ? Object.assign({}, it, { name: names[it.id] }) : it)
   });
 }
 function localizeDef(def, language) {
+  if (def && language !== "de" && def.kind === "stadtLandFluss") {
+    if (def.slfPartyMix) return Object.assign({}, def, { label: "Scattergories: Party mix (10 random categories)" });
+    if (def.id === "slf_custom") return Object.assign({}, def, { label: "Scattergories: Custom categories (" + (def.categories || []).join(", ") + ")" });
+    return def;
+  }
   if (!def || language === "de" || !def.datasetKey) return def;
   const ov = DATASETS_EN[def.datasetGroup] && DATASETS_EN[def.datasetGroup][def.datasetKey];
   if (!ov) return def;
-  return Object.assign({}, def, { label: ov.label || def.label, topicGroup: (DATASETS_EN._groups || {})[def.topicGroup] || def.topicGroup });
+  const ovLabel = def.kind === "nennsBlitz" && ov.label ? "Quick-Fire: " + ov.label : ov.label;
+  return Object.assign({}, def, { label: ovLabel || def.label, topicGroup: (DATASETS_EN._groups || {})[def.topicGroup] || def.topicGroup });
 }
 
 // Konfigurierbarer Punktabzug für Punktesystem 3 ("Punkteabzug").
@@ -213,8 +219,8 @@ const SLF_PARTY_CATEGORIES = [
 function randRange(min, max) { return min + Math.random() * (max - min); }
 
 // Zieht `count` zufällige, unterschiedliche Kategorien aus SLF_PARTY_CATEGORIES.
-function pickRandomSlfPartyCategories(count) {
-  const pool = [...SLF_PARTY_CATEGORIES];
+function pickRandomSlfPartyCategories(count, language) {
+  const pool = [...(language === "de" || !language ? SLF_PARTY_CATEGORIES : SLF_PARTY_CATEGORIES_EN)];
   const picked = [];
   while (picked.length < count && pool.length > 0) {
     const idx = Math.floor(Math.random() * pool.length);
@@ -244,6 +250,32 @@ const SLF_BOT_WORDS = {
   Tier: { A:"Adler", B:"Bär", D:"Delfin", E:"Elefant", F:"Fuchs", G:"Giraffe", H:"Hase", I:"Iltis", J:"Jaguar", K:"Katze", L:"Löwe", M:"Maus", N:"Nashorn", O:"Otter", P:"Panda", R:"Reh", S:"Schwein", T:"Tiger", U:"Uhu", W:"Wolf", Z:"Ziege" },
   Beruf: { A:"Arzt", B:"Bäcker", D:"Dolmetscher", E:"Elektriker", F:"Friseur", G:"Gärtner", H:"Hebamme", I:"Ingenieur", J:"Journalist", K:"Koch", L:"Lehrer", M:"Maler", N:"Notar", O:"Optiker", P:"Pilot", R:"Richter", S:"Sänger", T:"Tischler", V:"Verkäufer", W:"Winzer", Z:"Zahnarzt" },
   Pflanze: { B:"Buche", C:"Calla", D:"Distel", E:"Eiche", F:"Farn", G:"Gänseblümchen", H:"Hortensie", J:"Jasmin", K:"Kaktus", L:"Lavendel", M:"Minze", N:"Narzisse", O:"Olive", P:"Palme", R:"Rose", S:"Sonnenblume", T:"Tulpe", V:"Veilchen", W:"Weide", Z:"Zypresse" }
+};
+
+// Englische Fassung (Scattergories): Standard-Kategorien, Party-Mix-Pool und
+// Bot-Woerter fuer die 7 klassischen Felder. Jede Sprache ausser Deutsch
+// bekommt Englisch (wie bei den uebrigen Datensaetzen).
+const SLF_DEFAULT_CATEGORIES_EN = ["City", "Country", "River", "Name", "Animal", "Job", "Plant", "Color", "Car brand", "Celebrity"];
+const SLF_PARTY_CATEGORIES_EN = [
+  "City", "Country", "River", "Name", "Animal", "Job", "Plant",
+  "Color", "Car brand", "Movie title", "Celebrity", "Drink", "Sport",
+  "Song title", "Superpower", "Magic trick", "TV series", "Video game",
+  "Comic character", "Superhero", "Cartoon character", "Fast-food dish",
+  "Candy", "Musical instrument", "Phone brand", "Clothing item", "Hairstyle",
+  "Influencer", "App", "Board game", "Card game", "Cocktail", "Island",
+  "Travel destination", "Capital city", "Language", "Holiday", "Type of cheese",
+  "Vegetable", "Fruit", "Mythical creature", "Dinosaur", "Magazine",
+  "TV channel", "Cooking show", "Party theme", "Costume",
+  "Christmas gift", "Excuse", "Football club"
+];
+const SLF_BOT_WORDS_EN = {
+  City: { A:"Amsterdam", B:"Berlin", C:"Chicago", D:"Dallas", E:"Edinburgh", F:"Florence", G:"Geneva", H:"Houston", I:"Istanbul", J:"Jakarta", K:"Kyoto", L:"London", M:"Madrid", N:"Nairobi", O:"Oslo", P:"Paris", R:"Rome", S:"Sydney", T:"Tokyo", U:"Utrecht", V:"Vienna", W:"Warsaw", Z:"Zurich" },
+  Country: { A:"Argentina", B:"Brazil", C:"Canada", D:"Denmark", E:"Egypt", F:"France", G:"Germany", H:"Hungary", I:"Italy", J:"Japan", K:"Kenya", L:"Lebanon", M:"Mexico", N:"Norway", O:"Oman", P:"Peru", R:"Russia", S:"Spain", T:"Turkey", U:"Uruguay", V:"Vietnam", W:"Wales", Z:"Zambia" },
+  River: { A:"Amazon", D:"Danube", E:"Elbe", G:"Ganges", H:"Hudson", I:"Indus", J:"Jordan", L:"Loire", M:"Mississippi", N:"Nile", O:"Ohio", P:"Po", R:"Rhine", S:"Seine", T:"Thames", V:"Volga", Z:"Zambezi" },
+  Name: { A:"Anna", B:"Ben", C:"Clara", D:"David", E:"Emma", F:"Frank", G:"Grace", H:"Hannah", I:"Isaac", J:"Julia", K:"Kate", L:"Lucas", M:"Mia", N:"Nina", O:"Oliver", P:"Paul", R:"Rose", S:"Sarah", T:"Tom", U:"Uma", V:"Victor", W:"Will", Z:"Zoe" },
+  Animal: { A:"Antelope", B:"Bear", C:"Camel", D:"Dolphin", E:"Elephant", F:"Fox", G:"Giraffe", H:"Horse", I:"Iguana", J:"Jaguar", K:"Koala", L:"Lion", M:"Monkey", N:"Newt", O:"Otter", P:"Panda", R:"Rabbit", S:"Snake", T:"Tiger", V:"Vulture", W:"Wolf", Z:"Zebra" },
+  Job: { A:"Architect", B:"Baker", C:"Chef", D:"Doctor", E:"Electrician", F:"Farmer", G:"Gardener", H:"Hairdresser", I:"Interpreter", J:"Judge", L:"Lawyer", M:"Mechanic", N:"Nurse", O:"Optician", P:"Pilot", R:"Reporter", S:"Surgeon", T:"Teacher", V:"Vet", W:"Waiter", Z:"Zookeeper" },
+  Plant: { A:"Aloe", B:"Bamboo", C:"Cactus", D:"Daisy", E:"Elm", F:"Fern", G:"Geranium", H:"Hibiscus", I:"Ivy", J:"Jasmine", L:"Lavender", M:"Mint", N:"Nettle", O:"Oak", P:"Palm", R:"Rose", S:"Sunflower", T:"Tulip", V:"Violet", W:"Willow", Z:"Zinnia" }
 };
 
 /* ------------------------------------------------------------------------ */
@@ -2039,7 +2071,7 @@ function normalizeNennsBlitzText(text) {
 }
 
 function startNennsBlitzRound(room, def) {
-  const ds = DATASETS.nennsBlitz[def.datasetKey];
+  const ds = dsFor("nennsBlitz", def.datasetKey, room.language);
   const teamIds = Array.from(room.teams.keys());
   // Solo-Party-Räume bestehen strukturell immer aus genau 1 menschlichen
   // Spieler:in (keine Bots, kein Warten auf weitere Beitritte) – daher
@@ -2085,7 +2117,7 @@ function scheduleNennsBlitzBots(room, durationMs) {
       setTimeout(() => {
         if (!room.runtime || room.runtime !== rt || rt.phase !== "answering") return;
         if (Math.random() < tier.prob) {
-          handleNennsBlitzSubmit(room, bot.id, `Antwort ${bot.name} ${n}`);
+          handleNennsBlitzSubmit(room, bot.id, `${room.language === "de" ? "Antwort" : "Answer"} ${bot.name} ${n}`);
         }
         if (n < 8) attempt(n + 1);
       }, delay);
@@ -2224,17 +2256,20 @@ function slfBuildRoundDef(categories, mode) {
       id: "slf_party",
       kind: "stadtLandFluss",
       label: "Scattergories: Party-Mix (10 zufällige Kategorien)",
-      germanOnly: true,
+      germanOnly: false,
       slfPartyMix: true,
       categories: null
     };
   }
-  const cats = (categories && categories.length ? categories : SLF_DEFAULT_CATEGORIES).slice(0, 10);
+  // Original: Kategorien bleiben null und werden erst beim Rundenstart passend
+  // zur Raumsprache aufgeloest (Deutsch oder Englisch).
+  const isCustom = mode === "custom";
+  const cats = isCustom ? (categories && categories.length ? categories : SLF_DEFAULT_CATEGORIES).slice(0, 10) : null;
   return {
     id: mode === "custom" ? "slf_custom" : "slf_original",
     kind: "stadtLandFluss",
     label: "Scattergories: " + (mode === "custom" ? "Eigene Kategorien (" + cats.join(", ") + ")" : "Original"),
-    germanOnly: true,
+    germanOnly: false,
     categories: cats
   };
 }
@@ -2247,9 +2282,10 @@ function normalizeSlfWord(s) {
 function startStadtLandFlussRound(room, def) {
   // Party-Mix: Kategorien werden JETZT frisch zufällig gezogen (nicht schon
   // beim Zusammenstellen der Runde), damit jede Party-Mix-Runde neu mischt.
+  const isDe = room.language === "de";
   const categories = def.slfPartyMix
-    ? pickRandomSlfPartyCategories(SLF_PARTY_ROUND_SIZE)
-    : (def.categories && def.categories.length ? def.categories : SLF_DEFAULT_CATEGORIES);
+    ? pickRandomSlfPartyCategories(SLF_PARTY_ROUND_SIZE, room.language)
+    : (def.categories && def.categories.length ? def.categories : (isDe ? SLF_DEFAULT_CATEGORIES : SLF_DEFAULT_CATEGORIES_EN));
   const letter = SLF_LETTERS[Math.floor(Math.random() * SLF_LETTERS.length)];
   const teamIds = Array.from(room.teams.keys());
   room.runtime = {
@@ -2285,7 +2321,7 @@ function scheduleBotSlfAnswers(room) {
       if (room.runtime !== rt || rt.phase !== "answering") return;
       const answers = {};
       rt.categories.forEach(cat => {
-        const word = (SLF_BOT_WORDS[cat] || {})[letterUpper];
+        const word = ((room.language === "de" ? SLF_BOT_WORDS : SLF_BOT_WORDS_EN)[cat] || {})[letterUpper];
         answers[cat] = (word && Math.random() < (tier.prob || 0.7)) ? word : "";
       });
       handleSlfSubmit(room, bot.id, answers);
@@ -4113,10 +4149,9 @@ wss.on("connection", (ws, req) => {
         if (isHost && room.phase === "lobby") { room.pointSystem = [1, 2, 3].includes(msg.system) ? msg.system : 1; pushRoomState(room); }
         break;
       case "setLanguage":
-        // Stadt Land Fluss ist ein reines Sprachspiel auf Deutsch – die Sprache
-        // lässt sich in einem SLF-Raum daher nicht umschalten (der Kategorien-Pool
-        // wäre sonst leer, da alle SLF-Rundendefinitionen germanOnly sind).
-        if (isHost && room.phase === "lobby" && room.gameMode !== "slf") {
+        // Auch in Scattergories-Raeumen waehlbar: Kategorien werden erst beim
+        // Rundenstart passend zur Raumsprache aufgeloest (Deutsch / Englisch).
+        if (isHost && room.phase === "lobby") {
           room.language = SUPPORTED_LANGS.includes(msg.language) ? msg.language : "de";
           if (room.roundMode === "random") {
             randomizeRoundDefs(room);
@@ -4124,7 +4159,7 @@ wss.on("connection", (ws, req) => {
             // Bereits gewählte Runden, die mit der neuen Sprache nicht mehr
             // verfügbar sind (germanOnly), zurück auf "nicht gewählt" setzen.
             const availableIds = new Set(roundDefPoolForLanguage(room.language, room.gameMode).map(d => d.id));
-            room.roundDefs = room.roundDefs.map(r => (r && availableIds.has(r.id)) ? r : null);
+            room.roundDefs = room.roundDefs.map(r => (r && (availableIds.has(r.id) || r.id === "slf_custom")) ? r : null);
           }
           pushRoomState(room);
         }
