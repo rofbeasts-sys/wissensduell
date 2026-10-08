@@ -4763,6 +4763,7 @@ Roboter, Roboter 2) und darunter weiterhin die **40 Symbole**.
 - Angezeigt wird das Bild in der Statistik, in der Konto-Leiste, in der Vorschau und
   bei den Weitergabe-/Bestenlisten-Kacheln (statt der Initialen); ohne Bild bleiben
   die Initialen.
+- Die Bilddaten sind zusätzlich direkt in `public/index.html` eingebettet (`AVATAR_DATA`), damit die Profilbilder auch dann erscheinen, wenn der Ordner `public/avatars/` beim Deployen fehlt.
 - Neue Profile bekommen weiterhin zufällig ein Emoji. Die Bild-Avatare gibt es nur
   lokal und im Konto, nicht in Party-Räumen.
 - Tests: `test/avatar-picker.test.js` (34 Prüfungen, inkl. Dateien, Picker, Server, MIME).
@@ -4789,21 +4790,41 @@ Roboter, Roboter 2) und darunter weiterhin die **40 Symbole**.
 - Tests: `test/english-quickfire-scattergories.test.js` (36 Prüfungen), drei bestehende
   Tests an das neue Verhalten angepasst.
 
-## 8ffff2. Chess World (eingebautes Schach-RPG)
+## 8ffff2. Chess bei den Mini Games: Original und Fantasy
 
-Ein fertiges Spiel des Entwicklers ("Chess World": Schach gegen KI mit Sammelfiguren,
-Fähigkeiten, Truhen, Quests und Rängen) ist als eigene Seite eingebaut.
+Im Hauptmenü gibt es bei **Mini Games** die Karte **Chess**. Sie öffnet einen Hub mit zwei Spielarten:
 
-- Ort: `public/chess-world/` (`index.html`, `game.js`, `style.css`, `bild/cover.jpg`),
-  erreichbar unter `/chess-world/index.html`. Das Spiel bleibt eigenständig und speichert
-  seinen Stand wie bisher im Browser (`cw_v4`).
-- Hauptmenü: Karte „Chess World“ im Bereich Modi (nur auf Deutsch aktiv, das Spiel ist deutsch).
-- Änderungen am Original: die Werbung für „Realm of Roulette“ / „Andere Spiele“ ist
-  entfernt, oben links führt ein Pfeil zurück zu Brain Pulse.
-- Statistik: Zeile „♞ Chess World · Rang“ mit gespielten Partien und Siegen (liest `cw_v4`,
-  nur auf demselben Gerät/Browser).
-- Noch nicht verbunden: Münzen, Erfolge, Konto-Speicherstand und Englisch.
-- Tests: `test/chess-world.test.js` (16 Prüfungen).
+- **Chess Original** (`public/chess/`, Deutsch und Englisch): klassisches Schach gegen den Bot, du
+  spielst Weiß. Vier Stärken (Anfänger, Leicht, Mittel, Meister), Rochade, en passant,
+  Umwandlung (Wahl Dame/Turm/Läufer/Springer), Schach-Anzeige, Zugliste, geschlagene Figuren,
+  Zurück-Knopf, Aufgeben, Patt, Remis (zu wenig Material, 50-Züge, dreifache Wiederholung).
+  Das Regelwerk (`engine.js`) stammt aus Chess World, die Angriffsprüfung ist beschleunigt
+  (Zugerzeugung per Perft geprüft: 20 / 400 / 8902 / 197281), der Bot bevorzugt das schnellste Matt.
+- **Chess Fantasy** (`public/chess-world/`): das bisherige Chess World (Sammelfiguren, Fähigkeiten,
+  Truhen, Quests, Ränge). Nur auf Deutsch, bei Englisch gesperrt. Änderungen am Original:
+  die Werbung für „Realm of Roulette“ / „Andere Spiele“ ist entfernt, oben links führt ein Pfeil
+  zurück zu Brain Pulse.
+- **Wie ein Mini Game:** Beide Schach-Seiten laufen im Vollbild-Rahmen (iframe) *innerhalb* von Brain Pulse:
+  gleiche Adresse, kein Neuladen, der Pfeil oben links führt per Nachricht zurück in den Chess-Bereich.
+  Dafür erlauben die Sicherheits-Header jetzt Einbetten von der eigenen Seite (`X-Frame-Options: SAMEORIGIN`,
+  `frame-ancestors 'self'`), fremde Seiten bleiben ausgesperrt.
+- **Brain-Pulse-Look:** Chess Fantasy wurde von Gold/Braun auf die App-Farben umgestellt (Hintergrund `#0a0d16`,
+  Akzent `#c6ff3d`, Cyan `#3de0ff`, Rosa `#ff5d8f`) und nutzt dieselbe Schrift wie die App. Seltenheits-Farben
+  (Bronze, Silber, Epic-Lila usw.) bleiben, weil sie Bedeutung tragen.
+- **Statistik:** Zeilen „♟ Chess Original“ (gespielt, Siege, Remis) und „🐉 Chess Fantasy · Rang“.
+  Beide lesen den Speicherstand der jeweiligen Seite aus dem Browser (`bp_chess_orig`, `cw_v4`),
+  gelten also nur für dieses Gerät.
+- Noch nicht verbunden: Konto-Speicherstand, Erfolge, Münzen, Online-Spiel gegen andere.
+- Tests: `test/chess-world.test.js` (Seiten, Hub, Statistik, Regeln, Matt, Patt, Rochade, en passant).
+
+## 8gggg2. Stripe: Fehler „product tax code is missing“ behoben
+
+Beim Münzkauf lehnte Stripe die Checkout-Sitzung ab, weil für „Managed Payments“ ein
+Steuercode je Produkt nötig ist. Die Sitzung wird jetzt mit `managed_payments[enabled]=false`
+erstellt (wie von Stripe in der Meldung vorgeschlagen). Kennt eine API-Version den Parameter
+nicht, wird ohne ihn erneut versucht. Für Tests lässt sich die Stripe-Adresse mit
+`STRIPE_API_BASE` umleiten (nur Tests). Test: `test/stripe-shop.test.js`.
+Alternativ lässt sich Managed Payments im Stripe-Dashboard unter Einstellungen > Zahlungen abschalten.
 
 ## 8. Bekannte Grenzen dieser ersten Version
 

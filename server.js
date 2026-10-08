@@ -3466,8 +3466,11 @@ function stripeConfigured() {
 function stripeApiRequest(apiPath, formParams) {
   return new Promise((resolve, reject) => {
     const body = querystring.stringify(formParams);
-    const req = https.request({
-      hostname: "api.stripe.com", path: apiPath, method: "POST",
+    // STRIPE_API_BASE (z.B. "http://127.0.0.1:1234") nur fuer Tests mit einem nachgestellten Stripe-Server.
+    const base = process.env.STRIPE_API_BASE ? new URL(process.env.STRIPE_API_BASE) : null;
+    const lib = base && base.protocol === "http:" ? http : https;
+    const req = lib.request({
+      hostname: base ? base.hostname : "api.stripe.com", port: base ? base.port : undefined, path: apiPath, method: "POST",
       auth: process.env.STRIPE_SECRET_KEY + ":",
       headers: { "Content-Type": "application/x-www-form-urlencoded", "Content-Length": Buffer.byteLength(body) }
     }, (res) => {
@@ -3503,10 +3506,21 @@ async function shopCreateCheckout(token, packageId, origin, lang) {
     cancel_url: origin + "/?shop=cancel",
     "metadata[username]": user.username,
     "metadata[coins]": String(pkg.coins),
-    "metadata[packageId]": pkg.id
+    "metadata[packageId]": pkg.id,
+    // Stripe "Managed Payments" verlangt je Produkt einen Steuercode (tax_code).
+    // Wir verkaufen selbst und rechnen ohne Managed Payments ab - daher fuer
+    // diese Sitzung ausschalten (Stripe nennt genau diesen Parameter in der Fehlermeldung).
+    "managed_payments[enabled]": "false"
   };
   let resp;
-  try { resp = await stripeApiRequest("/v1/checkout/sessions", params); }
+  try {
+    resp = await stripeApiRequest("/v1/checkout/sessions", params);
+    // Falls die API-Version den Parameter nicht kennt: ohne ihn erneut versuchen.
+    if (resp.status === 400 && resp.json && resp.json.error && /managed_payments/i.test(resp.json.error.param || "") && /unknown|unrecognized/i.test(resp.json.error.message || "")) {
+      delete params["managed_payments[enabled]"];
+      resp = await stripeApiRequest("/v1/checkout/sessions", params);
+    }
+  }
   catch (e) { return errObj("stripeFailed", lang); }
   if (resp.status !== 200 || !resp.json || !resp.json.url) {
     return { ok: false, error: (resp.json && resp.json.error && resp.json.error.message) || et("stripeDeclined", lang) };
@@ -3696,9 +3710,9 @@ function listAudioTracks() {
 // das ginge ohne Umbau + Browsertest kaputt. Diese Direktiven sind unkritisch.
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
+  "X-Frame-Options": "SAMEORIGIN",
   "Referrer-Policy": "no-referrer",
-  "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+  "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'"
 };
 const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
 
