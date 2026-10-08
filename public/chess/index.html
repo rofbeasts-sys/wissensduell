@@ -65,15 +65,17 @@
     <button class="btn primary" id="newBtn"></button>
     <button class="btn" id="undoBtn"></button>
     <button class="btn" id="resignBtn"></button>
+    <button class="btn" id="anaBtn"></button>
   </div>
   <div class="log" id="log"></div>
   <div class="stats" id="stats"></div>
 </div>
 
 <div class="overlay" id="promoOv"><div class="card"><h2 id="promoTitle"></h2><div class="promo" id="promoBtns"></div></div></div>
-<div class="overlay" id="endOv"><div class="card"><h2 id="endTitle"></h2><p id="endText"></p><div class="row"><button class="btn primary" id="endNew"></button><button class="btn" id="endClose"></button></div></div></div>
+<div class="overlay" id="endOv"><div class="card"><h2 id="endTitle"></h2><p id="endText"></p><div class="row"><button class="btn primary" id="endNew"></button><button class="btn" id="endAna"></button><button class="btn" id="endClose"></button></div></div></div>
 
 <script src="engine.js"></script>
+<script src="analysis.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
@@ -107,7 +109,7 @@ const $ = (id) => document.getElementById(id);
 let G; // Spielstand
 
 function newGame(){
-  G = { board: initBoard(), turn:"w", last:null, selected:null, moves:[], over:false, log:[], capW:[], capB:[], history:[], half:0, seen:{}, busy:false, counted:false };
+  G = { board: initBoard(), turn:"w", last:null, selected:null, moves:[], over:false, log:[], capW:[], capB:[], history:[], half:0, seen:{}, busy:false, counted:false, rec:[] };
   G.seen[posKey()] = 1;
   render(); setStatus();
 }
@@ -146,7 +148,7 @@ function render(){
   for(let i=0;i<G.log.length;i+=2) pairs.push(`<b>${i/2+1}.</b> ${G.log[i]}${G.log[i+1] ? "  " + G.log[i+1] : ""}`);
   lg.innerHTML = pairs.join(" &nbsp; "); lg.scrollTop = lg.scrollHeight;
   $("undoBtn").disabled = G.history.length === 0 || G.busy || G.over;
-  $("resignBtn").disabled = G.over;
+  $("resignBtn").disabled = G.over; $("anaBtn").disabled = !G.over || !G.rec.length;
   $("stats").textContent = T.stats(loadStats());
 }
 function setStatus(txt, color){
@@ -187,7 +189,7 @@ function tryMove(mv){
 }
 
 function doMove(mv, byPlayer){
-  if(byPlayer) G.history.push(snapshot());
+  if(byPlayer){ G.history.push(snapshot()); G.rec.push({ board:G.board, last:G.last, col:"w", move:Object.assign({}, mv) }); }
   const mover = G.board[mv.fr][mv.fc];
   const target = G.board[mv.tr][mv.tc];
   let captured = target ? target.t : null;
@@ -262,12 +264,14 @@ function buildUi(){
     lv.appendChild(b);
   });
   $("newBtn").textContent = T.newGame; $("undoBtn").textContent = T.undo; $("resignBtn").textContent = T.resign;
-  $("endNew").textContent = T.again; $("endClose").textContent = T.close;
+  $("anaBtn").textContent = "🔎"; $("endAna").textContent = "🔎 " + bpAnalysis.label; $("endNew").textContent = T.again; $("endClose").textContent = T.close;
 }
 $("newBtn").onclick = () => { newGame(); };
-$("undoBtn").onclick = () => { if(G.busy || !G.history.length) return; restore(G.history.pop()); render(); setStatus(); };
+$("undoBtn").onclick = () => { if(G.busy || !G.history.length) return; restore(G.history.pop()); G.rec.pop(); render(); setStatus(); };
 $("resignBtn").onclick = () => { if(G.over || !confirm(T.confirmResign)) return; finish({ result:"loss", why:T.resigned }); };
 $("endNew").onclick = () => { $("endOv").classList.remove("show"); newGame(); };
+$("anaBtn").onclick = () => { bpAnalysis.show(G.rec); };
+$("endAna").onclick = () => { $("endOv").classList.remove("show"); bpAnalysis.show(G.rec); };
 $("endClose").onclick = () => { $("endOv").classList.remove("show"); };
 
 buildUi(); newGame();

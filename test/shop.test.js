@@ -81,7 +81,7 @@ const { ok, section, finish, loadClient, startServer, post, fs, path } = require
 
   section("Server: Arena-Herz kaufen - voller Ablauf mit echtem Server");
   {
-    const S = await startServer();
+    const S = await startServer({ ALLOW_CLIENT_COINS: "1" });
     const reg = await post(S.port, "/api/register", { username: "ShopAcc", password: "test1234" });
     const token = reg.token;
     await post(S.port, "/api/save-stats", { token, stats: { coins: 50 } });
@@ -99,7 +99,7 @@ const { ok, section, finish, loadClient, startServer, post, fs, path } = require
   }
   section("Server: Arena-Herz NICHT kaufbar ohne genug Münzen");
   {
-    const S = await startServer();
+    const S = await startServer({ ALLOW_CLIENT_COINS: "1" });
     const reg = await post(S.port, "/api/register", { username: "ShopAcc2", password: "test1234" });
     const token = reg.token;
     await post(S.port, "/api/save-stats", { token, stats: { coins: 5 } });
@@ -113,7 +113,7 @@ const { ok, section, finish, loadClient, startServer, post, fs, path } = require
   }
   section("Server: Arena-Herz NICHT kaufbar bei bereits vollen Herzen (auch mit genug Münzen)");
   {
-    const S = await startServer();
+    const S = await startServer({ ALLOW_CLIENT_COINS: "1" });
     const reg = await post(S.port, "/api/register", { username: "ShopAcc3", password: "test1234" });
     const token = reg.token;
     await post(S.port, "/api/save-stats", { token, stats: { coins: 100 } });
@@ -126,7 +126,7 @@ const { ok, section, finish, loadClient, startServer, post, fs, path } = require
   }
   section("Server: Käufe über das Tageskontingent hinaus sind unmöglich (mehrfacher Kaufversuch)");
   {
-    const S = await startServer();
+    const S = await startServer({ ALLOW_CLIENT_COINS: "1" });
     const reg = await post(S.port, "/api/register", { username: "ShopAcc4", password: "test1234" });
     const token = reg.token;
     await post(S.port, "/api/save-stats", { token, stats: { coins: 1000 } });

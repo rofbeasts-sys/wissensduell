@@ -2801,6 +2801,11 @@ const ERR_TEXT = {
   noHeartsLeft: { de: "Keine Herzen mehr übrig. Morgen gibt's wieder welche!", en: "No hearts left. More tomorrow!" },
   noActiveMatch: { de: "Kein laufendes Match (oder es wurde schon ausgewertet).", en: "No active match (or it has already been scored)." },
   matchTooFast: { de: "Das Match wurde unrealistisch schnell beendet.", en: "The match finished unrealistically fast." },
+  streamerNoRequests: { de: "Dieser Spieler nimmt gerade keine Freundschaftsanfragen an.", en: "This player is not accepting friend requests right now." },
+  inviteNotFriend: { de: "Das ist keiner deiner Freunde.", en: "That is not one of your friends." },
+  inviteOffline: { de: "Dein Freund ist gerade nicht online.", en: "Your friend is not online right now." },
+  inviteRoomGone: { de: "Dieser Raum ist nicht mehr offen.", en: "This room is no longer open." },
+  inviteTooOften: { de: "Bitte kurz warten, bevor du erneut einlädst.", en: "Please wait a moment before inviting again." },
   tooManyRequests: { de: "Zu viele Anfragen. Bitte kurz warten.", en: "Too many requests. Please wait a moment." },
   unknownEndpoint: { de: "Unbekannter Endpunkt.", en: "Unknown endpoint." },
   internalErrorRetry: { de: "Interner Fehler. Bitte nochmal versuchen.", en: "Internal error. Please try again." },
@@ -2904,7 +2909,9 @@ function freshModeStats() {
   return s;
 }
 function publicProfile(user) {
-  return { username: user.username, avatar: user.avatar || null, ...user.stats };
+  // Interne Anticheat-Daten gehoeren nicht zum Client
+
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, clientCoinsDay: undefined };
 }
 
 async function registerUser(username, password, ip, lang) {
@@ -3009,17 +3016,45 @@ async function logoutUser(token) {
   return { ok: true };
 }
 
+const CLIENT_COINS_PER_DAY = 300;
 async function saveUserStats(token, stats, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
   if (!user) return errObj("notLoggedIn", lang);
   if (!stats || typeof stats !== "object" || Array.isArray(stats)) return errObj("invalidInput", lang);
   const allowedKeys = ["score", "tier", "klasse", "consecutiveFails", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers", "bestScore", "tttRank", "tttWinsAtRank", "coins", "braintestPrestige"];
+  // Muenzen sind Geld-relevant (Stripe, Schach-Schluessel). Der Client darf
+  // sie ausgeben (senken). Erhoehen darf er sie nur um die Prestige-Belohnung
+  // (500 je neuer Stufe) plus ein kleines Tagesbudget fuer das, was er selbst
+  // verdient (Haupttest +10, Erfolge, Themen) - sonst koennte sich jeder
+  // beliebig Muenzen schenken.
+  const oldCoins = user.stats.coins || 0, oldPrestige = user.stats.braintestPrestige || 0;
+  const oldAnswers = (user.stats.correctAnswers || 0) + (user.stats.wrongAnswers || 0), oldWL = (user.stats.wins || 0) + (user.stats.losses || 0);
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
     }
   });
+  // Plausibilitaet: ein Speichern, das hunderte Antworten/Siege auf einmal
+  // addiert (bei einem Konto, das schon Daten hat), ist verdaechtig. Nur
+  // vermerken, nicht sperren (der erste Abgleich lokaler Stände darf gross sein).
+  const addAnswers = (user.stats.correctAnswers || 0) + (user.stats.wrongAnswers || 0) - oldAnswers;
+  const addWL = (user.stats.wins || 0) + (user.stats.losses || 0) - oldWL;
+  if ((oldAnswers > 50 && addAnswers > 400) || (oldWL > 20 && addWL > 100)) flagCheat(user, "Statistiksprung +" + addAnswers + " Antworten / +" + addWL + " Spiele");
+  if (process.env.ALLOW_CLIENT_COINS !== "1") {
+    const day = new Date().toISOString().slice(0, 10);
+    const cd = user.stats.clientCoinsDay && user.stats.clientCoinsDay.day === day ? user.stats.clientCoinsDay : { day, n: 0 };
+    const restricted = isRestricted(user);
+    const prestigeBonus = restricted ? 0 : 500 * Math.max(0, (user.stats.braintestPrestige || 0) - oldPrestige);
+    const rise = Math.max(0, (user.stats.coins || 0) - oldCoins);
+    const free = restricted ? 0 : Math.min(Math.max(0, rise - prestigeBonus), Math.max(0, CLIENT_COINS_PER_DAY - cd.n));
+    cd.n += free;
+    user.stats.clientCoinsDay = cd;
+    if (user.stats.coins > oldCoins) {
+      if (rise > prestigeBonus + free) flagCheat(user, "Muenzen +" + rise + " gekappt");
+      user.stats.coins = oldCoins + Math.min(rise, prestigeBonus + free);
+    }
+  }
   // Profilbild: einfacher String (Emoji), aber kein Zahlenwert - eigene,
   // lockere Pruefung (nicht leer, vernuenftige Laenge fuer ein einzelnes
   // Emoji inkl. evtl. Mehrfach-Zeichen-Sequenzen wie Flaggen/ZWJ-Emojis).
@@ -3150,7 +3185,8 @@ async function friendsList(token, lang) {
   const me = findUserByToken(token);
   if (!me) return errObj("notLoggedIn", lang);
   const friends = (me.friends || []).map(name => findUserByName(name)).filter(Boolean).map(friendSummary);
-  const incoming = (me.incomingRequests || []).filter(name => findUserByName(name));
+  // Streamer-Modus: eingegangene Anfragen bleiben gespeichert, werden aber nicht angezeigt.
+  const incoming = me.streamerMode ? [] : (me.incomingRequests || []).filter(name => findUserByName(name));
   const outgoing = (me.outgoingRequests || []).filter(name => findUserByName(name));
   return { ok: true, friends, incoming, outgoing };
 }
@@ -3189,6 +3225,7 @@ async function friendsRequest(token, targetUsername, lang) {
   if ((me.incomingRequests || []).some(n => n.toLowerCase() === target.username.toLowerCase())) {
     return friendsAccept(token, target.username, lang);
   }
+  if (target.streamerMode) return errObj("streamerNoRequests", lang);
   me.outgoingRequests.push(target.username);
   target.incomingRequests.push(me.username);
   if (!(await saveUsers())) {
@@ -3196,7 +3233,7 @@ async function friendsRequest(token, targetUsername, lang) {
     target.incomingRequests = target.incomingRequests.filter(n => n !== me.username);
     return serviceDownMsg(lang);
   }
-  notifyAccount(target.username, { type: "friendRequestReceived", from: friendSummary(me) });
+  if (!target.streamerMode) notifyAccount(target.username, { type: "friendRequestReceived", from: friendSummary(me) });
   return { ok: true };
 }
 async function friendsAccept(token, fromUsername, lang) {
@@ -3216,6 +3253,35 @@ async function friendsAccept(token, fromUsername, lang) {
   await saveUsers();
   notifyAccount(from.username, { type: "friendRequestAccepted", by: friendSummary(me) });
   return { ok: true, friends: (await friendsList(token, lang)).friends };
+}
+async function setStreamerMode(token, enabled, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const me = findUserByToken(token);
+  if (!me) return errObj("notLoggedIn", lang);
+  me.streamerMode = enabled === true;
+  await saveUsers();
+  return { ok: true, streamerMode: me.streamerMode };
+}
+// Freunde in den Warteraum einladen (Party/Tic Tac Toe/...): nur Freunde,
+// nur wenn online, Raum muss offen sein. Der Code geht per Direktnachricht an
+// den Freund und wird dort nie angezeigt (wichtig fuer den Streamer-Modus).
+async function partyInvite(token, friendName, code, game, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const me = findUserByToken(token);
+  if (!me) return errObj("notLoggedIn", lang);
+  const friend = findUserByName(friendName);
+  if (!friend || !areFriends(me, friend)) return errObj("inviteNotFriend", lang);
+  if (rlHit("inv|" + me.username.toLowerCase(), 21, 60000, 30000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
+  if (rlHit("invp|" + me.username.toLowerCase() + "|" + friend.username.toLowerCase(), 2, 15000, 15000).lockedUntil > Date.now()) return errObj("inviteTooOften", lang);
+  const cleanCode = typeof code === "string" ? code.trim().toUpperCase() : "";
+  const kind = game === "ttt" ? "ttt" : "party";
+  if (kind === "party") {
+    const room = rooms.get(cleanCode);
+    if (!room || room.phase !== "lobby") return errObj("inviteRoomGone", lang);
+  } else if (!/^[A-Z0-9]{4,8}$/.test(cleanCode)) return errObj("inviteRoomGone", lang);
+  if (!accountIsOnline(friend.username)) return errObj("inviteOffline", lang);
+  notifyAccount(friend.username, { type: "partyInvite", kind, roomCode: cleanCode, from: friendSummary(me) });
+  return { ok: true };
 }
 async function friendsDecline(token, fromUsername, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -3422,6 +3488,358 @@ async function arenaStatus(token, lang) {
 // die gemeldeten Punkte sind gedeckelt (4 Bloecke x 5 Fragen + 4 Aufgaben
 // ergeben real weit unter 100), und ein Match muss mind. 20 s gedauert haben.
 const ARENA_MAX_POINTS_PER_MATCH = 100;
+
+// ---------------------------------------------------------------------------
+// Chess Fantasy: Schluessel & Truhen serverautoritativ (Geld-relevant).
+// Schluessel liegen im Konto (user.stats.chess), werden NIE ueber save-stats
+// geschrieben. Truhen wuerfelt der Server. Schluessel kaufen: Brain-Pulse-
+// Muenzen. Gratis-Schluessel fuer Siege sind pro Tag gedeckelt.
+// ---------------------------------------------------------------------------
+const CHESS_PIECE_WEIGHTS = {
+  bauer_s: 30, bauer_b: 28, bauer_sh: 28, bauer_a: 22, bauer_be: 22, bauer_h: 25,
+  turm_s: 8, laeufer_d: 6, springer_m: 6, koenig_b: 3,
+  dame_f: 1, dame_w: 1, dame_e: 1, dame_l: 1, dame_v: 1, dame_p: 1
+};
+const CHESS_RARITY = ["normal", "blau", "epic", "legendar", "mystisch"];
+const CHESS_CHESTS = { normal: { cost: 20 }, epic: { cost: 50 }, legendary: { cost: 100 } };
+const CHESS_KEY_PACKS = [
+  { id: "k10", keys: 10, coins: 100 },
+  { id: "k50", keys: 50, coins: 450 },
+  { id: "k200", keys: 200, coins: 1600 }
+];
+const CHESS_FREE_KEYS_PER_DAY = 20;
+const CHESS_STARTER_POWER = { "bauer_s": 8, "turm_s": 2, "laeufer_d": 2, "springer_m": 2, "dame_v": 1, "koenig_b": 1 };
+const CHESS_GROUPS = { bauer: ["s", "b", "sh", "a", "be", "h"], turm: ["s"], laeufer: ["d"], springer: ["m"], koenig: ["b"], dame: ["f", "w", "e", "l", "v", "p"] };
+const CHESS_LEGACY_POWER_CAP = 500; // einmaliger Import alter Browser-Staende je Figur
+const CHESS_EARN_MIN_GAP_MS = process.env.CHESS_EARN_MIN_GAP_MS !== undefined ? Number(process.env.CHESS_EARN_MIN_GAP_MS) : 60 * 1000;
+const CHEAT_RESTRICT_AT = Number(process.env.CHEAT_RESTRICT_AT) || 5;
+function isRestricted(user) {
+  return !!(user && (user.restricted === true || (user.stats && (user.stats.cheatFlags || 0) >= CHEAT_RESTRICT_AT)));
+}
+function flagCheat(user, what) {
+  user.stats.cheatFlags = (user.stats.cheatFlags || 0) + 1;
+  user.stats.lastCheat = { what: String(what).slice(0, 80), at: Date.now() };
+  console.warn("[Anticheat] " + user.username + ": " + what);
+}
+function chessState(user) {
+  if (!user.stats.chess || typeof user.stats.chess !== "object") user.stats.chess = { keys: 0, freeDay: "", freeToday: 0 };
+  const c = user.stats.chess;
+  if (!c.granted || typeof c.granted !== "object") c.granted = {};
+  if (!Number.isFinite(c.keys) || c.keys < 0) c.keys = 0;
+  return c;
+}
+function chessPublic(user) {
+  const c = chessState(user);
+  const day = new Date().toISOString().slice(0, 10);
+  const left = c.freeDay === day ? Math.max(0, CHESS_FREE_KEYS_PER_DAY - c.freeToday) : CHESS_FREE_KEYS_PER_DAY;
+  return { keys: c.keys, coins: user.stats.coins || 0, freeKeysLeft: left, packs: CHESS_KEY_PACKS };
+}
+function chessPickPid() {
+  const ids = Object.keys(CHESS_PIECE_WEIGHTS);
+  let total = 0; ids.forEach(i => { total += CHESS_PIECE_WEIGHTS[i]; });
+  let r = Math.random() * total;
+  for (const id of ids) { r -= CHESS_PIECE_WEIGHTS[id]; if (r < 0) return id; }
+  return ids[0];
+}
+function chessGuaranteed(rankIdx) { return { pid: chessPickPid(), rarityKey: CHESS_RARITY[rankIdx], rankIdx }; }
+function chessRandom(rates) {
+  const pid = chessPickPid();
+  let roll = Math.random(), cum = 0, rarityKey = "normal";
+  for (const [r, chance] of rates) { cum += chance; if (roll < cum) { rarityKey = r; break; } }
+  return { pid, rarityKey, rankIdx: CHESS_RARITY.indexOf(rarityKey) };
+}
+function chessRollChest(type) {
+  const results = []; let coinBonus = 0;
+  if (type === "normal") {
+    coinBonus = 200 + Math.floor(Math.random() * 300);
+    const count = 5 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < count; i++) results.push(chessRandom([["normal", 0.89], ["blau", 0.11]]));
+  } else if (type === "epic") {
+    coinBonus = 800 + Math.floor(Math.random() * 700);
+    for (let i = 0; i < 5; i++) results.push(chessGuaranteed(0));
+    for (let i = 0; i < 5; i++) results.push(chessRandom([["blau", 0.80], ["epic", 0.20]]));
+  } else {
+    coinBonus = 3000 + Math.floor(Math.random() * 2000);
+    for (let i = 0; i < 10; i++) results.push(chessGuaranteed(0));
+    for (let i = 0; i < 5; i++) results.push(chessGuaranteed(1));
+    results.push(chessGuaranteed(2));
+    results.push(chessRandom([["epic", 0.80], ["legendar", 0.20]]));
+  }
+  return { results, coinBonus };
+}
+async function chessApi(action, payload, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const c = chessState(user);
+  if (action === "state") return { ok: true, ...chessPublic(user) };
+  if (action === "open") {
+    const chest = CHESS_CHESTS[payload.type];
+    if (!chest) return errObj("invalidInput", lang);
+    if (c.keys < chest.cost) return { ok: false, error: lang === "en" ? "Not enough keys." : "Nicht genug Schlüssel." };
+    c.keys -= chest.cost;
+    const roll = chessRollChest(payload.type);
+    roll.results.forEach(r => { c.granted[r.pid] = (c.granted[r.pid] || 0) + Math.pow(10, r.rankIdx); });
+    await saveUsers();
+    return { ok: true, ...roll, ...chessPublic(user) };
+  }
+  if (action === "buy-keys") {
+    const pack = CHESS_KEY_PACKS.find(p => p.id === payload.packId);
+    if (!pack) return errObj("invalidInput", lang);
+    if ((user.stats.coins || 0) < pack.coins) return errObj("notEnoughCoins", lang);
+    user.stats.coins -= pack.coins;
+    c.keys += pack.keys;
+    await saveUsers();
+    return { ok: true, ...chessPublic(user) };
+  }
+  if (action === "earn") {
+    const day = new Date().toISOString().slice(0, 10);
+    if (c.freeDay !== day) { c.freeDay = day; c.freeToday = 0; }
+    if (c.lastEarnAt && Date.now() - c.lastEarnAt < CHESS_EARN_MIN_GAP_MS) return { ok: true, granted: 0, tooFast: true, ...chessPublic(user) };
+    c.lastEarnAt = Date.now();
+    const rankIdx = Math.max(0, Math.min(20, Math.floor(Number(payload.rankIdx) || 0)));
+    const want = Math.min(5, 1 + Math.floor(rankIdx / 3));
+    const give = isRestricted(user) ? 0 : Math.max(0, Math.min(want, CHESS_FREE_KEYS_PER_DAY - c.freeToday));
+    c.freeToday += give; c.keys += give;
+    await saveUsers();
+    return { ok: true, granted: give, ...chessPublic(user) };
+  }
+  if (action === "inv-load") return { ok: true, inv: c.inv || null, ...chessPublic(user) };
+  if (action === "inv-save") {
+    const inv = payload.inventory;
+    if (!inv || typeof inv !== "object" || Array.isArray(inv)) return errObj("invalidInput", lang);
+    const clean = {}; const power = {};
+    for (const g of Object.keys(CHESS_GROUPS)) {
+      clean[g] = {};
+      for (const v of CHESS_GROUPS[g]) {
+        const arr = inv[g] && inv[g][v];
+        const a = [];
+        for (let i = 0; i < 5; i++) {
+          const n = Array.isArray(arr) ? arr[i] : 0;
+          if (n === undefined || n === null) { a.push(0); continue; }
+          if (!Number.isInteger(n) || n < 0 || n > 1000000) { flagCheat(user, "inv ungueltig " + g + v); await saveUsers(); return { ok: false, error: lang === "en" ? "Invalid inventory." : "Ungültiges Inventar.", inv: c.inv || null }; }
+          a.push(n);
+        }
+        clean[g][v] = a;
+        power[g + "_" + v] = a.reduce((sum, n, i) => sum + n * Math.pow(10, i), 0);
+      }
+    }
+    // Ersteinrichtung: alte Browser-Staende werden einmalig (gedeckelt) uebernommen.
+    const legacy = !c.inv;
+    for (const key of Object.keys(power)) {
+      const allowed = (CHESS_STARTER_POWER[key] || 0) + (c.granted[key] || 0) + (legacy ? CHESS_LEGACY_POWER_CAP : 0);
+      if (power[key] > allowed) {
+        flagCheat(user, "inv zu stark " + key + " " + power[key] + ">" + allowed);
+        await saveUsers();
+        return { ok: false, error: lang === "en" ? "Inventory rejected." : "Inventar abgelehnt.", inv: c.inv || null };
+      }
+    }
+    c.inv = clean;
+    await saveUsers();
+    return { ok: true, inv: c.inv };
+  }
+  return errObj("invalidInput", lang);
+}
+
+
+// ---------------------------------------------------------------------------
+// Chess Online (Original): Freunde einladen oder per Raumcode. Der Server
+// haelt die Partie und prueft JEDEN Zug mit derselben Engine wie der Client
+// (public/chess/engine.js, per vm geladen). Der Client fragt per Polling ab.
+// ---------------------------------------------------------------------------
+const CHESS_ONLINE_MOVE_MS = Number(process.env.CHESS_ONLINE_MOVE_MS) || 3 * 60 * 1000;
+const CHESS_ONLINE_IDLE_MS = 3 * 60 * 60 * 1000;
+const chessOnlineGames = new Map(); // code -> game
+let chessEngine = null;
+function getChessEngine() {
+  if (chessEngine) return chessEngine;
+  const vm = require("vm");
+  const src = fs.readFileSync(path.join(__dirname, "public", "chess", "engine.js"), "utf8");
+  const ctx = vm.createContext({ console, Math });
+  vm.runInContext(src + "\n;this.__api={initBoard,getLegalMoves,getAllLegalMoves,applyMove,isInCheck};", ctx);
+  chessEngine = ctx.__api;
+  return chessEngine;
+}
+function chessPosKey(g) {
+  let k = g.turn;
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = g.board[r][c]; k += p ? (p.col + p.t + (p.moved ? "m" : "")) : "."; }
+  if (g.last && g.last.dbl) k += "e" + g.last.tc;
+  return k;
+}
+function chessInsufficient(board) {
+  const pcs = [];
+  for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = board[r][c]; if (p && p.t !== "K") pcs.push({ p, r, c }); }
+  if (pcs.length === 0) return true;
+  if (pcs.length === 1 && (pcs[0].p.t === "B" || pcs[0].p.t === "N")) return true;
+  if (pcs.length === 2 && pcs.every(x => x.p.t === "B") && ((pcs[0].r + pcs[0].c) % 2) === ((pcs[1].r + pcs[1].c) % 2)) return true;
+  return false;
+}
+function chessOnlineCleanup() {
+  const now = Date.now();
+  for (const [code, g] of chessOnlineGames) if (now - g.updated > CHESS_ONLINE_IDLE_MS) chessOnlineGames.delete(code);
+}
+function chessOnlineNewCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  for (let tries = 0; tries < 50; tries++) {
+    let c = ""; for (let i = 0; i < 5; i++) c += chars[Math.floor(Math.random() * chars.length)];
+    if (!chessOnlineGames.has(c)) return c;
+  }
+  return null;
+}
+function chessOnlineFinish(g, winner, why) {
+  g.status = "over"; g.winner = winner; g.why = why; g.rev++; g.updated = Date.now();
+}
+function chessOnlineCheckTimeout(g) {
+  if (g.status === "playing" && Date.now() - g.moveAt > CHESS_ONLINE_MOVE_MS) chessOnlineFinish(g, g.turn === "w" ? "b" : "w", "time");
+}
+function chessOnlineView(g, me) {
+  chessOnlineCheckTimeout(g);
+  const E = getChessEngine();
+  const color = g.w === me ? "w" : g.b === me ? "b" : null;
+  return {
+    ok: true, code: g.code, rev: g.rev, w: g.w, b: g.b, color, status: g.status, winner: g.winner || null, why: g.why || null,
+    board: g.board, turn: g.turn, last: g.last, log: g.log, capW: g.capW, capB: g.capB,
+    check: g.status === "playing" && E.isInCheck(g.board, g.turn),
+    moveSecondsLeft: g.status === "playing" ? Math.max(0, Math.round((CHESS_ONLINE_MOVE_MS - (Date.now() - g.moveAt)) / 1000)) : null
+  };
+}
+function chessOnlineGet(payload, lang) {
+  if (!usersLoaded) return { err: serviceDownMsg(lang) };
+  const user = findUserByToken(payload.token);
+  if (!user) return { err: errObj("notLoggedIn", lang) };
+  chessOnlineCleanup();
+  const code = typeof payload.code === "string" ? payload.code.trim().toUpperCase() : "";
+  return { user, code, game: chessOnlineGames.get(code) };
+}
+const CHESS_ONLINE_MAX_PER_MIN = Number(process.env.CHESS_ONLINE_MAX_PER_MIN) || 240;
+async function chessOnlineApi(action, payload, lang) {
+  const base = chessOnlineGet(payload, lang);
+  if (base.err) return base.err;
+  if (rlHit("co|" + base.user.username, CHESS_ONLINE_MAX_PER_MIN + 1, 60000, 30000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
+  const { user, code, game: g } = base;
+  const me = user.username;
+  const msg = (de, en) => ({ ok: false, error: lang === "en" ? en : de });
+  if (action === "create") {
+    for (const x of chessOnlineGames.values()) if ((x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
+      if (x.status === "waiting" && x.w === me) { chessOnlineGames.delete(x.code); } else return { ...msg("Du hast schon eine laufende Partie.", "You already have a game in progress."), code: x.code };
+    }
+    let invited = null;
+    if (typeof payload.invite === "string" && payload.invite) {
+      const target = findUserByName(payload.invite);
+      if (!target || !areFriends(user, target)) return msg("Das ist keiner deiner Freunde.", "That is not one of your friends.");
+      invited = target.username;
+    }
+    const newCode = chessOnlineNewCode();
+    if (!newCode) return msg("Gerade keine freie Partie möglich.", "No free game right now.");
+    const E = getChessEngine();
+    const first = Math.random() < 0.5 ? "w" : "b";
+    const game = { code: newCode, w: first === "w" ? me : null, b: first === "b" ? me : null, invited, status: "waiting", rev: 1,
+      board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
+    game.seen[chessPosKey(game)] = 1;
+    chessOnlineGames.set(newCode, game);
+    return chessOnlineView(game, me);
+  }
+  if (action === "inbox") {
+    const list = [];
+    for (const x of chessOnlineGames.values()) if (x.status === "waiting" && x.invited === me) list.push({ code: x.code, from: x.w || x.b });
+    return { ok: true, invites: list };
+  }
+  if (!g) return msg("Diese Partie gibt es nicht (mehr).", "This game does not exist (anymore).");
+  if (action === "join") {
+    if (g.w === me || g.b === me) return chessOnlineView(g, me);
+    if (g.status !== "waiting") return msg("Die Partie ist schon voll.", "The game is already full.");
+    if (g.invited && g.invited !== me) return msg("Diese Einladung gilt für jemand anderen.", "This invitation is for someone else.");
+    if (!g.w) g.w = me; else g.b = me;
+    g.status = "playing"; g.rev++; g.moveAt = Date.now(); g.updated = Date.now();
+    return chessOnlineView(g, me);
+  }
+  if (action === "decline") {
+    if (g.invited === me && g.status === "waiting") chessOnlineGames.delete(code);
+    return { ok: true };
+  }
+  if (g.w !== me && g.b !== me) return msg("Du bist nicht in dieser Partie.", "You are not in this game.");
+  if (action === "state") return chessOnlineView(g, me);
+  if (action === "leave") {
+    if (g.status === "waiting") chessOnlineGames.delete(code);
+    else if (g.status === "playing") chessOnlineFinish(g, g.w === me ? "b" : "w", "resign");
+    return { ok: true };
+  }
+  if (action === "resign") {
+    if (g.status === "playing") chessOnlineFinish(g, g.w === me ? "b" : "w", "resign");
+    return chessOnlineView(g, me);
+  }
+  if (action === "move") {
+    chessOnlineCheckTimeout(g);
+    if (g.status !== "playing") return { ...msg("Die Partie läuft nicht.", "The game is not running."), ...chessOnlineView(g, me), ok: false };
+    const color = g.w === me ? "w" : "b";
+    if (g.turn !== color) return msg("Du bist nicht dran.", "It is not your turn.");
+    const E = getChessEngine();
+    const n = (v) => Number.isInteger(v) && v >= 0 && v < 8;
+    if (![payload.fr, payload.fc, payload.tr, payload.tc].every(n)) return msg("Ungültiger Zug.", "Invalid move.");
+    const piece = g.board[payload.fr][payload.fc];
+    if (!piece || piece.col !== color) return msg("Ungültiger Zug.", "Invalid move.");
+    const mv = E.getLegalMoves(g.board, payload.fr, payload.fc, g.last).find(m => m.tr === payload.tr && m.tc === payload.tc);
+    if (!mv) return msg("Ungültiger Zug.", "Invalid move.");
+    const move = Object.assign({}, mv);
+    if (piece.t === "P" && (move.tr === 0 || move.tr === 7)) move.promTo = ["Q", "R", "B", "N"].includes(payload.promTo) ? payload.promTo : "Q";
+    const target = g.board[move.tr][move.tc];
+    let captured = target ? target.t : null;
+    if (move.ep) captured = "P";
+    const names = { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" };
+    const sq = (r, c) => "abcdefgh"[c] + (8 - r);
+    let note = move.castle ? (move.castle === "k" ? "O-O" : "O-O-O") : `${names[piece.t]}${sq(move.fr, move.fc)}${captured ? "×" : "–"}${sq(move.tr, move.tc)}${move.promTo ? "=" + names[move.promTo] : ""}`;
+    g.board = E.applyMove(g.board, move);
+    if (captured) (color === "w" ? g.capW : g.capB).push(captured);
+    g.half = (piece.t === "P" || captured) ? 0 : g.half + 1;
+    g.last = move; g.turn = color === "w" ? "b" : "w";
+    const k = chessPosKey(g); g.seen[k] = (g.seen[k] || 0) + 1;
+    const legal = E.getAllLegalMoves(g.board, g.turn, g.last);
+    if (legal.length === 0) {
+      if (E.isInCheck(g.board, g.turn)) { g.log.push(note + "#"); chessOnlineFinish(g, color, "mate"); }
+      else { g.log.push(note); chessOnlineFinish(g, "draw", "stalemate"); }
+    } else if (chessInsufficient(g.board)) { g.log.push(note); chessOnlineFinish(g, "draw", "insufficient"); }
+    else if (g.half >= 100) { g.log.push(note); chessOnlineFinish(g, "draw", "fifty"); }
+    else if (g.seen[k] >= 3) { g.log.push(note); chessOnlineFinish(g, "draw", "threefold"); }
+    else { g.log.push(note + (E.isInCheck(g.board, g.turn) ? "+" : "")); g.rev++; }
+    g.moveAt = Date.now(); g.updated = Date.now();
+    return chessOnlineView(g, me);
+  }
+  return errObj("invalidInput", lang);
+}
+
+
+// Auswertung fuer den Betreiber: Konten mit Manipulationsversuchen. Nur mit
+// ADMIN_KEY (Umgebungsvariable auf Render); ohne gesetzten Key ist der
+// Endpunkt aus. Ratenbegrenzt gegen Raten des Keys.
+function adminAuth(key, ip) {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey || adminKey.length < 12) return false;
+  if (rlHit("adm|" + ip, 6, 10 * 60 * 1000, 10 * 60 * 1000).lockedUntil > Date.now()) return false;
+  const a = Buffer.from(String(key || "")), b = Buffer.from(adminKey);
+  return a.length === b.length && require("crypto").timingSafeEqual(a, b);
+}
+// Konto sperren/entsperren (Schummler: keine Gratis-Muenzen/-Schluessel mehr) oder Zaehler loeschen.
+async function adminRestrict(key, ip, username, action) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const u = findUserByName(typeof username === "string" ? username : "");
+  if (!u) return { ok: false, error: "Konto nicht gefunden." };
+  if (action === "restrict") u.restricted = true;
+  else if (action === "unrestrict") { u.restricted = false; u.stats.cheatFlags = 0; }
+  else return { ok: false, error: "Aktion unbekannt." };
+  await saveUsers();
+  return { ok: true, username: u.username, restricted: isRestricted(u) };
+}
+function adminCheaters(key, ip) {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey || adminKey.length < 12) return { ok: false, error: "Nicht verfügbar." };
+  if (rlHit("adm|" + ip, 6, 10 * 60 * 1000, 10 * 60 * 1000).lockedUntil > Date.now()) return { ok: false, error: "Zu viele Versuche." };
+  const a = Buffer.from(String(key || "")), b = Buffer.from(adminKey);
+  if (a.length !== b.length || !require("crypto").timingSafeEqual(a, b)) return { ok: false, error: "Nicht verfügbar." };
+  const list = users.filter(u => (u.stats && u.stats.cheatFlags) || u.restricted).map(u => ({ username: u.username, flags: (u.stats && u.stats.cheatFlags) || 0, restricted: isRestricted(u), last: (u.stats && u.stats.lastCheat) || null }))
+    .sort((x, y) => y.flags - x.flags).slice(0, 100);
+  return { ok: true, cheaters: list };
+}
+
 const ARENA_MIN_MATCH_MS = Number(process.env.ARENA_MIN_MATCH_MS) || 20000;
 
 // Shop: Münzen gegen ein Arena-Herz eintauschen. Serverautoritativ (wie der
@@ -3754,7 +4172,8 @@ const server = http.createServer((req, res) => {
       let lang = "de"; // ausserhalb von try/catch deklariert, damit der Fehlerfall unten (Parsing-Fehler vor dem eigentlichen Setzen) ebenfalls die richtige Sprache kennt, falls schon ermittelt
       const ip = clientIp(req);
       try {
-        if (rlHit("g|" + ip, API_MAX_PER_MIN_IP + 1, 60000, 60000).lockedUntil > Date.now()) { // +1: genau API_MAX_PER_MIN_IP Aufrufe sind erlaubt
+        const isPoll = req.url === "/api/chess-online/state" || req.url === "/api/chess-online/inbox"; // Polling zaehlt nicht gegen die IP-Grenze (sonst sperrt eine Klasse hinter einer IP sich selbst), hat aber ein eigenes Limit je Konto
+        if (rlHit(isPoll ? "gp|" + ip : "g|" + ip, (isPoll ? API_MAX_PER_MIN_IP * 6 : API_MAX_PER_MIN_IP) + 1, 60000, 60000).lockedUntil > Date.now()) { // +1: genau API_MAX_PER_MIN_IP Aufrufe sind erlaubt
           res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60", ...SECURITY_HEADERS });
           return res.end(JSON.stringify(errObj("tooManyRequests", "de")));
         }
@@ -3769,6 +4188,10 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
+        else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
+        else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
+        else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
+        else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
         else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token, lang);
         else if (req.url === "/api/arena-buy-heart") result = await arenaBuyHeart(payload.token, lang);
@@ -3785,6 +4208,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
+        else if (req.url === "/api/streamer-mode") result = await setStreamerMode(payload.token, payload.enabled, lang);
+        else if (req.url === "/api/party-invite") result = await partyInvite(payload.token, payload.friend, payload.code, payload.game, lang);
         else if (req.url === "/api/friends-accept") result = await friendsAccept(payload.token, payload.username, lang);
         else if (req.url === "/api/friends-decline") result = await friendsDecline(payload.token, payload.username, lang);
         else if (req.url === "/api/friends-cancel") result = await friendsCancel(payload.token, payload.username, lang);

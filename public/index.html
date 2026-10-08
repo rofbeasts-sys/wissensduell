@@ -3158,7 +3158,7 @@ async function restoreAccountSession(){
   const token = localStorage.getItem(ACCOUNT_TOKEN_KEY);
   if(!token) return;
   const result = await apiCall("/api/session", { token });
-  if(result.ok){ account = { token, profile: result.profile }; connectFriendsWs(); }
+  if(result.ok){ account = { token, profile: result.profile }; syncStreamerFromAccount(); connectFriendsWs(); }
   // Token nur loeschen, wenn der Server eindeutig "ungueltig" meldet - NICHT bei
   // Netzproblemen oder wenn der Kontodienst gerade nicht erreichbar ist
   // (sonst wuerde man bei jeder kurzen Stoerung ausgeloggt).
@@ -3212,6 +3212,7 @@ async function submitAccountAuth(mode){
   }
   account = { token: result.token, profile: result.profile };
   try{ localStorage.setItem(ACCOUNT_TOKEN_KEY, result.token); }catch(e){}
+  syncStreamerFromAccount();
   connectFriendsWs();
   if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
   else renderMainMenu();
@@ -3257,6 +3258,55 @@ function disconnectFriendsWs(){
   clearTimeout(friendsWsReconnectTimer);
   if(friendsWs){ try{ friendsWs.onclose = null; friendsWs.close(); }catch(e){} friendsWs = null; }
 }
+/* ---------- Freunde in den Warteraum einladen ---------- */
+let inviteBoxOpen = false;
+function renderInviteFriendsBox(kind, code){
+  if(!account) return `<div class="settings-track" style="margin:8px 0;">${L('Melde dich an, um Freunde einzuladen.','Log in to invite friends.')}</div>`;
+  const cleanCode = String(code || "").replace(/[^A-Za-z0-9]/g, "");
+  const friends = (friendsDataCache && friendsDataCache.friends) || [];
+  const list = !inviteBoxOpen ? "" : `<div style="margin-top:8px;">${friends.length ? friends.map(f => `
+      <div class="friend-row"><span>${f.online ? '🟢' : '⚪'} ${esc(f.username)}</span>
+        <button class="btn ${f.online ? 'btn-primary' : 'btn-ghost'}" ${f.online ? '' : 'disabled'} style="padding:6px 12px;font-size:13px;" onclick="sendPartyInvite('${kind}','${esc(f.username)}','${cleanCode}')">${f.online ? L('Einladen','Invite') : L('Offline','Offline')}</button>
+      </div>`).join("") : `<div class="settings-track">${L('Du hast noch keine Freunde.','You have no friends yet.')}</div>`}</div>`;
+  return `<div style="margin:10px 0;"><button class="btn btn-ghost btn-block" onclick="toggleInviteBox('${kind}')">👥 ${L('Freunde einladen','Invite friends')}</button>${list}</div>`;
+}
+async function toggleInviteBox(kind){
+  inviteBoxOpen = !inviteBoxOpen;
+  if(inviteBoxOpen && account){
+    const r = await apiCall("/api/friends-list", { token: account.token });
+    if(r.ok) friendsDataCache = { friends: r.friends, incoming: r.incoming, outgoing: r.outgoing };
+  }
+  if(kind === "ttt" && tttMp) renderTttMpGame(); else if(party && party.room) renderPartyLobby();
+}
+async function sendPartyInvite(kind, friend, code){
+  const r = await apiCall("/api/party-invite", { token: account.token, friend, code, game: kind });
+  showInviteToast(r.ok ? L('Einladung an ' + friend + ' gesendet','Invitation sent to ' + friend) : (r.error || L('Das hat nicht geklappt.','That did not work.')));
+}
+let pendingInvite = null;
+function showPartyInviteBanner(msg){
+  pendingInvite = { kind: msg.kind, code: msg.roomCode, from: msg.from && msg.from.username };
+  let b = document.getElementById("inviteBanner");
+  if(!b){ b = document.createElement("div"); b.id = "inviteBanner"; b.style.cssText = "position:fixed;left:12px;right:12px;top:12px;max-width:420px;margin:0 auto;background:var(--panel-2,#1c2338);border:1.5px solid var(--accent,#c6ff3d);border-radius:14px;padding:12px 14px;z-index:9999;color:var(--text,#eef0fb);box-shadow:0 8px 30px rgba(0,0,0,.5);"; document.body.appendChild(b); }
+  const what = pendingInvite.kind === "ttt" ? "Tic Tac Toe" : L("einer Party","a party");
+  b.innerHTML = `<div style="font-weight:800;margin-bottom:8px;">📨 ${esc(pendingInvite.from || '?')} ${L('lädt dich zu ' + what + ' ein','invites you to ' + what)}</div>
+    <div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1;" onclick="acceptPartyInvite()">${L('Beitreten','Join')}</button><button class="btn btn-ghost" style="flex:1;" onclick="dismissPartyInvite()">${L('Ablehnen','Decline')}</button></div>`;
+  b.style.display = "block";
+  clearTimeout(b._h); b._h = setTimeout(dismissPartyInvite, 60000);
+}
+function dismissPartyInvite(){ pendingInvite = null; const b = document.getElementById("inviteBanner"); if(b) b.style.display = "none"; }
+function acceptPartyInvite(){
+  const inv = pendingInvite; dismissPartyInvite();
+  if(!inv || !account) return;
+  if(inv.kind === "ttt"){
+    if(tttMp && tttMp.ws){ try{ tttMp.ws.close(); }catch(e){} tttMp = null; }
+    tttOverviewProfile = accountAsProfile();
+    tttMpConnect(() => { tttMp.isHost = false; tttMp.ws.send(JSON.stringify({action:"tttJoinRoom", code: inv.code, name: tttOverviewProfile.name})); });
+  } else {
+    if(party && party.ws){ try{ party.ws.close(); }catch(e){} party = null; }
+    partyConnect(() => party.ws.send(JSON.stringify({ action:"joinRoom", code: inv.code, name: partyGetName() })), (m) => showInviteToast(m));
+  }
+}
+
 function handleFriendsWsMessage(msg){
   if(msg.type === "friendOnline" || msg.type === "friendOffline"){
     const f = friendsDataCache.friends.find(x => x.username === msg.username);
@@ -3266,6 +3316,8 @@ function handleFriendsWsMessage(msg){
     if(!chatMessagesCache[msg.from]) chatMessagesCache[msg.from] = [];
     chatMessagesCache[msg.from].push({ from: msg.from, text: msg.text, ts: msg.ts });
     if(activeChatWith === msg.from) renderChatScreen(msg.from);
+  } else if(msg.type === "partyInvite"){
+    showPartyInviteBanner(msg);
   } else if(msg.type === "friendRequestReceived" || msg.type === "friendRequestAccepted"){
     if(friendsScreenOpen && !activeChatWith) loadAndRenderFriendsList();
   }
@@ -3287,6 +3339,7 @@ function renderFriendsList(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">👥 ${L('FREUNDE','FRIENDS')}</div>
+      ${streamerMode ? `<div class="settings-track" style="margin-top:6px;">🎥 ${L('Streamer-Modus: Du bekommst keine Freundschaftsanfragen. Schickst du jemandem eine, der dir schon eine geschickt hat, seid ihr sofort Freunde.','Streamer mode: you will not receive friend requests. If you send one to someone who already sent you one, you become friends right away.')}</div>` : ``}
       <input id="friendSearchInput" type="text" placeholder="${L('Benutzername suchen…','Search username…')}" maxlength="20" style="margin-top:10px;" oninput="friendsSearchDebounced()">
       <div id="friendSearchResults"></div>
       ${d.incoming.length ? `
@@ -3868,6 +3921,19 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
 });
 function openChessWorld(){ renderChessFrame('/chess-world/index.html'); }
 function openChessOriginal(){ renderChessFrame('/chess/index.html'); }
+// Chess Online: Freunde einladen oder per Raumcode (Konto noetig).
+function openChessOnline(code){
+  if(!account){ postLoginRedirect = () => openChessOnline(code); renderAccountAuth('login'); return; }
+  renderChessFrame('/chess/online.html' + (code ? '?code=' + encodeURIComponent(code) : ''));
+}
+async function chessHubCheckInvites(){
+  if(!account) return;
+  const r = await apiCall('/api/chess-online/inbox', { token: localStorage.getItem(ACCOUNT_TOKEN_KEY) });
+  const box = document.getElementById('chessInviteBox');
+  if(!box || !r || !r.ok || !r.invites || !r.invites.length) return;
+  const i = r.invites[0];
+  box.innerHTML = `<div class="mode-card" style="margin-top:10px;border-color:var(--accent);" onclick="openChessOnline('${i.code}')"><div class="icon">📨</div><h3>${L('Schach-Einladung','Chess invitation')}</h3><p>${L(esc(i.from)+' hat dich zu einer Partie eingeladen. Tippe zum Annehmen.', esc(i.from)+' invited you to a game. Tap to accept.')}</p></div>`;
+}
 // Schach-Bereich bei den Mini Games: klassisches Schach (Original) oder das
 // Sammel-RPG mit Fähigkeiten (Fantasy = Chess World, nur Deutsch).
 function renderChessHub(){
@@ -3888,10 +3954,17 @@ function renderChessHub(){
           <h3>Chess Fantasy</h3>
           <p>${fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : 'Schach-RPG mit Truhen, Fähigkeiten und Rängen.'}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
         </div>
+        <div class="mode-card" onclick="openChessOnline()">
+          <div class="icon">🌐</div>
+          <h3>Chess Online</h3>
+          <p>${L('Live gegen Freunde: einladen oder Code teilen.','Live against friends: invite or share a code.')}</p>
+        </div>
       </div>
+      <div id="chessInviteBox"></div>
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
+  chessHubCheckInvites();
 }
 function startArenaFlow(){
   setAudioZone("menu");
@@ -4082,6 +4155,36 @@ function langSwitcherHtml(){
     </div>
   `;
 }
+/* ---------- Streamer-Modus ---------- */
+// Codes werden als Sternchen gezeigt, es kommen keine Freundschaftsanfragen
+// an. Einladungen an Freunde bleiben möglich (der Code geht direkt an den
+// Freund, ohne je angezeigt zu werden).
+let streamerMode = (function(){ try{ return localStorage.getItem("wq_streamer") === "1"; }catch(e){ return false; } })();
+function codeText(code){ return streamerMode ? "******" : esc(String(code == null ? "" : code)); }
+function codeInputType(){ return streamerMode ? "password" : "text"; }
+async function copyRoomCode(code){
+  try{ await navigator.clipboard.writeText(String(code)); showInviteToast(L("Code kopiert","Code copied")); }catch(e){ showInviteToast(L("Kopieren nicht möglich","Copy not possible")); }
+}
+function codeCopyBtn(code){ return streamerMode ? ` <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="copyRoomCode('${String(code).replace(/[^A-Za-z0-9]/g,'')}')">📋 ${L('Code kopieren','Copy code')}</button>` : ""; }
+function showInviteToast(text){
+  let t = document.getElementById("inviteToast");
+  if(!t){ t = document.createElement("div"); t.id = "inviteToast"; t.style.cssText = "position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--panel-2,#1c2338);border:1.5px solid var(--accent,#c6ff3d);color:var(--text,#eef0fb);padding:10px 16px;border-radius:12px;font-weight:700;font-size:14px;z-index:9999;max-width:90vw;text-align:center;"; document.body.appendChild(t); }
+  t.textContent = text; t.style.display = "block";
+  clearTimeout(t._h); t._h = setTimeout(() => { t.style.display = "none"; }, 2600);
+}
+async function setStreamerMode(on){
+  streamerMode = !!on;
+  try{ localStorage.setItem("wq_streamer", on ? "1" : "0"); }catch(e){}
+  if(account){ const r = await apiCall("/api/streamer-mode", { token: account.token, enabled: !!on }); if(r.ok){ account.profile.streamerMode = !!on; } }
+}
+async function toggleStreamerMode(){ await setStreamerMode(!streamerMode); renderSettingsModal(); }
+function syncStreamerFromAccount(){
+  if(!account || !account.profile) return;
+  const server = !!account.profile.streamerMode;
+  if(streamerMode && !server) apiCall("/api/streamer-mode", { token: account.token, enabled: true });
+  else if(!streamerMode && server){ streamerMode = true; try{ localStorage.setItem("wq_streamer", "1"); }catch(e){} }
+}
+
 function renderSettingsModal(){
   const overlay = document.getElementById("settingsOverlay");
   if(!overlay) return;
@@ -4102,6 +4205,11 @@ function renderSettingsModal(){
       <div class="settings-section">
         <div class="settings-label">Sprache</div>
         ${langSwitcherHtml()}
+      </div>
+      <div class="settings-section">
+        <div class="settings-label">${L('Streamer-Modus','Streamer mode')}</div>
+        <button class="btn ${streamerMode ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleStreamerMode()">${streamerMode ? '🎥 ' + L('An','On') : '🎥 ' + L('Aus','Off')}</button>
+        <div class="settings-track" style="margin-top:8px;">${L('Raum-Codes werden als Sternchen angezeigt und du bekommst keine Freundschaftsanfragen. Hat dir jemand vorher eine geschickt und du schickst ihm eine, seid ihr direkt Freunde.','Room codes are shown as stars and you will not receive friend requests. If someone already sent you one and you send them one, you become friends right away.')}</div>
       </div>
       <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
     </div>
@@ -6670,7 +6778,7 @@ function tttStartMultiplayer(profile){
       </div>
       <div class="picker-sub">${L('Oder einem bestehenden Raum beitreten:','Or join an existing room:')}</div>
       <div class="picker-form">
-        <input id="tttJoinCode" type="text" placeholder="RAUM-CODE" maxlength="6" style="text-transform:uppercase;">
+        <input id="tttJoinCode" type="${codeInputType()}" placeholder="RAUM-CODE" maxlength="6" style="text-transform:uppercase;">
         <button class="btn btn-primary" onclick="tttMpJoinRoom()">BEITRETEN</button>
       </div>
       <div id="tttMpEntryError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
@@ -6861,10 +6969,11 @@ function renderTttMpGame(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE – ${isQuizmix ? 'QUIZMIX' : (tttMp.mode==='quantum' ? 'QUANTUM' : 'ONLINE-MODUS')}</div>
-      <div class="picker-sub">${L('Raum-Code','Room code')}: <b>${tttMp.roomCode}</b>${tttMp.mySymbol ? ' · '+L('Du spielst','You play')+': '+tttMp.mySymbol : ''}</div>
+      <div class="picker-sub">${L('Raum-Code','Room code')}: <b>${codeText(tttMp.roomCode)}</b>${codeCopyBtn(tttMp.roomCode)}${tttMp.mySymbol ? ' · '+L('Du spielst','You play')+': '+tttMp.mySymbol : ''}</div>
       ${!waiting && tttMp.rankIndex !== undefined ? `<div class="picker-sub" style="margin-top:4px;">${tttRankPillHtml(tttMp.rankIndex)}</div>` : ``}
       ${waiting ? `
-        <div class="explanation" style="margin-top:14px;">Warte auf eine zweite Person … Teile den Code <b>${tttMp.roomCode}</b>.</div>
+        <div class="explanation" style="margin-top:14px;">Warte auf eine zweite Person … Teile den Code <b>${codeText(tttMp.roomCode)}</b>.</div>
+        ${renderInviteFriendsBox('ttt', tttMp.roomCode)}
       ` : `
         <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
           ${tttMp.board.map((c,i) => `
@@ -8363,7 +8472,7 @@ function startPartyFlow(gameMode){
       </div>
       <div class="picker-sub">${t('party_join_existing')}</div>
       <div class="picker-form">
-        <input id="partyCode" type="text" placeholder="${t('party_code_placeholder')}" maxlength="6" style="text-transform:uppercase;">
+        <input id="partyCode" type="${codeInputType()}" placeholder="${t('party_code_placeholder')}" maxlength="6" style="text-transform:uppercase;">
         <button id="partyJoinBtn" class="btn btn-primary" onclick="partyJoinRoom()">${t('party_join')}</button>
       </div>
       <div class="actions-row" style="margin-top:18px;">
@@ -8848,7 +8957,8 @@ function renderPartyLobby(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${dedicatedScreenTitle(room.gameMode) || t('lobby_title')}</div>
-      <div class="code-display">${room.code}</div>
+      <div class="code-display">${codeText(room.code)}</div>${codeCopyBtn(room.code)}
+      ${renderInviteFriendsBox("party", room.code)}
 
       ${DEDICATED_MODES[room.gameMode] && DEDICATED_MODES[room.gameMode].germanOnly ? `
         <div class="settings-row"><span class="label">${t('lang_picker_label')}</span><span>Deutsch (fest, Sprachspiel)</span></div>

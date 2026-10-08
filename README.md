@@ -4826,6 +4826,59 @@ nicht, wird ohne ihn erneut versucht. Für Tests lässt sich die Stripe-Adresse 
 `STRIPE_API_BASE` umleiten (nur Tests). Test: `test/stripe-shop.test.js`.
 Alternativ lässt sich Managed Payments im Stripe-Dashboard unter Einstellungen > Zahlungen abschalten.
 
+## 8hhhh2. Chess Fantasy: Schlüssel & Truhen auf dem Server (Echtgeld)
+
+- **Schlüssel liegen im Brain-Pulse-Konto** (`user.stats.chess.keys`), nicht mehr im Browser. Sie lassen sich nicht über `/api/save-stats` setzen.
+- **Truhen würfelt der Server** (`POST /api/chess/open`, Typen `normal` 20 / `epic` 50 / `legendary` 100 Schlüssel). Der Client trägt die gewürfelten Figuren ins Inventar ein.
+- **Schlüssel kaufen** mit Brain-Pulse-Münzen (`POST /api/chess/buy-keys`): 10 Schlüssel = 100, 50 = 450, 200 = 1600 Münzen. Münzen gibt es über den bestehenden Stripe-Shop.
+- **Gratis-Schlüssel** für Siege (`POST /api/chess/earn`): 1–5 je nach Rang, höchstens **20 pro Tag**. Der Schlüsselkauf mit Spielmünzen im Schach-Shop ist entfernt.
+- Chess Fantasy braucht dafür ein eingeloggtes Konto.
+- **Sicherheitslücke geschlossen:** `/api/save-stats` nahm bisher beliebige Münzstände vom Client an. Jetzt darf der Client Münzen nur ausgeben, oder um die Prestige-Belohnung (500 je Stufe) plus ein Tagesbudget von 300 Münzen erhöhen (`CLIENT_COINS_PER_DAY`).
+- **Grenzen:** Das Figuren-Inventar liegt weiter im Browser (`cw_v4`) und ist dort veränderbar. Das betrifft nur das Spiel gegen die KI, nicht den Schlüssel-Verkauf. Beim Umbau auf Echtgeld-Käufe vorher Jugendschutz, Truhen-Regeln und Gewerbe/Steuer prüfen (keine Rechtsberatung).
+
+## 8iiii2. Chess Online (Original): mit Freunden spielen
+
+- Neuer Eintrag **Chess Online** im Schach-Hub (`/chess/online.html`, im Vollbild-Rahmen wie die anderen Schach-Seiten). Konto nötig.
+- **Einladen:** In der Lobby Freund aus der Freundesliste antippen. Im Schach-Hub erscheint beim Freund ein Hinweis „Schach-Einladung“. **Oder Code:** „Raum mit Code erstellen“, den 5-stelligen Code weitergeben, der Freund gibt ihn ein.
+- Farben werden zufällig verteilt, Schwarz sieht das Brett gedreht. Pro Zug **3 Minuten** (`CHESS_ONLINE_MOVE_MS`), danach gewinnt der Gegner. Aufgeben, Matt, Patt, 50-Züge, Stellungswiederholung und zu wenig Material werden erkannt.
+- **Der Server prüft jeden Zug** mit derselben Engine wie der Client (`public/chess/engine.js`, per `vm` geladen). Der Client fragt jede Sekunde den Stand ab (Polling, `POST /api/chess-online/{create,join,state,move,resign,leave,inbox,decline}`).
+- Partien liegen im Speicher des Servers (kein Upstash): ein Neustart beendet laufende Partien. Nach 3 Stunden Ruhe werden sie gelöscht.
+- Noch nicht: Chess Fantasy online, Remis-Angebot, Wertung/Rangliste.
+
+## 8jjjj2. Spielanalyse nach der Partie
+
+- Nach dem Spiel gibt es **🔎 Analyse** (Chess Original: Knopf in der Leiste und im Endfenster; Chess Online: im Endfenster; Chess Fantasy: im Ergebnis). Jeder eigene Zug wird mit der Bot-Engine (Minimax, Tiefe 2) gegen den besten Zug der Stellung verglichen und eingestuft: ★ Bester Zug, ✓ Gut, ?! Ungenau, ? Fehler, ?? Patzer. Bei schwachen Zügen steht der bessere Zug dabei. Oben stehen die Genauigkeit in % und die Zähler.
+- Gemeinsames Modul `public/chess/analysis.js` (nutzt die Engine-Funktionen der jeweiligen Seite). Die Analyse läuft im Browser, Zug für Zug mit Fortschrittsbalken.
+- Grenze: Gewertet wird mit den normalen Schachregeln. Fähigkeiten aus Chess Fantasy kennt die Analyse nicht. Tiefe 2 sieht keine langen Kombinationen.
+
+## 8kkkk2. Anticheat & Hack-Schutz
+
+Grundsatz: Alles, was Geld oder Vorteile bringt, entscheidet der **Server**, nicht der Browser.
+- **Münzen:** `/api/save-stats` darf Münzen nur senken, oder erhöhen um die Prestige-Belohnung plus Tagesbudget (300). Mehr wird gekappt und als Verdacht vermerkt.
+- **Schlüssel & Truhen (Chess Fantasy):** liegen im Konto, Truhen würfelt der Server, Gratis-Schlüssel höchstens 20 pro Tag und höchstens alle 60 s (`CHESS_EARN_MIN_GAP_MS`).
+- **Figuren-Inventar:** Der Browser meldet es per `/api/chess/inv-save`. Der Server rechnet je Figur die „Stärke“ (Rang 1 = 1, Rang 2 = 10, Rang 3 = 100 …) nach: sie darf Startfiguren + geöffnete Truhen nicht übersteigen (Kombinieren von 10 → 1 bleibt gleich stark, also erlaubt). Erfundene Figuren werden abgelehnt und das Konto bekommt den Server-Stand zurück. **Bonus:** Das Inventar liegt jetzt im Konto, also auch auf einem neuen Gerät da. Alte Browser-Stände werden einmalig bis `CHESS_LEGACY_POWER_CAP` (500) je Figur übernommen.
+- **Chess Online:** Der Server prüft jeden Zug mit der Engine. Abfragen sind je Konto begrenzt (`CHESS_ONLINE_MAX_PER_MIN`, 240); das Polling zählt nicht gegen das IP-Limit, damit eine Schulklasse hinter einer IP sich nicht selbst sperrt.
+- **Verdachtszähler:** Jeder abgelehnte Betrugsversuch erhöht `cheatFlags` im Konto und steht im Server-Log (`[Anticheat] …`). **Auswertung:** In Render die Umgebungsvariable `ADMIN_KEY` setzen (mindestens 12 Zeichen, geheim halten), dann `POST /api/admin-cheaters` mit `{"key":"…"}` → Liste der Konten mit Verdacht. Ohne `ADMIN_KEY` ist der Endpunkt aus.
+- **Schon vorher da:** Login-Sperre, Ratenlimits, Token-Ablauf, Größenlimits, WebSocket-Limits, Stripe-Signaturprüfung und doppelte Zahlungen (siehe `test/security.test.js`).
+- **Grenzen:** Reine Anzeigewerte (Siege, Statistik) kommen weiter vom Client. Spielstand-Teile, die kein Geld wert sind (Rang, Quests, Spielmünzen in Chess Fantasy), liegen weiter im Browser. Ein Programm, das nur das Spiel bedient (Bot), lässt sich nicht verhindern, aber es bringt dort nichts, wo der Server entscheidet.
+
+## 8llll2. Streamer-Modus, Freunde einladen, allgemeiner Anticheat
+
+**Streamer-Modus** (Einstellungen ⚙️ → „Streamer-Modus“, wird im Konto gespeichert):
+- Raum-Codes (Party-Lobby, Tic-Tac-Toe-Online, Chess Online) erscheinen als `******`, Code-Eingabefelder werden zu Passwortfeldern. Mit **📋 Code kopieren** lässt sich der Code weitergeben, ohne ihn zu zeigen.
+- Du bekommst **keine Freundschaftsanfragen**: Wer dir eine schicken will, bekommt „nimmt gerade keine Anfragen an“. Schon vorher eingegangene Anfragen bleiben gespeichert, werden aber nicht angezeigt und lösen keine Meldung aus.
+- **Gegenseitig = Freunde:** Hat dir jemand schon eine Anfrage geschickt und du schickst ihm eine (oder umgekehrt), seid ihr sofort Freunde, auch im Streamer-Modus. Du selbst darfst weiter Anfragen schicken.
+
+**Freunde einladen** (mit und ohne Streamer-Modus): Im Warteraum (Party-Lobby und Tic Tac Toe online) gibt es **👥 Freunde einladen**. Online-Freunde bekommen sofort eine Meldung „X lädt dich ein“ mit **Beitreten**/**Ablehnen**; der Code wird dem Freund nie angezeigt (`POST /api/party-invite`, nur Freunde, nur online, nur offene Räume, mit Spam-Bremse). Chess Online lädt weiter über die Lobby ein.
+
+**Allgemeiner Anticheat** (ergänzt 8kkkk2):
+- Alles mit Wert entscheidet der Server (Münzen, Schlüssel, Truhen, Figuren, Schachzüge, Party-Punkte, Arena).
+- Jeder Verdachtsfall zählt `cheatFlags` am Konto hoch: erfundene Münzen oder Figuren, ungültige Inventare, **Statistiksprünge** (hunderte Antworten/Spiele in einem Speichern).
+- **Ab 5 Verdachtsfällen** (`CHEAT_RESTRICT_AT`) ist das Konto **eingeschränkt**: keine Gratis-Münzen aus Client-Meldungen, keine Prestige-Münzen, keine Gratis-Schlüssel. Spielen, Freunde und gekaufte Dinge bleiben.
+- **Betreiber** (`ADMIN_KEY` in Render): `POST /api/admin-cheaters` listet Konten mit Verdacht, `POST /api/admin-restrict` mit `{"key","username","action":"restrict"|"unrestrict"}` sperrt/entsperrt (Entsperren setzt den Zähler zurück).
+- Interne Anticheat-Felder werden nie an den Client geschickt.
+- **Grenze:** Reine Solo-Modi im Browser (Statistik, Erfolge) kann niemand fälschungssicher machen, solange sie lokal gerechnet werden. Deshalb hängt dort nichts Wertvolles dran. Programme, die nur Antworten nachschlagen, lassen sich nicht erkennen.
+
 ## 8. Bekannte Grenzen dieser ersten Version
 
 - Verliert ein Gerät während einer laufenden Runde die Verbindung, wird es nicht automatisch

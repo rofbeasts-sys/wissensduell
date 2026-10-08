@@ -426,6 +426,49 @@ let G={keys:3,rankIdx:0,winStreak:0,lossStreak:0,inventory:null,totalFights:0,to
   questStats:null, questDone:{}, coins:0, shopOwned:{dragon:false,jungle:false,ocean_p:false,space:false}
 };
 
+
+// ── Server-Schlüssel (Brain-Pulse-Konto) ──
+let CW_SERVER={loggedIn:false,freeKeysLeft:0,packs:[],bpCoins:0};
+function cwToken(){try{return localStorage.getItem('wq_account_token')||'';}catch(e){return '';}}
+async function cwApi(action,body){
+  const token=cwToken();
+  if(!token)return{ok:false,error:'Bitte in Brain Pulse einloggen.',noLogin:true};
+  try{
+    const r=await fetch('/api/chess/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({token:token},body||{}))});
+    const j=await r.json();
+    if(j&&j.ok){CW_SERVER.loggedIn=true;if(j.keys!==undefined){G.keys=j.keys;CW_SERVER.freeKeysLeft=j.freeKeysLeft;CW_SERVER.packs=j.packs||CW_SERVER.packs;CW_SERVER.bpCoins=j.coins;}}
+    return j;
+  }catch(e){return{ok:false,error:'Keine Verbindung zum Server.'};}
+}
+// Inventar-Abgleich: Der Server prueft, dass die Figuren zu den geoeffneten
+// Truhen passen (Anticheat) und speichert sie im Konto (Geraetewechsel).
+let cwInvSynced='',cwInvTimer=null;
+function cwScheduleInvSync(){
+  if(!CW_SERVER.loggedIn||!G.inventory)return;
+  const snap=JSON.stringify(G.inventory);
+  if(snap===cwInvSynced)return;
+  clearTimeout(cwInvTimer);cwInvTimer=setTimeout(cwSyncInv,800);
+}
+async function cwSyncInv(){
+  if(!CW_SERVER.loggedIn||!G.inventory)return;
+  const snap=JSON.stringify(G.inventory);
+  const j=await cwApi('inv-save',{inventory:G.inventory});
+  if(j.ok){cwInvSynced=snap;return;}
+  if(j.inv){G.inventory=j.inv;cwInvSynced=JSON.stringify(j.inv);try{localStorage.setItem('cw_v4',JSON.stringify(G));}catch(e){}try{showToast('\u26A0\uFE0F Inventar vom Server wiederhergestellt','#ff9900');renderCollection();}catch(e){}}
+}
+async function cwLoadInv(){
+  const j=await cwApi('inv-load');
+  if(!j.ok)return;
+  if(j.inv){G.inventory=j.inv;cwInvSynced=JSON.stringify(j.inv);try{localStorage.setItem('cw_v4',JSON.stringify(G));}catch(e){}try{renderCollection();}catch(e){}}
+  else cwSyncInv();
+}
+async function cwRefreshKeys(){
+  const j=await cwApi('state');
+  if(!j.ok)G.keys=0;
+  try{updateTopBar();}catch(e){}
+  return j;
+}
+
 let chess={
   board:null,turn:'w',lastMove:null,selected:null,validMoves:[],
   status:'idle',moveLog:[],
@@ -577,6 +620,7 @@ function removeDrawEvents(c){
 function save(){
   G.pregameSetup=pregameSetup;
   localStorage.setItem('cw_v4',JSON.stringify(G));
+  cwScheduleInvSync();
 }
 function load(){
   try{
@@ -585,6 +629,7 @@ function load(){
       if(G.pregameSetup)pregameSetup=G.pregameSetup;
     }
   }catch(e){}
+  G.keys=0;
   initQuestStats();
   initActivePieceSkin();
 }
@@ -831,40 +876,14 @@ function initStarters(){
   save();
 }
 
-function openChest(type){
-  const chest=CHEST_TYPES[type];
-  if(G.keys<chest.cost)return null;
-  G.keys-=chest.cost;
-  const pool=buildPool();
-  const results=[];
+async function openChest(type){
+  const j=await cwApi('open',{type:type});
+  if(!j.ok){return{error:j.error||'Fehler'};}
+  j.results.forEach(r=>addToInventory(r.pid,r.rankIdx));
   if(!G.coins)G.coins=0;
-  let coinBonus=0;
-
-  if(type==='normal'){
-    coinBonus=200+Math.floor(Math.random()*300);
-    const count=5+Math.floor(Math.random()*6);
-    const rates=[['normal',.89],['blau',.11]]; // kein Rang 3
-    for(let i=0;i<count;i++)results.push(randomDrop(rates,pool));
-
-  }else if(type==='epic'){
-    coinBonus=800+Math.floor(Math.random()*700);
-    for(let i=0;i<5;i++)results.push(guaranteedDrop(0,pool));
-    const rates=[['blau',.80],['epic',.20]];
-    for(let i=0;i<5;i++)results.push(randomDrop(rates,pool));
-
-  }else if(type==='legendary'){
-    coinBonus=3000+Math.floor(Math.random()*2000);
-    for(let i=0;i<10;i++)results.push(guaranteedDrop(0,pool));
-    for(let i=0;i<5;i++)results.push(guaranteedDrop(1,pool));
-    // 1× garantiert Rang 3, plus Chance auf Rang 4
-    results.push(guaranteedDrop(2,pool));
-    const rates2=[['epic',.80],['legendary',.20]]; // 80% Rang 3, 20% Rang 4
-    results.push(randomDrop(rates2,pool));
-  }
-
-  G.coins+=coinBonus;
+  G.coins+=j.coinBonus;
   save();
-  return{results,coinBonus};
+  return{results:j.results,coinBonus:j.coinBonus};
 }
 
 function getPromotionKeys(newRankIdx){
@@ -879,20 +898,20 @@ function onWin(){
   G.winStreak++;G.lossStreak=0;G.totalWins++;G.totalFights++;
   const rank=RANKS[G.rankIdx];
   const keys=1+Math.floor(G.rankIdx/3);
-  G.keys+=keys;
   let promoted=false;
   let promotionKeys=0;
   if(rank.winsNeeded&&G.winStreak>=rank.winsNeeded&&G.rankIdx<RANKS.length-1){
     G.rankIdx++;G.winStreak=0;promoted=true;
     promotionKeys=getPromotionKeys(G.rankIdx);
-    G.keys+=promotionKeys;
-    const _rr=RANK_REWARDS[RANKS[G.rankIdx].name];if(_rr){if(_rr.keys)G.keys+=_rr.keys;if(_rr.coins){if(!G.coins)G.coins=0;G.coins+=_rr.coins;}}
+    const _rr=RANK_REWARDS[RANKS[G.rankIdx].name];if(_rr){if(_rr.coins){if(!G.coins)G.coins=0;G.coins+=_rr.coins;}}
   }
   // Quest max streak tracking
   if(!G.questStats)initQuestStats();
   G.questStats.maxWinStreak=Math.max(G.questStats.maxWinStreak||0,G.winStreak);
   if(!G.coins)G.coins=0;G.coins+=100*(1+Math.floor(G.rankIdx/3));
-  save();return{keys,promoted,promotionKeys};
+  save();
+  cwApi('earn',{rankIdx:G.rankIdx}).then(function(j){if(j.ok&&j.granted>0)showToast('+'+j.granted+' \uD83D\uDD11 Schlüssel','#4aff4a');else if(j.ok)showToast('Tageslimit für Gratis-Schlüssel erreicht','#888');try{updateTopBar();}catch(e){}});
+  return{keys:0,promoted,promotionKeys:0};
 }
 
 function onLoss(){
@@ -958,6 +977,7 @@ function playSound(type){
 // ============================================================
 
 function startNewGame(){
+  chess.rec=[];
   chess.board=initBoard();
 
   // Alle Figuren immer auf dem Brett — Rang kommt aus pregameSetup, Anzahl ist immer voll
@@ -1313,6 +1333,7 @@ function updateAbilitiesAfterCapture(){
 
 function doMove(move,isAI){
   const piece=chess.board[move.fr][move.fc];
+  if(!isAI){(chess.rec=chess.rec||[]).push({board:chess.board,last:chess.lastMove,col:'w',move:Object.assign({},move)});}
   const captured=chess.board[move.tr][move.tc];
   if(captured){
     if(!isAI)playSound('capture');
@@ -1707,7 +1728,9 @@ function aiTryUseAbility(){
 }
 
 function renderGameHistory(){
-  const el=q('#game-history-list');if(!el)return;
+  document.querySelectorAll('.game-history-list').forEach(renderGameHistoryInto);
+}
+function renderGameHistoryInto(el){
   const history=G.gameHistory||[];
   if(!history.length){
     el.innerHTML='<div style="font-size:.58rem;color:#444;text-align:center;padding:8px">Noch keine Spiele gespielt.</div>';
@@ -2493,7 +2516,7 @@ function showResult(won,text){
     const rank=RANKS[G.rankIdx];
     const _ce=100*(1+Math.floor(G.rankIdx/3));
     extra='<div style="display:flex;gap:10px;justify-content:center;margin:6px 0">'+
-      '<span style="color:#4aff4a">+'+r.keys+' \uD83D\uDD11</span>'+
+      
       '<span style="color:#c6ff3d">+'+_ce+' \uD83D\uDCB0</span>'+
       '</div>';
     if(r.promoted){
@@ -2503,7 +2526,7 @@ function showResult(won,text){
         '<div style="font-size:1.2rem">\uD83C\uDF89 AUFGESTIEGEN!</div>'+
         '<div style="color:'+rank.color+';font-size:.9rem;font-weight:bold;margin:4px 0">'+rank.name+(rank.tier?' '+rank.tier:'')+'</div>'+
         '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:5px">'+
-        '<span style="color:#4aff4a;font-size:.8rem">+'+r.promotionKeys+' \uD83D\uDD11</span>'+
+        
         (_rrr.coins?'<span style="color:#c6ff3d;font-size:.8rem">+'+_rrr.coins.toLocaleString()+' \uD83D\uDCB0</span>':'')+
         '</div></div>';
     }
@@ -2523,6 +2546,7 @@ function showResult(won,text){
     extra+
     '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px">'+
     '<button class="cw-btn" onclick="startNewGame()">&#9822; Neu spielen</button>'+
+    '<button class="cw-btn" onclick="bpAnalysis.show(chess.rec||[])" style="border-color:#bb55ff;color:#bb55ff">&#128270; Analyse</button>'+
     '<button class="cw-btn" onclick="chess.status=\'idle\';showPregameSelect()" style="border-color:#3de0ff;color:#3de0ff">&#9881;&#65039; Neu aufstellen</button>'+
     '</div></div>';
   setStatus(text,won?'#c6ff3d':won===null?'#c6ff3d':'#ff5d8f');
@@ -2545,9 +2569,6 @@ const SHOP_ITEMS=[
   {id:'jungle', name:'Dschungel-Set',emoji:'J', price:100000,type:'pieceSkin'},
   {id:'ocean_p',name:'Ozean-Set',    emoji:'O', price:100000,type:'pieceSkin'},
   {id:'space',  name:'Weltraum-Set', emoji:'S', price:100000,type:'pieceSkin'},
-  {id:'key1',   name:'1 Schlüssel',  emoji:'K', price:1000, type:'key',amount:1},
-  {id:'key10',  name:'10 Schlüssel', emoji:'K', price:9000, type:'key',amount:10},
-  {id:'key50',  name:'50 Schlüssel', emoji:'K', price:40000,type:'key',amount:50},
 ];
 function showToast(msg,color){
   const old=q('#cw-toast');if(old)old.remove();
@@ -2572,12 +2593,14 @@ function buyShopItem(itemId){
     if(!G.shopOwned)G.shopOwned={};
     G.shopOwned[itemId]=true;
     showToast('✅ '+item.name+' freigeschaltet!','#4aff4a');
-  }else if(item.type==='key'){
-    G.coins-=item.price;
-    G.keys+=item.amount;
-    showToast('✅ +'+item.amount+' Schlüssel 🔑 erhalten!','#4aff4a');
   }
   save();renderShopScreen();updateTopBar();
+}
+async function buyKeyPack(packId){
+  const j=await cwApi('buy-keys',{packId:packId});
+  if(!j.ok){showToast('❌ '+(j.error||'Fehler'),'#ff5d8f');return;}
+  showToast('✅ Schlüssel gekauft 🔑','#4aff4a');
+  renderShopScreen();updateTopBar();
 }
 
 function renderShopScreen(){
@@ -2615,27 +2638,30 @@ function renderShopScreen(){
   h2.style.cssText='font-size:.6rem;color:#3de0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #00e5ff66';
   h2.textContent='Schlüssel kaufen';el.appendChild(h2);
 
-  // Münzen-Anzeige
+  // Brain-Pulse-Münzen (Konto)
   const coinInfo=document.createElement('div');
   coinInfo.style.cssText='font-size:.55rem;color:#c6ff3d;text-align:center;margin-bottom:8px';
-  coinInfo.textContent='Deine Münzen: '+(G.coins||0).toLocaleString()+' 💰';
+  coinInfo.textContent=CW_SERVER.loggedIn?('Brain-Pulse-Münzen: '+(CW_SERVER.bpCoins||0).toLocaleString()+' 🪙 · Schlüssel: '+G.keys+' 🔑 · Gratis-Schlüssel heute noch: '+CW_SERVER.freeKeysLeft):'Bitte in Brain Pulse einloggen, um Schlüssel zu nutzen.';
   el.appendChild(coinInfo);
-
   const kg=document.createElement('div');
   kg.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:6px';
-  SHOP_ITEMS.filter(i=>i.type==='key').forEach(item=>{
-    const can=(G.coins||0)>=item.price;
+  (CW_SERVER.packs||[]).forEach(function(p){
+    const can=CW_SERVER.loggedIn&&(CW_SERVER.bpCoins||0)>=p.coins;
     const c=document.createElement('div');
     c.style.cssText='border:1px solid '+(can?'#c6ff3d66':'#10141f')+';border-radius:10px;padding:8px 4px;text-align:center;background:#0a0d16';
-    c.innerHTML='<div style="font-size:1.2rem">+'+item.amount+'🔑</div><div style="font-size:.5rem;color:#c6ff3d;margin:3px 0">'+item.name+'</div>';
+    c.innerHTML='<div style="font-size:1.2rem">+'+p.keys+'🔑</div>';
     const btn=document.createElement('button');
     btn.style.cssText='width:100%;font-size:.48rem;padding:3px;background:#100a00;border:1px solid '+(can?'#c6ff3d':'#333')+';color:'+(can?'#c6ff3d':'#444')+';border-radius:4px;cursor:'+(can?'pointer':'default');
-    btn.textContent=item.price.toLocaleString()+' 💰';
-    btn.onclick=()=>buyShopItem(item.id);
+    btn.textContent=p.coins.toLocaleString()+' 🪙';
+    btn.onclick=function(){if(can)buyKeyPack(p.id);};
     c.appendChild(btn);
     kg.appendChild(c);
   });
   el.appendChild(kg);
+  const hint=document.createElement('div');
+  hint.style.cssText='font-size:.48rem;color:#888;text-align:center;margin-top:8px';
+  hint.textContent='Brain-Pulse-Münzen gibt es im Brain-Pulse-Shop.';
+  el.appendChild(hint);
 }
 // ============================================================
 // SCREENS
@@ -2907,6 +2933,7 @@ function updateTopBar(){
 }
 
 function renderHome(){
+  renderGameHistory();
   const r=RANKS[G.rankIdx];
   const rn=getEloRankName();
   if(q('#h-rank')){q('#h-rank').textContent=rn;q('#h-rank').style.color=r.color;}
@@ -3439,6 +3466,7 @@ function renderChestChanceTable(){
 }
 
 function renderChestScreen(){
+  cwRefreshKeys().then(function(){if(q('#chest-keys'))q('#chest-keys').textContent=G.keys;});
   if(q('#chest-keys'))q('#chest-keys').textContent=G.keys;
   if(q('#chest-coins'))q('#chest-coins').textContent=(G.coins||0).toLocaleString();
   if(q('#chest-result')){q('#chest-result').innerHTML='';q('#chest-result').style.borderColor='transparent';q('#chest-result').style.padding='0';q('#chest-result').style.background='transparent';q('#chest-result').style.boxShadow='none';}
@@ -3451,10 +3479,11 @@ function closeChestModal(){
   const rp=q('#chest-result-phase');if(rp)rp.style.display='none';
 }
 
-function doOpenChest(type){
+async function doOpenChest(type){
   try{
-    const res=openChest(type);
-    if(!res){ showToast('❌ Nicht genug Schlüssel!','#ff5d8f'); return; }
+    if(window.__cwOpening)return;window.__cwOpening=true;
+    let res;try{res=await openChest(type);}finally{window.__cwOpening=false;}
+    if(!res||res.error){ showToast('❌ '+((res&&res.error)||'Nicht genug Schlüssel!'),'#ff5d8f'); return; }
     updateTopBar();
 
     const results=res.results;
@@ -3539,7 +3568,7 @@ function q(s){return document.querySelector(s);}
 // ============================================================
 
 document.addEventListener('DOMContentLoaded',function(){
-  load();initStarters();
+  load();initStarters();cwRefreshKeys().then(function(){try{renderShopScreen();}catch(e){}return cwLoadInv();});
   setTimeout(function(){
     showScreen('play');
     navSet(0);
@@ -3670,7 +3699,7 @@ function claimQuest(id){
   const quest=QUESTS.find(q=>q.id===id);if(!quest)return;
   if(!isQuestClaimable(quest))return;
   G.questDone[id]=true;
-  if(quest.reward.keys)G.keys+=quest.reward.keys;
+  if(quest.reward.keys){if(!G.coins)G.coins=0;G.coins+=quest.reward.keys*50;}
   if(quest.reward.coins){if(!G.coins)G.coins=0;G.coins+=quest.reward.coins;}
   save();
   renderQuestScreen();

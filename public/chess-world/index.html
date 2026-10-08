@@ -31,6 +31,10 @@
       <div id="h-loss-warn" style="display:none;text-align:center;font-size:.65rem;color:#ff9900;margin-top:6px;padding:4px 8px;background:#10141f;border-radius:6px;border:1px solid #ff990044"></div>
     </div>
     <div class="panel">
+      <div class="section-lbl">MEINE SPIELE</div>
+      <div class="game-history-list" id="game-history-home"></div>
+    </div>
+    <div class="panel">
       <div class="section-lbl">RANG-LEITER</div>
       <div id="rank-ladder"></div>
     </div>
@@ -70,7 +74,7 @@
     <div id="game-result"></div>
     <div id="game-history-wrap" style="width:100%;margin-top:8px">
       <div class="section-lbl" style="margin-bottom:6px">MEINE SPIELE</div>
-      <div id="game-history-list"></div>
+      <div class="game-history-list" id="game-history-list"></div>
     </div>
   </div>
 
@@ -248,6 +252,7 @@
   </div>
 </div>
 
+<script src="/chess/analysis.js"></script>
 <script src="game.js"></script>
 <script>
 function navSet(idx){
