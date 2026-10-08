@@ -203,6 +203,7 @@
   .explanation{ margin-top:16px; padding:14px 16px; border-radius:12px; background:var(--bg-alt); border:1px solid var(--line); font-size:13.5px; color:var(--text-dim); line-height:1.5; }
   .next-hint{ margin-top:14px; font-size:12px; color:var(--text-dim); text-align:right; }
 
+  .avatar-img{ border-radius:50%; object-fit:cover; display:inline-block; vertical-align:middle; }
   .avatar-circle{ width:34px; height:34px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; color:white; }
 
   /* Pass & Play */
@@ -3076,6 +3077,33 @@ const AVATAR_EMOJIS = [
   "🌟","⚡","🔥","🎯","🚀","🎮","🎲","🧠","👾","🤖",
   "🍕","🍉","🍩","⚽","🏀","🎸","🎨","📚","🌈","🍀"
 ];
+// Figuren-Profilbilder (Gehirn-Charaktere). Gespeichert wird nur die Kennung
+// "img:<id>" im selben Feld wie bei Emojis (Server erlaubt bis 16 Zeichen).
+const AVATAR_IMAGES = [
+  { id:"img:cat",   file:"cat",   de:"Katze",     en:"Cat" },
+  { id:"img:lady",  file:"lady",  de:"Dame",      en:"Lady" },
+  { id:"img:dog",   file:"dog",   de:"Hund",      en:"Dog" },
+  { id:"img:girl",  file:"girl",  de:"Mädchen",   en:"Girl" },
+  { id:"img:man",   file:"man",   de:"Mann",      en:"Man" },
+  { id:"img:man2",  file:"man2",  de:"Mann 2",    en:"Man 2" },
+  { id:"img:prof",  file:"prof",  de:"Professor", en:"Professor" },
+  { id:"img:robo",  file:"robo",  de:"Roboter",   en:"Robot" },
+  { id:"img:robo2", file:"robo2", de:"Roboter 2", en:"Robot 2" }
+];
+function avatarImage(avatar){ return AVATAR_IMAGES.find(i => i.id === avatar) || null; }
+function avatarHtml(avatar, px){
+  const img = avatarImage(avatar);
+  if(img) return `<img class="avatar-img" src="/avatars/${img.file}.webp" alt="" style="width:${px}px;height:${px}px;">`;
+  if(typeof avatar === "string" && avatar.startsWith("img:")) return "🙂";
+  return avatar || "🙂";
+}
+// Runder Kreis mit Bild, sonst die Initialen-Kachel wie bisher.
+function avatarBubbleHtml(profile, cls, px, extraText){
+  const name = (profile && profile.name) || "?";
+  if(profile && avatarImage(profile.avatar))
+    return `<div class="${cls}" style="background:none; padding:0; overflow:hidden;">${avatarHtml(profile.avatar, px)}</div>`;
+  return `<div class="${cls}" style="background:${avatarColor(name)}">${extraText}</div>`;
+}
 function createProfile(name){
   const p = { id:"p_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
     name: name.trim(), score:0, tier:0, klasse:0, consecutiveFails:0, roundsPlayed:0, wins:0, losses:0,
@@ -3127,7 +3155,7 @@ async function restoreAccountSession(){
 
 function accountIndicatorHtml(){
   if(account){
-    return `<div class="account-bar">👤 ${esc(account.profile.username)} · <button class="account-link" onclick="startFriendsFlow()">👥 ${L('Freunde','Friends')}</button> · <button class="account-link" onclick="logoutAccount()">${L('Abmelden','Log out')}</button></div>`;
+    return `<div class="account-bar">${account.profile.avatar ? avatarHtml(account.profile.avatar, 20) : "👤"} ${esc(account.profile.username)} · <button class="account-link" onclick="startFriendsFlow()">👥 ${L('Freunde','Friends')}</button> · <button class="account-link" onclick="logoutAccount()">${L('Abmelden','Log out')}</button></div>`;
   }
   return `<div class="account-bar"><button class="account-link" onclick="renderAccountAuth('login')">${L('Anmelden','Log in')}</button></div>`;
 }
@@ -3749,8 +3777,8 @@ if(!AVAILABLE_LANGS.some(l => l.code === currentLang)) currentLang = "de";
    muss nirgendwo im Code mehr etwas geändert werden.
    ============================================================================ */
 const DEDICATED_MODES = {
-  slf:        { icon:"🗺️", title:"Scattergories",       screenTitle:"SCATTERGORIES",    germanOnly:true  },
-  blitz:      { icon:"⚡", title:"Quick-Fire",            screenTitle:"QUICK-FIRE",         germanOnly:true  },
+  slf:        { icon:"🗺️", title:"Scattergories",       screenTitle:"SCATTERGORIES",    germanOnly:false },
+  blitz:      { icon:"⚡", title:"Quick-Fire",            screenTitle:"QUICK-FIRE",         germanOnly:false },
   ordering:   { icon:"🔢", title:"Drag and Drop",         screenTitle:"DRAG AND DROP",             germanOnly:false },
   // chronology, picture und music sind auf Wunsch komplett draußen (music
   // dauerhaft entfernt inkl. Erfolge/Statistik, chronology/picture nur
@@ -3814,6 +3842,7 @@ function startDedicatedMenu(gm){
    ============================================================================ */
 const ARENA_BLOCKS_PER_MATCH_CLIENT = 4; // muss zu ARENA_BLOCKS_PER_MATCH im Server passen
 
+function openChessWorld(){ window.location.href = '/chess-world/index.html'; }
 function startArenaFlow(){
   setAudioZone("menu");
   if(!account){
@@ -4045,9 +4074,9 @@ const I18N = {
   lang_picker_label: {de:"Sprache", en:"Language", ja:"言語", zh:"语言", fr:"Langue", it:"Lingua", es:"Idioma"},
 
   menu_solo_title: {de:"BRAIN TEST", en:"BRAIN TEST", ja:"BRAIN TEST", zh:"BRAIN TEST", fr:"BRAIN TEST", it:"BRAIN TEST", es:"BRAIN TEST"},
-  menu_solo_desc: {de:"Spiele allein und verbessere deinen eigenen Punktestand und Rang.", en:"Play alone and improve your own score and rank.", ja:"一人でプレイして、自分のスコアとランクを上げよう。", zh:"独自游戏，提升你自己的分数和段位。", fr:"Joue seul et améliore ton propre score et ton rang.", it:"Gioca da solo e migliora il tuo punteggio e il tuo grado.", es:"Juega solo y mejora tu propia puntuación y rango."},
+  menu_solo_desc: {de:"Allein spielen, Rang steigern.", en:"Play solo and rank up.", ja:"一人でプレイして、自分のスコアとランクを上げよう。", zh:"独自游戏，提升你自己的分数和段位。", fr:"Joue seul et améliore ton propre score et ton rang.", it:"Gioca da solo e migliora il tuo punteggio e il tuo grado.", es:"Juega solo y mejora tu propia puntuación y rango."},
   menu_party_title: {de:"PARTY RAUM", en:"PARTY ROOM", ja:"パーティールーム", zh:"聚会房间", fr:"SALLE DE SOIRÉE", it:"STANZA PARTY", es:"SALA DE FIESTA"},
-  menu_party_desc: {de:"Bis zu 6 Spieler auf eigenen Geräten im selben WLAN, mit Teams und mehreren Spielmodi.", en:"Up to 6 players on their own devices on the same network, with teams and multiple game modes.", ja:"同じネットワーク上で最大6人がそれぞれの端末で参加。チームと複数のゲームモード。", zh:"最多6名玩家在同一网络下用各自设备游玩，支持组队和多种模式。", fr:"Jusqu'à 6 joueurs sur leurs propres appareils sur le même réseau, avec équipes et plusieurs modes de jeu.", it:"Fino a 6 giocatori sui propri dispositivi nella stessa rete, con squadre e più modalità di gioco.", es:"Hasta 6 jugadores en sus propios dispositivos en la misma red, con equipos y varios modos de juego."},
+  menu_party_desc: {de:"Bis zu 6 Spieler, Teams, viele Modi.", en:"Up to 6 players, teams, many modes.", ja:"同じネットワーク上で最大6人がそれぞれの端末で参加。チームと複数のゲームモード。", zh:"最多6名玩家在同一网络下用各自设备游玩，支持组队和多种模式。", fr:"Jusqu'à 6 joueurs sur leurs propres appareils sur le même réseau, avec équipes et plusieurs modes de jeu.", it:"Fino a 6 giocatori sui propri dispositivi nella stessa rete, con squadre e più modalità di gioco.", es:"Hasta 6 jugadores en sus propios dispositivos en la misma red, con equipos y varios modos de juego."},
   menu_ranking: {de:"RANKING", en:"RANKING", ja:"ランキング", zh:"排行榜", fr:"CLASSEMENT", it:"CLASSIFICA", es:"CLASIFICACIÓN"},
   menu_stats: {de:"STATISTIK", en:"STATISTICS", ja:"統計", zh:"统计", fr:"STATISTIQUES", it:"STATISTICHE", es:"ESTADÍSTICAS"},
   menu_footer: {de:"Alle Daten werden lokal in deinem Browser gespeichert.", en:"All data is stored locally in your browser.", ja:"すべてのデータはブラウザにローカル保存されます。", zh:"所有数据均存储在你的浏览器本地。", fr:"Toutes les données sont stockées localement dans ton navigateur.", it:"Tutti i dati sono salvati localmente nel tuo browser.", es:"Todos los datos se guardan localmente en tu navegador."},
@@ -4216,10 +4245,10 @@ function renderMainMenu(){
         <h3>${t('menu_party_title')}</h3>
         <p>${t('menu_party_desc')}</p>
       </div>
-      <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'startArenaFlow()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
+      <div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon">🏆</div>
         <h3>Arena</h3>
-        <p>${currentLang!=='de' ? 'Only available in German' : 'Bestenliste – Match spielen, Punkte sammeln, aufsteigen'}</p>
+        <p>${L('Coming soon','Coming soon')}</p>
       </div>
     </div>
 
@@ -4231,12 +4260,17 @@ function renderMainMenu(){
       <div class="mode-card" onclick="startSpeedMathFlow()">
         <div class="icon">🧮</div>
         <h3>Speed Math</h3>
-        <p>${L('Kopfrechnen gegen die Uhr – wie viele schaffst du?','Mental math against the clock – how many can you get?')}</p>
+        <p>${L('Schnell kopfrechnen.','Quick mental math.')}</p>
+      </div>
+      <div class="mode-card ${currentLang!=='de'?'locked':''}" onclick="${currentLang!=='de'?'':'openChessWorld()'}" style="${currentLang!=='de'?'opacity:.45; cursor:default;':''}">
+        <div class="icon">♞</div>
+        <h3>Chess World</h3>
+        <p>${currentLang!=='de' ? L('Nur auf Deutsch verfügbar','Only available in German') : 'Schach-RPG mit Truhen und Rängen.'}</p>
       </div>
       <div class="mode-card" onclick="startBiologyFlow()">
         <div class="icon">🧬</div>
         <h3>${L('Biologie','Biology')}</h3>
-        <p>${L('Körper entdecken: Thema wählen und alle 20 Fragen beantworten. Inkl. Sexualkunde.','Explore the body: pick a topic and answer all 20 questions. Incl. sex ed.')}</p>
+        <p>${L('Körper entdecken – inkl. Sexualkunde.','Explore the body – incl. sex ed.')}</p>
       </div>
     </div>
 
@@ -4266,7 +4300,7 @@ function statCardHtml(p, extraArena){
   return `
     <div class="stat-card">
       <div class="row1">
-        <span class="avatar-badge" style="font-size:22px; cursor:pointer; margin-right:8px;" onclick="renderAvatarPicker('${p.id}', renderStatistik)" title="${L('Profilbild ändern','Change profile picture')}">${p.avatar || "🙂"}</span>
+        <span class="avatar-badge" style="font-size:22px; cursor:pointer; margin-right:8px;" onclick="renderAvatarPicker('${p.id}', renderStatistik)" title="${L('Profilbild ändern','Change profile picture')}">${avatarHtml(p.avatar, 30)}</span>
         <div class="sname">${esc(p.name)}${p.isAccount ? ' <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(' + L('Konto – gilt für alle Modi','Account – applies to all modes') + ')</span>' : ''}</div>
       </div>
       <div class="picker-sub" style="margin:4px 0 8px;">${klassePillHtml(p.klasse||0)} <span style="margin-left:6px;">${L('Aktuelle Klasse (Brain Test)','Current class (Brain Test)')}</span></div>
@@ -4294,8 +4328,32 @@ function statCardHtml(p, extraArena){
           </div>
         `;}).join("")}
       </div>
+      ${chessWorldStatHtml()}
     </div>
   `;
+}
+// Chess World speichert seinen Stand unter "cw_v4" im selben Browser (eigene
+// Seite /chess-world/). Die Statistik liest daraus nur Rang und Bilanz.
+const CW_RANK_NAMES = ["Amateur 3","Amateur 2","Amateur 1","Bronze 3","Bronze 2","Bronze 1","Silber 3","Silber 2","Silber 1","Gold 3","Gold 2","Gold 1","Platin 3","Platin 2","Platin 1","Diamant 3","Diamant 2","Diamant 1","Meister","Grandmeister","Legende"];
+const CW_RANK_NAMES_EN = ["Amateur 3","Amateur 2","Amateur 1","Bronze 3","Bronze 2","Bronze 1","Silver 3","Silver 2","Silver 1","Gold 3","Gold 2","Gold 1","Platinum 3","Platinum 2","Platinum 1","Diamond 3","Diamond 2","Diamond 1","Master","Grandmaster","Legend"];
+function chessWorldSummary(){
+  try{
+    const raw = localStorage.getItem("cw_v4");
+    if(!raw) return null;
+    const g = JSON.parse(raw);
+    const games = g.totalFights|0, wins = g.totalWins|0;
+    if(games <= 0) return null;
+    const names = currentLang === "de" ? CW_RANK_NAMES : CW_RANK_NAMES_EN;
+    return { games, wins, rank: names[Math.max(0, Math.min(names.length-1, g.rankIdx|0))] };
+  }catch(e){ return null; }
+}
+function chessWorldStatHtml(){
+  const s = chessWorldSummary();
+  if(!s) return "";
+  return `<div class="mode-stat-grid" style="margin-top:10px;"><div class="mode-stat-card" style="--mc:#c8a000; grid-column:1 / -1;">
+    <div class="title">♞ Chess World · ${s.rank}</div>
+    <div class="values"><span><span class="n">${s.games}</span><br><span class="l">${L('gespielt','played')}</span></span><span><span class="n">${s.wins}</span><br><span class="l">${L('Siege','wins')}</span></span></div>
+  </div></div>`;
 }
 // Profilbild-Auswahl fuer ein einzelnes Profil (lokal ODER das angemeldete
 // Konto, erkennbar an der Sonder-ID "account:<username>" aus
@@ -4318,8 +4376,15 @@ function renderAvatarPicker(profileId, backFn){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${L('Profilbild wählen','Choose profile picture')}</div>
-      <div class="picker-sub">${esc(profile.name)} – ${L('tippe auf ein Symbol','tap a symbol')}</div>
-      <div style="text-align:center; font-size:56px; margin:16px 0;">${profile.avatar || "🙂"}</div>
+      <div class="picker-sub">${esc(profile.name)} – ${L('tippe auf ein Bild','tap a picture')}</div>
+      <div style="height:96px; display:flex; align-items:center; justify-content:center; font-size:72px; line-height:1; margin:16px 0;">${avatarHtml(profile.avatar || "🙂", 96)}</div>
+      <div class="picker-sub" style="margin-top:6px;">${L('Figuren','Characters')}</div>
+      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:8px;">
+        ${AVATAR_IMAGES.map(i => `
+          <button class="btn ${i.id === profile.avatar ? 'btn-primary' : 'btn-ghost'}" style="padding:6px 0; line-height:0;" title="${L(i.de, i.en)}" onclick="avatarPickerChoose('${profileId}', '${i.id}', ${isAccountProfile})">${avatarHtml(i.id, 72)}</button>
+        `).join("")}
+      </div>
+      <div class="picker-sub" style="margin-top:16px;">${L('Symbole','Symbols')}</div>
       <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; margin-top:8px;">
         ${AVATAR_EMOJIS.map(e => `
           <button class="btn ${e === profile.avatar ? 'btn-primary' : 'btn-ghost'}" style="font-size:24px; padding:10px 0;" onclick="avatarPickerChoose('${profileId}', '${e}', ${isAccountProfile})">${e}</button>
@@ -5624,12 +5689,8 @@ function renderSpeedMathEntry(profile){
   renderApp(`
     <div class="panel">
       <div class="picker-title">SPEED MATH</div>
-      <div class="picker-sub">${profile.name} – ${L('Plus, Minus, Mal, Geteilt, Zahlen bis zum kleinen Einmaleins (1-10). Wie viele schaffst du?','Plus, minus, times, divided by, numbers up to the times tables (1-10). How many can you get?')}</div>
-      <div class="picker-sub" style="margin-top:14px;">${L('Wie lange möchtest du spielen?','How long do you want to play?')}</div>
-      <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
-        ${SPEEDMATH_DURATIONS.map(d => `<button class="btn btn-primary btn-block" onclick="startSpeedMathGame(${d.sec})">${d.label}</button>`).join("")}
-      </div>
-      <button class="btn btn-ghost btn-block" style="margin-top:16px; background:var(--accent-2); color:#08110c;" onclick="startSpeedMathMilestoneFlow(speedMathProfile)">🏔️ ${L('MEILENSTEIN-MODUS (50 Level)','MILESTONE MODE (50 levels)')}</button>
+      <div class="picker-sub">${profile.name} – ${L('Plus, Minus, Mal, Geteilt (1–10).','Plus, minus, times, divide (1–10).')}</div>
+      <button class="btn btn-ghost btn-block" style="margin-top:18px; background:var(--accent-2); color:#08110c;" onclick="startSpeedMathMilestoneFlow(speedMathProfile)">🏔️ ${L('MEILENSTEIN-MODUS (50 Level)','MILESTONE MODE (50 levels)')}</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px; background:#ffb020; color:#2a1900;" onclick="startOrderOfSpeedFlow(speedMathProfile)">🔢 ORDER OF SPEED</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
@@ -7656,7 +7717,7 @@ function beginSolo(profile, isHaupttest, repeatKlasseIdx){
 
   renderApp(`
     <div class="panel pass-card">
-      <div class="avatar-big" style="background:${avatarColor(profile.name)}">${initials(profile.name)}</div>
+      ${avatarBubbleHtml(profile, "avatar-big", 72, initials(profile.name))}
       <h2>${profile.name}</h2>
       ${isHaupttest ? `
         <p>${isRepeat
@@ -8017,7 +8078,7 @@ function renderMPPassScreen(){
   const q = mp.questions[mp.qIndex];
   renderApp(`
     <div class="panel pass-card">
-      <div class="avatar-big" style="background:${avatarColor(player.name)}">${esc(initials(player.name))}</div>
+      ${avatarBubbleHtml(player, "avatar-big", 72, esc(initials(player.name)))}
       <h2>${player.name.toUpperCase()} IST DRAN</h2>
       <p>${L(`Frage ${mp.qIndex+1} von 5 · Gib das Gerät weiter, damit nur ${esc(player.name)} die Frage sieht.`,`Question ${mp.qIndex+1} of 5 · Pass the device on so only ${esc(player.name)} sees the question.`)}</p>
       <button class="btn btn-primary" onclick="renderMPQuestion()">BEREIT – FRAGE ANZEIGEN</button>
@@ -8165,7 +8226,7 @@ function endMPRound(){
         return `
           <div class="leaderboard-row">
             <div class="medal">${medals[i]}</div>
-            <div class="avatar-circle" style="background:${avatarColor(p.profile.name)}">${initials(p.profile.name)}</div>
+            ${avatarBubbleHtml(p.profile, "avatar-circle", 34, initials(p.profile.name))}
             <div>
               <div class="lname">${p.profile.name} ${p.isWinner ? '👑' : ''}</div>
               <div class="lsub">${p.roundCorrect} ${L('richtig','correct')} · ${p.roundWrong} ${L('falsch','wrong')} ${changed ? '· <b style="color:var(--accent-2)">'+L('NEU','NEW')+': '+rankAfter.name+'</b>' : ''}</div>
@@ -8855,7 +8916,9 @@ const PARTY_MODE_META = {
   stadtLandFluss: "Scattergories",
   ticTacToeGame: "Tic Tac Toe"
 };
-const SLF_SUGGESTED_CATEGORIES = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Filmtitel","Promi","Getränk","Sportart"];
+const SLF_SUGGESTED_CATEGORIES_DE = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Filmtitel","Promi","Getränk","Sportart"];
+const SLF_SUGGESTED_CATEGORIES_EN = ["City","Country","River","Name","Animal","Job","Plant","Color","Car brand","Movie title","Celebrity","Drink","Sport"];
+function slfSuggestedCats(){ return currentLang === "de" ? SLF_SUGGESTED_CATEGORIES_DE : SLF_SUGGESTED_CATEGORIES_EN; }
 // Entfernt das redundante "Einordnen: "/"Mehr oder Weniger: "/"Nenn's Blitz: "
 // usw. am Anfang eines Label - sinnvoll ueberall dort, wo ohnehin schon klar
 // ist, in welchem Modus man gerade ist (Titel waehrend des Spiels, Auswahl-
@@ -9002,22 +9065,22 @@ function renderRoundBuilder(){
 
       ${isSlf ? `
         <div class="settings-row" style="display:block; border-bottom:none; margin-top:12px; padding-bottom:6px;">
-          <span class="label">Kategorien-Auswahl</span>
+          <span class="label">${L('Kategorien-Auswahl','Category selection')}</span>
           <div class="chip-group" style="margin-top:8px;">
-            <div class="chip-btn ${b.selectedDefId==='slf_original'?'active':''}" onclick="builderSlfChooseOriginal()">🎲 Original (${SLF_DEFAULT_CATEGORIES_CLIENT.join(', ')})</div>
-            <div class="chip-btn ${b.selectedDefId==='slf_party'?'active':''}" onclick="builderSlfChoosePartyMix()">🎉 Party-Mix (10 zufällige Kategorien)</div>
-            <div class="chip-btn ${b.slfMode==='custom'?'active':''}" onclick="builderSlfChooseCustom()">✏️ Eigene Kategorien</div>
+            <div class="chip-btn ${b.selectedDefId==='slf_original'?'active':''}" onclick="builderSlfChooseOriginal()">🎲 Original (${slfDefaultCatsClient().join(', ')})</div>
+            <div class="chip-btn ${b.selectedDefId==='slf_party'?'active':''}" onclick="builderSlfChoosePartyMix()">🎉 ${L('Party-Mix (10 zufällige Kategorien)','Party mix (10 random categories)')}</div>
+            <div class="chip-btn ${b.slfMode==='custom'?'active':''}" onclick="builderSlfChooseCustom()">✏️ ${L('Eigene Kategorien','Custom categories')}</div>
           </div>
           ${b.slfMode === 'custom' ? `
             <div style="margin-top:12px;">
               <div class="chip-group">
-                ${SLF_SUGGESTED_CATEGORIES.map(cat => `<div class="chip-btn ${b.slfCategories.includes(cat)?'active':''}" onclick="builderSlfToggleCategory('${cat}')">${cat}</div>`).join("")}
+                ${slfSuggestedCats().map(cat => `<div class="chip-btn ${b.slfCategories.includes(cat)?'active':''}" onclick="builderSlfToggleCategory('${cat}')">${cat}</div>`).join("")}
               </div>
               <div class="picker-form" style="margin-top:10px;">
-                <input type="text" id="slfCustomCatInput" class="builder-search" style="margin-top:0;" placeholder="Eigene Kategorie eintippen …" maxlength="20" onkeydown="if(event.key==='Enter'){event.preventDefault();builderSlfAddCustomCategory();}">
+                <input type="text" id="slfCustomCatInput" class="builder-search" style="margin-top:0;" placeholder="${L('Eigene Kategorie eintippen …','Type your own category …')}" maxlength="20" onkeydown="if(event.key==='Enter'){event.preventDefault();builderSlfAddCustomCategory();}">
                 <button class="btn btn-ghost" onclick="builderSlfAddCustomCategory()">+ ${L('Hinzufügen','Add')}</button>
               </div>
-              ${b.slfCategories.length ? `<div class="picker-sub" style="margin-top:8px;">Ausgewählt: ${b.slfCategories.join(', ')}</div>` : `<div class="picker-sub" style="margin-top:8px;">Mindestens eine Kategorie auswählen oder eintippen.</div>`}
+              ${b.slfCategories.length ? `<div class="picker-sub" style="margin-top:8px;">${L('Ausgewählt','Selected')}: ${b.slfCategories.join(', ')}</div>` : `<div class="picker-sub" style="margin-top:8px;">${L('Mindestens eine Kategorie auswählen oder eintippen.','Pick or type at least one category.')}</div>`}
             </div>
           ` : ``}
         </div>
@@ -9049,7 +9112,9 @@ function renderRoundBuilder(){
     </div>
   `);
 }
-const SLF_DEFAULT_CATEGORIES_CLIENT = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Promi"];
+const SLF_DEFAULT_CATEGORIES_CLIENT_DE = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Promi"];
+const SLF_DEFAULT_CATEGORIES_CLIENT_EN = ["City","Country","River","Name","Animal","Job","Plant","Color","Car brand","Celebrity"];
+function slfDefaultCatsClient(){ return currentLang === "de" ? SLF_DEFAULT_CATEGORIES_CLIENT_DE : SLF_DEFAULT_CATEGORIES_CLIENT_EN; }
 
 function builderSetModeSearch(v){ party.roundBuilder.modeSearch = v; renderRoundBuilder(); }
 function builderSetCategorySearch(v){ party.roundBuilder.categorySearch = v; renderRoundBuilder(); }
