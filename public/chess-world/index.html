@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>Chess World – Brain Pulse</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="top-bar" id="top-bar">
+    <a href="/" class="bp-back" title="Brain Pulse">←</a>
+    <div class="top-title">♘ CHESS WORLD</div>
+    <div class="top-right">
+      <div class="keys-badge">🔑 <span id="tb-keys">0</span> &nbsp;🪙 <span id="tb-coins" style="color:#ffd700">0</span></div>
+    </div>
+  </div>
+
+  <!-- ==================== RANG ==================== -->
+  <div class="cw-screen" id="s-home" style="display:none">
+    <div class="panel">
+      <div class="section-lbl">AKTUELLER RANG</div>
+      <div class="panel-title" id="h-rank">Amateur 3</div>
+      <div class="sbar-wrap"><div id="h-sbar" style="width:0%"></div></div>
+      <div class="info-row">
+        <span>&#9889; Serie: <strong id="h-streak">0/3</strong></span>
+        <span>&#128481; <strong id="h-record">0S / 0N</strong></span>
+      </div>
+      <div id="h-loss-warn" style="display:none;text-align:center;font-size:.65rem;color:#ff9900;margin-top:6px;padding:4px 8px;background:#1a0800;border-radius:6px;border:1px solid #ff990044"></div>
+    </div>
+    <div class="panel">
+      <div class="section-lbl">RANG-LEITER</div>
+      <div id="rank-ladder"></div>
+    </div>
+    <button onclick="if(confirm('Spielstand zurücksetzen?')){localStorage.removeItem('cw_v4');localStorage.removeItem('cw_v3');location.reload();}"
+      style="background:#1a0000;border:1px solid #cc2200;border-radius:8px;color:#ff4422;font-size:.7rem;padding:8px 18px;cursor:pointer;font-weight:bold;letter-spacing:2px;text-shadow:0 0 8px #ff440066;box-shadow:0 0 10px #cc220033">
+      &#128260; RESET
+    </button>
+  </div>
+
+  <!-- ==================== SCHACH SPIELEN ==================== -->
+  <div class="cw-screen" id="s-play" style="display:none">
+    <div id="pregame-select" style="display:none;width:100%;flex-direction:column;align-items:center;gap:10px;padding:10px 0">
+      <div style="font-size:.7rem;color:#00e5ff;letter-spacing:3px;font-weight:bold;text-shadow:0 0 10px #00e5ff88">WÄHLE DEINE FIGUREN</div>
+      <div style="font-size:.58rem;color:#00e5ff;text-align:center">Tippe eine Figur um ihren Rang zu wählen — ★ markiert seltene Figuren</div>
+      <div id="pregame-board" style="display:grid;grid-template-columns:repeat(8,1fr);width:100%;border:2px solid #c8a000;border-radius:8px;overflow:hidden;box-shadow:0 0 20px #c8a00033"></div>
+      <button onclick="confirmDameAndStart()" style="width:100%;padding:15px;background:linear-gradient(135deg,#1a0000,#3a0000);border:2px solid #c8a000;border-radius:10px;color:#ffd700;font-size:1rem;letter-spacing:3px;cursor:pointer;font-family:Cinzel,serif;font-weight:700;text-shadow:0 0 10px rgba(200,150,0,0.6);box-shadow:0 0 20px rgba(200,0,0,0.3);transition:all .2s;margin-top:4px">&#9876; SPIELEN</button>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:8px">
+      <div id="chess-status" style="color:#ffd700;flex:1">Lade...</div>
+      <div id="move-timer" style="display:none;font-size:.75rem;font-weight:bold;color:#ffd700;min-width:32px;text-align:right">60</div>
+    </div>
+    <div id="timer-bar-wrap" style="display:none;width:100%;height:4px;background:#1a1000;border-radius:2px;margin-bottom:2px">
+      <div id="timer-bar" style="height:100%;width:100%;background:#ffd700;border-radius:2px;transition:width .9s linear"></div>
+    </div>
+    <div id="chess-board"></div>
+    <div id="ability-bar" style="display:flex;flex-direction:column;gap:5px;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:8px;width:100%"></div>
+    <div id="piece-ability-panel" style="display:none;width:100%;border:1px solid #c8a000;border-radius:10px;background:#0a0600;padding:10px 12px;box-shadow:0 0 16px #c8a00033;box-sizing:border-box;margin-top:4px"></div>
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:4px">
+      <button id="hint-btn" onclick="showHint()" style="display:none;padding:5px 14px;border-radius:8px;border:1px solid #4488ff;background:#00091a;color:#4488ff;font-size:.65rem;cursor:pointer">&#128161; TIPP</button>
+    </div>
+    <div class="captured-row">
+      <div>&#128144; KI schlug: <span id="cap-ai" style="font-size:.9rem"></span></div>
+      <div>&#128144; Du schlugst: <span id="cap-player" style="font-size:.9rem"></span></div>
+    </div>
+    <div class="section-lbl bright-lbl" style="margin-bottom:2px">ZUGLOG</div>
+    <div id="move-log"></div>
+    <div id="game-result"></div>
+    <div id="game-history-wrap" style="width:100%;margin-top:8px">
+      <div class="section-lbl" style="margin-bottom:6px">MEINE SPIELE</div>
+      <div id="game-history-list"></div>
+    </div>
+  </div>
+
+  <!-- ==================== SAMMLUNG ==================== -->
+  <div class="cw-screen" id="s-collection" style="display:none">
+    <div style="font-size:.55rem;color:#00e5ff;text-align:center;letter-spacing:2px;text-shadow:0 0 8px #00e5ff66">INVENTAR — Tippe für Rang-Details</div>
+    <div id="col-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
+    <div style="display:flex;align-items:center;gap:8px;width:100%;margin-top:4px">
+      <div style="flex:1;height:1px;background:#1a3a3a"></div>
+      <span style="font-size:.55rem;color:#00e5ff;white-space:nowrap;letter-spacing:2px;text-shadow:0 0 8px #00e5ff66">SKINS</span>
+      <div style="flex:1;height:1px;background:#1a3a3a"></div>
+    </div>
+    <div style="display:flex;gap:8px;width:100%">
+      <button id="skin-tab-brett" onclick="skinTab('brett')" style="flex:1;padding:9px 4px;font-size:.62rem;font-weight:bold;letter-spacing:1px;border-radius:8px;border:2px solid #ffd700;background:#1a1200;color:#ffd700;cursor:pointer">&#9823; BRETT</button>
+      <button id="skin-tab-figur" onclick="skinTab('figur')" style="flex:1;padding:9px 4px;font-size:.62rem;font-weight:bold;letter-spacing:1px;border-radius:8px;border:2px solid #2a1a00;background:#0a0800;color:#3a2a10;cursor:pointer">&#9822; FIGUREN</button>
+    </div>
+    <div id="skin-panel-brett" class="panel" style="width:100%"><div id="skin-grid"></div></div>
+    <div id="skin-panel-figur" class="panel" style="display:none;width:100%"><div id="piece-skin-grid"></div></div>
+  </div>
+
+  <!-- ==================== SHOP ==================== -->
+  <div class="cw-screen" id="s-shop" style="display:none">
+    <div id="shop-panel-kisten" style="width:100%;display:flex;flex-direction:column;gap:7px">
+      <div class="chest-card">
+        <div class="chest-icon">&#128230;</div>
+        <div class="chest-info">
+          <div class="chest-name" style="color:#4aff4a">Normale Kiste</div>
+          <div class="chest-desc">5–10 Karten</div>
+          <div style="font-size:.6rem;color:var(--gold);margin-top:2px">&#128273; 20 &nbsp;&#128176; 200–500</div>
+          <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #6aaa6a44;border-radius:4px;padding:1px 5px;color:#6aaa6a">Rang 1: 89%</span>
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #4488ff44;border-radius:4px;padding:1px 5px;color:#4488ff">Rang 2: 11%</span>
+          </div>
+        </div>
+        <button class="cw-btn" style="border-color:#4aff4a;color:#4aff4a" onclick="doOpenChest('normal')">ÖFFNEN</button>
+      </div>
+      <div class="chest-card" style="border-color:#2a0a3a">
+        <div class="chest-icon">&#128156;</div>
+        <div class="chest-info">
+          <div class="chest-name" style="color:#bb55ff">Epische Kiste</div>
+          <div class="chest-desc">10 Karten · 5× Rang 1 fix</div>
+          <div style="font-size:.6rem;color:#bb55ff;margin-top:2px">&#128273; 50 &nbsp;&#128176; 800–1.500</div>
+          <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #6aaa6a44;border-radius:4px;padding:1px 5px;color:#6aaa6a">Rang 1: 5× fix</span>
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #4488ff44;border-radius:4px;padding:1px 5px;color:#4488ff">Rang 2: 80%</span>
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #bb55ff44;border-radius:4px;padding:1px 5px;color:#bb55ff">Rang 3: 20%</span>
+          </div>
+        </div>
+        <button class="cw-btn" style="border-color:#bb55ff;color:#bb55ff" onclick="doOpenChest('epic')">ÖFFNEN</button>
+      </div>
+      <div class="chest-card" style="border-color:#2a1a00">
+        <div class="chest-icon">&#128081;</div>
+        <div class="chest-info">
+          <div class="chest-name" style="color:#ffd700">Legendäre Kiste</div>
+          <div class="chest-desc">16 Karten · Rang 4–5 fix</div>
+          <div style="font-size:.6rem;color:#ffd700;margin-top:2px">&#128273; 100 &nbsp;&#128176; 3.000–5.000</div>
+          <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #6aaa6a44;border-radius:4px;padding:1px 5px;color:#6aaa6a">Rang 1: 10× fix</span>
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #4488ff44;border-radius:4px;padding:1px 5px;color:#4488ff">Rang 2: 5× fix</span>
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #bb55ff44;border-radius:4px;padding:1px 5px;color:#bb55ff">Rang 3: 1× fix + 80%</span>
+            <span style="font-size:.5rem;background:#0d0900;border:1px solid #ffd70044;border-radius:4px;padding:1px 5px;color:#ffd700">Rang 4: 20%</span>
+          </div>
+        </div>
+        <button class="cw-btn" style="border-color:#ffd700;color:#ffd700" onclick="doOpenChest('legendary')">ÖFFNEN</button>
+      </div>
+    </div>
+    <div id="chest-result"></div>
+    <div id="shop-panel-items" style="width:100%"><div id="shop-items"></div></div>
+  </div>
+
+  <!-- ==================== QUESTS ==================== -->
+  <div class="cw-screen" id="s-quests" style="display:none">
+    <div class="panel">
+      <div class="section-lbl">QUESTS</div>
+      <div id="quest-tabs" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"></div>
+      <div id="quest-list" style="display:flex;flex-direction:column;gap:8px;width:100%"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bot-nav">
+    <button class="nav-btn active" onclick="showScreen('play');navSet(0)">
+      <span>♟</span><span>SPIELEN</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('quests');navSet(1)">
+      <span>&#128214;</span><span>QUESTS</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('collection');navSet(2)">
+      <span>♞</span><span>SAMMLUNG</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('shop');navSet(3)">
+      <span>&#128176;</span><span>SHOP</span>
+    </button>
+    <button class="nav-btn" onclick="showScreen('home');navSet(4)">
+      <span>&#127942;</span><span>RANG</span>
+    </button>
+  </nav>
+
+  <!-- KISTEN-ERGEBNIS POPUP -->
+  <div id="chest-modal" onclick="if(event.target===this)closeChestModal()" style="display:none;position:absolute;inset:0;background:#000000ee;z-index:500;align-items:center;justify-content:center;padding:16px">
+    <div id="chest-anim-phase" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+      <div id="chest-anim-icon" style="font-size:5rem;line-height:1">📦</div>
+      <div id="chest-anim-label" style="font-size:.7rem;color:#ffd700;letter-spacing:3px;font-weight:bold">ÖFFNE KISTE...</div>
+      <div id="chest-anim-glow" style="width:80px;height:4px;border-radius:2px;background:#ffd700;box-shadow:0 0 12px #ffd700;opacity:0;transition:opacity .3s"></div>
+    </div>
+    <div id="chest-result-phase" style="display:none;width:100%;max-width:440px">
+      <div id="chest-modal-inner" style="background:#0a0600;border:2px solid #c8a000;border-radius:14px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;box-sizing:border-box">
+        <div id="chest-modal-title" style="text-align:center;font-size:.8rem;color:#ffd700;letter-spacing:3px;font-weight:bold;margin-bottom:4px">KISTE GEÖFFNET</div>
+        <div id="chest-modal-coins" style="text-align:center;font-size:.7rem;color:#ffd700;margin-bottom:10px"></div>
+        <div id="chest-modal-items" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"></div>
+        <button onclick="closeChestModal()" style="display:block;width:100%;margin-top:14px;padding:10px;background:#1a0e00;border:1px solid #c8a000;border-radius:8px;color:#ffd700;font-size:.7rem;font-weight:bold;cursor:pointer;letter-spacing:2px">✓ SCHLIESSEN</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- PREGAME PIECE PICKER POPUP -->
+<div id="piece-picker-modal" onclick="if(event.target===this)closePiecePicker()" style="display:none;position:fixed;inset:0;background:#000000cc;z-index:200;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#0e0a04;border:2px solid #c8a000;border-radius:14px;padding:16px;width:100%;max-width:340px;max-height:80vh;overflow-y:auto">
+    <div style="font-size:.65rem;color:#c8a000;letter-spacing:2px;font-weight:bold;margin-bottom:10px;text-align:center" id="ppm-title">FIGUR WÄHLEN</div>
+    <div id="ppm-grid" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button onclick="closePiecePicker()" style="margin-top:12px;width:100%;padding:10px;background:#1a0a00;border:1px solid #4a3010;color:#888;border-radius:8px;font-size:.7rem;cursor:pointer">Abbrechen</button>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div id="detail-modal" onclick="if(event.target===this)closeDetail()">
+  <div class="modal-inner">
+    <span class="modal-chess" id="dm-ch"></span>
+    <div class="modal-title" id="dm-nm"></div>
+    <div style="text-align:center;font-size:.7rem;color:#666;margin-top:2px" id="dm-var"></div>
+    <div class="modal-sub" style="margin-top:4px"><span id="dm-rr"></span> &bull; <span id="dm-lv"></span></div>
+    <div class="ab-info" id="dm-ab"></div>
+    <div style="font-size:.62rem;color:#4a3a18;text-align:center;margin-bottom:6px" id="dm-dp"></div>
+    <div style="margin-bottom:10px" id="dm-combine-wrap">
+      <button id="dm-combine-btn" onclick="tryCombineFromModal()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ffd700;background:#1a0e00;color:#ffd700;font-size:.7rem;font-weight:bold;cursor:pointer;letter-spacing:1px">⚡ ENTWICKELN</button>
+    </div>
+    <div style="font-size:.65rem;text-align:center;margin-bottom:10px" id="dm-next"></div>
+    <div class="modal-row">
+      <button onclick="closeDetail()" class="cw-btn" style="flex:1">&#10005; SCHLIESSEN</button>
+    </div>
+  </div>
+</div>
+
+<!-- GRUPPEN-MODAL -->
+<div id="group-modal" onclick="if(event.target===this)closeGroupDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:110;align-items:flex-end;justify-content:center">
+  <div style="background:#0d0a06;border:1px solid #2a1a00;border-radius:14px 14px 0 0;padding:16px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto">
+    <div style="text-align:center;margin-bottom:10px">
+      <span style="font-size:2.5rem" id="gm-chess"></span>
+      <div style="font-size:1rem;font-weight:bold;color:#ddd;letter-spacing:2px" id="gm-name"></div>
+    </div>
+    <div id="gm-detail" style="background:#080600;border:1px solid #2a1a00;border-radius:10px;padding:10px;margin-bottom:12px;display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-size:2rem" id="gmd-chess"></span>
+        <div>
+          <div style="font-size:.85rem;font-weight:bold" id="gmd-name"></div>
+          <div style="font-size:.6rem;color:#888" id="gmd-var"></div>
+          <div style="font-size:.65rem;margin-top:2px"><span id="gmd-rr"></span> &bull; <span id="gmd-cnt" style="color:#aaa"></span></div>
+        </div>
+      </div>
+      <div class="ab-info" id="gmd-ab"></div>
+      <div style="font-size:.6rem;text-align:center;margin-top:6px" id="gmd-next"></div>
+      <div id="gmd-levelup" style="display:none;margin-top:8px;background:#0d0800;border:1px solid #3a2000;border-radius:8px;padding:8px">
+        <div style="font-size:.52rem;color:#00e5ff;letter-spacing:2px;text-align:center;margin-bottom:6px">&#8679; BEIM AUFWERTEN BEKOMMST DU</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-bottom:6px" id="gmd-lu-stats"></div>
+        <div id="gmd-lu-passive" style="background:#080600;border:1px solid #2a2000;border-radius:6px;padding:6px;font-size:.62rem;color:#ffd700"></div>
+        <div style="font-size:.58rem;color:#4a3a18;text-align:center;margin:8px 0 4px" id="gmd-dp"></div>
+        <button id="gmd-combine-btn" onclick="tryGmdCombine()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ffd700;background:#1a0e00;color:#ffd700;font-size:.7rem;font-weight:bold;cursor:pointer;letter-spacing:1px;margin-top:4px">⚡ ENTWICKELN</button>
+      </div>
+    </div>
+    <div style="font-size:.5rem;color:#3a2a10;letter-spacing:2px;text-align:center;margin-bottom:8px">RANG-ÜBERSICHT — Tippe für Details</div>
+    <div id="gm-grid" style="display:grid;grid-template-columns:90px repeat(5,1fr);gap:4px"></div>
+    <button onclick="closeGroupDetail()" class="cw-btn" style="width:100%;margin-top:14px">&#10005; SCHLIESSEN</button>
+  </div>
+</div>
+
+<script src="game.js"></script>
+<script>
+function navSet(idx){
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>b.classList.toggle('active',i===idx));
+}
+navSet(0);
+</script>
+
+</body>
+</html>
