@@ -2898,6 +2898,7 @@ function defaultStats() {
     braintestScores: {}, braintestGate: null, braintestDaily: null, braintestPrestige: 0, braintestExtraAttemptUsed: false,
     avatar: "🙂",
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
+    biologyBest: {}, biologyPerfect: {},
     coins: 0,
     achv: Achv.newState(),
     modeStats: freshModeStats() };
@@ -3092,6 +3093,22 @@ async function saveUserStats(token, stats, lang) {
   }
   if (typeof stats.speedMathHeartsDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(stats.speedMathHeartsDate)) {
     user.stats.speedMathHeartsDate = stats.speedMathHeartsDate;
+  }
+  // Biologie: beste Trefferzahl je Thema + "fehlerfrei"-Markierung (strikt validiert)
+  if (stats.biologyBest && typeof stats.biologyBest === "object" && !Array.isArray(stats.biologyBest)) {
+    const cur = user.stats.biologyBest && typeof user.stats.biologyBest === "object" ? user.stats.biologyBest : {};
+    for (const k of Object.keys(stats.biologyBest).slice(0, 40)) {
+      const v = stats.biologyBest[k];
+      if (/^[a-z_]{1,40}$/.test(k) && typeof v === "number" && Number.isFinite(v)) cur[k] = Math.max(cur[k] || 0, Math.max(0, Math.min(100, Math.round(v))));
+    }
+    user.stats.biologyBest = cur;
+  }
+  if (stats.biologyPerfect && typeof stats.biologyPerfect === "object" && !Array.isArray(stats.biologyPerfect)) {
+    const cur = user.stats.biologyPerfect && typeof user.stats.biologyPerfect === "object" ? user.stats.biologyPerfect : {};
+    for (const k of Object.keys(stats.biologyPerfect).slice(0, 40)) {
+      if (/^[a-z_]{1,40}$/.test(k) && stats.biologyPerfect[k] === true) cur[k] = true;
+    }
+    user.stats.biologyPerfect = cur;
   }
   // Brain-Test-Fortschritt (Klassen-Punktestaende je Klasse, Sperre,
   // Tagesversuche) - verschachtelt, deshalb eigene, strikte Validierung

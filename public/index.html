@@ -123,6 +123,15 @@
   .ttt-style-tile.sel{ border-color:var(--accent); box-shadow:0 0 12px rgba(198,255,61,.35); }
   .ttt-style-tile.lock{ opacity:.45; cursor:default; }
   .ttt-style-tile svg{ width:44px; height:44px; display:block; margin:0 auto 2px; }
+
+  .klasse-tile{ border:1.5px solid var(--line); border-radius:16px; background:#10152a; padding:10px 6px; text-align:center; transition:transform .12s; }
+  .klasse-tile:active{ transform:scale(.97); }
+  .klasse-tile svg{ display:block; margin:0 auto 2px; }
+  .klasse-tile.cur{ border-color:var(--accent); box-shadow:0 0 20px rgba(198,255,61,.3); }
+  .klasse-tile.lock{ opacity:.8; }
+  .klasse-name{ font-weight:800; font-size:14px; color:#fff; }
+  .klasse-tile.lock .klasse-name{ color:#7d86a8; }
+  .klasse-state{ font-size:11px; font-weight:700; margin-top:1px; }
   .btn{ appearance:none; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:15px; border-radius:14px; padding:14px 24px; transition:transform .12s ease, box-shadow .12s ease, background .2s ease; }
   .btn:active{ transform:scale(0.97); }
   .btn-primary{ background:linear-gradient(120deg,var(--accent),var(--accent-2)); color:#0a0d16; box-shadow:0 10px 24px -8px rgba(198,255,61,.4); }
@@ -3696,6 +3705,7 @@ function accountAsProfile(){
     braintestScores: p.braintestScores || {}, braintestGate: p.braintestGate || null, braintestDaily: p.braintestDaily || null,
     braintestPrestige: typeof p.braintestPrestige === "number" ? p.braintestPrestige : 0, braintestExtraAttemptUsed: !!p.braintestExtraAttemptUsed,
     speedMathLevel: p.speedMathLevel || 1, speedMathHearts: typeof p.speedMathHearts === "number" ? p.speedMathHearts : 3, speedMathHeartsDate: p.speedMathHeartsDate || null,
+    biologyBest: p.biologyBest || {}, biologyPerfect: p.biologyPerfect || {}, biologyDone: Object.assign({}, p.biologyBest || {}, p.biologyPerfect || {}),
     coins: typeof p.coins === "number" ? p.coins : 0,
     avatar: p.avatar || AVATAR_EMOJIS[0],
     modeStats: p.modeStats || freshModeStats(),
@@ -3714,6 +3724,7 @@ async function syncAccountStats(profile){
       braintestScores: profile.braintestScores, braintestGate: profile.braintestGate, braintestDaily: profile.braintestDaily,
       braintestPrestige: profile.braintestPrestige, braintestExtraAttemptUsed: profile.braintestExtraAttemptUsed,
       speedMathLevel: profile.speedMathLevel, speedMathHearts: profile.speedMathHearts, speedMathHeartsDate: profile.speedMathHeartsDate,
+      biologyBest: profile.biologyBest, biologyPerfect: profile.biologyPerfect,
       avatar: profile.avatar,
       coins: profile.coins,
       achv: account.profile && account.profile.achv,
@@ -4088,11 +4099,35 @@ const DEDICATED_MODES = {
 };
 function dedicatedGameMode(gm){ return DEDICATED_MODES[gm] ? gm : "mixed"; }
 function dedicatedScreenTitle(gm){ return DEDICATED_MODES[gm] ? DEDICATED_MODES[gm].screenTitle : null; }
-function dedicatedBackFn(gm){ return DEDICATED_MODES[gm] ? "startDedicatedMenu('"+gm+"')" : "renderMainMenu()"; }
+function dedicatedBackFn(gm){ return DEDICATED_MODES[gm] ? "startDedicatedMenu('"+gm+"')" : "startPartyHub()"; }
+function startPartyHub(){
+  setAudioZone("menu");
+  const card = (gm) => {
+    const m = DEDICATED_MODES[gm];
+    if(featureLocked(gm)) return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p>Coming soon</p></div>`;
+    return `<div class="mode-card" onclick="startDedicatedMenu('${gm}')"><div class="icon">${m.icon}</div><h3>${m.title}</h3></div>`;
+  };
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">${L('PARTY RAUM','PARTY ROOM')}</div>
+      <div class="picker-sub">${L('Spiele die große Party mit allen Spielen – oder nur eine einzelne Runde.','Play the big party with all games – or just a single round.')}</div>
+      <div class="menu-grid" style="grid-template-columns:1fr; margin-top:6px;">
+        <div class="mode-card" onclick="startPartyFlow()"><div class="icon">🎉</div><h3>${L('Große Party','Big party')}</h3><p>${L('Gemischte Runden: Quiz, Mini-Spiele und mehr.','Mixed rounds: quiz, mini games and more.')}</p></div>
+      </div>
+      <div class="menu-section-title" style="margin-top:14px;">${L('Eine einzelne Runde','A single round')}</div>
+      <div class="menu-grid" style="margin-top:6px;">
+        ${card('slf')}${card('higherlower')}${card('ordering')}${card('blitz')}
+      </div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
 function startDedicatedMenu(gm){
   setAudioZone("menu");
   const m = DEDICATED_MODES[gm];
-  if(!m || featureLocked(gm)) { renderMainMenu(); return; }
+  if(!m || featureLocked(gm)) { startPartyHub(); return; }
   // Stadt Land Fluss und Nenn's Blitz bewerten offene Antworten normalerweise
   // per "Anfechten" durch echte Mitspieler (siehe auch der Arena-Bugfix an
   // anderer Stelle) - allein gespielt gibt es niemanden, der eine erfundene
@@ -4118,7 +4153,7 @@ function startDedicatedMenu(gm){
         </div>
       </div>
       <div class="actions-row" style="margin-top:18px;">
-        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
+        <button class="btn btn-ghost" onclick="startPartyHub()">${t('btn_back')}</button>
       </div>
     </div>
   `);
@@ -4644,7 +4679,7 @@ function renderMainMenu(){
         <div class="icon">🌐</div>
         <h3>${t('menu_party_title')}</h3>
         <p>Coming soon</p>
-      </div>` : `<div class="mode-card" onclick="startPartyFlow()">
+      </div>` : `<div class="mode-card" onclick="startPartyHub()">
         <div class="icon">🌐</div>
         <h3>${t('menu_party_title')}</h3>
         <p>${t('menu_party_desc')}</p>
@@ -4662,9 +4697,6 @@ function renderMainMenu(){
 
     <div class="menu-section-title">${L('Modi','Modes')}</div>
     <div class="menu-grid">
-      ${dedicatedCard('ordering')}
-      ${dedicatedCard('higherlower')}
-      ${dedicatedCard('blitz')}
       <div class="mode-card" onclick="startSpeedMathFlow()">
         <div class="icon">🧮</div>
         <h3>Speed Math</h3>
@@ -4683,7 +4715,6 @@ function renderMainMenu(){
 
     <div class="menu-section-title">Mini Games</div>
     <div class="menu-grid">
-      ${dedicatedCard('slf')}
       <div class="mode-card" onclick="renderChessHub()">
         <div class="icon">♞</div>
         <h3>Chess</h3>
@@ -5962,48 +5993,94 @@ function startBiologyFlow(){
 // Auf Wunsch ohne Koerperfigur - stattdessen eine gruppierte Themenliste im
 // selben Stil wie bei Einordnen/Mehr oder Weniger/Nenn's Blitz (gleiche
 // chip-btn-Optik, Gruppenueberschriften statt Diagramm).
+const BIO_COLORS = { kopf_gehirn:'#ff8fd0', auge:'#3de0ff', ohr:'#ffb443', hand:'#ffd45a', fuss:'#c084fc', herz:'#ff5d6c', lunge:'#7be0ff', magen_verdauung:'#a3e635', knochen_skelett:'#e8e6d9', haut:'#ffa14a', muskeln:'#ff7b5c', niere_blase:'#4ade80', puberty:'#86efac', reproductive_organs:'#f0abfc', menstrual_cycle:'#fb7185', pregnancy:'#fcd34d', contraception_health:'#67e8f9', consent_boundaries:'#a5b4fc' };
+const BIO_CSS = `<style>
+.bio-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.bio-tile{position:relative;border-radius:18px;padding:14px 8px 12px;text-align:center;cursor:pointer;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 24%,#151b2b),#151b2b 75%);border:1.5px solid color-mix(in srgb,var(--c) 45%,#151b2b);overflow:hidden;transition:transform .12s}
+.bio-tile:active{transform:scale(.96)} .bio-tile.done{border-color:var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent)}
+.bio-ring{width:74px;height:74px;margin:0 auto 6px;position:relative}.bio-ring svg{position:absolute;inset:0}
+.bio-ring .ic{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;filter:drop-shadow(0 0 8px var(--c))}
+.bio-tile b{font-size:13px;display:block}.bio-tile span.s{font-size:11px;color:var(--text-dim)}
+.bio-star{position:absolute;top:8px;right:8px;font-size:15px}
+.bio-vault{border-radius:18px;padding:16px;background:repeating-linear-gradient(135deg,#1a1f33 0 10px,#171c2e 10px 20px);border:1.5px dashed #3a4468;display:flex;gap:14px;align-items:center;margin-top:6px}
+.bio-keys{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}.bio-keys i{width:14px;height:14px;border-radius:50%;background:#2c3556}.bio-keys i.on{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.bio-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:6px}
+.bio-card{aspect-ratio:3/4.2;border-radius:12px;padding:6px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 33%,#151b2b),#0b1020 85%);border:2px solid var(--b);overflow:hidden}
+.bio-card.silver{--b:#cfd6e6}.bio-card.gold{--b:#ffd45a;box-shadow:0 0 14px #ffd45a77}.bio-card.bronze{--b:#b6754a}.bio-card.none{--b:#2c3556;background:#141a2b;filter:grayscale(1);opacity:.7}
+.bio-card .ic{font-size:30px}.bio-card b{font-size:10.5px;margin-top:5px;line-height:1.1}.bio-card small{position:absolute;bottom:5px;font-size:9px;opacity:.85}.bio-card .rar{position:absolute;top:5px;left:7px;font-size:9px;font-weight:800;color:var(--b)}
+.bio-card.gold:after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.28) 50%,transparent 65%);animation:bioShine 3.5s infinite}
+@keyframes bioShine{0%,60%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+.bio-tabs{display:flex;gap:6px;margin:12px 0 4px}.bio-tabs button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--text-dim);font-weight:800;cursor:pointer}.bio-tabs button.on{background:var(--accent);color:#08110c;border-color:var(--accent)}
+</style>`;
+function bioTopicStat(profile, section, k){
+  const doneKey = section === 'sexualkunde' ? 'sk_' + k : k;
+  const total = (biologyTopics()[section][k].items || []).length || 20;
+  const best = (profile.biologyBest || {})[doneKey];
+  const perfect = section === 'body' ? !!(profile.biologyPerfect || {})[k] : (typeof best === 'number' && best >= total);
+  const played = !!(profile.biologyDone || {})[doneKey] || typeof best === 'number';
+  const score = typeof best === 'number' ? best : (perfect ? total : null);
+  return { doneKey, total, perfect, played, score };
+}
+function bioRing(p, c){ const r = 33, C = 2 * Math.PI * r; return `<svg width="74" height="74"><circle cx="37" cy="37" r="${r}" fill="none" stroke="#262e46" stroke-width="6"/><circle cx="37" cy="37" r="${r}" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C*p} ${C}" transform="rotate(-90 37 37)"/></svg>`; }
+function bioTile(profile, section, k){
+  const topic = biologyTopics()[section][k], st = bioTopicStat(profile, section, k), c = BIO_COLORS[k] || '#3de0ff';
+  const frac = st.perfect ? 1 : (st.score != null ? st.score / st.total : 0);
+  return `<div class="bio-tile ${st.played ? 'done' : ''}" style="--c:${c}" onclick="startBiologyTopic('${section}','${k}')">
+    ${st.perfect ? '<div class="bio-star">⭐</div>' : ''}
+    <div class="bio-ring">${bioRing(frac, c)}<div class="ic">${topic.icon}</div></div>
+    <b>${esc(topic.label)}</b>
+    <span class="s">${st.score != null ? `${st.score} / ${st.total} ${L('richtig','correct')}` : (st.played ? L('gespielt','played') : L('Noch nicht gespielt','Not played yet'))}</span></div>`;
+}
+function bioVaultHtml(profile){
+  const bodyKeys = Object.keys(biologyTopics().body);
+  const perf = bodyKeys.filter(k => (profile.biologyPerfect || {})[k]).length;
+  return `<div class="bio-vault"><div style="font-size:34px">🔒</div><div><b>${L('Noch gesperrt','Still locked')}</b>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:2px">${L('Löse jedes Körper-Thema einmal fehlerfrei (20/20).','Solve every Body topic flawlessly once (20/20).')}</div>
+    <div class="bio-keys">${bodyKeys.map(k => `<i class="${(profile.biologyPerfect || {})[k] ? 'on' : ''}"></i>`).join('')}</div>
+    <div style="font-size:11px;color:var(--accent);margin-top:5px">🔑 ${perf} / ${bodyKeys.length} ${L('Schlüssel','keys')}</div></div></div>`;
+}
+let bioView = 'topics';
 function renderBiologyTopics(profile){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
   biologyProfile = profile;
-  const doneSet = profile.biologyDone || {};
-  const perfectSet = profile.biologyPerfect || {};
   const bodyKeys = Object.keys(biologyTopics().body);
-  const perfectCount = bodyKeys.filter(k => perfectSet[k]).length;
+  const perfectCount = bodyKeys.filter(k => (profile.biologyPerfect || {})[k]).length;
   const skUnlocked = biologySexualkundeUnlocked(profile);
-  const bodyChip = k => `<div class="chip-btn ${doneSet[k]?'active':''}" onclick="startBiologyTopic('body','${k}')">${biologyTopics().body[k].icon} ${esc(biologyTopics().body[k].label)}${perfectSet[k]?' ✓':''}</div>`;
-  const skChip = k => `<div class="chip-btn ${doneSet['sk_'+k]?'active':''}" onclick="startBiologyTopic('sexualkunde','${k}')">${biologyTopics().sexualkunde[k].icon} ${esc(biologyTopics().sexualkunde[k].label)}</div>`;
+  const skKeys = Object.keys(biologyTopics().sexualkunde);
+  const body = bioView === 'cards' ? bioCollectionHtml(profile, skUnlocked) : `
+      <div class="picker-sub" style="margin-top:14px; font-weight:700; color:var(--text); display:flex; justify-content:space-between;"><span>${L('Körper','Body')}</span><span style="color:var(--text-dim)">${perfectCount}/${bodyKeys.length} ⭐</span></div>
+      <div class="bio-grid">${bodyKeys.map(k => bioTile(profile, 'body', k)).join('')}</div>
+      <div class="picker-sub" style="margin-top:16px; font-weight:700; color:var(--text);">${L('Sexualkunde','Sex ed')}</div>
+      ${skUnlocked ? `<div class="bio-grid">${skKeys.map(k => bioTile(profile, 'sexualkunde', k)).join('')}</div>` : bioVaultHtml(profile)}`;
   renderApp(`
+    ${BIO_CSS}
     <div class="panel">
       <div class="picker-title">🧬 ${L('BIOLOGIE','BIOLOGY')}</div>
       <div class="picker-sub">${esc(profile.name)} – ${L('ein Thema wählen, alle 20 Fragen dazu beantworten.','pick a topic and answer all 20 questions.')}</div>
-
-      <div class="picker-sub" style="margin-top:14px; font-weight:700; color:var(--text);">${L('Körper','Body')}</div>
-      <div class="chip-group" style="margin-top:6px;">
-        ${bodyKeys.map(bodyChip).join("")}
-      </div>
-
-      <div class="picker-sub" style="margin-top:14px; font-weight:700; color:var(--text);">${L('Sexualkunde','Sex ed')}</div>
-      ${skUnlocked ? `
-        <div class="chip-group" style="margin-top:6px;">
-          ${Object.keys(biologyTopics().sexualkunde).map(skChip).join("")}
-        </div>
-      ` : `
-        <div class="shop-item" style="margin-top:6px; opacity:.85;">
-          <div class="shop-item-head">
-            <span class="icon">🔒</span>
-            <div>
-              <div class="shop-item-title">${L('Noch gesperrt','Still locked')}</div>
-              <div class="shop-item-sub">${L(`Schalte frei, indem du alle Körper-Themen einmal fehlerfrei (20/20) löst – ${perfectCount} / ${bodyKeys.length} geschafft.`,`Unlock by solving every Body topic flawlessly once (20/20) – ${perfectCount} / ${bodyKeys.length} done.`)}</div>
-            </div>
-          </div>
-        </div>
-      `}
-
+      <div class="bio-tabs"><button class="${bioView==='topics'?'on':''}" onclick="bioView='topics';renderBiologyTopics(biologyProfile)">🧬 ${L('Themen','Topics')}</button><button class="${bioView==='cards'?'on':''}" onclick="bioView='cards';renderBiologyTopics(biologyProfile)">🃏 ${L('Sammlung','Collection')}</button></div>
+      ${body}
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
       </div>
     </div>
   `);
+}
+function bioCollectionHtml(profile, skUnlocked){
+  const items = Object.keys(biologyTopics().body).map(k => ['body', k]);
+  if(skUnlocked) Object.keys(biologyTopics().sexualkunde).forEach(k => items.push(['sexualkunde', k]));
+  let have = 0;
+  const cards = items.map(([sec, k]) => {
+    const topic = biologyTopics()[sec][k], st = bioTopicStat(profile, sec, k), c = BIO_COLORS[k] || '#3de0ff';
+    const frac = st.perfect ? 1 : (st.score != null ? st.score / st.total : 0);
+    const tier = st.perfect ? 'gold' : (frac >= 0.7 ? 'silver' : (st.played ? 'bronze' : 'none'));
+    if(st.played) have++;
+    const rar = { gold: '★ GOLD', silver: L('SILBER','SILVER'), bronze: 'BRONZE', none: '???' }[tier];
+    return `<div class="bio-card ${tier}" style="--c:${c}" onclick="startBiologyTopic('${sec}','${k}')"><div class="rar">${rar}</div><div class="ic">${st.played ? topic.icon : '❔'}</div><b>${st.played ? esc(topic.label) : L('Unbekannt','Unknown')}</b><small>${st.score != null ? st.score + '/' + st.total : (st.played ? '✓' : L('spielen','play'))}</small></div>`;
+  }).join('');
+  return `<div class="picker-sub" style="margin-top:14px; font-weight:700; color:var(--text); display:flex; justify-content:space-between;"><span>${L('Sammlung','Collection')}</span><span style="color:var(--text-dim)">${have} / ${items.length} ${L('Karten','cards')}</span></div>
+    <div class="bio-cards">${cards}</div>
+    <p style="color:var(--text-dim);font-size:11px;margin:8px 0 0;text-align:center">${L('Gold = fehlerfrei · Silber = ab 70% · Bronze = gespielt. Tippe eine Karte, um sie zu verbessern.','Gold = flawless · Silver = 70%+ · Bronze = played. Tap a card to improve it.')}</p>
+    ${skUnlocked ? '' : `<div class="picker-sub" style="margin-top:16px; font-weight:700; color:var(--text);">${L('Sexualkunde','Sex ed')}</div>${bioVaultHtml(profile)}`}`;
 }
 function startBiologyTopic(section, topicKey){
   if(section === "sexualkunde" && !biologySexualkundeUnlocked(biologyProfile)) return; // noch gesperrt
@@ -6079,6 +6156,8 @@ function finishBiologyTopic(){
   const earnedCoins = s.firstTime ? BIOLOGY_TOPIC_COIN_REWARD : 0;
   const allCorrect = s.correct === s.items.length;
   profile.biologyDone[s.doneKey] = true;
+  profile.biologyBest = profile.biologyBest || {};
+  profile.biologyBest[s.doneKey] = Math.max(profile.biologyBest[s.doneKey] || 0, s.correct);
   if(s.section === "body" && allCorrect) profile.biologyPerfect[s.topicKey] = true;
   if(earnedCoins) awardCoins(profile, earnedCoins);
   recordModeStat(profile, "biology", s.correct);
@@ -6363,27 +6442,76 @@ function startSpeedMathMilestoneFlow(profile){
   renderSpeedMathMilestoneEntry(profile);
 }
 
+let speedMathSelLevel = 0;
+const SM_TIER_COLORS = ['#7be0ff','#3de0ff','#4ade80','#a3e635','#c6ff3d','#ffd45a','#ffa14a','#ff7b5c','#ff5d8f','#c084fc'];
+function speedMathMapHtml(curLevel){
+  const N = SPEEDMATH_LEVEL_COUNT, W = 340, STEP = 84, TOP = 50;
+  const pts = [];
+  for(let i = 0; i < N; i++){ pts.push({ x: Math.round(W/2 + Math.sin(i * 0.95) * 112), y: TOP + (N - 1 - i) * STEP }); } // Level 1 unten, 50 oben
+  const H = TOP * 2 + (N - 1) * STEP;
+  const seg = (p, q) => ` C ${p.x} ${p.y - STEP*0.5}, ${q.x} ${q.y + STEP*0.5}, ${q.x} ${q.y}`;
+  let full = `M ${pts[0].x} ${pts[0].y}`; for(let i = 1; i < N; i++) full += seg(pts[i-1], pts[i]);
+  let done = `M ${pts[0].x} ${pts[0].y}`; for(let i = 1; i < Math.min(curLevel, N); i++) done += seg(pts[i-1], pts[i]);
+  let nodes = '';
+  for(let i = 0; i < N; i++){
+    const lvl = i + 1, p = pts[i], tier = Math.ceil(lvl / 5), col = SM_TIER_COLORS[tier - 1];
+    const isDone = lvl < curLevel, isCur = lvl === curLevel, boss = lvl % 5 === 0;
+    const size = boss ? 62 : 50;
+    let bg, bd, glow = '', inner;
+    if(isDone){ bg = `radial-gradient(circle at 35% 30%,${col},${col}88)`; bd = col; glow = `box-shadow:0 0 14px ${col}77;`; inner = boss ? '👑' : '✓'; }
+    else if(isCur){ bg = 'radial-gradient(circle at 35% 30%,#e8ff9a,#c6ff3d)'; bd = '#fff'; glow = 'box-shadow:0 0 0 7px rgba(198,255,61,.25),0 0 26px #c6ff3d;animation:smPulse 1.6s infinite;'; inner = lvl; }
+    else { bg = '#1b2238'; bd = '#2c3556'; inner = boss ? '👑' : '🔒'; }
+    const txtCol = isCur ? '#08110c' : (isDone ? '#08110c' : '#6d7699');
+    nodes += `<div class="sm-node ${isCur ? 'cur' : ''}" id="smNode${lvl}" onclick="speedMathPickLevel(${lvl})" style="left:${p.x - size/2}px;top:${p.y - size/2}px;width:${size}px;height:${size}px;background:${bg};border:3px solid ${bd};${glow}color:${txtCol};font-size:${isCur ? 20 : (boss ? 22 : 18)}px;${(!isDone && !isCur) ? 'opacity:.85;' : ''}">${inner}</div>`;
+    if(isDone || isCur) nodes += `<div class="sm-num" style="left:${p.x - 20}px;top:${p.y + size/2 + 1}px;color:${isCur ? '#c6ff3d' : '#9aa3c0'}">${lvl}</div>`;
+  }
+  return `<div id="smMap" style="position:relative;width:${W}px;height:${H}px;margin:0 auto;">
+    <svg width="${W}" height="${H}" style="position:absolute;left:0;top:0"><path d="${full}" fill="none" stroke="#2c3556" stroke-width="12" stroke-linecap="round"/>${curLevel > 1 ? `<path d="${done}" fill="none" stroke="#c6ff3d" stroke-width="5" stroke-linecap="round" opacity=".9"/>` : ''}</svg>${nodes}</div>`;
+}
+function speedMathInfoHtml(profile, lvl){
+  const cur = Math.min(profile.speedMathLevel||1, SPEEDMATH_LEVEL_COUNT);
+  const config = speedMathLevelConfig(lvl);
+  const hearts = profile.speedMathHearts ?? SPEEDMATH_DAILY_HEARTS;
+  const status = lvl < cur ? `<span style="color:var(--accent-2)">✓ ${L('geschafft','passed')}</span>` : (lvl === cur ? `<span style="color:var(--accent)">▶ ${L('dein Level','your level')}</span>` : `<span style="color:#6d7699">🔒 ${L('noch gesperrt','locked')}</span>`);
+  const canStart = lvl === cur && hearts > 0;
+  return `<div class="n" style="display:flex;justify-content:space-between;align-items:baseline"><span>Level ${lvl} / ${SPEEDMATH_LEVEL_COUNT}</span><span style="font-size:13px">${status}</span></div>
+    <div class="l" style="margin-top:4px">${config.label} · ${config.ops.join(' ')} · ${L('Zahlen bis','Numbers up to')} ${config.maxOperand}<br>${L('Ziel:','Goal:')} ${config.streakTarget} ${L('in Folge ohne einen Fehler','in a row without a mistake')} · ${config.timeLimit.toFixed(1)}s ${L('pro Aufgabe','per problem')}</div>
+    ${lvl === cur ? `<button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="startSpeedMathLevel()" ${canStart ? '' : 'disabled'}>${hearts > 0 ? L('LEVEL STARTEN','START LEVEL') : L('HEUTE KEINE HERZEN MEHR','NO MORE HEARTS TODAY')}</button>` : ''}`;
+}
+function speedMathPickLevel(lvl){
+  const profile = speedMathProfile; if(!profile) return;
+  speedMathSelLevel = lvl;
+  const box = document.getElementById('smInfo'); if(box) box.innerHTML = speedMathInfoHtml(profile, lvl);
+  document.querySelectorAll('.sm-node').forEach(n => n.classList.toggle('sel', n.id === 'smNode' + lvl));
+  const cur = Math.min(profile.speedMathLevel||1, SPEEDMATH_LEVEL_COUNT);
+  if(lvl === cur && !document.getElementById('smInfo').dataset.started){ /* Tippen auf das aktuelle Level zeigt Start-Knopf */ }
+}
 function renderSpeedMathMilestoneEntry(profile){
   speedMathProfile = profile;
   const level = Math.min(profile.speedMathLevel||1, SPEEDMATH_LEVEL_COUNT);
-  const config = speedMathLevelConfig(level);
+  speedMathSelLevel = level;
   const hearts = profile.speedMathHearts ?? SPEEDMATH_DAILY_HEARTS;
-  const allDone = level > SPEEDMATH_LEVEL_COUNT - 1 && (profile.speedMathLevel||1) > SPEEDMATH_LEVEL_COUNT;
   renderApp(`
+    <style>
+      .sm-node{ position:absolute; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:900; cursor:pointer; box-sizing:border-box; transition:transform .12s; }
+      .sm-node:active{ transform:scale(.92); } .sm-node.sel{ outline:3px solid #fff8; outline-offset:3px; }
+      .sm-num{ position:absolute; width:40px; text-align:center; font-size:11px; font-weight:800; pointer-events:none; }
+      @keyframes smPulse{ 0%,100%{ box-shadow:0 0 0 7px rgba(198,255,61,.25),0 0 26px #c6ff3d } 50%{ box-shadow:0 0 0 13px rgba(198,255,61,0),0 0 34px #c6ff3d } }
+      #smTop{ position:sticky; top:0; z-index:5; background:var(--panel); padding:2px 0 10px; margin:0 -4px; }
+    </style>
     <div class="panel">
       <div class="picker-title">SPEED MATH – ${L('MEILENSTEIN','MILESTONE')}</div>
       <div class="picker-sub">${profile.name} – ${L('50 Level, steigende Schwierigkeit, fehlerfreie Serien schaffen.','50 levels, rising difficulty, clear streaks without a single mistake.')}</div>
-      <div class="result-item" style="margin:16px 0;">
-        <div class="n">Level ${level} / ${SPEEDMATH_LEVEL_COUNT}</div>
-        <div class="l">${config.label} · ${config.ops.join(' ')} · ${L('Zahlen bis','Numbers up to')} ${config.maxOperand} · ${L('Ziel:','Goal:')} ${config.streakTarget} ${L('in Folge ohne einen Fehler','in a row without a mistake')} · ${config.timeLimit.toFixed(1)}s ${L('pro Aufgabe','per problem')}</div>
+      <div id="smTop">
+        <div class="result-item" id="smInfo" style="margin:10px 0 8px;">${speedMathInfoHtml(profile, level)}</div>
+        <div class="picker-sub" style="text-align:center; font-size:18px;">${'❤️'.repeat(hearts)}${'🖤'.repeat(SPEEDMATH_DAILY_HEARTS-hearts)} <span style="font-size:11px;vertical-align:middle">${hearts>0 ? L('Herzen übrig heute','Hearts left today') : L('Keine Herzen mehr heute – morgen geht\'s weiter!','No hearts left today – back tomorrow!')}</span></div>
       </div>
-      <div class="picker-sub" style="text-align:center; font-size:20px;">${'❤️'.repeat(hearts)}${'🖤'.repeat(SPEEDMATH_DAILY_HEARTS-hearts)}</div>
-      <div class="picker-sub" style="text-align:center; margin-top:4px;">${hearts>0 ? L('Herzen übrig heute','Hearts left today') : L('Keine Herzen mehr heute – morgen geht\'s weiter!','No hearts left today – back tomorrow!')}</div>
-      <p style="color:var(--text-dim); font-size:12px; margin-top:14px; text-align:center;">${L(`Löse ${config.streakTarget} Aufgaben in Folge richtig, ohne eine einzige falsche Antwort - und das in jeweils ${config.timeLimit.toFixed(1)} Sekunden.<br>Ein Fehler ODER die Zeit läuft ab: Serie zurück auf 0, ein Herz weg.`,`Solve ${config.streakTarget} problems in a row correctly, without a single wrong answer – each within ${config.timeLimit.toFixed(1)} seconds.<br>One mistake OR running out of time: streak back to 0, one heart lost.`)}</p>
-      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startSpeedMathLevel()" ${hearts<=0?'disabled':''}>${hearts>0?L('LEVEL STARTEN','START LEVEL'):L('HEUTE KEINE HERZEN MEHR','NO MORE HEARTS TODAY')}</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderSpeedMathEntry(speedMathProfile)">${t('btn_back')}</button>
+      <p style="color:var(--text-dim); font-size:12px; margin:6px 0 8px; text-align:center;">${L('Ein Fehler ODER die Zeit läuft ab: Serie zurück auf 0, ein Herz weg. Tippe auf ein Level für Details.','One mistake OR running out of time: streak back to 0, one heart lost. Tap a level for details.')}</p>
+      ${speedMathMapHtml(level)}
+      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="renderSpeedMathEntry(speedMathProfile)">${t('btn_back')}</button>
     </div>
   `);
+  setTimeout(() => { const n = document.getElementById('smNode' + level); if(n) n.scrollIntoView({ block:'center' }); }, 60);
 }
 
 function startSpeedMathLevel(){
@@ -8022,6 +8150,30 @@ function renderBrainTestClassModal(klasseIdx){
   `);
 }
 let klassenOverviewProfile = null;
+
+/* ---- Brain Test: Abzeichen je Klasse ---- */
+const KLASSE_BADGE_COLORS = ['#c9ced9','#ffd45a','#cd7f32','#c0c0c0','#ffd45a','#7be0ff','#7be0ff','#ff9900','#ff5d8f','#ff88ff'];
+const KLASSE_ICONS = [
+  '<path d="M30 80l6-18 30-30 12 12-30 30zM68 30l8-8 12 12-8 8z" fill="#fff"/>',                                   // Bleistift
+  '<path d="M26 34c10-4 18-3 24 3 6-6 14-7 24-3v40c-10-3-18-2-24 4-6-6-14-7-24-4z" fill="#fff"/><path d="M50 37v40" stroke="#0007" stroke-width="3"/>', // Buch
+  '<path d="M28 74V28l48 46z" fill="#fff"/><path d="M38 62V50l12 12z" fill="#0006"/>',                             // Geodreieck
+  '<circle cx="50" cy="50" r="28" fill="#fff"/><g fill="none" stroke="#0008" stroke-width="3.5"><ellipse cx="50" cy="50" rx="12" ry="28"/><path d="M22 50h56M27 36h46M27 64h46"/></g>',// Globus
+  '<path d="M42 26h16v18l16 28a8 8 0 0 1-7 12H33a8 8 0 0 1-7-12l16-28z" fill="#fff"/><path d="M34 66h32" stroke="#0007" stroke-width="4"/>', // Kolben
+  '<path d="M40 24l10-4 8 18-10 4zM44 44l16-6M34 72h34M50 54a18 18 0 0 0 18 18" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>', // Mikroskop
+  '<rect x="30" y="24" width="40" height="52" rx="6" fill="#fff"/><rect x="36" y="30" width="28" height="12" rx="2" fill="#0007"/><g fill="#0007"><circle cx="40" cy="54" r="3.5"/><circle cx="50" cy="54" r="3.5"/><circle cx="60" cy="54" r="3.5"/><circle cx="40" cy="65" r="3.5"/><circle cx="50" cy="65" r="3.5"/><circle cx="60" cy="65" r="3.5"/></g>', // Taschenrechner
+  '<rect x="28" y="30" width="44" height="32" rx="4" fill="#fff"/><rect x="33" y="35" width="34" height="22" rx="2" fill="#0007"/><path d="M22 68h56l-6 8H28z" fill="#fff"/>', // Laptop
+  '<path d="M34 26h32v18a16 16 0 0 1-32 0zM34 32H24c0 10 4 16 12 18M66 32h10c0 10-4 16-12 18M44 62h12v10H44zM36 76h28v6H36z" fill="#fff"/>', // Pokal
+  '<path d="M50 26L18 42l32 16 32-16z" fill="#fff"/><path d="M32 52v14c0 6 36 6 36 0V52L50 61z" fill="#fff"/><path d="M82 44v18" stroke="#fff" stroke-width="4" stroke-linecap="round"/>' // Doktorhut
+];
+function klasseBadgeSvg(i, state, prog){
+  const c = KLASSE_BADGE_COLORS[Math.min(i, 9)];
+  const id = 'kb' + (++_tttUid);
+  const lock = state === 'lock';
+  const ring = state === 'cur' ? `<circle cx="60" cy="60" r="56" fill="none" stroke="#2c3556" stroke-width="5"/><circle cx="60" cy="60" r="56" fill="none" stroke="#c6ff3d" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(352*Math.max(prog,0.04)).toFixed(0)} 352" transform="rotate(-90 60 60)"/>` : '';
+  const chk = state === 'done' ? '<circle cx="98" cy="22" r="13" fill="#3de0ff" stroke="#0a0d16" stroke-width="3"/><path d="M91 22l5 5 9-10" stroke="#08110c" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' : '';
+  const body = lock ? '<path d="M45 56V47a15 15 0 0 1 30 0v9" fill="none" stroke="#3a4670" stroke-width="7" stroke-linecap="round"/><rect x="38" y="54" width="44" height="32" rx="7" fill="#3a4670"/><circle cx="60" cy="68" r="4.5" fill="#10152a"/><rect x="58" y="70" width="4" height="9" rx="2" fill="#10152a"/>' : `<g transform="translate(10 8) scale(.8)">${KLASSE_ICONS[Math.min(i, 9)]}</g>`;
+  return `<svg viewBox="0 0 120 120" width="104" height="104" style="${lock ? '' : 'filter:drop-shadow(0 0 10px ' + c + 'aa)'}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".5"/></linearGradient></defs>${ring}<path d="M60 12l37 21v42L60 108 23 75V33z" fill="${lock ? '#1b2238' : 'url(#' + id + ')'}" stroke="${lock ? '#2c3556' : '#fff'}" stroke-opacity=".7" stroke-width="3"/><path d="M60 22l28 16v34L60 98 32 72V38z" fill="#0a0d16" opacity=".35"/>${body}${chk}</svg>`;
+}
 function renderKlassenOverview(profile){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
   klassenOverviewProfile = profile;
@@ -8033,19 +8185,29 @@ function renderKlassenOverview(profile){
     <div class="panel">
       <div class="picker-title">${t('braintest_title')}</div>
       <div class="picker-sub">${profile.name} – ${t('braintest_overview_sub')}</div>
-      <div class="klassen-list" style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+      <div class="klassen-grid" style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         ${KLASSEN.map((k, i) => {
           const isDone = i < currentIdx;
           const isCurrent = i === currentIdx;
-          const statusLabel = isDone ? '✓ ' + t('braintest_passed') : (isCurrent ? '▶ ' + t('braintest_current') : t('braintest_not_reached'));
-          const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
+          const state = isDone ? 'done' : (isCurrent ? 'cur' : 'lock');
           const tappable = isDone || isCurrent;
-          const gateIcon = braintestGateFor(profile, i, "needPractice") || braintestGateFor(profile, i, "needPriorMain") ? ' 🔒' : '';
+          const locked = braintestGateFor(profile, i, "needPractice") || braintestGateFor(profile, i, "needPriorMain");
+          const sc = (profile.braintestScores && profile.braintestScores[i]) || {};
+          let prog = 0;
+          if(isCurrent){
+            if(sc.practice && sc.practice.total) prog = Math.min(1, sc.practice.correct / sc.practice.total) * 0.5;
+            if(haupttestReady) prog = Math.max(prog, 0.5) + (sc.main && sc.main.total ? Math.min(0.49, sc.main.correct / sc.main.total * 0.5) : 0);
+          }
+          const label = isDone ? '<span style="color:var(--accent-2)">✓ ' + t('braintest_passed') + '</span>'
+            : isCurrent ? '<span style="color:var(--accent)">▶ ' + (haupttestReady ? L('Haupttest bereit','Main test ready') : L('Übungstest','Practice test')) + (locked ? ' 🔒' : '') + '</span>'
+            : '<span style="color:#6d7699">' + t('braintest_not_reached') + '</span>';
+          const sub = isDone && sc.main ? '<div style="font-size:11px;color:var(--text-dim)">' + L('Haupttest','Main test') + ' ' + sc.main.correct + '/' + sc.main.total + '</div>'
+            : isCurrent ? '<div style="font-size:11px;color:var(--text-dim)">' + t('braintest_practice_info').replace('{q}', KLASSE_TESTS[i].questions).replace('{n}', KLASSE_TESTS[i].needed) + '</div>' : '';
           return `
-          <div class="leaderboard-row" style="flex-wrap:wrap; row-gap:8px; ${tappable?'cursor:pointer;':''} ${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}" ${tappable ? `onclick="renderBrainTestClassModal(${i})"` : ``}>
-            <span class="rank-pill ${k.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${klasseName(i)}</span>
-            <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}${gateIcon}</span>
-            ${isCurrent ? `<span style="font-size:12px; color:var(--text-dim);">${t('braintest_practice_info').replace('{q}', KLASSE_TESTS[i].questions).replace('{n}', KLASSE_TESTS[i].needed)}</span>` : ``}
+          <div class="klasse-tile ${state}" ${tappable ? `onclick="renderBrainTestClassModal(${i})"` : ``} style="${tappable?'cursor:pointer;':''}">
+            ${klasseBadgeSvg(i, state, prog)}
+            <div class="klasse-name">${klasseName(i)}</div>
+            <div class="klasse-state">${label}</div>${sub}
           </div>
         `;}).join("")}
       </div>
@@ -8810,7 +8972,7 @@ function renderPartyDisconnected(wasSolo){
     <div class="panel party-waiting">
       <h2 style="color:var(--text); margin-bottom:8px;">Verbindung verloren</h2>
       <p>Die Verbindung zum ${wasSolo ? 'Server' : 'Party-Server'} wurde unterbrochen.</p>
-      <button class="btn btn-primary" style="margin-top:16px;" onclick="${wasSolo ? 'renderMainMenu()' : 'startPartyFlow()'}">${wasSolo ? L('ZURÜCK ZUM MENÜ','BACK TO MENU') : L('ZURÜCK ZUR PARTY-AUSWAHL','BACK TO PARTY SELECTION')}</button>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="${wasSolo ? 'renderMainMenu()' : 'startPartyHub()'}">${wasSolo ? L('ZURÜCK ZUM MENÜ','BACK TO MENU') : L('ZURÜCK ZUR PARTY-AUSWAHL','BACK TO PARTY SELECTION')}</button>
     </div>
   `);
 }
@@ -8876,7 +9038,7 @@ function startSoloPartyFlow(gameMode){
         <input id="soloPartyName" type="text" placeholder="${L('Dein Name','Your name')}" maxlength="20" value="${lastSoloPartyName}" onkeydown="if(event.key==='Enter')confirmSoloPartyName('${gm}')">
       </div>
       <button class="btn btn-primary" style="margin-top:14px;" onclick="confirmSoloPartyName('${gm}')">${L('WEITER','CONTINUE')}</button>
-      <button class="btn btn-ghost" style="margin-top:8px;" onclick="${backFn}()">${t('btn_back')}</button>
+      <button class="btn btn-ghost" style="margin-top:8px;" onclick="${backFn}">${t('btn_back')}</button>
     </div>
   `);
 }
@@ -8903,7 +9065,7 @@ function connectSoloPartyToPicker(gameMode, name){
           <div class="picker-title">${title}</div>
           <div class="explanation" style="border-color:var(--danger); color:var(--text);">${msg}</div>
           <div class="actions-row" style="margin-top:18px;">
-            <button class="btn btn-ghost" onclick="${backFn}()">${t('btn_back')}</button>
+            <button class="btn btn-ghost" onclick="${backFn}">${t('btn_back')}</button>
           </div>
         </div>
       `);
