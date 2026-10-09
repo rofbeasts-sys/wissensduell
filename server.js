@@ -3883,7 +3883,7 @@ const COIN_PACKAGES = [
    im Menue versteckt.
 --------------------------------------------------------------------------- */
 const LOCKED_FEATURES = new Set(
-  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,party,ordering,blitz,biology,chess_fantasy,achievements" : process.env.LOCKED_FEATURES)
+  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,party,ordering,blitz,biology,chess_fantasy,achievements,ttt_quantum" : process.env.LOCKED_FEATURES)
     .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
 );
 function featureLocked(name) { return LOCKED_FEATURES.has(name); }
