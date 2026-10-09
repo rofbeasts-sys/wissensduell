@@ -2898,7 +2898,7 @@ function defaultStats() {
     braintestScores: {}, braintestGate: null, braintestDaily: null, braintestPrestige: 0, braintestExtraAttemptUsed: false,
     avatar: "🙂",
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
-    biologyBest: {}, biologyPerfect: {},
+    biologyBest: {}, biologyPerfect: {}, oosLast: null, oosBest: null,
     coins: 0,
     achv: Achv.newState(),
     modeStats: freshModeStats() };
@@ -3093,6 +3093,13 @@ async function saveUserStats(token, stats, lang) {
   }
   if (typeof stats.speedMathHeartsDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(stats.speedMathHeartsDate)) {
     user.stats.speedMathHeartsDate = stats.speedMathHeartsDate;
+  }
+  // Order of Speed: letzte + beste Runde {level, points, sec}
+  for (const key of ["oosLast", "oosBest"]) {
+    const r = stats[key];
+    if (r && typeof r === "object" && [r.level, r.points, r.sec].every(n => typeof n === "number" && Number.isFinite(n))) {
+      user.stats[key] = { level: Math.max(1, Math.min(200, Math.round(r.level))), points: Math.max(0, Math.min(1e7, Math.round(r.points))), sec: Math.max(0, Math.min(86400, Math.round(r.sec))) };
+    }
   }
   // Biologie: beste Trefferzahl je Thema + "fehlerfrei"-Markierung (strikt validiert)
   if (stats.biologyBest && typeof stats.biologyBest === "object" && !Array.isArray(stats.biologyBest)) {

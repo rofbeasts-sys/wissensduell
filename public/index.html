@@ -3705,7 +3705,7 @@ function accountAsProfile(){
     braintestScores: p.braintestScores || {}, braintestGate: p.braintestGate || null, braintestDaily: p.braintestDaily || null,
     braintestPrestige: typeof p.braintestPrestige === "number" ? p.braintestPrestige : 0, braintestExtraAttemptUsed: !!p.braintestExtraAttemptUsed,
     speedMathLevel: p.speedMathLevel || 1, speedMathHearts: typeof p.speedMathHearts === "number" ? p.speedMathHearts : 3, speedMathHeartsDate: p.speedMathHeartsDate || null,
-    biologyBest: p.biologyBest || {}, biologyPerfect: p.biologyPerfect || {}, biologyDone: Object.assign({}, p.biologyBest || {}, p.biologyPerfect || {}),
+    oosLast: p.oosLast || null, oosBest: p.oosBest || null, biologyBest: p.biologyBest || {}, biologyPerfect: p.biologyPerfect || {}, biologyDone: Object.assign({}, p.biologyBest || {}, p.biologyPerfect || {}),
     coins: typeof p.coins === "number" ? p.coins : 0,
     avatar: p.avatar || AVATAR_EMOJIS[0],
     modeStats: p.modeStats || freshModeStats(),
@@ -3724,7 +3724,7 @@ async function syncAccountStats(profile){
       braintestScores: profile.braintestScores, braintestGate: profile.braintestGate, braintestDaily: profile.braintestDaily,
       braintestPrestige: profile.braintestPrestige, braintestExtraAttemptUsed: profile.braintestExtraAttemptUsed,
       speedMathLevel: profile.speedMathLevel, speedMathHearts: profile.speedMathHearts, speedMathHeartsDate: profile.speedMathHeartsDate,
-      biologyBest: profile.biologyBest, biologyPerfect: profile.biologyPerfect,
+      biologyBest: profile.biologyBest, biologyPerfect: profile.biologyPerfect, oosLast: profile.oosLast, oosBest: profile.oosBest,
       avatar: profile.avatar,
       coins: profile.coins,
       achv: account.profile && account.profile.achv,
@@ -6764,18 +6764,22 @@ function orderOfSpeedCirclePositions(n){
 function startOrderOfSpeedFlow(profile){
   renderOrderOfSpeedEntry(profile);
 }
+function oosFmtTime(sec){ sec = Math.max(0, Math.round(sec||0)); return Math.floor(sec/60) + ':' + String(sec%60).padStart(2,'0'); }
+function oosStatBox(title, r){
+  return `<div class="result-item" style="flex:1;min-width:0;"><div class="l" style="font-weight:800;margin-bottom:4px;">${title}</div>${r ? `<div class="n" style="font-size:20px;">Level ${r.level}</div><div class="l">${r.points} ${L('Punkte','points')} · ⏱️ ${oosFmtTime(r.sec)}</div>` : `<div class="l">–</div>`}</div>`;
+}
 function renderOrderOfSpeedEntry(profile){
   speedMathProfile = profile;
   renderApp(`
     <div class="panel">
       <div class="picker-title">🔢 ORDER OF SPEED</div>
-      <div class="picker-sub">${profile.name} – ${L(`Zahlen tauchen im Kreis auf (Bereich wächst mit dem Level). Tippe sie in der richtigen Reihenfolge an: aufsteigend, absteigend, nur gerade oder nur ungerade. 100 Punkte pro Tipp, volle Leiste = nächstes Level (wird sofort schwerer - ab Level ${ORDEROFSPEED_MOVE_LEVEL} bewegen sie sich, ab Level ${ORDEROFSPEED_FLICKER_LEVEL} werden sie kurz unsichtbar). Für jede Zahl läuft außerdem eine eigene Uhr, die mit dem Level knapper wird (6s → 2,5s) - abgelaufene Zeit zählt wie ein falscher Tipp.`,`Numbers appear in a circle (the range grows with the level). Tap them in the right order: ascending, descending, evens only or odds only. 100 points per tap, full bar = next level (gets harder right away – from level ${ORDEROFSPEED_MOVE_LEVEL} they move, from level ${ORDEROFSPEED_FLICKER_LEVEL} they briefly vanish). Each number also has its own clock that gets tighter with the level (6s → 2.5s) – running out of time counts as a wrong tap.`)}</div>
-      <div class="picker-sub" style="margin-top:14px;">${L('Wie lange möchtest du spielen?','How long do you want to play?')}</div>
-      <div class="actions-row" style="flex-direction:column; gap:10px; margin-top:8px;">
-        ${SPEEDMATH_DURATIONS.map(d => `<button class="btn btn-primary btn-block" onclick="startOrderOfSpeedGame(${d.sec})">${d.label}</button>`).join("")}
-        <button class="btn btn-primary btn-block" style="background:linear-gradient(135deg,var(--accent-2),#9fb0ff);" onclick="startOrderOfSpeedGame(null)">∞ ${L('Unendlich (bis du selbst aufhörst)','Endless (until you stop yourself)')}</button>
+      <div class="picker-sub">${profile.name} – ${L('Tippe die Zahlen in der richtigen Reihenfolge an. Läuft endlos, bis du aufhörst.','Tap the numbers in the right order. Runs endlessly until you stop.')}</div>
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        ${oosStatBox('🕒 ' + L('Letzte Runde','Last round'), profile.oosLast)}
+        ${oosStatBox('🏆 ' + L('Beste Runde','Best round'), profile.oosBest)}
       </div>
-      <button class="btn btn-ghost btn-block" style="margin-top:14px;" onclick="renderSpeedMathEntry(speedMathProfile)">${t('btn_back')}</button>
+      <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startOrderOfSpeedGame(null)">▶ ${L('STARTEN','START')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderSpeedMathEntry(speedMathProfile)">${t('btn_back')}</button>
     </div>
   `);
 }
@@ -6902,7 +6906,7 @@ function startOrderOfSpeedGame(durationSec){
     profile: speedMathProfile, durationSec, remaining: durationSec,
     points:0, level:1, levelPoints:0, levelTarget: orderOfSpeedLevelTarget(1),
     correct:0, wrong:0, round:null, timerId:null, moveTimerId:null, flickerTimerId:null, flickerRevealTimeoutId:null,
-    tapTimerId:null, tapRemaining:0
+    tapTimerId:null, tapRemaining:0, startedAt: Date.now()
   };
   orderOfSpeedStartRound(orderOfSpeedSession);
   renderOrderOfSpeedGame();
@@ -7012,13 +7016,21 @@ function finishOrderOfSpeed(){
   entry.played = (entry.played||0) + 1;
   entry.correct = (entry.correct||0) + s.correct;
   profile.modeStats.orderofspeed = entry;
+  const sec = Math.round((Date.now() - (s.startedAt || Date.now())) / 1000);
+  const thisRun = { level: s.level, points: s.points, sec };
+  const prevBest = profile.oosBest;
+  const newBest = !prevBest || thisRun.points > prevBest.points || (thisRun.points === prevBest.points && thisRun.level > prevBest.level);
+  profile.oosLast = thisRun;
+  if(newBest) profile.oosBest = thisRun;
   if(profile.isAccount) syncAccountStats(profile); else saveProfiles();
   renderApp(`
     <div class="panel">
-      <div class="result-title">${durationSec === null ? '🏁 BEENDET' : '⏱️ ZEIT UM!'}</div>
+      <div class="result-title">${durationSec === null ? '🏁 ' + L('BEENDET','FINISHED') : '⏱️ ZEIT UM!'}</div>
+      ${newBest ? `<div class="rank-up-banner">🏆 ${L('Neue beste Runde!','New best round!')}</div>` : ``}
       <div class="result-grid" style="margin-top:14px;">
         <div class="result-item pos"><div class="n">${s.points}</div><div class="l">${L('Punkte','Points')}</div></div>
-        <div class="result-item"><div class="n">Level ${s.level}</div><div class="l">Erreicht</div></div>
+        <div class="result-item"><div class="n">Level ${s.level}</div><div class="l">${L('Erreicht','Reached')}</div></div>
+        <div class="result-item"><div class="n">${oosFmtTime(sec)}</div><div class="l">⏱️ ${L('Zeit','Time')}</div></div>
         <div class="result-item pos"><div class="n">${s.correct}</div><div class="l">${L('Runden richtig gelöst','Rounds solved correctly')}</div></div>
         <div class="result-item neg"><div class="n">${s.wrong}</div><div class="l">${L('Falsch','Wrong')}</div></div>
       </div>
