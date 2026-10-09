@@ -100,6 +100,29 @@
   .ttt-cell.x{ color:var(--accent); text-shadow:0 0 16px rgba(198,255,61,.7), 0 2px 1px rgba(0,0,0,.6); }
   .ttt-cell.o{ color:var(--accent-2); text-shadow:0 0 16px rgba(61,224,255,.7), 0 2px 1px rgba(0,0,0,.6); }
 
+
+  /* ---- Tic Tac Toe Stile ---- */
+  .ttt-board{ box-sizing:border-box; }
+  .ttt-cell svg{ width:78%; height:78%; overflow:visible; display:block; }
+  .ttts-glass{ padding:10px; border-radius:18px; background:radial-gradient(circle at 25% 20%,#6a3df0,#1a0f3a 60%,#0b0620); }
+  .ttts-glass .ttt-cell{ background:linear-gradient(145deg,#ffffff30,#ffffff08); border:1px solid #ffffff44; box-shadow:inset 0 1px 0 #fff6,0 8px 20px #0006; }
+  .ttts-wood{ padding:10px; border-radius:16px; background:repeating-linear-gradient(90deg,#8a5a2b 0 22px,#7b4f24 22px 24px,#94622f 24px 46px,#6d441f 46px 48px); }
+  .ttts-wood .ttt-cell{ background:linear-gradient(145deg,#c58a4a,#9a6532); border:0; border-radius:10px; box-shadow:inset 0 2px 0 #ffe0b055,inset 0 -3px 0 #0005,0 4px 0 #3a210e; }
+  .ttts-led{ padding:10px; border-radius:16px; background:#020204; }
+  .ttts-led .ttt-cell{ background:#07070c; border:1px solid #1b1b2a; border-radius:10px; box-shadow:inset 0 0 20px #000; }
+  .ttts-galaxy{ padding:10px; border-radius:18px; background:radial-gradient(circle at 70% 25%,#4b2a9a88,transparent 40%),radial-gradient(circle at 20% 80%,#0ea5e955,transparent 45%),#05061a; }
+  .ttts-galaxy .ttt-cell{ border-radius:50%; background:radial-gradient(circle,#ffffff12,#ffffff03); border:1px solid #ffffff22; box-shadow:none; }
+  .ttts-pixel{ padding:10px; border-radius:8px; background:#1a1a2e; position:relative; }
+  .ttts-pixel .ttt-cell{ background:#2d2d52; border:4px solid #0d0d1c; border-radius:0; box-shadow:inset -4px -4px 0 #1b1b36,inset 4px 4px 0 #46467a; }
+  .ttts-chalk{ padding:10px; border-radius:14px; background:#1f3a2e; box-shadow:inset 0 0 40px #0008; }
+  .ttts-chalk .ttt-cell{ background:none; border:0; box-shadow:none; }
+  .belt-ico{ display:inline-block; vertical-align:middle; }
+  .belt-row{ display:inline-flex; align-items:center; gap:8px; font-weight:700; }
+  .ttt-style-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }
+  .ttt-style-tile{ border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.04); padding:6px 4px; text-align:center; font-size:11px; cursor:pointer; }
+  .ttt-style-tile.sel{ border-color:var(--accent); box-shadow:0 0 12px rgba(198,255,61,.35); }
+  .ttt-style-tile.lock{ opacity:.45; cursor:default; }
+  .ttt-style-tile svg{ width:44px; height:44px; display:block; margin:0 auto 2px; }
   .btn{ appearance:none; border:none; cursor:pointer; font-family:inherit; font-weight:700; font-size:15px; border-radius:14px; padding:14px 24px; transition:transform .12s ease, box-shadow .12s ease, background .2s ease; }
   .btn:active{ transform:scale(0.97); }
   .btn-primary{ background:linear-gradient(120deg,var(--accent),var(--accent-2)); color:#0a0d16; box-shadow:0 10px 24px -8px rgba(198,255,61,.4); }
@@ -1986,9 +2009,83 @@ const TTT_RANKS = [
   {get name(){ return L("Brauner Gürtel","Brown belt"); }, cls:"rank-platin",  difficulty:0.95, winsNeeded:5, consecutive:true},
   {get name(){ return L("Meister","Master"); }, cls:"rank-master",  difficulty:1.0,  winsNeeded:null, consecutive:false}
 ];
+
+/* ================= TIC TAC TOE: Stile + Gürtel ================= */
+let _tttUid = 0;
+const TTT_STYLES = [
+  {key:'neon',   need:0, get name(){return 'Neon';}},
+  {key:'glass',  need:1, get name(){return L('Kristall','Crystal');}},
+  {key:'wood',   need:2, get name(){return L('Holz','Wood');}},
+  {key:'led',    need:3, get name(){return 'LED';}},
+  {key:'pixel',  need:4, get name(){return 'Pixel';}},
+  {key:'chalk',  need:5, get name(){return L('Kreide','Chalk');}},
+  {key:'galaxy', need:6, get name(){return L('Galaxie','Galaxy');}}
+];
+function tttBestRankEver(profile){
+  let best = (profile && profile.tttRank) || 0;
+  try{ const s = parseInt(localStorage.getItem('bp_ttt_maxrank')||'0',10) || 0; if(s > best) best = s; if(best > s) localStorage.setItem('bp_ttt_maxrank', String(best)); }catch(e){}
+  return best;
+}
+function tttStyleUnlocked(st, profile){ return (typeof adminViewOn==='function' && adminViewOn()) || tttBestRankEver(profile) >= st.need; }
+function tttStyleKey(){
+  let k='neon'; try{ k = localStorage.getItem('bp_ttt_style') || 'neon'; }catch(e){}
+  const st = TTT_STYLES.find(s=>s.key===k) || TTT_STYLES[0];
+  return (typeof tttOverviewProfile!=='undefined' && tttOverviewProfile && !tttStyleUnlocked(st, tttOverviewProfile)) ? 'neon' : st.key;
+}
+function tttStyleCls(){ const k = tttStyleKey(); return k==='neon' ? '' : 'ttts-'+k; }
+function tttPickStyle(key){
+  const st = TTT_STYLES.find(s=>s.key===key); if(!st || !tttStyleUnlocked(st, tttOverviewProfile)) return;
+  try{ localStorage.setItem('bp_ttt_style', key); }catch(e){}
+  renderTttRankOverview(tttOverviewProfile);
+}
+function tttMarkInner(key, sym){
+  const id = 'tm'+(++_tttUid);
+  const X = {
+    neon:`<g stroke="#c6ff3d" stroke-width="12" stroke-linecap="round" style="filter:drop-shadow(0 0 6px #c6ff3d) drop-shadow(0 0 14px #c6ff3dcc)"><path d="M20 20L80 80M80 20L20 80"/></g>`,
+    glass:`<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9ad5"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs><path d="M22 14L50 42L78 14L86 22L58 50L86 78L78 86L50 58L22 86L14 78L42 50L14 22Z" fill="url(#${id})" stroke="#fff" stroke-opacity=".8" stroke-width="2.5" style="filter:drop-shadow(0 4px 8px #0009)"/><path d="M22 14L50 42L40 50Z" fill="#fff" opacity=".35"/>`,
+    wood:`<g stroke="#3a210e" stroke-width="13" stroke-linecap="round"><path d="M22 22L78 78M78 22L22 78"/></g><g stroke="#e9b878" stroke-width="5" stroke-linecap="round" opacity=".55"><path d="M22 20L78 76M78 20L22 76"/></g>`,
+    led:[[0,0],[1,1],[2,2],[3,3],[4,4],[4,0],[3,1],[1,3],[0,4]].map(([x,y])=>`<circle cx="${14+x*18}" cy="${14+y*18}" r="6.5" fill="#ff3d6e" style="filter:drop-shadow(0 0 4px #ff3d6e) drop-shadow(0 0 10px #ff3d6e)"/>`).join(''),
+    pixel:[[0,0],[1,1],[2,2],[3,3],[4,4],[4,0],[3,1],[1,3],[0,4]].map(([x,y])=>`<rect x="${10+x*16}" y="${10+y*16}" width="16" height="16" fill="#ff5d8f" stroke="#7a1a3a" stroke-width="3"/>`).join(''),
+    chalk:`<g filter="url(#tttchalk)" stroke="#f5f5f0" stroke-width="7" stroke-linecap="round" fill="none"><path d="M22 20Q50 52 80 82"/><path d="M80 20Q52 50 20 80"/></g>`,
+    galaxy:`<g style="filter:drop-shadow(0 0 6px #ffd45a) drop-shadow(0 0 14px #ffd45a)"><path d="M50 8L58 42L92 50L58 58L50 92L42 58L8 50L42 42Z" fill="#ffe27a" stroke="#fff" stroke-width="2"/></g>`
+  };
+  const O = {
+    neon:`<circle cx="50" cy="50" r="30" fill="none" stroke="#3de0ff" stroke-width="12" style="filter:drop-shadow(0 0 6px #3de0ff) drop-shadow(0 0 14px #3de0ffcc)"/>`,
+    glass:`<defs><radialGradient id="${id}" cx=".35" cy=".3"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#7dd3fc"/><stop offset="1" stop-color="#0369a1"/></radialGradient></defs><circle cx="50" cy="50" r="32" fill="url(#${id})" stroke="#fff" stroke-opacity=".7" stroke-width="2.5" style="filter:drop-shadow(0 6px 8px #0009)"/><circle cx="50" cy="50" r="15" fill="#0b0620" opacity=".55"/>`,
+    wood:`<defs><radialGradient id="${id}" cx=".35" cy=".3"><stop offset="0" stop-color="#fafafa"/><stop offset="1" stop-color="#b9b5ad"/></radialGradient></defs><circle cx="50" cy="52" r="31" fill="#0006"/><circle cx="50" cy="49" r="31" fill="url(#${id})" stroke="#8a8579" stroke-width="1.5"/>`,
+    led:[[1,0],[2,0],[3,0],[0,1],[4,1],[0,2],[4,2],[0,3],[4,3],[1,4],[2,4],[3,4]].map(([x,y])=>`<circle cx="${14+x*18}" cy="${14+y*18}" r="6.5" fill="#22e0ff" style="filter:drop-shadow(0 0 4px #22e0ff) drop-shadow(0 0 10px #22e0ff)"/>`).join(''),
+    pixel:[[1,0],[2,0],[3,0],[0,1],[4,1],[0,2],[4,2],[0,3],[4,3],[1,4],[2,4],[3,4]].map(([x,y])=>`<rect x="${10+x*16}" y="${10+y*16}" width="16" height="16" fill="#4ade80" stroke="#14532d" stroke-width="3"/>`).join(''),
+    chalk:`<g filter="url(#tttchalk)" stroke="#9de0ff" stroke-width="7" fill="none" stroke-linecap="round"><path d="M50 18C75 16 84 40 80 56C76 76 52 84 36 76C16 66 16 36 34 24C40 20 46 18 52 18"/></g>`,
+    galaxy:`<defs><radialGradient id="${id}" cx=".35" cy=".3"><stop offset="0" stop-color="#ffb3f0"/><stop offset="1" stop-color="#6d28d9"/></radialGradient></defs><ellipse cx="50" cy="50" rx="44" ry="12" fill="none" stroke="#a5f3fc" stroke-width="4" transform="rotate(-20 50 50)" opacity=".5"/><circle cx="50" cy="50" r="24" fill="url(#${id})" style="filter:drop-shadow(0 0 10px #a78bfa)"/><path d="M8 58Q50 80 92 42" fill="none" stroke="#a5f3fc" stroke-width="4" stroke-linecap="round" opacity=".9"/>`
+  };
+  return (sym==='X' ? X : O)[key] || '';
+}
+function tttMark(c){
+  if(c!=='X' && c!=='O') return c || '';
+  const k = tttStyleKey();
+  if(k==='neon') return c;   // klassisch: Buchstabe mit Neon-Glow (CSS)
+  return `<svg viewBox="0 0 100 100">${tttMarkInner(k, c)}</svg>`;
+}
+function tttMarkPreview(key, sym){ return `<svg viewBox="0 0 100 100" style="width:28px;height:28px;display:inline-block">${tttMarkInner(key, sym)}</svg>`; }
+const TTT_BELT_COLORS = [
+  {c:['#ffffff','#cfd5df'],e:'#9aa3b5'},{c:['#ffe66b','#e0a800'],e:'#9a7400'},{c:['#ffa14a','#d9570a'],e:'#8a3606'},
+  {c:['#5fe08a','#13923f'],e:'#0a5a26'},{c:['#5aa8ff','#1b57c9'],e:'#0f3a8a'},{c:['#b9783f','#6b3d18'],e:'#3f2208'},
+  {c:['#3a3a46','#0a0a10'],e:'#000',gold:1}
+];
+function tttBeltSvg(rankIndex, w, glow){
+  const b = TTT_BELT_COLORS[Math.min(rankIndex||0, TTT_BELT_COLORS.length-1)];
+  const id = 'bt'+(++_tttUid); const g = !!b.gold; w = w || 80;
+  return `<svg class="belt-ico" viewBox="0 0 220 90" style="width:${w}px;height:${Math.round(w*90/220)}px;${(glow||g)?`filter:drop-shadow(0 0 6px ${g?'#ffd45a':b.c[0]}aa)`:''}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${b.c[0]}"/><stop offset="1" stop-color="${b.c[1]}"/></linearGradient></defs>
+<path d="M96 52L60 86L80 90L108 60Z" fill="url(#${id})" stroke="${b.e}" stroke-width="2" stroke-linejoin="round"/><path d="M124 52L162 86L142 90L112 60Z" fill="url(#${id})" stroke="${b.e}" stroke-width="2" stroke-linejoin="round"/>
+${g?`<path d="M64 80L76 88M72 72L88 84M158 80L146 88M150 72L134 84" stroke="#ffd45a" stroke-width="3" stroke-linecap="round"/>`:''}
+<rect x="4" y="26" width="212" height="28" rx="6" fill="url(#${id})" stroke="${b.e}" stroke-width="2"/><path d="M10 33H210M10 47H210" stroke="${b.e}" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="4 3"/>
+${g?`<rect x="4" y="26" width="212" height="28" rx="6" fill="none" stroke="#ffd45a" stroke-width="2" opacity=".8"/>`:''}
+<rect x="86" y="20" width="48" height="40" rx="10" fill="url(#${id})" stroke="${b.e}" stroke-width="2.5"/><path d="M92 40H128M98 28V52" stroke="${b.e}" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/><ellipse cx="104" cy="28" rx="12" ry="4" fill="#fff" opacity=".28"/>${g?`<circle cx="110" cy="40" r="6" fill="#ffd45a"/>`:''}</svg>`;
+}
+(function(){ try{ document.body.insertAdjacentHTML('beforeend','<svg width="0" height="0" style="position:absolute"><filter id="tttchalk"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/><feDisplacementMap in="SourceGraphic" scale="4"/></filter></svg>'); }catch(e){} })();
 function tttRankPillHtml(rankIndex){
   const r = TTT_RANKS[Math.min(rankIndex||0, TTT_RANKS.length-1)] || TTT_RANKS[0];
-  return `<span class="rank-pill ${r.cls}"><span class="rank-dot"></span>${r.name}</span>`;
+  return `<span class="belt-row">${tttBeltSvg(rankIndex, 58)}<span>${r.name}</span></span>`;
 }
 // Zieht die Testfragen für eine Klasse: aus dem festen 50er-Pool dieser
 // Klasse (KLASSE_QUESTIONS) werden zufällig genau so viele gezogen, wie
@@ -3147,22 +3244,73 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
 let lockedFeatures = ['shop','arena','chess_online','party','ordering','blitz','biology','chess_fantasy','achievements','ttt_quantum'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
+/* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
+function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
+function adminViewOn(){ try{ return !!adminKeyStored() && localStorage.getItem('bp_admin_view') === '1'; }catch(e){ return false; } }
+let adminOkFlag = false;
 async function loadFeatureFlags(){
   try{
-    const r = await fetch('/api/features', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    const useKey = adminViewOn() ? adminKeyStored() : '';
+    const r = await fetch('/api/features', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(useKey ? {adminKey:useKey} : {}) });
     const j = await r.json();
     if(j && j.ok && Array.isArray(j.locked)){
       const changed = j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join();
       lockedFeatures = j.locked;
+      adminOkFlag = !!j.admin;
+      if(useKey && !j.admin){ try{ localStorage.setItem('bp_admin_view','0'); }catch(e){} }
+      renderAdminPill();
       if(changed && document.querySelector('.menu-hero')) renderMainMenu();
     }
   }catch(e){}
+}
+function renderAdminPill(){
+  let p = document.getElementById('adminPill');
+  if(!adminKeyStored()){ if(p) p.remove(); return; }
+  if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
+  const on = adminViewOn();
+  p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + (on ? '#ff5d8f' : '#38bdf8') + ';color:#fff;box-shadow:0 4px 18px #0008';
+  p.innerHTML = '<span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
+}
+async function toggleAdminView(){
+  try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
+  await loadFeatureFlags();
+  renderMainMenu();
+}
+function adminLogout(){
+  try{ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); }catch(e){}
+  renderAdminPill(); loadFeatureFlags().then(() => renderMainMenu());
+}
+function openAdminLogin(){
+  if(document.getElementById('adminLogin')) return;
+  const d = document.createElement('div'); d.id='adminLogin';
+  d.style.cssText='position:fixed;inset:0;z-index:100000;background:#000b;display:flex;align-items:center;justify-content:center;padding:20px';
+  d.innerHTML = '<div style="background:#12182b;border:1px solid #38bdf8;border-radius:16px;padding:18px;max-width:320px;width:100%;color:#fff;font-family:system-ui,sans-serif"><div style="font-weight:800;margin-bottom:10px">👑 Admin</div><input id="adminKeyIn" type="password" placeholder="Admin-Key" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #38bdf8;background:#0a0f1d;color:#fff;font-size:16px"><div id="adminMsg" style="min-height:18px;font-size:12px;color:#ff5d8f;margin:8px 0"></div><div style="display:flex;gap:8px"><button id="adminGo" style="flex:1;padding:10px;border-radius:10px;border:0;background:#38bdf8;color:#04121c;font-weight:800">OK</button><button id="adminCancel" style="padding:10px 14px;border-radius:10px;border:1px solid #fff4;background:none;color:#fff">✕</button></div></div>';
+  document.body.appendChild(d);
+  const inp = d.querySelector('#adminKeyIn'); inp.focus();
+  d.querySelector('#adminCancel').onclick = () => d.remove();
+  const go = async () => {
+    const k = inp.value.trim(); if(!k) return;
+    d.querySelector('#adminMsg').textContent = '…';
+    const res = await fetch('/api/admin-verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({key:k}) }).then(r => r.json()).catch(() => ({ok:false,error:'Verbindung fehlgeschlagen.'}));
+    if(res.ok){
+      try{ localStorage.setItem('bp_admin_key', k); localStorage.setItem('bp_admin_view','1'); }catch(e){}
+      d.remove(); await loadFeatureFlags(); renderMainMenu();
+    } else d.querySelector('#adminMsg').textContent = res.error || 'Fehler';
+  };
+  d.querySelector('#adminGo').onclick = go;
+  inp.addEventListener('keydown', e => { if(e.key==='Enter') go(); });
+}
+/* Versteckter Zugang: 5x schnell auf den Titel tippen */
+let _admTaps = [];
+function titleTap(){
+  const n = Date.now(); _admTaps = _admTaps.filter(x => n - x < 2500); _admTaps.push(n);
+  if(_admTaps.length >= 5){ _admTaps = []; if(adminKeyStored()) toggleAdminView(); else openAdminLogin(); }
 }
 async function apiCall(endpoint, body){
   try{
     // currentLang immer mitschicken, damit Server-Fehlermeldungen (Login,
     // Freunde, Shop, Arena, ...) in der richtigen Sprache zurueckkommen.
-    const res = await fetch(endpoint, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({...(body||{}), lang: currentLang}) });
+    const res = await fetch(endpoint, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({...(body||{}), lang: currentLang, ...(adminViewOn() ? {adminKey: adminKeyStored()} : {})}) });
     return await res.json();
   }catch(e){
     return { ok:false, error: currentLang === "en" ? "Connection to the server failed." : "Verbindung zum Server fehlgeschlagen." };
@@ -3536,12 +3684,9 @@ function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`
 // den tatsächlichen Ordnerinhalt von public/audio ersetzt (Dateien dort
 // werden automatisch erkannt, keine Code-Änderung mehr nötig).
 let MENU_MUSIC_TRACKS = [
-  { name: "Final Showdown", files: ["Final_Showdown.mp3", "Final_Showdown.m4a"] },
-  { name: "Der letzte Schlag", files: ["Der_letzte_Schlag.mp3"] },
-  { name: "The Final Duel", files: ["The_Final_Duel.mp3"] },
-  { name: "Wissens-Quest", files: ["Wissens-Quest.mp3"] }
+  { name: "Brain Pulse Theme", files: ["Trailer_Musik.mp3"] }
 ];
-let TTT_MUSIC_TRACK = { name: "Tic-Tac-Game", files: ["Tic-Tac-Game.mp3"] };
+let TTT_MUSIC_TRACK = { name: "Brain Pulse Theme", files: ["Trailer_Musik.mp3"] };
 // Fragt den Server, welche Dateien wirklich in public/audio liegen, und
 // ersetzt die obige Ausfallliste damit. Wird einmal beim Start aufgerufen;
 // da die Musik ohnehin erst nach dem ersten Tipp beginnt (Autoplay-Schutz),
@@ -3550,7 +3695,7 @@ async function loadAudioTrackList(){
   try{
     const res = await apiCall("/api/audio-tracks", {});
     if(res && Array.isArray(res.menu) && res.menu.length) MENU_MUSIC_TRACKS = res.menu;
-    if(res && res.ttt && Array.isArray(res.ttt.files) && res.ttt.files.length) TTT_MUSIC_TRACK = res.ttt;
+    if(res && res.menu && res.menu.length) TTT_MUSIC_TRACK = res.menu[0]; // ein Titel für alles
   }catch(e){ /* Ausfallsicherung oben bleibt bestehen */ }
 }
 
@@ -3559,7 +3704,7 @@ let bgAudioEl = null;                // aktuell spielendes <audio>-Element
 let bgAudioTrackName = null;         // Titelname für die Einstellungen-Anzeige
 let menuMusicQueue = [];             // gemischte Restliste noch nicht gespielter Menü-Titel
 let musicEnabled = (function(){ try{ return localStorage.getItem("wq_music") !== "0"; }catch(e){ return true; } })();
-let musicVolume = (function(){ try{ const v = parseInt(localStorage.getItem("wq_volume"), 10); return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 45; }catch(e){ return 45; } })();
+let musicVolume = (function(){ try{ const v = parseInt(localStorage.getItem("wq_volume2"), 10); return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 20; }catch(e){ return 20; } })();
 let audioUnlocked = false;           // Browser blocken Ton, bis die Person einmal getippt/geklickt hat
 
 function shuffleTracks(arr){
@@ -3571,6 +3716,7 @@ function nextMenuTrack(){
   if(menuMusicQueue.length === 0) menuMusicQueue = shuffleTracks(MENU_MUSIC_TRACKS);
   return menuMusicQueue.shift();
 }
+function currentZoneTrackName(){ return audioZone === "ttt" ? TTT_MUSIC_TRACK.name : (MENU_MUSIC_TRACKS[0] && MENU_MUSIC_TRACKS[0].name); }
 function currentZoneTrack(){ return audioZone === "ttt" ? TTT_MUSIC_TRACK : nextMenuTrack(); }
 
 function stopBgMusic(){
@@ -3588,7 +3734,7 @@ function startTrack(track){
   });
   el.load();
   el.volume = musicVolume / 100;
-  if(audioZone === "ttt") el.loop = true; // ein einzelner Titel läuft in Dauerschleife
+  if(audioZone === "ttt" || MENU_MUSIC_TRACKS.length === 1) el.loop = true; // ein einzelner Titel läuft in Dauerschleife
   el.onended = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // nächster Menü-Titel
   el.onerror = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // defekte Quelle überspringen
   el.play().catch(() => {}); // Autoplay evtl. noch nicht erlaubt - wird beim nächsten Tipp nachgeholt
@@ -3600,6 +3746,7 @@ function startTrack(track){
 function setAudioZone(zone){
   if(zone === audioZone) return;
   audioZone = zone;
+  if(bgAudioEl && bgAudioTrackName === currentZoneTrackName()) { bgAudioEl.loop = true; return; } // gleicher Titel: durchlaufen lassen
   startTrack(currentZoneTrack());
 }
 function setMusicEnabled(on){
@@ -3611,7 +3758,7 @@ function setMusicEnabled(on){
 // Wirkt sofort auf den laufenden Titel (kein Neustart nötig), 0-100.
 function setMusicVolume(v){
   musicVolume = Math.max(0, Math.min(100, parseInt(v, 10) || 0));
-  try{ localStorage.setItem("wq_volume", String(musicVolume)); }catch(e){}
+  try{ localStorage.setItem("wq_volume2", String(musicVolume)); }catch(e){}
   if(bgAudioEl) bgAudioEl.volume = musicVolume / 100;
 }
 function unlockAudioOnce(){
@@ -3955,7 +4102,7 @@ async function chessHubCheckInvites(){
 // Sammel-RPG mit Fähigkeiten (Fantasy = Chess World, nur Deutsch).
 function renderChessHub(){
   const fantasyComing = featureLocked('chess_fantasy');
-  const fantasyLocked = fantasyComing || currentLang !== 'de';
+  const fantasyLocked = fantasyComing || (currentLang !== 'de' && currentLang !== 'en' && !adminViewOn());
   const o = chessOriginalSummary(), f = chessWorldSummary();
   renderApp(`
     <div class="panel">
@@ -3970,7 +4117,7 @@ function renderChessHub(){
         <div class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">🐉</div>
           <h3>Chess Fantasy</h3>
-          <p>${fantasyComing ? 'Coming soon' : fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : 'Schach-RPG mit Truhen, Fähigkeiten und Rängen.'}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
+          <p>${fantasyComing ? 'Coming soon' : fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : L('Schach-RPG mit Truhen, Fähigkeiten und Rängen.','Chess RPG with chests, abilities and ranks.')}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
         </div>
         ${featureLocked('chess_online') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">🌐</div>
@@ -4412,7 +4559,7 @@ function renderMainMenu(){
     <button class="btn btn-ghost settings-fab" onclick="renderSettingsModal()">⚙️ ${L('Einstellungen','Settings')}</button>
     ${accountIndicatorHtml()}
     <div class="menu-hero">
-      <h1>${t('app_title')}</h1>
+      <h1 onclick="titleTap()">${t('app_title')}</h1>
     </div>
     <div class="menu-grid">
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
@@ -6763,10 +6910,18 @@ function renderTttRankOverview(profile){
           const statusColor = isDone ? 'var(--accent-2)' : (isCurrent ? 'var(--accent)' : 'var(--text-dim)');
           return `
           <div class="leaderboard-row" style="${isCurrent ? 'box-shadow: 0 0 0 2px var(--accent); background: rgba(255,255,255,0.06);' : (isDone ? '' : 'opacity:.55;')}">
-            <span class="rank-pill ${r.cls}" style="margin-right:10px;"><span class="rank-dot"></span>${r.name}</span>
+            <span style="margin-right:10px; display:inline-flex; align-items:center; gap:8px; min-width:150px; font-weight:700; font-size:13px;">${tttBeltSvg(i, 70, isCurrent)}<span>${r.name}</span></span>
             <span style="flex:1; font-size:13px; color:${statusColor}; font-weight:${isCurrent?'700':'400'};">${statusLabel}</span>
           </div>
         `;}).join("")}
+      </div>
+      <div class="picker-sub" style="margin-top:16px; text-align:center; font-weight:700;">${L('SPIELFELD-STIL','BOARD STYLE')}</div>
+      <div class="ttt-style-grid">
+        ${TTT_STYLES.map(st => { const un = tttStyleUnlocked(st, profile); const sel = tttStyleKey()===st.key;
+          return `<div class="ttt-style-tile ${sel?'sel':''} ${un?'':'lock'}" onclick="${un?`tttPickStyle('${st.key}')`:''}">
+            <div style="display:flex;justify-content:center;gap:0;">${tttMarkPreview(st.key,'X')}${tttMarkPreview(st.key,'O')}</div>
+            ${st.name}${un?'':`<br><span style="opacity:.8">🔒 ${TTT_RANKS[st.need].name.split(' ')[0]}</span>`}
+          </div>`; }).join('')}
       </div>
       <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startTttGame(tttOverviewProfile)">${L('GEGEN BOT SPIELEN','PLAY AGAINST THE BOT')}</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttQuizmixBotEntry(tttOverviewProfile)">🧠 ${L('QUIZMIX GEGEN BOT','QUIZMIX VS BOT')}</button>
@@ -7020,9 +7175,9 @@ function renderTttMpGame(){
         <div class="explanation" style="margin-top:14px;">${L('Warte auf eine zweite Person … Teile den Code','Waiting for a second player … Share the code')} <b>${codeText(tttMp.roomCode)}</b>.</div>
         ${renderInviteFriendsBox('ttt', tttMp.roomCode)}
       ` : `
-        <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+        <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
           ${tttMp.board.map((c,i) => `
-            <div onclick="${isQuizmix ? 'tttQuizmixTap('+i+')' : 'tttMpMove('+i+')'}" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${cellClickable(i)?'pointer':'default'};">${c||''}</div>
+            <div onclick="${isQuizmix ? 'tttQuizmixTap('+i+')' : 'tttMpMove('+i+')'}" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${cellClickable(i)?'pointer':'default'};">${tttMark(c)}</div>
           `).join("")}
         </div>
         ${tttMp.opponentLeft ? `
@@ -7241,9 +7396,9 @@ function renderTtqbGame(){
     <div class="panel">
       <div class="picker-title">${L('QUIZMIX GEGEN BOT','QUIZMIX VS BOT')}</div>
       <div class="picker-sub">${tttRankPillHtml(ttqb.rankIndex)} · ${ttqb.gameOver ? '' : (myTurn ? L('Du bist dran – tippe auf ein leeres Feld.','Your turn – tap an empty square.') : L('Der Bot wählt gerade ein Feld …','The bot is picking a square …'))}</div>
-      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+      <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttqb.board.map((c,i) => `
-          <div onclick="tttQuizmixBotTap(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttqb.gameOver && myTurn)?'pointer':'default'};">${c||''}</div>
+          <div onclick="tttQuizmixBotTap(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttqb.gameOver && myTurn)?'pointer':'default'};">${tttMark(c)}</div>
         `).join("")}
       </div>
       ${ttqb.gameOver ? `
@@ -7578,9 +7733,9 @@ function renderTtqGame(){
     <div class="panel">
       <div class="picker-title">QUANTUM-MODUS</div>
       <div class="picker-sub">${L('Schwierigkeit','Difficulty')}: ${ttq.difficultyName} · ${L('höchstens 3 Symbole je Seite','at most 3 symbols per side')}</div>
-      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+      <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttq.board.map((c,i) => `
-          <div onclick="ttqPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttq.gameOver && ttq.playerTurn)?'pointer':'default'};">${c||''}</div>
+          <div onclick="ttqPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttq.gameOver && ttq.playerTurn)?'pointer':'default'};">${tttMark(c)}</div>
         `).join("")}
       </div>
       ${ttq.gameOver ? `
@@ -7635,9 +7790,9 @@ function renderTttGame(){
     <div class="panel">
       <div class="picker-title">TIC TAC TOE</div>
       <div class="picker-sub">${L('Gegen','Against')}: ${tttRankPillHtml(ttt.rankIndex)}</div>
-      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+      <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttt.board.map((c,i) => `
-          <div onclick="tttPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && ttt.playerTurn && !ttt.gameOver)?'pointer':'default'};">${c||''}</div>
+          <div onclick="tttPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && ttt.playerTurn && !ttt.gameOver)?'pointer':'default'};">${tttMark(c)}</div>
         `).join("")}
       </div>
       ${ttt.gameOver ? `
@@ -9870,9 +10025,9 @@ function renderPartyTicTacToe(msg){
     <div class="panel">
       <div class="picker-title">TIC TAC TOE</div>
       <div class="picker-sub">${esc(teamNameFor('X'))} (X) gegen ${esc(teamNameFor('O'))} (O)</div>
-      <div class="ttt-board" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
+      <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${msg.board.map((c,i) => `
-          <div onclick="partyTicTacToeMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !msg.gameOver && myTurn)?'pointer':'default'};">${c||''}</div>
+          <div onclick="partyTicTacToeMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !msg.gameOver && myTurn)?'pointer':'default'};">${tttMark(c)}</div>
         `).join("")}
       </div>
       ${msg.gameOver ? `

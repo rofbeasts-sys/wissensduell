@@ -3818,6 +3818,18 @@ function adminAuth(key, ip) {
   const a = Buffer.from(String(key || "")), b = Buffer.from(adminKey);
   return a.length === b.length && require("crypto").timingSafeEqual(a, b);
 }
+// Admin-Sicht: prueft den Key, zaehlt nur FEHLVERSUCHE (Erfolg verbraucht kein Limit).
+function adminOk(key, ip) {
+  const ak = process.env.ADMIN_KEY;
+  if (!ak || ak.length < 12 || typeof key !== "string" || !key) return false;
+  const lk = "admv|" + ip;
+  const e = rlStore.get(lk);
+  if (e && e.lockedUntil > Date.now()) return false;
+  const a = Buffer.from(key), b = Buffer.from(ak);
+  const ok = a.length === b.length && require("crypto").timingSafeEqual(a, b);
+  if (!ok) rlHit(lk, 8, 10 * 60 * 1000, 15 * 60 * 1000); else rlReset(lk);
+  return ok;
+}
 // Konto sperren/entsperren (Schummler: keine Gratis-Muenzen/-Schluessel mehr) oder Zaehler loeschen.
 async function adminRestrict(key, ip, username, action) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -4202,10 +4214,11 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
-        else if (req.url === "/api/features") result = { ok: true, locked: Array.from(LOCKED_FEATURES) };
-        else if (req.url.startsWith("/api/chess-online/") && featureLocked("chess_online")) result = FEATURE_LOCKED_RESULT;
-        else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && featureLocked("arena")) result = FEATURE_LOCKED_RESULT;
-        else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && featureLocked("shop")) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES) }; }
+        else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
+        else if (req.url.startsWith("/api/chess-online/") && featureLocked("chess_online") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && featureLocked("arena") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && featureLocked("shop") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
         else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);

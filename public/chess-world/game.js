@@ -5,8 +5,8 @@
 // ============================================================
 
 const CHESS_SYMS = {
-  wK:'\u2654',wQ:'\u2655',wR:'\u2656',wB:'\u2657',wN:'\u2658',wP:'\u2659',
-  bK:'\u265A',bQ:'\u265B',bR:'\u265C',bB:'\u265D',bN:'\u265E',bP:'\u265F'
+  wK:'\u265A\uFE0E',wQ:'\u265B\uFE0E',wR:'\u265C\uFE0E',wB:'\u265D\uFE0E',wN:'\u265E\uFE0E',wP:'\u265F\uFE0E',
+  bK:'\u265A\uFE0E',bQ:'\u265B\uFE0E',bR:'\u265C\uFE0E',bB:'\u265D\uFE0E',bN:'\u265E\uFE0E',bP:'\u265F\uFE0E'
 };
 
 const PREGAME_GROUP_SLOTS={turm:2,springer:2,laeufer:2,dame:1,koenig:1,bauer:8};
@@ -363,15 +363,15 @@ const RANKS=[
   {name:'Silber',      tier:3,winsNeeded:5, color:'#c0c0c0'},
   {name:'Silber',      tier:2,winsNeeded:5, color:'#c0c0c0'},
   {name:'Silber',      tier:1,winsNeeded:5, color:'#c0c0c0'},
-  {name:'Gold',        tier:3,winsNeeded:6, color:'#c6ff3d'},
-  {name:'Gold',        tier:2,winsNeeded:6, color:'#c6ff3d'},
-  {name:'Gold',        tier:1,winsNeeded:6, color:'#c6ff3d'},
-  {name:'Platin',      tier:3,winsNeeded:7, color:'#3de0ff'},
-  {name:'Platin',      tier:2,winsNeeded:7, color:'#3de0ff'},
-  {name:'Platin',      tier:1,winsNeeded:7, color:'#3de0ff'},
-  {name:'Diamant',     tier:3,winsNeeded:8, color:'#3de0ff'},
-  {name:'Diamant',     tier:2,winsNeeded:8, color:'#3de0ff'},
-  {name:'Diamant',     tier:1,winsNeeded:8, color:'#3de0ff'},
+  {name:'Gold',        tier:3,winsNeeded:6, color:'#ffd45a'},
+  {name:'Gold',        tier:2,winsNeeded:6, color:'#ffd45a'},
+  {name:'Gold',        tier:1,winsNeeded:6, color:'#ffd45a'},
+  {name:'Platin',      tier:3,winsNeeded:7, color:'#7be0ff'},
+  {name:'Platin',      tier:2,winsNeeded:7, color:'#7be0ff'},
+  {name:'Platin',      tier:1,winsNeeded:7, color:'#7be0ff'},
+  {name:'Diamant',     tier:3,winsNeeded:8, color:'#7be0ff'},
+  {name:'Diamant',     tier:2,winsNeeded:8, color:'#7be0ff'},
+  {name:'Diamant',     tier:1,winsNeeded:8, color:'#7be0ff'},
   {name:'Meister',     tier:0,winsNeeded:10,color:'#ff9900'},
   {name:'Grandmeister',tier:0,winsNeeded:12,color:'#ff5d8f'},
   {name:'Legende',     tier:0,winsNeeded:null,color:'#ff88ff'}
@@ -492,10 +492,10 @@ function startMoveTimer(){
   stopMoveTimer();
   chess.timerSec=MOVE_TIME;
   const lbl=q('#move-timer');
-  if(lbl){lbl.style.display='block';lbl.style.color='#c6ff3d';}
+  if(lbl){lbl.style.display='block';lbl.style.color='#ffd45a';}
   chess.timerInterval=setInterval(()=>{
     chess.timerSec--;
-    const col=chess.timerSec>20?'#c6ff3d':chess.timerSec>10?'#ff9900':'#ff5d8f';
+    const col=chess.timerSec>20?'#ffd45a':chess.timerSec>10?'#ff9900':'#ff5d8f';
     if(lbl){lbl.textContent=chess.timerSec;lbl.style.color=col;}
     if(chess.timerSec<=0){stopMoveTimer();if(chess.status==='playing'&&chess.turn==='w'){setStatus('Zeit abgelaufen! KI zieht...','#ff5d8f');chess.turn='b';setTimeout(()=>aiTurn(),400);}}
   },1000);
@@ -511,7 +511,7 @@ function stopMoveTimer(){
 // DRAW / GEDANKEN MODE
 // ============================================================
 let drawMode=false;
-let drawColor='#c6ff3d';
+let drawColor='#ffd45a';
 let drawSize=4;
 let isDrawing=false;
 let lastDrawX=0,lastDrawY=0;
@@ -543,13 +543,13 @@ function toggleDrawMode(){
     ctx.setTransform(dpr,0,0,dpr,0,0);
     canvas.style.display='block';
     toolbar.style.display='flex';
-    btn.style.borderColor='#c6ff3d';btn.style.color='#c6ff3d';btn.style.background='#10141f';
+    btn.style.borderColor='#ffd45a';btn.style.color='#ffd45a';btn.style.background='#2a1a5a';
     btn.textContent='\u270F\uFE0F AN \u2014 Brett zeichnen';
     setupDrawEvents(canvas);
   } else {
     canvas.style.display='none';
     toolbar.style.display='none';
-    btn.style.borderColor='#c6ff3d';btn.style.color='#c6ff3d';btn.style.background='#0a0d16';
+    btn.style.borderColor='#ffd45a';btn.style.color='#ffd45a';btn.style.background='#1a0f3a';
     btn.textContent='\u270F\uFE0F GEDANKEN';
     removeDrawEvents(canvas);
   }
@@ -637,15 +637,15 @@ function load(){
 const BOARD_NEEDS={bauer:8,turm:2,laeufer:2,springer:2,dame:1,koenig:1};
 
 const SKINS={
-  classic:{name:'Amateur',emoji:'\u265F',unlockRank:0,glow:'#888888',cellLight:'#262e46',cellDark:'#0a0d16',border:'#262e46',bg:'#262e46',panel:'#0a0d16'},
-  bronze: {name:'Bronze', emoji:'B',     unlockRank:3,glow:'#cd7f32',cellLight:'#3a1e08',cellDark:'#1a0c04',border:'#5a2e00',bg:'#10141f',panel:'#120800'},
-  silver: {name:'Silber', emoji:'S',     unlockRank:6,glow:'#c0c0c0',cellLight:'#282828',cellDark:'#101010',border:'#404040',bg:'#10141f',panel:'#0c0c0c'},
-  gold:   {name:'Gold',   emoji:'G',     unlockRank:9,glow:'#c6ff3d',cellLight:'#3a2e00',cellDark:'#1a1400',border:'#7a5a00',bg:'#2a1e00',panel:'#100c00'},
-  platin: {name:'Platin', emoji:'P',     unlockRank:12,glow:'#3de0ff',cellLight:'#003040',cellDark:'#001018',border:'#006080',bg:'#001828',panel:'#000c14'},
-  diamant:{name:'Diamant',emoji:'D',     unlockRank:15,glow:'#3de0ff',cellLight:'#0a1e30',cellDark:'#040e18',border:'#1a4060',bg:'#081420',panel:'#040a10'},
-  meister:{name:'Meister',emoji:'M',     unlockRank:18,glow:'#ff9900',cellLight:'#3a1800',cellDark:'#10141f',border:'#7a3000',bg:'#200e00',panel:'#100700'},
-  gm:     {name:'Grandmeister',emoji:'GM',unlockRank:19,glow:'#ff5d8f',cellLight:'#3a0808',cellDark:'#1a0404',border:'#660000',bg:'#1e0404',panel:'#0e0202'},
-  legende:{name:'Legende',emoji:'L',     unlockRank:20,glow:'#9900ff',cellLight:'#1a0030',cellDark:'#08000f',border:'#440066',bg:'#0e0018',panel:'#06000c'},
+  classic:{name:'Amateur',emoji:'\u265F',unlockRank:0,glow:'#888888',cellLight:'#eeeed2',cellDark:'#769656',border:'#5a41b0',bg:'#1a0f3a',panel:'#2a1a5a'},
+  bronze: {name:'Bronze', emoji:'B',     unlockRank:3,glow:'#cd7f32',cellLight:'#d9a066',cellDark:'#8a5a2b',border:'#5a2e00',bg:'#10141f',panel:'#120800'},
+  silver: {name:'Silber', emoji:'S',     unlockRank:6,glow:'#c0c0c0',cellLight:'#e1e4ea',cellDark:'#7d8594',border:'#404040',bg:'#10141f',panel:'#0c0c0c'},
+  gold:   {name:'Gold',   emoji:'G',     unlockRank:9,glow:'#ffd45a',cellLight:'#f4da82',cellDark:'#b8892a',border:'#7a5a00',bg:'#2a1e00',panel:'#100c00'},
+  platin: {name:'Platin', emoji:'P',     unlockRank:12,glow:'#3de0ff',cellLight:'#8fe3f2',cellDark:'#2a8da6',border:'#006080',bg:'#001828',panel:'#000c14'},
+  diamant:{name:'Diamant',emoji:'D',     unlockRank:15,glow:'#3de0ff',cellLight:'#d5f5ff',cellDark:'#4aa9d6',border:'#1a4060',bg:'#081420',panel:'#040a10'},
+  meister:{name:'Meister',emoji:'M',     unlockRank:18,glow:'#ff9900',cellLight:'#ffb25a',cellDark:'#a14a12',border:'#7a3000',bg:'#200e00',panel:'#100700'},
+  gm:     {name:'Grandmeister',emoji:'GM',unlockRank:19,glow:'#ff5d8f',cellLight:'#ff8aa8',cellDark:'#8a1f3d',border:'#660000',bg:'#1e0404',panel:'#0e0202'},
+  legende:{name:'Legende',emoji:'L',     unlockRank:20,glow:'#c58bff',cellLight:'#c58bff',cellDark:'#4a1a8a',border:'#440066',bg:'#0e0018',panel:'#06000c'},
 };
 function isBoardSkinUnlocked(id){const s=SKINS[id];return s&&G.rankIdx>=(s.unlockRank||0);}
 function initActivePieceSkin(){activePieceSkin=G.activePieceSkin||'classic';}
@@ -663,21 +663,21 @@ function applySkin(id){
 // ============================================================
 const PIECE_SKINS = {
   classic: {name:'Standard',        unlockRank:0,  glow:'#888888',colors:{w:'#c6ff3d',b:'#ff5d8f'}},
-  bronze:  {name:'Bronze-Set',      unlockRank:3,  glow:'#cd7f32',colors:{w:'#f0a050',b:'#7a3a00'}},
-  silver:  {name:'Silber-Set',      unlockRank:6,  glow:'#c0c0c0',colors:{w:'#e8e8e8',b:'#505050'}},
-  gold:    {name:'Gold-Set',        unlockRank:9,  glow:'#c6ff3d',colors:{w:'#c6ff3d',b:'#c6ff3d'}},
-  platin:  {name:'Platin-Set',      unlockRank:12, glow:'#3de0ff',colors:{w:'#3de0ff',b:'#006080'}},
-  diamant: {name:'Diamant-Set',     unlockRank:15, glow:'#3de0ff',colors:{w:'#aaeeff',b:'#1a4a6a'}},
-  meister: {name:'Meister-Set',     unlockRank:18, glow:'#ff9900',colors:{w:'#ffbb44',b:'#aa4400'}},
-  gm:      {name:'Grandmeister-Set',unlockRank:19, glow:'#ff5d8f',colors:{w:'#ff8888',b:'#2a1020'}},
-  legende: {name:'Legenden-Set',    unlockRank:20, glow:'#9900ff',colors:{w:'#cc44ff',b:'#440077'}},
-  dragon:  {name:'Drachen-Set',     unlockRank:999,glow:'#ff6600',colors:{w:'#ff9944',b:'#882200'},shopId:'dragon',
+  bronze:  {name:'Bronze-Set',      unlockRank:3,  glow:'#cd7f32',colors:{w:'#f0a050',b:'#7a3a00'},body:['#f6b36b','#8a4f1d']},
+  silver:  {name:'Silber-Set',      unlockRank:6,  glow:'#c0c0c0',colors:{w:'#e8e8e8',b:'#505050'},body:['#ffffff','#8a93a3']},
+  gold:    {name:'Gold-Set',        unlockRank:9,  glow:'#ffd45a',colors:{w:'#c6ff3d',b:'#c6ff3d'},body:['#fff0a0','#c08a12']},
+  platin:  {name:'Platin-Set',      unlockRank:12, glow:'#3de0ff',colors:{w:'#3de0ff',b:'#006080'},body:['#c8f7ff','#17a3c4']},
+  diamant: {name:'Diamant-Set',     unlockRank:15, glow:'#3de0ff',colors:{w:'#aaeeff',b:'#1a4a6a'},body:['#eefcff','#55c4ee']},
+  meister: {name:'Meister-Set',     unlockRank:18, glow:'#ff9900',colors:{w:'#ffbb44',b:'#aa4400'},body:['#ffd08a','#c0560e']},
+  gm:      {name:'Grandmeister-Set',unlockRank:19, glow:'#ff5d8f',colors:{w:'#ff8888',b:'#2a1020'},body:['#ffb3c6','#a3204a']},
+  legende: {name:'Legenden-Set',    unlockRank:20, glow:'#c58bff',colors:{w:'#cc44ff',b:'#440077'},body:['#e3c4ff','#6a2bc2']},
+  dragon:  {name:'Drachen-Set',     unlockRank:999,glow:'#ff6600',colors:{w:'#ff9944',b:'#882200'},body:['#ffc27a','#a8320c'],shopId:'dragon',
     set:{wK:'🐲',wQ:'🔥',wR:'🏯',wB:'🦎',wN:'🐉',wP:'🥚',bK:'🐲',bQ:'🌋',bR:'🏯',bB:'🦎',bN:'🐉',bP:'🥚'}},
-  jungle:  {name:'Dschungel-Set',   unlockRank:999,glow:'#44aa44',colors:{w:'#88ff44',b:'#1a5500'},shopId:'jungle',
+  jungle:  {name:'Dschungel-Set',   unlockRank:999,glow:'#44aa44',colors:{w:'#88ff44',b:'#1a5500'},body:['#c8ff9a','#1f7a2a'],shopId:'jungle',
     set:{wK:'🦁',wQ:'🌿',wR:'🌴',wB:'🦜',wN:'🐆',wP:'🌱',bK:'🐊',bQ:'🌑',bR:'🌵',bB:'🦎',bN:'🐍',bP:'🍄'}},
-  ocean:   {name:'Ozean-Set',       unlockRank:999,glow:'#0088ff',colors:{w:'#44ddff',b:'#003366'},shopId:'ocean_p',
+  ocean:   {name:'Ozean-Set',       unlockRank:999,glow:'#0088ff',colors:{w:'#44ddff',b:'#003366'},body:['#c9f6ff','#0b6a9c'],shopId:'ocean_p',
     set:{wK:'🐳',wQ:'🌊',wR:'⚓',wB:'🐬',wN:'🦀',wP:'🐚',bK:'🦑',bQ:'🌑',bR:'🪸',bB:'🐙',bN:'🦈',bP:'🐠'}},
-  space:   {name:'Weltraum-Set',    unlockRank:999,glow:'#8844ff',colors:{w:'#aaaaff',b:'#220044'},shopId:'space',
+  space:   {name:'Weltraum-Set',    unlockRank:999,glow:'#8844ff',colors:{w:'#aaaaff',b:'#220044'},body:['#e4dcff','#3b2a8a'],shopId:'space',
     set:{wK:'👨‍🚀',wQ:'⭐',wR:'🚀',wB:'🛸',wN:'🌙',wP:'🌟',bK:'👾',bQ:'🌑',bR:'🛰️',bB:'☄️',bN:'🪐',bP:'🔭'}},
 };
 function isPieceSkinUnlocked(id){
@@ -700,13 +700,13 @@ function shopTab(tab){
   if(!kisten||!items)return;
   if(tab==='kisten'){
     kisten.style.display='flex';items.style.display='none';
-    if(tbK){tbK.style.borderColor='#c6ff3d';tbK.style.background='#10141f';tbK.style.color='#c6ff3d';}
-    if(tbI){tbI.style.borderColor='#262e46';tbI.style.background='#0a0d16';tbI.style.color='#262e46';}
+    if(tbK){tbK.style.borderColor='#ffd45a';tbK.style.background='#2a1a5a';tbK.style.color='#ffd45a';}
+    if(tbI){tbI.style.borderColor='#5a41b0';tbI.style.background='#1a0f3a';tbI.style.color='#5a41b0';}
     renderChestScreen();
   } else {
     kisten.style.display='none';items.style.display='flex';items.style.flexDirection='column';items.style.gap='8px';
-    if(tbK){tbK.style.borderColor='#262e46';tbK.style.background='#0a0d16';tbK.style.color='#262e46';}
-    if(tbI){tbI.style.borderColor='#c6ff3d';tbI.style.background='#10141f';tbI.style.color='#c6ff3d';}
+    if(tbK){tbK.style.borderColor='#5a41b0';tbK.style.background='#1a0f3a';tbK.style.color='#5a41b0';}
+    if(tbI){tbI.style.borderColor='#ffd45a';tbI.style.background='#2a1a5a';tbI.style.color='#ffd45a';}
     renderShopScreen();
   }
 }
@@ -717,13 +717,13 @@ function skinTab(tab){
   if(!brett||!figur)return;
   if(tab==='brett'){
     brett.style.display='block';figur.style.display='none';
-    if(tbB){tbB.style.borderColor='#c6ff3d';tbB.style.background='#10141f';tbB.style.color='#c6ff3d';}
-    if(tbF){tbF.style.borderColor='#262e46';tbF.style.background='#0a0d16';tbF.style.color='#262e46';}
+    if(tbB){tbB.style.borderColor='#ffd45a';tbB.style.background='#2a1a5a';tbB.style.color='#ffd45a';}
+    if(tbF){tbF.style.borderColor='#5a41b0';tbF.style.background='#1a0f3a';tbF.style.color='#5a41b0';}
     renderSkinScreen();
   } else {
     brett.style.display='none';figur.style.display='block';
-    if(tbB){tbB.style.borderColor='#262e46';tbB.style.background='#0a0d16';tbB.style.color='#262e46';}
-    if(tbF){tbF.style.borderColor='#c6ff3d';tbF.style.background='#10141f';tbF.style.color='#c6ff3d';}
+    if(tbB){tbB.style.borderColor='#5a41b0';tbB.style.background='#1a0f3a';tbB.style.color='#5a41b0';}
+    if(tbF){tbF.style.borderColor='#ffd45a';tbF.style.background='#2a1a5a';tbF.style.color='#ffd45a';}
     renderPieceSkinScreen();
   }
 }
@@ -734,12 +734,12 @@ function renderSkinScreen(){
   el.onclick=null;
   el.addEventListener('click',function(e){const c=e.target.closest('[data-skin]');if(c)applySkin(c.dataset.skin);});
   Object.entries(SKINS).forEach(([id,s])=>{
-    const active=G.activeSkin===id, unlocked=isBoardSkinUnlocked(id), g=s.glow||'#c6ff3d';
+    const active=G.activeSkin===id, unlocked=isBoardSkinUnlocked(id), g=s.glow||'#ffd45a';
     const row=document.createElement('div');row.dataset.skin=id;
     row.style.cssText=
       'display:flex;align-items:center;gap:10px;padding:8px 10px'+
-      ';border:2px solid '+(active?g:unlocked?g+'44':'#10141f')+
-      ';border-radius:10px;background:'+(active?'#130f00':'#0a0d16')+
+      ';border:2px solid '+(active?g:unlocked?g+'44':'#2a1a5a')+
+      ';border-radius:10px;background:'+(active?'#130f00':'#1a0f3a')+
       ';box-shadow:'+(active?'0 0 14px '+g+'77':'none')+
       ';opacity:'+(unlocked?'1':'0.4')+';cursor:'+(unlocked?'pointer':'default');
     // Mini-Brett 4x4
@@ -748,9 +748,9 @@ function renderSkinScreen(){
     for(let i=0;i<16;i++){const c=document.createElement('div');c.style.cssText='background:'+((Math.floor(i/4)+i%4)%2===0?s.cellLight:s.cellDark);mini.appendChild(c);}
     // Text
     const info=document.createElement('div');info.style.cssText='flex:1;min-width:0;overflow:hidden';
-    const nm=document.createElement('div');nm.style.cssText='font-size:.72rem;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:'+(active?g:unlocked?g:'#262e46');
+    const nm=document.createElement('div');nm.style.cssText='font-size:.72rem;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:'+(active?g:unlocked?g:'#5a41b0');
     nm.textContent=s.name;
-    const sub=document.createElement('div');sub.style.cssText='font-size:.5rem;margin-top:2px;color:'+(active?'#c6ff3d':'#262e46');
+    const sub=document.createElement('div');sub.style.cssText='font-size:.5rem;margin-top:2px;color:'+(active?'#ffd45a':'#5a41b0');
     sub.textContent=active?'✓ Aktiv':unlocked?'Antippen zum Aktivieren':'🔒 Rang erforderlich';
     info.appendChild(nm);info.appendChild(sub);
     // Badge
@@ -768,34 +768,31 @@ function renderPieceSkinScreen(){
   let didDiv=false;
   Object.entries(PIECE_SKINS).forEach(([id,s])=>{
     const unlocked=isPieceSkinUnlocked(id), active=activePieceSkin===id, isEmoji=!!s.set;
-    const g=s.glow||'#c6ff3d';
+    const g=s.glow||'#ffd45a';
     if(isEmoji&&!didDiv){
       didDiv=true;
       const sep=document.createElement('div');
       sep.style.cssText='display:flex;align-items:center;gap:6px;margin:2px 0';
-      sep.innerHTML='<div style="flex:1;height:1px;background:#10141f"></div><span style="font-size:.5rem;color:#262e46;white-space:nowrap">&#128176; SHOP-SETS</span><div style="flex:1;height:1px;background:#10141f"></div>';
+      sep.innerHTML='<div style="flex:1;height:1px;background:#2a1a5a"></div><span style="font-size:.5rem;color:#5a41b0;white-space:nowrap">&#128176; SHOP-SETS</span><div style="flex:1;height:1px;background:#2a1a5a"></div>';
       el.appendChild(sep);
     }
     const row=document.createElement('div');row.dataset.pskin=id;
-    const bc=active?g:unlocked&&!isEmoji?g+'44':isEmoji&&unlocked?'#c6ff3d44':'#10141f';
+    const bc=active?g:unlocked&&!isEmoji?g+'44':isEmoji&&unlocked?'#ffd45a44':'#2a1a5a';
     row.style.cssText=
       'display:flex;align-items:center;gap:10px;padding:8px 10px'+
       ';border:2px solid '+bc+
-      ';border-radius:10px;background:'+(active?'#130f00':'#0a0d16')+
+      ';border-radius:10px;background:'+(active?'#130f00':'#1a0f3a')+
       ';box-shadow:'+(active?'0 0 14px '+g+'77':'none')+
       ';opacity:'+(unlocked?'1':'0.4')+';cursor:'+(unlocked?'pointer':'default');
-    // Figur-Vorschau
-    const wK=s.set?s.set['wK']:CHESS_SYMS['wK'];
-    const bK=s.set?s.set['bK']:CHESS_SYMS['bK'];
+    // Figur-Vorschau (eigene SVG-Figuren in der Skin-Farbe)
     const prev=document.createElement('div');
-    prev.style.cssText='font-size:1.6rem;min-width:44px;text-align:center;flex-shrink:0;display:flex;justify-content:center;gap:2px';
-    if(s.colors){prev.innerHTML='<span style="color:'+s.colors.w+';filter:drop-shadow(0 0 4px '+s.colors.w+'aa)">'+wK+'</span><span style="color:'+s.colors.b+'">'+bK+'</span>';}
-    else{prev.innerHTML='<span>'+wK+'</span><span style="color:#555">'+bK+'</span>';}
+    prev.style.cssText='min-width:96px;display:flex;justify-content:center;gap:0;flex-shrink:0';
+    prev.innerHTML=['P','N','Q'].map(function(t){return '<span style="width:32px;height:32px;display:block">'+chessPieceSVG(t,'w','dark',{body:s.body||null,accent:s.body?'#e8ecf5':null})+'</span>';}).join('');
     // Text
     const info=document.createElement('div');info.style.cssText='flex:1;min-width:0;overflow:hidden';
-    const nm=document.createElement('div');nm.style.cssText='font-size:.72rem;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:'+(active?g:unlocked?isEmoji?'#c6ff3d':g:'#262e46');
+    const nm=document.createElement('div');nm.style.cssText='font-size:.72rem;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:'+(active?g:unlocked?isEmoji?'#ffd45a':g:'#5a41b0');
     nm.textContent=s.name;
-    const sub=document.createElement('div');sub.style.cssText='font-size:.5rem;margin-top:2px;color:#262e46';
+    const sub=document.createElement('div');sub.style.cssText='font-size:.5rem;margin-top:2px;color:#5a41b0';
     sub.textContent=active?'✓ Aktiv':isEmoji&&!unlocked?'→ Im Shop kaufen':!unlocked?'🔒 Rang erforderlich':'Antippen zum Aktivieren';
     info.appendChild(nm);info.appendChild(sub);
     if(active){const b=document.createElement('div');b.style.cssText='color:'+g+';font-size:1rem;flex-shrink:0';b.textContent='✓';row.appendChild(prev);row.appendChild(info);row.appendChild(b);}
@@ -1039,7 +1036,7 @@ function startNewGame(){
   // Reset draw mode
   if(drawMode)toggleDrawMode();
   clearDrawCanvas();
-  setStatus('Dein Zug \u2014 W\u00E4hle eine Figur','#c6ff3d');
+  setStatus('Dein Zug \u2014 W\u00E4hle eine Figur','#ffd45a');
   // Show AI difficulty in log
   const{depth,blunderChance}=getAIDifficulty();
   const diffLabel=G.rankIdx<=2?'Anf\u00e4nger':G.rankIdx<=5?'Leicht':G.rankIdx<=8?'Mittel':G.rankIdx<=11?'Stark':G.rankIdx<=17?'Experte':'Meister';
@@ -1055,7 +1052,7 @@ function startNewGame(){
 
 function setStatus(text,color){
   const el=q('#chess-status');if(!el)return;
-  el.textContent=text;el.style.color=color||'#c6ff3d';
+  el.textContent=text;el.style.color=color||'#ffd45a';
 }
 
 function renderBoard(){
@@ -1132,28 +1129,17 @@ function renderBoard(){
         sp.className='chess-piece '+(piece.col==='w'?'pw':'pb');
         // Aktiven Skin nur für Spieler-Figuren (weiß)
         const skin=piece.col==='w'?PIECE_SKINS[activePieceSkin]:null;
-        const skinKey=piece.col+piece.t;
-        if(skin?.set&&skin.set[skinKey]){
-          sp.textContent=skin.set[skinKey];
-          sp.style.fontSize='1.15rem';
-        } else {
-          sp.textContent=CHESS_SYMS[skinKey];
-        }
-        // Farbe: Rang-Farbe hat Vorrang ab Rang 1, sonst Skin-Farbe
-        if(piece.col==='w'){
-          const rankIdx=piece.rankIdx||0;
-          if(rankIdx>0){
-            // Rang 1+ → Rang-Farbe zeigen
-            const rar=RARITY_ORDER[rankIdx];
-            const col=RARITIES[rar]?.color||'#ffffff';
-            sp.style.color=col;
-            sp.style.filter='drop-shadow(0 0 6px '+col+'99)';
-            sp.style.textShadow='0 0 8px '+col+'88';
-          } else if(skin?.colors){
-            // Rang 0 → Skin-Farbe
-            sp.style.color=skin.colors.w;
-            sp.style.filter='drop-shadow(0 0 5px '+skin.glow+'88)';
+        {
+          // Eigene SVG-Figur: Körper = Skin-Farbe, Kontur/Leuchten = Rangfarbe, Sterne = Rang
+          let accent=null,body=null,rk;
+          if(piece.col==='w'){
+            const ri=piece.rankIdx||0; rk=ri;
+            if(skin&&skin.body) body=skin.body;
+            if(ri>0) accent=RARITIES[RARITY_ORDER[ri]]?.color||null;
+            else if(body) accent='#e8ecf5';
           }
+          sp.innerHTML=chessPieceSVG(piece.t,piece.col,'dark',{accent:accent,body:body,rank:rk});
+          sp.classList.add('svgp');
         }
         if(chess.lastMove&&((chess.lastMove.tr===r&&chess.lastMove.tc===c)))sp.classList.add('piece-moved');
         sp.onclick=()=>handleClick(r,c);
@@ -1211,11 +1197,11 @@ function showPieceAbilityPanel(r, c, piece){
           +'<div style="font-size:.48rem;color:#5a4020">'+rankName+' · '+coord+'</div>'
         +'</div>'
       +'</div>'
-      +'<button onclick="hidePieceAbilityPanel()" style="background:none;border:none;color:#262e46;font-size:.9rem;cursor:pointer;padding:2px 6px">✕</button>'
+      +'<button onclick="hidePieceAbilityPanel()" style="background:none;border:none;color:#5a41b0;font-size:.9rem;cursor:pointer;padding:2px 6px">✕</button>'
     +'</div>'
-    +'<div style="background:#0a0d16;border-radius:6px;padding:6px 8px;margin-bottom:5px">'
-      +'<div style="font-size:.44rem;color:#c6ff3d;letter-spacing:1px;margin-bottom:2px">⚡ AKTIV — '+cp.abilityLabel+'</div>'
-      +'<div style="font-size:.57rem;color:#c6ff3d;line-height:1.45">'+(abilData?.aktiv||cp.desc)+'</div>'
+    +'<div style="background:#1a0f3a;border-radius:6px;padding:6px 8px;margin-bottom:5px">'
+      +'<div style="font-size:.44rem;color:#ffd45a;letter-spacing:1px;margin-bottom:2px">⚡ AKTIV — '+cp.abilityLabel+'</div>'
+      +'<div style="font-size:.57rem;color:#ffd45a;line-height:1.45">'+(abilData?.aktiv||cp.desc)+'</div>'
     +'</div>'
     +(abilData?.passiv
       ?'<div style="background:#080e04;border-radius:6px;padding:5px 8px;margin-bottom:7px">'
@@ -1226,8 +1212,8 @@ function showPieceAbilityPanel(r, c, piece){
     +'<button onclick="usePieceAbilityByUid(\''+piece.uid+'\',\''+cp.abilityId+'\','+ri+')" '
       +'style="width:100%;padding:9px;border-radius:8px;font-size:.63rem;font-weight:bold;letter-spacing:1px;'
       +(avail
-        ?'cursor:pointer;background:linear-gradient(135deg,#10141f,#2a1200);border:1px solid '+rd.color+';color:'+rd.color+';box-shadow:0 0 12px '+rd.color+'44;'
-        :'cursor:default;background:#0a0d16;border:1px solid #10141f;color:#262e46;')
+        ?'cursor:pointer;background:linear-gradient(135deg,#2a1a5a,#2a1200);border:1px solid '+rd.color+';color:'+rd.color+';box-shadow:0 0 12px '+rd.color+'44;'
+        :'cursor:default;background:#1a0f3a;border:1px solid #2a1a5a;color:#5a41b0;')
       +'" '+(avail?'':'disabled')+'>'
       +(avail
         ?'⚡ '+cp.abilityLabel.toUpperCase()+' EINSETZEN'
@@ -1444,7 +1430,7 @@ function doMove(move,isAI){
       setStatus('Extra-Zug! W\u00E4hle eine Figur','#ff9900');
     }
   } else {
-    setStatus('Dein Zug \u2014 W\u00E4hle eine Figur','#c6ff3d');
+    setStatus('Dein Zug \u2014 W\u00E4hle eine Figur','#ffd45a');
     renderAbilities();
     startMoveTimer();
     const hb=q('#draw-btn');if(hb)hb.style.display='block';
@@ -1479,7 +1465,7 @@ function aiTurn(){
     chess.frozenEnemy=false;
     chess.turn='w';
     chess.moveLog.push({text:'\u2744\uFE0F KI-Zug blockiert! (Festung)',ai:false,special:true});
-    setStatus('Dein Zug \u2014 W\u00E4hle eine Figur','#c6ff3d');
+    setStatus('Dein Zug \u2014 W\u00E4hle eine Figur','#ffd45a');
     renderBoard();renderMoveLog();renderAbilities();
     startMoveTimer();
     const hb=q('#draw-btn');if(hb)hb.style.display='block';
@@ -1740,18 +1726,18 @@ function renderGameHistoryInto(el){
   history.forEach((g,i)=>{
     const isWin=g.result==='win';
     const isDraw=g.result==='draw';
-    const color=isWin?'#4aff4a':isDraw?'#c6ff3d':'#ff5d8f';
+    const color=isWin?'#4aff4a':isDraw?'#ffd45a':'#ff5d8f';
     const icon=isWin?'🏆':isDraw?'🤝':'💀';
     const label=isWin?'SIEG':isDraw?'UNENTSCHIEDEN':'NIEDERLAGE';
 
     // Typ-Badge
     const typeMap={
-      matt:    {txt:'♟ Schachmatt', c:'#c6ff3d', bg:'#10141f'},
+      matt:    {txt:'♟ Schachmatt', c:'#ffd45a', bg:'#2a1a5a'},
       patt:    {txt:'⚖️ Patt-Sieg',  c:'#4adfff', bg:'#001a22'},
       aufgabe: {txt:'🏳️ Aufgabe',   c:'#aaffaa', bg:'#001a00'},
       faehigkeit:{txt:'⚡ Fähigkeit',c:'#bb55ff', bg:'#1a0030'},
       ki_matt: {txt:'♟ KI-Matt',    c:'#ff6666', bg:'#2a1020'},
-      unentschieden:{txt:'⚖️ Remis', c:'#c6ff3d', bg:'#141000'},
+      unentschieden:{txt:'⚖️ Remis', c:'#ffd45a', bg:'#141000'},
     };
     // Legacy-Support für alte Einträge ohne winType
     let wt=g.winType;
@@ -1790,7 +1776,7 @@ function renderMoveLog(){
   el.innerHTML='';
   chess.moveLog.slice(-30).forEach(e=>{
     const d=document.createElement('div');
-    d.style.cssText='font-size:0.68rem;padding:2px 0;color:'+(e.special?'#c6ff3d':e.ai?'#ff8888':'#3de0ff');
+    d.style.cssText='font-size:0.68rem;padding:2px 0;color:'+(e.special?'#ffd45a':e.ai?'#ff8888':'#7be0ff');
     d.textContent=e.text;
     el.appendChild(d);
   });
@@ -1812,7 +1798,7 @@ function renderAbilities(){
   const remaining=5-used;
 
   const label=document.createElement('span');
-  label.style.cssText='font-size:.55rem;color:#262e46;margin-right:6px;';
+  label.style.cssText='font-size:.55rem;color:#5a41b0;margin-right:6px;';
   label.textContent='⚡';
   el.appendChild(label);
 
@@ -1820,9 +1806,9 @@ function renderAbilities(){
     const dot=document.createElement('div');
     const active=i<remaining;
     dot.style.cssText='width:16px;height:16px;border-radius:50%;transition:all .3s;margin:0 3px;'
-      +'background:'+(active?'radial-gradient(circle at 40% 35%,#c6ff3d,#c6ff3d)':'#10141f')+';'
-      +'border:1px solid '+(active?'#c6ff3d88':'#2a1a0066')+';'
-      +'box-shadow:'+(active?'0 0 8px #c6ff3d66':'none')+';';
+      +'background:'+(active?'radial-gradient(circle at 40% 35%,#ffd45a,#ffd45a)':'#2a1a5a')+';'
+      +'border:1px solid '+(active?'#ffd45a88':'#2a1a0066')+';'
+      +'box-shadow:'+(active?'0 0 8px #ffd45a66':'none')+';';
     el.appendChild(dot);
   }
 
@@ -2416,22 +2402,22 @@ function useAbility(id,desc,overrideRi){
 
   // Zeige verbleibende Fähigkeiten in Statusleiste
   const left=5-(chess.abilitiesUsedCount||0);
-  if(left>0)setStatus('⚡ Fähigkeit eingesetzt! Noch '+left+' übrig.','#c6ff3d');
+  if(left>0)setStatus('⚡ Fähigkeit eingesetzt! Noch '+left+' übrig.','#ffd45a');
 
   renderBoard();renderMoveLog();renderAbilities();
 }
 
 function showPromotionUI(r,c){
-  setStatus('\u265B Bauernumwandlung! Wähle eine Figur:','#c6ff3d');
+  setStatus('\u265B Bauernumwandlung! Wähle eine Figur:','#ffd45a');
   const el=q('#chess-board');if(!el)return;
   // Overlay over the promotion square cell
   const overlay=document.createElement('div');
   overlay.id='promo-overlay';
   overlay.style.cssText='position:absolute;inset:0;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;z-index:50;border-radius:6px;';
-  overlay.innerHTML='<div style="font-size:.6rem;color:#c6ff3d;letter-spacing:2px;margin-bottom:4px">UMWANDLUNG</div>'+
+  overlay.innerHTML='<div style="font-size:.6rem;color:#ffd45a;letter-spacing:2px;margin-bottom:4px">UMWANDLUNG</div>'+
     '<div style="display:flex;gap:10px">'+
     [['Q','\u2655'],['R','\u2656'],['B','\u2657'],['N','\u2658']].map(([t,sym])=>
-      `<button onclick="finishPromotion('${t}')" style="background:#10141f;border:2px solid #c6ff3d;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:1.6rem;color:#c6ff3d;transition:all .2s" onmouseover="this.style.background='#262e46'" onmouseout="this.style.background='#10141f'">${sym}</button>`
+      `<button onclick="finishPromotion('${t}')" style="background:#2a1a5a;border:2px solid #ffd45a;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:1.6rem;color:#ffd45a;transition:all .2s" onmouseover="this.style.background='#5a41b0'" onmouseout="this.style.background='#2a1a5a'">${sym}</button>`
     ).join('')+
     '</div>';
   el.style.position='relative';
@@ -2517,22 +2503,22 @@ function showResult(won,text){
     const _ce=100*(1+Math.floor(G.rankIdx/3));
     extra='<div style="display:flex;gap:10px;justify-content:center;margin:6px 0">'+
       
-      '<span style="color:#c6ff3d">+'+_ce+' \uD83D\uDCB0</span>'+
+      '<span style="color:#ffd45a">+'+_ce+' \uD83D\uDCB0</span>'+
       '</div>';
     if(r.promoted){
       const _rrr=RANK_REWARDS[rank.name]||{};
       extra+=
-        '<div style="background:linear-gradient(135deg,#10141f,#10141f);border:2px solid '+rank.color+';border-radius:10px;padding:10px;margin:8px 0;text-align:center">'+
+        '<div style="background:linear-gradient(135deg,#2a1a5a,#2a1a5a);border:2px solid '+rank.color+';border-radius:10px;padding:10px;margin:8px 0;text-align:center">'+
         '<div style="font-size:1.2rem">\uD83C\uDF89 AUFGESTIEGEN!</div>'+
         '<div style="color:'+rank.color+';font-size:.9rem;font-weight:bold;margin:4px 0">'+rank.name+(rank.tier?' '+rank.tier:'')+'</div>'+
         '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:5px">'+
         
-        (_rrr.coins?'<span style="color:#c6ff3d;font-size:.8rem">+'+_rrr.coins.toLocaleString()+' \uD83D\uDCB0</span>':'')+
+        (_rrr.coins?'<span style="color:#ffd45a;font-size:.8rem">+'+_rrr.coins.toLocaleString()+' \uD83D\uDCB0</span>':'')+
         '</div></div>';
     }
   } else if(won===false&&chess.status==='checkmate'){
     const r=onLoss();
-    extra='<div style="color:#c6ff3d;margin:4px 0;font-size:.75rem">+50 \uD83D\uDCB0</div>';
+    extra='<div style="color:#ffd45a;margin:4px 0;font-size:.75rem">+50 \uD83D\uDCB0</div>';
     if(r.demoted){
       extra+='<div style="color:#ff6644;margin:4px 0">\u2B07 ABGESTIEGEN: '+getEloRankName()+'</div>';
     } else {
@@ -2541,15 +2527,15 @@ function showResult(won,text){
   }
   el.style.display='block';
   el.innerHTML='<div style="text-align:center;padding:14px">'+
-    '<div style="font-size:1.8rem;color:'+(won?'#c6ff3d':won===null?'#c6ff3d':'#ff5d8f')+'">'+
+    '<div style="font-size:1.8rem;color:'+(won?'#ffd45a':won===null?'#ffd45a':'#ff5d8f')+'">'+
     (won?'\uD83C\uDFC6':won===null?'\uD83E\uDD1D':'\uD83D\uDC80')+' '+text+'</div>'+
     extra+
     '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px">'+
     '<button class="cw-btn" onclick="startNewGame()">&#9822; Neu spielen</button>'+
     '<button class="cw-btn" onclick="bpAnalysis.show(chess.rec||[])" style="border-color:#bb55ff;color:#bb55ff">&#128270; Analyse</button>'+
-    '<button class="cw-btn" onclick="chess.status=\'idle\';showPregameSelect()" style="border-color:#3de0ff;color:#3de0ff">&#9881;&#65039; Neu aufstellen</button>'+
+    '<button class="cw-btn" onclick="chess.status=\'idle\';showPregameSelect()" style="border-color:#7be0ff;color:#7be0ff">&#9881;&#65039; Neu aufstellen</button>'+
     '</div></div>';
-  setStatus(text,won?'#c6ff3d':won===null?'#c6ff3d':'#ff5d8f');
+  setStatus(text,won?'#ffd45a':won===null?'#ffd45a':'#ff5d8f');
   stopMoveTimer();
   const hb=q('#draw-btn');if(hb)hb.style.display='none';
   updateTopBar();
@@ -2574,7 +2560,7 @@ function showToast(msg,color){
   const old=q('#cw-toast');if(old)old.remove();
   const t=document.createElement('div');
   t.id='cw-toast';
-  t.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#0a0d16;border:1px solid '+(color||'#c6ff3d')+';color:'+(color||'#c6ff3d')+';padding:8px 18px;border-radius:10px;font-size:.65rem;font-weight:bold;z-index:9999;pointer-events:none;letter-spacing:1px;box-shadow:0 0 12px '+(color||'#c6ff3d')+'66;animation:popIn .2s ease-out';
+  t.style.cssText='position:fixed;top:60px;left:50%;transform:translateX(-50%);background:#1a0f3a;border:1px solid '+(color||'#ffd45a')+';color:'+(color||'#ffd45a')+';padding:8px 18px;border-radius:10px;font-size:.65rem;font-weight:bold;z-index:9999;pointer-events:none;letter-spacing:1px;box-shadow:0 0 12px '+(color||'#ffd45a')+'66;animation:popIn .2s ease-out';
   t.textContent=msg;
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),2200);
@@ -2610,7 +2596,7 @@ function renderShopScreen(){
 
   // ── Figuren-Skins ──
   const h1=document.createElement('div');
-  h1.style.cssText='font-size:.6rem;color:#3de0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #00e5ff66';
+  h1.style.cssText='font-size:.6rem;color:#7be0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #7be0ff66';
   h1.textContent='Figuren-Skins';el.appendChild(h1);
   const sg=document.createElement('div');
   sg.style.cssText='display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px';
@@ -2618,13 +2604,16 @@ function renderShopScreen(){
     const owned=!!(G.shopOwned&&G.shopOwned[item.id]);
     const can=(G.coins||0)>=item.price;
     const c=document.createElement('div');
-    c.style.cssText='border:1px solid '+(owned?'#262e46':can?'#c6ff3d66':'#10141f')+';border-radius:10px;padding:10px 8px;text-align:center;background:#0a0d16;opacity:'+(owned?'.7':'1');
-    c.innerHTML='<div style="font-size:1.6rem">'+item.emoji+'</div><div style="font-size:.6rem;color:#c6ff3d;margin:4px 0">'+item.name+'</div>';
+    c.style.cssText='border:1px solid '+(owned?'#5a41b0':can?'#ffd45a66':'#2a1a5a')+';border-radius:10px;padding:10px 8px;text-align:center;background:#1a0f3a;opacity:'+(owned?'.7':'1');
+    const sk=PIECE_SKINS[item.id==='ocean_p'?'ocean':item.id]||{};
+    const sc=sk.glow||'#ffd45a';
+    c.style.borderColor=sc;c.style.background='linear-gradient(180deg,'+sc+'22,#0006)';c.style.boxShadow='0 0 18px '+sc+'44';
+    c.innerHTML='<div style="display:flex;justify-content:center">'+['P','N','Q'].map(function(t){return '<span style="width:46px;height:46px;display:block">'+chessPieceSVG(t,'w','dark',{body:sk.body||null,accent:'#e8ecf5'})+'</span>';}).join('')+'</div><div style="font-size:.62rem;color:'+sc+';margin:4px 0;letter-spacing:1px">'+item.name+'</div>';
     if(owned){
       c.innerHTML+='<div style="font-size:.55rem;color:#4aff4a">✓ Besitz</div>';
     }else{
       const btn=document.createElement('button');
-      btn.style.cssText='margin-top:6px;width:100%;font-size:.5rem;padding:4px;background:#100a00;border:1px solid '+(can?'#c6ff3d':'#333')+';color:'+(can?'#c6ff3d':'#444')+';border-radius:4px;cursor:'+(can?'pointer':'default');
+      btn.style.cssText='margin-top:6px;width:100%;font-size:.5rem;padding:4px;background:#2a1a3a;border:1px solid '+(can?'#ffd45a':'#333')+';color:'+(can?'#ffd45a':'#9a8fc4')+';border-radius:4px;cursor:'+(can?'pointer':'default');
       btn.textContent=item.price.toLocaleString()+' 💰';
       btn.onclick=()=>buyShopItem(item.id);
       c.appendChild(btn);
@@ -2635,12 +2624,12 @@ function renderShopScreen(){
 
   // ── Schlüssel kaufen ──
   const h2=document.createElement('div');
-  h2.style.cssText='font-size:.6rem;color:#3de0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #00e5ff66';
+  h2.style.cssText='font-size:.6rem;color:#7be0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #7be0ff66';
   h2.textContent='Schlüssel kaufen';el.appendChild(h2);
 
   // Brain-Pulse-Münzen (Konto)
   const coinInfo=document.createElement('div');
-  coinInfo.style.cssText='font-size:.55rem;color:#c6ff3d;text-align:center;margin-bottom:8px';
+  coinInfo.style.cssText='font-size:.55rem;color:#ffd45a;text-align:center;margin-bottom:8px';
   coinInfo.textContent=CW_SERVER.loggedIn?('Brain-Pulse-Münzen: '+(CW_SERVER.bpCoins||0).toLocaleString()+' 🪙 · Schlüssel: '+G.keys+' 🔑 · Gratis-Schlüssel heute noch: '+CW_SERVER.freeKeysLeft):'Bitte in Brain Pulse einloggen, um Schlüssel zu nutzen.';
   el.appendChild(coinInfo);
   const kg=document.createElement('div');
@@ -2648,10 +2637,10 @@ function renderShopScreen(){
   (CW_SERVER.packs||[]).forEach(function(p){
     const can=CW_SERVER.loggedIn&&(CW_SERVER.bpCoins||0)>=p.coins;
     const c=document.createElement('div');
-    c.style.cssText='border:1px solid '+(can?'#c6ff3d66':'#10141f')+';border-radius:10px;padding:8px 4px;text-align:center;background:#0a0d16';
+    c.style.cssText='border:1px solid '+(can?'#ffd45a66':'#2a1a5a')+';border-radius:10px;padding:8px 4px;text-align:center;background:#1a0f3a';
     c.innerHTML='<div style="font-size:1.2rem">+'+p.keys+'🔑</div>';
     const btn=document.createElement('button');
-    btn.style.cssText='width:100%;font-size:.48rem;padding:3px;background:#100a00;border:1px solid '+(can?'#c6ff3d':'#333')+';color:'+(can?'#c6ff3d':'#444')+';border-radius:4px;cursor:'+(can?'pointer':'default');
+    btn.style.cssText='width:100%;font-size:.48rem;padding:3px;background:#2a1a3a;border:1px solid '+(can?'#ffd45a':'#333')+';color:'+(can?'#ffd45a':'#9a8fc4')+';border-radius:4px;cursor:'+(can?'pointer':'default');
     btn.textContent=p.coins.toLocaleString()+' 🪙';
     btn.onclick=function(){if(can)buyKeyPack(p.id);};
     c.appendChild(btn);
@@ -2755,12 +2744,12 @@ function openPiecePicker(group,posIdx){
     const row=document.createElement('div');
     row.style.cssText=
       'display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;'+
-      'border:2px solid '+(isSelected?rd.color:canSelect?'#262e46':'#10141f')+';'+
-      'background:'+(isSelected?rd.bg+'44':canSelect?'#0a0d16':'#070400')+';'+
+      'border:2px solid '+(isSelected?rd.color:canSelect?'#5a41b0':'#2a1a5a')+';'+
+      'background:'+(isSelected?rd.bg+'44':canSelect?'#1a0f3a':'#070400')+';'+
       'cursor:'+(canSelect?'pointer':'default')+';opacity:'+(canSelect?'1':'0.4')+';transition:all .15s;';
     if(canSelect&&!isSelected){
-      row.onmouseenter=()=>row.style.borderColor='#262e46';
-      row.onmouseleave=()=>row.style.borderColor='#262e46';
+      row.onmouseenter=()=>row.style.borderColor='#5a41b0';
+      row.onmouseleave=()=>row.style.borderColor='#5a41b0';
     }
     row.innerHTML=
       '<span style="font-size:2rem;color:'+rd.color+';filter:drop-shadow(0 0 6px '+rd.color+'88)">'+cp.chess+'</span>'+
@@ -2819,7 +2808,7 @@ function renderPregameBoard(){
       const isLight=(rowIdx+col)%2===0;
       cell.style.cssText=
         'aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;'+
-        'background:'+(isLight?'#262e46':'#0a0d16')+';position:relative;transition:all .2s;';
+        'background:'+(isLight?'#5a41b0':'#1a0f3a')+';position:relative;transition:all .2s;';
 
       const sel=pregameSetup[group]?.[posIdx]||{v:'s',ri:0};
       const rd=RARITIES[RARITY_ORDER[sel.ri]]||RARITIES.normal;
@@ -2828,13 +2817,13 @@ function renderPregameBoard(){
       const hasChoice=avail.length>0;
       if(hasChoice){
         cell.style.cursor='pointer';
-        cell.onmouseenter=()=>cell.style.background=isLight?'#262e46':'#262e46';
-        cell.onmouseleave=()=>{cell.style.background=isLight?'#262e46':'#0a0d16';};
+        cell.onmouseenter=()=>cell.style.background=isLight?'#5a41b0':'#5a41b0';
+        cell.onmouseleave=()=>{cell.style.background=isLight?'#5a41b0':'#1a0f3a';};
         cell.onclick=()=>openPiecePicker(group,posIdx);
       }
       if(isRare)cell.style.boxShadow='inset 0 0 0 2px '+rd.color+'99';
       cell.innerHTML=
-        '<span style="font-size:clamp(1.2rem,5vw,2rem);color:'+rd.color+';filter:drop-shadow(0 0 6px '+rd.color+'88)">'+CHESS_SYMS['w'+type]+'</span>'+
+        '<span style="width:78%;max-width:44px;display:block;line-height:0">'+chessPieceSVG(type,'w','dark',{accent:sel.ri>0?rd.color:null,rank:sel.ri})+'</span>'+
         '<span style="font-size:.32rem;color:'+rd.color+';letter-spacing:.5px;line-height:1;margin-top:1px">R'+(sel.ri+1)+'</span>'+
         (isRare?'<span style="position:absolute;top:1px;left:2px;font-size:.38rem;color:'+rd.color+';font-weight:bold">★</span>':'')+
         (hasChoice?'<span style="position:absolute;top:1px;right:2px;font-size:.45rem;color:'+rd.color+'66">⇄</span>':'');
@@ -2890,7 +2879,7 @@ function renderDameSelector(){
   const owned=damePids.filter(pid=>(G.inventory?.dame?.[pidVariant(pid)]||[]).some(c=>c>0));
   if(owned.length<=1){el.style.display='none';return;}
   el.style.display='block';
-  el.innerHTML='<div style="font-size:.52rem;color:#262e46;letter-spacing:1px;text-align:center;margin-bottom:5px">MAGIERIN W\u00C4HLEN</div>';
+  el.innerHTML='<div style="font-size:.52rem;color:#5a41b0;letter-spacing:1px;text-align:center;margin-bottom:5px">MAGIERIN W\u00C4HLEN</div>';
   const row=document.createElement('div');
   row.style.cssText='display:flex;gap:5px;justify-content:center;flex-wrap:wrap;';
   owned.forEach(pid=>{
@@ -2901,7 +2890,7 @@ function renderDameSelector(){
     const bestRi=counts.reduce((b,c,i)=>c>0?i:b,-1);
     const rd=bestRi>=0?RARITIES[RARITY_ORDER[bestRi]]:RARITIES.normal;
     const btn=document.createElement('button');
-    btn.style.cssText='padding:5px 9px;border-radius:8px;border:2px solid '+(isSel?rd.color:'#221500')+';background:'+(isSel?rd.bg:'#0a0d16')+';color:'+(isSel?rd.color:'#443322')+';font-size:.72rem;cursor:pointer;'+(isSel?'box-shadow:0 0 8px '+rd.glow+';':'');
+    btn.style.cssText='padding:5px 9px;border-radius:8px;border:2px solid '+(isSel?rd.color:'#221500')+';background:'+(isSel?rd.bg:'#1a0f3a')+';color:'+(isSel?rd.color:'#443322')+';font-size:.72rem;cursor:pointer;'+(isSel?'box-shadow:0 0 8px '+rd.glow+';':'');
     btn.textContent=cp.chess+' '+cp.variant;
     btn.onclick=()=>{
       G.selectedDame=v;save();
@@ -2972,7 +2961,7 @@ function renderHome(){
     } else if(isDone){
       rowStyle+='background:'+rk.color+'0a;border:1px solid '+rk.color+'44;';
     } else {
-      rowStyle+='background:#0a0d16;border:1px solid #1a1400;';
+      rowStyle+='background:#1a0f3a;border:1px solid #1a1400;';
     }
     row.style.cssText=rowStyle;
     const nameColor=isCurrent?rk.color:isDone?rk.color+'cc':'#2a2010';
@@ -2980,7 +2969,7 @@ function renderHome(){
     const rew=RANK_REWARDS[rk.name];
     let rewHtml='';
     if(rew&&!isDone){const chips=[];if(rew.keys)chips.push('\uD83D\uDD11+'+rew.keys);if(rew.coins)chips.push('\uD83D\uDCB0+'+rew.coins.toLocaleString());if(rew.boardSkin)chips.push('\uD83C\uDFA8Brett');if(rew.pieceSkin)chips.push('\u265F Figuren');
-    if(chips.length){rewHtml='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">';chips.forEach(c=>{rewHtml+='<span style="font-size:.45rem;background:#0a0d16;border:1px solid '+rk.color+'44;border-radius:4px;padding:1px 4px;color:'+rk.color+'">'+c+'</span>';});rewHtml+='</div>';}}
+    if(chips.length){rewHtml='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">';chips.forEach(c=>{rewHtml+='<span style="font-size:.45rem;background:#1a0f3a;border:1px solid '+rk.color+'44;border-radius:4px;padding:1px 4px;color:'+rk.color+'">'+c+'</span>';});rewHtml+='</div>';}}
     row.innerHTML=
       '<div style="flex:1;min-width:0">'+
       '<div style="display:flex;align-items:center;gap:6px">'+
@@ -3212,7 +3201,7 @@ function fillGmDetail(pid,rankIdx){
     const dpEl=q('#gmd-dp');
     if(dpEl)dpEl.innerHTML=
       '<span style="color:'+(hasCards?'#4aff4a':'#ff5d8f')+'">'+cnt+' / '+COMBINE_COST+' Karten</span>'+
-      ' &nbsp; <span style="color:'+(hasCoins?'#c6ff3d':'#ff5d8f')+'">'+(G.coins||0).toLocaleString()+' / '+coinCost.toLocaleString()+' 💰</span>'+
+      ' &nbsp; <span style="color:'+(hasCoins?'#ffd45a':'#ff5d8f')+'">'+(G.coins||0).toLocaleString()+' / '+coinCost.toLocaleString()+' 💰</span>'+
       (!hasBoardMin&&hasCards?'<div style="color:#ff9900;font-size:.5rem;margin-top:2px">⚠️ Zu wenig übrig für Brett (min. '+need+')</div>':'');
     const btn=q('#gmd-combine-btn');
     if(btn){
@@ -3220,13 +3209,13 @@ function fillGmDetail(pid,rankIdx){
       btn.textContent='⚡ ENTWICKELN  '+COMBINE_COST+' Karten + '+coinCost.toLocaleString()+' 💰';
       btn.style.opacity=canUp?'1':'0.4';
       btn.style.cursor=canUp?'pointer':'default';
-      btn.style.borderColor=canUp?'#c6ff3d':'#3a2a00';
-      btn.style.color=canUp?'#c6ff3d':'#262e46';
+      btn.style.borderColor=canUp?'#ffd45a':'#3a2a00';
+      btn.style.color=canUp?'#ffd45a':'#5a41b0';
     }
     if(lu)lu.style.display='block';
   } else {
     nd.textContent='★ MAXIMALER RANG!';
-    nd.style.color='#c6ff3d';
+    nd.style.color='#ffd45a';
     if(lu)lu.style.display='none';
   }
 }
@@ -3236,7 +3225,7 @@ function tryGmdCombine(){
   const cp=COLL_PIECES[gmdPid];if(!cp)return;
   const v=pidVariant(gmdPid);
   if(doRankUp(cp.group,v,gmdRankIdx)){
-    showToast('⚡ Entwickelt! '+getPieceRankName(cp.group,RARITY_ORDER[gmdRankIdx+1]),'#c6ff3d');
+    showToast('⚡ Entwickelt! '+getPieceRankName(cp.group,RARITY_ORDER[gmdRankIdx+1]),'#ffd45a');
     fillGmDetail(gmdPid,gmdRankIdx);
   } else {
     showToast('❌ Entwicklung fehlgeschlagen','#ff5d8f');
@@ -3266,7 +3255,7 @@ function showGroupDetail(group){
     const v=pidVariant(pid);
     // Varianten-Header
     const vhdr=document.createElement('div');
-    vhdr.style.cssText='font-size:.78rem;color:#c6ff3d;font-weight:bold;margin-top:4px;border-bottom:1px solid #262e46;padding-bottom:5px;display:flex;align-items:center;gap:6px';
+    vhdr.style.cssText='font-size:.78rem;color:#ffd45a;font-weight:bold;margin-top:4px;border-bottom:1px solid #5a41b0;padding-bottom:5px;display:flex;align-items:center;gap:6px';
     vhdr.innerHTML='<span style="font-size:1.1rem">'+cp.chess+'</span><span>'+cp.variant+'</span><span style="font-size:.55rem;color:#5a4020;font-weight:normal">'+cp.abilityLabel+'</span>';
     grid.appendChild(vhdr);
     // Rang-Zeilen (vertikal, volle Breite)
@@ -3279,7 +3268,7 @@ function showGroupDetail(group){
       const row=document.createElement('div');
       row.style.cssText=
         'display:flex;align-items:center;gap:10px;padding:10px 12px'
-        +';border:2px solid '+(cnt>0?rd.color:'#10141f')
+        +';border:2px solid '+(cnt>0?rd.color:'#2a1a5a')
         +';border-radius:10px;background:'+(cnt>0?rd.bg:'#060400')
         +';box-shadow:'+(cnt>0?'0 0 10px '+rd.glow+'55':'none')
         +';opacity:'+(cnt>0?'1':'0.4')
@@ -3289,7 +3278,7 @@ function showGroupDetail(group){
       const badge=document.createElement('div');
       badge.style.cssText='min-width:44px;text-align:center;flex-shrink:0';
       badge.innerHTML='<div style="font-size:1.6rem;font-weight:bold;color:'+(cnt>0?rd.color:'#333')+'">'+cnt+'</div>'
-        +'<div style="font-size:.55rem;color:#262e46">Karten</div>';
+        +'<div style="font-size:.55rem;color:#5a41b0">Karten</div>';
       // Info
       const info=document.createElement('div');
       info.style.cssText='flex:1;min-width:0';
@@ -3298,7 +3287,7 @@ function showGroupDetail(group){
       const abilText=abilData?(abilData.aktiv||cp.desc):cp.desc;
       const passivText=abilData?.passiv||null;
       info.innerHTML=
-        '<div style="font-size:.78rem;font-weight:bold;color:'+(cnt>0?rd.color:'#10141f')+'">'+rankName+'</div>'
+        '<div style="font-size:.78rem;font-weight:bold;color:'+(cnt>0?rd.color:'#2a1a5a')+'">'+rankName+'</div>'
         +'<div style="font-size:.54rem;color:'+(cnt>0?'#ccc':'#2a1200')+';margin-top:2px;line-height:1.4">'+abilText+'</div>'
         +(passivText&&cnt>0
           ?'<div style="font-size:.52rem;color:#aa8800;margin-top:2px">🛡 '+passivText+'</div>'
@@ -3309,18 +3298,18 @@ function showGroupDetail(group){
       if(canUp){
         const cc=DEVELOP_COIN_COSTS[ri]||100000;
         right.innerHTML='<button onclick="event.stopPropagation();rankUpAndRefresh(\''+group+'\',\''+v+'\','+ri+')" '
-          +'style="font-size:.58rem;padding:6px 10px;background:#10141f;border:1px solid #c6ff3d;color:#c6ff3d;border-radius:6px;cursor:pointer;white-space:nowrap">⚡ '+cc.toLocaleString()+' 💰</button>';
+          +'style="font-size:.58rem;padding:6px 10px;background:#2a1a5a;border:1px solid #ffd45a;color:#ffd45a;border-radius:6px;cursor:pointer;white-space:nowrap">⚡ '+cc.toLocaleString()+' 💰</button>';
       } else if(ri<4){
         const cc=DEVELOP_COIN_COSTS[ri]||100000;
         const needCards=Math.max(0,COMBINE_COST-cnt);
         const needCoins=Math.max(0,cc-(G.coins||0));
-        right.innerHTML='<div style="font-size:.52rem;color:#262e46;line-height:1.5">'
+        right.innerHTML='<div style="font-size:.52rem;color:#5a41b0;line-height:1.5">'
           +(needCards>0?'<div>+'+needCards+' Karten</div>':'')
           +(needCoins>0?'<div>+'+needCoins.toLocaleString()+' 💰</div>':'')
-          +(needCards===0&&needCoins===0?'<div style="color:#262e46">Max Rang</div>':'')
+          +(needCards===0&&needCoins===0?'<div style="color:#5a41b0">Max Rang</div>':'')
           +'</div>';
       } else {
-        right.innerHTML='<div style="font-size:.6rem;color:#c6ff3d">★ MAX</div>';
+        right.innerHTML='<div style="font-size:.6rem;color:#ffd45a">★ MAX</div>';
       }
       row.appendChild(badge);
       row.appendChild(info);
@@ -3332,7 +3321,7 @@ function showGroupDetail(group){
 }
 function rankUpAndRefresh(group,variant,rankIdx){
   if(doRankUp(group,variant,rankIdx)){
-    showToast('⚡ Entwickelt! → '+getPieceRankName(group,RARITY_ORDER[rankIdx+1]),'#c6ff3d');
+    showToast('⚡ Entwickelt! → '+getPieceRankName(group,RARITY_ORDER[rankIdx+1]),'#ffd45a');
     // Finde pid für diese Gruppe+Variante
     const pg=PIECE_GROUPS.find(p=>p.group===group);
     const pid=pg?.pids.find(p=>pidVariant(p)===variant)||pg?.pids[0];
@@ -3382,7 +3371,7 @@ function showDetail(pid,rankIdx){
   const hasBoardMin=totalAfter>=need;
   q('#dm-dp').innerHTML=
     '<span style="color:'+(hasCards?'#4aff4a':'#ff5d8f')+'">'+cnt+' / '+COMBINE_COST+' Karten</span>'+
-    ' &nbsp; <span style="color:'+(hasCoins?'#c6ff3d':'#ff5d8f')+'">'+
+    ' &nbsp; <span style="color:'+(hasCoins?'#ffd45a':'#ff5d8f')+'">'+
     (G.coins||0).toLocaleString()+' / '+coinCost.toLocaleString()+' &#128176;</span>'+
     (!hasBoardMin&&hasCards?'<div style="color:#ff9900;font-size:.5rem;margin-top:3px">⚠️ Zu wenig übrig für das Brett (benötigt: '+need+' Figuren)</div>':'');
   // Combine button
@@ -3397,13 +3386,13 @@ function showDetail(pid,rankIdx){
       btn.textContent='\u26A1 ENTWICKELN  '+COMBINE_COST+' Karten + '+coinCost.toLocaleString()+' \uD83D\uDCB0';
       btn.style.opacity=canUp?'1':'0.4';
       btn.style.cursor=canUp?'pointer':'default';
-      btn.style.borderColor=canUp?'#c6ff3d':'#3a2a00';
-      btn.style.color=canUp?'#c6ff3d':'#262e46';
+      btn.style.borderColor=canUp?'#ffd45a':'#3a2a00';
+      btn.style.color=canUp?'#ffd45a':'#5a41b0';
     }
   }
   const nextRank=rankIdx<4?getPieceRankName(cp.group,RARITY_ORDER[rankIdx+1]):'MAX';
   q('#dm-next').textContent=rankIdx<4?'\u2B06 N\u00E4chster Rang: '+nextRank:'\u2605 MAXIMALER RANG erreicht!';
-  q('#dm-next').style.color=rankIdx<4?'#888':'#c6ff3d';
+  q('#dm-next').style.color=rankIdx<4?'#888':'#ffd45a';
 
   q('#detail-modal').style.display='flex';
 }
@@ -3431,7 +3420,7 @@ function renderChestChanceTable(){
     {label:'Springer',  color:'#4488ff', keys:['springer_m']},
     {label:'Läufer',    color:'#4488ff', keys:['laeufer_d']},
     {label:'König',     color:'#bb55ff', keys:['koenig_b']},
-    {label:'Dame',      color:'#c6ff3d', keys:['dame_f','dame_w','dame_e','dame_l','dame_v','dame_p']},
+    {label:'Dame',      color:'#ffd45a', keys:['dame_f','dame_w','dame_e','dame_l','dame_v','dame_p']},
   ];
   let html='<div style="display:flex;flex-direction:column;gap:5px">';
   groups.forEach(g=>{
@@ -3440,7 +3429,7 @@ function renderChestChanceTable(){
     html+=
       '<div style="display:flex;align-items:center;gap:6px">'+
         '<div style="width:52px;font-size:.55rem;color:'+g.color+';flex-shrink:0">'+g.label+'</div>'+
-        '<div style="flex:1;background:#0a0d16;border-radius:3px;height:8px;overflow:hidden">'+
+        '<div style="flex:1;background:#1a0f3a;border-radius:3px;height:8px;overflow:hidden">'+
           '<div style="height:100%;width:'+pct+'%;background:'+g.color+';border-radius:3px;transition:width .4s"></div>'+
         '</div>'+
         '<div style="width:28px;font-size:.55rem;color:'+g.color+';text-align:right;flex-shrink:0">'+pct+'%</div>'+
@@ -3452,13 +3441,13 @@ function renderChestChanceTable(){
   const chests=[
     {name:'Normal',    color:'var(--gold)', rates:'Rang 1: 89% · Rang 2: 11%'},
     {name:'Episch',    color:'#bb55ff',     rates:'Rang 2: 80% · Rang 3: 20%'},
-    {name:'Legendär',  color:'#c6ff3d',     rates:'Rang 1+2 garantiert · Rang 4-5 sicher'},
+    {name:'Legendär',  color:'#ffd45a',     rates:'Rang 1+2 garantiert · Rang 4-5 sicher'},
   ];
   chests.forEach(c=>{
     html+=
-      '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #10141f">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #2a1a5a">'+
         '<span style="font-size:.55rem;color:'+c.color+';font-weight:bold">'+c.name+'</span>'+
-        '<span style="font-size:.5rem;color:#262e46">'+c.rates+'</span>'+
+        '<span style="font-size:.5rem;color:#5a41b0">'+c.rates+'</span>'+
       '</div>';
   });
   html+='</div>';
@@ -3512,7 +3501,7 @@ async function doOpenChest(type){
         +'min-width:80px;max-width:90px;background:'+rrd.bg+';box-shadow:0 0 12px '+rrd.glow+';'
         +'position:relative;flex:0 0 auto;animation:cardFloat .35s ease-out both;animation-delay:'+(idx*0.07)+'s">'
         +(isNew?'<div style="position:absolute;top:-8px;right:-8px;background:#ff5d8f;color:#fff;font-size:.42rem;font-weight:bold;border-radius:8px;padding:2px 6px">NEU!</div>'
-          :r.count>1?'<div style="position:absolute;top:-8px;right:-8px;background:#c6ff3d;color:#000;font-size:.48rem;font-weight:bold;border-radius:8px;padding:2px 6px">×'+r.count+'</div>':'')
+          :r.count>1?'<div style="position:absolute;top:-8px;right:-8px;background:#ffd45a;color:#000;font-size:.48rem;font-weight:bold;border-radius:8px;padding:2px 6px">×'+r.count+'</div>':'')
         +'<div style="font-size:2.2rem;line-height:1.2">'+cp.chess+'</div>'
         +'<div style="font-size:.62rem;color:'+rrd.color+';font-weight:bold;letter-spacing:1px;margin-top:3px">'+rrd.label+'</div>'
         +'<div style="font-size:.55rem;color:#ccc;margin-top:2px;font-weight:bold">'+cp.name+'</div>'
@@ -3528,7 +3517,7 @@ async function doOpenChest(type){
     document.getElementById('chest-modal-title').textContent=typeLabel;
     document.getElementById('chest-modal-title').style.color=rd.color;
     document.getElementById('chest-modal-coins').innerHTML=coinBonus>0
-      ?'<span style="background:#10141f;border:1px solid #c6ff3d;border-radius:8px;padding:4px 14px;color:#c6ff3d;font-size:.72rem">+'+coinBonus.toLocaleString()+' 💰 Münzen!</span>':'';
+      ?'<span style="background:#2a1a5a;border:1px solid #ffd45a;border-radius:8px;padding:4px 14px;color:#ffd45a;font-size:.72rem">+'+coinBonus.toLocaleString()+' 💰 Münzen!</span>':'';
     document.getElementById('chest-modal-items').innerHTML=cardsHTML;
     document.getElementById('chest-modal-inner').style.borderColor=rd.color;
     document.getElementById('chest-modal-inner').style.boxShadow='0 0 30px '+rd.glow;
@@ -3584,10 +3573,10 @@ const QUEST_CATEGORIES=[
   {id:'anfaenger',  label:'Anfänger',   color:'#888888'},
   {id:'grundlagen', label:'Grundlagen', color:'#cd7f32'},
   {id:'rang1',      label:'Rang 1',     color:'#c0c0c0'},
-  {id:'rang2',      label:'Rang 2',     color:'#3de0ff'},
+  {id:'rang2',      label:'Rang 2',     color:'#7be0ff'},
   {id:'rang3',      label:'Rang 3',     color:'#ff9900'},
-  {id:'rang4',      label:'Rang 4',     color:'#3de0ff'},
-  {id:'rang5',      label:'Rang 5',     color:'#c6ff3d'},
+  {id:'rang4',      label:'Rang 4',     color:'#7be0ff'},
+  {id:'rang5',      label:'Rang 5',     color:'#ffd45a'},
   {id:'legende',     label:'⭐ Legende',  color:'#ff88ff', unlockRank:20},
 ];
 
@@ -3723,8 +3712,8 @@ function renderQuestScreen(){
       const done=QUESTS.filter(q=>q.cat===cat.id&&isQuestDone(q)).length;
       const active=activeQuestCat===cat.id;
       const btn=document.createElement('button');
-      btn.style.cssText='padding:5px 10px;border-radius:16px;border:2px solid '+(active?cat.color:locked?'#3a1a3a':'#262e46')+';'+
-        'background:'+(active?'#1a0d00':locked?'#0d000d':'#0a0d16')+';color:'+(active?cat.color:locked?'#7a2a7a':'#555')+
+      btn.style.cssText='padding:5px 10px;border-radius:16px;border:2px solid '+(active?cat.color:locked?'#3a1a3a':'#5a41b0')+';'+
+        'background:'+(active?'#1a0d00':locked?'#0d000d':'#1a0f3a')+';color:'+(active?cat.color:locked?'#7a2a7a':'#555')+
         ';font-size:.58rem;font-weight:bold;cursor:'+(locked?'default':'pointer')+';letter-spacing:.5px;opacity:'+(locked?'0.65':'1')+';';
       btn.textContent=(locked?'🔒 ':'')+cat.label+(locked?'':' ('+done+'/'+total+')');
       if(!locked)btn.onclick=()=>{activeQuestCat=cat.id;renderQuestScreen();};
@@ -3741,24 +3730,24 @@ function renderQuestScreen(){
     const prog=getQuestProgress(quest);
     const pct=Math.round((prog/quest.target)*100);
     const card=document.createElement('div');
-    card.style.cssText='border:1px solid '+(done?'#1a3a1a':claimable?cat.color:'#10141f')+
-      ';border-radius:10px;padding:10px 12px;background:'+(done?'#060e06':claimable?'#0a0d16':'#0a0d16')+
+    card.style.cssText='border:1px solid '+(done?'#1a3a1a':claimable?cat.color:'#2a1a5a')+
+      ';border-radius:10px;padding:10px 12px;background:'+(done?'#060e06':claimable?'#1a0f3a':'#1a0f3a')+
       ';opacity:'+(done?'.5':'1')+';';
     card.innerHTML=
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
         '<div style="flex:1">'+
-          '<div style="font-size:.72rem;color:'+(done?'#3a6a3a':claimable?cat.color:'#c6ff3d')+';font-weight:bold;margin-bottom:3px">'+
+          '<div style="font-size:.72rem;color:'+(done?'#3a6a3a':claimable?cat.color:'#ffd45a')+';font-weight:bold;margin-bottom:3px">'+
             (done?'✓ ':'')+quest.label+
           '</div>'+
-          '<div style="background:#0a0d16;border-radius:4px;height:5px;overflow:hidden;margin-bottom:3px">'+
+          '<div style="background:#1a0f3a;border-radius:4px;height:5px;overflow:hidden;margin-bottom:3px">'+
             '<div style="height:100%;width:'+pct+'%;background:'+(done?'#2a5a2a':cat.color)+';border-radius:4px;transition:width .3s"></div>'+
           '</div>'+
           '<div style="font-size:.55rem;color:#555">'+prog+' / '+quest.target+(done?' ✓':'')+'</div>'+
         '</div>'+
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:60px">'+
-          '<div style="font-size:.6rem;color:#c6ff3d">'+quest.reward.label+'</div>'+
+          '<div style="font-size:.6rem;color:#ffd45a">'+quest.reward.label+'</div>'+
           (done?'<span style="font-size:.6rem;color:#3a6a3a">Erhalten</span>':
-           claimable?'<button id="qbtn_'+quest.id+'" onclick="claimQuest(\''+quest.id+'\')" style="padding:5px 10px;border-radius:6px;border:1px solid '+cat.color+';background:#0a0d16;color:'+cat.color+';font-size:.6rem;cursor:pointer;font-weight:bold">Abholen!</button>':
+           claimable?'<button id="qbtn_'+quest.id+'" onclick="claimQuest(\''+quest.id+'\')" style="padding:5px 10px;border-radius:6px;border:1px solid '+cat.color+';background:#1a0f3a;color:'+cat.color+';font-size:.6rem;cursor:pointer;font-weight:bold">Abholen!</button>':
            '')+
         '</div>'+
       '</div>';

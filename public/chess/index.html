@@ -7,7 +7,7 @@
 <style>
   :root{ --bg:#0a0d16; --bg-alt:#10141f; --panel:#151b2b; --panel-2:#1c2338; --line:#262e46;
     --text:#eef0fb; --text-dim:#9aa3c0; --accent:#c6ff3d; --accent-2:#3de0ff; --bad:#ff5d8f;
-    --sq-light:#3a4a6b; --sq-dark:#1f2a44; }
+    --sq-light:#eeeed2; --sq-dark:#769656; }
   *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
   body{ min-height:100vh; background:radial-gradient(1200px 600px at 50% -10%, #17203a 0%, var(--bg) 60%); }
@@ -22,24 +22,25 @@
   #status{ text-align:center; font-weight:800; font-size:15px; min-height:24px; margin:4px 0 8px; }
   .boardwrap{ position:relative; width:100%; }
   #board{ --cell:calc(min(100vw - 32px, 448px) / 8); display:grid; grid-template-columns:repeat(8, var(--cell)); grid-template-rows:repeat(8, var(--cell)); width:calc(var(--cell) * 8); margin:0 auto; border-radius:12px; overflow:hidden; border:2px solid var(--line); user-select:none; touch-action:manipulation; }
-  .sq{ position:relative; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell) * .74); line-height:1; cursor:pointer; }
+  .sq{ overflow:visible; position:relative; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell) * .74); line-height:1; cursor:pointer; }
   .sq.l{ background:var(--sq-light); } .sq.d{ background:var(--sq-dark); }
-  .sq.last{ box-shadow:inset 0 0 0 100px rgba(198,255,61,.18); }
-  .sq.sel{ box-shadow:inset 0 0 0 100px rgba(61,224,255,.35); }
+  .sq.last{ box-shadow:inset 0 0 0 100px rgba(246,246,105,.5); }
+  .sq.sel{ box-shadow:inset 0 0 0 100px rgba(246,246,105,.65); }
   .sq.check{ box-shadow:inset 0 0 0 100px rgba(255,93,143,.55); }
-  .sq.hint::after{ content:""; position:absolute; width:30%; height:30%; border-radius:50%; background:rgba(198,255,61,.65); }
-  .sq.hint.cap::after{ width:86%; height:86%; background:none; border:3px solid rgba(198,255,61,.8); }
-  .sq .coord{ position:absolute; font-size:calc(var(--cell) * .2); color:rgba(255,255,255,.35); font-weight:700; }
+  .sq.hint::after{ content:""; position:absolute; width:30%; height:30%; border-radius:50%; background:rgba(0,0,0,.25); }
+  .sq.hint.cap::after{ width:86%; height:86%; background:none; border:4px solid rgba(0,0,0,.25); }
+  .sq .coord{ position:absolute; font-size:calc(var(--cell) * .2); color:rgba(60,80,40,.7); font-weight:700; }
   .sq .rk{ top:2px; left:3px; } .sq .fl{ bottom:1px; right:3px; }
   .pc{ pointer-events:none; }
-  .pc.w{ color:#fff; text-shadow:0 0 2px #000, 0 1px 2px #000, 0 0 6px rgba(0,0,0,.6); }
-  .pc.b{ color:#0b0d14; text-shadow:0 0 2px #9fb0d9, 0 0 1px #9fb0d9, 0 0 5px rgba(160,180,230,.55); }
+  .pc svg, .pcs{ width:100%; height:100%; display:block; }
+  .pc{ width:100%; height:100%; display:flex; }
+  .cap svg{ width:26px; height:26px; vertical-align:middle; }
   .row{ display:flex; gap:8px; margin-top:12px; }
   .btn{ flex:1; border:1.5px solid var(--line); background:var(--bg-alt); color:var(--text); border-radius:14px; padding:12px 8px; font-size:14px; font-weight:800; cursor:pointer; }
   .btn.primary{ background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#08110c; border:none; }
   .btn:disabled{ opacity:.4; }
   .cap{ min-height:26px; font-size:18px; letter-spacing:1px; color:var(--text-dim); margin:6px 2px; display:flex; flex-wrap:wrap; gap:0; }
-  .cap span.w{ color:#e9ecff; } .cap span.b{ color:#0b0d14; text-shadow:0 0 2px #9fb0d9; }
+  .cap span{ display:inline-block; }
   .log{ background:var(--panel); border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:12px; font-size:13px; color:var(--text-dim); max-height:120px; overflow:auto; line-height:1.7; }
   .log b{ color:var(--text); }
   .overlay{ position:fixed; inset:0; background:rgba(5,7,12,.82); display:none; align-items:center; justify-content:center; z-index:10; padding:20px; }
@@ -48,7 +49,7 @@
   .card h2{ margin:0 0 6px; font-size:22px; }
   .card p{ color:var(--text-dim); margin:0 0 14px; font-size:14px; }
   .promo{ display:flex; gap:8px; justify-content:center; margin-top:8px; }
-  .promo button{ width:64px; height:64px; font-size:42px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg-alt); color:#fff; text-shadow:0 0 2px #000; cursor:pointer; }
+  .promo button svg{ width:100%; height:100%; } .promo button{ padding:4px; width:64px; height:64px; font-size:42px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg-alt); color:#fff; text-shadow:0 0 2px #000; cursor:pointer; }
   .stats{ color:var(--text-dim); font-size:12px; text-align:center; margin-top:14px; }
 </style>
 </head>
@@ -76,6 +77,7 @@
 
 <script src="engine.js"></script>
 <script src="analysis.js"></script>
+<script src="/chess/pieces.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
@@ -138,11 +140,11 @@ function render(){
     if(c===0) d.insertAdjacentHTML("beforeend", `<span class="coord rk">${8-r}</span>`);
     if(r===7) d.insertAdjacentHTML("beforeend", `<span class="coord fl">${"abcdefgh"[c]}</span>`);
     const p = G.board[r][c];
-    if(p) d.insertAdjacentHTML("beforeend", `<span class="pc ${p.col}">${SYM[p.t]}</span>`);
+    if(p) d.insertAdjacentHTML("beforeend", `<span class="pc ${p.col}">${chessPieceSVG(p.t,p.col,"classic")}</span>`);
     b.appendChild(d);
   }
-  $("capBlack").innerHTML = G.capB.map(t => `<span class="b">${SYM[t]}</span>`).join("");
-  $("capWhite").innerHTML = G.capW.map(t => `<span class="w">${SYM[t]}</span>`).join("");
+  $("capBlack").innerHTML = G.capB.map(t => `<span class="b">${chessPieceSVG(t,"b","classic")}</span>`).join("");
+  $("capWhite").innerHTML = G.capW.map(t => `<span class="w">${chessPieceSVG(t,"w","classic")}</span>`).join("");
   const lg = $("log");
   const pairs = [];
   for(let i=0;i<G.log.length;i+=2) pairs.push(`<b>${i/2+1}.</b> ${G.log[i]}${G.log[i+1] ? "  " + G.log[i+1] : ""}`);
@@ -178,7 +180,7 @@ function tryMove(mv){
     // Umwandlung waehlen
     const box = $("promoBtns"); box.innerHTML = ""; $("promoTitle").textContent = T.promo;
     ["Q","R","B","N"].forEach(t => {
-      const b = document.createElement("button"); b.textContent = SYM[t];
+      const b = document.createElement("button"); b.innerHTML = chessPieceSVG(t,"w","classic");
       b.onclick = () => { $("promoOv").classList.remove("show"); doMove(Object.assign({}, mv, { promTo:t }), true); };
       box.appendChild(b);
     });
