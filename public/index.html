@@ -3280,6 +3280,8 @@ function adminLogout(){
   try{ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); }catch(e){}
   renderAdminPill(); loadFeatureFlags().then(() => renderMainMenu());
 }
+// Zweiter Zugang: Adresse mit #admin am Ende oeffnet das Admin-Login direkt
+window.addEventListener('load', () => { setTimeout(() => { try{ if(location.hash === '#admin'){ history.replaceState(null,'',location.pathname+location.search); if(adminKeyStored()) toggleAdminView(); else openAdminLogin(); } }catch(e){} }, 900); });
 function openAdminLogin(){
   if(document.getElementById('adminLogin')) return;
   const d = document.createElement('div'); d.id='adminLogin';
@@ -4559,7 +4561,7 @@ function renderMainMenu(){
     <button class="btn btn-ghost settings-fab" onclick="renderSettingsModal()">⚙️ ${L('Einstellungen','Settings')}</button>
     ${accountIndicatorHtml()}
     <div class="menu-hero">
-      <h1 onclick="titleTap()">${t('app_title')}</h1>
+      <h1 onclick="titleTap()" style="user-select:none;-webkit-user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent;">${t('app_title')}</h1>
     </div>
     <div class="menu-grid">
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
