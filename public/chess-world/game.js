@@ -4,6 +4,12 @@
 // CHESS ENGINE
 // ============================================================
 
+
+function pieceIco(ch,size,color){
+  const code=ch&&ch.codePointAt(0);const m={0x2654:'K',0x265A:'K',0x2655:'Q',0x265B:'Q',0x2656:'R',0x265C:'R',0x2657:'B',0x265D:'B',0x2658:'N',0x265E:'N',0x2659:'P',0x265F:'P'};
+  const t=m[code];if(!t||typeof chessPieceSVG!=='function')return ch||'';
+  return '<span style="display:inline-block;width:'+size+'px;height:'+size+'px;vertical-align:middle">'+chessPieceSVG(t,'w','dark',{accent:color||'#e8ecf5'})+'</span>';
+}
 const CHESS_SYMS = {
   wK:'\u265A\uFE0E',wQ:'\u265B\uFE0E',wR:'\u265C\uFE0E',wB:'\u265D\uFE0E',wN:'\u265E\uFE0E',wP:'\u265F\uFE0E',
   bK:'\u265A\uFE0E',bQ:'\u265B\uFE0E',bR:'\u265C\uFE0E',bB:'\u265D\uFE0E',bN:'\u265E\uFE0E',bP:'\u265F\uFE0E'
@@ -1191,7 +1197,7 @@ function showPieceAbilityPanel(r, c, piece){
   el.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
       +'<div style="display:flex;align-items:center;gap:7px">'
-        +'<span style="font-size:1.5rem;color:'+rd.color+';filter:drop-shadow(0 0 8px '+rd.color+'88)">'+cp.chess+'</span>'
+        +'<span style="filter:drop-shadow(0 0 8px '+rd.color+'88)">'+pieceIco(cp.chess,34,rd.color)+'</span>'
         +'<div>'
           +'<div style="font-size:.68rem;color:'+rd.color+';font-weight:bold;letter-spacing:1px">'+cp.variant+'</div>'
           +'<div style="font-size:.48rem;color:#5a4020">'+rankName+' · '+coord+'</div>'
@@ -1785,8 +1791,8 @@ function renderMoveLog(){
 
 function renderCaptured(){
   const pw=q('#cap-player'),pa=q('#cap-ai');
-  if(pw)pw.textContent=chess.capturedByPlayer.map(p=>CHESS_SYMS['b'+p.t]).join('');
-  if(pa)pa.textContent=chess.capturedByAI.map(p=>CHESS_SYMS['w'+p.t]).join('');
+  if(pw)pw.innerHTML=chess.capturedByPlayer.map(p=>'<span style="display:inline-block;width:20px;height:20px;vertical-align:middle">'+chessPieceSVG(p.t,'b','dark',{})+'</span>').join('');
+  if(pa)pa.innerHTML=chess.capturedByAI.map(p=>'<span style="display:inline-block;width:20px;height:20px;vertical-align:middle">'+chessPieceSVG(p.t,'w','dark',{})+'</span>').join('');
 }
 
 function renderAbilities(){
@@ -2417,7 +2423,7 @@ function showPromotionUI(r,c){
   overlay.innerHTML='<div style="font-size:.6rem;color:#ffd45a;letter-spacing:2px;margin-bottom:4px">UMWANDLUNG</div>'+
     '<div style="display:flex;gap:10px">'+
     [['Q','\u2655'],['R','\u2656'],['B','\u2657'],['N','\u2658']].map(([t,sym])=>
-      `<button onclick="finishPromotion('${t}')" style="background:#2a1a5a;border:2px solid #ffd45a;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:1.6rem;color:#ffd45a;transition:all .2s" onmouseover="this.style.background='#5a41b0'" onmouseout="this.style.background='#2a1a5a'">${sym}</button>`
+      `<button onclick="finishPromotion('${t}')" style="background:#2a1a5a;border:2px solid #ffd45a;border-radius:8px;padding:6px 8px;cursor:pointer;transition:all .2s" onmouseover="this.style.background='#5a41b0'" onmouseout="this.style.background='#2a1a5a'">${pieceIco(sym,40)}</button>`
     ).join('')+
     '</div>';
   el.style.position='relative';
@@ -2785,7 +2791,7 @@ function openPiecePicker(group,posIdx){
       row.onmouseleave=()=>row.style.borderColor='#5a41b0';
     }
     row.innerHTML=
-      '<span style="font-size:2rem;color:'+rd.color+';filter:drop-shadow(0 0 6px '+rd.color+'88)">'+cp.chess+'</span>'+
+      '<span style="filter:drop-shadow(0 0 6px '+rd.color+'88)">'+pieceIco(cp.chess,40,rd.color)+'</span>'+
       '<div style="flex:1">'+
         '<div style="font-size:.75rem;font-weight:bold;color:'+rd.color+'">'+getPieceRankName(group,RARITY_ORDER[opt.ri])+'</div>'+
         '<div style="font-size:.6rem;color:#888;margin-top:1px">'+opt.cnt+'× besessen &bull; '+remaining+' noch verfügbar</div>'+
@@ -2924,7 +2930,7 @@ function renderDameSelector(){
     const rd=bestRi>=0?RARITIES[RARITY_ORDER[bestRi]]:RARITIES.normal;
     const btn=document.createElement('button');
     btn.style.cssText='padding:5px 9px;border-radius:8px;border:2px solid '+(isSel?rd.color:'#221500')+';background:'+(isSel?rd.bg:'#1a0f3a')+';color:'+(isSel?rd.color:'#443322')+';font-size:.72rem;cursor:pointer;'+(isSel?'box-shadow:0 0 8px '+rd.glow+';':'');
-    btn.textContent=cp.chess+' '+cp.variant;
+    btn.innerHTML=pieceIco(cp.chess,22)+' '+cp.variant;
     btn.onclick=()=>{
       G.selectedDame=v;save();
       renderDameSelector();
@@ -3242,7 +3248,7 @@ function renderCollection(){
     if(bestRd){card.style.borderColor=bestRd.color;card.style.boxShadow='0 0 12px '+bestRd.glow;}
     card.onclick=()=>{if(totalOwned>0)showGroupDetail(pg.group);};
     card.innerHTML=
-      '<div style="font-size:2.8rem;line-height:1;'+(totalOwned===0?'opacity:.2':'')+'">'+pg.chess+'</div>'+
+      '<div style="display:flex;justify-content:center;'+(totalOwned===0?'opacity:.2':'')+'">'+pieceIco(pg.chess,58,bestRd?bestRd.color:'#e8ecf5')+'</div>'+
       '<div style="font-size:.8rem;font-weight:bold;color:'+(bestRd?bestRd.color:'#333')+';margin-top:4px">'+pg.name+'</div>'+
       (bestRankIdx>=0
         ?'<div style="font-size:.6rem;color:'+bestRd.color+';letter-spacing:1px">'+(PIECE_RANKS[pg.group]?.[bestRankIdx]||'')+'</div>'
@@ -3264,7 +3270,7 @@ function fillGmDetail(pid,rankIdx){
   const box=q('#gm-detail');if(!box)return;
   box.style.display='block';
   box.style.borderColor=rd.color;
-  q('#gmd-chess').textContent=cp.chess;q('#gmd-chess').style.color=rd.color;
+  q('#gmd-chess').innerHTML=pieceIco(cp.chess,46,rd.color);
   q('#gmd-name').textContent=rankName;q('#gmd-name').style.color=rd.color;
   q('#gmd-var').textContent=cp.variant;
   q('#gmd-rr').textContent=rd.label;q('#gmd-rr').style.color=rd.color;
@@ -3340,7 +3346,7 @@ function tryGmdCombine(){
 function showGroupDetail(group){
   const pg=PIECE_GROUPS.find(p=>p.group===group);if(!pg)return;
   const modal=q('#group-modal');if(!modal)return;
-  q('#gm-chess').textContent=pg.chess;
+  q('#gm-chess').innerHTML=pieceIco(pg.chess,46);
   q('#gm-name').textContent=pg.name;
   // Auto-fill detail with best owned piece
   let bestPid=null,bestRi=-1;
@@ -3450,7 +3456,7 @@ function showDetail(pid,rankIdx){
   const rankName=getPieceRankName(cp.group,rar);
   const canUp=canRankUp(cp.group,v,rankIdx);
 
-  q('#dm-ch').textContent=cp.chess;q('#dm-ch').style.color=rd.color;
+  q('#dm-ch').innerHTML=pieceIco(cp.chess,52,rd.color);
   q('#dm-nm').textContent=rankName;
   q('#dm-var').textContent=cp.variant;q('#dm-var').style.color='#888';
   q('#dm-rr').textContent=rd.label;q('#dm-rr').style.color=rd.color;
@@ -3607,7 +3613,7 @@ async function doOpenChest(type){
         +'position:relative;flex:0 0 auto;animation:cardFloat .35s ease-out both;animation-delay:'+(idx*0.07)+'s">'
         +(isNew?'<div style="position:absolute;top:-8px;right:-8px;background:#ff5d8f;color:#fff;font-size:.42rem;font-weight:bold;border-radius:8px;padding:2px 6px">NEU!</div>'
           :r.count>1?'<div style="position:absolute;top:-8px;right:-8px;background:#ffd45a;color:#000;font-size:.48rem;font-weight:bold;border-radius:8px;padding:2px 6px">×'+r.count+'</div>':'')
-        +'<div style="font-size:2.2rem;line-height:1.2">'+cp.chess+'</div>'
+        +'<div style="display:flex;justify-content:center">'+pieceIco(cp.chess,46)+'</div>'
         +'<div style="font-size:.62rem;color:'+rrd.color+';font-weight:bold;letter-spacing:1px;margin-top:3px">'+rrd.label+'</div>'
         +'<div style="font-size:.55rem;color:#ccc;margin-top:2px;font-weight:bold">'+cp.name+'</div>'
         +'<div style="font-size:.48rem;color:#888;margin-top:1px">'+rankName+'</div>'
