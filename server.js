@@ -3875,6 +3875,20 @@ const COIN_PACKAGES = [
   { id: "medium", coins: 600, priceCents: 499, label: "600 Münzen" },
   { id: "large", coins: 1500, priceCents: 999, label: "1500 Münzen" }
 ];
+/* ---------------------------------------------------------------------------
+   FEATURE-SCHALTER (Coming soon). Umgebungsvariable LOCKED_FEATURES, kommagetrennt.
+   Moegliche Namen: shop, arena, chess_online, party, ordering, blitz, biology, chess_fantasy, achievements.  Nicht gesetzt = oeffentlicher
+   Standard (alle drei gesperrt).  Auf dem Test-Server LOCKED_FEATURES=none setzen,
+   dann ist alles freigeschaltet.  Gesperrt wird auch serverseitig - nicht nur
+   im Menue versteckt.
+--------------------------------------------------------------------------- */
+const LOCKED_FEATURES = new Set(
+  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,party,ordering,blitz,biology,chess_fantasy,achievements" : process.env.LOCKED_FEATURES)
+    .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
+);
+function featureLocked(name) { return LOCKED_FEATURES.has(name); }
+const FEATURE_LOCKED_RESULT = { ok: false, locked: true, error: "Coming soon." };
+
 function stripeConfigured() {
   return !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET);
 }
@@ -4188,6 +4202,10 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
+        else if (req.url === "/api/features") result = { ok: true, locked: Array.from(LOCKED_FEATURES) };
+        else if (req.url.startsWith("/api/chess-online/") && featureLocked("chess_online")) result = FEATURE_LOCKED_RESULT;
+        else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && featureLocked("arena")) result = FEATURE_LOCKED_RESULT;
+        else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && featureLocked("shop")) result = FEATURE_LOCKED_RESULT;
         else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
         else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
