@@ -4080,7 +4080,9 @@ function renderChessFrame(src){
 }
 if(typeof window !== "undefined" && typeof window.addEventListener === "function") window.addEventListener("message", (e) => {
   try{
-    if(e.origin !== location.origin || !e.data || e.data.bpChessBack !== true) return;
+    if(e.origin !== location.origin || !e.data) return;
+    if(e.data.bpOpenShop === true){ startShopFlow(); return; }
+    if(e.data.bpChessBack !== true) return;
     renderChessHub();
   }catch(err){}
 });

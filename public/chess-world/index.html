@@ -11,10 +11,12 @@
 
   <!-- TOP BAR -->
   <div class="top-bar" id="top-bar">
-    <a href="/" class="bp-back" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}">←</a>
-    <div class="top-title">♘ CHESS WORLD</div>
-    <div class="top-right">
-      <div class="keys-badge">🔑 <span id="tb-keys">0</span> &nbsp;🪙 <span id="tb-coins" style="color:#ffd45a">0</span></div>
+    <a href="/" class="bp-back" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <div class="top-title"><svg viewBox="0 0 24 24" width="20" height="20" class="top-knight"><path d="M8 21h10v-2H8zM9 18h8c0-3 3-5 3-9 0-4-3.5-6-7-6l1.5 2.5L10 7 6 12l2 2 3-2c-1 2-2 3-2 6z" fill="currentColor"/></svg><span>CHESS WORLD</span></div>
+    <div class="stat-pill" id="stat-pill">
+      <span class="stat" title="Keys"><i>🔑</i><b id="tb-keys">0</b></span>
+      <span class="stat" title="Brain Pulse Coins"><i>🪙</i><b id="tb-coins" style="color:#7be0ff">–</b></span>
+      <span class="stat" title="Gold"><i>💰</i><b id="tb-gold" style="color:#ffd45a">0</b></span>
     </div>
   </div>
 

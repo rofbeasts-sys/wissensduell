@@ -436,7 +436,7 @@ async function cwApi(action,body){
   try{
     const r=await fetch('/api/chess/'+action,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({token:token},body||{}))});
     const j=await r.json();
-    if(j&&j.ok){CW_SERVER.loggedIn=true;if(j.keys!==undefined){G.keys=j.keys;CW_SERVER.freeKeysLeft=j.freeKeysLeft;CW_SERVER.packs=j.packs||CW_SERVER.packs;CW_SERVER.bpCoins=j.coins;}}
+    if(j&&j.ok){CW_SERVER.loggedIn=true;if(j.keys!==undefined){G.keys=j.keys;CW_SERVER.freeKeysLeft=j.freeKeysLeft;CW_SERVER.packs=j.packs||CW_SERVER.packs;CW_SERVER.bpCoins=j.coins;CW_SERVER.goldPacks=j.goldPacks||CW_SERVER.goldPacks;}}
     return j;
   }catch(e){return{ok:false,error:'Keine Verbindung zum Server.'};}
 }
@@ -2594,6 +2594,20 @@ function renderShopScreen(){
   const coinEl=q('#shop-coins');if(coinEl)coinEl.textContent=(G.coins||0).toLocaleString();
   el.innerHTML='';
 
+  // ── Guthaben (Brain-Pulse-Konto + Fantasy-Gold) ──
+  const bal=document.createElement('div');
+  bal.style.cssText='display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap';
+  const bpc=CW_SERVER.loggedIn?(CW_SERVER.bpCoins||0).toLocaleString():'–';
+  bal.innerHTML=
+    '<div style="flex:1;min-width:120px;padding:10px;border-radius:12px;background:linear-gradient(135deg,#7be0ff22,#1a0f3a);border:1px solid #7be0ff88;text-align:center"><div style="font-size:.5rem;color:#7be0ff;letter-spacing:1px">BRAIN PULSE COINS</div><div style="font-size:1.05rem;font-weight:800;color:#fff;margin-top:3px">🪙 '+bpc+'</div></div>'+
+    '<div style="flex:1;min-width:120px;padding:10px;border-radius:12px;background:linear-gradient(135deg,#ffd45a22,#1a0f3a);border:1px solid #ffd45a88;text-align:center"><div style="font-size:.5rem;color:#ffd45a;letter-spacing:1px">GOLD</div><div style="font-size:1.05rem;font-weight:800;color:#fff;margin-top:3px">💰 '+(G.coins||0).toLocaleString()+'</div></div>'+
+    '<div style="flex:1;min-width:120px;padding:10px;border-radius:12px;background:linear-gradient(135deg,#bb55ff22,#1a0f3a);border:1px solid #bb55ff88;text-align:center"><div style="font-size:.5rem;color:#d79bff;letter-spacing:1px">'+cwT('SCHLÜSSEL','KEYS')+'</div><div style="font-size:1.05rem;font-weight:800;color:#fff;margin-top:3px">🔑 '+(G.keys||0)+'</div></div>';
+  el.appendChild(bal);
+  const getc=document.createElement('button');
+  getc.style.cssText='width:100%;margin-bottom:14px;padding:10px;border-radius:10px;border:1px solid #7be0ff;background:linear-gradient(135deg,#1b3a5a,#1a0f3a);color:#7be0ff;font-size:.65rem;font-weight:800;letter-spacing:1px;cursor:pointer';
+  getc.textContent='🪙 '+cwT('Brain-Pulse-Coins holen','Get Brain Pulse Coins');
+  getc.onclick=cwOpenBpShop;el.appendChild(getc);
+
   // ── Figuren-Skins ──
   const h1=document.createElement('div');
   h1.style.cssText='font-size:.6rem;color:#7be0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #7be0ff66';
@@ -2622,6 +2636,25 @@ function renderShopScreen(){
   });
   el.appendChild(sg);
 
+  // ── Gold kaufen (mit Brain-Pulse-Coins) ──
+  const hg=document.createElement('div');
+  hg.style.cssText='font-size:.6rem;color:#7be0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #7be0ff66';
+  hg.textContent=cwT('Gold kaufen','Buy gold');el.appendChild(hg);
+  const gg=document.createElement('div');
+  gg.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px';
+  (CW_SERVER.goldPacks||[{id:'g1',gold:5000,coins:100},{id:'g2',gold:25000,coins:450},{id:'g3',gold:100000,coins:1600}]).forEach(function(p){
+    const can=CW_SERVER.loggedIn&&(CW_SERVER.bpCoins||0)>=p.coins;
+    const c=document.createElement('div');
+    c.style.cssText='border:1px solid '+(can?'#ffd45a66':'#2a1a5a')+';border-radius:10px;padding:8px 4px;text-align:center;background:#1a0f3a';
+    c.innerHTML='<div style="font-size:.95rem;font-weight:800;color:#ffd45a">+'+p.gold.toLocaleString()+' 💰</div>';
+    const btn=document.createElement('button');
+    btn.style.cssText='margin-top:5px;width:100%;font-size:.5rem;padding:4px;background:#2a1a3a;border:1px solid '+(can?'#ffd45a':'#333')+';color:'+(can?'#ffd45a':'#9a8fc4')+';border-radius:4px;cursor:'+(can?'pointer':'default');
+    btn.textContent=p.coins.toLocaleString()+' 🪙';
+    btn.onclick=function(){if(can)buyGoldPack(p.id);};
+    c.appendChild(btn);gg.appendChild(c);
+  });
+  el.appendChild(gg);
+
   // ── Schlüssel kaufen ──
   const h2=document.createElement('div');
   h2.style.cssText='font-size:.6rem;color:#7be0ff;letter-spacing:1px;margin:4px 0 6px;text-align:center;text-shadow:0 0 8px #7be0ff66';
@@ -2630,7 +2663,7 @@ function renderShopScreen(){
   // Brain-Pulse-Münzen (Konto)
   const coinInfo=document.createElement('div');
   coinInfo.style.cssText='font-size:.55rem;color:#ffd45a;text-align:center;margin-bottom:8px';
-  coinInfo.textContent=CW_SERVER.loggedIn?('Brain-Pulse-Münzen: '+(CW_SERVER.bpCoins||0).toLocaleString()+' 🪙 · Schlüssel: '+G.keys+' 🔑 · Gratis-Schlüssel heute noch: '+CW_SERVER.freeKeysLeft):'Bitte in Brain Pulse einloggen, um Schlüssel zu nutzen.';
+  coinInfo.textContent=CW_SERVER.loggedIn?(cwT('Gratis-Schlüssel heute noch: ','Free keys left today: ')+CW_SERVER.freeKeysLeft):cwT('Bitte in Brain Pulse einloggen, um Schlüssel zu nutzen.','Please log in to Brain Pulse to use keys.');
   el.appendChild(coinInfo);
   const kg=document.createElement('div');
   kg.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:6px';
@@ -2649,7 +2682,7 @@ function renderShopScreen(){
   el.appendChild(kg);
   const hint=document.createElement('div');
   hint.style.cssText='font-size:.48rem;color:#888;text-align:center;margin-top:8px';
-  hint.textContent='Brain-Pulse-Münzen gibt es im Brain-Pulse-Shop.';
+  hint.textContent=cwT('Brain-Pulse-Coins gibt es im Brain-Pulse-Shop (Button oben).','Brain Pulse Coins are sold in the Brain Pulse shop (button above).');
   el.appendChild(hint);
 }
 // ============================================================
@@ -2959,14 +2992,24 @@ function showScreen(id){
   if(id==='home')renderHome();
   if(id==='play'){if(chess.status==='idle')showPregameSelect();else renderDameSelector();renderGameHistory();}
   if(id==='quests')renderQuestScreen();
-  if(id==='shop'){renderChestScreen();renderShopScreen();}
+  if(id==='shop'){renderChestScreen();renderShopScreen();cwRefreshKeys().then(()=>{if(currentScreen==='shop'){renderShopScreen();}});}
   if(id==='collection'){renderCollection();skinTab('brett');}
 }
 
+function cwOpenBpShop(){ try{ parent.postMessage({bpOpenShop:true},location.origin); }catch(e){} }
+async function buyGoldPack(packId){
+  const j=await cwApi('buy-gold',{packId:packId});
+  if(!j.ok){showToast('❌ '+(j.error||'Fehler'),'#ff5d8f');return;}
+  if(!G.coins)G.coins=0;G.coins+=j.gold;save();
+  showToast('✅ +'+j.gold.toLocaleString()+' 💰','#4aff4a');
+  renderShopScreen();updateTopBar();
+}
+function cwShort(n){n=Math.floor(n||0);if(n>=1e6)return (n/1e6).toFixed(n>=1e7?0:1).replace(/\.0$/,'')+'M';if(n>=1e4)return (n/1e3).toFixed(n>=1e5?0:1).replace(/\.0$/,'')+'K';return n.toLocaleString();}
 function updateTopBar(){
   try{updateNavBadges();}catch(e){}
   const kb=q('#tb-keys');if(kb)kb.textContent=G.keys;
-  const cb=q('#tb-coins');if(cb)cb.textContent=(G.coins||0).toLocaleString();
+  const cb=q('#tb-coins');if(cb)cb.textContent=CW_SERVER.loggedIn?cwShort(CW_SERVER.bpCoins||0):'–';
+  const gb=q('#tb-gold');if(gb)gb.textContent=cwShort(G.coins||0);
   const rk=q('#tb-rank');if(rk){rk.textContent=getEloRankName();rk.style.color=RANKS[G.rankIdx].color;}
 }
 

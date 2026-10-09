@@ -3507,6 +3507,12 @@ const CHESS_KEY_PACKS = [
   { id: "k50", keys: 50, coins: 450 },
   { id: "k200", keys: 200, coins: 1600 }
 ];
+// Fantasy-Gold gegen Brain-Pulse-Muenzen (Gold selbst ist ein Spielstand im Browser, die Muenzen sind serverseitig)
+const CHESS_GOLD_PACKS = [
+  { id: "g1", gold: 5000, coins: 100 },
+  { id: "g2", gold: 25000, coins: 450 },
+  { id: "g3", gold: 100000, coins: 1600 }
+];
 const CHESS_FREE_KEYS_PER_DAY = 20;
 const CHESS_STARTER_POWER = { "bauer_s": 8, "turm_s": 2, "laeufer_d": 2, "springer_m": 2, "dame_v": 1, "koenig_b": 1 };
 const CHESS_GROUPS = { bauer: ["s", "b", "sh", "a", "be", "h"], turm: ["s"], laeufer: ["d"], springer: ["m"], koenig: ["b"], dame: ["f", "w", "e", "l", "v", "p"] };
@@ -3532,7 +3538,7 @@ function chessPublic(user) {
   const c = chessState(user);
   const day = new Date().toISOString().slice(0, 10);
   const left = c.freeDay === day ? Math.max(0, CHESS_FREE_KEYS_PER_DAY - c.freeToday) : CHESS_FREE_KEYS_PER_DAY;
-  return { keys: c.keys, coins: user.stats.coins || 0, freeKeysLeft: left, packs: CHESS_KEY_PACKS };
+  return { keys: c.keys, coins: user.stats.coins || 0, freeKeysLeft: left, packs: CHESS_KEY_PACKS, goldPacks: CHESS_GOLD_PACKS };
 }
 function chessPickPid() {
   const ids = Object.keys(CHESS_PIECE_WEIGHTS);
@@ -3591,6 +3597,14 @@ async function chessApi(action, payload, lang) {
     c.keys += pack.keys;
     await saveUsers();
     return { ok: true, ...chessPublic(user) };
+  }
+  if (action === "buy-gold") {
+    const pack = CHESS_GOLD_PACKS.find(p => p.id === payload.packId);
+    if (!pack) return errObj("invalidInput", lang);
+    if ((user.stats.coins || 0) < pack.coins) return errObj("notEnoughCoins", lang);
+    user.stats.coins -= pack.coins;
+    await saveUsers();
+    return { ok: true, gold: pack.gold, ...chessPublic(user) };
   }
   if (action === "earn") {
     const day = new Date().toISOString().slice(0, 10);
