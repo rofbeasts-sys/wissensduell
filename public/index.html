@@ -3686,7 +3686,8 @@ function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`
 // den tatsächlichen Ordnerinhalt von public/audio ersetzt (Dateien dort
 // werden automatisch erkannt, keine Code-Änderung mehr nötig).
 let MENU_MUSIC_TRACKS = [
-  { name: "Brain Pulse Theme", files: ["Trailer_Musik.mp3"] }
+  { name: "Brain Pulse Theme", files: ["Trailer_Musik.mp3"] },
+  { name: "Wissens-Quest", files: ["Wissens-Quest.mp3"] }
 ];
 let TTT_MUSIC_TRACK = { name: "Brain Pulse Theme", files: ["Trailer_Musik.mp3"] };
 // Fragt den Server, welche Dateien wirklich in public/audio liegen, und
@@ -3697,7 +3698,7 @@ async function loadAudioTrackList(){
   try{
     const res = await apiCall("/api/audio-tracks", {});
     if(res && Array.isArray(res.menu) && res.menu.length) MENU_MUSIC_TRACKS = res.menu;
-    if(res && res.menu && res.menu.length) TTT_MUSIC_TRACK = res.menu[0]; // ein Titel für alles
+    
   }catch(e){ /* Ausfallsicherung oben bleibt bestehen */ }
 }
 
@@ -3719,7 +3720,7 @@ function nextMenuTrack(){
   return menuMusicQueue.shift();
 }
 function currentZoneTrackName(){ return audioZone === "ttt" ? TTT_MUSIC_TRACK.name : (MENU_MUSIC_TRACKS[0] && MENU_MUSIC_TRACKS[0].name); }
-function currentZoneTrack(){ return audioZone === "ttt" ? TTT_MUSIC_TRACK : nextMenuTrack(); }
+function currentZoneTrack(){ return nextMenuTrack(); }
 
 function stopBgMusic(){
   if(bgAudioEl){ bgAudioEl.pause(); bgAudioEl.onended = null; bgAudioEl.onerror = null; bgAudioEl = null; }
@@ -3736,9 +3737,9 @@ function startTrack(track){
   });
   el.load();
   el.volume = musicVolume / 100;
-  if(audioZone === "ttt" || MENU_MUSIC_TRACKS.length === 1) el.loop = true; // ein einzelner Titel läuft in Dauerschleife
-  el.onended = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // nächster Menü-Titel
-  el.onerror = () => { if(audioZone === "menu") startTrack(currentZoneTrack()); }; // defekte Quelle überspringen
+  if(MENU_MUSIC_TRACKS.length === 1) el.loop = true; // ein einzelner Titel läuft in Dauerschleife
+  el.onended = () => { startTrack(currentZoneTrack()); }; // nächster Menü-Titel
+  el.onerror = () => { startTrack(currentZoneTrack()); }; // defekte Quelle überspringen
   el.play().catch(() => {}); // Autoplay evtl. noch nicht erlaubt - wird beim nächsten Tipp nachgeholt
   bgAudioEl = el;
 }
@@ -3748,7 +3749,7 @@ function startTrack(track){
 function setAudioZone(zone){
   if(zone === audioZone) return;
   audioZone = zone;
-  if(bgAudioEl && bgAudioTrackName === currentZoneTrackName()) { bgAudioEl.loop = true; return; } // gleicher Titel: durchlaufen lassen
+  if(bgAudioEl) return; // läuft schon Musik: einfach weiterlaufen lassen
   startTrack(currentZoneTrack());
 }
 function setMusicEnabled(on){
