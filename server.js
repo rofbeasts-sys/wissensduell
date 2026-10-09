@@ -3265,7 +3265,70 @@ async function setStreamerMode(token, enabled, lang) {
 // Freunde in den Warteraum einladen (Party/Tic Tac Toe/...): nur Freunde,
 // nur wenn online, Raum muss offen sein. Der Code geht per Direktnachricht an
 // den Freund und wird dort nie angezeigt (wichtig fuer den Streamer-Modus).
-async function partyInvite(token, friendName, code, game, lang) {
+
+/* ---- Gesamt-Reset (Admin): alle Konten auf Null, Hinweis beim naechsten Login ---- */
+let resetMeta = null; // { epoch: Zeitstempel des letzten Resets, 0 = nie }
+const META_FILE = USERS_FILE + ".meta.json";
+async function loadResetMeta() {
+  if (resetMeta) return resetMeta;
+  let m = { epoch: 0 };
+  try {
+    if (USE_UPSTASH) {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_meta`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+      const d = await res.json();
+      if (d && d.result) m = JSON.parse(d.result);
+    } else if (fs.existsSync(META_FILE)) {
+      m = JSON.parse(fs.readFileSync(META_FILE, "utf8"));
+    }
+  } catch (e) { console.error("Reset-Marker nicht lesbar:", e.message); }
+  resetMeta = { epoch: Number(m && m.epoch) || 0 };
+  return resetMeta;
+}
+async function saveResetMeta() {
+  if (USE_UPSTASH) {
+    const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}_meta`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(resetMeta) });
+    return res.ok;
+  }
+  try { fs.mkdirSync(path.dirname(META_FILE), { recursive: true }); fs.writeFileSync(META_FILE, JSON.stringify(resetMeta), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
+}
+async function adminResetAll(confirm, lang) {
+  if (confirm !== "RESET") return errObj("invalidInput", lang);
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  // 1) Sicherung der kompletten Kontenliste VOR dem Loeschen
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  let backupName = "";
+  try {
+    if (USE_UPSTASH) {
+      backupName = UPSTASH_USERS_KEY + "_backup_" + stamp;
+      const res = await fetch(`${UPSTASH_URL}/set/${backupName}`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(users) });
+      if (!res.ok) throw new Error("Upstash " + res.status);
+    } else {
+      backupName = USERS_FILE + ".before-reset-" + stamp;
+      fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
+      fs.writeFileSync(backupName, JSON.stringify(users, null, 1), "utf8");
+    }
+  } catch (e) {
+    console.error("Reset abgebrochen, Sicherung fehlgeschlagen:", e.message);
+    return { ok: false, error: lang === "en" ? "Backup failed - nothing was reset." : "Sicherung fehlgeschlagen - nichts wurde zurückgesetzt." };
+  }
+  // 2) Alle Konten auf Null (Name, Passwort, Anmeldung, Avatar und Freunde bleiben)
+  users.forEach(u => {
+    u.stats = defaultStats();
+    if (u.avatar) u.stats.avatar = u.avatar;
+    u.restricted = false;
+  });
+  if (!(await saveUsers())) return serviceDownMsg(lang);
+  // 3) Marker fuer die Geraete (loescht lokale Staende + zeigt den Hinweis)
+  resetMeta = { epoch: Date.now() };
+  await saveResetMeta();
+  console.warn("[ADMIN] Gesamt-Reset durchgefuehrt, Sicherung:", backupName);
+  for (const set of onlineAccounts.values()) for (const ws of set) { try { send(ws, { type: "serverReset" }); } catch (e) {} }
+  return { ok: true, accounts: users.length, backup: backupName };
+}
+
+const pendingInvites = new Map(); // nur Admin: Einladungen an Offline-Freunde, werden beim naechsten Login zugestellt (nicht gespeichert)
+const PENDING_INVITE_MS = 30 * 60 * 1000;
+async function partyInvite(token, friendName, code, game, lang, isAdmin) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
   if (!me) return errObj("notLoggedIn", lang);
@@ -3279,7 +3342,14 @@ async function partyInvite(token, friendName, code, game, lang) {
     const room = rooms.get(cleanCode);
     if (!room || room.phase !== "lobby") return errObj("inviteRoomGone", lang);
   } else if (!/^[A-Z0-9]{4,8}$/.test(cleanCode)) return errObj("inviteRoomGone", lang);
-  if (!accountIsOnline(friend.username)) return errObj("inviteOffline", lang);
+  if (!accountIsOnline(friend.username)) {
+    if (!isAdmin) return errObj("inviteOffline", lang);
+    const key = friend.username.toLowerCase();
+    const list = (pendingInvites.get(key) || []).filter(i => i.exp > Date.now() && i.roomCode !== cleanCode);
+    list.push({ kind, roomCode: cleanCode, from: friendSummary(me), exp: Date.now() + PENDING_INVITE_MS });
+    pendingInvites.set(key, list.slice(-5));
+    return { ok: true, queued: true };
+  }
   notifyAccount(friend.username, { type: "partyInvite", kind, roomCode: cleanCode, from: friendSummary(me) });
   return { ok: true };
 }
@@ -4228,7 +4298,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
-        else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES) }; }
+        else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES), resetEpoch: rm.epoch }; }
+        else if (req.url === "/api/admin-reset-all") { result = adminOk(payload.adminKey, ip) ? await adminResetAll(payload.confirm, lang) : errObj("invalidInput", lang); }
         else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
         else if (req.url.startsWith("/api/chess-online/") && featureLocked("chess_online") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && featureLocked("arena") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
@@ -4254,7 +4325,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
         else if (req.url === "/api/streamer-mode") result = await setStreamerMode(payload.token, payload.enabled, lang);
-        else if (req.url === "/api/party-invite") result = await partyInvite(payload.token, payload.friend, payload.code, payload.game, lang);
+        else if (req.url === "/api/party-invite") result = await partyInvite(payload.token, payload.friend, payload.code, payload.game, lang, adminOk(payload.adminKey, ip));
         else if (req.url === "/api/friends-accept") result = await friendsAccept(payload.token, payload.username, lang);
         else if (req.url === "/api/friends-decline") result = await friendsDecline(payload.token, payload.username, lang);
         else if (req.url === "/api/friends-cancel") result = await friendsCancel(payload.token, payload.username, lang);
@@ -4365,6 +4436,9 @@ wss.on("connection", (ws, req) => {
       const wasOffline = set.size === 0;
       set.add(ws);
       send(ws, { type: "accountConnectResult", ok: true });
+      const queued = (pendingInvites.get(ws.accountUsername) || []).filter(i => i.exp > Date.now() && (i.kind === "ttt" || (rooms.get(i.roomCode) && rooms.get(i.roomCode).phase === "lobby")));
+      pendingInvites.delete(ws.accountUsername);
+      queued.forEach(i => send(ws, { type: "partyInvite", kind: i.kind, roomCode: i.roomCode, from: i.from }));
       if (wasOffline) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOnline", username: user.username }));
       return;
     }

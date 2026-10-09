@@ -141,7 +141,9 @@
   }
   .picker-item:hover{ border-color:var(--accent); }
   .picker-item .sub{ font-size:12px; color:var(--text-dim); font-weight:500; }
-  .picker-form{ display:flex; gap:8px; margin-top:6px; }
+  .picker-form{ display:flex; gap:8px; margin-top:6px; min-width:0; }
+  .picker-form input{ min-width:0; }
+  .picker-form .btn{ flex:none; }
   .picker-form input{
     flex:1; background:var(--bg-alt); border:1.5px solid var(--line); border-radius:12px;
     padding:12px 14px; color:var(--text); font-size:15px; font-family:inherit;
@@ -3253,6 +3255,7 @@ async function loadFeatureFlags(){
     const useKey = adminViewOn() ? adminKeyStored() : '';
     const r = await fetch('/api/features', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(useKey ? {adminKey:useKey} : {}) });
     const j = await r.json();
+    if(j && j.ok) checkServerReset(j.resetEpoch);
     if(j && j.ok && Array.isArray(j.locked)){
       const changed = j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join();
       lockedFeatures = j.locked;
@@ -3263,13 +3266,73 @@ async function loadFeatureFlags(){
     }
   }catch(e){}
 }
+
+/* ---- Gesamt-Reset: lokale Staende loeschen + Neustart-Hinweis ---- */
+const RESET_KEEP_KEYS = ['wq_lang','wq_music','wq_volume2','wq_streamer','wq_account_token','bp_admin_key','bp_admin_view','bp_reset_seen','bp_reset_notice'];
+function checkServerReset(epoch){
+  try{
+    if(!epoch) return;
+    const seen = localStorage.getItem('bp_reset_seen');
+    if(seen === String(epoch)) return;
+    let hasData = false;
+    for(let i = 0; i < localStorage.length; i++){ if(RESET_KEEP_KEYS.indexOf(localStorage.key(i)) === -1){ hasData = true; break; } }
+    if(localStorage.getItem('wq_account_token')) hasData = true;
+    localStorage.setItem('bp_reset_seen', String(epoch));
+    if(!hasData) return;   // ganz neue Person: nichts zu loeschen, kein Hinweis
+    const keys = []; for(let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i));
+    keys.forEach(k => { if(RESET_KEEP_KEYS.indexOf(k) === -1) localStorage.removeItem(k); });
+    localStorage.setItem('bp_reset_notice', '1');
+    location.reload();
+  }catch(e){}
+}
+function showResetNoticeIfAny(){
+  try{
+    if(localStorage.getItem('bp_reset_notice') !== '1') return;
+    localStorage.removeItem('bp_reset_notice');
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px';
+    d.innerHTML = `<div style="background:#12182b;border:1.5px solid #c6ff3d;border-radius:18px;padding:22px 20px;max-width:340px;width:100%;color:#eef0fb;font-family:system-ui,sans-serif;text-align:center;box-shadow:0 10px 40px #000a">
+      <div style="font-size:42px;margin-bottom:6px">🔄</div>
+      <div style="font-weight:900;font-size:19px;letter-spacing:1px;margin-bottom:10px">${L('NEUSTART','FRESH START')}</div>
+      <div style="font-size:14px;line-height:1.5;color:#c9d0ea;margin-bottom:16px">${L('Brain Pulse wurde zurückgesetzt. Alle Fortschritte, Ränge, Münzen und Erfolge stehen wieder auf null – so starten alle fair von vorn.<br><br>Danke fürs Testen! 💚','Brain Pulse has been reset. All progress, ranks, coins and achievements are back to zero – so everyone starts fair from scratch.<br><br>Thanks for testing! 💚')}</div>
+      <button style="width:100%;padding:12px;border:0;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#08110c">${L('Los geht’s!','Let’s go!')}</button></div>`;
+    d.querySelector('button').onclick = () => d.remove();
+    document.body.appendChild(d);
+  }catch(e){}
+}
+window.addEventListener('load', () => setTimeout(showResetNoticeIfAny, 700));
+function openAdminReset(){
+  if(!adminKeyStored() || document.getElementById('adminResetBox')) return;
+  const d = document.createElement('div'); d.id = 'adminResetBox';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100002;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px';
+  d.innerHTML = `<div style="background:#2a0f16;border:2px solid #ff3b5c;border-radius:16px;padding:18px;max-width:340px;width:100%;color:#fff;font-family:system-ui,sans-serif">
+    <div style="font-weight:900;font-size:17px;margin-bottom:8px">⚠️ ${L('ALLES ZURÜCKSETZEN','RESET EVERYTHING')}</div>
+    <div style="font-size:13px;line-height:1.5;color:#ffd0d8;margin-bottom:10px">${L('Setzt ALLE Konten und Geräte auf null (Ränge, Münzen, Erfolge, Schach, Inventar …). Name, Passwort und Freunde bleiben. Beim nächsten Öffnen sehen alle den Hinweis „Neustart – danke fürs Testen“. Vorher wird automatisch eine Sicherung angelegt.','Resets ALL accounts and devices to zero (ranks, coins, achievements, chess, inventory …). Username, password and friends stay. Next time they open the game, everyone sees the “Fresh start – thanks for testing” notice. A backup is created automatically first.')}</div>
+    <div style="font-size:12px;margin-bottom:6px">${L('Zum Bestätigen tippe RESET:','To confirm, type RESET:')}</div>
+    <input id="adminResetIn" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #ff3b5c;background:#14070b;color:#fff;font-size:16px;text-transform:uppercase">
+    <div id="adminResetMsg" style="min-height:18px;font-size:12px;margin:8px 0;color:#ffd45a"></div>
+    <div style="display:flex;gap:8px"><button id="adminResetGo" style="flex:1;padding:10px;border-radius:10px;border:0;background:#ff3b5c;color:#fff;font-weight:900">${L('JETZT ZURÜCKSETZEN','RESET NOW')}</button><button id="adminResetNo" style="padding:10px 14px;border-radius:10px;border:1px solid #fff4;background:none;color:#fff">✕</button></div></div>`;
+  document.body.appendChild(d);
+  d.querySelector('#adminResetNo').onclick = () => d.remove();
+  d.querySelector('#adminResetGo').onclick = async () => {
+    const msg = d.querySelector('#adminResetMsg');
+    if(d.querySelector('#adminResetIn').value.trim().toUpperCase() !== 'RESET'){ msg.textContent = L('Bitte genau RESET eintippen.','Please type exactly RESET.'); return; }
+    msg.textContent = '…';
+    const r = await apiCall('/api/admin-reset-all', { adminKey: adminKeyStored(), confirm: 'RESET' });
+    if(r && r.ok){
+      msg.style.color = '#8dff9d';
+      msg.textContent = L('Fertig: ' + r.accounts + ' Konten zurückgesetzt. Sicherung: ' + r.backup, 'Done: ' + r.accounts + ' accounts reset. Backup: ' + r.backup);
+      setTimeout(() => { d.remove(); location.reload(); }, 3500);
+    } else { msg.style.color = '#ff8aa0'; msg.textContent = (r && r.error) || L('Fehlgeschlagen.','Failed.'); }
+  };
+}
 function renderAdminPill(){
   let p = document.getElementById('adminPill');
   if(!adminKeyStored()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
   p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + (on ? '#ff5d8f' : '#38bdf8') + ';color:#fff;box-shadow:0 4px 18px #0008';
-  p.innerHTML = '<span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
+  p.innerHTML = '<span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
 }
 async function toggleAdminView(){
   try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
@@ -3431,7 +3494,7 @@ function renderInviteFriendsBox(kind, code){
   const friends = (friendsDataCache && friendsDataCache.friends) || [];
   const list = !inviteBoxOpen ? "" : `<div style="margin-top:8px;">${friends.length ? friends.map(f => `
       <div class="friend-row"><span>${f.online ? '🟢' : '⚪'} ${esc(f.username)}</span>
-        <button class="btn ${f.online ? 'btn-primary' : 'btn-ghost'}" ${f.online ? '' : 'disabled'} style="padding:6px 12px;font-size:13px;" onclick="sendPartyInvite('${kind}','${esc(f.username)}','${cleanCode}')">${f.online ? L('Einladen','Invite') : L('Offline','Offline')}</button>
+        <button class="btn ${f.online ? 'btn-primary' : 'btn-ghost'}" ${(f.online || adminViewOn()) ? '' : 'disabled'} style="padding:6px 12px;font-size:13px;" onclick="sendPartyInvite('${kind}','${esc(f.username)}','${cleanCode}')">${f.online ? L('Einladen','Invite') : (adminViewOn() ? L('👑 Offline einladen','👑 Invite offline') : L('Offline','Offline'))}</button>
       </div>`).join("") : `<div class="settings-track">${L('Du hast noch keine Freunde.','You have no friends yet.')}</div>`}</div>`;
   return `<div style="margin:10px 0;"><button class="btn btn-ghost btn-block" onclick="toggleInviteBox('${kind}')">👥 ${L('Freunde einladen','Invite friends')}</button>${list}</div>`;
 }
@@ -3445,7 +3508,7 @@ async function toggleInviteBox(kind){
 }
 async function sendPartyInvite(kind, friend, code){
   const r = await apiCall("/api/party-invite", { token: account.token, friend, code, game: kind });
-  showInviteToast(r.ok ? L('Einladung an ' + friend + ' gesendet','Invitation sent to ' + friend) : (r.error || L('Das hat nicht geklappt.','That did not work.')));
+  showInviteToast(r.ok ? (r.queued ? L(friend + ' ist offline – die Einladung kommt beim nächsten Login (30 Min.)',friend + ' is offline – the invite arrives at next login (30 min)') : L('Einladung an ' + friend + ' gesendet','Invitation sent to ' + friend)) : (r.error || L('Das hat nicht geklappt.','That did not work.')));
 }
 let pendingInvite = null;
 function showPartyInviteBanner(msg){
@@ -3473,6 +3536,7 @@ function acceptPartyInvite(){
 }
 
 function handleFriendsWsMessage(msg){
+  if(msg.type === "serverReset"){ loadFeatureFlags(); return; }
   if(msg.type === "friendOnline" || msg.type === "friendOffline"){
     const f = friendsDataCache.friends.find(x => x.username === msg.username);
     if(f) f.online = (msg.type === "friendOnline");
