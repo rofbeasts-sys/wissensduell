@@ -3143,6 +3143,21 @@ const ACCOUNT_TOKEN_KEY = "wq_account_token";
 let account = null; // { token, profile } oder null
 let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() nach Login/Registrierung aufgerufen wird (z.B. für Arena)
 
+// Feature-Schalter (Coming soon): sicherer Standard = gesperrt, bis der Server
+// (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
+let lockedFeatures = ['shop','arena','chess_online','party','ordering','blitz','biology','chess_fantasy','achievements'];
+function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
+async function loadFeatureFlags(){
+  try{
+    const r = await fetch('/api/features', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    const j = await r.json();
+    if(j && j.ok && Array.isArray(j.locked)){
+      const changed = j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join();
+      lockedFeatures = j.locked;
+      if(changed && document.querySelector('.menu-hero')) renderMainMenu();
+    }
+  }catch(e){}
+}
 async function apiCall(endpoint, body){
   try{
     // currentLang immer mitschicken, damit Server-Fehlermeldungen (Login,
@@ -3699,6 +3714,7 @@ function achvToastNext(){
   setTimeout(() => { try{ el.remove(); }catch(e){} achvToastBusy = false; achvToastNext(); }, 3800);
 }
 function startAchievementsFlow(){
+  if(featureLocked('achievements')){ renderMainMenu(); return; }
   setAudioZone("menu");
   if(account){ renderAchievements(account.profile); return; }
   if(profiles.length > 0){
@@ -3862,7 +3878,7 @@ function dedicatedBackFn(gm){ return DEDICATED_MODES[gm] ? "startDedicatedMenu('
 function startDedicatedMenu(gm){
   setAudioZone("menu");
   const m = DEDICATED_MODES[gm];
-  if(!m) { renderMainMenu(); return; }
+  if(!m || featureLocked(gm)) { renderMainMenu(); return; }
   // Stadt Land Fluss und Nenn's Blitz bewerten offene Antworten normalerweise
   // per "Anfechten" durch echte Mitspieler (siehe auch der Arena-Bugfix an
   // anderer Stelle) - allein gespielt gibt es niemanden, der eine erfundene
@@ -3919,15 +3935,16 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
     renderChessHub();
   }catch(err){}
 });
-function openChessWorld(){ renderChessFrame('/chess-world/index.html'); }
+function openChessWorld(){ if(featureLocked('chess_fantasy')){ renderChessHub(); return; } renderChessFrame('/chess-world/index.html'); }
 function openChessOriginal(){ renderChessFrame('/chess/index.html'); }
 // Chess Online: Freunde einladen oder per Raumcode (Konto noetig).
 function openChessOnline(code){
+  if(featureLocked('chess_online')){ renderChessHub(); return; }
   if(!account){ postLoginRedirect = () => openChessOnline(code); renderAccountAuth('login'); return; }
   renderChessFrame('/chess/online.html' + (code ? '?code=' + encodeURIComponent(code) : ''));
 }
 async function chessHubCheckInvites(){
-  if(!account) return;
+  if(!account || featureLocked('chess_online')) return;
   const r = await apiCall('/api/chess-online/inbox', { token: localStorage.getItem(ACCOUNT_TOKEN_KEY) });
   const box = document.getElementById('chessInviteBox');
   if(!box || !r || !r.ok || !r.invites || !r.invites.length) return;
@@ -3937,7 +3954,8 @@ async function chessHubCheckInvites(){
 // Schach-Bereich bei den Mini Games: klassisches Schach (Original) oder das
 // Sammel-RPG mit Fähigkeiten (Fantasy = Chess World, nur Deutsch).
 function renderChessHub(){
-  const fantasyLocked = currentLang !== 'de';
+  const fantasyComing = featureLocked('chess_fantasy');
+  const fantasyLocked = fantasyComing || currentLang !== 'de';
   const o = chessOriginalSummary(), f = chessWorldSummary();
   renderApp(`
     <div class="panel">
@@ -3952,13 +3970,17 @@ function renderChessHub(){
         <div class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">🐉</div>
           <h3>Chess Fantasy</h3>
-          <p>${fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : 'Schach-RPG mit Truhen, Fähigkeiten und Rängen.'}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
+          <p>${fantasyComing ? 'Coming soon' : fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : 'Schach-RPG mit Truhen, Fähigkeiten und Rängen.'}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
         </div>
-        <div class="mode-card" onclick="openChessOnline()">
+        ${featureLocked('chess_online') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+          <div class="icon">🌐</div>
+          <h3>Chess Online</h3>
+          <p>Coming soon</p>
+        </div>` : `<div class="mode-card" onclick="openChessOnline()">
           <div class="icon">🌐</div>
           <h3>Chess Online</h3>
           <p>${L('Live gegen Freunde: einladen oder Code teilen.','Live against friends: invite or share a code.')}</p>
-        </div>
+        </div>`}
       </div>
       <div id="chessInviteBox"></div>
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -3967,6 +3989,7 @@ function renderChessHub(){
   chessHubCheckInvites();
 }
 function startArenaFlow(){
+  if(featureLocked('arena')){ renderMainMenu(); return; }
   setAudioZone("menu");
   if(!account){
     postLoginRedirect = startArenaFlow;
@@ -4373,6 +4396,9 @@ function renderMainMenu(){
   // werden muss.
   const dedicatedCard = (gm) => {
     const m = DEDICATED_MODES[gm];
+    if(featureLocked(gm)){
+      return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p>Coming soon</p></div>`;
+    }
     const locked = m.germanOnly && currentLang!=='de';
     return `
       <div class="mode-card ${locked ? 'locked' : ''}" onclick="${locked ? '' : `startDedicatedMenu('${gm}')`}" style="${locked ? 'opacity:.45; cursor:default;' : ''}">
@@ -4398,16 +4424,24 @@ function renderMainMenu(){
 
     <div class="menu-section-title">${L('Online-Modus','Online mode')}</div>
     <div class="menu-grid">
-      <div class="mode-card" onclick="startPartyFlow()">
+      ${featureLocked('party') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+        <div class="icon">🌐</div>
+        <h3>${t('menu_party_title')}</h3>
+        <p>Coming soon</p>
+      </div>` : `<div class="mode-card" onclick="startPartyFlow()">
         <div class="icon">🌐</div>
         <h3>${t('menu_party_title')}</h3>
         <p>${t('menu_party_desc')}</p>
-      </div>
-      <div class="mode-card locked" style="opacity:.45; cursor:default;">
+      </div>`}
+      ${featureLocked('arena') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon">🏆</div>
         <h3>Arena</h3>
         <p>${L('Coming soon','Coming soon')}</p>
-      </div>
+      </div>` : `<div class="mode-card" onclick="startArenaFlow()">
+        <div class="icon">🏆</div>
+        <h3>Arena</h3>
+        <p>${L('Spiele um die Bestenliste','Play for the leaderboard')}</p>
+      </div>`}
     </div>
 
     <div class="menu-section-title">${L('Modi','Modes')}</div>
@@ -4420,11 +4454,15 @@ function renderMainMenu(){
         <h3>Speed Math</h3>
         <p>${L('Schnell kopfrechnen.','Quick mental math.')}</p>
       </div>
-      <div class="mode-card" onclick="startBiologyFlow()">
+      ${featureLocked('biology') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+        <div class="icon">🧬</div>
+        <h3>${L('Biologie','Biology')}</h3>
+        <p>Coming soon</p>
+      </div>` : `<div class="mode-card" onclick="startBiologyFlow()">
         <div class="icon">🧬</div>
         <h3>${L('Biologie','Biology')}</h3>
         <p>${L('Körper entdecken – inkl. Sexualkunde.','Explore the body – incl. sex ed.')}</p>
-      </div>
+      </div>`}
     </div>
 
     <div class="menu-section-title">Mini Games</div>
@@ -4444,8 +4482,8 @@ function renderMainMenu(){
 
     <div class="menu-secondary">
       <button class="btn btn-ghost" onclick="renderStatistik()">${t('menu_stats')}</button>
-      <button class="btn btn-ghost" onclick="startAchievementsFlow()">🏆 ${L('Erfolge','Achievements')}</button>
-      <button class="btn btn-ghost" onclick="startShopFlow()">🪙 Shop</button>
+      ${featureLocked('achievements') ? `<button class="btn btn-ghost" style="opacity:.45; cursor:default;" disabled>🏆 ${L('Erfolge','Achievements')} · Coming soon</button>` : `<button class="btn btn-ghost" onclick="startAchievementsFlow()">🏆 ${L('Erfolge','Achievements')}</button>`}
+      ${featureLocked('shop') ? `<button class="btn btn-ghost" style="opacity:.45; cursor:default;" disabled>🪙 Shop · Coming soon</button>` : `<button class="btn btn-ghost" onclick="startShopFlow()">🪙 Shop</button>`}
     </div>
 
   `);
@@ -4714,6 +4752,7 @@ let shopReturnNotice = null; // "success" | "cancel" | null - nach Rueckkehr von
   }catch(e){}
 })();
 function startShopFlow(){
+  if(featureLocked('shop')){ renderMainMenu(); return; }
   setAudioZone("menu");
   if(account){ renderShop(accountAsProfile()); return; }
   if(profiles.length > 0){
@@ -5693,6 +5732,7 @@ let biologySession = null; // { profile, section, topicKey, items, qIndex, corre
 let biologyProfile = null;
 const BIOLOGY_TOPIC_COIN_REWARD = 3; // pro erstmalig abgeschlossenem Thema, reiht sich in den Shop ein
 function startBiologyFlow(){
+  if(featureLocked('biology')){ renderMainMenu(); return; }
   setAudioZone("menu");
   if(account){ renderBiologyTopics(accountAsProfile()); return; }
   if(profiles.length > 0){
@@ -10677,8 +10717,9 @@ function renderPartyGameEnd(msg){
 // weiter oben): der allererste Tipp, egal worauf, startet die Musik dann von
 // selbst, ohne dass man extra irgendwo draufdrücken muss.
 renderMainMenu();
+loadFeatureFlags();
 restoreAccountSession().then(() => {
-  if(shopReturnNotice && account){ startShopFlow(); return; }
+  if(shopReturnNotice && account && !featureLocked('shop')){ startShopFlow(); return; }
   if(account) renderMainMenu();
 });
 loadAudioTrackList(); // echte Titelliste aus public/audio nachladen (im Hintergrund)
