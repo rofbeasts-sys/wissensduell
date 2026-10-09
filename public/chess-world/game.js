@@ -2902,6 +2902,54 @@ function renderDameSelector(){
   el.appendChild(row);
 }
 
+
+// ===== UI-Politur: Rang-Medaillen, Quest-Icons, Nav-Icons =====
+function cwT(de,en){ return (window.CW_LANG==='de')?de:en; }
+let _bdgUid=0;
+function rankBadgeSvg(family,color,size,dim){
+  const id='rb'+(++_bdgUid);
+  const glyph={
+    'Amateur':'<circle cx="50" cy="48" r="9" fill="#fff" opacity=".85"/>',
+    'Bronze':'<path d="M50 30l5 11 12 1-9 8 3 12-11-7-11 7 3-12-9-8 12-1z" fill="#fff" opacity=".85"/>',
+    'Silber':'<path d="M50 28l5 11 12 1-9 8 3 12-11-7-11 7 3-12-9-8 12-1z" fill="#fff" opacity=".9"/><path d="M36 64h28" stroke="#fff" stroke-width="3" opacity=".7"/>',
+    'Gold':'<path d="M34 62V40l8 8 8-14 8 14 8-8v22z" fill="#fff" opacity=".9"/>',
+    'Platin':'<path d="M50 28l14 16-14 24-14-24z" fill="#fff" opacity=".9"/><path d="M36 44h28" stroke="'+color+'" stroke-width="2"/>',
+    'Diamant':'<path d="M38 36h24l8 10-20 22-20-22z" fill="#fff" opacity=".92"/><path d="M30 46h40M44 36l-4 10 10 22 10-22-4-10" fill="none" stroke="'+color+'" stroke-width="2"/>',
+    'Meister':'<path d="M50 26c6 10 14 14 14 26a14 14 0 0 1-28 0c0-8 6-10 8-18 3 4 4 6 6 8 1-6 0-10 0-16z" fill="#fff" opacity=".92"/>',
+    'Grandmeister':'<path d="M32 62V38l9 10 9-16 9 16 9-10v24z" fill="#fff" opacity=".95"/><circle cx="50" cy="28" r="4" fill="#fff"/><circle cx="32" cy="36" r="3" fill="#fff"/><circle cx="68" cy="36" r="3" fill="#fff"/>',
+    'Legende':'<path d="M50 22l7 18 19 2-14 13 5 19-17-10-17 10 5-19-14-13 19-2z" fill="#fff"/>'
+  }[family]||'';
+  const op=dim?'.38':'1';
+  return '<svg viewBox="0 0 100 100" width="'+size+'" height="'+size+'" style="flex:none;opacity:'+op+(dim?';filter:grayscale(.55)':';filter:drop-shadow(0 0 6px '+color+'88)')+'"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+color+'"/><stop offset="1" stop-color="'+color+'" stop-opacity=".45"/></linearGradient></defs><path d="M50 6l36 12v30c0 24-16 40-36 46C30 88 14 72 14 48V18z" fill="url(#'+id+')" stroke="#fff" stroke-opacity=".55" stroke-width="2.5"/><path d="M50 12l30 10v26c0 20-13 33-30 39-17-6-30-19-30-39V22z" fill="#1a0f3a" opacity=".42"/>'+glyph+'</svg>';
+}
+function questIcon(q){
+  const s=q.stat||'';
+  if(/win|wins|streak|Streak/.test(s))return '🏆';
+  if(/check|matt/.test(s))return '👑';
+  if(/cap|rook|queen|pawn/i.test(s))return '⚔️';
+  if(/castle/.test(s))return '🏰';
+  if(/promo/.test(s))return '⬆️';
+  if(/ability/i.test(s))return '✨';
+  if(/fight|play/.test(s))return '♟';
+  return '📜';
+}
+const NAV_ICONS={
+  play:'<svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 2 5.2c1.6 1.2 2.6 3 2.6 5.3 0 1.4-.5 2.7-1.4 3.7l1.9 3.8H7l1.9-3.8A5.5 5.5 0 0 1 7.4 12.5c0-2.3 1-4.1 2.6-5.3A3 3 0 0 1 12 2zM6 20h12v2H6z" fill="currentColor"/></svg>',
+  quests:'<svg viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5zM6.5 4a.5.5 0 0 0-.5.5V17h12V4zM8 7h8v2H8zm0 3h6v2H8zM6.5 21H20v1H6.5z" fill="currentColor"/></svg>',
+  collection:'<svg viewBox="0 0 24 24"><path d="M7 3h10l2 4v14H5V7zm1.2 2L7 7h10l-1.2-2zM8 10v2h8v-2zm0 4v2h8v-2z" fill="currentColor"/></svg>',
+  shop:'<svg viewBox="0 0 24 24"><path d="M4 8h16l-1 12H5zM8 8a4 4 0 0 1 8 0h-2a2 2 0 0 0-4 0z" fill="currentColor"/><circle cx="12" cy="14" r="2.2" fill="#1a0f3a"/></svg>',
+  home:'<svg viewBox="0 0 24 24"><path d="M7 3h10v3h3v3a5 5 0 0 1-4.3 4.9A5 5 0 0 1 13 16.9V19h3v2H8v-2h3v-2.1a5 5 0 0 1-2.7-3A5 5 0 0 1 4 9V6h3zM6 8v1a3 3 0 0 0 1.4 2.5A8 8 0 0 1 7 9V8zm12 0h-1v1a8 8 0 0 1-.4 2.5A3 3 0 0 0 18 9z" fill="currentColor"/></svg>'
+};
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const m=['play','quests','collection','shop','home'];
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{
+    const ic=b.querySelector('span:first-child');
+    if(ic){ic.className='nav-ic';ic.innerHTML=NAV_ICONS[m[i]]+(m[i]==='quests'?'<i id="nav-badge-quests" class="nav-badge" style="display:none">0</i>':'');}
+    const lb=b.querySelector('span:last-child');if(lb)lb.className='nav-lb';
+  });
+  try{updateNavBadges();}catch(e){}
+});
 function showScreen(id){
   closeChessSpieleModal();
   document.querySelectorAll('.cw-screen').forEach(s=>s.style.display='none');
@@ -2916,6 +2964,7 @@ function showScreen(id){
 }
 
 function updateTopBar(){
+  try{updateNavBadges();}catch(e){}
   const kb=q('#tb-keys');if(kb)kb.textContent=G.keys;
   const cb=q('#tb-coins');if(cb)cb.textContent=(G.coins||0).toLocaleString();
   const rk=q('#tb-rank');if(rk){rk.textContent=getEloRankName();rk.style.color=RANKS[G.rankIdx].color;}
@@ -2940,48 +2989,61 @@ function renderHome(){
       warnEl.style.display='none';
     }
   }
+  const hb=q('#h-badge');if(hb)hb.innerHTML=rankBadgeSvg(r.name,r.color,72,false);
   const pct=wn?Math.min(100,G.winStreak/wn*100):100;
   if(q('#h-sbar')){q('#h-sbar').style.width=pct+'%';q('#h-sbar').style.background=r.color;}
-  // Rang-Leiter
+  // Rang-Leiter: eine Karte pro Rang-Familie, Stufen als Punkte
   const ladder=q('#rank-ladder');if(!ladder)return;
   ladder.innerHTML='';
-  // Rang-Medaillen Emojis
-  const rankMedals={'Amateur':'\u26AA','Bronze':'\uD83E\uDD49','Silber':'\uD83E\uDD48','Gold':'\uD83E\uDD47','Platin':'\uD83D\uDCA0','Diamant':'\uD83D\uDC8E','Meister':'\uD83D\uDD25','Grandmeister':'\uD83D\uDC51','Legende':'\u2B50'};
-  RANKS.forEach((rk,i)=>{
-    const name=rk.tier>0?rk.name+' '+rk.tier:rk.name;
-    const isCurrent=i===G.rankIdx;
-    const isDone=i<G.rankIdx;
-    const isFuture=i>G.rankIdx;
-    const medal=rankMedals[rk.name]||'\u25CB';
-    const row=document.createElement('div');
-    // Current: glowing border. Done: subtle colored. Future: dark
-    let rowStyle='display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;margin-bottom:3px;transition:all .2s;';
-    if(isCurrent){
-      rowStyle+='background:linear-gradient(135deg,'+rk.color+'22,'+rk.color+'11);border:1px solid '+rk.color+';box-shadow:0 0 12px '+rk.color+'55;';
-    } else if(isDone){
-      rowStyle+='background:'+rk.color+'0a;border:1px solid '+rk.color+'44;';
-    } else {
-      rowStyle+='background:#1a0f3a;border:1px solid #1a1400;';
+  const fams=[];
+  RANKS.forEach((rk,i)=>{let f=fams.find(x=>x.name===rk.name);if(!f){f={name:rk.name,color:rk.color,tiers:[]};fams.push(f);}f.tiers.push({rk,i});});
+  const curFam=RANKS[G.rankIdx].name;
+  fams.forEach(f=>{
+    const first=f.tiers[0].i,last=f.tiers[f.tiers.length-1].i;
+    const isCur=f.name===curFam, isDone=last<G.rankIdx, isFuture=first>G.rankIdx;
+    const rew=RANK_REWARDS[f.name];
+    const fname=({Amateur:cwT('Amateur','Amateur'),Bronze:'Bronze',Silber:cwT('Silber','Silver'),Gold:'Gold',Platin:'Platin',Diamant:cwT('Diamant','Diamond'),Meister:cwT('Meister','Master'),Grandmeister:cwT('Großmeister','Grandmaster'),Legende:cwT('Legende','Legend')})[f.name]||f.name;
+    // Stufen-Punkte
+    let tiers='';
+    if(f.tiers.length>1||f.tiers[0].rk.tier>0){
+      tiers='<div style="display:flex;gap:6px;margin-top:6px">'+f.tiers.map(t=>{
+        const st=t.i<G.rankIdx?'done':t.i===G.rankIdx?'cur':'fut';
+        const roman={3:'III',2:'II',1:'I',0:''}[t.rk.tier];
+        const bg=st==='done'?f.color:st==='cur'?'transparent':'#1a0f3a';
+        const bd=st==='fut'?'#3a2a7a':f.color;
+        const col=st==='done'?'#1a0f3a':st==='cur'?f.color:'#6a55b0';
+        const shadow=st==='cur'?'box-shadow:0 0 8px '+f.color+',inset 0 0 6px '+f.color+'66;':'';
+        return '<div style="min-width:30px;text-align:center;padding:2px 6px;border-radius:7px;font-size:.55rem;font-weight:800;background:'+bg+';border:1.5px solid '+bd+';color:'+col+';'+shadow+'">'+(st==='done'?'✓':roman)+'</div>';
+      }).join('')+'</div>';
     }
-    row.style.cssText=rowStyle;
-    const nameColor=isCurrent?rk.color:isDone?rk.color+'cc':'#2a2010';
-    const icon=isCurrent?'\u25B6':isDone?'\u2713':'';
-    const rew=RANK_REWARDS[rk.name];
-    let rewHtml='';
-    if(rew&&!isDone){const chips=[];if(rew.keys)chips.push('\uD83D\uDD11+'+rew.keys);if(rew.coins)chips.push('\uD83D\uDCB0+'+rew.coins.toLocaleString());if(rew.boardSkin)chips.push('\uD83C\uDFA8Brett');if(rew.pieceSkin)chips.push('\u265F Figuren');
-    if(chips.length){rewHtml='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px">';chips.forEach(c=>{rewHtml+='<span style="font-size:.45rem;background:#1a0f3a;border:1px solid '+rk.color+'44;border-radius:4px;padding:1px 4px;color:'+rk.color+'">'+c+'</span>';});rewHtml+='</div>';}}
-    row.innerHTML=
-      '<div style="flex:1;min-width:0">'+
-      '<div style="display:flex;align-items:center;gap:6px">'+
-      '<span style="font-size:.9rem;filter:'+(isFuture?'grayscale(1) brightness(.3)':'none')+'">'+medal+'</span>'+
-      '<span style="font-size:.72rem;font-weight:'+(isCurrent?'bold':'normal')+';color:'+nameColor+';'+(isCurrent?'text-shadow:0 0 8px '+rk.color+'88;':'')+'">'+name+'</span>'+
-      (isCurrent&&wn?'<span style="font-size:.6rem;color:'+rk.color+';font-weight:bold">'+G.winStreak+'/'+wn+'</span>':'')+
-      (isCurrent&&G.lossStreak===1?'<span style="font-size:.55rem;color:#ff9900">\u26A0</span>':'')+
-      (!isDone&&!isCurrent&&rk.winsNeeded?'<span style="font-size:.52rem;color:#2a2010">'+rk.winsNeeded+' Siege</span>':'')+
-      (!rk.winsNeeded&&isCurrent?'<span style="font-size:.55rem;color:'+rk.color+'">MAX</span>':'')+
-      (icon?'<span style="font-size:.6rem;color:'+nameColor+'">'+icon+'</span>':'')+
-      '</div>'+rewHtml+'</div>';
-    ladder.appendChild(row);
+    // Belohnungs-Chips
+    let chips='';
+    if(rew){const c=[];
+      if(rew.keys)c.push('<span class="rk-chip">🔑 +'+rew.keys+'</span>');
+      if(rew.coins)c.push('<span class="rk-chip">🪙 +'+rew.coins.toLocaleString()+'</span>');
+      if(rew.boardSkin)c.push('<span class="rk-chip">🎨 '+cwT('Brett','Board')+'</span>');
+      if(rew.pieceSkin)c.push('<span class="rk-chip">♟ '+cwT('Figuren','Pieces')+'</span>');
+      if(rew.extra)c.push('<span class="rk-chip rk-extra">✨ '+cwT(rew.extra,({Drachen:'Dragon',Dschungel:'Jungle',Schatten:'Shadow'})[rew.extra]||rew.extra)+'</span>');
+      chips='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;'+(isDone?'opacity:.55':'')+'">'+c.join('')+'</div>';}
+    // Fortschritt (nur aktuelle Familie)
+    let prog='';
+    if(isCur){
+      const r=RANKS[G.rankIdx];
+      if(r.winsNeeded){
+        let dots='';for(let k=0;k<r.winsNeeded;k++)dots+='<span style="flex:1;height:7px;border-radius:4px;background:'+(k<G.winStreak?f.color:'#2a1a5a')+(k<G.winStreak?';box-shadow:0 0 6px '+f.color+'aa':'')+'"></span>';
+        prog='<div style="display:flex;gap:3px;margin-top:8px">'+dots+'</div><div style="font-size:.52rem;color:#9a88d8;margin-top:3px">'+cwT('Noch '+(r.winsNeeded-G.winStreak)+' Sieg(e) in Serie bis zum Aufstieg','Win '+(r.winsNeeded-G.winStreak)+' more in a row to rank up')+'</div>';
+      } else prog='<div style="font-size:.55rem;color:'+f.color+';margin-top:6px;font-weight:700;letter-spacing:1px">MAX</div>';
+    }
+    const card=document.createElement('div');
+    card.style.cssText='display:flex;gap:11px;align-items:flex-start;padding:10px 11px;border-radius:12px;margin-bottom:7px;'+
+      (isCur?'background:linear-gradient(135deg,'+f.color+'30,'+f.color+'0d);border:1.5px solid '+f.color+';box-shadow:0 0 16px '+f.color+'44;'
+      :isDone?'background:'+f.color+'12;border:1px solid '+f.color+'55;'
+      :'background:#150c30;border:1px solid #2f2068;');
+    card.innerHTML=rankBadgeSvg(f.name,f.color,isCur?54:44,isFuture)+
+      '<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="font-size:.85rem;font-weight:800;letter-spacing:.5px;color:'+(isFuture?'#8f7fd0':f.color)+(isCur?';text-shadow:0 0 10px '+f.color+'88':'')+'">'+fname+'</span>'+
+      (isDone?'<span style="font-size:.6rem;color:'+f.color+'">✓</span>':isFuture?'<span style="font-size:.6rem">🔒</span>':'<span style="font-size:.5rem;background:'+f.color+';color:#1a0f3a;border-radius:6px;padding:1px 6px;font-weight:800">'+cwT('AKTUELL','NOW')+'</span>')+'</div>'+
+      tiers+prog+chips+'</div>';
+    ladder.appendChild(card);
   });
 }
 
@@ -3702,57 +3764,63 @@ let activeQuestCat='anfaenger';
 
 function renderQuestScreen(){
   initQuestStats();
-  // Tabs
+  const all=QUESTS.length, doneAll=QUESTS.filter(isQuestDone).length, claimAll=QUESTS.filter(isQuestClaimable).length;
+  const sum=q('#quest-summary');
+  if(sum){
+    const p=Math.round(doneAll/all*100);
+    sum.innerHTML='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><span style="font-size:.8rem;font-weight:800;color:#ffd45a">'+doneAll+' / '+all+' <span style="font-weight:500;color:#9a88d8;font-size:.62rem">'+cwT('Quests erledigt','quests completed')+'</span></span>'+
+      (claimAll?'<span style="font-size:.6rem;font-weight:800;background:#ffd45a;color:#1a0f3a;border-radius:10px;padding:2px 9px;animation:qpulse 1.4s infinite">🎁 '+claimAll+' '+cwT('abholbereit','ready')+'</span>':'')+'</div>'+
+      '<div style="height:8px;border-radius:5px;background:#2a1a5a;overflow:hidden"><div style="height:100%;width:'+p+'%;background:linear-gradient(90deg,#ffd45a,#ff9a3c);box-shadow:0 0 10px #ffd45a88;border-radius:5px"></div></div>';
+  }
   const tabs=q('#quest-tabs');
   if(tabs){
     tabs.innerHTML='';
     QUEST_CATEGORIES.forEach(cat=>{
       const locked=!!(cat.unlockRank&&G.rankIdx<cat.unlockRank);
-      const total=QUESTS.filter(q=>q.cat===cat.id).length;
-      const done=QUESTS.filter(q=>q.cat===cat.id&&isQuestDone(q)).length;
+      const total=QUESTS.filter(x=>x.cat===cat.id).length;
+      const done=QUESTS.filter(x=>x.cat===cat.id&&isQuestDone(x)).length;
+      const claim=QUESTS.filter(x=>x.cat===cat.id&&isQuestClaimable(x)).length;
       const active=activeQuestCat===cat.id;
       const btn=document.createElement('button');
-      btn.style.cssText='padding:5px 10px;border-radius:16px;border:2px solid '+(active?cat.color:locked?'#3a1a3a':'#5a41b0')+';'+
-        'background:'+(active?'#1a0d00':locked?'#0d000d':'#1a0f3a')+';color:'+(active?cat.color:locked?'#7a2a7a':'#555')+
-        ';font-size:.58rem;font-weight:bold;cursor:'+(locked?'default':'pointer')+';letter-spacing:.5px;opacity:'+(locked?'0.65':'1')+';';
-      btn.textContent=(locked?'🔒 ':'')+cat.label+(locked?'':' ('+done+'/'+total+')');
+      btn.style.cssText='flex:none;position:relative;padding:7px 13px;border-radius:18px;border:1.5px solid '+(active?cat.color:locked?'#3a1a3a':'#4a3590')+';background:'+(active?cat.color+'26':locked?'#0d000d':'#1a0f3a')+';color:'+(active?cat.color:locked?'#7a2a7a':'#a794e8')+';font-size:.62rem;font-weight:800;cursor:'+(locked?'default':'pointer')+';letter-spacing:.4px;white-space:nowrap;'+(active?'box-shadow:0 0 10px '+cat.color+'55;':'')+(locked?'opacity:.7;':'');
+      btn.innerHTML=(locked?'🔒 ':'')+cat.label+(locked?'':' <span style="opacity:.7;font-weight:600">'+done+'/'+total+'</span>')+(claim?'<span style="position:absolute;top:-4px;right:-3px;width:9px;height:9px;border-radius:50%;background:#ffd45a;box-shadow:0 0 6px #ffd45a"></span>':'');
       if(!locked)btn.onclick=()=>{activeQuestCat=cat.id;renderQuestScreen();};
       tabs.appendChild(btn);
     });
   }
-  // List
   const list=q('#quest-list');if(!list)return;
   list.innerHTML='';
   const cat=QUEST_CATEGORIES.find(c=>c.id===activeQuestCat);
-  QUESTS.filter(q=>q.cat===activeQuestCat).forEach(quest=>{
+  const rank=x=>isQuestClaimable(x)?0:isQuestDone(x)?2:1;
+  const items=QUESTS.filter(x=>x.cat===activeQuestCat).map((x,i)=>({x,i})).sort((a,b)=>rank(a.x)-rank(b.x)||a.i-b.i).map(o=>o.x);
+  items.forEach(quest=>{
     const done=isQuestDone(quest);
     const claimable=isQuestClaimable(quest);
     const prog=getQuestProgress(quest);
     const pct=Math.round((prog/quest.target)*100);
     const card=document.createElement('div');
-    card.style.cssText='border:1px solid '+(done?'#1a3a1a':claimable?cat.color:'#2a1a5a')+
-      ';border-radius:10px;padding:10px 12px;background:'+(done?'#060e06':claimable?'#1a0f3a':'#1a0f3a')+
-      ';opacity:'+(done?'.5':'1')+';';
+    card.style.cssText='display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:12px;'+
+      (done?'background:#0d1a10;border:1px solid #1f4a2a;opacity:.6;':claimable?'background:linear-gradient(135deg,#ffd45a33,#1a0f3a);border:1.5px solid #ffd45a;box-shadow:0 0 14px #ffd45a55;':'background:#1a0f3a;border:1px solid #3a2a7a;');
+    const icoBg=done?'#1f4a2a':claimable?'#ffd45a':'#2a1a5a';
     card.innerHTML=
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'+
-        '<div style="flex:1">'+
-          '<div style="font-size:.72rem;color:'+(done?'#3a6a3a':claimable?cat.color:'#ffd45a')+';font-weight:bold;margin-bottom:3px">'+
-            (done?'✓ ':'')+quest.label+
-          '</div>'+
-          '<div style="background:#1a0f3a;border-radius:4px;height:5px;overflow:hidden;margin-bottom:3px">'+
-            '<div style="height:100%;width:'+pct+'%;background:'+(done?'#2a5a2a':cat.color)+';border-radius:4px;transition:width .3s"></div>'+
-          '</div>'+
-          '<div style="font-size:.55rem;color:#555">'+prog+' / '+quest.target+(done?' ✓':'')+'</div>'+
-        '</div>'+
-        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:60px">'+
-          '<div style="font-size:.6rem;color:#ffd45a">'+quest.reward.label+'</div>'+
-          (done?'<span style="font-size:.6rem;color:#3a6a3a">Erhalten</span>':
-           claimable?'<button id="qbtn_'+quest.id+'" onclick="claimQuest(\''+quest.id+'\')" style="padding:5px 10px;border-radius:6px;border:1px solid '+cat.color+';background:#1a0f3a;color:'+cat.color+';font-size:.6rem;cursor:pointer;font-weight:bold">Abholen!</button>':
-           '')+
-        '</div>'+
+      '<div style="flex:none;width:38px;height:38px;border-radius:11px;background:'+icoBg+(claimable?'':'66')+';display:flex;align-items:center;justify-content:center;font-size:1.15rem">'+(done?'✓':questIcon(quest))+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:.72rem;font-weight:700;color:'+(done?'#6fbf7f':claimable?'#fff':'#e8dfff')+';margin-bottom:5px;line-height:1.25">'+quest.label+'</div>'+
+        '<div style="position:relative;height:9px;border-radius:5px;background:#2a1a5a;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+(done?'#2f7a3f':claimable?'linear-gradient(90deg,#ffd45a,#ff9a3c)':'linear-gradient(90deg,'+cat.color+','+cat.color+'bb)')+';border-radius:5px;transition:width .3s"></div></div>'+
+        '<div style="font-size:.55rem;color:#9a88d8;margin-top:3px">'+prog+' / '+quest.target+'</div>'+
+      '</div>'+
+      '<div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:64px">'+
+        '<div style="font-size:.66rem;font-weight:800;color:#ffd45a;background:#00000044;border-radius:8px;padding:2px 8px">'+quest.reward.label+'</div>'+
+        (done?'<span style="font-size:.55rem;color:#6fbf7f;font-weight:700">'+cwT('Erhalten','Claimed')+'</span>':
+         claimable?'<button id="qbtn_'+quest.id+'" onclick="claimQuest(\''+quest.id+'\')" style="padding:6px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#ffd45a,#ff9a3c);color:#1a0f3a;font-size:.62rem;cursor:pointer;font-weight:900;letter-spacing:.5px;box-shadow:0 0 12px #ffd45a88">'+cwT('Abholen!','Claim!')+'</button>':'')+
       '</div>';
     list.appendChild(card);
   });
+  updateNavBadges();
+}
+function updateNavBadges(){
+  const n=QUESTS.filter(isQuestClaimable).length;
+  const b=document.getElementById('nav-badge-quests');if(b){b.style.display=n?'flex':'none';b.textContent=n;}
 }
 
 // ---- Quest Tracking Hooks ----

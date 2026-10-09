@@ -435,3 +435,18 @@ body.start-active::before {
 body{background:radial-gradient(circle at 20% 10%,#4b2a9a55,transparent 45%),radial-gradient(circle at 85% 70%,#ff4fa355,transparent 45%),linear-gradient(160deg,#1a0f3a,#0b0620)!important}
 #chess-board{border:3px solid #ffd45a!important;box-shadow:0 0 28px #ffd45a77,0 0 70px #8b5cf655!important}
 h1,h2,.title,[class*=title]{font-family:Georgia,'Times New Roman',serif!important;letter-spacing:3px}
+
+/* ===== UI-Politur: untere Leiste, Rang, Quests ===== */
+.bot-nav{ background:linear-gradient(180deg,#1d1146,#0d0720); border-top:1px solid #4a3590; box-shadow:0 -4px 22px rgba(120,80,255,.25); }
+.nav-btn{ position:relative; font-size:.58rem!important; font-weight:700; gap:3px!important; min-height:58px!important; padding:8px 1px 6px!important; color:#8f7fd0!important; letter-spacing:.6px!important; }
+.nav-btn .nav-ic{ position:relative; width:26px; height:26px; display:flex; align-items:center; justify-content:center; font-size:0!important; transition:transform .18s; }
+.nav-btn .nav-ic svg{ width:24px; height:24px; }
+.nav-btn::before{ content:''; position:absolute; top:0; left:25%; right:25%; height:3px; border-radius:0 0 4px 4px; background:transparent; transition:background .18s, box-shadow .18s; }
+.nav-btn.active{ color:#ffd45a!important; text-shadow:none!important; }
+.nav-btn.active::before{ background:#ffd45a; box-shadow:0 0 12px #ffd45a; }
+.nav-btn.active .nav-ic{ transform:translateY(-2px) scale(1.12); filter:drop-shadow(0 0 7px #ffd45acc); }
+.nav-badge{ position:absolute; top:-5px; right:-9px; min-width:16px; height:16px; padding:0 4px; box-sizing:border-box; border-radius:8px; background:#ff4d8d; color:#fff; font-style:normal; font-size:.55rem; font-weight:900; align-items:center; justify-content:center; box-shadow:0 0 8px #ff4d8d; }
+.rk-chip{ font-size:.55rem; font-weight:700; background:#0d072088; border:1px solid #5a41b0; border-radius:7px; padding:2px 7px; color:#e8dfff; }
+.rk-extra{ border-color:#ffd45a; color:#ffd45a; }
+#quest-tabs::-webkit-scrollbar{ display:none; }
+@keyframes qpulse{ 0%,100%{ box-shadow:0 0 0 0 #ffd45a88 } 50%{ box-shadow:0 0 0 6px #ffd45a00 } }
