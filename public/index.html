@@ -3771,6 +3771,7 @@ let TTT_MUSIC_TRACK = { name: "Brain Pulse Theme", files: ["Trailer_Musik.mp3"] 
 // ist die echte Liste in aller Regel längst da, bevor der erste Titel gewählt wird.
 async function loadAudioTrackList(){
   try{
+    return; // Musik entfernt
     const res = await apiCall("/api/audio-tracks", {});
     if(res && Array.isArray(res.menu) && res.menu.length) MENU_MUSIC_TRACKS = res.menu;
     
@@ -3781,7 +3782,7 @@ let audioZone = "menu";              // "menu" | "ttt" - welche Musik gerade dra
 let bgAudioEl = null;                // aktuell spielendes <audio>-Element
 let bgAudioTrackName = null;         // Titelname für die Einstellungen-Anzeige
 let menuMusicQueue = [];             // gemischte Restliste noch nicht gespielter Menü-Titel
-let musicEnabled = (function(){ try{ return localStorage.getItem("wq_music") !== "0"; }catch(e){ return true; } })();
+let musicEnabled = false; // Musik komplett entfernt
 let musicVolume = (function(){ try{ const v = parseInt(localStorage.getItem("wq_volume2"), 10); return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 20; }catch(e){ return 20; } })();
 let audioUnlocked = false;           // Browser blocken Ton, bis die Person einmal getippt/geklickt hat
 
@@ -3803,7 +3804,7 @@ function stopBgMusic(){
 function startTrack(track){
   stopBgMusic();
   bgAudioTrackName = track.name;
-  if(!musicEnabled || !audioUnlocked || typeof document === "undefined" || !document.createElement) return; // erst starten, wenn erlaubt & entsperrt
+  if(true || !musicEnabled || !audioUnlocked || typeof document === "undefined" || !document.createElement) return; // erst starten, wenn erlaubt & entsperrt
   const el = document.createElement("audio");
   track.files.forEach(f => {
     const src = document.createElement("source");
@@ -4465,17 +4466,6 @@ function renderSettingsModal(){
   overlay.innerHTML = `
     <div class="settings-panel" onclick="event.stopPropagation()">
       <div class="settings-title">⚙️ ${L('Einstellungen','Settings')}</div>
-      <div class="settings-section">
-        <div class="settings-label">${L('Musik','Music')}</div>
-        <button class="btn ${musicEnabled ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleMusicSetting()">${musicEnabled ? L('🔊 Musik An','🔊 Music on') : L('🔇 Musik Aus','🔇 Music off')}</button>
-        <div style="display:flex; align-items:center; gap:10px; margin-top:12px;">
-          <span>🔈</span>
-          <input type="range" min="0" max="100" value="${musicVolume}" style="flex:1;" oninput="setMusicVolume(this.value); document.getElementById('musicVolLabel').textContent=this.value+'%'" ${musicEnabled ? '' : 'disabled'}>
-          <span>🔊</span>
-        </div>
-        <div id="musicVolLabel" class="settings-track">${musicVolume}%</div>
-        ${musicEnabled && bgAudioTrackName ? `<div class="settings-track">${L('Läuft gerade','Now playing')}: ${esc(bgAudioTrackName)}</div>` : ``}
-      </div>
       <div class="settings-section">
         <div class="settings-label">${L('Sprache','Language')}</div>
         ${langSwitcherHtml()}
