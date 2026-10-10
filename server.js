@@ -1426,6 +1426,7 @@ function startOrderingSimultaneousRound(room, def) {
     unit: dsRaw.unit,
     order: dsRaw.order,
     totalItems: selected.length,
+    sortedValues: selected.map(i => i.value).sort((a, b) => dsRaw.order === "desc" ? b - a : a - b),
     perPlayer,
     startedAt: Date.now(),
     hurryDeadline: null,
@@ -1478,7 +1479,9 @@ function handleOrderingArenaTimeout(room, playerId) {
 // als "kein Widerspruch". Dadurch ist der allererste Tipp automatisch immer
 // richtig (kein Nachbar vorhanden), und der letzte verbleibende Tipp bei nur
 // noch einem freien Slot ist es rechnerisch zwangsläufig ebenfalls.
-function isOrderingSlotCorrect(slots, order, value, slotIndex) {
+function isOrderingSlotCorrect(slots, order, value, slotIndex, sortedValues) {
+  // ABSOLUT: Element zählt nur, wenn es exakt auf seinem Endrang liegt
+  if (sortedValues) return sortedValues[slotIndex] === value;
   const desc = order === "desc";
   let beforeVal = null, afterVal = null;
   for (let i = slotIndex - 1; i >= 0; i--) {
@@ -1494,10 +1497,10 @@ function isOrderingSlotCorrect(slots, order, value, slotIndex) {
 
 // Liefert alle aktuell noch offenen Slots, die für den gegebenen Wert im
 // Moment gültig wären (für Bot-Entscheidungen).
-function validOrderingSlots(slots, order, value) {
+function validOrderingSlots(slots, order, value, sortedValues) {
   const valid = [];
   for (let i = 0; i < slots.length; i++) {
-    if (slots[i] === null && isOrderingSlotCorrect(slots, order, value, i)) valid.push(i);
+    if (slots[i] === null && isOrderingSlotCorrect(slots, order, value, i, sortedValues)) valid.push(i);
   }
   return valid;
 }
@@ -1514,7 +1517,7 @@ function handleOrderingPlace(room, playerId, itemId, slotIndex) {
   const item = st.pool[idx];
   st.pool.splice(idx, 1);
 
-  const correct = isOrderingSlotCorrect(st.slots, rt.order, item.value, slotIndex);
+  const correct = isOrderingSlotCorrect(st.slots, rt.order, item.value, slotIndex, rt.sortedValues);
 
   if (correct) {
     st.slots[slotIndex] = { ...item, revealed: false };
@@ -1671,7 +1674,7 @@ function scheduleNextBotOrderingMove(room, rt, bot, tier) {
     const correct = Math.random() < tier.prob;
     const emptySlots = [];
     for (let i = 0; i < st2.slots.length; i++) if (st2.slots[i] === null) emptySlots.push(i);
-    const valid = validOrderingSlots(st2.slots, rt.order, targetItem.value);
+    const valid = validOrderingSlots(st2.slots, rt.order, targetItem.value, rt.sortedValues);
     let slotIndex;
     if (correct && valid.length) {
       slotIndex = valid[Math.floor(Math.random() * valid.length)];
@@ -3315,6 +3318,28 @@ async function saveResetMeta() {
   }
   try { fs.mkdirSync(path.dirname(META_FILE), { recursive: true }); fs.writeFileSync(META_FILE, JSON.stringify(resetMeta), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
+// Admin: Konto pruefen / neues Passwort setzen ("Passwort vergessen"). Passwoerter sind nur als Hash
+// gespeichert und lassen sich NICHT auslesen - nur neu setzen. Ohne newPassword nur Pruefung + aehnliche Namen.
+async function adminSetPassword(username, newPassword, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const raw = typeof username === "string" ? username.trim() : "";
+  if (!raw) return { ok: false, error: lang === "en" ? "Enter a username." : "Benutzername eingeben." };
+  const u = findUserByName(raw);
+  if (!u) {
+    const q = raw.toLowerCase();
+    const similar = users.map(x => x.username).filter(n => n.toLowerCase().includes(q) || q.includes(n.toLowerCase())).slice(0, 8);
+    return { ok: false, exists: false, similar, total: users.length, error: lang === "en" ? "No account with this name." : "Kein Konto mit diesem Namen." };
+  }
+  if (typeof newPassword !== "string" || !newPassword) return { ok: true, exists: true, username: u.username };
+  if (newPassword.length < 6 || newPassword.length > 200) return errObj("passwordLength", lang);
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = await hashPassword(newPassword, salt);
+  u.salt = salt; u.passwordHash = hash; u.tokens = [];
+  const uname = u.username.toLowerCase();
+  for (const k of [...rlStore.keys()]) { if (k === "u|" + uname || k.startsWith("p|" + uname + "|")) rlStore.delete(k); }
+  await saveUsers();
+  return { ok: true, exists: true, username: u.username, changed: true };
+}
 async function adminResetAll(confirm, lang) {
   if (confirm !== "RESET") return errObj("invalidInput", lang);
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
@@ -4323,6 +4348,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
         else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES), resetEpoch: rm.epoch }; }
+        else if (req.url === "/api/admin-set-password") { result = adminOk(payload.adminKey, ip) ? await adminSetPassword(payload.username, payload.newPassword, lang) : { ok: false, error: lang === "en" ? "Wrong admin key." : "Admin-Key falsch." }; }
         else if (req.url === "/api/admin-reset-all") { result = adminOk(payload.adminKey, ip) ? await adminResetAll(payload.confirm, lang) : errObj("invalidInput", lang); }
         else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
         else if (req.url.startsWith("/api/chess-online/") && featureLocked("chess_online") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
