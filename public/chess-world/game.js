@@ -2641,6 +2641,10 @@ function renderShopScreen(){
     sg.appendChild(c);
   });
   el.appendChild(sg);
+  const lg=document.createElement('div');
+  lg.style.cssText='text-align:center;font-size:.5rem;color:#9a8fc4;margin:10px 0 4px;line-height:1.5';
+  lg.innerHTML=cwT('Kisten enthalten Zufallsinhalte – die Chancen stehen bei jeder Kiste. Gold &amp; Schlüssel haben keinen Geldwert. ','Chests contain random items – the odds are shown on each chest. Gold &amp; keys have no cash value. ')+'<a href="/legal.html#kisten" target="_blank" rel="noopener" style="color:#7be0ff">'+cwT('Mehr Infos','More info')+'</a>';
+  el.appendChild(lg);
 
   // ── Gold kaufen (mit Brain-Pulse-Coins) ──
   const hg=document.createElement('div');
