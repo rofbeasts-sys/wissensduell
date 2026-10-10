@@ -286,6 +286,9 @@ const SLF_BOT_WORDS_EN = {
 function buildRoundDefPool() {
   const pool = [{ id: "quiz", kind: "knowledgeQuiz", label: "Wissenstest", germanOnly: true }];
   pool.push({ id: "tictactoe", kind: "ticTacToeGame", label: "Tic Tac Toe", germanOnly: false });
+  pool.push({ id: "tictactoe_quantum", kind: "ticTacToeGame", variant: "quantum", label: "Tic Tac Toe Quantum", germanOnly: false });
+  pool.push({ id: "tictactoe_quizmix", kind: "ticTacToeGame", variant: "quizmix", label: "Tic Tac Toe Quiz-Mix", germanOnly: true });
+  pool.push({ id: "fourups", kind: "fourupsGame", label: "4 gewinnt", germanOnly: false });
   Object.entries(DATASETS.ordering).forEach(([key, ds]) => {
     pool.push({ id: "order_" + key, kind: "orderingGame", label: ds.label, datasetGroup: "ordering", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
   });
@@ -698,6 +701,7 @@ function tttResolveDuelQuestion(room) {
     type: "tttDuelReveal",
     cellIndex: duel.cellIndex,
     correctIndex: q.c,
+    correctAnswer: Array.isArray(q.a) ? q.a[q.c] : null,
     explanation: q.e || "",
     results,
     scores: duel.scores
@@ -789,6 +793,8 @@ function roomStateForClient(room) {
     pointSystem: room.pointSystem,
     roundCount: room.roundCount,
     roundMode: room.roundMode,
+    olympiadTheme: room.olympiadTheme || "fussball",
+    olympiadThemes: OLYMPIAD_THEMES.map(t => ({ id: t.id, label: room.language === "de" ? t.de : t.en })),
     gameMode: room.gameMode,
     roundDefs: room.roundDefs.map(r => r ? ({ id: r.id, kind: r.kind, label: r.label, categories: r.categories }) : null),
     availableRoundDefs: roundDefPoolForLanguage(room.language, room.gameMode).map(r => ({ id: r.id, kind: r.kind, label: r.label, topicGroup: r.topicGroup || null })),
@@ -805,9 +811,45 @@ function pushRoomState(room) { broadcast(room, roomStateForClient(room)); }
 /* ------------------------------------------------------------------------ */
 /* Rundenauswahl                                                             */
 /* ------------------------------------------------------------------------ */
+// Olympiade: vorgegebene Themen-Runden - es kommen NUR Runden zu einem Thema
+// (z. B. Fussball: nur Fussball-Einordnen/Mehr-oder-Weniger/Nenn's Blitz).
+const OLYMPIAD_THEMES = [
+  { id: "fussball", de: "⚽ Fußball", en: "⚽ Football", keyRe: /fussball|kaderwert|wm_titel|stadien/ },
+  { id: "sport", de: "🏅 Sport", en: "🏅 Sports", groups: ["Sport"] },
+  { id: "geografie", de: "🌍 Geografie", en: "🌍 Geography", groups: ["Geografie"] },
+  { id: "kultur", de: "🎬 Film, Musik & TV", en: "🎬 Film, music & TV", groups: ["Kultur & Unterhaltung", "Entertainment & Medien", "Deutsches TV"] },
+  { id: "natur", de: "🔬 Natur & Wissenschaft", en: "🔬 Nature & science", groups: ["Natur & Wissenschaft"] },
+  { id: "alltag", de: "🍔 Alltag & Kurioses", en: "🍔 Everyday & curiosities", groups: ["Alltag & Kurioses", "Alltag, Konsum & Marken", "Kurioses & Vergleiche"] },
+  { id: "technik", de: "💰 Technik & Geld", en: "💰 Tech & money", groups: ["Technik & Medien", "Geld & Wirtschaft"] }
+];
+function olympiadThemeById(id) { return OLYMPIAD_THEMES.find(t => t.id === id) || OLYMPIAD_THEMES[0]; }
+function olympiadPool(room) {
+  const theme = olympiadThemeById(room.olympiadTheme);
+  const base = roundDefPoolForLanguage(room.language, room.gameMode).filter(d => d.datasetGroup && d.datasetKey);
+  const out = base.filter(d => {
+    const ds = DATASETS[d.datasetGroup] && DATASETS[d.datasetGroup][d.datasetKey];
+    if (!ds) return false;
+    if (theme.keyRe) return theme.keyRe.test(d.datasetKey) && d.datasetKey !== "olympia_gold";
+    return theme.groups.includes(ds.group);
+  });
+  return out;
+}
 function randomizeRoundDefs(room) {
-  const availablePool = roundDefPoolForLanguage(room.language, room.gameMode);
+  let availablePool = roundDefPoolForLanguage(room.language, room.gameMode);
   const defs = [];
+  if (room.roundMode === "olympiad") {
+    const op = olympiadPool(room);
+    if (op.length) {
+      // jede Runde einmal, bevor sich etwas wiederholt
+      let bag = [];
+      for (let i = 0; i < room.roundCount; i++) {
+        if (!bag.length) bag = op.slice().sort(() => Math.random() - 0.5);
+        defs.push(bag.pop());
+      }
+      room.roundDefs = defs;
+      return;
+    }
+  }
   for (let i = 0; i < room.roundCount; i++) {
     const def = availablePool[Math.floor(Math.random() * availablePool.length)];
     defs.push(def);
@@ -1003,6 +1045,7 @@ function resolveQuizQuestion(room) {
   broadcast(room, {
     type: "quizReveal",
     correctIndex: q.c,
+    correctAnswer: Array.isArray(q.a) ? q.a[q.c] : null,
     explanation: q.e || null,
     results
   });
@@ -2608,7 +2651,10 @@ function startPartyTicTacToeRound(room, def) {
     teamSymbols: { [teamA]: aGetsX ? "X" : "O", [teamB]: aGetsX ? "O" : "X" },
     turnSymbol: "X",
     gameOver: false,
-    winnerTeamId: null
+    winnerTeamId: null,
+    variant: def.variant || "classic",
+    xPieces: [], oPieces: [], moves: 0,
+    duel: null
   };
   broadcastPartyTicTacToe(room);
 }
@@ -2621,7 +2667,9 @@ function broadcastPartyTicTacToe(room) {
     turnSymbol: rt.turnSymbol,
     teamSymbols: rt.teamSymbols,
     gameOver: rt.gameOver,
-    winnerTeamId: rt.winnerTeamId
+    winnerTeamId: rt.winnerTeamId,
+    variant: rt.variant,
+    duelActive: !!rt.duel
   });
 }
 
@@ -2633,8 +2681,18 @@ function handlePartyTicTacToeMove(room, playerId, index) {
   const mySymbol = rt.teamSymbols[player.teamId];
   if (!mySymbol || mySymbol !== rt.turnSymbol) return; // eigenes Team nicht am Zug
   if (typeof index !== "number" || index < 0 || index > 8 || rt.board[index]) return;
-  rt.board[index] = mySymbol;
-  const winner = tttCheckWinner(rt.board); // dieselbe Funktion wie beim eigenständigen Tic-Tac-Toe-Modus
+  if (rt.duel) return;
+  if (rt.variant === "quizmix") { partyTttStartDuel(room, index, player.teamId); return; }
+  if (rt.variant === "quantum") tttQuantumApplyMove(rt, mySymbol, index); else rt.board[index] = mySymbol;
+  rt.moves++;
+  partyTttAfterPlacement(room, rt.variant === "quantum" && rt.moves >= 24 ? "draw" : null);
+}
+
+// Nach jeder Platzierung/jedem Duell: Sieg pruefen oder Zug wechseln
+function partyTttAfterPlacement(room, forcedDraw) {
+  const rt = room.runtime;
+  let winner = tttCheckWinner(rt.board); // dieselbe Funktion wie beim eigenstaendigen Tic-Tac-Toe-Modus
+  if (!winner && forcedDraw) winner = "draw";
   if (winner) {
     rt.gameOver = true;
     if (winner !== "draw") {
@@ -2650,6 +2708,130 @@ function handlePartyTicTacToeMove(room, playerId, index) {
     rt.turnSymbol = rt.turnSymbol === "X" ? "O" : "X";
     broadcastPartyTicTacToe(room);
   }
+}
+
+/* ---- Party-Quiz-Mix: Feld waehlen -> Wissensduell zwischen den Teams ---- */
+// Pro Team zaehlt die ERSTE Antwort eines beliebigen Teammitglieds.
+const PARTY_TTT_DUEL_QUESTIONS = 3;
+function partyTttStartDuel(room, cellIndex, startTeamId) {
+  const rt = room.runtime;
+  const teamIds = Object.keys(rt.teamSymbols);
+  const questions = [...QUIZ_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, PARTY_TTT_DUEL_QUESTIONS).map(shuffleAnswerOrder);
+  rt.duel = { cellIndex, questions, qIndex: 0, scores: Object.fromEntries(teamIds.map(t => [t, 0])), answered: {}, timer: null };
+  broadcastPartyTicTacToe(room);
+  partyTttSendDuelQuestion(room);
+}
+function partyTttSendDuelQuestion(room) {
+  const rt = room.runtime; const duel = rt && rt.duel; if (!duel) return;
+  duel.answered = {};
+  const q = duel.questions[duel.qIndex];
+  broadcast(room, { type: "ticTacToeDuelQuestion", cellIndex: duel.cellIndex, qIndex: duel.qIndex, qTotal: duel.questions.length, question: q.q, options: q.a, durationMs: TTT_DUEL_QUESTION_MS, teamSymbols: rt.teamSymbols });
+  clearTimeout(duel.timer);
+  duel.timer = setTimeout(() => partyTttResolveDuelQuestion(room), TTT_DUEL_QUESTION_MS + 400);
+}
+function partyTttDuelAnswer(room, playerId, selected) {
+  const rt = room.runtime; const duel = rt && rt.duel; if (!duel) return;
+  const player = room.players.get(playerId);
+  if (!player || !player.teamId || !(player.teamId in duel.scores)) return;
+  if (!Number.isInteger(selected) || selected < 0 || selected > 3) return;
+  if (duel.answered[player.teamId] !== undefined) return;
+  duel.answered[player.teamId] = selected;
+  if (Object.keys(duel.scores).every(t => duel.answered[t] !== undefined)) partyTttResolveDuelQuestion(room);
+}
+function partyTttResolveDuelQuestion(room) {
+  const rt = room.runtime; const duel = rt && rt.duel; if (!duel) return;
+  clearTimeout(duel.timer);
+  const q = duel.questions[duel.qIndex];
+  const results = {};
+  Object.keys(duel.scores).forEach(tid => {
+    const sel = duel.answered[tid];
+    const correct = sel === q.c;
+    if (correct) duel.scores[tid]++;
+    results[tid] = { selected: sel === undefined ? null : sel, correct };
+  });
+  broadcast(room, { type: "ticTacToeDuelReveal", correctIndex: q.c, correctAnswer: Array.isArray(q.a) ? q.a[q.c] : null, explanation: q.e || "", results, scores: duel.scores });
+  duel.qIndex++;
+  if (duel.qIndex >= duel.questions.length) setTimeout(() => partyTttFinishDuel(room), 2200);
+  else setTimeout(() => partyTttSendDuelQuestion(room), 2200);
+}
+function partyTttFinishDuel(room) {
+  const rt = room.runtime; const duel = rt && rt.duel; if (!duel || rt.kind !== "ticTacToeGame") return;
+  const [a, b] = Object.keys(duel.scores);
+  let winTeam = null;
+  if (duel.scores[a] > duel.scores[b]) winTeam = a; else if (duel.scores[b] > duel.scores[a]) winTeam = b;
+  if (winTeam) rt.board[duel.cellIndex] = rt.teamSymbols[winTeam];
+  rt.duel = null;
+  rt.moves++;
+  const full = rt.board.every(c => c);
+  // Wer das naechste Feld waehlen darf, wechselt immer (wie im Online-Modus)
+  partyTttAfterPlacement(room, full ? "draw" : null);
+}
+
+/* ---- 4 gewinnt als Party-Runde (team-basiert, genau 2 Teams) ---- */
+const FOURUPS_ROWS = 6, FOURUPS_COLS = 7, FOURUPS_TURN_MS = 25000;
+function fourupsWinCells(b, r, c) {
+  const p = b[r][c]; if (!p) return null;
+  for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+    const cells = [[r, c]];
+    for (const sgn of [1, -1]) { let rr = r + dr * sgn, cc = c + dc * sgn; while (rr >= 0 && rr < FOURUPS_ROWS && cc >= 0 && cc < FOURUPS_COLS && b[rr][cc] === p) { cells.push([rr, cc]); rr += dr * sgn; cc += dc * sgn; } }
+    if (cells.length >= 4) return cells;
+  }
+  return null;
+}
+function startPartyFourupsRound(room, def) {
+  const teamIds = Array.from(room.teams.keys());
+  if (teamIds.length !== 2) {
+    broadcast(room, { type: "ticTacToeSkipped", reason: "4 gewinnt braucht genau 2 Teams – diese Runde entfällt." });
+    return finishRoundEngine(room, new Map(teamIds.map(id => [id, 0])));
+  }
+  const [a, b] = teamIds; const aFirst = Math.random() < 0.5;
+  room.runtime = { kind: "fourupsGame", board: Array.from({ length: FOURUPS_ROWS }, () => Array(FOURUPS_COLS).fill(0)),
+    teamNums: { [a]: aFirst ? 1 : 2, [b]: aFirst ? 2 : 1 }, turn: 1, gameOver: false, winnerTeamId: null, winCells: null, last: null, timer: null };
+  broadcastPartyFourups(room);
+  partyFourupsArmTimer(room);
+}
+function broadcastPartyFourups(room) {
+  const rt = room.runtime;
+  broadcast(room, { type: "fourupsState", board: rt.board, turn: rt.turn, teamNums: rt.teamNums, gameOver: rt.gameOver, winnerTeamId: rt.winnerTeamId, winCells: rt.winCells, last: rt.last, turnMs: FOURUPS_TURN_MS });
+}
+function partyFourupsArmTimer(room) {
+  const rt = room.runtime; if (!rt || rt.kind !== "fourupsGame") return;
+  clearTimeout(rt.timer);
+  if (rt.gameOver) return;
+  const turnAtArm = rt.turn, movesAtArm = rt.moveCount || 0;
+  rt.timer = setTimeout(() => { // Zeitueberschreitung: zufaellige freie Spalte
+    if (!room.runtime || room.runtime !== rt || rt.gameOver || (rt.moveCount || 0) !== movesAtArm) return;
+    const free = [0, 1, 2, 3, 4, 5, 6].filter(c => !rt.board[0][c]);
+    if (free.length) partyFourupsPlace(room, free[Math.floor(Math.random() * free.length)], turnAtArm);
+  }, FOURUPS_TURN_MS + 300);
+}
+function partyFourupsPlace(room, col, num) {
+  const rt = room.runtime;
+  let row = -1; for (let r = FOURUPS_ROWS - 1; r >= 0; r--) if (!rt.board[r][col]) { row = r; break; }
+  if (row < 0) return false;
+  rt.board[row][col] = num; rt.last = [row, col]; rt.moveCount = (rt.moveCount || 0) + 1;
+  const win = fourupsWinCells(rt.board, row, col);
+  const full = rt.board[0].every(v => v);
+  if (win || full) {
+    rt.gameOver = true; clearTimeout(rt.timer);
+    if (win) { rt.winCells = win; rt.winnerTeamId = Object.keys(rt.teamNums).find(t => rt.teamNums[t] === num); }
+    broadcastPartyFourups(room);
+    const points = new Map();
+    Object.keys(rt.teamNums).forEach(t => points.set(t, win ? (rt.teamNums[t] === num ? 10 : 0) : 5));
+    setTimeout(() => finishRoundEngine(room, points), 2200);
+  } else {
+    rt.turn = 3 - rt.turn; broadcastPartyFourups(room); partyFourupsArmTimer(room);
+  }
+  return true;
+}
+function handlePartyFourupsMove(room, playerId, col) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "fourupsGame" || rt.gameOver) return;
+  const player = room.players.get(playerId);
+  if (!player || !player.teamId) return;
+  if (rt.teamNums[player.teamId] !== rt.turn) return;
+  if (!Number.isInteger(col) || col < 0 || col >= FOURUPS_COLS) return;
+  partyFourupsPlace(room, col, rt.turn);
 }
 
 /* ------------------------------------------------------------------------ */
@@ -2680,6 +2862,7 @@ function startNextRound(room) {
     else if (def.kind === "orderingGame") startOrderingSimultaneousRound(room, def);
     else if (def.kind === "nennsBlitz") startNennsBlitzRound(room, def);
     else if (def.kind === "ticTacToeGame") startPartyTicTacToeRound(room, def);
+    else if (def.kind === "fourupsGame") startPartyFourupsRound(room, def);
     else startRankingRound(room, def);
   }, 1800);
 }
@@ -2915,7 +3098,7 @@ function freshModeStats() {
 function publicProfile(user) {
   // Interne Anticheat-Daten gehoeren nicht zum Client
 
-  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, clientCoinsDay: undefined };
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, clientCoinsDay: undefined };
 }
 
 async function registerUser(username, password, ip, lang) {
@@ -3798,6 +3981,123 @@ function chessRollChest(type) {
   }
   return { results, coinBonus };
 }
+
+// ---------------------------------------------------------------------------
+// Fourups (4 gewinnt mit Faehigkeiten): Sammlung serverautoritativ im Konto
+// (user.stats.fourups). Schluessel teilen sich mit Chess Fantasy (chessState).
+// Faehigkeiten: 1 Start-Faehigkeit, Meilensteine je Level, Kisten (Schluessel),
+// Aufwerten kostet Muenzen. Der Client darf hier nichts direkt schreiben.
+// ---------------------------------------------------------------------------
+const FU_TIER = { fels: 0, sperre: 0, aufraeumer: 1, schild: 1, spiegel: 1, ausklinken: 2, tauschen: 2, joker: 2, rueckspulen: 3, bombe: 3, umfaerber: 3, doppelzug: 4 };
+const FU_START = "aufraeumer";
+const FU_MILESTONES = { 2: "fels", 4: "schild", 6: "sperre", 8: "ausklinken", 10: "spiegel", 13: "tauschen", 16: "joker", 20: "bombe", 25: "rueckspulen", 30: "umfaerber", 40: "doppelzug" };
+const FU_MAX_LEVEL = 5;
+const FU_UPGRADE_COST = [0, 500, 1000, 2000, 4000]; // Kosten von Stufe n -> n+1 = FU_UPGRADE_COST[n]
+const FU_MAX_COINS = [50, 100, 200, 400, 800]; // Ausgleich, wenn Faehigkeit schon auf Max ist
+const FU_CHESTS = {
+  normal:    { cost: 20,  drops: 2, odds: [0.55, 0.33, 0.10, 0.02, 0.00] },
+  epic:      { cost: 50,  drops: 3, odds: [0.20, 0.40, 0.28, 0.10, 0.02] },
+  legendary: { cost: 100, drops: 3, odds: [0.00, 0.20, 0.50, 0.27, 0.03] }
+};
+const FU_XP_PER_DAY = 600;
+function fuXpForLevel(l) { return 80 + 15 * (l - 1); } // XP, um von Level l auf l+1 zu kommen
+function fuLevelInfo(xp) {
+  let l = 1, rest = Math.max(0, Math.floor(xp || 0));
+  while (rest >= fuXpForLevel(l)) { rest -= fuXpForLevel(l); l++; }
+  return { level: l, into: rest, need: fuXpForLevel(l) };
+}
+function fourupsState(user) {
+  if (!user.stats.fourups || typeof user.stats.fourups !== "object") user.stats.fourups = { abilities: {}, xp: 0, claimed: {} };
+  const f = user.stats.fourups;
+  if (!f.abilities || typeof f.abilities !== "object") f.abilities = {};
+  if (!f.claimed || typeof f.claimed !== "object") f.claimed = {};
+  if (!Number.isFinite(f.xp) || f.xp < 0) f.xp = 0;
+  if (!f.abilities[FU_START]) f.abilities[FU_START] = 1;
+  // Meilensteine nachtragen (einmal je Level)
+  const lvl = fuLevelInfo(f.xp).level;
+  const got = [];
+  for (const m of Object.keys(FU_MILESTONES)) {
+    if (Number(m) <= lvl && !f.claimed[m]) {
+      f.claimed[m] = true;
+      const id = FU_MILESTONES[m];
+      if (!f.abilities[id]) { f.abilities[id] = 1; got.push({ level: Number(m), id, status: "new" }); }
+      else if (f.abilities[id] < FU_MAX_LEVEL) { f.abilities[id]++; got.push({ level: Number(m), id, status: "up" }); }
+      else { user.stats.coins = (user.stats.coins || 0) + FU_MAX_COINS[FU_TIER[id]]; got.push({ level: Number(m), id, status: "max" }); }
+    }
+  }
+  return { f, got };
+}
+function fourupsPublic(user, got) {
+  const { f } = fourupsState(user);
+  const li = fuLevelInfo(f.xp);
+  return { ...chessPublic(user), abilities: f.abilities, xp: f.xp, level: li.level, xpInto: li.into, xpNeed: li.need,
+    milestones: FU_MILESTONES, upgradeCost: FU_UPGRADE_COST, maxLevel: FU_MAX_LEVEL, chests: FU_CHESTS, milestoneGot: got || [] };
+}
+function fuPickDrop(odds) {
+  let r = Math.random(), tier = 0, cum = 0;
+  for (let i = 0; i < odds.length; i++) { cum += odds[i]; if (r < cum) { tier = i; break; } tier = i; }
+  const ids = Object.keys(FU_TIER).filter(id => FU_TIER[id] === tier);
+  return ids[Math.floor(Math.random() * ids.length)];
+}
+async function fourupsApi(action, payload, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const c = chessState(user);
+  const { f, got } = fourupsState(user);
+  if (action === "state") { if (got.length) await saveUsers(); return { ok: true, ...fourupsPublic(user, got) }; }
+  if (action === "upgrade") {
+    const id = String(payload.id || "");
+    const lvl = f.abilities[id];
+    if (!FU_TIER.hasOwnProperty(id) || !lvl) return errObj("invalidInput", lang);
+    if (lvl >= FU_MAX_LEVEL) return { ok: false, error: lang === "en" ? "Already at max level." : "Schon auf höchster Stufe." };
+    const cost = FU_UPGRADE_COST[lvl];
+    if ((user.stats.coins || 0) < cost) return errObj("notEnoughCoins", lang);
+    user.stats.coins -= cost; f.abilities[id] = lvl + 1;
+    await saveUsers();
+    return { ok: true, ...fourupsPublic(user, got) };
+  }
+  if (action === "open") {
+    const chest = FU_CHESTS[payload.type];
+    if (!chest) return errObj("invalidInput", lang);
+    if (c.keys < chest.cost) return { ok: false, error: lang === "en" ? "Not enough keys." : "Nicht genug Schlüssel." };
+    c.keys -= chest.cost;
+    const drops = [];
+    for (let i = 0; i < chest.drops; i++) {
+      const id = fuPickDrop(chest.odds), tier = FU_TIER[id];
+      if (!f.abilities[id]) { f.abilities[id] = 1; drops.push({ id, tier, status: "new", level: 1 }); }
+      else if (f.abilities[id] < FU_MAX_LEVEL) { f.abilities[id]++; drops.push({ id, tier, status: "up", level: f.abilities[id] }); }
+      else { user.stats.coins = (user.stats.coins || 0) + FU_MAX_COINS[tier]; drops.push({ id, tier, status: "max", level: FU_MAX_LEVEL, coins: FU_MAX_COINS[tier] }); }
+    }
+    await saveUsers();
+    return { ok: true, drops, ...fourupsPublic(user, got) };
+  }
+  if (action === "result") {
+    // Ergebnis einer Partie gegen den Bot: XP + ggf. Gratis-Schluessel (Tageslimit wie Chess)
+    const day = new Date().toISOString().slice(0, 10);
+    if (f.xpDay !== day) { f.xpDay = day; f.xpToday = 0; }
+    if (f.lastResultAt && Date.now() - f.lastResultAt < CHESS_EARN_MIN_GAP_MS * 0.75) return { ok: true, ...fourupsPublic(user, got), gainXp: 0, gainKeys: 0, tooFast: true };
+    f.lastResultAt = Date.now();
+    const level = Math.max(1, Math.min(3, Math.floor(Number(payload.level) || 1)));
+    const outcome = payload.outcome === "win" ? "win" : payload.outcome === "draw" ? "draw" : "loss";
+    const base = outcome === "win" ? [0, 15, 25, 35][level] : outcome === "draw" ? 12 : 8;
+    const restricted = isRestricted(user);
+    const xp = restricted ? 0 : Math.max(0, Math.min(base, FU_XP_PER_DAY - (f.xpToday || 0)));
+    f.xpToday = (f.xpToday || 0) + xp; f.xp += xp;
+    let keys = 0;
+    if (outcome === "win" && !restricted) {
+      if (c.freeDay !== day) { c.freeDay = day; c.freeToday = 0; }
+      keys = Math.max(0, Math.min(level >= 3 ? 2 : 1, CHESS_FREE_KEYS_PER_DAY - c.freeToday));
+      c.freeToday += keys; c.keys += keys;
+    }
+    const before = got.length;
+    const st = fourupsState(user); // ggf. neue Meilensteine
+    await saveUsers();
+    return { ok: true, ...fourupsPublic(user, st.got), gainXp: xp, gainKeys: keys };
+  }
+  return errObj("invalidInput", lang);
+}
+
 async function chessApi(action, payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(payload.token);
@@ -4473,6 +4773,7 @@ const server = http.createServer((req, res) => {
         else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && featureLocked("shop") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
         else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
+        else if (req.url.startsWith("/api/fourups/")) result = await fourupsApi(req.url.slice(13), payload, lang);
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
         else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
@@ -4790,8 +5091,9 @@ wss.on("connection", (ws, req) => {
         break;
       case "setRoundMode":
         if (isHost && room.phase === "lobby") {
-          room.roundMode = msg.mode === "custom" ? "custom" : "random";
-          if (room.roundMode === "random") randomizeRoundDefs(room);
+          room.roundMode = msg.mode === "custom" ? "custom" : (msg.mode === "olympiad" ? "olympiad" : "random");
+          if (room.roundMode === "olympiad") room.olympiadTheme = olympiadThemeById(msg.theme || room.olympiadTheme).id;
+          if (room.roundMode === "random" || room.roundMode === "olympiad") randomizeRoundDefs(room);
           else room.roundDefs = Array.from({ length: room.roundCount }, () => null); // "Noch nicht gewählt"
           pushRoomState(room);
         }
@@ -4878,7 +5180,7 @@ wss.on("connection", (ws, req) => {
         // Rundenstart passend zur Raumsprache aufgeloest (Deutsch / Englisch).
         if (isHost && room.phase === "lobby") {
           room.language = SUPPORTED_LANGS.includes(msg.language) ? msg.language : "de";
-          if (room.roundMode === "random") {
+          if (room.roundMode === "random" || room.roundMode === "olympiad") {
             randomizeRoundDefs(room);
           } else {
             // Bereits gewählte Runden, die mit der neuen Sprache nicht mehr
@@ -4954,6 +5256,12 @@ wss.on("connection", (ws, req) => {
         if (room.runtime && room.runtime.kind === "ticTacToeGame") {
           handlePartyTicTacToeMove(room, ws.playerId, msg.index);
         }
+        break;
+      case "ticTacToeDuelAnswer":
+        if (room.runtime && room.runtime.kind === "ticTacToeGame") partyTttDuelAnswer(room, ws.playerId, msg.index);
+        break;
+      case "fourupsMove":
+        if (room.runtime && room.runtime.kind === "fourupsGame") handlePartyFourupsMove(room, ws.playerId, msg.col);
         break;
       case "guessSubmit":
         if (room.runtime && room.runtime.kind === "guessMusic") {
