@@ -3340,6 +3340,112 @@ async function adminSetPassword(username, newPassword, lang) {
   await saveUsers();
   return { ok: true, exists: true, username: u.username, changed: true };
 }
+
+/* ---- Passwort vergessen: persoenlicher Wiederherstellungs-Schluessel + Admin-Posteingang ----
+   Der Schluessel wird nur als Hash gespeichert (wie das Passwort) und einmalig angezeigt.
+   Anfrage -> Admin sieht Name/Klasse/Schach + "Schluessel gueltig" -> Admin gibt frei ->
+   Spieler setzt sein neues Passwort selbst (Name + Schluessel). Kein Admin-Key im Spiel noetig. */
+function makeRecoveryKey() {
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const b = crypto.randomBytes(12);
+  let out = "";
+  for (let i = 0; i < 12; i++) { out += A[b[i] % A.length]; if (i % 4 === 3 && i < 11) out += "-"; }
+  return out;
+}
+function normKey(k) { return String(typeof k === "string" ? k : "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 24); }
+async function recoveryKeyMatches(user, key) {
+  const nk = normKey(key);
+  if (!user || !user.recoverySalt || !user.recoveryHash || nk.length < 12) return false;
+  const h = await hashPassword(nk, user.recoverySalt);
+  const a = Buffer.from(h, "hex"), b = Buffer.from(user.recoveryHash, "hex");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+async function recoveryKeyStatus(token) {
+  if (!usersLoaded) return { ok: false };
+  const u = findUserByToken(token);
+  if (!u) return { ok: false };
+  return { ok: true, has: !!u.recoveryHash, since: u.recoveryAt || null };
+}
+async function recoveryKeyCreate(token, password, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const u = findUserByToken(token);
+  if (!u) return errObj("notLoggedIn", lang);
+  if (typeof password !== "string" || password.length > 200) return errObj("loginFailed", lang);
+  const kUser = "rk|" + u.username.toLowerCase();
+  if (rlWait(kUser)) return errObj("tooManyAttempts", lang, "", "");
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
+  hashInFlight++;
+  let h; try { h = await hashPassword(password, u.salt); } finally { hashInFlight--; }
+  const a = Buffer.from(h, "hex"), b = Buffer.from(u.passwordHash, "hex");
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) { rlHit(kUser, 5, 10 * 60 * 1000, 10 * 60 * 1000); return errObj("loginFailed", lang); }
+  const key = makeRecoveryKey();
+  u.recoverySalt = crypto.randomBytes(16).toString("hex");
+  u.recoveryHash = await hashPassword(normKey(key), u.recoverySalt);
+  u.recoveryAt = Date.now();
+  await saveUsers();
+  return { ok: true, key };
+}
+// Spieler: Anfrage an den Admin. Antwort ist immer gleich (verraet nicht, ob es den Namen gibt).
+async function forgotRequest(username, key, note, ip, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const generic = { ok: true };
+  if (rlHit("fr|" + ip, 6, 60 * 60 * 1000, 60 * 60 * 1000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
+  const u = findUserByName(typeof username === "string" ? username : "");
+  if (!u) return generic;
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
+  hashInFlight++;
+  let keyOk = false; try { keyOk = key ? await recoveryKeyMatches(u, key) : false; } finally { hashInFlight--; }
+  const prev = u.resetRequest;
+  if (prev && prev.status === "approved" && keyOk) return { ok: true, status: "approved" };
+  if (prev && prev.status === "approved") return generic; // Freigabe nie durch fremde Anfragen zuruecksetzen
+  u.resetRequest = { at: Date.now(), note: String(note || "").slice(0, 200), keyOk: keyOk || !!(prev && prev.keyOk), hadKey: !!u.recoveryHash, status: "pending" };
+  await saveUsers();
+  return generic;
+}
+// Spieler: neues Passwort setzen - nur mit Schluessel UND Freigabe durch den Admin
+async function forgotComplete(username, key, newPassword, ip, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const kIp = "fc|" + ip;
+  if (rlWait(kIp)) return errObj("tooManyAttempts", lang, "", "");
+  const u = findUserByName(typeof username === "string" ? username : "");
+  const bad = () => { rlHit(kIp, 8, 60 * 60 * 1000, 60 * 60 * 1000); return { ok: false, error: lang === "en" ? "Not possible. Check name and key, and wait for the admin's approval." : "Nicht möglich. Name und Schlüssel prüfen und auf die Freigabe des Admins warten." }; };
+  if (!u || !u.resetRequest || u.resetRequest.status !== "approved") return bad();
+  if (typeof newPassword !== "string" || newPassword.length < 6 || newPassword.length > 200) return errObj("passwordLength", lang);
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
+  hashInFlight++;
+  let ok = false; try { ok = await recoveryKeyMatches(u, key); } finally { hashInFlight--; }
+  if (!ok) return bad();
+  u.salt = crypto.randomBytes(16).toString("hex");
+  u.passwordHash = await hashPassword(newPassword, u.salt);
+  u.tokens = [];
+  delete u.resetRequest;
+  const uname = u.username.toLowerCase();
+  for (const k of [...rlStore.keys()]) { if (k === "u|" + uname || k.startsWith("p|" + uname + "|")) rlStore.delete(k); }
+  await saveUsers();
+  return { ok: true, username: u.username };
+}
+function adminResetList(key, ip) {
+  if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const list = users.filter(u => u.resetRequest).map(u => {
+    const s = u.stats || {};
+    const ch = s.chess || {};
+    return { username: u.username, at: u.resetRequest.at, note: u.resetRequest.note || "", keyOk: !!u.resetRequest.keyOk, hadKey: !!u.resetRequest.hadKey, status: u.resetRequest.status,
+      klasse: s.klasse || 0, tier: s.tier || 0, score: s.score || 0, rounds: s.roundsPlayed || 0, coins: s.coins || 0,
+      chessElo: ch.elo || ch.rating || null, createdAt: u.createdAt || null };
+  }).sort((a, b) => b.at - a.at);
+  return { ok: true, list };
+}
+async function adminResetDecide(key, ip, username, action, newPassword, lang) {
+  if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const u = findUserByName(username);
+  if (!u || !u.resetRequest) return { ok: false, error: "Anfrage nicht gefunden." };
+  if (action === "approve") { u.resetRequest.status = "approved"; u.resetRequest.approvedAt = Date.now(); }
+  else if (action === "deny" || action === "delete") delete u.resetRequest;
+  else return { ok: false, error: "Aktion unbekannt." };
+  await saveUsers();
+  return { ok: true };
+}
 async function adminResetAll(confirm, lang) {
   if (confirm !== "RESET") return errObj("invalidInput", lang);
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
@@ -4348,6 +4454,12 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
         else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES), resetEpoch: rm.epoch }; }
+        else if (req.url === "/api/recovery-status") result = await recoveryKeyStatus(payload.token);
+        else if (req.url === "/api/recovery-key") result = await recoveryKeyCreate(payload.token, payload.password, lang);
+        else if (req.url === "/api/forgot-request") result = await forgotRequest(payload.username, payload.key, payload.note, ip, lang);
+        else if (req.url === "/api/forgot-complete") result = await forgotComplete(payload.username, payload.key, payload.newPassword, ip, lang);
+        else if (req.url === "/api/admin-reset-list") result = adminResetList(payload.adminKey, ip);
+        else if (req.url === "/api/admin-reset-decide") result = await adminResetDecide(payload.adminKey, ip, payload.username, payload.action, payload.newPassword, lang);
         else if (req.url === "/api/admin-set-password") { result = adminOk(payload.adminKey, ip) ? await adminSetPassword(payload.username, payload.newPassword, lang) : { ok: false, error: lang === "en" ? "Wrong admin key." : "Admin-Key falsch." }; }
         else if (req.url === "/api/admin-reset-all") { result = adminOk(payload.adminKey, ip) ? await adminResetAll(payload.confirm, lang) : errObj("invalidInput", lang); }
         else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
