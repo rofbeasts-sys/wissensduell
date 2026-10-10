@@ -4193,12 +4193,17 @@ async function shopCreateCheckout(token, packageId, origin, lang) {
     // Stripe "Managed Payments" verlangt je Produkt einen Steuercode (tax_code).
     // Wir verkaufen selbst und rechnen ohne Managed Payments ab - daher fuer
     // diese Sitzung ausschalten (Stripe nennt genau diesen Parameter in der Fehlermeldung).
-    "managed_payments[enabled]": "false"
+    "managed_payments[enabled]": "false",
+    "custom_text[submit][message]": "Mit dem Kauf verlangst du die sofortige Bereitstellung der Münzen und bestätigst, dass du dadurch dein Widerrufsrecht verlierst (§ 356 Abs. 5 BGB)."
   };
   let resp;
   try {
     resp = await stripeApiRequest("/v1/checkout/sessions", params);
     // Falls die API-Version den Parameter nicht kennt: ohne ihn erneut versuchen.
+    if (resp.status === 400 && resp.json && resp.json.error && /custom_text/i.test(resp.json.error.param || resp.json.error.message || "")) {
+      delete params["custom_text[submit][message]"];
+      resp = await stripeApiRequest("/v1/checkout/sessions", params);
+    }
     if (resp.status === 400 && resp.json && resp.json.error && /managed_payments/i.test(resp.json.error.param || "") && /unknown|unrecognized/i.test(resp.json.error.message || "")) {
       delete params["managed_payments[enabled]"];
       resp = await stripeApiRequest("/v1/checkout/sessions", params);
