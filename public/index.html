@@ -290,6 +290,31 @@
   .shop-item-head .icon{ font-size:28px; flex-shrink:0; }
   .shop-item-title{ font-weight:800; font-size:15px; }
   .shop-item-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+
+  /* Shop im Chess-World-Look */
+  .bs-wrap{ max-width:520px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
+  .bs-head{ text-align:center; padding:6px 0 2px; }
+  .bs-title{ font-weight:900; letter-spacing:4px; font-size:20px; background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .bs-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .bs-bal{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .bs-bal > div{ padding:10px 6px; border-radius:12px; text-align:center; background:linear-gradient(135deg,color-mix(in srgb,var(--c) 18%,transparent),#1a0f3a); border:1px solid color-mix(in srgb,var(--c) 55%,transparent); }
+  .bs-bal small{ display:block; font-size:9px; letter-spacing:1px; color:var(--c); font-weight:800; }
+  .bs-bal b{ font-size:20px; font-weight:900; color:#fff; }
+  .bs-link{ width:100%; padding:12px; border-radius:12px; border:1px solid #bb55ff; background:linear-gradient(135deg,#3a1b5a,#1a0f3a); color:#e3b8ff; font-weight:800; letter-spacing:1px; font-size:13px; cursor:pointer; box-shadow:0 0 18px #bb55ff33; }
+  .bs-link:disabled{ opacity:.45; cursor:default; box-shadow:none; }
+  .bs-sec{ text-align:center; font-size:11px; letter-spacing:2px; font-weight:800; color:#7be0ff; text-shadow:0 0 8px #7be0ff66; margin:6px 0 -2px; text-transform:uppercase; }
+  .bs-packs{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .bs-pack{ border:1px solid #ffd45a77; border-radius:12px; padding:12px 4px 8px; text-align:center; background:linear-gradient(180deg,#ffd45a1f,#1a0f3a); color:#fff; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:6px; box-shadow:0 0 16px #ffd45a22; }
+  .bs-pack:active{ transform:scale(.96); }
+  .bs-pack .c{ font-size:18px; font-weight:900; color:#ffd45a; }
+  .bs-pack .p{ width:100%; font-size:12px; font-weight:800; padding:5px 0; border-radius:6px; background:#2a1a3a; border:1px solid #ffd45a88; color:#ffd45a; }
+  .bs-card{ display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; background:linear-gradient(180deg,color-mix(in srgb,var(--c) 14%,#1a0f3a),#12082a); border:1px solid color-mix(in srgb,var(--c) 60%,transparent); box-shadow:0 0 18px color-mix(in srgb,var(--c) 22%,transparent); }
+  .bs-card .ic{ font-size:34px; flex-shrink:0; }
+  .bs-card .nm{ font-weight:800; font-size:15px; color:var(--c); }
+  .bs-card .ds{ font-size:12px; color:#cbbff0; margin-top:2px; }
+  .bs-card .info{ flex:1; min-width:0; }
+  .bs-buy{ padding:9px 12px; border-radius:10px; border:1px solid var(--c); background:transparent; color:var(--c); font-weight:900; font-size:12px; letter-spacing:.5px; cursor:pointer; white-space:nowrap; }
+  .bs-buy:disabled{ border-color:#3a2a6a; color:#7a6ca8; cursor:default; }
   .shop-packages{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:8px; }
   .shop-package-btn{ background:var(--bg-alt); border:1.5px solid var(--warn); border-radius:12px; padding:12px 6px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; color:inherit; font-family:inherit; }
   .shop-package-btn:active{ transform:scale(.96); }
@@ -3356,7 +3381,7 @@ function renderAdminPill(){
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
   p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + (on ? '#ff5d8f' : '#38bdf8') + ';color:#fff;box-shadow:0 4px 18px #0008';
-  p.innerHTML = '<span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
+  p.innerHTML = '<span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
 }
 async function toggleAdminView(){
   try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
@@ -3419,7 +3444,7 @@ async function restoreAccountSession(){
 
 function accountIndicatorHtml(){
   if(account){
-    return `<div class="account-bar">${account.profile.avatar ? avatarHtml(account.profile.avatar, 20) : "👤"} ${esc(account.profile.username)} · <button class="account-link" onclick="startFriendsFlow()">👥 ${L('Freunde','Friends')}</button> · <button class="account-link" onclick="logoutAccount()">${L('Abmelden','Log out')}</button></div>`;
+    return `<div class="account-bar">${account.profile.avatar ? avatarHtml(account.profile.avatar, 20) : "👤"} ${esc(account.profile.username)} · <button class="account-link" onclick="startFriendsFlow()">👥 ${L('Freunde','Friends')}</button> · <button class="account-link" onclick="openRecoveryKey()">🔑 ${L('Schlüssel','Key')}</button> · <button class="account-link" onclick="logoutAccount()">${L('Abmelden','Log out')}</button></div>`;
   }
   return `<div class="account-bar"><button class="account-link" onclick="renderAccountAuth('login')">${L('Anmelden','Log in')}</button></div>`;
 }
@@ -3450,36 +3475,111 @@ function renderForgotPassword(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${L('PASSWORT VERGESSEN','FORGOT PASSWORD')}</div>
-      <div class="picker-sub">${L('Passwörter werden nur verschlüsselt gespeichert – sie lassen sich nicht anzeigen. Es gibt keine E-Mail im Konto, deshalb setzt der Admin dir ein neues Passwort. Schreib ihm deinen Benutzernamen.','Passwords are stored encrypted only – they cannot be shown. Accounts have no email, so the admin sets a new password for you. Send him your username.')}</div>
-      <div class="menu-section-title" style="margin-top:14px;">${L('Ich bin der Admin','I am the admin')}</div>
-      <div class="picker-form" style="flex-direction:column; gap:10px;">
-        <input id="fpKey" type="password" placeholder="Admin-Key" autocomplete="off" value="${esc(adminKeyStored())}">
-        <input id="fpUser" type="text" placeholder="${L('Benutzername des Kontos','Account username')}" maxlength="40" autocomplete="off">
-        <input id="fpPass" type="text" placeholder="${L('Neues Passwort (mind. 6 Zeichen)','New password (min. 6 chars)')}" maxlength="60" autocomplete="off">
+      <div class="picker-sub">${L('Gib deinen Namen und deinen persönlichen Schlüssel ein (den du in deinem Konto unter „🔑 Schlüssel“ bekommen hast). Der Admin bekommt deine Anfrage, prüft sie und gibt sie frei. Danach setzt du hier selbst dein neues Passwort.','Enter your name and your personal key (from "🔑 Key" in your account). The admin receives your request, checks it and approves it. Then you set your new password here yourself.')}</div>
+      <div class="picker-form" style="flex-direction:column; gap:10px; margin-top:12px;">
+        <input id="fpUser" type="text" placeholder="${L('Dein Benutzername','Your username')}" maxlength="40" autocomplete="off">
+        <input id="fpKey" type="text" placeholder="${L('Dein Schlüssel (XXXX-XXXX-XXXX)','Your key (XXXX-XXXX-XXXX)')}" maxlength="20" autocomplete="off" style="text-transform:uppercase">
+        <input id="fpNote" type="text" placeholder="${L('Nachricht an den Admin (optional)','Message to the admin (optional)')}" maxlength="150" autocomplete="off">
       </div>
       <div id="fpMsg" class="explanation hidden" style="margin-top:10px;"></div>
       <div class="actions-row" style="margin-top:12px;">
-        <button class="btn btn-ghost" onclick="submitForgotPassword(false)">${L('Konto prüfen','Check account')}</button>
-        <button class="btn btn-primary" onclick="submitForgotPassword(true)">${L('Passwort setzen','Set password')}</button>
+        <button class="btn btn-primary" onclick="submitForgotRequest()">${L('📨 Anfrage senden','📨 Send request')}</button>
+      </div>
+      <div class="menu-section-title" style="margin-top:18px;">${L('Schon freigegeben?','Already approved?')}</div>
+      <div class="picker-form" style="flex-direction:column; gap:10px;">
+        <input id="fpPass" type="text" placeholder="${L('Neues Passwort (mind. 6 Zeichen)','New password (min. 6 chars)')}" maxlength="60" autocomplete="off">
+      </div>
+      <div class="actions-row" style="margin-top:12px;">
+        <button class="btn btn-ghost" onclick="submitForgotComplete()">${L('Neues Passwort setzen','Set new password')}</button>
       </div>
       <div class="actions-row" style="margin-top:10px;"><button class="btn btn-ghost" onclick="renderAccountAuth('login')">${t('btn_back')}</button></div>
     </div>
   `);
 }
-async function submitForgotPassword(set){
-  const key = document.getElementById('fpKey').value.trim(), username = document.getElementById('fpUser').value.trim(), pw = document.getElementById('fpPass').value;
-  const box = document.getElementById('fpMsg'); box.classList.remove('hidden'); box.style.borderColor = 'var(--danger)';
-  box.textContent = '…';
-  let r;
-  try{ const res = await fetch('/api/admin-set-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ adminKey:key, username, newPassword: set ? pw : '', lang: currentLang }) }); r = await res.json(); }catch(e){ r = { ok:false, error: L('Verbindung fehlgeschlagen.','Connection failed.') }; }
-  if(r.ok){
-    box.style.borderColor = 'var(--accent)';
-    box.textContent = r.changed ? L('✅ Neues Passwort für „' + r.username + '" gesetzt. Jetzt damit anmelden.','✅ New password set for "' + r.username + '". Log in with it now.') : L('✔ Konto „' + r.username + '" existiert.','✔ Account "' + r.username + '" exists.');
-  } else {
-    let t = r.error || L('Fehlgeschlagen.','Failed.');
-    if(r.exists === false) t += ' ' + L('(Konten gesamt: ' + r.total + ')','(accounts total: ' + r.total + ')') + (r.similar && r.similar.length ? ' ' + L('Ähnliche Namen: ','Similar names: ') + r.similar.join(', ') : '');
-    box.textContent = t;
-  }
+function fpShow(text, ok){ const b = document.getElementById('fpMsg'); b.classList.remove('hidden'); b.style.borderColor = ok ? 'var(--accent)' : 'var(--danger)'; b.textContent = text; }
+async function submitForgotRequest(){
+  const username = document.getElementById('fpUser').value.trim(), key = document.getElementById('fpKey').value.trim(), note = document.getElementById('fpNote').value.trim();
+  if(!username){ fpShow(L('Bitte Benutzernamen eingeben.','Please enter your username.'), false); return; }
+  fpShow('…', true);
+  const r = await apiCall('/api/forgot-request', { username, key, note });
+  if(r && r.ok){
+    fpShow(r.status === 'approved' ? L('✅ Schon freigegeben! Gib unten dein neues Passwort ein.','✅ Already approved! Enter your new password below.') : L('📨 Anfrage ist beim Admin. Schau später wieder hier vorbei und setze dann unten dein neues Passwort.','📨 Request sent to the admin. Come back later and set your new password below.'), true);
+  } else fpShow((r && r.error) || L('Fehlgeschlagen.','Failed.'), false);
+}
+async function submitForgotComplete(){
+  const username = document.getElementById('fpUser').value.trim(), key = document.getElementById('fpKey').value.trim(), pw = document.getElementById('fpPass').value;
+  if(!username || !key || !pw){ fpShow(L('Name, Schlüssel und neues Passwort eingeben.','Enter name, key and new password.'), false); return; }
+  fpShow('…', true);
+  const r = await apiCall('/api/forgot-complete', { username, key, newPassword: pw });
+  if(r && r.ok) fpShow(L('✅ Neues Passwort gesetzt. Jetzt damit anmelden.','✅ New password set. Log in with it now.'), true);
+  else fpShow((r && r.error) || L('Fehlgeschlagen.','Failed.'), false);
+}
+
+/* ---- Wiederherstellungs-Schlüssel (im Konto) ---- */
+async function openRecoveryKey(){
+  if(!account || document.getElementById('rkBox')) return;
+  const st = await apiCall('/api/recovery-status', { token: account.token });
+  const d = document.createElement('div'); d.id = 'rkBox';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100003;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px';
+  d.innerHTML = `<div style="background:#101a2b;border:2px solid #3de0ff;border-radius:16px;padding:18px;max-width:360px;width:100%;color:#fff;font-family:system-ui,sans-serif">
+    <div style="font-weight:900;font-size:17px;margin-bottom:8px">🔑 ${L('DEIN SCHLÜSSEL','YOUR KEY')}</div>
+    <div style="font-size:13px;line-height:1.5;color:#cfe;margin-bottom:10px">${L('Falls du dein Passwort vergisst, brauchst du diesen persönlichen Schlüssel, um dich beim Admin zu verifizieren. Er wird dir nur EINMAL angezeigt – speichere ihn (Screenshot / Notiz). Ein neuer Schlüssel ersetzt den alten.','If you forget your password you need this personal key to verify yourself to the admin. It is shown only ONCE – save it (screenshot / note). A new key replaces the old one.')}</div>
+    <div id="rkOut" style="display:none;text-align:center;font-size:26px;font-weight:900;letter-spacing:2px;background:#08121f;border:1px dashed #3de0ff;border-radius:10px;padding:12px;margin-bottom:10px;user-select:all"></div>
+    <div id="rkForm">
+      <div style="font-size:12px;margin-bottom:6px">${st && st.has ? L('Du hast schon einen Schlüssel. Neuen erzeugen? Passwort zur Bestätigung:','You already have a key. Create a new one? Confirm with your password:') : L('Du hast noch keinen Schlüssel. Zum Erzeugen Passwort bestätigen:','You have no key yet. Confirm your password to create one:')}</div>
+      <input id="rkPw" type="password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #3de0ff;background:#08121f;color:#fff;font-size:16px">
+    </div>
+    <div id="rkMsg" style="min-height:18px;font-size:12px;margin:8px 0;color:#ffd45a"></div>
+    <div style="display:flex;gap:8px"><button id="rkGo" style="flex:1;padding:10px;border-radius:10px;border:0;background:#3de0ff;color:#08110c;font-weight:900">${L('Schlüssel erzeugen','Create key')}</button><button id="rkNo" style="padding:10px 14px;border-radius:10px;border:1px solid #3de0ff;background:transparent;color:#fff">${L('Schließen','Close')}</button></div>
+  </div>`;
+  document.body.appendChild(d);
+  d.querySelector('#rkNo').onclick = () => d.remove();
+  d.querySelector('#rkGo').onclick = async () => {
+    const msg = d.querySelector('#rkMsg'); msg.style.color = '#ffd45a'; msg.textContent = '…';
+    const r = await apiCall('/api/recovery-key', { token: account.token, password: d.querySelector('#rkPw').value });
+    if(r && r.ok){
+      d.querySelector('#rkOut').style.display = 'block'; d.querySelector('#rkOut').textContent = r.key;
+      d.querySelector('#rkForm').style.display = 'none'; d.querySelector('#rkGo').style.display = 'none';
+      msg.style.color = '#8dff9d'; msg.textContent = L('Jetzt speichern! Er wird nicht noch einmal angezeigt.','Save it now! It will not be shown again.');
+    } else { msg.style.color = '#ff8aa0'; msg.textContent = (r && r.error) || L('Fehlgeschlagen.','Failed.'); }
+  };
+}
+
+/* ---- Admin: Posteingang "Passwort vergessen" ---- */
+async function openAdminInbox(){
+  if(!adminKeyStored() || document.getElementById('adminInbox')) return;
+  const d = document.createElement('div'); d.id = 'adminInbox';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100002;background:#000c;display:flex;align-items:center;justify-content:center;padding:14px';
+  d.innerHTML = `<div style="background:#101a2b;border:2px solid #3de0ff;border-radius:16px;padding:16px;max-width:420px;width:100%;max-height:88vh;overflow:auto;color:#fff;font-family:system-ui,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="font-weight:900;font-size:17px">📬 ${L('PASSWORT-ANFRAGEN','PASSWORD REQUESTS')}</div><button id="aiX" style="border:0;background:transparent;color:#fff;font-size:20px">✕</button></div>
+    <div id="aiList" style="font-size:13px">…</div></div>`;
+  document.body.appendChild(d);
+  d.querySelector('#aiX').onclick = () => d.remove();
+  const load = async () => {
+    const r = await fetch('/api/admin-reset-list', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ adminKey: adminKeyStored() }) }).then(x => x.json()).catch(() => null);
+    const box = d.querySelector('#aiList');
+    if(!r || !r.ok){ box.textContent = (r && r.error) || L('Fehlgeschlagen.','Failed.'); return; }
+    if(!r.list.length){ box.textContent = L('Keine offenen Anfragen.','No open requests.'); return; }
+    box.innerHTML = r.list.map(q => {
+      const when = new Date(q.at).toLocaleString(currentLang === 'en' ? 'en-GB' : 'de-DE');
+      const badge = q.keyOk ? `<span style="color:#8dff9d;font-weight:800">✅ ${L('Schlüssel stimmt','Key matches')}</span>` : (q.hadKey ? `<span style="color:#ff8aa0;font-weight:800">❌ ${L('Schlüssel falsch/fehlt','Key wrong/missing')}</span>` : `<span style="color:#ffd45a;font-weight:800">⚠️ ${L('Konto hat keinen Schlüssel','Account has no key')}</span>`);
+      return `<div style="border:1px solid #2c4a6e;border-radius:12px;padding:10px;margin-bottom:10px;background:#0b1424">
+        <div style="font-weight:900;font-size:15px">${esc(q.username)} <span style="font-weight:400;opacity:.6;font-size:11px">${when}</span></div>
+        <div style="margin:4px 0">${badge} · ${q.status === 'approved' ? '🟢 ' + L('freigegeben','approved') : '🟡 ' + L('offen','pending')}</div>
+        <div style="opacity:.85">${klasseName(q.klasse)} · ${L('Rang','Rank')} ${q.tier} · ${q.score} ${L('Pkt','pts')} · ${q.rounds} ${L('Runden','rounds')}${q.chessElo ? ' · ♟ Elo ' + q.chessElo : ''} · 🪙 ${q.coins}</div>
+        ${q.note ? `<div style="margin-top:4px;font-style:italic">„${esc(q.note)}“</div>` : ''}
+        <div style="display:flex;gap:6px;margin-top:8px">
+          ${q.status === 'approved' ? '' : `<button data-a="approve" data-u="${esc(q.username)}" style="flex:1;padding:8px;border-radius:8px;border:0;background:#3de0ff;color:#08110c;font-weight:900">${L('Freigeben','Approve')}</button>`}
+          <button data-a="deny" data-u="${esc(q.username)}" style="flex:1;padding:8px;border-radius:8px;border:1px solid #ff3b5c;background:transparent;color:#ff8aa0;font-weight:800">${L('Ablehnen','Reject')}</button>
+        </div></div>`;
+    }).join('');
+    box.querySelectorAll('button[data-a]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      await fetch('/api/admin-reset-decide', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ adminKey: adminKeyStored(), username: b.dataset.u, action: b.dataset.a }) });
+      load();
+    });
+  };
+  load();
 }
 
 async function submitAccountAuth(mode){
@@ -5088,81 +5188,67 @@ function renderShopScreen(){
   const msHearts = profile.speedMathHearts||0;
   const msFull = msHearts >= SPEEDMATH_DAILY_HEARTS;
   const msAfford = (profile.coins||0) >= MILESTONE_HEART_COST;
+  const arenaFull = !!(shopArenaInfo && shopArenaInfo.hearts>=shopArenaInfo.maxHearts);
+  const arenaAfford = (profile.coins||0)>=ARENA_HEART_COST_CLIENT;
+  const fantasyOn = !featureLocked('chess_fantasy');
   renderApp(`
     <div class="panel">
-      <div class="picker-title">🪙 SHOP</div>
-      <div class="picker-sub">${esc(profile.name)} – ${L('aktueller Münzstand','current coin balance')}</div>
-      <div class="shop-balance">🪙 ${profile.coins||0}</div>
+     <div class="bs-wrap">
+      <div class="bs-head">
+        <div class="bs-title">BRAIN PULSE SHOP</div>
+        <div class="bs-sub">${esc(profile.name)}</div>
+      </div>
+      <div class="bs-bal">
+        <div style="--c:#ffd45a"><small>${L('MÜNZEN','COINS')}</small><b>🪙 ${profile.coins||0}</b></div>
+        <div style="--c:#7be0ff"><small>${L('SPEED-MATH','SPEED MATH')}</small><b>❤️ ${msHearts}/${SPEEDMATH_DAILY_HEARTS}</b></div>
+        <div style="--c:#bb55ff"><small>ARENA</small><b>${shopArenaInfo ? '❤️ ' + shopArenaInfo.hearts + '/' + shopArenaInfo.maxHearts : '–'}</b></div>
+      </div>
+      <button class="bs-link" ${fantasyOn ? 'onclick="openChessWorldShop()"' : 'disabled'}>♞ ${L('ZUM CHESS-SHOP','TO THE CHESS SHOP')}${fantasyOn ? '' : ' · Coming soon'}</button>
+
       <p style="color:var(--text-dim); font-size:12px; text-align:center; margin-top:-6px;">${L(`Münzen verdienst du durch neu freigeschaltete Erfolge (+${ACHV_COIN_REWARD}) und bestandene Haupttests (+${HAUPTTEST_COIN_REWARD}).`,`You earn coins from newly unlocked achievements (+${ACHV_COIN_REWARD}) and passed main tests (+${HAUPTTEST_COIN_REWARD}).`)}</p>
 
       ${noticeToShow === "success" ? `<div class="rank-up-banner" style="background:rgba(198,255,61,.15); border-color:var(--accent); color:var(--accent);">✓ ${L(`Zahlung erfolgreich! Deine Münzen sind gutgeschrieben (falls sie hier noch nicht auftauchen: kurz warten und die Seite neu laden).`,`Payment successful! Your coins have been credited (if they don't show up yet: wait a moment and reload the page).`)}</div>` : ``}
+
       ${noticeToShow === "cancel" ? `<div class="rank-up-banner" style="opacity:.8;">Kauf abgebrochen – es wurde nichts abgebucht.</div>` : ``}
 
+      <div class="bs-sec">${L('Münzen kaufen','Buy coins')}</div>
       ${profile.isAccount ? `
-      <div class="picker-sub" style="margin:18px 0 4px;">${L('Münzen kaufen (echtes Geld):','Buy coins (real money):')}</div>
-      ${shopPackages.length ? `
-        <div class="shop-packages">
-          ${shopPackages.map(pkg => `
-            <button class="shop-package-btn" onclick="shopBuyCoins('${pkg.id}')">
-              <span class="coins">🪙 ${pkg.coins}</span>
-              <span class="price">${(pkg.priceCents/100).toFixed(2).replace('.',',')} €</span>
-            </button>
-          `).join("")}
-        </div>
-        <p style="color:var(--text-dim); font-size:11px; text-align:center; margin-top:6px;">${L('Zahlung läuft über Stripe. Du wirst dafür kurz weitergeleitet.','Payment is handled by Stripe. You will be redirected briefly.')}</p>
-      ` : `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Münzen-Kauf ist gerade nicht verfügbar.','Coin purchases are currently unavailable.')}</p>`}
-      ` : `
-      <div class="picker-sub" style="margin:18px 0 4px;">${L('Münzen kaufen','Buy coins')}</div>
-      <p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto (Anmelden im Hauptmenü).','You need an account for this (log in on the main menu).')}</p>
-      `}
-
-      <div class="shop-item">
-        <div class="shop-item-head">
-          <span class="icon">🧮</span>
-          <div>
-            <div class="shop-item-title">${L('Speed-Math-Meilenstein-Herz','Speed Math milestone heart')}</div>
-            <div class="shop-item-sub">${msHearts} / ${SPEEDMATH_DAILY_HEARTS} ${L('Herzen heute','hearts today')}</div>
+        ${shopPackages.length ? `
+          <div class="bs-packs">
+            ${shopPackages.map(pkg => `
+              <button class="bs-pack" onclick="shopBuyCoins('${pkg.id}')">
+                <span class="c">🪙 ${pkg.coins}</span>
+                <span class="p">${(pkg.priceCents/100).toFixed(2).replace('.',',')} €</span>
+              </button>
+            `).join("")}
           </div>
-        </div>
-        <button class="btn ${msFull||!msAfford?'btn-ghost':'btn-primary'}" ${msFull||!msAfford?'disabled':''} onclick="shopBuyMilestoneHeart()">
-          ${msFull ? L('Bereits volle Herzen','Hearts already full') : `🪙 ${MILESTONE_HEART_COST} – ${L('Herz auffüllen','refill heart')}`}
-        </button>
+          <p style="color:var(--text-dim); font-size:11px; text-align:center; margin-top:-4px;">${L('Zahlung läuft über Stripe. Du wirst dafür kurz weitergeleitet.','Payment is handled by Stripe. You will be redirected briefly.')}</p>
+        ` : `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Münzen-Kauf ist gerade nicht verfügbar.','Coin purchases are currently unavailable.')}</p>`}
+      ` : `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto (Anmelden im Hauptmenü).','You need an account for this (log in on the main menu).')}</p>`}
+
+      <div class="bs-sec">${L('Herzen','Hearts')}</div>
+      <div class="bs-card" style="--c:#7be0ff">
+        <span class="ic">🧮</span>
+        <div class="info"><div class="nm">${L('Speed-Math-Herz','Speed Math heart')}</div><div class="ds">${msHearts} / ${SPEEDMATH_DAILY_HEARTS} ${L('Herzen heute','hearts today')}</div></div>
+        <button class="bs-buy" ${msFull||!msAfford?'disabled':''} onclick="shopBuyMilestoneHeart()">${msFull ? '✓ ' + L('Voll','Full') : `🪙 ${MILESTONE_HEART_COST}`}</button>
+      </div>
+      <div class="bs-card" style="--c:#bb55ff; ${profile.isAccount ? '' : 'opacity:.55'}">
+        <span class="ic">🏆</span>
+        <div class="info"><div class="nm">${L('Arena-Herz','Arena heart')}</div><div class="ds">${profile.isAccount ? `${shopArenaInfo ? shopArenaInfo.hearts : '…'} / ${shopArenaInfo ? shopArenaInfo.maxHearts : '…'} ${L('Herzen heute','hearts today')}` : L('Dafür brauchst du ein Konto.','You need an account for this.')}</div></div>
+        ${profile.isAccount ? `<button class="bs-buy" ${!shopArenaInfo || arenaFull || !arenaAfford ? 'disabled' : ''} onclick="shopBuyArenaHeart()">${arenaFull ? '✓ ' + L('Voll','Full') : `🪙 ${ARENA_HEART_COST_CLIENT}`}</button>` : ''}
       </div>
 
-      ${profile.isAccount ? `
-        <div class="shop-item">
-          <div class="shop-item-head">
-            <span class="icon">🏆</span>
-            <div>
-              <div class="shop-item-title">${L('Arena-Herz','Arena heart')}</div>
-              <div class="shop-item-sub">${shopArenaInfo ? shopArenaInfo.hearts : '…'} / ${shopArenaInfo ? shopArenaInfo.maxHearts : '…'} ${L('Herzen heute','hearts today')}</div>
-            </div>
-          </div>
-          <button class="btn ${(shopArenaInfo && shopArenaInfo.hearts>=shopArenaInfo.maxHearts)||!((profile.coins||0)>=ARENA_HEART_COST_CLIENT)?'btn-ghost':'btn-primary'}"
-            ${!shopArenaInfo || (shopArenaInfo.hearts>=shopArenaInfo.maxHearts) || !((profile.coins||0)>=ARENA_HEART_COST_CLIENT) ? 'disabled' : ''}
-            onclick="shopBuyArenaHeart()">
-            ${shopArenaInfo && shopArenaInfo.hearts>=shopArenaInfo.maxHearts ? L('Bereits volle Herzen','Hearts already full') : `🪙 ${ARENA_HEART_COST_CLIENT} – ${L('Herz auffüllen','refill heart')}`}
-          </button>
-        </div>
-      ` : `
-        <div class="shop-item" style="opacity:.6;">
-          <div class="shop-item-head">
-            <span class="icon">🏆</span>
-            <div>
-              <div class="shop-item-title">${L('Arena-Herz','Arena heart')}</div>
-              <div class="shop-item-sub">${L('Dafür brauchst du ein Konto (Arena läuft kontobasiert).','You need an account for this (Arena is account-based).')}</div>
-            </div>
-          </div>
-        </div>
-      `}
-
-      <div id="shopFeedback" class="explanation hidden" style="margin-top:14px;"></div>
-
-      <div class="actions-row" style="margin-top:18px;">
+      <div id="shopFeedback" class="explanation hidden"></div>
+      <div class="actions-row" style="margin-top:6px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
       </div>
+     </div>
     </div>
   `);
+}
+function openChessWorldShop(){
+  if(featureLocked('chess_fantasy')) return;
+  renderChessFrame('/chess-world/index.html#shop');
 }
 function shopFeedback(msg, isError){
   const el = document.getElementById("shopFeedback");
