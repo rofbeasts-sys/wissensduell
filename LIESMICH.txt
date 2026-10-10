@@ -1,7 +1,0 @@
-BRAIN PULSE UPDATE
-1. server.js -> bei GitHub in den HAUPTORDNER hochladen (ersetzt die alte)
-2. public/index.html -> bei GitHub in den Ordner "public" hochladen (ersetzt die alte)
-3. Unten "Commit changes" tippen (gruener Knopf)!
-4. Render: Events -> Deploy abwarten (oder Manual Deploy -> Deploy latest commit)
-Keine Einstellung in Render noetig.
-Der Ordner NICHT-HOCHLADEN enthaelt nur die alten englischen Fragen als Reserve. Nicht bei GitHub hochladen.
