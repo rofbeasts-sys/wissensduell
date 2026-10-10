@@ -3670,8 +3670,9 @@ function q(s){return document.querySelector(s);}
 document.addEventListener('DOMContentLoaded',function(){
   load();initStarters();cwRefreshKeys().then(function(){try{renderShopScreen();}catch(e){}return cwLoadInv();});
   setTimeout(function(){
-    showScreen('play');
-    navSet(0);
+    var toShop=false;try{toShop=/(^|[#&])shop($|&)/.test(location.hash);}catch(e){}
+    if(toShop){showScreen('shop');navSet(3);}
+    else{showScreen('play');navSet(0);}
   },50);
   setTimeout(renderQuestBadge,200);
 });
