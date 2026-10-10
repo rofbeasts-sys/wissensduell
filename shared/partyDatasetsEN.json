@@ -318,6 +318,116 @@
     "russisch": "🗣️ Russian",
     "deutsch_sprache": "🗣️ German"
    }
+  },
+  "tiere_geschwindigkeit": {
+   "label": "Drag and Drop: Animals (top speed)",
+   "unit": "km/h",
+   "names": {
+    "wanderfalke": "🦅 Peregrine falcon (dive)",
+    "gepard": "🐆 Cheetah",
+    "gabelbock": "🦌 Pronghorn",
+    "loewe": "🦁 Lion",
+    "hase": "🐇 Hare",
+    "windhund": "🐕 Greyhound",
+    "zebra": "🦓 Zebra",
+    "strauss": "🐦 Ostrich",
+    "giraffe": "🦒 Giraffe",
+    "katze": "🐈 House cat",
+    "mensch": "🏃 Human (Usain Bolt)",
+    "elefant": "🐘 Elephant",
+    "nilpferd": "🦛 Hippo",
+    "schwein": "🐖 Pig",
+    "schildkroete": "🐢 Tortoise",
+    "schnecke": "🐌 Garden snail"
+   }
+  },
+  "tiere_gewicht": {
+   "label": "Drag and Drop: Animals (weight)",
+   "unit": "kg",
+   "names": {
+    "blauwal": "🐋 Blue whale",
+    "elefant": "🐘 Elephant",
+    "nashorn": "🦏 Rhino",
+    "nilpferd": "🦛 Hippo",
+    "giraffe": "🦒 Giraffe",
+    "eisbaer": "🐻‍❄️ Polar bear",
+    "braunbaer": "🐻 Brown bear",
+    "tiger": "🐅 Tiger",
+    "loewe": "🦁 Lion",
+    "gorilla": "🦍 Gorilla",
+    "mensch": "🧍 Human",
+    "wolf": "🐺 Wolf",
+    "kaiserpinguin": "🐧 Emperor penguin",
+    "labrador": "🐕 Labrador",
+    "katze": "🐈 House cat",
+    "huhn": "🐔 Chicken",
+    "kaninchen": "🐇 Rabbit",
+    "hamster": "🐹 Hamster",
+    "maus": "🐭 House mouse",
+    "kolibri": "🐦 Hummingbird"
+   }
+  },
+  "planeten_monde": {
+   "label": "Drag and Drop: Planets (number of moons, as of 2025)",
+   "unit": "Moons (approx.)",
+   "names": {
+    "saturn": "🪐 Saturn",
+    "jupiter": "🟠 Jupiter",
+    "uranus": "🔷 Uranus",
+    "neptun": "🔵 Neptune",
+    "pluto": "⚪ Pluto (dwarf planet)",
+    "mars": "🔴 Mars",
+    "erde": "🌍 Earth",
+    "merkur": "☿️ Mercury"
+   }
+  },
+  "smartphones_preis": {
+   "label": "Drag and Drop: Smartphones (launch price)",
+   "unit": "US dollars (approx.)",
+   "names": {
+    "zfold7": "📱 Galaxy Z Fold7",
+    "zfold6": "📱 Galaxy Z Fold6",
+    "pixel9fold": "📱 Pixel 9 Pro Fold",
+    "s24ultra": "📱 Galaxy S24 Ultra",
+    "i16promax": "📱 iPhone 16 Pro Max",
+    "pixel9proxl": "📱 Pixel 9 Pro XL",
+    "i16pro": "📱 iPhone 16 Pro",
+    "pixel9": "📱 Pixel 9",
+    "i16e": "📱 iPhone 16e",
+    "ise": "📱 iPhone SE (2022)"
+   }
+  },
+  "social_gruendung": {
+   "label": "Drag and Drop: Social networks (year founded)",
+   "unit": "Year",
+   "names": {
+    "linkedin": "💼 LinkedIn",
+    "facebook": "👤 Facebook",
+    "youtube": "▶️ YouTube",
+    "twitter": "🐦 Twitter / X",
+    "whatsapp": "💬 WhatsApp",
+    "instagram": "📷 Instagram",
+    "snapchat": "👻 Snapchat",
+    "telegram": "✈️ Telegram",
+    "discord": "🎮 Discord",
+    "tiktok": "🎵 TikTok",
+    "bereal": "📸 BeReal",
+    "threads": "🧵 Threads"
+   }
+  },
+  "rekorde_leichtathletik": {
+   "label": "Drag and Drop: Athletics world records (distance/height, men)",
+   "unit": "Metres",
+   "names": {
+    "speer": "🎯 Javelin throw",
+    "hammer": "🔨 Hammer throw",
+    "diskus": "🥏 Discus throw",
+    "kugel": "⚫ Shot put",
+    "dreisprung": "🦘 Triple jump",
+    "weitsprung": "🏃 Long jump",
+    "stabhoch": "🤸 Pole vault",
+    "hochsprung": "⬆️ High jump"
+   }
   }
  },
  "higherLower": {
@@ -529,6 +639,58 @@
     "blauwal_leben": "🐋 Blue whale",
     "groenlandhai_leben": "🦈 Greenland shark"
    }
+  },
+  "imdb_filme": {
+   "label": "Higher or Lower: Films (IMDb rating)",
+   "unit": "IMDb points",
+   "names": {
+    "verurteilten": "🎬 The Shawshank Redemption",
+    "pate": "🎬 The Godfather",
+    "darkknight": "🦇 The Dark Knight",
+    "pulpfiction": "🎬 Pulp Fiction",
+    "inception": "🌀 Inception",
+    "interstellar": "🚀 Interstellar",
+    "lebenschoen": "🎬 Life Is Beautiful",
+    "gladiator": "⚔️ Gladiator",
+    "endgame": "🦸 Avengers: Endgame",
+    "oppenheimer": "💥 Oppenheimer",
+    "nemo": "🐠 Finding Nemo",
+    "rocky": "🥊 Rocky",
+    "zoomania": "🐰 Zootopia",
+    "titanic": "🚢 Titanic",
+    "notebook": "💌 The Notebook",
+    "homealone": "🏠 Home Alone",
+    "hp1": "⚡ Harry Potter and the Sorcerer’s Stone",
+    "iceage": "🧊 Ice Age",
+    "frozen": "❄️ Frozen",
+    "blackpanther": "🐆 Black Panther",
+    "grease": "🕺 Grease",
+    "meangirls": "💅 Mean Girls",
+    "dirtydancing": "💃 Dirty Dancing",
+    "madagascar": "🦁 Madagascar",
+    "barbie": "🎀 Barbie",
+    "pirates4": "🏴‍☠️ Pirates of the Caribbean: On Stranger Tides",
+    "mamma": "🎶 Mamma Mia!",
+    "minions": "🍌 Minions",
+    "transformers3": "🤖 Transformers: Dark of the Moon",
+    "justiceleague": "🦸 Justice League",
+    "sharktale": "🦈 Shark Tale",
+    "suicidesquad": "💣 Suicide Squad",
+    "dolittle": "🐾 Dolittle",
+    "smurfs": "💙 The Smurfs",
+    "ww84": "✨ Wonder Woman 1984",
+    "twilight": "🧛 Twilight",
+    "lastknight": "🤖 Transformers: The Last Knight",
+    "eragon": "🐉 Eragon",
+    "fantastic4": "🔧 Fantastic Four (2015)",
+    "madameweb": "🕷️ Madame Web",
+    "batmanrobin": "🦇 Batman & Robin",
+    "theroom": "🎭 The Room",
+    "catwoman": "🐱 Catwoman",
+    "sharknado": "🌪️ Sharknado",
+    "cats": "😾 Cats (2019)",
+    "dbevolution": "🐉 Dragonball Evolution"
+   }
   }
  },
  "_groups": {
@@ -645,6 +807,36 @@
   },
   "streaming_dienste_tv": {
    "label": "Streaming services & TV channels"
+  },
+  "pokemon": {
+   "label": "Pokémon"
+  },
+  "koerperteile": {
+   "label": "Body parts & organs"
+  },
+  "blumen": {
+   "label": "Flowers & plants"
+  },
+  "elemente": {
+   "label": "Chemical elements"
+  },
+  "inseln": {
+   "label": "Islands of the world"
+  },
+  "fluesse": {
+   "label": "Rivers of the world"
+  },
+  "berge": {
+   "label": "Mountains & mountain ranges"
+  },
+  "gewuerze": {
+   "label": "Spices & herbs"
+  },
+  "berufe": {
+   "label": "Jobs & professions"
+  },
+  "kueche": {
+   "label": "Kitchen items & tableware"
   }
  }
 }
