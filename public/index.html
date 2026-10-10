@@ -291,6 +291,40 @@
   .shop-item-title{ font-weight:800; font-size:15px; }
   .shop-item-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
 
+
+
+  .soc-bar{ margin:18px auto 6px; max-width:520px; text-align:center; }
+  .soc-txt{ font-size:12px; color:var(--text-dim); margin-bottom:10px; line-height:1.4; }
+  .soc-row{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .soc-btn{ display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:12px; font-weight:800; font-size:13px; text-decoration:none; color:#fff; border:1px solid color-mix(in srgb,var(--c) 70%,transparent); background:linear-gradient(135deg,color-mix(in srgb,var(--c) 25%,#12082a),#12082a); box-shadow:0 0 14px color-mix(in srgb,var(--c) 25%,transparent); }
+  .soc-btn:active{ transform:scale(.96); }
+  .soc-btn svg{ width:18px; height:18px; fill:var(--c); }
+  /* Anleitung + Intro */
+  .gd-ov{ position:fixed; inset:0; z-index:100001; background:#070a14; display:flex; justify-content:center; overflow:auto; -webkit-overflow-scrolling:touch; }
+  .gd-box{ width:100%; max-width:520px; padding:16px 16px 40px; box-sizing:border-box; }
+  .gd-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+  .gd-title{ font-weight:900; letter-spacing:3px; font-size:18px; background:linear-gradient(90deg,var(--accent),var(--accent-2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .gd-x{ border:1px solid #3a2a6a; background:#1a0f3a; color:#fff; border-radius:10px; width:38px; height:38px; font-size:18px; cursor:pointer; }
+  .gd-prog{ font-size:12px; color:var(--text-dim); margin-bottom:8px; }
+  .gd-bar{ height:6px; border-radius:6px; background:#262e46; overflow:hidden; margin-bottom:14px; }
+  .gd-bar i{ display:block; height:100%; background:linear-gradient(90deg,var(--accent),var(--accent-2)); }
+  .gd-item{ border:1px solid color-mix(in srgb,var(--c) 50%,transparent); border-radius:14px; margin-bottom:10px; background:linear-gradient(180deg,color-mix(in srgb,var(--c) 12%,#1a0f3a),#12082a); overflow:hidden; }
+  .gd-head{ display:flex; align-items:center; gap:12px; padding:12px 14px; cursor:pointer; }
+  .gd-head .ic{ font-size:26px; }
+  .gd-head .nm{ flex:1; font-weight:800; color:var(--c); font-size:15px; }
+  .gd-chk{ width:26px; height:26px; border-radius:50%; border:2px solid #4a3a8a; display:flex; align-items:center; justify-content:center; font-size:14px; color:transparent; flex-shrink:0; }
+  .gd-item.read .gd-chk{ background:#3ddc84; border-color:#3ddc84; color:#06210f; }
+  .gd-body{ display:none; padding:0 14px 14px 14px; font-size:13.5px; line-height:1.55; color:#d9d2f5; }
+  .gd-item.open .gd-body{ display:block; }
+  .gd-body ul{ margin:0; padding-left:18px; } .gd-body li{ margin:4px 0; }
+  .intro-card{ flex:0 0 100%; scroll-snap-align:center; box-sizing:border-box; padding:0 22px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px; }
+  .intro-card .big{ font-size:76px; filter:drop-shadow(0 0 22px color-mix(in srgb,var(--c) 70%,transparent)); }
+  .intro-card h2{ margin:0; font-size:26px; color:var(--c); }
+  .intro-card p{ margin:0; font-size:15px; line-height:1.55; color:#d9d2f5; max-width:340px; }
+  .intro-track{ display:flex; flex:1; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .intro-track::-webkit-scrollbar{ display:none; }
+  .intro-dots{ display:flex; gap:8px; justify-content:center; margin:12px 0; }
+  .intro-dots i{ width:8px; height:8px; border-radius:50%; background:#3a2a6a; transition:.2s; } .intro-dots i.on{ background:var(--accent); width:22px; border-radius:8px; }
   /* Shop im Chess-World-Look */
   .bs-wrap{ max-width:520px; margin:0 auto; display:flex; flex-direction:column; gap:12px; }
   .bs-head{ text-align:center; padding:6px 0 2px; }
@@ -4776,6 +4810,127 @@ function t(key){
 // JEDE andere Sprache bekommt Englisch (statt versehentlich Deutsch).
 function L(de, en){ return currentLang === "de" ? de : en; }
 
+
+/* ---- Anleitung (Button im Hauptmenü) + Intro beim ersten Start ---- */
+const GUIDE_SECTIONS = [
+ {id:'braintest', ic:'🎯', c:'#c6ff3d', t:['Brain Test','Brain Test'], b:[
+  ['Du spielst allein und beantwortest Fragen. Jede Runde hat 5 Fragen – sie werden immer schwieriger und die Zeit wird knapper.','You play alone and answer questions. Each round has 5 questions – they get harder and the time gets shorter.'],
+  ['Du steigst durch Klassen und Ränge auf. Ein bestandener Haupttest bringt dich weiter und gibt dir Münzen.','You climb through classes and ranks. Passing a main test moves you up and earns coins.'],
+  ['Mit einem Konto zählt dein Fortschritt auf allen Geräten.','With an account your progress counts on all devices.']]},
+ {id:'party', ic:'🌐', c:'#3de0ff', t:['Party-Raum','Party room'], b:[
+  ['Einer erstellt einen Raum und teilt den Code, die anderen treten bei. Auch Freunde kannst du direkt einladen.','One player creates a room and shares the code; the others join. You can also invite friends directly.'],
+  ['Im Raum wählt der Host einen Mix oder ein einzelnes Spiel: Einordnen, Mehr oder Weniger, Nenn’s Blitz oder Stadt Land Fluss.','The host picks a mix or a single game: Ordering, Higher or Lower, Quick-Fire or Scattergories.'],
+  ['Wer am Ende die meisten Punkte hat, gewinnt.','Whoever has the most points at the end wins.']]},
+ {id:'ordering', ic:'🧩', c:'#ffb020', t:['Einordnen','Ordering'], b:[
+  ['Alle Spieler ordnen gleichzeitig – jeder für sich auf seinem eigenen Brett.','All players order at the same time – each on their own board.'],
+  ['Zieh ein Element auf seinen genauen Platz. Passt der Platz nicht, verlierst du ein Leben (du hast 3).','Place an item on its exact position. If it is wrong you lose a life (you have 3).'],
+  ['Wer alles richtig und ohne Fehler schafft, startet einen Countdown für alle anderen. Dann zählen Leben und Tempo.','Whoever finishes perfectly starts a countdown for everyone else. Then lives and speed count.']]},
+ {id:'arena', ic:'🏆', c:'#bb55ff', t:['Arena','Arena'], b:[
+  ['Spiele um die Bestenliste. Für jedes Match brauchst du ein Herz – du bekommst jeden Tag neue.','Play for the leaderboard. Each match costs a heart – you get new ones every day.'],
+  ['Leere Herzen kannst du im Shop mit Münzen auffüllen.','You can refill empty hearts in the shop with coins.'],
+  ['Dafür brauchst du ein Konto.','You need an account for this.']]},
+ {id:'speedmath', ic:'🧮', c:'#ff8a3d', t:['Speed Math','Speed Math'], b:[
+  ['Rechne so schnell du kannst. Auf der Level-Karte tippst du ein Level an und arbeitest dich Schritt für Schritt vor.','Calculate as fast as you can. Tap a level on the map and work your way forward step by step.'],
+  ['Du hast 3 Herzen pro Tag. Falsche Antworten kosten Herzen.','You have 3 hearts per day. Wrong answers cost hearts.'],
+  ['Order of Speed (in Speed Math): endlos spielen, deine letzte und deine beste Runde werden angezeigt.','Order of Speed (inside Speed Math): play endlessly; your last and best round are shown.']]},
+ {id:'biology', ic:'🧬', c:'#3ddc84', t:['Biology','Biology'], b:[
+  ['Entdecke den Körper in Themenkacheln. Du sammelst Karten und siehst deinen Fortschritt.','Explore the body in topic tiles. You collect cards and see your progress.'],
+  ['Es gibt auch Sexualkunde – sachlich und altersgerecht erklärt.','There is also sex education – explained factually and age-appropriately.']]},
+ {id:'chess', ic:'♞', c:'#e3b23c', t:['Chess','Chess'], b:[
+  ['Original: klassisches Schach gegen den Bot.','Original: classic chess against the bot.'],
+  ['Fantasy: Figuren mit Fähigkeiten, Karten sammeln, Kisten öffnen und im Rang aufsteigen.','Fantasy: pieces with abilities, collect cards, open chests and climb the ranks.'],
+  ['Chess Online: mit Freunden oder per Raumcode (Konto nötig).','Chess Online: with friends or via room code (account needed).']]},
+ {id:'ttt', ic:'⭕', c:'#ff5d8f', t:['Tic Tac Toe','Tic Tac Toe'], b:[
+  ['Spiele gegen den Bot und besiege Gegner, um vom weißen bis zum Meister-Gürtel aufzusteigen.','Play against the bot and win to rise from the white to the master belt.']]},
+ {id:'coins', ic:'🪙', c:'#ffd45a', t:['Münzen & Shop','Coins & shop'], b:[
+  ['Münzen bekommst du für neue Erfolge und bestandene Haupttests.','You earn coins for new achievements and passed main tests.'],
+  ['Im Shop kaufst du Herzen. Von dort kommst du auch zum Chess-Shop.','In the shop you buy hearts. From there you can also reach the Chess shop.']]},
+ {id:'stats', ic:'📊', c:'#7be0ff', t:['Statistik & Erfolge','Stats & achievements'], b:[
+  ['Die Statistik zeigt pro Modus, wie oft du gespielt und gewonnen hast – dazu deine Klasse.','Stats show per mode how often you played and won – plus your class.'],
+  ['Erfolge schaltest du durch bestimmte Leistungen frei.','Achievements unlock through specific feats.']]},
+ {id:'account', ic:'👤', c:'#c6ff3d', t:['Konto & Passwort-Schlüssel','Account & password key'], b:[
+  ['Ein Konto speichert alles und verbindet deine Geräte. Freunde findest du über ihren Namen.','An account saves everything and links your devices. Find friends by name.'],
+  ['Tippe oben auf „🔑 Schlüssel“ und speichere deinen persönlichen Schlüssel. Er wird nur einmal angezeigt.','Tap “🔑 Key” at the top and save your personal key. It is shown only once.'],
+  ['Passwort vergessen? Beim Anmelden „Passwort vergessen?“ wählen, Anfrage mit Namen und Schlüssel senden. Nach der Freigabe setzt du dein neues Passwort selbst.','Forgot your password? Choose “Forgot password?” on login, send a request with name and key. After approval you set your new password yourself.']]}
+];
+function guideReadSet(){ try{ return new Set(JSON.parse(localStorage.getItem('bp_guide_read')||'[]')); }catch(e){ return new Set(); } }
+function guideMarkRead(id){ try{ const s = guideReadSet(); s.add(id); localStorage.setItem('bp_guide_read', JSON.stringify([...s])); }catch(e){} }
+function guideProgress(){ const s = guideReadSet(); return GUIDE_SECTIONS.filter(x => s.has(x.id)).length; }
+function openGuide(){
+  const old = document.getElementById('guideOv'); if(old) old.remove();
+  const o = document.createElement('div'); o.id = 'guideOv'; o.className = 'gd-ov';
+  const draw = () => {
+    const read = guideReadSet(), n = guideProgress(), tot = GUIDE_SECTIONS.length;
+    o.innerHTML = `<div class="gd-box">
+      <div class="gd-top"><div class="gd-title">${L('ANLEITUNG','HOW TO PLAY')}</div><button class="gd-x" onclick="document.getElementById('guideOv').remove()">✕</button></div>
+      <div class="gd-prog">${n} / ${tot} ${L('gelesen','read')}</div>
+      <div class="gd-bar"><i style="width:${Math.round(n/tot*100)}%"></i></div>
+      ${GUIDE_SECTIONS.map(x => `<div class="gd-item ${read.has(x.id)?'read':''}" id="gd_${x.id}" style="--c:${x.c}">
+        <div class="gd-head" onclick="guideToggle('${x.id}')"><span class="ic">${x.ic}</span><span class="nm">${L(x.t[0],x.t[1])}</span><span class="gd-chk">✓</span></div>
+        <div class="gd-body"><ul>${x.b.map(l => `<li>${L(l[0],l[1])}</li>`).join('')}</ul></div></div>`).join('')}
+      <button class="btn btn-ghost btn-block" style="margin-top:6px;" onclick="showIntro(true)">${L('Kurze Einführung nochmal ansehen','Watch the quick intro again')}</button>
+    </div>`;
+  };
+  o._draw = draw; draw(); document.body.appendChild(o);
+}
+function guideToggle(id){
+  const el = document.getElementById('gd_' + id); if(!el) return;
+  const wasOpen = el.classList.contains('open');
+  document.querySelectorAll('.gd-item.open').forEach(x => x.classList.remove('open'));
+  if(!wasOpen){ el.classList.add('open'); guideMarkRead(id); el.classList.add('read');
+    const n = guideProgress(), tot = GUIDE_SECTIONS.length;
+    const pr = document.querySelector('.gd-prog'); if(pr) pr.textContent = n + ' / ' + tot + ' ' + L('gelesen','read');
+    const br = document.querySelector('.gd-bar i'); if(br) br.style.width = Math.round(n/tot*100) + '%';
+  }
+}
+const INTRO_CARDS = [
+  {ic:'🎯', c:'#c6ff3d', t:['Beweise dein Wissen','Prove your knowledge'], p:['5 Fragen, immer schwieriger, immer schneller. Steig Klasse für Klasse im Rang auf.','5 questions, ever harder, ever faster. Climb the ranks class by class.']},
+  {ic:'🌐', c:'#3de0ff', t:['Spiel mit Freunden','Play with friends'], p:['Party-Raum, Arena, Schach, Tic Tac Toe und Speed Math – allein oder gegen andere.','Party room, arena, chess, tic tac toe and speed math – alone or against others.']},
+  {ic:'🏅', c:'#ffd45a', t:['Sammle & steig auf','Collect & level up'], p:['Münzen, Erfolge und Statistik zeigen, wie weit du bist. Mit einem Konto geht nichts verloren.','Coins, achievements and stats show how far you are. With an account nothing gets lost.']}
+];
+function showIntro(force){
+  if(document.getElementById('introOv')) return;
+  if(!force){ try{ if(localStorage.getItem('bp_intro_seen')) return; }catch(e){ return; } }
+  const g = document.getElementById('guideOv'); if(g) g.remove();
+  const o = document.createElement('div'); o.id = 'introOv'; o.className = 'gd-ov'; o.style.alignItems = 'stretch';
+  o.innerHTML = `<div style="width:100%;max-width:520px;display:flex;flex-direction:column;padding:16px;box-sizing:border-box;min-height:100%">
+    <div style="text-align:right"><button class="btn btn-ghost" style="padding:6px 12px" onclick="closeIntro()">${L('Überspringen','Skip')}</button></div>
+    <div class="intro-track" id="introTrack">${INTRO_CARDS.map(x => `<div class="intro-card" style="--c:${x.c}"><div class="big">${x.ic}</div><h2>${L(x.t[0],x.t[1])}</h2><p>${L(x.p[0],x.p[1])}</p></div>`).join('')}</div>
+    <div class="intro-dots" id="introDots">${INTRO_CARDS.map((_,i) => `<i class="${i?'':'on'}"></i>`).join('')}</div>
+    <button class="btn btn-primary btn-block" id="introNext" onclick="introNext()">${L('WEITER','NEXT')}</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeIntro(true)">📖 ${L('Ganze Anleitung ansehen','See the full guide')}</button>
+  </div>`;
+  document.body.appendChild(o);
+  const tr = document.getElementById('introTrack');
+  tr.addEventListener('scroll', () => { const i = Math.round(tr.scrollLeft / tr.clientWidth); document.querySelectorAll('#introDots i').forEach((d,k) => d.classList.toggle('on', k === i)); const nx = document.getElementById('introNext'); if(nx) nx.textContent = (i >= INTRO_CARDS.length-1) ? L("LOS GEHT'S","LET'S GO") : L('WEITER','NEXT'); });
+}
+function introNext(){
+  const tr = document.getElementById('introTrack'); if(!tr) return;
+  const i = Math.round(tr.scrollLeft / tr.clientWidth);
+  if(i >= INTRO_CARDS.length - 1){ closeIntro(); return; }
+  tr.scrollTo({ left: (i + 1) * tr.clientWidth, behavior: 'smooth' });
+}
+function closeIntro(openFull){
+  try{ localStorage.setItem('bp_intro_seen', '1'); }catch(e){}
+  const o = document.getElementById('introOv'); if(o) o.remove();
+  if(openFull === true) openGuide();
+}
+window.addEventListener('load', () => setTimeout(() => { try{ if(!document.getElementById('resetNoticeBox')) showIntro(false); }catch(e){} }, 1200));
+
+const SOCIAL_LINKS = [
+  { name:'TikTok', c:'#25f4ee', url:'https://www.tiktok.com/@pinkypuls', svg:'<svg viewBox="0 0 24 24"><path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.2-1.5z"/></svg>' },
+  { name:'Clapper', c:'#ffb020', url:'https://clapperapp.com/brainpulse?is_invite=1&r=Y68Lm2Rz6q&c=in&m=co', svg:'<svg viewBox="0 0 24 24"><path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V8zm.6-4.7 3.6-.9 1.7 3.3-3.6.9L4.600 3.300zm5.600-1.400 3.600-.9 1.700 3.300-3.600.9-1.700-3.300zm5.600-1.400 3.600-.9.9 1.800-3.600.9-.9-1.800z" transform="translate(0 2)"/></svg>' }
+];
+function socialBarHtml(){
+  const list = SOCIAL_LINKS.filter(x => x.url);
+  if(!list.length) return '';
+  return `<div class="soc-bar"><div class="soc-txt">${L('Folge uns für mehr Infos – und verpasse nichts Neues!','Follow us for more info – and never miss anything new!')}</div><div class="soc-row">${list.map(x => `<a class="soc-btn" style="--c:${x.c}" href="${x.url}" target="_blank" rel="noopener noreferrer">${x.svg}<span>${x.name}</span></a>`).join('')}</div></div>`;
+}
+
+function legalLinksHtml(){
+  return `<div style="text-align:center; margin:6px 0 24px; font-size:12px;"><a href="/legal.html#impressum" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('Impressum','Imprint')}</a> · <a href="/legal.html#datenschutz" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('Datenschutz','Privacy')}</a> · <a href="/legal.html#agb" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('AGB & Widerruf','Terms & withdrawal')}</a> · <a href="/legal.html#kisten" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('Kisten & Zufall','Chests & chance')}</a></div>`;
+}
+
 function renderMainMenu(){
   setAudioZone("menu");
   // Brain Test hat mittlerweile sowohl eine deutsche als auch eine englische
@@ -4873,6 +5028,11 @@ function renderMainMenu(){
       ${featureLocked('achievements') ? `<button class="btn btn-ghost" style="opacity:.45; cursor:default;" disabled>🏆 ${L('Erfolge','Achievements')} · Coming soon</button>` : `<button class="btn btn-ghost" onclick="startAchievementsFlow()">🏆 ${L('Erfolge','Achievements')}</button>`}
       ${featureLocked('shop') ? `<button class="btn btn-ghost" style="opacity:.45; cursor:default;" disabled>🪙 Shop · Coming soon</button>` : `<button class="btn btn-ghost" onclick="startShopFlow()">🪙 Shop</button>`}
     </div>
+    <div class="menu-secondary" style="margin-top:8px;">
+      <button class="btn btn-ghost" onclick="openGuide()">❓ ${L('Anleitung','How to play')} · ${guideProgress()}/${GUIDE_SECTIONS.length}</button>
+    </div>
+    ${socialBarHtml()}
+    ${legalLinksHtml()}
 
   `);
 }
@@ -5223,6 +5383,10 @@ function renderShopScreen(){
             `).join("")}
           </div>
           <p style="color:var(--text-dim); font-size:11px; text-align:center; margin-top:-4px;">${L('Zahlung läuft über Stripe. Du wirst dafür kurz weitergeleitet.','Payment is handled by Stripe. You will be redirected briefly.')}</p>
+          <label style="display:flex; gap:10px; align-items:flex-start; font-size:12px; line-height:1.45; color:var(--text-dim); background:#1a0f3a; border:1px solid #3a2a6a; border-radius:12px; padding:10px 12px; cursor:pointer;">
+            <input type="checkbox" id="shopConsent" style="margin-top:3px; width:18px; height:18px; flex-shrink:0;">
+            <span>${L('Ich möchte, dass die Münzen sofort bereitgestellt werden, und weiß, dass ich dadurch mein <b>Widerrufsrecht verliere</b>. Ich habe die <a href="/legal.html#agb" target="_blank" rel="noopener" style="color:var(--accent-2)">AGB</a> gelesen. (Unter 18: nur mit Erlaubnis der Eltern.)','I want the coins delivered immediately and understand that I <b>lose my right of withdrawal</b>. I have read the <a href="/legal.html#agb" target="_blank" rel="noopener" style="color:var(--accent-2)">terms</a>. (Under 18: only with a parent’s permission.)')}</span>
+          </label>
         ` : `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Münzen-Kauf ist gerade nicht verfügbar.','Coin purchases are currently unavailable.')}</p>`}
       ` : `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto (Anmelden im Hauptmenü).','You need an account for this (log in on the main menu).')}</p>`}
 
@@ -5239,6 +5403,7 @@ function renderShopScreen(){
       </div>
 
       <div id="shopFeedback" class="explanation hidden"></div>
+      ${legalLinksHtml()}
       <div class="actions-row" style="margin-top:6px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
       </div>
@@ -5263,6 +5428,12 @@ function shopBuyMilestoneHeart(){
   renderShopScreen(); shopFeedback(msg, !ok);
 }
 async function shopBuyCoins(packageId){
+  const cb = document.getElementById('shopConsent');
+  if(!cb || !cb.checked){
+    const fb = document.getElementById('shopFeedback');
+    if(fb){ fb.textContent = L('Bitte zuerst den Haken zur sofortigen Bereitstellung und zum Widerrufsrecht setzen.','Please tick the box for immediate delivery and withdrawal right first.'); fb.classList.remove('hidden'); fb.style.borderColor = 'var(--danger)'; if(cb) cb.focus(); }
+    return;
+  }
   renderShopScreen(); shopFeedback("Weiterleitung zu Stripe…", false);
   const result = await apiCall("/api/shop-create-checkout", { token: account.token, packageId });
   if(result.ok && result.url){
