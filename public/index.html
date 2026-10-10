@@ -307,6 +307,21 @@
   .stat-mini div.loss{ border-color:rgba(255,93,162,.4); } .stat-mini div.loss .n{ color:var(--danger); }
   .stat-mini div.rate{ border-color:rgba(61,224,255,.4); } .stat-mini div.rate .n{ color:var(--accent-2); }
   .stat-mini div.arena{ border-color:rgba(255,180,67,.4); } .stat-mini div.arena .n{ color:var(--warn); }
+  .st-head{ display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .st-name{ flex:1; min-width:0; font-weight:800; font-size:17px; } .st-name small{ display:block; font-weight:500; font-size:11px; color:var(--text-dim); }
+  .st-hero{ display:flex; align-items:center; gap:14px; background:var(--panel-2); border:1px solid var(--line); border-radius:16px; padding:12px 14px; }
+  .st-ring{ position:relative; width:84px; height:84px; flex:none; } .st-ring svg{ position:absolute; inset:0; }
+  .st-ring .v{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; } .st-ring b{ font-size:18px; } .st-ring span{ font-size:9px; color:var(--text-dim); }
+  .st-hero-nums{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:10px 8px; }
+  .st-hero-nums div{ display:flex; flex-direction:column; } .st-hero-nums b{ font-size:20px; line-height:1.1; } .st-hero-nums span{ font-size:10px; color:var(--text-dim); }
+  .st-section{ margin:18px 0 8px; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); }
+  .st-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .st-mode{ position:relative; background:linear-gradient(160deg,color-mix(in srgb,var(--mc) 16%,#1c2338),#1c2338 70%); border:1px solid color-mix(in srgb,var(--mc) 35%,#262e46); border-radius:14px; padding:10px 11px 11px; min-width:0; }
+  .st-mode.empty{ opacity:.6; }
+  .st-top{ display:flex; align-items:center; gap:7px; } .st-ic{ font-size:18px; } .st-title{ font-size:12.5px; font-weight:800; line-height:1.15; overflow-wrap:anywhere; }
+  .st-sub{ font-size:10px; color:var(--text-dim); margin-top:3px; }
+  .st-nums{ display:flex; gap:16px; margin-top:8px; } .st-nums div{ display:flex; flex-direction:column; } .st-nums b{ font-size:19px; line-height:1.1; } .st-nums span{ font-size:10px; color:var(--text-dim); }
+  .st-bar{ height:5px; border-radius:3px; background:#262e46; margin-top:9px; overflow:hidden; } .st-bar i{ display:block; height:100%; background:var(--mc); border-radius:3px; }
   .mode-stat-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:8px; }
   .mode-stat-card{ background:var(--panel-2); border-radius:10px; padding:10px 8px; text-align:center; min-width:0; border:1px solid var(--line); border-top:2.5px solid var(--mc, var(--accent)); }
   .mode-stat-card .title{ font-size:12px; font-weight:700; margin-bottom:8px; overflow-wrap:break-word; }
@@ -3424,11 +3439,47 @@ function renderAccountAuth(mode){
         ${mode==='login' ? L('Noch kein Konto?','No account yet?') : L('Schon ein Konto?','Already have an account?')}
         <a href="javascript:void(0)" onclick="renderAccountAuth('${mode==='login'?'register':'login'}')" style="color:var(--accent-2);">${mode==='login' ? L('Konto erstellen','Create account') : L('Anmelden','Log in')}</a>
       </p>
+      ${mode==='login' ? `<p style="text-align:center; margin-top:4px; font-size:13px;"><a href="javascript:void(0)" onclick="renderForgotPassword()" style="color:var(--accent-2);">${L('Passwort vergessen?','Forgot password?')}</a></p>` : ''}
       <div class="actions-row" style="margin-top:10px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
       </div>
     </div>
   `);
+}
+function renderForgotPassword(){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">${L('PASSWORT VERGESSEN','FORGOT PASSWORD')}</div>
+      <div class="picker-sub">${L('Passwörter werden nur verschlüsselt gespeichert – sie lassen sich nicht anzeigen. Es gibt keine E-Mail im Konto, deshalb setzt der Admin dir ein neues Passwort. Schreib ihm deinen Benutzernamen.','Passwords are stored encrypted only – they cannot be shown. Accounts have no email, so the admin sets a new password for you. Send him your username.')}</div>
+      <div class="menu-section-title" style="margin-top:14px;">${L('Ich bin der Admin','I am the admin')}</div>
+      <div class="picker-form" style="flex-direction:column; gap:10px;">
+        <input id="fpKey" type="password" placeholder="Admin-Key" autocomplete="off" value="${esc(adminKeyStored())}">
+        <input id="fpUser" type="text" placeholder="${L('Benutzername des Kontos','Account username')}" maxlength="40" autocomplete="off">
+        <input id="fpPass" type="text" placeholder="${L('Neues Passwort (mind. 6 Zeichen)','New password (min. 6 chars)')}" maxlength="60" autocomplete="off">
+      </div>
+      <div id="fpMsg" class="explanation hidden" style="margin-top:10px;"></div>
+      <div class="actions-row" style="margin-top:12px;">
+        <button class="btn btn-ghost" onclick="submitForgotPassword(false)">${L('Konto prüfen','Check account')}</button>
+        <button class="btn btn-primary" onclick="submitForgotPassword(true)">${L('Passwort setzen','Set password')}</button>
+      </div>
+      <div class="actions-row" style="margin-top:10px;"><button class="btn btn-ghost" onclick="renderAccountAuth('login')">${t('btn_back')}</button></div>
+    </div>
+  `);
+}
+async function submitForgotPassword(set){
+  const key = document.getElementById('fpKey').value.trim(), username = document.getElementById('fpUser').value.trim(), pw = document.getElementById('fpPass').value;
+  const box = document.getElementById('fpMsg'); box.classList.remove('hidden'); box.style.borderColor = 'var(--danger)';
+  box.textContent = '…';
+  let r;
+  try{ const res = await fetch('/api/admin-set-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ adminKey:key, username, newPassword: set ? pw : '', lang: currentLang }) }); r = await res.json(); }catch(e){ r = { ok:false, error: L('Verbindung fehlgeschlagen.','Connection failed.') }; }
+  if(r.ok){
+    box.style.borderColor = 'var(--accent)';
+    box.textContent = r.changed ? L('✅ Neues Passwort für „' + r.username + '" gesetzt. Jetzt damit anmelden.','✅ New password set for "' + r.username + '". Log in with it now.') : L('✔ Konto „' + r.username + '" existiert.','✔ Account "' + r.username + '" exists.');
+  } else {
+    let t = r.error || L('Fehlgeschlagen.','Failed.');
+    if(r.exists === false) t += ' ' + L('(Konten gesamt: ' + r.total + ')','(accounts total: ' + r.total + ')') + (r.similar && r.similar.length ? ' ' + L('Ähnliche Namen: ','Similar names: ') + r.similar.join(', ') : '');
+    box.textContent = t;
+  }
 }
 
 async function submitAccountAuth(mode){
@@ -4049,7 +4100,7 @@ function initials(name){ return name.trim().slice(0,2).toUpperCase(); }
 function statusbarHtml(profile){
   return `
     <div id="statusbar" class="statusbar">
-      ${klassePillHtml(profile.klasse||0)}
+      ${klasseBadgeWithName(profile.klasse||0, 34)}
     </div>`;
 }
 
@@ -4726,42 +4777,50 @@ function renderMainMenu(){
   `);
 }
 
+function statRing(pct, color, label){
+  const r = 34, C = 2 * Math.PI * r;
+  return `<div class="st-ring"><svg width="84" height="84"><circle cx="42" cy="42" r="${r}" fill="none" stroke="#262e46" stroke-width="8"/><circle cx="42" cy="42" r="${r}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${C*pct/100} ${C}" transform="rotate(-90 42 42)"/></svg><div class="v"><b>${pct}%</b><span>${label}</span></div></div>`;
+}
+function statModeCard(icon, title, color, played, good, goodLabel, sub){
+  const pct = played > 0 ? Math.min(100, Math.round(good / played * 100)) : 0;
+  return `<div class="st-mode ${played ? '' : 'empty'}" style="--mc:${color};">
+    <div class="st-top"><span class="st-ic">${icon}</span><span class="st-title">${title}</span></div>
+    ${sub ? `<div class="st-sub">${sub}</div>` : ''}
+    <div class="st-nums"><div><b>${played}</b><span>${L('gespielt','played')}</span></div><div><b style="color:${color}">${good}</b><span>${goodLabel}</span></div></div>
+    <div class="st-bar"><i style="width:${pct}%"></i></div>
+  </div>`;
+}
 function statCardHtml(p, extraArena){
   const totalGames = p.wins + p.losses;
   const winRate = totalGames > 0 ? Math.round((p.wins/totalGames)*100) : 0;
   const modeStats = p.modeStats || freshModeStats();
+  const cards = MODE_STAT_DEFS.map(m => {
+    const s = modeStats[m.key] || {played:0, correct:0};
+    const goodLabel = L(m.correctLabel || 'richtig', ({'Siege':'wins','Alle Felder':'all fields'})[m.correctLabel] || 'correct');
+    return statModeCard(m.icon, m.label, m.color, s.played || 0, s.correct || 0, goodLabel);
+  });
+  const co = chessOriginalSummary() || {games:0, wins:0, draws:0, losses:0};
+  cards.push(statModeCard('♟', 'Chess Original', '#3de0ff', co.games, co.wins, L('Siege','wins'), co.games ? `${co.draws} ${L('Remis','draws')} · ${co.losses} ${L('Niederl.','losses')}` : ''));
+  const cw = chessWorldSummary() || {games:0, wins:0, rank:null};
+  cards.push(statModeCard('🐉', 'Chess Fantasy', '#e3b23c', cw.games, cw.wins, L('Siege','wins'), cw.rank || ''));
   return `
     <div class="stat-card">
-      <div class="row1">
-        <span class="avatar-badge" style="font-size:22px; cursor:pointer; margin-right:8px;" onclick="renderAvatarPicker('${p.id}', renderStatistik)" title="${L('Profilbild ändern','Change profile picture')}">${avatarHtml(p.avatar, 30)}</span>
-        <div class="sname">${esc(p.name)}${p.isAccount ? ' <span style="font-size:11px; color:var(--text-dim); font-weight:400;">(' + L('Konto – gilt für alle Modi','Account – applies to all modes') + ')</span>' : ''}</div>
+      <div class="st-head">
+        <span class="avatar-badge" style="font-size:22px; cursor:pointer;" onclick="renderAvatarPicker('${p.id}', renderStatistik)" title="${L('Profilbild ändern','Change profile picture')}">${avatarHtml(p.avatar, 30)}</span>
+        <div class="st-name">${esc(p.name)}${p.isAccount ? `<small>${L('Konto – gilt für alle Modi','Account – applies to all modes')}</small>` : ''}</div>
+        ${klasseBadgeWithName(p.klasse||0, 46)}
       </div>
-      <div class="picker-sub" style="margin:4px 0 8px;">${klassePillHtml(p.klasse||0)} <span style="margin-left:6px;">${L('Aktuelle Klasse (Brain Test)','Current class (Brain Test)')}</span></div>
-      <div class="stat-mini">
-        <div class="played"><div class="n">${p.roundsPlayed}</div><div class="l">${L('Runden gespielt','Rounds played')}</div></div>
-        <div class="win"><div class="n">${p.wins}</div><div class="l">${L('Siege','Wins')}</div></div>
-        <div class="loss"><div class="n">${p.losses}</div><div class="l">${L('Niederlagen','Losses')}</div></div>
-        <div class="rate"><div class="n">${winRate}%</div><div class="l">${L('Siegquote','Win rate')}</div></div>
-        ${extraArena ? `
-        <div class="arena"><div class="n">${extraArena.arenaPoints||0}</div><div class="l">${L('Arena-Punkte','Arena points')}</div></div>
-        <div class="arena"><div class="n">${extraArena.arenaMatchesPlayed||0}</div><div class="l">${L('Arena-Matches','Arena matches')}</div></div>
-        ` : ``}
+      <div class="st-hero">
+        ${statRing(winRate, '#c6ff3d', L('Siegquote','Win rate'))}
+        <div class="st-hero-nums">
+          <div><b>${p.roundsPlayed}</b><span>${L('Runden','Rounds')}</span></div>
+          <div><b style="color:var(--accent)">${p.wins}</b><span>${L('Siege','Wins')}</span></div>
+          <div><b style="color:var(--danger)">${p.losses}</b><span>${L('Niederlagen','Losses')}</span></div>
+          ${extraArena ? `<div><b style="color:var(--warn)">${extraArena.arenaPoints||0}</b><span>${L('Arena-Punkte','Arena pts')}</span></div>` : ''}
+        </div>
       </div>
-      <div class="picker-sub" style="margin:16px 0 8px;">${L('Nach Spielmodus:','By game mode:')}</div>
-      <div class="mode-stat-grid">
-        ${MODE_STAT_DEFS.map(m => {
-          const s = modeStats[m.key] || {played:0, correct:0};
-          return `
-          <div class="mode-stat-card" style="--mc:${m.color};">
-            <div class="title">${m.icon} ${m.label}</div>
-            <div class="values">
-              <span><span class="n">${s.played}</span><br><span class="l">${L('gespielt','played')}</span></span>
-              ${m.tracksCorrect ? `<span><span class="n">${s.correct}</span><br><span class="l">${L(m.correctLabel || 'richtig', ({'Siege':'wins','Alle Felder':'all fields'})[m.correctLabel] || 'correct')}</span></span>` : ``}
-            </div>
-          </div>
-        `;}).join("")}
-      </div>
-      ${chessWorldStatHtml()}
+      <div class="st-section">${L('Nach Spielmodus','By game mode')}</div>
+      <div class="st-grid">${cards.join('')}</div>
     </div>
   `;
 }
@@ -8175,6 +8234,13 @@ function klasseBadgeSvg(i, state, prog){
   const chk = state === 'done' ? '<circle cx="98" cy="22" r="13" fill="#3de0ff" stroke="#0a0d16" stroke-width="3"/><path d="M91 22l5 5 9-10" stroke="#08110c" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>' : '';
   const body = lock ? '<path d="M45 56V47a15 15 0 0 1 30 0v9" fill="none" stroke="#3a4670" stroke-width="7" stroke-linecap="round"/><rect x="38" y="54" width="44" height="32" rx="7" fill="#3a4670"/><circle cx="60" cy="68" r="4.5" fill="#10152a"/><rect x="58" y="70" width="4" height="9" rx="2" fill="#10152a"/>' : `<g transform="translate(10 8) scale(.8)">${KLASSE_ICONS[Math.min(i, 9)]}</g>`;
   return `<svg viewBox="0 0 120 120" width="104" height="104" style="${lock ? '' : 'filter:drop-shadow(0 0 10px ' + c + 'aa)'}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="${c}" stop-opacity=".5"/></linearGradient></defs>${ring}<path d="M60 12l37 21v42L60 108 23 75V33z" fill="${lock ? '#1b2238' : 'url(#' + id + ')'}" stroke="${lock ? '#2c3556' : '#fff'}" stroke-opacity=".7" stroke-width="3"/><path d="M60 22l28 16v34L60 98 32 72V38z" fill="#0a0d16" opacity=".35"/>${body}${chk}</svg>`;
+}
+function klasseSymbolHtml(i, size){
+  return klasseBadgeSvg(Math.min(i||0, KLASSEN.length-1), 'done').replace('width="104" height="104"', 'width="'+size+'" height="'+size+'"').replace(/<circle cx="98" cy="22"[^>]*\/><path d="M91 22[^>]*\/>/, '');
+}
+function klasseBadgeWithName(i, size){
+  const idx = Math.min(i||0, KLASSEN.length-1);
+  return `<span style="display:inline-flex;align-items:center;gap:6px;">${klasseSymbolHtml(idx, size)}<span style="font-weight:800;font-size:${Math.round(size*0.34)+3}px;">${klasseName(idx)}</span></span>`;
 }
 function renderKlassenOverview(profile){
   if(!profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
