@@ -5729,14 +5729,228 @@ function socialAgeGate(age, name){
     'Please confirm that you are at least '+age+' years old to be redirected to '+name+'.\n\n'+name+' is only allowed for ages '+age+'+.'));
 }
 
+const FOLLOW_GOAL = 100;
+const FOLLOW_NOW = null; // optional: aktuelle Followerzahl von Hand eintragen (z.B. 37) -> zeigt einen Fortschrittsbalken
+function profBubbleHtml(){
+  const pct = (typeof FOLLOW_NOW==='number') ? Math.max(0,Math.min(100,Math.round(FOLLOW_NOW/FOLLOW_GOAL*100))) : null;
+  return `<div class="prof-bub"><div class="prof-av"><img src="/avatars/prof.webp" alt="" onerror="this.style.display='none'"></div><div class="prof-tx"><b>${L('Der Professor sagt:','The Professor says:')}</b> ${L('Folge uns auf TikTok, damit du nichts verpasst! Bei '+FOLLOW_GOAL+' Followern geht Brain Pulse zum ersten Mal online – für eine Testphase. Sei von Anfang an dabei!','Follow us on TikTok so you never miss a thing! At '+FOLLOW_GOAL+' followers Brain Pulse goes online for the first time – as a test phase. Be there from the start!')}${pct!==null?`<div class="prof-bar"><i style="width:${pct}%"></i></div><small>${FOLLOW_NOW} / ${FOLLOW_GOAL} Follower</small>`:''}</div></div>`;
+}
+(function(){ const st=document.createElement('style'); st.textContent=`.prof-bub{display:flex;gap:10px;align-items:flex-start;margin:14px auto 0;max-width:520px;padding:10px 12px;border-radius:16px;background:rgba(255,212,90,.08);border:2px solid rgba(255,212,90,.45);text-align:left;font-size:13px;line-height:1.4}.prof-av{flex:0 0 52px;width:52px;height:52px;border-radius:50%;overflow:hidden;background:#222;border:2px solid #ffd45a}.prof-av img{width:100%;height:100%;object-fit:cover;display:block}.prof-tx b{color:#ffd45a}.prof-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:6px}.prof-bar i{display:block;height:100%;background:linear-gradient(90deg,#c6ff3d,#25f4ee)}.prof-tx small{color:var(--text-dim)}`; document.head.appendChild(st); })();
 function socialBarHtml(){
   const list = SOCIAL_LINKS.filter(x => x.url);
   if(!list.length) return '';
-  return `<div class="soc-bar"><div class="soc-txt">${L('Folge uns für mehr Infos – und verpasse nichts Neues!','Follow us for more info – and never miss anything new!')}</div><div class="soc-row">${list.map(x => `<a class="soc-btn" style="--c:${x.c}" href="${x.url}" target="_blank" rel="noopener noreferrer"${x.age ? ` onclick="return socialAgeGate(${x.age}, '${x.name}')"` : ''}>${x.svg}<span>${x.name}</span></a>`).join('')}</div></div>`;
+  return profBubbleHtml()+`<div class="soc-bar"><div class="soc-txt">${L('Folge uns für mehr Infos – und verpasse nichts Neues!','Follow us for more info – and never miss anything new!')}</div><div class="soc-row">${list.map(x => `<a class="soc-btn" style="--c:${x.c}" href="${x.url}" target="_blank" rel="noopener noreferrer"${x.age ? ` onclick="return socialAgeGate(${x.age}, '${x.name}')"` : ''}>${x.svg}<span>${x.name}</span></a>`).join('')}</div></div>`;
 }
 
 function legalLinksHtml(){
   return `<div style="text-align:center; margin:6px 0 24px; font-size:12px;"><a href="/legal.html#impressum" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('Impressum','Imprint')}</a> · <a href="/legal.html#datenschutz" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('Datenschutz','Privacy')}</a> · <a href="/legal.html#agb" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('AGB & Widerruf','Terms & withdrawal')}</a> · <a href="/legal.html#kisten" target="_blank" rel="noopener" style="color:var(--text-dim);">${L('Kisten & Zufall','Chests & chance')}</a></div>`;
+}
+
+/* ===================== TAGESRÄTSEL (Sudoku + Kreuzworträtsel) ===================== */
+let dz = null;
+function dzStyle(){
+  if(document.getElementById('dz-style')) return;
+  const st=document.createElement('style'); st.id='dz-style';
+  st.textContent=`
+  .dz-wrap{max-width:480px;margin:0 auto;text-align:center;container-type:inline-size}
+  .dz-day{margin:12px 0;padding:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);text-align:left}
+  .dz-day h4{margin:0 0 8px;font-size:14px}
+  .dz-grid5{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .dz-card{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:14px;color:var(--text)}
+  .dz-card small{display:block;font-weight:600;color:var(--text-dim);font-size:11px}
+  .dz-card.done{opacity:.55;cursor:default;border-color:#7ae582}
+  .dz-card.lock{opacity:.35;cursor:default}
+  .dz-coin{font-size:12px;font-weight:800;color:#ffd45a;white-space:nowrap}
+  .dzs-board{display:grid;grid-template-columns:repeat(9,1fr);width:min(100cqw,440px);margin:10px auto;border:3px solid #cfd6ff;border-radius:6px;overflow:hidden;background:#0d1226;user-select:none;-webkit-user-select:none}
+  .dzs-c{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:min(6cqw,26px);font-weight:700;border:1px solid rgba(255,255,255,.12);cursor:pointer;color:#8fd0ff}
+  .dzs-c.g{color:#fff;background:rgba(255,255,255,.07)}
+  .dzs-c.p{background:rgba(61,224,255,.12)}
+  .dzs-c.s2{background:rgba(255,212,90,.22)}
+  .dzs-c.s{background:rgba(61,224,255,.45);color:#fff}
+  .dzs-c.e{color:#ff6b6b}
+  .dzs-c.br{border-right:3px solid #cfd6ff}.dzs-c.bb{border-bottom:3px solid #cfd6ff}
+  .dz-pad{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100cqw,440px);margin:6px auto}
+  .dz-key{padding:12px 0;border-radius:10px;border:0;background:rgba(255,255,255,.1);color:var(--text);font-size:18px;font-weight:800;cursor:pointer}
+  .dz-key:active{background:rgba(61,224,255,.35)}.dz-key[disabled]{opacity:.25}
+  .dzc-grid{display:grid;grid-template-columns:repeat(var(--n),1fr);width:min(100cqw,480px);margin:8px auto;gap:1px;background:#0d1226;padding:1px;border-radius:6px;user-select:none;-webkit-user-select:none}
+  .dzc{aspect-ratio:1;position:relative;display:flex;align-items:center;justify-content:center;background:#f4f6ff;color:#14182e;font-weight:800;font-size:calc(min(100cqw,480px)/var(--n)*.58);cursor:pointer}
+  .dzc.b{background:#1b2140;cursor:default}
+  .dzc.w{background:#cfe9ff}.dzc.s{background:#ffd45a}
+  .dzc i{position:absolute;left:1px;top:0;font-style:normal;font-weight:700;font-size:calc(min(100cqw,480px)/var(--n)*.27);color:#555;line-height:1.1}
+  .dzc-clue{margin:6px auto;padding:8px 12px;border-radius:12px;background:rgba(255,212,90,.12);border:2px solid rgba(255,212,90,.5);font-size:14px;font-weight:700;width:min(100cqw,480px);box-sizing:border-box;display:flex;align-items:center;gap:8px;text-align:left}
+  .dzc-clue button{background:none;border:0;color:var(--text);font-size:22px;cursor:pointer}
+  .dzc-kb{display:flex;flex-direction:column;gap:5px;width:min(100cqw,480px);margin:6px auto}
+  .dzc-kb div{display:flex;gap:4px;justify-content:center}
+  .dzc-kb .dz-key{flex:1;padding:11px 0;font-size:16px}
+  .dzc-list{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;font-size:12px;width:min(100cqw,480px);margin:10px auto}
+  .dzc-list div.it{padding:3px 4px;border-radius:6px;cursor:pointer}
+  .dzc-list div.it.a{background:rgba(255,212,90,.25)}
+  .dzc-list b{display:block;margin-bottom:4px;color:#ffd45a}`;
+  document.head.appendChild(st);
+}
+function dzTypeName(type,diff){
+  if(type==='sudoku') return 'Sudoku · '+({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[diff];
+  return L('Kreuzworträtsel','Crossword')+' · '+(diff==='small'?L('Klein','Small')+' 7×7':L('Groß','Large')+' 17×17');
+}
+function dzDayLabel(date){ try{ return new Date(date+'T12:00:00').toLocaleDateString(currentLang==='en'?'en-GB':'de-DE',{weekday:'long',day:'2-digit',month:'2-digit'}); }catch(e){ return date; } }
+function dzKey(date,type,diff){ return 'bp_dz_'+(account&&account.profile?account.profile.username:'guest')+'_'+date+'_'+type+'_'+diff+(type==='cw'?'_'+currentLang:''); }
+async function startDailyFlow(){
+  dzStyle(); dz=null;
+  renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">…</div></div></div>`);
+  const r=await apiCall('/api/daily/state',{token:account&&account.token});
+  if(!r.ok){ renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">${r.error||'Fehler'}</div><div class="actions-row"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div></div>`); return; }
+  dzList(r);
+}
+function dzList(r){
+  const card=(day,it)=>{
+    const open=day.open, cls=it.solved?' done':(open?'':' lock');
+    return `<div class="dz-card${cls}" ${open&&!it.solved?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:''}><span>${it.type==='sudoku'?'🔢':'✏️'} ${dzTypeName(it.type,it.diff)}</span><span class="dz-coin">${it.solved?'✓':'🪙 '+it.reward}</span></div>`;
+  };
+  const today=r.days[r.days.length-1];
+  const missed=r.isSunday?r.days.slice(0,-1).filter(d=>d.items.some(i=>!i.solved)):[];
+  renderApp(`<div class="panel"><div class="dz-wrap">
+    <div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div>
+    <div class="picker-sub">${L('Jeden Tag neue Rätsel – für jedes gelöste Rätsel gibt es Münzen. Verpasste Rätsel der Woche kannst du sonntags nachholen.','New puzzles every day – every solved puzzle earns coins. Missed puzzles of the week can be caught up on Sundays.')}</div>
+    ${r.loggedIn?'':`<div class="picker-sub" style="color:#ffd45a">${L('Melde dich an, um Münzen zu bekommen.','Log in to earn coins.')}</div>`}
+    <div class="dz-day"><h4>${L('Heute','Today')} · ${dzDayLabel(today.date)}</h4><div class="dz-grid5">${today.items.map(i=>card(today,i)).join('')}</div></div>
+    ${missed.length?`<div class="picker-sub" style="margin-top:14px">${L('Sonntag: Nachholen','Sunday: catch up')}</div>`+missed.map(d=>`<div class="dz-day"><h4>${dzDayLabel(d.date)}</h4><div class="dz-grid5">${d.items.map(i=>card(d,i)).join('')}</div></div>`).join(''):''}
+    <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
+  </div></div>`);
+}
+async function dzOpen(date,type,diff){
+  dzStyle();
+  const r=await apiCall('/api/daily/puzzle',{token:account&&account.token,date,type,diff});
+  if(!r.ok){ alert(r.error||'Fehler'); startDailyFlow(); return; }
+  const key=dzKey(date,type,diff); let saved=null; try{ saved=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){}
+  if(type==='sudoku'){
+    const sig=r.puzzle.join('');
+    const cur=(saved&&saved.sig===sig&&Array.isArray(saved.cur)&&saved.cur.length===81)?saved.cur:r.puzzle.slice();
+    dz={kind:'sudoku',date,type,diff,key,sig,reward:r.reward,puzzle:r.puzzle,cur,sel:-1,msg:'',busy:false};
+  } else {
+    const N=r.size, sig=r.words.length+':'+N;
+    const letters=(saved&&saved.sig===sig&&Array.isArray(saved.letters))?saved.letters:Array.from({length:N},()=>Array(N).fill(''));
+    dz={kind:'cw',date,type,diff,key,sig,reward:r.reward,size:N,cells:r.cells,words:r.words,letters,sel:null,dir:'across',msg:'',busy:false};
+    dz.cover=Array.from({length:N},()=>Array(N).fill(null).map(()=>({})));
+    r.words.forEach((w,i)=>{ for(let k=0;k<w.len;k++){ const rr=w.r+(w.dir==='down'?k:0), cc=w.c+(w.dir==='across'?k:0); dz.cover[rr][cc][w.dir]=i; } });
+    const f=r.words.findIndex(w=>w.dir==='across')>=0?r.words.findIndex(w=>w.dir==='across'):0; dz.sel=[r.words[f].r,r.words[f].c]; dz.dir=r.words[f].dir;
+  }
+  dzFrame();
+}
+function dzSave(){ if(!dz) return; try{ localStorage.setItem(dz.key, JSON.stringify(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur}:{sig:dz.sig,letters:dz.letters})); }catch(e){} }
+function dzFrame(){
+  if(!dz) return;
+  const head=`<div class="picker-title">${dz.kind==='sudoku'?'🔢':'✏️'} ${dzTypeName(dz.type,dz.diff).toUpperCase()}</div><div class="picker-sub">${dzDayLabel(dz.date)} · 🪙 ${dz.reward}${account?'':' · '+L('ohne Anmeldung keine Münzen','no coins without login')}</div>`;
+  renderApp(`<div class="panel"><div class="dz-wrap">${head}<div id="dzBody"></div>
+    <div id="dzMsg" style="min-height:22px;font-weight:800;margin:6px 0"></div>
+    <div class="actions-row"><button class="btn" id="dzDone" onclick="dzSubmit()">${L('Fertig – prüfen','Done – check')}</button><button class="btn btn-ghost" onclick="startDailyFlow()">${t('btn_back')}</button></div>
+  </div></div>`);
+  dzPaint();
+}
+function dzMsg(m,color){ const e=document.getElementById('dzMsg'); if(e){ e.textContent=m||''; e.style.color=color||'#ff8a8a'; } }
+function dzPaint(){
+  if(!dz) return; const b=document.getElementById('dzBody'); if(!b) return;
+  if(dz.kind==='sudoku') b.innerHTML=dzSudokuHtml(); else b.innerHTML=dzCwHtml();
+  const full=dz.kind==='sudoku'?dz.cur.every(v=>v>0):dz.cells.every((row,r)=>row.every((c,cc)=>!c||dz.letters[r][cc]));
+  const btn=document.getElementById('dzDone'); if(btn){ btn.disabled=!full; btn.style.opacity=full?1:.45; }
+}
+/* ---------- Sudoku ---------- */
+function dzConflicts(){
+  const cur=dz.cur, bad=new Set();
+  for(let i=0;i<81;i++){ const v=cur[i]; if(!v) continue; const r=(i/9)|0,c=i%9;
+    for(let j=0;j<81;j++){ if(j===i||cur[j]!==v) continue; const r2=(j/9)|0,c2=j%9; if(r===r2||c===c2||(((r/3)|0)===((r2/3)|0)&&((c/3)|0)===((c2/3)|0))){ bad.add(i); break; } } }
+  return bad;
+}
+function dzSudokuHtml(){
+  const cur=dz.cur, sel=dz.sel, bad=dzConflicts(), sv=sel>=0?cur[sel]:0, sr=(sel/9)|0, sc=sel%9;
+  let g='';
+  for(let i=0;i<81;i++){
+    const r=(i/9)|0,c=i%9, given=dz.puzzle[i]>0;
+    const cl=['dzs-c', given?'g':'', i===sel?'s':'', (sel>=0&&i!==sel&&(r===sr||c===sc||(((r/3)|0)===((sr/3)|0)&&((c/3)|0)===((sc/3)|0))))?'p':'', (sv&&cur[i]===sv&&i!==sel)?'s2':'', (!given&&bad.has(i))?'e':'', c%3===2&&c<8?'br':'', r%3===2&&r<8?'bb':''].join(' ');
+    g+=`<div class="${cl}" onclick="dzSel(${i})">${cur[i]||''}</div>`;
+  }
+  const cnt=n=>cur.filter(v=>v===n).length;
+  let pad='';
+  for(let n=1;n<=9;n++) pad+=`<button class="dz-key" ${cnt(n)>=9?'disabled':''} onclick="dzNum(${n})">${n}</button>`;
+  pad+=`<button class="dz-key" onclick="dzNum(0)">⌫</button>`;
+  return `<div class="dzs-board">${g}</div><div class="dz-pad">${pad}</div>`;
+}
+function dzSel(i){ if(!dz||dz.kind!=='sudoku') return; dz.sel=i; dzPaint(); }
+function dzNum(n){
+  if(!dz||dz.kind!=='sudoku'||dz.sel<0||dz.puzzle[dz.sel]>0) return;
+  dz.cur[dz.sel]=n; dzMsg(''); dzSave(); dzPaint();
+}
+/* ---------- Kreuzwort ---------- */
+function dzActiveWord(){
+  if(!dz||!dz.sel) return null; const cv=dz.cover[dz.sel[0]][dz.sel[1]];
+  let i=cv[dz.dir]; if(i===undefined) i=cv[dz.dir==='across'?'down':'across']; return i===undefined?null:i;
+}
+function dzCwHtml(){
+  const N=dz.size, wi=dzActiveWord(), aw=wi===null?null:dz.words[wi];
+  const inW=(r,c)=>aw&&((aw.dir==='across'&&r===aw.r&&c>=aw.c&&c<aw.c+aw.len)||(aw.dir==='down'&&c===aw.c&&r>=aw.r&&r<aw.r+aw.len));
+  let g='';
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const cell=dz.cells[r][c];
+    if(!cell){ g+='<div class="dzc b"></div>'; continue; }
+    const cl='dzc'+(dz.sel&&dz.sel[0]===r&&dz.sel[1]===c?' s':(inW(r,c)?' w':''));
+    g+=`<div class="${cl}" onclick="dzCell(${r},${c})">${cell.n?`<i>${cell.n}</i>`:''}${dz.letters[r][c]||''}</div>`;
+  }
+  const arrow=aw?(aw.dir==='across'?'→':'↓'):'';
+  const clue=aw?`<div class="dzc-clue"><button onclick="dzStep(-1)">‹</button><div style="flex:1"><span style="color:#ffd45a">${aw.n} ${arrow}</span> ${aw.clue} <span style="color:var(--text-dim)">(${aw.len})</span></div><button onclick="dzStep(1)">›</button></div>`:'';
+  const rows=currentLang==='en'?['QWERTYUIOP','ASDFGHJKL','ZXCVBNM']:['QWERTZUIOP','ASDFGHJKL','YXCVBNM'];
+  const kb=rows.map((row,i)=>`<div>${row.split('').map(ch=>`<button class="dz-key" onclick="dzLetter('${ch}')">${ch}</button>`).join('')}${i===2?`<button class="dz-key" style="flex:1.6" onclick="dzBack()">⌫</button>`:''}</div>`).join('');
+  const list=dir=>dz.words.map((w,i)=>({w,i})).filter(x=>x.w.dir===dir).map(x=>`<div class="it${x.i===wi?' a':''}" onclick="dzPick(${x.i})"><b style="display:inline;color:#ffd45a">${x.w.n}</b> ${x.w.clue}</div>`).join('');
+  return `${clue}<div class="dzc-grid" style="--n:${N}">${g}</div><div class="dzc-kb">${kb}</div>
+    <div class="dzc-list"><div><b>${L('Waagerecht →','Across →')}</b>${list('across')}</div><div><b>${L('Senkrecht ↓','Down ↓')}</b>${list('down')}</div></div>`;
+}
+function dzCell(r,c){
+  if(!dz||dz.kind!=='cw'||!dz.cells[r][c]) return;
+  const cv=dz.cover[r][c], same=dz.sel&&dz.sel[0]===r&&dz.sel[1]===c;
+  if(same){ const o=dz.dir==='across'?'down':'across'; if(cv[o]!==undefined) dz.dir=o; }
+  else { dz.sel=[r,c]; if(cv[dz.dir]===undefined) dz.dir=dz.dir==='across'?'down':'across'; }
+  dzPaint();
+}
+function dzPick(i){ const w=dz.words[i]; dz.sel=[w.r,w.c]; dz.dir=w.dir; dzPaint(); window.scrollTo({top:document.querySelector('.dzc-clue')?document.querySelector('.dzc-clue').getBoundingClientRect().top+window.scrollY-60:0,behavior:'smooth'}); }
+function dzStep(d){
+  const wi=dzActiveWord(); if(wi===null) return; const n=dz.words.length, j=(wi+d+n)%n, w=dz.words[j];
+  dz.sel=[w.r,w.c]; dz.dir=w.dir; dzPaint();
+}
+function dzLetter(ch){
+  if(!dz||dz.kind!=='cw'||!dz.sel) return;
+  const [r,c]=dz.sel; dz.letters[r][c]=ch; dzMsg('');
+  const wi=dzActiveWord();
+  if(wi!==null){ const w=dz.words[wi], k=dz.dir===w.dir?(w.dir==='across'?c-w.c:r-w.r):-1; if(k>=0&&k<w.len-1){ dz.sel=[r+(w.dir==='down'?1:0),c+(w.dir==='across'?1:0)]; } }
+  dzSave(); dzPaint();
+}
+function dzBack(){
+  if(!dz||dz.kind!=='cw'||!dz.sel) return;
+  let [r,c]=dz.sel;
+  if(!dz.letters[r][c]){ const wi=dzActiveWord(); if(wi!==null){ const w=dz.words[wi]; const k=w.dir==='across'?c-w.c:r-w.r; if(k>0){ r-=w.dir==='down'?1:0; c-=w.dir==='across'?1:0; dz.sel=[r,c]; } } }
+  dz.letters[r][c]=''; dzSave(); dzPaint();
+}
+document.addEventListener('keydown',e=>{
+  if(!dz||!document.getElementById('dzBody')||e.ctrlKey||e.metaKey||e.altKey) return;
+  if(dz.kind==='sudoku'){
+    if(/^[1-9]$/.test(e.key)) dzNum(+e.key); else if(e.key==='Backspace'||e.key==='Delete'||e.key==='0') dzNum(0);
+    else if(dz.sel>=0&&e.key.startsWith('Arrow')){ const d={ArrowLeft:-1,ArrowRight:1,ArrowUp:-9,ArrowDown:9}[e.key]; const n=dz.sel+d; if(n>=0&&n<81&&!((d===-1&&dz.sel%9===0)||(d===1&&dz.sel%9===8))){ dz.sel=n; dzPaint(); e.preventDefault(); } }
+  } else if(dz.kind==='cw'){
+    if(/^[a-zA-Z]$/.test(e.key)) dzLetter(e.key.toUpperCase()); else if(e.key==='Backspace') dzBack();
+  }
+});
+async function dzSubmit(){
+  if(!dz||dz.busy) return; dz.busy=true;
+  const body={token:account&&account.token,date:dz.date,type:dz.type,diff:dz.diff};
+  if(dz.kind==='sudoku') body.grid=dz.cur; else body.letters=dz.cells.map((row,r)=>row.map((c,cc)=>c?(dz.letters[r][cc]||'.'):'.').join(''));
+  const r=await apiCall('/api/daily/submit',body); dz.busy=false;
+  if(!r.ok){ dzMsg(r.error||'Fehler'); return; }
+  if(!r.correct){ dzMsg(dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
+  try{ localStorage.removeItem(dz.key); }catch(e){}
+  if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance;
+  const txt=r.tooFast?L('Richtig! Aber so schnell gibt es keine Münzen. Probiere es später nochmal mit „Fertig“.','Correct! But no coins for such a fast solve. Try “Done” again a little later.')
+    :r.needLogin?L('Richtig! Melde dich an, um Münzen zu bekommen.','Correct! Log in to earn coins.')
+    :r.already?L('Richtig! Schon eingelöst.','Correct! Already claimed.')
+    :L('Richtig! 🎉 +'+r.coins+' Münzen','Correct! 🎉 +'+r.coins+' coins');
+  if(r.tooFast){ dzMsg(txt,'#ffd45a'); return; }
+  renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
 }
 
 function renderMainMenu(){
@@ -5774,6 +5988,11 @@ function renderMainMenu(){
         <div class="icon">🎯</div>
         <h3>${t('menu_solo_title')}</h3>
         <p>${soloLangLocked ? t('solo_quiz_locked') : t('menu_solo_desc')}</p>
+      </div>
+      <div class="mode-card" onclick="startDailyFlow()">
+        <div class="icon">📅</div>
+        <h3>${L('Tagesrätsel','Daily puzzles')}</h3>
+        <p>${L('Sudoku & Kreuzworträtsel – Münzen verdienen.','Sudoku & crossword – earn coins.')}</p>
       </div>
     </div>
 
@@ -8194,8 +8413,11 @@ const FU_SKINS = [
   {id:'wood', n:['Holz','Wood'], bg:'repeating-linear-gradient(90deg,#a8743c 0 14px,#9a6733 14px 28px)', trim:'#5a3a1a', hole:'#2a1a0a', page:'#7a5028',
    d1:'radial-gradient(circle at 34% 28%,#7a7a7a 0,#222 40%,#000 85%)', d2:'radial-gradient(circle at 34% 28%,#ffffff 0,#ececec 40%,#aaa 85%)', c1:'#6b6b6b', c2:'#ececec', s1:'', s2:'', glow:'#ffd23a'}
 ];
-function fuSkin(){ let id='classic'; try{ id = localStorage.getItem('bp_fu_skin') || 'classic'; }catch(e){} return FU_SKINS.find(x=>x.id===id) || FU_SKINS[0]; }
-function fuSetSkin(id, back){ try{ localStorage.setItem('bp_fu_skin', id); }catch(e){} if(back==='game') fuRender(); else fuModeMenu(); }
+const FU_SKIN_LV_DEFAULT = {neon:3,gold:7,fireice:12,candy:18,space:24,wood:32};
+function fuSkinNeed(id){ const m=(typeof fuS!=='undefined'&&fuS&&fuS.skinMilestones)||null; if(m){ for(const l of Object.keys(m)) if(m[l]===id) return Number(l); return 0; } return FU_SKIN_LV_DEFAULT[id]||0; }
+function fuSkinOpen(id){ const need=fuSkinNeed(id); if(!need) return true; if(typeof adminViewOn==='function' && adminViewOn()) return true; return !!(fuS && fuS.level>=need); }
+function fuSkin(){ let id='classic'; try{ id = localStorage.getItem('bp_fu_skin') || 'classic'; }catch(e){} const k=FU_SKINS.find(x=>x.id===id) || FU_SKINS[0]; return fuSkinOpen(k.id)?k:FU_SKINS[0]; }
+function fuSetSkin(id, back){ if(!fuSkinOpen(id)) return; try{ localStorage.setItem('bp_fu_skin', id); }catch(e){} if(back==='game') fuRender(); else fuModeMenu(); }
 function fuVars(k){
   return `--fu-bg:${k.bg};--fu-trim:${k.trim};--fu-hole:${k.hole};--fu-d1:${k.d1};--fu-d2:${k.d2};--fu-c1:${k.c1};--fu-c2:${k.c2};--fu-glow:${k.glow};--fu-edge:${k.neon?'0 0 18px '+k.trim+', 0 0 40px '+k.trim+'66':'0 12px 30px rgba(0,0,0,.5)'}`;
 }
@@ -8229,7 +8451,7 @@ function fuStyle(){
   .fu-dot{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:6px}
   .fu-skins{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0 2px}
   .fu-skin{width:76px;padding:7px 4px 6px;border-radius:14px;background:rgba(255,255,255,.05);border:2px solid transparent;cursor:pointer;font-size:11px;font-weight:700;color:var(--text)}
-  .fu-skin.on{border-color:#3de0ff;background:rgba(61,224,255,.1)}
+  .fu-skin.lk{opacity:.45;cursor:default}.fu-skin.on{border-color:#3de0ff;background:rgba(61,224,255,.1)}
   .fu-skin .pv{height:30px;border-radius:9px;margin-bottom:5px;display:flex;align-items:center;justify-content:center;gap:4px;border:2px solid var(--fu-trim);background:var(--fu-bg)}
   .fu-skin .pv i{width:15px;height:15px;border-radius:50%;display:block}
   .fu-skin .pv i.a{background:var(--fu-d1)}.fu-skin .pv i.b{background:var(--fu-d2)}`;
@@ -8237,7 +8459,7 @@ function fuStyle(){
 }
 function fuSkinPicker(back){
   const cur = fuSkin().id;
-  return `<div class="fu-skins">${FU_SKINS.map(k=>`<div class="fu-skin${k.id===cur?' on':''}" style="${fuVars(k)}" onclick="fuSetSkin('${k.id}','${back}')"><div class="pv"><i class="a"></i><i class="b"></i></div>${L(k.n[0],k.n[1])}</div>`).join('')}</div>`;
+  return `<div class="fu-skins">${FU_SKINS.map(k=>{ const open=fuSkinOpen(k.id); return `<div class="fu-skin${k.id===cur?' on':''}${open?'':' lk'}" style="${fuVars(k)}" ${open?`onclick="fuSetSkin('${k.id}','${back}')"`:''}><div class="pv"><i class="a"></i><i class="b"></i></div>${L(k.n[0],k.n[1])}${open?'':`<div style="font-size:10px;color:#ffd45a">🔒 Lv ${fuSkinNeed(k.id)}</div>`}</div>`; }).join('')}</div><div style="text-align:center;margin-top:6px"><button class="btn btn-ghost" style="padding:3px 10px;font-size:12px" onclick="fuTable()">📋 ${L('Freischalt-Tabelle','Unlock table')}</button></div>`;
 }
 function startFourupsFlow(){
   fuStyle();
@@ -8262,8 +8484,9 @@ function startFourupsFlow(){
       </div>
     </div>`);
 }
-function fuModeMenu(){
+async function fuModeMenu(){
   fuStyle();
+  if(!fuS || fuModeMenu.t!==1){ fuModeMenu.t=1; try{ await fuaSync(); }catch(e){} }
   renderApp(`
     <div class="panel"><div class="fu-wrap">
       <div class="picker-title">FOURUPS · ORIGINAL</div>
@@ -8442,7 +8665,7 @@ function fuaStyle(){
   if(document.getElementById('fua-style')) return;
   const st=document.createElement('style'); st.id='fua-style';
   st.textContent=`
-  .fua-stone{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid var(--tc,#555);box-shadow:0 0 14px var(--tc,transparent);margin:0 0 20px}
+  .fua-slot{min-height:86px;margin:0 0 20px}.fua-slot .fua-stone{margin:0;height:100%;box-sizing:border-box;min-height:86px;overflow:hidden}.fua-rv{min-height:86px;margin:0 0 12px}.fua-rv .fua-stone{margin:0;min-height:86px;box-sizing:border-box;overflow:hidden}.fu-status{min-height:44px}.fua-stone{display:flex;align-items:center;gap:10px;text-align:left;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:2px solid var(--tc,#555);box-shadow:0 0 14px var(--tc,transparent);margin:0 0 20px}
   .fua-stone .ic{font-size:28px}.fua-stone b{display:block;font-size:14px}.fua-stone small{color:var(--text-dim);font-size:12px}
   .fua-stone .tier{font-size:11px;font-weight:800;color:var(--tc)}
   .fua-act{display:flex;gap:8px;justify-content:center;margin:-8px 0 12px;flex-wrap:wrap}
@@ -8532,6 +8755,7 @@ async function fuaSyncBase(){
     if(r.ok){ fuS = r; try{ account.profile.coins = r.coins; }catch(e){} return fuS; }
   }
   fuS = {ok:true, guest:!account, abilities:{aufraeumer:1}, level:1, xp:0, xpInto:0, xpNeed:80, keys:0, coins:0,
+    skinMilestones:{3:'neon',7:'gold',12:'fireice',18:'candy',24:'space',32:'wood'}, botSteps:[[1,1],[6,2],[16,3]], botLevel:1,
     milestones:{2:'fels',4:'schild',6:'sperre',8:'ausklinken',10:'spiegel',13:'tauschen',16:'joker',20:'bombe',25:'rueckspulen',30:'umfaerber',40:'doppelzug'},
     upgradeCost:[0,500,1000,2000,4000], maxLevel:5, packs:[],
     chests:{normal:{cost:20,drops:2,odds:[.55,.33,.10,.02,0]},epic:{cost:50,drops:3,odds:[.20,.40,.28,.10,.02]},legendary:{cost:100,drops:3,odds:[0,.20,.50,.27,.03]}}};
@@ -8583,15 +8807,39 @@ function fuaMenuRender(){
       <div class="picker-sub" style="margin-top:10px">${L('Wähle bis zu 4 Fähigkeiten ('+sel.length+'/4). Höhere Stufe = erscheint öfter. Seltene erscheinen insgesamt seltener.','Pick up to 4 abilities ('+sel.length+'/4). Higher level = shows up more often. Rarer ones appear less often overall.')}</div>
       <div class="fua-grid">${cards}</div>
       <div class="fua-load" style="margin:6px 0 10px">${path}</div>
-      <div class="actions-row" style="margin-bottom:10px;"><button class="btn" onclick="fuaChests('menu')">🎁 ${L('Kisten öffnen','Open chests')}</button></div>
-      <div class="menu-grid" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="actions-row" style="margin-bottom:10px;"><button class="btn" onclick="fuaChests('menu')">🎁 ${L('Kisten öffnen','Open chests')}</button><button class="btn btn-ghost" onclick="fuTable()">📋 ${L('Freischalt-Tabelle','Unlock table')}</button></div>
+      ${S.admin?`<div class="menu-grid" style="grid-template-columns:1fr 1fr 1fr;">
         <div class="mode-card" onclick="fuaStart('bot',1)"><div class="icon">🙂</div><h3>${L('Leicht','Easy')}</h3></div>
         <div class="mode-card" onclick="fuaStart('bot',2)"><div class="icon">😐</div><h3>${L('Mittel','Medium')}</h3></div>
         <div class="mode-card" onclick="fuaStart('bot',3)"><div class="icon">😈</div><h3>${L('Schwer','Hard')}</h3></div>
-      </div>
+      </div>`:`<div class="menu-grid" style="grid-template-columns:1fr;"><div class="mode-card" onclick="fuaStart('bot',${S.botLevel||1})"><div class="icon">${['','🙂','😐','😈'][S.botLevel||1]}</div><h3>${L('Gegen den Bot','Vs the bot')} · ${[ '',L('Leicht','Easy'),L('Mittel','Medium'),L('Schwer','Hard')][S.botLevel||1]}</h3><p>${L('Die Bot-Stärke steigt automatisch mit deinem Level.','Bot strength rises automatically with your level.')}${fuaNextBot()}</p></div></div>`}
+</div>
       <div class="menu-grid" style="grid-template-columns:1fr;margin-top:8px;"><div class="mode-card" onclick="fuaStart('local',0)"><div class="icon">👥</div><h3>${L('Zu zweit','Two players')}</h3><p>${L('Beide spielen mit deiner Auswahl. Gibt keine XP.','Both use your selection. Gives no XP.')}</p></div></div>
       <div class="actions-row" style="margin-top:14px;"><button class="btn btn-ghost" onclick="startFourupsFlow()">${t('btn_back')}</button></div>
     </div></div>`);
+}
+function fuaNextBot(){ const st=(fuS&&fuS.botSteps)||[]; const nx=st.find(x=>x[0]>(fuS.level||1)); return nx?' '+L('Nächste Stufe ab Level '+nx[0]+'.','Next step at level '+nx[0]+'.'):''; }
+function fuTable(){
+  fuaStyle();
+  const doRender=()=>{
+    const S=fuS, rows={};
+    const add=(l,h)=>{ (rows[l]=rows[l]||[]).push(h); };
+    add(1,`<span class="fua-chip" style="--tc:${FUA_TIERS[FUA[FUA_IDS.find(i=>FUA[i].n&&i==='aufraeumer')||FUA_IDS[0]].t].c}">${FUA.aufraeumer.ic} ${L(FUA.aufraeumer.n[0],FUA.aufraeumer.n[1])}</span>`);
+    add(1,`<span class="fua-chip" style="--tc:#aaa">🎨 ${L('Klassisch','Classic')}</span>`);
+    Object.keys(S.milestones).forEach(l=>{ const a=FUA[S.milestones[l]], tr=FUA_TIERS[a.t]; add(l,`<span class="fua-chip" style="--tc:${tr.c}">${a.ic} ${L(a.n[0],a.n[1])} <small>(${L(tr.n[0],tr.n[1])})</small></span>`); });
+    Object.keys(S.skinMilestones||FU_SKIN_LV_DEFAULT).forEach(l=>{ const m=S.skinMilestones?S.skinMilestones[l]:l; const id=S.skinMilestones?m:l, lv=S.skinMilestones?l:m; const k=FU_SKINS.find(x=>x.id===id); if(k) add(lv,`<span class="fua-chip" style="--tc:#3de0ff">🎨 ${L(k.n[0],k.n[1])}</span>`); });
+    (S.botSteps||[[1,1],[6,2],[16,3]]).forEach(([l,v])=>add(l,`<span class="fua-chip" style="--tc:#ff6b6b">${['','🙂','😐','😈'][v]} ${L('Bot','Bot')}: ${[ '',L('Leicht','Easy'),L('Mittel','Medium'),L('Schwer','Hard')][v]}</span>`));
+    const lv=Object.keys(rows).map(Number).sort((a,b)=>a-b);
+    const body=lv.map(l=>`<tr style="${S.level>=l?'':'opacity:.55'}"><td style="padding:6px 8px;font-weight:800;white-space:nowrap">${S.level>=l?'✓':'🔒'} Lv ${l}</td><td style="padding:6px 4px;text-align:left"><div class="fua-load" style="justify-content:flex-start;margin:0">${rows[l].join('')}</div></td></tr>`).join('');
+    renderApp(`<div class="panel"><div class="fu-wrap">
+      <div class="picker-title">FOURUPS · ${L('FREISCHALTUNGEN','UNLOCKS')}</div>
+      <div class="picker-sub">${L('Das gibt es bei welchem Level. Du bist Level ','What you get at which level. You are level ')}${S.level}. ${L('Level sammelst du durch Siege und Partien gegen den Bot. Je höher dein Level, desto stärker der Bot – das kannst du nicht auswählen.','You earn levels by playing the bot. The higher your level, the stronger the bot – you cannot choose it.')}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px">${body}</table>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:8px">${L('Weitere Fähigkeiten gibt es zusätzlich in Kisten (Schlüssel).','More abilities can also be found in chests (keys).')}</div>
+      <div class="actions-row" style="margin-top:14px;"><button class="btn btn-ghost" onclick="fuaMenu()">${t('btn_back')}</button></div>
+    </div></div>`);
+  };
+  if(fuS && fuS.milestones) doRender(); else fuaSync().then(doRender);
 }
 async function fuaUpgrade(id){
   fuaNote='';
@@ -8673,9 +8921,9 @@ function fuaDraw(){
 function fuaBegin(extra){
   if(fua.reveal && fua.reveal.p===fua.turn) fua.reveal=null;
   fua.stone = extra ? null : fuaDraw();
-  fua.phase='place'; fua.placed=null; fua.targets=null; fua.msg='';
+  fua.phase='place'; fua.placed=null; fua.targets=null; fua.msg=''; fua.anim=null; fua.busy=false;
   fuaRender();
-  if(fua.mode==='bot' && fua.turn===2) setTimeout(fuaBotPlace, 650);
+  if(fua.mode==='bot' && fua.turn===2) setTimeout(fuaBotPlace, 550);
 }
 function fuaNames(){ return fua.mode==='bot'?[L('Du','You'),'Bot']:[L('Spieler 1','Player 1'),L('Spieler 2','Player 2')]; }
 function fuaFinish(win,p){
@@ -8707,14 +8955,14 @@ function fuaEnd(){
   fua.turn=3-q; fuaBegin(false);
 }
 function fuaClickCol(c){
-  if(!fua||fua.over) return;
+  if(!fua||fua.over||fua.busy) return;
   if(fua.mode==='bot'&&fua.turn!==1) return;
   if(fua.phase==='place') fuaPlace(c);
   else if(fua.phase==='target' && fua.targets.some(t=>t.c===c&&t.r===undefined)) fuaTarget({c});
 }
 function fuaClickCell(r,c,ev){
   if(ev) ev.stopPropagation();
-  if(!fua||fua.over||fua.phase!=='target') return;
+  if(!fua||fua.over||fua.busy||fua.phase!=='target') return;
   if(fua.mode==='bot'&&fua.turn!==1) return;
   if(fua.targets.some(t=>t.r===r&&t.c===c)) fuaTarget({r,c});
 }
@@ -8726,19 +8974,19 @@ function fuaPlace(c){
   if(fuaCheck(fua.turn)) return;
   const ab=fua.stone;
   if(ab && fuaTargets(S,ab,fua.turn,pr).length){ fua.phase='ability'; fuaRender(); }
-  else { fuaRender(); fuaEnd(); }
+  else { fua.busy=true; fuaRender(); const G=fua; setTimeout(()=>{ if(fua===G&&!G.over) fuaEnd(); }, 520); } // Stein erst fallen lassen, dann Zug wechseln
 }
 function fuaUse(){
   const ab=fua.stone, T=fuaTargets(fua.S,ab,fua.turn,fua.placed);
   if(T.length===1 && (T[0]===null)) { fuaTarget(null); return; }
   fua.targets=T; fua.phase='target'; fuaRender();
 }
-function fuaSkip(){ fua.phase='place'; fuaEnd(); }
+function fuaSkip(){ fua.phase='place'; fua.anim=null; fuaEnd(); }
 function fuaTarget(t){
   const p=fua.turn, ab=fua.stone;
   fuaApply(fua.S,ab,p,fua.placed,t);
   fua.uses[p][ab]=(fua.uses[p][ab]||0)+1; fua.seen[p][ab]=true; fua.reveal={p,ab}; fua.anim=null; fua.targets=null; fua.phase='place';
-  fuaRender(); fuaEnd();
+  fuaEnd(); // ein einziges Neuzeichnen (fuaBegin/fuaFinish)
 }
 /* ---- Bot ---- */
 function fuaNum(S,jokerAs){ return S.g.map(row=>row.map(x=>!x?0:(x.p===3?3:(x.j?jokerAs:x.p)))); }
@@ -8800,7 +9048,7 @@ function fuaRender(){
   else if(hideStone) stoneBox=`<div class="fua-stone"><span class="ic">❔</span><div><b>${L('Gegner-Stein','Enemy stone')}</b><small>${L('Seine Fähigkeit siehst du erst, wenn er sie benutzt.','You only see its ability once it is used.')}</small></div></div>`;
   else if(G.stone){ const a=FUA[G.stone], tr=FUA_TIERS[a.t]; stoneBox=`<div class="fua-stone" style="--tc:${tr.c}"><span class="ic">${a.ic}</span><div><span class="tier">${L(tr.n[0],tr.n[1]).toUpperCase()}</span><b>${L(a.n[0],a.n[1])}</b><small>${L(a.d[0],a.d[1])}</small></div></div>`; }
   else stoneBox=`<div class="fua-stone"><span class="ic">⚪</span><div><b>${L('Normaler Stein','Normal stone')}</b><small>${L('Keine Fähigkeit.','No ability.')}</small></div></div>`;
-  const rv=G.reveal&&!G.over?(()=>{const a=FUA[G.reveal.ab],tr=FUA_TIERS[a.t];return `<div class="fua-stone" style="--tc:${tr.c};margin-bottom:12px"><span class="ic">${a.ic}</span><div><span class="tier">${L('GEGNER BENUTZT','ENEMY USED').replace('GEGNER',G.mode==='bot'?'GEGNER':n[G.reveal.p-1].toUpperCase()).replace('ENEMY',G.mode==='bot'?'ENEMY':n[G.reveal.p-1].toUpperCase())} · ${L(tr.n[0],tr.n[1]).toUpperCase()}</span><b>${L(a.n[0],a.n[1])}</b><small>${L(a.d[0],a.d[1])}</small></div></div>`;})():'';
+  const rv=G.reveal&&!G.over?(()=>{const a=FUA[G.reveal.ab],tr=FUA_TIERS[a.t];return `<div class="fua-stone" style="--tc:${tr.c}"><span class="ic">${a.ic}</span><div><span class="tier">${L('GEGNER BENUTZT','ENEMY USED').replace('GEGNER',G.mode==='bot'?'GEGNER':n[G.reveal.p-1].toUpperCase()).replace('ENEMY',G.mode==='bot'?'ENEMY':n[G.reveal.p-1].toUpperCase())} · ${L(tr.n[0],tr.n[1]).toUpperCase()}</span><b>${L(a.n[0],a.n[1])}</b><small>${L(a.d[0],a.d[1])}</small></div></div>`;})():'';
   const human=!(G.mode==='bot'&&G.turn===2);
   const act=G.over||!human?'':G.phase==='ability'?`<div class="fua-act"><button class="btn" onclick="fuaUse()">${L('Nutzen','Use')}</button><button class="btn btn-ghost" onclick="fuaSkip()">${L('Nicht nutzen','Skip')}</button></div>`
     :G.phase==='target'?`<div class="fua-act"><button class="btn btn-ghost" onclick="fuaSkip()">${L('Abbrechen (nicht nutzen)','Cancel (skip)')}</button></div>`:'';
@@ -8815,7 +9063,7 @@ function fuaRender(){
       <div style="font-size:13px;color:var(--text-dim)">${dot(1)}${n[0]} ${G.score[1]} &nbsp;·&nbsp; ${dot(2)}${n[1]} ${G.score[2]} &nbsp;·&nbsp; ${L('Remis','Draws')} ${G.score.d}</div>
       <div class="fu-status" style="margin-bottom:10px">${status}${G.msg?`<div style="font-size:12px;color:#ff8a8a">${G.msg}</div>`:''}</div>
       ${G.reward?`<div style="font-size:13px;font-weight:700;color:#c6ff3d;margin:-6px 0 12px">${G.reward}</div>`:''}
-      ${rv}${stoneBox}
+      ${G.over?'':`<div class="fua-rv">${rv}</div><div class="fua-slot">${stoneBox}</div>`}
       <div class="fu-stage"><div class="fu-board">${cols}</div></div>
       ${act}
       <div class="actions-row" style="margin-top:10px;">
