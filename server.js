@@ -27,6 +27,7 @@ const crypto = require("crypto");
 const { WebSocketServer } = require("./lib/miniws");
 // Erfolge: gleiche Datei wie im Browser (public/achievements.js) - eine Definition, ein Regelwerk
 const Achv = require("./public/achievements.js");
+const DailyPz = require("./lib/dailyPuzzles.js");
 
 /* ------------------------------------------------------------------------ */
 /* Sicherheits-/Stabilitaets-Helfer                                          */
@@ -3098,7 +3099,7 @@ function freshModeStats() {
 function publicProfile(user) {
   // Interne Anticheat-Daten gehoeren nicht zum Client
 
-  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, clientCoinsDay: undefined };
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
 }
 
 async function registerUser(username, password, ip, lang) {
@@ -3991,6 +3992,9 @@ function chessRollChest(type) {
 const FU_TIER = { fels: 0, sperre: 0, aufraeumer: 1, schild: 1, spiegel: 1, ausklinken: 2, tauschen: 2, joker: 2, rueckspulen: 3, bombe: 3, umfaerber: 3, doppelzug: 4 };
 const FU_START = "aufraeumer";
 const FU_MILESTONES = { 2: "fels", 4: "schild", 6: "sperre", 8: "ausklinken", 10: "spiegel", 13: "tauschen", 16: "joker", 20: "bombe", 25: "rueckspulen", 30: "umfaerber", 40: "doppelzug" };
+const FU_SKIN_MILESTONES = { 3: "neon", 7: "gold", 12: "fireice", 18: "candy", 24: "space", 32: "wood" };
+const FU_BOT_STEPS = [[1, 1], [6, 2], [16, 3]]; // ab Level -> Bot-Staerke (automatisch, nicht waehlbar)
+function fuBotLevel(lvl) { let b = 1; for (const [l, v] of FU_BOT_STEPS) if (lvl >= l) b = v; return b; }
 const FU_MAX_LEVEL = 5;
 const FU_UPGRADE_COST = [0, 500, 1000, 2000, 4000]; // Kosten von Stufe n -> n+1 = FU_UPGRADE_COST[n]
 const FU_MAX_COINS = [50, 100, 200, 400, 800]; // Ausgleich, wenn Faehigkeit schon auf Max ist
@@ -4031,7 +4035,7 @@ function fourupsPublic(user, got) {
   const { f } = fourupsState(user);
   const li = fuLevelInfo(f.xp);
   return { ...chessPublic(user), abilities: f.abilities, xp: f.xp, level: li.level, xpInto: li.into, xpNeed: li.need,
-    milestones: FU_MILESTONES, upgradeCost: FU_UPGRADE_COST, maxLevel: FU_MAX_LEVEL, chests: FU_CHESTS, milestoneGot: got || [] };
+    milestones: FU_MILESTONES, skinMilestones: FU_SKIN_MILESTONES, botSteps: FU_BOT_STEPS, botLevel: fuBotLevel(li.level), upgradeCost: FU_UPGRADE_COST, maxLevel: FU_MAX_LEVEL, chests: FU_CHESTS, milestoneGot: got || [] };
 }
 function fuPickDrop(odds) {
   let r = Math.random(), tier = 0, cum = 0;
@@ -4078,7 +4082,7 @@ async function fourupsApi(action, payload, lang) {
     if (f.xpDay !== day) { f.xpDay = day; f.xpToday = 0; }
     if (f.lastResultAt && Date.now() - f.lastResultAt < CHESS_EARN_MIN_GAP_MS * 0.75) return { ok: true, ...fourupsPublic(user, got), gainXp: 0, gainKeys: 0, tooFast: true };
     f.lastResultAt = Date.now();
-    const level = Math.max(1, Math.min(3, Math.floor(Number(payload.level) || 1)));
+    const level = fuBotLevel(fuLevelInfo(f.xp).level); // Staerke bestimmt der Server aus deinem Level
     const outcome = payload.outcome === "win" ? "win" : payload.outcome === "draw" ? "draw" : "loss";
     const base = outcome === "win" ? [0, 15, 25, 35][level] : outcome === "draw" ? 12 : 8;
     const restricted = isRestricted(user);
@@ -4094,6 +4098,85 @@ async function fourupsApi(action, payload, lang) {
     const st = fourupsState(user); // ggf. neue Meilensteine
     await saveUsers();
     return { ok: true, ...fourupsPublic(user, st.got), gainXp: xp, gainKeys: keys };
+  }
+  return errObj("invalidInput", lang);
+}
+
+
+// ---------------------------------------------------------------------------
+// Tagesraetsel (Sudoku + Kreuzwort)
+// ---------------------------------------------------------------------------
+const DAILY_REWARDS = { sudoku: { easy: 10, medium: 25, hard: 75 }, cw: { small: 25, big: 75 } };
+const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:big": 120 };
+const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
+const dailyCache = new Map();
+function dailyToday() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
+function dailyDow(dateStr) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); } // 0 = Sonntag
+function dailyAddDays(dateStr, n) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); }
+function dailyWeekDates(today) { // Montag bis heute
+  const dow = dailyDow(today), back = dow === 0 ? 6 : dow - 1; const out = [];
+  for (let i = back; i >= 0; i--) out.push(dailyAddDays(today, -i)); return out;
+}
+function dailyAllowedDates(today) { return dailyDow(today) === 0 ? dailyWeekDates(today) : [today]; } // nachholen nur sonntags
+const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "big"]];
+function dailyState(user) {
+  if (!user.stats.daily || typeof user.stats.daily !== "object") user.stats.daily = { solved: {}, started: {} };
+  const d = user.stats.daily; if (!d.solved) d.solved = {}; if (!d.started) d.started = {};
+  return d;
+}
+function dailyGet(date, type, diff, lang) {
+  const key = date + ":" + type + ":" + diff + ":" + (type === "cw" ? (lang === "en" ? "en" : "de") : "x");
+  if (dailyCache.has(key)) return dailyCache.get(key);
+  if (dailyCache.size > 60) dailyCache.delete(dailyCache.keys().next().value);
+  let v;
+  if (type === "sudoku") { const s = DailyPz.makeSudoku(date, diff); v = { pub: { puzzle: s.puzzle }, solution: s.solution }; }
+  else {
+    const c = DailyPz.makeCrossword(date, diff, lang);
+    const cells = c.grid.map((row, r) => row.map((ch, cc) => ch ? { n: c.numAt[r + "," + cc] || 0 } : 0));
+    v = { pub: { size: c.size, cells, words: c.words.map(w => ({ n: w.n, dir: w.dir, r: w.r, c: w.c, len: w.len, clue: w.clue })) }, solution: c.grid.map(r => r.map(x => x || ".").join("")) };
+  }
+  dailyCache.set(key, v); return v;
+}
+async function dailyApi(action, payload, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = payload.token ? findUserByToken(payload.token) : null;
+  const today = dailyToday(), allowed = dailyAllowedDates(today);
+  const d = user ? dailyState(user) : { solved: {}, started: {} };
+  if (action === "state") {
+    const days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], solved: !!d.solved[date + ":" + t + ":" + df] })) }));
+    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user };
+  }
+  const date = String(payload.date || ""), type = payload.type === "cw" ? "cw" : "sudoku", diff = String(payload.diff || "");
+  if (!DAILY_REWARDS[type] || !DAILY_REWARDS[type][diff] || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return errObj("invalidInput", lang);
+  if (!allowed.includes(date)) return { ok: false, error: lang === "en" ? "This puzzle is not available now. Missed puzzles can be caught up on Sundays." : "Dieses Rätsel ist gerade nicht verfügbar. Verpasste Rätsel kannst du sonntags nachholen." };
+  const skey = date + ":" + type + ":" + diff;
+  if (action === "puzzle") {
+    const pz = dailyGet(date, type, diff, lang);
+    if (user && !d.solved[skey] && !d.started[skey]) { d.started[skey] = Date.now(); await saveUsers(); }
+    return { ok: true, date, type, diff, reward: DAILY_REWARDS[type][diff], solved: !!d.solved[skey], ...pz.pub };
+  }
+  if (action === "submit") {
+    const pz = dailyGet(date, type, diff, lang);
+    let wrong = 0;
+    if (type === "sudoku") {
+      const g = Array.isArray(payload.grid) ? payload.grid : [];
+      if (g.length !== 81) return errObj("invalidInput", lang);
+      for (let i = 0; i < 81; i++) if (Number(g[i]) !== pz.solution[i]) wrong++;
+    } else {
+      const L = Array.isArray(payload.letters) ? payload.letters : [];
+      if (L.length !== pz.solution.length) return errObj("invalidInput", lang);
+      pz.solution.forEach((row, r) => { const q = String(L[r] || "").toUpperCase(); for (let c = 0; c < row.length; c++) if (row[c] !== "." && q[c] !== row[c]) wrong++; });
+    }
+    if (wrong) return { ok: true, correct: false, wrong };
+    if (!user) return { ok: true, correct: true, coins: 0, needLogin: true };
+    if (d.solved[skey]) return { ok: true, correct: true, coins: 0, already: true, balance: user.stats.coins || 0 };
+    const started = d.started[skey] || 0, minMs = (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * 1000;
+    if (!started || Date.now() - started < minMs * DAILY_MIN_SCALE) return { ok: true, correct: true, coins: 0, tooFast: true };
+    d.solved[skey] = Date.now(); delete d.started[skey];
+    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff];
+    user.stats.coins = (user.stats.coins || 0) + gain;
+    await saveUsers();
+    return { ok: true, correct: true, coins: gain, balance: user.stats.coins };
   }
   return errObj("invalidInput", lang);
 }
@@ -4773,6 +4856,7 @@ const server = http.createServer((req, res) => {
         else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && featureLocked("shop") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
         else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
+        else if (req.url.startsWith("/api/daily/")) result = await dailyApi(req.url.slice(11), payload, lang);
         else if (req.url.startsWith("/api/fourups/")) result = await fourupsApi(req.url.slice(13), payload, lang);
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
         else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
