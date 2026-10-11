@@ -3800,11 +3800,21 @@ function getQuestProgress(q){
 function isQuestDone(q){return !!G.questDone[q.id];}
 function isQuestClaimable(q){return !isQuestDone(q)&&getQuestProgress(q)>=q.target;}
 
-function claimQuest(id){
+let cwClaiming=false;
+async function claimQuest(id){
   const quest=QUESTS.find(q=>q.id===id);if(!quest)return;
-  if(!isQuestClaimable(quest))return;
+  if(!isQuestClaimable(quest)||cwClaiming)return;
+  if(quest.reward.keys){
+    // Schluessel liegen im Konto auf dem Server -> dort abholen (einmal je Aufgabe)
+    cwClaiming=true;
+    const j=await cwApi('quest-claim',{id:id});
+    cwClaiming=false;
+    if(!j.ok){showToast(j.noLogin?'\u26A0\uFE0F Bitte in Brain Pulse einloggen, um Schlüssel zu bekommen':(j.error||'Fehler'),'#ff9900');return;}
+    if(j.capped){showToast('Tageslimit für Aufgaben-Schlüssel erreicht – morgen weiter abholen','#ff9900');return;}
+    if(j.granted>0)showToast('+'+j.granted+' \uD83D\uDD11 Schlüssel','#4aff4a');
+    try{updateTopBar();}catch(e){}
+  }
   G.questDone[id]=true;
-  if(quest.reward.keys){if(!G.coins)G.coins=0;G.coins+=quest.reward.keys*50;}
   if(quest.reward.coins){if(!G.coins)G.coins=0;G.coins+=quest.reward.coins;}
   save();
   renderQuestScreen();

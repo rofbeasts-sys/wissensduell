@@ -4508,7 +4508,7 @@ async function toggleInviteBox(kind){
     const r = await apiCall("/api/friends-list", { token: account.token });
     if(r.ok) friendsDataCache = { friends: r.friends, incoming: r.incoming, outgoing: r.outgoing };
   }
-  if(kind === "ttt" && tttMp) renderTttMpGame(); else if(party && party.room) renderPartyLobby();
+  if(kind === "ttt" && tttMp) renderTttMpGame(); else if(kind === "fourups" && fuMp) fuMpRender(); else if(party && party.room) renderPartyLobby();
 }
 async function sendPartyInvite(kind, friend, code){
   const r = await apiCall("/api/party-invite", { token: account.token, friend, code, game: kind });
@@ -4519,7 +4519,7 @@ function showPartyInviteBanner(msg){
   pendingInvite = { kind: msg.kind, code: msg.roomCode, from: msg.from && msg.from.username };
   let b = document.getElementById("inviteBanner");
   if(!b){ b = document.createElement("div"); b.id = "inviteBanner"; b.style.cssText = "position:fixed;left:12px;right:12px;top:12px;max-width:420px;margin:0 auto;background:var(--panel-2,#1c2338);border:1.5px solid var(--accent,#c6ff3d);border-radius:14px;padding:12px 14px;z-index:9999;color:var(--text,#eef0fb);box-shadow:0 8px 30px rgba(0,0,0,.5);"; document.body.appendChild(b); }
-  const what = pendingInvite.kind === "ttt" ? "Tic Tac Toe" : L("einer Party","a party");
+  const what = pendingInvite.kind === "ttt" ? "Tic Tac Toe" : pendingInvite.kind === "fourups" ? L("4 gewinnt","Fourups") : L("einer Party","a party");
   b.innerHTML = `<div style="font-weight:800;margin-bottom:8px;">📨 ${esc(pendingInvite.from || '?')} ${L('lädt dich zu ' + what + ' ein','invites you to ' + what)}</div>
     <div style="display:flex;gap:8px;"><button class="btn btn-primary" style="flex:1;" onclick="acceptPartyInvite()">${L('Beitreten','Join')}</button><button class="btn btn-ghost" style="flex:1;" onclick="dismissPartyInvite()">${L('Ablehnen','Decline')}</button></div>`;
   b.style.display = "block";
@@ -4529,7 +4529,9 @@ function dismissPartyInvite(){ pendingInvite = null; const b = document.getEleme
 function acceptPartyInvite(){
   const inv = pendingInvite; dismissPartyInvite();
   if(!inv || !account) return;
-  if(inv.kind === "ttt"){
+  if(inv.kind === "fourups"){
+    fuMpJoin(inv.code);
+  } else if(inv.kind === "ttt"){
     if(tttMp && tttMp.ws){ try{ tttMp.ws.close(); }catch(e){} tttMp = null; }
     tttOverviewProfile = accountAsProfile();
     tttMpConnect(() => { tttMp.isHost = false; tttMp.ws.send(JSON.stringify({action:"tttJoinRoom", code: inv.code, name: tttOverviewProfile.name})); });
@@ -5784,6 +5786,9 @@ function dzStyle(){
   .dzs-c.s2{background:rgba(255,212,90,.22)}
   .dzs-c.s{background:rgba(61,224,255,.45);color:#fff}
   .dzs-c.e{color:#ff6b6b}
+  .dzs-c.x{background:#a3202f !important;color:#fff !important}
+  .dzc.x{background:#c0283a !important;color:#fff !important}
+  .dzc-list div.it.x{color:#ff7b8a;font-weight:700}
   .dzs-c.br{border-right:3px solid #cfd6ff}.dzs-c.bb{border-bottom:3px solid #cfd6ff}
   .dz-pad{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100cqw,440px);margin:6px auto}
   .dz-key{padding:12px 0;border-radius:10px;border:0;background:rgba(255,255,255,.1);color:var(--text);font-size:18px;font-weight:800;cursor:pointer}
@@ -5881,7 +5886,7 @@ function dzSudokuHtml(){
   let g='';
   for(let i=0;i<81;i++){
     const r=(i/9)|0,c=i%9, given=dz.puzzle[i]>0;
-    const cl=['dzs-c', given?'g':'', i===sel?'s':'', (sel>=0&&i!==sel&&(r===sr||c===sc||(((r/3)|0)===((sr/3)|0)&&((c/3)|0)===((sc/3)|0))))?'p':'', (sv&&cur[i]===sv&&i!==sel)?'s2':'', (!given&&bad.has(i))?'e':'', c%3===2&&c<8?'br':'', r%3===2&&r<8?'bb':''].join(' ');
+    const cl=['dzs-c', given?'g':'', i===sel?'s':'', (sel>=0&&i!==sel&&(r===sr||c===sc||(((r/3)|0)===((sr/3)|0)&&((c/3)|0)===((sc/3)|0))))?'p':'', (sv&&cur[i]===sv&&i!==sel)?'s2':'', (!given&&bad.has(i))?'e':'', (dz.wrong&&dz.wrong[i]===cur[i]&&!given)?'x':'', c%3===2&&c<8?'br':'', r%3===2&&r<8?'bb':''].join(' ');
     g+=`<div class="${cl}" onclick="dzSel(${i})">${cur[i]||''}</div>`;
   }
   const cnt=n=>cur.filter(v=>v===n).length;
@@ -5900,6 +5905,8 @@ function dzActiveWord(){
   if(!dz||!dz.sel) return null; const cv=dz.cover[dz.sel[0]][dz.sel[1]];
   let i=cv[dz.dir]; if(i===undefined) i=cv[dz.dir==='across'?'down':'across']; return i===undefined?null:i;
 }
+function dzWrongAt(r,c){ return !!(dz&&dz.wrongC&&dz.wrongC[r+','+c]!==undefined&&dz.wrongC[r+','+c]===dz.letters[r][c]); }
+function dzWordWrong(w){ if(!dz||!dz.wrongC) return false; for(let j=0;j<w.len;j++){ if(dzWrongAt(w.r+(w.dir==='down'?j:0),w.c+(w.dir==='across'?j:0))) return true; } return false; }
 function dzCwHtml(){
   const N=dz.size, wi=dzActiveWord(), aw=wi===null?null:dz.words[wi];
   const inW=(r,c)=>aw&&((aw.dir==='across'&&r===aw.r&&c>=aw.c&&c<aw.c+aw.len)||(aw.dir==='down'&&c===aw.c&&r>=aw.r&&r<aw.r+aw.len));
@@ -5907,14 +5914,14 @@ function dzCwHtml(){
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
     const cell=dz.cells[r][c];
     if(!cell){ g+='<div class="dzc b"></div>'; continue; }
-    const cl='dzc'+(dz.sel&&dz.sel[0]===r&&dz.sel[1]===c?' s':(inW(r,c)?' w':''));
+    const cl='dzc'+(dz.sel&&dz.sel[0]===r&&dz.sel[1]===c?' s':(inW(r,c)?' w':''))+(dzWrongAt(r,c)?' x':'');
     g+=`<div class="${cl}" onclick="dzCell(${r},${c})">${cell.n?`<i>${cell.n}</i>`:''}${dz.letters[r][c]||''}</div>`;
   }
   const arrow=aw?(aw.dir==='across'?'→':'↓'):'';
   const clue=aw?`<div class="dzc-clue"><button onclick="dzStep(-1)">‹</button><div style="flex:1"><span style="color:#ffd45a">${aw.n} ${arrow}</span> ${aw.clue} <span style="color:var(--text-dim)">(${aw.len})</span></div><button onclick="dzStep(1)">›</button></div>`:'';
   const rows=currentLang==='en'?['QWERTYUIOP','ASDFGHJKL','ZXCVBNM']:['QWERTZUIOP','ASDFGHJKL','YXCVBNM'];
   const kb=rows.map((row,i)=>`<div>${row.split('').map(ch=>`<button class="dz-key" onclick="dzLetter('${ch}')">${ch}</button>`).join('')}${i===2?`<button class="dz-key" style="flex:1.6" onclick="dzBack()">⌫</button>`:''}</div>`).join('');
-  const list=dir=>dz.words.map((w,i)=>({w,i})).filter(x=>x.w.dir===dir).map(x=>`<div class="it${x.i===wi?' a':''}" onclick="dzPick(${x.i})"><b style="display:inline;color:#ffd45a">${x.w.n}</b> ${x.w.clue}</div>`).join('');
+  const list=dir=>dz.words.map((w,i)=>({w,i})).filter(x=>x.w.dir===dir).map(x=>`<div class="it${x.i===wi?' a':''}${dzWordWrong(x.w)?' x':''}" onclick="dzPick(${x.i})"><b style="display:inline;color:#ffd45a">${x.w.n}</b> ${x.w.clue}</div>`).join('');
   return `${clue}<div class="dzc-grid" style="--n:${N}">${g}</div><div class="dzc-kb">${kb}</div>
     <div class="dzc-list"><div><b>${L('Waagerecht →','Across →')}</b>${list('across')}</div><div><b>${L('Senkrecht ↓','Down ↓')}</b>${list('down')}</div></div>`;
 }
@@ -5958,6 +5965,11 @@ async function dzSubmit(){
   if(dz.kind==='sudoku') body.grid=dz.cur; else body.letters=dz.cells.map((row,r)=>row.map((c,cc)=>c?(dz.letters[r][cc]||'.'):'.').join(''));
   const r=await apiCall('/api/daily/submit',body); dz.busy=false;
   if(!r.ok){ dzMsg(r.error||'Fehler'); return; }
+  if(!r.correct){
+    if(dz.kind==='sudoku'){ dz.wrong={}; (r.wrongCells||[]).forEach(i=>{ dz.wrong[i]=dz.cur[i]; }); }
+    else { dz.wrongC={}; (r.wrongCells||[]).forEach(k=>{ const p=k.split(','); dz.wrongC[k]=dz.letters[+p[0]][+p[1]]; }); }
+    dzPaint();
+  }
   if(!r.correct){ dzMsg(dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
   const solvedTime=dzElapsed(); dzTimerStop();
   try{ localStorage.removeItem(dz.key); }catch(e){}
@@ -8496,6 +8508,13 @@ function startFourupsFlow(){
           <p>${L('Steine mit Spezialkräften – Bomben, Joker, Doppelzug …','Stones with special powers – bombs, jokers, double move …')}</p>
         </div>`}
       </div>
+      <div class="menu-grid" style="grid-template-columns:1fr; margin-top:8px;">
+        <div class="mode-card" onclick="fuMpMenu()">
+          <div class="icon">👥</div>
+          <h3>${L('Mit Freunden','With friends')}</h3>
+          <p>${L('Online gegen einen Freund – per Einladung oder Code.','Online vs a friend – by invite or code.')}</p>
+        </div>
+      </div>
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
       </div>
@@ -8567,6 +8586,89 @@ function fuRender(){
       </div>
       <div class="picker-sub" style="margin-top:14px;">${L('Design','Design')}</div>
       ${fuSkinPicker('game')}
+    </div></div>`);
+}
+/* ---------- 4 gewinnt online mit Freunden ---------- */
+let fuMp = null;
+function fuMpName(){ return (account && account.profile && account.profile.username) || L('Spieler','Player'); }
+function fuMpClose(){ if(fuMp && fuMp.ws){ try{ fuMp.ws.send(JSON.stringify({action:'fuLeave'})); }catch(e){} try{ fuMp.ws.close(); }catch(e){} } fuMp=null; inviteBoxOpen=false; }
+function fuMpMenu(msg){
+  if(!account){ postLoginRedirect = fuMpMenu; renderAccountAuth('login'); return; }
+  fuStyle(); fuMpClose(); connectFriendsWs();
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">👥 FOURUPS ${L('MIT FREUNDEN','WITH FRIENDS')}</div>
+      <div class="picker-sub">${L('Erstelle einen Raum und lade einen Freund ein – oder tritt mit einem Code bei.','Create a room and invite a friend – or join with a code.')}</div>
+      <div id="fuMpErr" style="color:#ff8a8a;font-weight:700;min-height:20px;margin-top:6px">${msg?esc(msg):''}</div>
+      <button class="btn btn-block" style="margin-top:6px" onclick="fuMpCreate()">➕ ${L('Raum erstellen','Create room')}</button>
+      <div class="picker-sub" style="margin-top:18px">${L('Oder Code eingeben','Or enter a code')}</div>
+      <input id="fuMpCode" type="text" maxlength="8" placeholder="CODE" style="text-transform:uppercase;text-align:center;letter-spacing:4px;font-size:20px;margin-top:6px">
+      <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="fuMpJoin(document.getElementById('fuMpCode').value)">${L('Beitreten','Join')}</button>
+      <div class="actions-row" style="margin-top:18px"><button class="btn btn-ghost" onclick="startFourupsFlow()">${t('btn_back')}</button></div>
+    </div>`);
+}
+function fuMpConnect(onOpen){
+  let ws; try{ ws = new WebSocket(wsUrl()); }catch(e){ fuMpMenu(L('Verbindung fehlgeschlagen.','Connection failed.')); return; }
+  fuMp = { ws, code:null, you:0, st:null, left:false };
+  const to = setTimeout(()=>{ if(ws.readyState!==WebSocket.OPEN){ try{ws.close();}catch(e){} fuMp=null; fuMpMenu(L('Der Server antwortet nicht.',"The server isn't responding.")); } },5000);
+  ws.onopen = ()=>{ clearTimeout(to); onOpen(); };
+  ws.onmessage = ev=>{ let m; try{ m=JSON.parse(ev.data); }catch(e){ return; } fuMpHandle(m); };
+  ws.onclose = ()=>{ clearTimeout(to); if(fuMp && fuMp.ws===ws && !fuMp.left){ fuMp.left=true; fuMp.lost=true; if(document.getElementById('fuMpWrap')) fuMpRender(); } };
+}
+function fuMpCreate(){ fuMpConnect(()=>fuMp.ws.send(JSON.stringify({action:'fuCreateRoom',name:fuMpName()}))); }
+function fuMpJoin(code){
+  if(!account){ postLoginRedirect = ()=>fuMpJoin(code); renderAccountAuth('login'); return; }
+  const c=String(code||'').trim().toUpperCase(); if(!c){ const e=document.getElementById('fuMpErr'); if(e) e.textContent=L('Bitte Code eingeben.','Please enter a code.'); return; }
+  fuStyle(); fuMpClose(); fuMpConnect(()=>fuMp.ws.send(JSON.stringify({action:'fuJoinRoom',code:c,name:fuMpName()})));
+}
+function fuMpHandle(m){
+  if(!fuMp) return;
+  if(m.type==='fuError'){ const msg=m.message||'Fehler'; fuMpClose(); fuMpMenu(msg); return; }
+  if(m.type==='fuJoined'){ fuMp.code=m.roomCode; fuMp.you=m.you; return; }
+  if(m.type==='fuState'){ fuMp.st=m; fuMp.you=m.you; fuMp.code=m.roomCode; fuMp.left=false; fuMpRender(); return; }
+  if(m.type==='fuOpponentLeft'){ fuMp.left=true; fuMpRender(); return; }
+}
+function fuMpMove(c){
+  if(!fuMp||!fuMp.st||fuMp.st.over||!fuMp.st.full||fuMp.st.turn!==fuMp.you||fuMp.left) return;
+  fuMp.ws.send(JSON.stringify({action:'fuMove',col:c}));
+}
+function fuMpRematch(){ if(fuMp&&fuMp.ws) fuMp.ws.send(JSON.stringify({action:'fuRematch'})); }
+function fuMpLeaveBtn(){ fuMpClose(); startFourupsFlow(); }
+function fuMpRender(){
+  if(!fuMp||!fuMp.st) return;
+  const st=fuMp.st, k=fuSkin(), me=fuMp.you, opp=3-me;
+  const nm=p=>st.names[p-1]||(p===me?L('Du','You'):L('Freund','Friend'));
+  const dot=p=>`<span class="fu-dot" style="background:${p===1?k.c1:k.c2}"></span>`;
+  let status;
+  if(fuMp.left||fuMp.lost) status=fuMp.lost?L('Verbindung verloren.','Connection lost.'):L('Dein Freund hat das Spiel verlassen.','Your friend left the game.');
+  else if(!st.full) status=L('Warte auf deinen Freund …','Waiting for your friend …');
+  else if(st.over) status=st.winner==='draw'?L('Unentschieden!','Draw!'):`${dot(st.winner)}${st.winner===me?L('Du gewinnst! 🎉','You win! 🎉'):nm(st.winner)+' '+L('gewinnt!','wins!')}`;
+  else status=`${dot(st.turn)}${st.turn===me?L('Du bist dran','Your move'):nm(st.turn)+' '+L('ist dran','to move')}`;
+  const winSet=new Set((st.winCells||[]).map(c=>c[0]+','+c[1]));
+  const sym=v=>(v===1?k.s1:k.s2);
+  const canPlay=st.full&&!st.over&&st.turn===me&&!fuMp.left;
+  let cols='';
+  for(let c=0;c<FU_COLS;c++){
+    let cells='';
+    for(let r=0;r<FU_ROWS;r++){
+      const v=st.board[r][c], isLast=st.last&&st.last[0]===r&&st.last[1]===c;
+      cells+=`<div class="fu-cell">${v?`<div class="fu-disc p${v}${winSet.has(r+','+c)?' win':''}${isLast?' last':''}${isLast&&!st.over?' drop':''}" ${isLast&&!st.over?`style="--from:-${(r+1)*112}%"`:''}>${sym(v)?`<span>${sym(v)}</span>`:''}</div>`:''}</div>`;
+    }
+    cols+=`<div class="fu-col${canPlay?'':' off'}" onclick="fuMpMove(${c})"><div class="fu-ghost p${me}">${sym(me)}</div>${cells}</div>`;
+  }
+  const waiting=!st.full&&!fuMp.left;
+  renderApp(`
+    <div class="panel"><div class="fu-wrap" id="fuMpWrap" style="${fuVars(k)}">
+      <div class="picker-title">FOURUPS · ${L('FREUNDE','FRIENDS')}</div>
+      ${waiting?`<div class="picker-sub">${L('Raumcode','Room code')}: <b style="font-size:24px;letter-spacing:4px;color:#ffd45a">${esc(fuMp.code||'')}</b></div>`:''}
+      <div style="font-size:13px;color:var(--text-dim)">${dot(me)}${nm(me)} ${st.scores[me]} &nbsp;·&nbsp; ${dot(opp)}${nm(opp)} ${st.scores[opp]} &nbsp;·&nbsp; ${L('Remis','Draws')} ${st.scores.d}</div>
+      <div class="fu-status">${status}</div>
+      <div class="fu-stage"><div class="fu-board">${cols}</div></div>
+      ${waiting?renderInviteFriendsBox('fourups',fuMp.code):''}
+      <div class="actions-row" style="margin-top:12px;">
+        ${st.over&&st.full&&!fuMp.left?`<button class="btn" onclick="fuMpRematch()">${L('Nochmal','Again')}</button>`:''}
+        <button class="btn btn-ghost" onclick="fuMpLeaveBtn()">${t('btn_back')}</button>
+      </div>
     </div></div>`);
 }
 function fuDropRow(b,c){ for(let r=FU_ROWS-1;r>=0;r--) if(!b[r][c]) return r; return -1; }
