@@ -2779,6 +2779,27 @@ function fourupsWinCells(b, r, c) {
   }
   return null;
 }
+/* ---- 4 gewinnt: Duell mit Freunden (eigene Raeume, wie Tic Tac Toe) ---- */
+const fuRooms = new Map();
+function fuMakeCode() { let c; do { c = randomRoomCode(); } while (fuRooms.has(c) || tttRooms.has(c)); return c; }
+function fuBroadcast(room) {
+  const names = room.players.map(p => p.num === 1 ? p.name : null), n2 = room.players.find(p => p.num === 2);
+  const n1 = room.players.find(p => p.num === 1);
+  room.players.forEach(p => {
+    if (!p.connected) return;
+    send(p.ws, { type: "fuState", roomCode: room.code, you: p.num, board: room.board, turn: room.turn, over: room.over, winner: room.winner, winCells: room.winCells, last: room.last,
+      names: [n1 ? n1.name : "", n2 ? n2.name : ""], scores: room.scores, full: room.players.length === 2 });
+  });
+}
+function fuHandleDisconnect(ws) {
+  const code = ws.fuRoomCode; if (!code) return;
+  const room = fuRooms.get(code); ws.fuRoomCode = null; if (!room) return;
+  const pl = room.players.find(p => p.ws === ws); if (pl) pl.connected = false;
+  const other = room.players.find(p => p.ws !== ws && p.connected);
+  if (other) send(other.ws, { type: "fuOpponentLeft" });
+  if (room.players.every(p => !p.connected)) fuRooms.delete(code);
+}
+function fuFreshBoard() { return Array.from({ length: FOURUPS_ROWS }, () => Array(FOURUPS_COLS).fill(0)); }
 function startPartyFourupsRound(room, def) {
   const teamIds = Array.from(room.teams.keys());
   if (teamIds.length !== 2) {
@@ -3676,11 +3697,11 @@ async function partyInvite(token, friendName, code, game, lang, isAdmin) {
   if (rlHit("inv|" + me.username.toLowerCase(), 21, 60000, 30000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
   if (rlHit("invp|" + me.username.toLowerCase() + "|" + friend.username.toLowerCase(), 2, 15000, 15000).lockedUntil > Date.now()) return errObj("inviteTooOften", lang);
   const cleanCode = typeof code === "string" ? code.trim().toUpperCase() : "";
-  const kind = game === "ttt" ? "ttt" : "party";
+  const kind = game === "ttt" ? "ttt" : game === "fourups" ? "fourups" : "party";
   if (kind === "party") {
     const room = rooms.get(cleanCode);
     if (!room || room.phase !== "lobby") return errObj("inviteRoomGone", lang);
-  } else if (!/^[A-Z0-9]{4,8}$/.test(cleanCode)) return errObj("inviteRoomGone", lang);
+  } else if (kind === "fourups" ? !fuRooms.has(cleanCode) : !/^[A-Z0-9]{4,8}$/.test(cleanCode)) return errObj("inviteRoomGone", lang);
   if (!accountIsOnline(friend.username)) {
     if (!isAdmin) return errObj("inviteOffline", lang);
     const key = friend.username.toLowerCase();
@@ -4111,6 +4132,7 @@ const DAILY_REWARDS = { sudoku: { easy: 10, medium: 25, hard: 75 }, cw: { small:
 const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:big": 120 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
 const dailyCache = new Map();
+let CW_SCHEDULE = null; try { CW_SCHEDULE = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "shared/crosswordSchedule.json"), "utf8")); } catch (e) { console.error("Kreuzwort-Plan nicht geladen:", e.message); }
 function dailyToday() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
 function dailyDow(dateStr) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); } // 0 = Sonntag
 function dailyAddDays(dateStr, n) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); }
@@ -4132,7 +4154,15 @@ function dailyGet(date, type, diff, lang) {
   let v;
   if (type === "sudoku") { const s = DailyPz.makeSudoku(date, diff); v = { pub: { puzzle: s.puzzle }, solution: s.solution }; }
   else {
-    const c = DailyPz.makeCrossword(date, diff, lang);
+    // Fester Plan (shared/crosswordSchedule.json): jedes Wort kommt pro Zyklus nur einmal vor. Ohne Plan: alte Zufallserzeugung.
+    const lg = lang === "en" ? "en" : "de", sched = CW_SCHEDULE && CW_SCHEDULE[lg];
+    let c;
+    if (sched && sched.length) {
+      const [yy, mm, dd] = date.split("-").map(Number), n = sched.length;
+      const di = (((Math.round((Date.UTC(yy, mm - 1, dd) - Date.UTC(2026, 9, 12)) / 86400000)) % n) + n) % n;
+      const p = sched[di][diff];
+      c = { size: p.size, grid: p.grid.map(r => r.split("").map(x => x === "." ? "" : x)), numAt: p.numAt, words: p.words };
+    } else c = DailyPz.makeCrossword(date, diff, lang);
     const cells = c.grid.map((row, r) => row.map((ch, cc) => ch ? { n: c.numAt[r + "," + cc] || 0 } : 0));
     v = { pub: { size: c.size, cells, words: c.words.map(w => ({ n: w.n, dir: w.dir, r: w.r, c: w.c, len: w.len, clue: w.clue })) }, solution: c.grid.map(r => r.map(x => x || ".").join("")) };
   }
@@ -4158,17 +4188,17 @@ async function dailyApi(action, payload, lang) {
   }
   if (action === "submit") {
     const pz = dailyGet(date, type, diff, lang);
-    let wrong = 0;
+    let wrong = 0; const wrongCells = [];
     if (type === "sudoku") {
       const g = Array.isArray(payload.grid) ? payload.grid : [];
       if (g.length !== 81) return errObj("invalidInput", lang);
-      for (let i = 0; i < 81; i++) if (Number(g[i]) !== pz.solution[i]) wrong++;
+      for (let i = 0; i < 81; i++) if (Number(g[i]) !== pz.solution[i]) { wrong++; wrongCells.push(i); }
     } else {
       const L = Array.isArray(payload.letters) ? payload.letters : [];
       if (L.length !== pz.solution.length) return errObj("invalidInput", lang);
-      pz.solution.forEach((row, r) => { const q = String(L[r] || "").toUpperCase(); for (let c = 0; c < row.length; c++) if (row[c] !== "." && q[c] !== row[c]) wrong++; });
+      pz.solution.forEach((row, r) => { const q = String(L[r] || "").toUpperCase(); for (let c = 0; c < row.length; c++) if (row[c] !== "." && q[c] !== row[c]) { wrong++; wrongCells.push(r + "," + c); } });
     }
-    if (wrong) return { ok: true, correct: false, wrong };
+    if (wrong) return { ok: true, correct: false, wrong, wrongCells };
     if (!user) return { ok: true, correct: true, coins: 0, needLogin: true };
     if (d.solved[skey]) return { ok: true, correct: true, coins: 0, already: true, balance: user.stats.coins || 0 };
     const started = d.started[skey] || 0, minMs = (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * 1000;
@@ -4182,12 +4212,29 @@ async function dailyApi(action, payload, lang) {
   return errObj("invalidInput", lang);
 }
 
+const CHESS_QUEST_KEYS = (() => { try { return JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "shared/chessQuestKeys.json"), "utf8")); } catch (e) { return {}; } })();
+const CHESS_QUEST_KEYS_PER_DAY = 60; // Gesamtgrenze je Tag (die erste Abholung des Tages darf auch groesser sein)
 async function chessApi(action, payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(payload.token);
   if (!user) return errObj("notLoggedIn", lang);
   const c = chessState(user);
   if (action === "state") return { ok: true, ...chessPublic(user) };
+  if (action === "quest-claim") {
+    // Aufgaben-Belohnung in Schluesseln: einmal je Aufgabe, Hoehe kommt aus der Server-Tabelle (nicht vom Client).
+    const id = String(payload.id || ""), want = CHESS_QUEST_KEYS[id];
+    if (!want) return errObj("invalidInput", lang);
+    if (!c.qClaimed || typeof c.qClaimed !== "object") c.qClaimed = {};
+    if (c.qClaimed[id]) return { ok: true, granted: 0, already: true, ...chessPublic(user) };
+    const day = new Date().toISOString().slice(0, 10);
+    if (c.qDay !== day) { c.qDay = day; c.qToday = 0; }
+    if (c.qToday > 0 && c.qToday + want > CHESS_QUEST_KEYS_PER_DAY) return { ok: true, granted: 0, capped: true, ...chessPublic(user) };
+    c.qClaimed[id] = Date.now();
+    const give = isRestricted(user) ? 0 : want;
+    c.qToday += want; c.keys += give;
+    await saveUsers();
+    return { ok: true, granted: give, ...chessPublic(user) };
+  }
   if (action === "open") {
     const chest = CHESS_CHESTS[payload.type];
     if (!chest) return errObj("invalidInput", lang);
@@ -4967,7 +5014,7 @@ wss.on("connection", (ws, req) => {
     if (Date.now() - ws.lastSeen > WS_DEAD_AFTER_MS) { ws.terminate(); return; }
     ws.ping();
   }, WS_PING_EVERY_MS);
-  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); accountDisconnect(ws); });
+  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); fuHandleDisconnect(ws); accountDisconnect(ws); });
 
   ws.on("message", (raw) => {
     // Nachrichten-Eimer: zu schnelle Nachrichten werden verworfen, Dauerfeuer kappt die Verbindung
@@ -5006,7 +5053,7 @@ wss.on("connection", (ws, req) => {
       const wasOffline = set.size === 0;
       set.add(ws);
       send(ws, { type: "accountConnectResult", ok: true });
-      const queued = (pendingInvites.get(ws.accountUsername) || []).filter(i => i.exp > Date.now() && (i.kind === "ttt" || (rooms.get(i.roomCode) && rooms.get(i.roomCode).phase === "lobby")));
+      const queued = (pendingInvites.get(ws.accountUsername) || []).filter(i => i.exp > Date.now() && (i.kind === "ttt" || (i.kind === "fourups" && fuRooms.has(i.roomCode)) || (rooms.get(i.roomCode) && rooms.get(i.roomCode).phase === "lobby")));
       pendingInvites.delete(ws.accountUsername);
       queued.forEach(i => send(ws, { type: "partyInvite", kind: i.kind, roomCode: i.roomCode, from: i.from }));
       if (wasOffline) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOnline", username: user.username }));
@@ -5150,6 +5197,55 @@ wss.on("connection", (ws, req) => {
       tttBroadcastState(room);
       return;
     }
+    if (msg.action === "fuCreateRoom") {
+      if (ws.fuRoomCode) fuHandleDisconnect(ws);
+      const code = fuMakeCode();
+      const room = { code, players: [{ ws, name: cleanStr(msg.name, 20) || "Host", num: Math.random() < 0.5 ? 1 : 2, connected: true }], board: fuFreshBoard(), turn: 1, over: false, winner: null, winCells: null, last: null, scores: { 1: 0, 2: 0, d: 0 } };
+      fuRooms.set(code, room); ws.fuRoomCode = code;
+      send(ws, { type: "fuJoined", roomCode: code, you: room.players[0].num });
+      fuBroadcast(room);
+      return;
+    }
+    if (msg.action === "fuJoinRoom") {
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "fuError", message: "Zu viele falsche Codes. Bitte kurz warten." });
+      const room = fuRooms.get(cleanCode(msg.code));
+      if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "fuError", message: "Raum nicht gefunden." }); }
+      if (room.players.length >= 2) return send(ws, { type: "fuError", message: "Der Raum ist schon voll." });
+      if (ws.fuRoomCode) fuHandleDisconnect(ws);
+      const num = room.players[0].num === 1 ? 2 : 1;
+      room.players.push({ ws, name: cleanStr(msg.name, 20) || "Spieler", num, connected: true });
+      ws.fuRoomCode = room.code;
+      send(ws, { type: "fuJoined", roomCode: room.code, you: num });
+      fuBroadcast(room);
+      return;
+    }
+    if (msg.action === "fuMove") {
+      const room = fuRooms.get(ws.fuRoomCode);
+      if (!room || room.over || room.players.length < 2) return;
+      const me = room.players.find(p => p.ws === ws);
+      if (!me || me.num !== room.turn) return;
+      const col = Number(msg.col);
+      if (!Number.isInteger(col) || col < 0 || col >= FOURUPS_COLS) return;
+      let row = -1; for (let r = FOURUPS_ROWS - 1; r >= 0; r--) if (!room.board[r][col]) { row = r; break; }
+      if (row < 0) return;
+      room.board[row][col] = me.num; room.last = [row, col];
+      const w = fourupsWinCells(room.board, row, col);
+      if (w) { room.over = true; room.winner = me.num; room.winCells = w; room.scores[me.num]++; }
+      else if (room.board[0].every(v => v)) { room.over = true; room.winner = "draw"; room.scores.d++; }
+      else room.turn = 3 - room.turn;
+      fuBroadcast(room);
+      return;
+    }
+    if (msg.action === "fuRematch") {
+      const room = fuRooms.get(ws.fuRoomCode);
+      if (!room || !room.over || room.players.length < 2) return;
+      room.board = fuFreshBoard(); room.over = false; room.winner = null; room.winCells = null; room.last = null;
+      if (Math.random() < 0.5) room.players.forEach(p => { p.num = 3 - p.num; });
+      room.turn = 1;
+      fuBroadcast(room);
+      return;
+    }
+    if (msg.action === "fuLeave") { fuHandleDisconnect(ws); return; }
     if (msg.action === "tttLeave") {
       tttHandleDisconnect(ws);
       ws.tttRoomCode = null;
