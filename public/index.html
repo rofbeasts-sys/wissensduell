@@ -4129,7 +4129,7 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 
 // Feature-Schalter (Coming soon): sicherer Standard = gesperrt, bis der Server
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
-let lockedFeatures = ['shop','arena','chess_online','party','ordering','blitz','biology','chess_fantasy','achievements','ttt_quantum'];
+let lockedFeatures = ['shop','arena','chess_online','party','ordering','blitz','biology','chess_fantasy','achievements','ttt_quantum','fourups_abilities'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
@@ -4211,13 +4211,21 @@ function openAdminReset(){
     } else { msg.style.color = '#ff8aa0'; msg.textContent = (r && r.error) || L('Fehlgeschlagen.','Failed.'); }
   };
 }
+let bpSid=''; try{ bpSid=sessionStorage.getItem('bp_sid')||''; if(!bpSid){ bpSid=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now()).replace(/-/g,''); sessionStorage.setItem('bp_sid',bpSid); } }catch(e){ bpSid=String(Math.random()).slice(2)+Date.now(); }
+function bpPing(){ if(document.hidden) return; fetch('/api/presence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:bpSid,logged:!!account})}).catch(()=>{}); }
+setInterval(bpPing,60000); setTimeout(bpPing,2500);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) bpPing(); });
+let adminOnline=null;
+async function adminOnlineRefresh(){ if(!adminKeyStored()) return; try{ const r=await fetch('/api/admin-online',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:adminKeyStored()})}); const j=await r.json(); adminOnline=(j&&j.ok)?j:null; }catch(e){ adminOnline=null; } const el=document.getElementById('adminOnl'); if(el) el.innerHTML=adminOnlineHtml(); }
+function adminOnlineHtml(){ const o=adminOnline; return o?('🟢 '+o.online+' <span style="opacity:.7;font-weight:600">('+o.loggedIn+' '+L('Konto','acc')+' · '+o.guests+' '+L('Gast','guest')+' · ↑'+o.peakToday+')</span>'):'🟢 –'; }
+setInterval(adminOnlineRefresh,30000); setTimeout(adminOnlineRefresh,3000);
 function renderAdminPill(){
   let p = document.getElementById('adminPill');
   if(!adminKeyStored()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
   p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + (on ? '#ff5d8f' : '#38bdf8') + ';color:#fff;box-shadow:0 4px 18px #0008';
-  p.innerHTML = '<span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
+  p.innerHTML = '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
 }
 async function toggleAdminView(){
   try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
@@ -5739,7 +5747,7 @@ function profBubbleHtml(){
 function socialBarHtml(){
   const list = SOCIAL_LINKS.filter(x => x.url);
   if(!list.length) return '';
-  return profBubbleHtml()+`<div class="soc-bar"><div class="soc-txt">${L('Folge uns für mehr Infos – und verpasse nichts Neues!','Follow us for more info – and never miss anything new!')}</div><div class="soc-row">${list.map(x => `<a class="soc-btn" style="--c:${x.c}" href="${x.url}" target="_blank" rel="noopener noreferrer"${x.age ? ` onclick="return socialAgeGate(${x.age}, '${x.name}')"` : ''}>${x.svg}<span>${x.name}</span></a>`).join('')}</div></div>`;
+  return `<div class="soc-bar"><div class="soc-txt">${L('Folge uns für mehr Content!','Follow us for more content!')}</div><div class="soc-row">${list.map(x => `<a class="soc-btn" style="--c:${x.c}" href="${x.url}" target="_blank" rel="noopener noreferrer"${x.age ? ` onclick="return socialAgeGate(${x.age}, '${x.name}')"` : ''}>${x.svg}<span>${x.name}</span></a>`).join('')}</div></div>`;
 }
 
 function legalLinksHtml(){
@@ -5747,12 +5755,20 @@ function legalLinksHtml(){
 }
 
 /* ===================== TAGESRÄTSEL (Sudoku + Kreuzworträtsel) ===================== */
-let dz = null;
+let dz = null, dzTimerId = null;
+function dzElapsed(){ if(!dz) return 0; return Math.floor((dz.el||0)+(dz.t0?(Date.now()-dz.t0)/1000:0)); }
+function dzFmt(sec){ const m=Math.floor(sec/60), s2=sec%60, h=Math.floor(m/60); return (h?h+':'+String(m%60).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(s2).padStart(2,'0'); }
+function dzTimerStop(){ if(dz&&dz.t0){ dz.el=dzElapsed(); dz.t0=0; } if(dzTimerId){ clearInterval(dzTimerId); dzTimerId=null; } }
+function dzTimerStart(){
+  if(!dz) return; dz.t0=Date.now(); if(dzTimerId) clearInterval(dzTimerId);
+  let n=0;
+  dzTimerId=setInterval(()=>{ const e=document.getElementById('dzTimer'); if(!dz||!e){ clearInterval(dzTimerId); dzTimerId=null; return; } e.textContent='⏱ '+dzFmt(dzElapsed()); if(++n%10===0) dzSave(); },1000);
+}
 function dzStyle(){
   if(document.getElementById('dz-style')) return;
   const st=document.createElement('style'); st.id='dz-style';
   st.textContent=`
-  .dz-wrap{max-width:480px;margin:0 auto;text-align:center;container-type:inline-size}
+  .dz-timer{font-size:22px;font-weight:800;color:#c6ff3d;margin:2px 0 4px;letter-spacing:1px}.dz-wrap{max-width:480px;margin:0 auto;text-align:center;container-type:inline-size}
   .dz-day{margin:12px 0;padding:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);text-align:left}
   .dz-day h4{margin:0 0 8px;font-size:14px}
   .dz-grid5{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -5795,7 +5811,7 @@ function dzTypeName(type,diff){
 function dzDayLabel(date){ try{ return new Date(date+'T12:00:00').toLocaleDateString(currentLang==='en'?'en-GB':'de-DE',{weekday:'long',day:'2-digit',month:'2-digit'}); }catch(e){ return date; } }
 function dzKey(date,type,diff){ return 'bp_dz_'+(account&&account.profile?account.profile.username:'guest')+'_'+date+'_'+type+'_'+diff+(type==='cw'?'_'+currentLang:''); }
 async function startDailyFlow(){
-  dzStyle(); dz=null;
+  dzStyle(); if(dz){ dzTimerStop(); dzSave(); } dz=null;
   renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">…</div></div></div>`);
   const r=await apiCall('/api/daily/state',{token:account&&account.token});
   if(!r.ok){ renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">${r.error||'Fehler'}</div><div class="actions-row"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div></div>`); return; }
@@ -5825,21 +5841,21 @@ async function dzOpen(date,type,diff){
   if(type==='sudoku'){
     const sig=r.puzzle.join('');
     const cur=(saved&&saved.sig===sig&&Array.isArray(saved.cur)&&saved.cur.length===81)?saved.cur:r.puzzle.slice();
-    dz={kind:'sudoku',date,type,diff,key,sig,reward:r.reward,puzzle:r.puzzle,cur,sel:-1,msg:'',busy:false};
+    dz={kind:'sudoku',date,type,diff,key,sig,reward:r.reward,puzzle:r.puzzle,cur,sel:-1,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else {
     const N=r.size, sig=r.words.length+':'+N;
     const letters=(saved&&saved.sig===sig&&Array.isArray(saved.letters))?saved.letters:Array.from({length:N},()=>Array(N).fill(''));
-    dz={kind:'cw',date,type,diff,key,sig,reward:r.reward,size:N,cells:r.cells,words:r.words,letters,sel:null,dir:'across',msg:'',busy:false};
+    dz={kind:'cw',date,type,diff,key,sig,reward:r.reward,size:N,cells:r.cells,words:r.words,letters,sel:null,dir:'across',msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
     dz.cover=Array.from({length:N},()=>Array(N).fill(null).map(()=>({})));
     r.words.forEach((w,i)=>{ for(let k=0;k<w.len;k++){ const rr=w.r+(w.dir==='down'?k:0), cc=w.c+(w.dir==='across'?k:0); dz.cover[rr][cc][w.dir]=i; } });
     const f=r.words.findIndex(w=>w.dir==='across')>=0?r.words.findIndex(w=>w.dir==='across'):0; dz.sel=[r.words[f].r,r.words[f].c]; dz.dir=r.words[f].dir;
   }
-  dzFrame();
+  dzFrame(); dzTimerStart();
 }
-function dzSave(){ if(!dz) return; try{ localStorage.setItem(dz.key, JSON.stringify(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur}:{sig:dz.sig,letters:dz.letters})); }catch(e){} }
+function dzSave(){ if(!dz) return; try{ localStorage.setItem(dz.key, JSON.stringify(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()})); }catch(e){} }
 function dzFrame(){
   if(!dz) return;
-  const head=`<div class="picker-title">${dz.kind==='sudoku'?'🔢':'✏️'} ${dzTypeName(dz.type,dz.diff).toUpperCase()}</div><div class="picker-sub">${dzDayLabel(dz.date)} · 🪙 ${dz.reward}${account?'':' · '+L('ohne Anmeldung keine Münzen','no coins without login')}</div>`;
+  const head=`<div class="picker-title">${dz.kind==='sudoku'?'🔢':'✏️'} ${dzTypeName(dz.type,dz.diff).toUpperCase()}</div><div class="picker-sub">${dzDayLabel(dz.date)} · 🪙 ${dz.reward}${account?'':' · '+L('ohne Anmeldung keine Münzen','no coins without login')}</div><div class="dz-timer" id="dzTimer">⏱ ${dzFmt(dzElapsed())}</div>`;
   renderApp(`<div class="panel"><div class="dz-wrap">${head}<div id="dzBody"></div>
     <div id="dzMsg" style="min-height:22px;font-weight:800;margin:6px 0"></div>
     <div class="actions-row"><button class="btn" id="dzDone" onclick="dzSubmit()">${L('Fertig – prüfen','Done – check')}</button><button class="btn btn-ghost" onclick="startDailyFlow()">${t('btn_back')}</button></div>
@@ -5943,14 +5959,15 @@ async function dzSubmit(){
   const r=await apiCall('/api/daily/submit',body); dz.busy=false;
   if(!r.ok){ dzMsg(r.error||'Fehler'); return; }
   if(!r.correct){ dzMsg(dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
+  const solvedTime=dzElapsed(); dzTimerStop();
   try{ localStorage.removeItem(dz.key); }catch(e){}
   if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance;
   const txt=r.tooFast?L('Richtig! Aber so schnell gibt es keine Münzen. Probiere es später nochmal mit „Fertig“.','Correct! But no coins for such a fast solve. Try “Done” again a little later.')
     :r.needLogin?L('Richtig! Melde dich an, um Münzen zu bekommen.','Correct! Log in to earn coins.')
     :r.already?L('Richtig! Schon eingelöst.','Correct! Already claimed.')
     :L('Richtig! 🎉 +'+r.coins+' Münzen','Correct! 🎉 +'+r.coins+' coins');
-  if(r.tooFast){ dzMsg(txt,'#ffd45a'); return; }
-  renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
+  if(r.tooFast){ dzMsg(txt,'#ffd45a'); dzTimerStart(); return; }
+  renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div><div class="dz-timer">⏱ ${dzFmt(solvedTime)}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
 }
 
 function renderMainMenu(){
@@ -8473,11 +8490,11 @@ function startFourupsFlow(){
           <h3>Original</h3>
           <p>${L('Klassisches 4 gewinnt – gegen den Bot oder zu zweit.','Classic Connect 4 – vs the bot or two players.')}</p>
         </div>
-        <div class="mode-card" onclick="fuaMenu()">
+        ${featureLocked('fourups_abilities') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">✨</div><h3>${L('Fähigkeiten','Abilities')}</h3><p>Coming soon</p></div>` : `<div class="mode-card" onclick="fuaMenu()">
           <div class="icon">✨</div>
           <h3>${L('Fähigkeiten','Abilities')}</h3>
           <p>${L('Steine mit Spezialkräften – Bomben, Joker, Doppelzug …','Stones with special powers – bombs, jokers, double move …')}</p>
-        </div>
+        </div>`}
       </div>
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -8776,6 +8793,7 @@ function fuaToggle(id){
 }
 function fuaStars(n,max){ return '★'.repeat(n)+'<span style="opacity:.3">'+'★'.repeat(Math.max(0,max-n))+'</span>'; }
 async function fuaMenu(){
+  if(featureLocked('fourups_abilities')){ startFourupsFlow(); return; }
   fuaStyle(); fuaBack='menu';
   renderApp(`<div class="panel"><div class="fu-wrap"><div class="picker-title">FOURUPS</div><div class="picker-sub">…</div></div></div>`);
   await fuaSync(); fuaMenuRender();

@@ -4050,6 +4050,7 @@ async function fourupsApi(action, payload, lang) {
   const c = chessState(user);
   const { f, got } = fourupsState(user);
   if (action === "state") { if (got.length) await saveUsers(); return { ok: true, ...fourupsPublic(user, got) }; }
+  if (featureLocked("fourups_abilities") && (action === "upgrade" || action === "open" || action === "result") && !adminOk(payload.adminKey, payload.__ip)) return FEATURE_LOCKED_RESULT;
   if (action === "upgrade") {
     const id = String(payload.id || "");
     const lvl = f.abilities[id];
@@ -4516,8 +4517,23 @@ const COIN_PACKAGES = [
    dann ist alles freigeschaltet.  Gesperrt wird auch serverseitig - nicht nur
    im Menue versteckt.
 --------------------------------------------------------------------------- */
+// Anwesenheit: Clients melden sich alle 60 s (zufaellige Sitzungs-ID, keine personenbezogenen Daten).
+const presence = new Map(); // sid -> { t, logged }
+const PRESENCE_TTL = 150000;
+function presenceTouch(sid, logged) {
+  if (typeof sid !== "string" || sid.length < 8 || sid.length > 40) return;
+  if (presence.size > 20000 && !presence.has(sid)) return;
+  presence.set(sid, { t: Date.now(), logged: !!logged });
+}
+function presenceCounts() {
+  const now = Date.now(); let total = 0, logged = 0;
+  for (const [k, v] of presence) { if (now - v.t > PRESENCE_TTL) { presence.delete(k); continue; } total++; if (v.logged) logged++; }
+  return { online: total, loggedIn: logged, guests: total - logged, peakToday: presencePeak(total) };
+}
+let presencePeakDay = "", presencePeakVal = 0;
+function presencePeak(n) { const d = new Date().toISOString().slice(0, 10); if (d !== presencePeakDay) { presencePeakDay = d; presencePeakVal = 0; } if (n > presencePeakVal) presencePeakVal = n; return presencePeakVal; }
 const LOCKED_FEATURES = new Set(
-  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,party,ordering,blitz,biology,chess_fantasy,achievements,ttt_quantum" : process.env.LOCKED_FEATURES)
+  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,party,ordering,blitz,biology,chess_fantasy,achievements,ttt_quantum,fourups_abilities" : process.env.LOCKED_FEATURES)
     .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
 );
 function featureLocked(name) { return LOCKED_FEATURES.has(name); }
@@ -4825,7 +4841,7 @@ const server = http.createServer((req, res) => {
       let lang = "de"; // ausserhalb von try/catch deklariert, damit der Fehlerfall unten (Parsing-Fehler vor dem eigentlichen Setzen) ebenfalls die richtige Sprache kennt, falls schon ermittelt
       const ip = clientIp(req);
       try {
-        const isPoll = req.url === "/api/chess-online/state" || req.url === "/api/chess-online/inbox"; // Polling zaehlt nicht gegen die IP-Grenze (sonst sperrt eine Klasse hinter einer IP sich selbst), hat aber ein eigenes Limit je Konto
+        const isPoll = req.url === "/api/presence" || req.url === "/api/admin-online" || req.url === "/api/chess-online/state" || req.url === "/api/chess-online/inbox"; // Polling zaehlt nicht gegen die IP-Grenze (sonst sperrt eine Klasse hinter einer IP sich selbst), hat aber ein eigenes Limit je Konto
         if (rlHit(isPoll ? "gp|" + ip : "g|" + ip, (isPoll ? API_MAX_PER_MIN_IP * 6 : API_MAX_PER_MIN_IP) + 1, 60000, 60000).lockedUntil > Date.now()) { // +1: genau API_MAX_PER_MIN_IP Aufrufe sind erlaubt
           res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60", ...SECURITY_HEADERS });
           return res.end(JSON.stringify(errObj("tooManyRequests", "de")));
@@ -4841,6 +4857,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
+        else if (req.url === "/api/presence") { presenceTouch(payload.sid, payload.logged); result = { ok: true }; }
+        else if (req.url === "/api/admin-online") { result = adminOk(payload.adminKey, ip) ? { ok: true, ...presenceCounts() } : { ok: false }; }
         else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES), resetEpoch: rm.epoch }; }
         else if (req.url === "/api/recovery-status") result = await recoveryKeyStatus(payload.token);
         else if (req.url === "/api/recovery-key") result = await recoveryKeyCreate(payload.token, payload.password, lang);
@@ -4857,7 +4875,7 @@ const server = http.createServer((req, res) => {
         else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
         else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
         else if (req.url.startsWith("/api/daily/")) result = await dailyApi(req.url.slice(11), payload, lang);
-        else if (req.url.startsWith("/api/fourups/")) result = await fourupsApi(req.url.slice(13), payload, lang);
+        else if (req.url.startsWith("/api/fourups/")) { payload.__ip = ip; result = await fourupsApi(req.url.slice(13), payload, lang); }
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
         else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
