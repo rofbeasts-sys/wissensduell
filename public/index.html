@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
 <meta charset="UTF-8">
+<meta name="google" content="notranslate">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Brain Pulse</title>
 <link rel="manifest" href="/manifest.json">
@@ -5914,7 +5915,7 @@ function dzList(r){
   renderApp(`<div class="panel"><div class="dz-wrap">
     <div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div>
     <div class="picker-sub">${L('Jeden Tag neue Rätsel. Fang mit dem leichten an – danach schaltest du das nächste frei. Die Münzen bekommst du für die höchste geschaffte Stufe (nicht zusammengerechnet) und kannst sie ab dem nächsten Tag abholen. Verpasste Rätsel der Woche kannst du sonntags nachholen.','New puzzles every day. Start with the easy one – each solved puzzle unlocks the next. You earn the coins of the highest level you finish (not added up) and can collect them from the next day. Missed puzzles of the week can be caught up on Sundays.')}</div>
-    <div class="picker-sub" style="font-size:12px">${L('Sudoku: Leicht 25 · Mittel 50 · Schwer 75 &nbsp;|&nbsp; Kreuzwort: Klein 25 · Mittel 50 · Groß 75 &nbsp;|&nbsp; Wörter: Klein 25 · Mittel 50 · Groß 75','Sudoku: Easy 25 · Medium 50 · Hard 75 &nbsp;|&nbsp; Crossword: Small 25 · Medium 50 · Large 75 &nbsp;|&nbsp; Words: Small 25 · Medium 50 · Large 75')}</div>
+    <div class="picker-sub" style="font-size:12px">${L('Sudoku: Leicht 25 · Mittel 50 · Schwer 75 &nbsp;|&nbsp; Kreuzwort: Klein 25 · Mittel 50 · Groß 75 &nbsp;|&nbsp; Wörter: Klein 25 · Mittel 50 · Groß 75 (+Bonus für alle Wörter 5/10/50)','Sudoku: Easy 25 · Medium 50 · Hard 75 &nbsp;|&nbsp; Crossword: Small 25 · Medium 50 · Large 75 &nbsp;|&nbsp; Words: Small 25 · Medium 50 · Large 75')}</div>
     ${r.loggedIn?'':`<div class="picker-sub" style="color:#ffd45a">${L('Melde dich an, um Münzen zu bekommen.','Log in to earn coins.')}</div>`}
     ${r.claimable>0?`<button class="btn btn-primary btn-block" style="margin:8px 0" onclick="dzClaim()">🪙 ${L('Abholen: ','Collect: ')}${r.claimable} ${L('Münzen','coins')}</button>`:''}
     ${r.pending>0?`<div class="picker-sub" style="color:#ffd45a">⏳ ${L('Ab morgen abholbar: ','Collectable from tomorrow: ')}${r.pending} ${L('Münzen','coins')}</div>`:''}
@@ -5938,7 +5939,7 @@ async function dzOpen(date,type,diff){
     dz={kind:'ws',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,words:r.words,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},sel:null,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else if(type==='wv'){
     const sig=r.grid.join('');
-    dz={kind:'wv',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,valid:r.valid,n:r.n,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},cur:[],flash:'',msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
+    dz={kind:'wv',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,valid:r.valid,n:r.n,max:r.max||r.n,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},cur:[],flash:'',msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else if(type==='sudoku'){
     const sig=r.puzzle.join('');
     const cur=(saved&&saved.sig===sig&&Array.isArray(saved.cur)&&saved.cur.length===81)?saved.cur:r.puzzle.slice();
@@ -5951,17 +5952,47 @@ async function dzOpen(date,type,diff){
     r.words.forEach((w,i)=>{ for(let k=0;k<w.len;k++){ const rr=w.r+(w.dir==='down'?k:0), cc=w.c+(w.dir==='across'?k:0); dz.cover[rr][cc][w.dir]=i; } });
     const f=r.words.findIndex(w=>w.dir==='across')>=0?r.words.findIndex(w=>w.dir==='across'):0; dz.sel=[r.words[f].r,r.words[f].c]; dz.dir=r.words[f].dir;
   }
-  dzFrame(); dzTimerStart();
+  dz.hints=r.hints||{}; dzFrame(); dzTimerStart();
 }
 function dzSave(){ if(!dz) return; try{ if(dz.kind==='ws'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } if(dz.kind==='wv'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } localStorage.setItem(dz.key, JSON.stringify(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()})); }catch(e){} }
 function dzFrame(){
   if(!dz) return;
   const head=`<div class="picker-title">${dzIcon(dz.type)} ${dzTypeName(dz.type,dz.diff).toUpperCase()}</div>${dz.cat?`<div class="picker-sub" style="font-size:16px;font-weight:800;color:#ffd45a">${dz.cat.icon} ${esc(dz.cat.name)}</div>`:''}<div class="picker-sub">${dzDayLabel(dz.date)} · 🪙 ${dz.reward}${account?'':' · '+L('ohne Anmeldung keine Münzen','no coins without login')}</div><div class="dz-timer" id="dzTimer">⏱ ${dzFmt(dzElapsed())}</div>`;
   renderApp(`<div class="panel"><div class="dz-wrap">${head}<div id="dzBody"></div>
+    <div id="dzHelp"></div>
     <div id="dzMsg" style="min-height:22px;font-weight:800;margin:6px 0"></div>
     <div class="actions-row"><button class="btn" id="dzDone" onclick="dzSubmit()">${L('Fertig – prüfen','Done – check')}</button><button class="btn btn-ghost" onclick="startDailyFlow()">${t('btn_back')}</button></div>
   </div></div>`);
-  dzPaint();
+  dzPaint(); dzHelpPaint();
+}
+/* ---------- Hilfen (kosten Muenzen, Preise vom Server) ---------- */
+function dzHelpPaint(){
+  const e=document.getElementById('dzHelp'); if(!e||!dz) return;
+  const H=dz.hints||{}, bal=account&&account.profile?(account.profile.coins||0):0;
+  const defs={sudoku:[['cell','🔢',L('Feld aufdecken','Reveal cell')]],cw:[['letter','🔤',L('Buchstabe','Letter')],['word','📖',L('Wort aufdecken','Reveal word')]],
+    ws:[['start','🔍',L('Startfeld zeigen','Show start')],['word','✨',L('Wort zeigen','Show word')]],wv:[['start','🔍',L('Startfeld zeigen','Show start')],['word','✨',L('Wort zeigen','Show word')]]}[dz.kind]||[];
+  if(!defs.length||!H) { e.innerHTML=''; return; }
+  e.innerHTML=`<div style="margin:8px 0 2px;font-size:12px;opacity:.8">💡 ${L('Hilfe','Help')} · ${account?L('Guthaben','Balance')+': '+bal+' 🪙':L('Melde dich an, um Hilfen zu nutzen','Log in to use hints')}</div><div class="actions-row" style="margin:4px 0">${defs.map(([k,ic,n])=>`<button class="btn btn-ghost" ${account?'':'disabled'} onclick="dzHint('${k}')">${ic} ${n} · ${H[k]||'?'} 🪙</button>`).join('')}</div>`;
+}
+async function dzHint(hk){
+  if(!dz||dz.busy||!account) return;
+  const body={token:account.token,date:dz.date,type:dz.type,diff:dz.diff,hint:hk};
+  if(dz.kind==='sudoku'){ body.cur=dz.cur; if(dz.sel>=0) body.idx=dz.sel; }
+  else if(dz.kind==='cw'){ body.cur=dz.letters.map(row=>row.map(x=>x||'.').join(''));
+    if(hk==='letter'){ if(!dz.sel){ dzMsg(L('Tippe zuerst ein Feld an.','Tap a cell first.')); return; } body.r=dz.sel[0]; body.c=dz.sel[1]; }
+    else { const wi=dzActiveWord(); if(wi===null){ dzMsg(L('Wähle zuerst ein Wort.','Pick a word first.')); return; } body.wi=wi; } }
+  else body.found=Object.keys(dz.found);
+  dz.busy=true; let r; try{ r=await apiCall('/api/daily/hint',body); }finally{ dz.busy=false; }
+  if(!dz) return;
+  if(!r||!r.ok){ dzMsg((r&&r.error)||L('Fehler','Error')); return; }
+  if(account&&account.profile) account.profile.coins=r.balance;
+  if(dz.kind==='sudoku'){ dz.cur[r.idx]=r.value; dz.puzzle[r.idx]=r.value; dz.sel=r.idx; }
+  else if(dz.kind==='cw'){ if(r.cells) r.cells.forEach(x=>{ dz.letters[x.r][x.c]=x.letter; }); else dz.letters[r.r][r.c]=r.letter; }
+  else if(dz.kind==='ws'){ if(r.w){ dz.found[r.w]={w:r.w,r:r.r,c:r.c,r2:r.r2,c2:r.c2}; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
+  else if(dz.kind==='wv'){ if(r.w){ dz.found[r.w]={w:r.w,path:r.path}; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
+  if(typeof sfx==='function') sfx('mill');
+  dzSave(); dzPaint(); dzHelpPaint();
+  if(r.cost) { /* Kostenhinweis */ }
 }
 function dzMsg(m,color){ const e=document.getElementById('dzMsg'); if(e){ e.textContent=m||''; e.style.color=color||'#ff8a8a'; } }
 function dzPaint(){
@@ -6004,13 +6035,13 @@ function dzWsHtml(){
   const N=dz.size, cov=dzWsCover(), selK=dz.sel?dz.sel[0]+','+dz.sel[1]:'', pv=dz.preview||{};
   let g='';
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
-    const k=r+','+c, ci=cov[k], isP=pv[k], bg=ci!==undefined?DZ_COLORS[ci%DZ_COLORS.length]:(isP?'rgba(255,212,90,.55)':(selK===k?'rgba(255,212,90,.85)':'rgba(255,255,255,.07)'));
+    const k=r+','+c, ci=cov[k], isP=pv[k], bg=ci!==undefined?DZ_COLORS[ci%DZ_COLORS.length]:(dz.hintK===k?'rgba(61,224,255,.75)':isP?'rgba(255,212,90,.55)':(selK===k?'rgba(255,212,90,.85)':'rgba(255,255,255,.07)'));
     g+=`<div data-k="${k}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:800;font-size:clamp(11px,${Math.floor(300/N)/10*1.05}cqw,22px);background:${bg};color:${ci!==undefined||isP||selK===k?'#10161f':'#fff'};user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
   }
   const hard=dz.diff==='big', nF=Object.keys(dz.found).length;
   const words=dz.words.map(w=>{ const f=dz.found[w]; return `<span style="padding:4px 8px;border-radius:10px;font-size:13px;font-weight:700;margin:3px;display:inline-block;${f?`background:${DZ_COLORS[dzWsWordIdx(w)%DZ_COLORS.length]};color:#10161f;text-decoration:line-through`:'background:rgba(255,255,255,.08)'}">${esc(w)}</span>`; }).join('');
   const cnt=`<div style="font-weight:800;margin:6px 0;color:${nF>=dz.words.length?'#7cff8c':'#fff'}">${nF} / ${dz.words.length} ${L('gefunden','found')} · ${L('noch','left:')} ${dz.words.length-nF}</div>`;
-  return `<div id="dzWsGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:3px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>${hard?cnt:`<div style="text-align:center;margin-top:8px">${words}</div>`}<div class="picker-sub" style="font-size:12px">${L('Wörter ziehen oder Anfang und Ende antippen. Sie können auch rückwärts oder schräg stehen.','Drag across letters, or tap the first and last letter. Words can be backwards or diagonal.')}</div>`;
+  return `<div id="dzWsGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:3px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>${hard?cnt:`<div style="text-align:center;margin-top:8px">${words}</div>`}<div class="picker-sub" style="font-size:12px">${L('Wörter ziehen oder Anfang und Ende antippen. Sie stehen waagerecht, senkrecht oder schräg – immer in Leserichtung, nie rückwärts.','Drag across letters, or tap the first and last letter. Words run left to right, top to bottom or diagonally – never backwards.')}</div>`;
 }
 function dzWsLine(a,b){
   const dr=b[0]-a[0], dc=b[1]-a[1], n=Math.max(Math.abs(dr),Math.abs(dc));
@@ -6039,7 +6070,14 @@ function dzWsTry(a,b){
     if(Object.keys(dz.found).length===dz.words.length) dzMsg(L('Alle gefunden! Tippe auf „Fertig – prüfen“.','All found! Tap “Done – check”.'),'#7cff8c');
   },true);
 })();
-function dzPaintWsOnly(){ const b=document.getElementById('dzBody'); if(b&&dz&&dz.kind==='ws') b.innerHTML=dzWsHtml(); }
+function dzPaintWsOnly(){
+  // nur Farben aktualisieren (kein Neuzeichnen -> kein Ruckeln)
+  const gEl=document.getElementById('dzWsGrid'); if(!gEl||!dz||dz.kind!=='ws'){ const b=document.getElementById('dzBody'); if(b&&dz&&dz.kind==='ws') b.innerHTML=dzWsHtml(); return; }
+  const cov=dzWsCover(), selK=dz.sel?dz.sel[0]+','+dz.sel[1]:'', pv=dz.preview||{};
+  gEl.querySelectorAll('[data-k]').forEach(el=>{ const k=el.dataset.k, ci=cov[k], isP=pv[k];
+    el.style.background=ci!==undefined?DZ_COLORS[ci%DZ_COLORS.length]:(dz.hintK===k?'rgba(61,224,255,.75)':isP?'rgba(255,212,90,.55)':(selK===k?'rgba(255,212,90,.85)':'rgba(255,255,255,.07)'));
+    el.style.color=ci!==undefined||isP||selK===k?'#10161f':'#fff'; });
+}
 /* ---------- Woerter verbinden (Boggle-artig): ueber benachbarte Buchstaben wischen, auch diagonal ---------- */
 function dzWvHtml(){
   const N=dz.size, cur=dz.cur, curK={}; cur.forEach((p,i)=>{ curK[p[0]+','+p[1]]=i; });
@@ -6048,27 +6086,35 @@ function dzWvHtml(){
   let g='';
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
     const k=r+','+c, on=curK[k]!==undefined, fd=foundCells[k];
-    const bg=on?(dz.flash==='bad'?'#ff5d6e':'#ffd45a'):(fd?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)');
+    const bg=on?(dz.flash==='bad'?'#ff5d6e':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fd?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)');
     g+=`<div data-k="${k}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:900;font-size:clamp(14px,${Math.floor(330/N)/10*1.0}cqw,28px);background:${bg};color:${on?'#10161f':'#fff'};border:2px solid ${on?'#fff':'rgba(255,255,255,.12)'};user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
   }
   const words=Object.keys(dz.found).map(w=>`<span style="padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;margin:3px;display:inline-block;background:#7cff8c;color:#10161f">${esc(w)}</span>`).join('');
   const done=Object.keys(dz.found).length;
-  return `<div style="min-height:34px;font-size:24px;font-weight:900;letter-spacing:3px;color:${dz.flash==='bad'?'#ff8a9a':dz.flash==='ok'?'#7cff8c':'#ffd45a'}">${esc(word)||'&nbsp;'}</div>
+  return `<div id="dzWvWord" style="min-height:34px;font-size:24px;font-weight:900;letter-spacing:3px;color:${dz.flash==='bad'?'#ff8a9a':dz.flash==='ok'?'#7cff8c':'#ffd45a'}">${esc(word)||'&nbsp;'}</div>
     <div id="dzWvGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:${N>7?4:6}px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>
-    <div style="font-weight:800;margin:6px 0;color:${done>=dz.n?'#7cff8c':'#fff'}">${done} / ${dz.n} ${L('Wörter','words')} · ${L('noch','left:')} ${Math.max(0,dz.n-done)}</div>
+    <div style="font-weight:800;margin:6px 0;color:${done>=dz.n?'#7cff8c':'#fff'}">${done} / ${dz.n} ${L('Wörter','words')}${done>=dz.n?'':' · '+L('noch','left:')+' '+Math.max(0,dz.n-done)}</div><div style="font-size:12px;color:${done>=dz.max?'#7cff8c':'#ffd45a'}">${done>=dz.max?L('🏆 Alle gefunden – Bonus sicher!','🏆 All found – bonus secured!'):L('Weitersuchen lohnt sich: bis zu '+dz.max+' Wörter = Bonus (+'+({small:5,medium:10,big:50})[dz.diff]+' 🪙)','Keep going: up to '+dz.max+' words = bonus (+'+({small:5,medium:10,big:50})[dz.diff]+' 🪙)')}</div>
     ${dz.diff==='big'?'':`<div style="text-align:center;min-height:30px">${words}</div>`}
-    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um Wörter der Kategorie zu bilden. Oder tippe die Buchstaben nacheinander an und bestätige mit ✔.','Swipe across neighbouring letters (diagonals too) to spell words of the category. Or tap the letters one by one and confirm with ✔.')}</div>
+    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (mind. 4 Buchstaben). Oder tippe die Buchstaben nacheinander an und bestätige mit ✔.','Swipe across neighbouring letters (diagonals too) to spell any words (4+ letters). Or tap the letters one by one and confirm with ✔.')}</div>
     <div class="actions-row" style="margin:6px 0"><button class="btn btn-ghost" onclick="dzWvClear()">✖ ${L('Löschen','Clear')}</button><button class="btn btn-primary" onclick="dzWvCommit()">✔ ${L('Wort prüfen','Check word')}</button></div>`;
 }
 function dzWvAdj(a,b){ return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]))===1; }
-function dzWvPaintOnly(){ const b=document.getElementById('dzBody'); if(b&&dz&&dz.kind==='wv') b.innerHTML=dzWvHtml(); }
+function dzWvPaintOnly(){
+  // nur Farben/Wort aktualisieren (kein komplettes Neuzeichnen -> kein Ruckeln)
+  const gEl=document.getElementById('dzWvGrid'); if(!gEl||!dz||dz.kind!=='wv'){ const b=document.getElementById('dzBody'); if(b&&dz&&dz.kind==='wv') b.innerHTML=dzWvHtml(); return; }
+  const curK={}; dz.cur.forEach((p,i)=>{ curK[p[0]+','+p[1]]=i; });
+  const fc={}; Object.values(dz.found).forEach(f=>f.path.forEach(p=>{ fc[p[0]+','+p[1]]=1; }));
+  gEl.querySelectorAll('[data-k]').forEach(el=>{ const k=el.dataset.k, on=curK[k]!==undefined;
+    el.style.background=on?(dz.flash==='bad'?'#ff5d6e':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fc[k]?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)'); el.style.color=on?'#10161f':'#fff'; });
+  const w=document.getElementById('dzWvWord'); if(w){ w.textContent=dz.cur.map(p=>dz.grid[p[0]][p[1]]).join('')||'\u00a0'; w.style.color=dz.flash==='bad'?'#ff8a9a':dz.flash==='ok'?'#7cff8c':'#ffd45a'; }
+}
 function dzWvClear(){ if(!dz||dz.kind!=='wv') return; dz.cur=[]; dz.flash=''; dzWvPaintOnly(); }
 function dzWvCommit(){
   if(!dz||dz.kind!=='wv'||dz.cur.length<2){ if(dz&&dz.kind==='wv'){ dz.cur=[]; dzWvPaintOnly(); } return; }
   const w=dz.cur.map(p=>dz.grid[p[0]][p[1]]).join('');
   if(dz.valid.includes(w)&&!dz.found[w]){
     dz.found[w]={w,path:dz.cur.map(p=>[p[0],p[1]])}; dz.flash='ok'; dzSave(); if(typeof sfx==='function') sfx('mill');
-    dzPaint(); const done=Object.keys(dz.found).length; if(done>=dz.n) dzMsg(L('Geschafft! Tippe auf „Fertig – prüfen“.','Done! Tap “Done – check”.'),'#7cff8c');
+    dzPaint(); const done=Object.keys(dz.found).length; if(done>=dz.max) dzMsg(L('Alle gefunden! Tippe auf „Fertig – prüfen“ für den Bonus.','All found! Tap “Done – check” for the bonus.'),'#7cff8c'); else if(done>=dz.n) dzMsg(L('Geschafft! Du kannst „Fertig“ drücken oder weitersuchen (Bonus bei '+dz.max+').','Done! Tap “Done” or keep searching (bonus at '+dz.max+').'),'#7cff8c');
     setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },350);
   } else {
     dz.flash='bad'; if(typeof sfx==='function') sfx('tap'); dzWvPaintOnly();
@@ -6078,10 +6124,13 @@ function dzWvCommit(){
 (function(){
   let drag=false, moved=false;
   const tileAt=(x,y)=>{
-    const el=document.elementFromPoint(x,y); if(!el||!el.dataset||!el.dataset.k) return null;
-    const bb=el.getBoundingClientRect(), cx=bb.left+bb.width/2, cy=bb.top+bb.height/2;
-    if(Math.hypot(x-cx,y-cy)>bb.width*0.42) return {k:null};      // nur Mitte der Kachel zaehlt (verhindert Ecken-Fehler)
-    return {k:el.dataset.k.split(',').map(Number)};
+    const g=document.getElementById('dzWvGrid'); if(!g||!dz) return null;
+    const bb=g.getBoundingClientRect(), N=dz.size, cw=bb.width/N, ch=bb.height/N;
+    const col=Math.floor((x-bb.left)/cw), row=Math.floor((y-bb.top)/ch);
+    if(col<0||row<0||col>=N||row>=N) return {k:null};
+    const cx=bb.left+(col+.5)*cw, cy=bb.top+(row+.5)*ch;
+    if(Math.hypot(x-cx,y-cy)>cw*0.48) return {k:null};      // Mitte der Kachel (Ecken zaehlen nicht, grosszuegig)
+    return {k:[row,col]};
   };
   document.addEventListener('pointerdown',e=>{
     if(!dz||dz.kind!=='wv'||!e.target.closest('#dzWvGrid')) return;
@@ -6184,7 +6233,7 @@ async function dzSubmit(){
   const txt=r.tooFast?L('Richtig! Aber so schnell gibt es keine Münzen. Probiere es später nochmal mit „Fertig“.','Correct! But no coins for such a fast solve. Try “Done” again a little later.')
     :r.needLogin?L('Richtig! Melde dich an, um Münzen zu bekommen.','Correct! Log in to earn coins.')
     :r.already?L('Richtig! Schon eingelöst.','Correct! Already claimed.')
-    :r.deferred?L('Richtig! 🎉 Belohnung: '+r.reward+' Münzen – abholbar ab morgen. Höhere Stufe = mehr (nicht addiert).','Correct! 🎉 Reward: '+r.reward+' coins – collect from tomorrow. A higher level pays more (not added up).')
+    :r.deferred?L('Richtig! 🎉 Belohnung: '+r.reward+' Münzen'+(r.bonus?' (inkl. Bonus +'+r.bonus+' 🏆)':'')+' – abholbar ab morgen. Höhere Stufe = mehr (nicht addiert).','Correct! 🎉 Reward: '+r.reward+' coins – collect from tomorrow. A higher level pays more (not added up).')
     :L('Richtig! 🎉 +'+r.coins+' Münzen','Correct! 🎉 +'+r.coins+' coins');
   if(r.tooFast){ dzMsg(txt,'#ffd45a'); dzTimerStart(); return; }
   renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div><div class="dz-timer">⏱ ${dzFmt(solvedTime)}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
