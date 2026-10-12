@@ -1,0 +1,7158 @@
+{
+"de": [
+[
+"HUND",
+"Bester Freund des Menschen, bellt"
+],
+[
+"KATZE",
+"Haustier, das schnurrt"
+],
+[
+"PFERD",
+"Reittier mit Hufen"
+],
+[
+"KUH",
+"Gibt Milch, macht Muh"
+],
+[
+"SCHAF",
+"Liefert Wolle"
+],
+[
+"ESEL",
+"Grautier mit langen Ohren"
+],
+[
+"ELEFANT",
+"Größtes Landtier"
+],
+[
+"GIRAFFE",
+"Tier mit sehr langem Hals"
+],
+[
+"LOEWE",
+"König der Tiere"
+],
+[
+"TIGER",
+"Große Raubkatze mit Streifen"
+],
+[
+"ZEBRA",
+"Pferdeähnliches Tier mit Streifen"
+],
+[
+"DELFIN",
+"Intelligenter Meeressäuger"
+],
+[
+"WAL",
+"Größtes Tier der Erde im Meer"
+],
+[
+"HAI",
+"Raubfisch mit Rückenflosse"
+],
+[
+"ADLER",
+"Wappentier, großer Greifvogel"
+],
+[
+"EULE",
+"Nachtvogel, steht für Weisheit"
+],
+[
+"STORCH",
+"Bringt angeblich die Babys"
+],
+[
+"FROSCH",
+"Quakt am Teich"
+],
+[
+"SPINNE",
+"Acht Beine, baut ein Netz"
+],
+[
+"BIENE",
+"Sammelt Nektar und macht Honig"
+],
+[
+"AMEISE",
+"Fleißiges Insekt im Staat"
+],
+[
+"SCHMETTERLING",
+"Entsteht aus einer Raupe"
+],
+[
+"IGEL",
+"Stacheliges Tier"
+],
+[
+"HASE",
+"Langohr, bringt Ostereier"
+],
+[
+"FUCHS",
+"Schlaues Tier mit rotem Fell"
+],
+[
+"WOLF",
+"Wildes Rudeltier, heult"
+],
+[
+"BAER",
+"Hält im Winter Winterschlaf"
+],
+[
+"KAMEL",
+"Wüstentier mit Höckern"
+],
+[
+"PINGUIN",
+"Flugunfähiger Vogel im Eis"
+],
+[
+"KROKODIL",
+"Reptil mit großem Maul im Fluss"
+],
+[
+"HAMSTER",
+"Nagetier mit Backentaschen"
+],
+[
+"MAUS",
+"Kleiner Nager, mag Käse"
+],
+[
+"FISCH",
+"Schwimmt im Wasser"
+],
+[
+"APFEL",
+"Rundes Obst, kann rot oder grün sein"
+],
+[
+"BIRNE",
+"Obst mit Stiel, Form einer Glühlampe"
+],
+[
+"BANANE",
+"Gelbes krummes Obst"
+],
+[
+"ORANGE",
+"Zitrusfrucht und Farbe"
+],
+[
+"ZITRONE",
+"Saure gelbe Frucht"
+],
+[
+"ERDBEERE",
+"Rote Frucht mit Kernen außen"
+],
+[
+"KIRSCHE",
+"Kleine rote Steinfrucht"
+],
+[
+"TRAUBE",
+"Wächst am Weinstock"
+],
+[
+"MELONE",
+"Große Frucht mit viel Wasser"
+],
+[
+"ANANAS",
+"Tropische Frucht mit Krone"
+],
+[
+"TOMATE",
+"Rotes Gemüse, Zutat für Ketchup"
+],
+[
+"KARTOFFEL",
+"Knolle, wird zu Pommes"
+],
+[
+"GURKE",
+"Grünes Gemüse im Salat"
+],
+[
+"KAROTTE",
+"Orangefarbene Wurzel"
+],
+[
+"ZWIEBEL",
+"Bringt beim Schneiden zum Weinen"
+],
+[
+"KAESE",
+"Aus Milch, mit Löchern beim Emmentaler"
+],
+[
+"BROT",
+"Wird beim Bäcker gekauft"
+],
+[
+"BUTTER",
+"Aufstrich aus Rahm"
+],
+[
+"MILCH",
+"Weißes Getränk von der Kuh"
+],
+[
+"NUDEL",
+"Italienische Teigware"
+],
+[
+"PIZZA",
+"Italienisches Gericht mit Belag"
+],
+[
+"SALAT",
+"Gesunde Beilage aus Blättern"
+],
+[
+"SUPPE",
+"Wird mit dem Löffel gegessen"
+],
+[
+"KUCHEN",
+"Süßes Gebäck zum Geburtstag"
+],
+[
+"SCHOKOLADE",
+"Süß, braun, aus Kakao"
+],
+[
+"HONIG",
+"Süßes Produkt der Bienen"
+],
+[
+"ZUCKER",
+"Süßt den Kaffee"
+],
+[
+"SALZ",
+"Würzmittel, weißes Mineral"
+],
+[
+"PFEFFER",
+"Scharfes Gewürz"
+],
+[
+"EIS",
+"Kalte Süßigkeit im Sommer"
+],
+[
+"KAFFEE",
+"Wachmacher am Morgen"
+],
+[
+"TEE",
+"Heißgetränk aus Blättern"
+],
+[
+"WASSER",
+"H2O"
+],
+[
+"LIMONADE",
+"Süßes Erfrischungsgetränk"
+],
+[
+"SONNE",
+"Stern, der uns Licht gibt"
+],
+[
+"MOND",
+"Begleiter der Erde"
+],
+[
+"STERN",
+"Leuchtet nachts am Himmel"
+],
+[
+"ERDE",
+"Unser Planet"
+],
+[
+"MARS",
+"Roter Planet"
+],
+[
+"VENUS",
+"Planet, nach einer Göttin benannt"
+],
+[
+"JUPITER",
+"Größter Planet im Sonnensystem"
+],
+[
+"SATURN",
+"Planet mit auffälligen Ringen"
+],
+[
+"MERKUR",
+"Sonnennächster Planet"
+],
+[
+"NEPTUN",
+"Letzter Planet im Sonnensystem"
+],
+[
+"KOMET",
+"Himmelskörper mit Schweif"
+],
+[
+"GALAXIE",
+"Milchstraße ist eine davon"
+],
+[
+"RAKETE",
+"Fliegt ins Weltall"
+],
+[
+"WOLKE",
+"Weiß am Himmel, bringt Regen"
+],
+[
+"REGEN",
+"Fällt bei schlechtem Wetter vom Himmel"
+],
+[
+"SCHNEE",
+"Weiß, fällt im Winter"
+],
+[
+"GEWITTER",
+"Blitz und Donner"
+],
+[
+"BLITZ",
+"Heller Lichtschein beim Gewitter"
+],
+[
+"NEBEL",
+"Dichter Dunst am Morgen"
+],
+[
+"WIND",
+"Bewegte Luft"
+],
+[
+"STURM",
+"Sehr starker Wind"
+],
+[
+"REGENBOGEN",
+"Bunter Bogen nach dem Regen"
+],
+[
+"FRUEHLING",
+"Jahreszeit nach dem Winter"
+],
+[
+"SOMMER",
+"Heiße Jahreszeit"
+],
+[
+"HERBST",
+"Jahreszeit mit bunten Blättern"
+],
+[
+"WINTER",
+"Kälteste Jahreszeit"
+],
+[
+"MONTAG",
+"Erster Wochentag"
+],
+[
+"DIENSTAG",
+"Tag nach Montag"
+],
+[
+"MITTWOCH",
+"Mitte der Woche"
+],
+[
+"FREITAG",
+"Tag vor dem Wochenende"
+],
+[
+"SAMSTAG",
+"Wochenendtag mit Sportschau"
+],
+[
+"SONNTAG",
+"Ruhetag"
+],
+[
+"JANUAR",
+"Erster Monat"
+],
+[
+"MAERZ",
+"Monat, in dem der Frühling beginnt"
+],
+[
+"JUNI",
+"Sommermonat vor dem Juli"
+],
+[
+"MAI",
+"Wonnemonat"
+],
+[
+"DEZEMBER",
+"Letzter Monat im Jahr"
+],
+[
+"BERLIN",
+"Hauptstadt von Deutschland"
+],
+[
+"PARIS",
+"Hauptstadt von Frankreich"
+],
+[
+"ROM",
+"Hauptstadt von Italien"
+],
+[
+"MADRID",
+"Hauptstadt von Spanien"
+],
+[
+"LONDON",
+"Hauptstadt von England"
+],
+[
+"WIEN",
+"Hauptstadt von Österreich"
+],
+[
+"BERN",
+"Hauptstadt der Schweiz"
+],
+[
+"ATHEN",
+"Hauptstadt von Griechenland"
+],
+[
+"LISSABON",
+"Hauptstadt von Portugal"
+],
+[
+"OSLO",
+"Hauptstadt von Norwegen"
+],
+[
+"WARSCHAU",
+"Hauptstadt von Polen"
+],
+[
+"PRAG",
+"Hauptstadt von Tschechien"
+],
+[
+"BUDAPEST",
+"Hauptstadt von Ungarn"
+],
+[
+"KAIRO",
+"Hauptstadt von Ägypten"
+],
+[
+"TOKIO",
+"Hauptstadt von Japan"
+],
+[
+"PEKING",
+"Hauptstadt von China"
+],
+[
+"MOSKAU",
+"Hauptstadt von Russland"
+],
+[
+"HAMBURG",
+"Hafenstadt an der Elbe"
+],
+[
+"MUENCHEN",
+"Hauptstadt von Bayern"
+],
+[
+"KOELN",
+"Stadt mit berühmtem Dom"
+],
+[
+"KASSEL",
+"Stadt der documenta"
+],
+[
+"DRESDEN",
+"Hauptstadt von Sachsen"
+],
+[
+"RHEIN",
+"Großer deutscher Fluss"
+],
+[
+"ELBE",
+"Fluss durch Hamburg"
+],
+[
+"DONAU",
+"Fluss durch Wien"
+],
+[
+"NIL",
+"Längster Fluss Afrikas"
+],
+[
+"AMAZONAS",
+"Wasserreichster Fluss der Erde"
+],
+[
+"ALPEN",
+"Hochgebirge in Süddeutschland"
+],
+[
+"EVEREST",
+"Höchster Berg der Erde"
+],
+[
+"SAHARA",
+"Größte Trockenwüste"
+],
+[
+"OSTSEE",
+"Meer im Norden Deutschlands"
+],
+[
+"NORDSEE",
+"Meer mit Ebbe und Flut"
+],
+[
+"ATLANTIK",
+"Ozean zwischen Europa und Amerika"
+],
+[
+"PAZIFIK",
+"Größter Ozean"
+],
+[
+"INSEL",
+"Land, von Wasser umgeben"
+],
+[
+"VULKAN",
+"Berg, der Lava speit"
+],
+[
+"STRAND",
+"Sand am Meer"
+],
+[
+"WALD",
+"Viele Bäume zusammen"
+],
+[
+"WIESE",
+"Grasfläche mit Blumen"
+],
+[
+"BLUME",
+"Blüht im Garten"
+],
+[
+"ROSE",
+"Blume mit Dornen"
+],
+[
+"TULPE",
+"Frühlingsblume aus den Niederlanden"
+],
+[
+"EICHE",
+"Mächtiger Laubbaum, Symbol der Stärke"
+],
+[
+"TANNE",
+"Typischer Weihnachtsbaum"
+],
+[
+"BUCHE",
+"Laubbaum mit glatter Rinde"
+],
+[
+"HAUS",
+"Gebäude zum Wohnen"
+],
+[
+"TUER",
+"Öffnet man zum Hereinkommen"
+],
+[
+"FENSTER",
+"Man schaut hindurch, aus Glas"
+],
+[
+"DACH",
+"Oberer Abschluss des Hauses"
+],
+[
+"KUECHE",
+"Raum zum Kochen"
+],
+[
+"BETT",
+"Zum Schlafen"
+],
+[
+"SOFA",
+"Gemütliche Sitzgelegenheit"
+],
+[
+"STUHL",
+"Hat vier Beine und eine Lehne"
+],
+[
+"TISCH",
+"Darauf isst man"
+],
+[
+"LAMPE",
+"Spendet Licht"
+],
+[
+"SPIEGEL",
+"Zeigt dein Bild"
+],
+[
+"UHR",
+"Zeigt die Zeit"
+],
+[
+"SCHLUESSEL",
+"Öffnet das Schloss"
+],
+[
+"AUTO",
+"Fahrzeug mit vier Rädern"
+],
+[
+"BUS",
+"Öffentliches Verkehrsmittel auf der Straße"
+],
+[
+"ZUG",
+"Fährt auf Schienen"
+],
+[
+"FAHRRAD",
+"Zweirad mit Pedalen"
+],
+[
+"FLUGZEUG",
+"Fliegt mit Passagieren"
+],
+[
+"SCHIFF",
+"Fährt auf dem Meer"
+],
+[
+"BOOT",
+"Kleines Wasserfahrzeug"
+],
+[
+"TRAKTOR",
+"Fahrzeug auf dem Feld"
+],
+[
+"HUBSCHRAUBER",
+"Fliegt mit Rotor"
+],
+[
+"STRASSE",
+"Hier fahren Autos"
+],
+[
+"BRUECKE",
+"Verbindet zwei Ufer"
+],
+[
+"TUNNEL",
+"Röhre durch den Berg"
+],
+[
+"BAHNHOF",
+"Hier halten Züge"
+],
+[
+"FLUGHAFEN",
+"Hier starten Flugzeuge"
+],
+[
+"AMPEL",
+"Rot, Gelb, Grün an der Kreuzung"
+],
+[
+"SCHULE",
+"Hier lernen Kinder"
+],
+[
+"LEHRER",
+"Unterrichtet in der Klasse"
+],
+[
+"KLASSE",
+"Gruppe von Schülern"
+],
+[
+"HEFT",
+"Dünnes Schreibbuch"
+],
+[
+"BUCH",
+"Hat viele Seiten und eine Geschichte"
+],
+[
+"STIFT",
+"Damit schreibt man"
+],
+[
+"RADIERER",
+"Löscht Bleistiftstriche"
+],
+[
+"LINEAL",
+"Misst gerade Linien"
+],
+[
+"SCHERE",
+"Schneidet Papier"
+],
+[
+"PAPIER",
+"Darauf schreibt man"
+],
+[
+"TAFEL",
+"Wird mit Kreide beschrieben"
+],
+[
+"MATHE",
+"Fach mit Zahlen"
+],
+[
+"BIOLOGIE",
+"Lehre vom Leben"
+],
+[
+"CHEMIE",
+"Fach mit Reagenzgläsern"
+],
+[
+"PHYSIK",
+"Lehre von Kraft und Energie"
+],
+[
+"GESCHICHTE",
+"Schulfach über die Vergangenheit"
+],
+[
+"MUSIK",
+"Klänge und Lieder"
+],
+[
+"GITARRE",
+"Saiteninstrument mit sechs Saiten"
+],
+[
+"KLAVIER",
+"Tasteninstrument mit schwarzen und weißen Tasten"
+],
+[
+"GEIGE",
+"Streichinstrument"
+],
+[
+"FLOETE",
+"Blasinstrument"
+],
+[
+"TROMMEL",
+"Schlaginstrument"
+],
+[
+"SAENGER",
+"Singt Lieder"
+],
+[
+"FILM",
+"Läuft im Kino"
+],
+[
+"KINO",
+"Ort für Filme auf der Leinwand"
+],
+[
+"THEATER",
+"Schauspieler auf der Bühne"
+],
+[
+"BUEHNE",
+"Hier stehen Schauspieler"
+],
+[
+"FERNSEHER",
+"Gerät für Sendungen"
+],
+[
+"RADIO",
+"Gerät, das Musik überträgt"
+],
+[
+"HANDY",
+"Tragbares Telefon"
+],
+[
+"COMPUTER",
+"Rechner mit Tastatur"
+],
+[
+"TASTATUR",
+"Hat Buchstabentasten"
+],
+[
+"MAUSPAD",
+"Unterlage für die Computermaus"
+],
+[
+"INTERNET",
+"Weltweites Netzwerk"
+],
+[
+"SPIEL",
+"Macht Spaß, kann man gewinnen"
+],
+[
+"FUSSBALL",
+"Beliebtester Sport mit rundem Ball"
+],
+[
+"TENNIS",
+"Sport mit Schläger und Netz"
+],
+[
+"SCHACH",
+"Brettspiel mit König und Dame"
+],
+[
+"KARTEN",
+"Skat oder Poker spielt man damit"
+],
+[
+"WUERFEL",
+"Hat sechs Seiten mit Augen"
+],
+[
+"TOR",
+"Ziel beim Fußball"
+],
+[
+"SCHWIMMEN",
+"Fortbewegung im Wasser"
+],
+[
+"LAUFEN",
+"Schnelles Gehen"
+],
+[
+"TANZEN",
+"Sich zur Musik bewegen"
+],
+[
+"ARZT",
+"Behandelt Kranke"
+],
+[
+"KRANKENHAUS",
+"Hier werden Patienten behandelt"
+],
+[
+"MEDIZIN",
+"Hilft bei Krankheit"
+],
+[
+"PFLASTER",
+"Klebt auf kleinen Wunden"
+],
+[
+"HERZ",
+"Pumpt das Blut"
+],
+[
+"KOPF",
+"Darauf sitzen Haare und Nase"
+],
+[
+"NASE",
+"Zum Riechen"
+],
+[
+"OHR",
+"Zum Hören"
+],
+[
+"AUGE",
+"Zum Sehen"
+],
+[
+"MUND",
+"Zum Sprechen und Essen"
+],
+[
+"ZAHN",
+"Beißt in den Apfel"
+],
+[
+"HAND",
+"Hat fünf Finger"
+],
+[
+"FUSS",
+"Hat fünf Zehen"
+],
+[
+"KNIE",
+"Gelenk im Bein"
+],
+[
+"RUECKEN",
+"Hinterseite des Körpers"
+],
+[
+"HAAR",
+"Wächst auf dem Kopf"
+],
+[
+"KLEID",
+"Kleidungsstück für Frauen"
+],
+[
+"HOSE",
+"Bedeckt die Beine"
+],
+[
+"JACKE",
+"Wärmt im Herbst"
+],
+[
+"SCHUH",
+"Trägt man am Fuß"
+],
+[
+"MUETZE",
+"Wärmt den Kopf im Winter"
+],
+[
+"HANDSCHUH",
+"Wärmt die Finger"
+],
+[
+"BRILLE",
+"Hilft beim Sehen"
+],
+[
+"RING",
+"Schmuck am Finger"
+],
+[
+"GOLD",
+"Edelmetall, gelb glänzend"
+],
+[
+"SILBER",
+"Metall für Besteck, glänzt weiß"
+],
+[
+"EISEN",
+"Metall, das rosten kann"
+],
+[
+"DIAMANT",
+"Härtester Edelstein"
+],
+[
+"GELD",
+"Damit bezahlt man"
+],
+[
+"EURO",
+"Währung in Deutschland"
+],
+[
+"BANK",
+"Hier liegt das Konto, auch zum Sitzen"
+],
+[
+"KOENIG",
+"Herrscher im Königreich"
+],
+[
+"KOENIGIN",
+"Herrscherin"
+],
+[
+"PRINZ",
+"Sohn des Königs"
+],
+[
+"SCHLOSS",
+"Großes Gebäude für Könige"
+],
+[
+"RITTER",
+"Kämpfer in Rüstung im Mittelalter"
+],
+[
+"DRACHE",
+"Feuerspeiendes Fabelwesen"
+],
+[
+"ZAUBERER",
+"Hat einen Stab und Tricks"
+],
+[
+"MAERCHEN",
+"Geschichte mit Hexe und Prinzessin"
+],
+[
+"WEIHNACHTEN",
+"Fest mit Geschenken im Dezember"
+],
+[
+"OSTERN",
+"Fest mit Hasen und Eiern"
+],
+[
+"GEBURTSTAG",
+"Jährlicher Feiertag mit Kerzen"
+],
+[
+"GESCHENK",
+"Wird eingepackt und überreicht"
+],
+[
+"PARTY",
+"Feier mit Musik"
+],
+[
+"FREUND",
+"Vertrauter Mensch"
+],
+[
+"FAMILIE",
+"Eltern und Kinder"
+],
+[
+"MUTTER",
+"Weibliches Elternteil"
+],
+[
+"VATER",
+"Männliches Elternteil"
+],
+[
+"BRUDER",
+"Männliches Geschwister"
+],
+[
+"SCHWESTER",
+"Weibliches Geschwister"
+],
+[
+"OMA",
+"Mutter der Mutter"
+],
+[
+"BABY",
+"Ganz kleines Kind"
+],
+[
+"LIEBE",
+"Starkes Gefühl für jemanden"
+],
+[
+"GLUECK",
+"Gefühl von Freude"
+],
+[
+"ANGST",
+"Gefühl bei Gefahr"
+],
+[
+"TRAUM",
+"Bilder im Schlaf"
+],
+[
+"FARBE",
+"Rot, Blau oder Grün"
+],
+[
+"ROT",
+"Farbe der Liebe"
+],
+[
+"BLAU",
+"Farbe des Himmels"
+],
+[
+"GRUEN",
+"Farbe des Grases"
+],
+[
+"GELB",
+"Farbe der Sonne"
+],
+[
+"SCHWARZ",
+"Farbe der Nacht"
+],
+[
+"WEISS",
+"Farbe von Schnee"
+],
+[
+"KREIS",
+"Runde Form"
+],
+[
+"QUADRAT",
+"Viereck mit vier gleichen Seiten"
+],
+[
+"DREIECK",
+"Hat drei Ecken"
+],
+[
+"ZAHL",
+"Eins, zwei, drei"
+],
+[
+"NULL",
+"Kleinste natürliche Zahl"
+],
+[
+"HUNDERT",
+"Zehnmal zehn"
+],
+[
+"PLUS",
+"Rechenzeichen für Addition"
+],
+[
+"MINUS",
+"Rechenzeichen für Subtraktion"
+],
+[
+"ZEIT",
+"Wird in Sekunden und Stunden gemessen"
+],
+[
+"SEKUNDE",
+"Kleinste übliche Zeiteinheit"
+],
+[
+"MINUTE",
+"Sechzig Sekunden"
+],
+[
+"STUNDE",
+"Sechzig Minuten"
+],
+[
+"TAG",
+"Vierundzwanzig Stunden"
+],
+[
+"JAHR",
+"Zwölf Monate"
+],
+[
+"LICHT",
+"Macht hell"
+],
+[
+"FEUER",
+"Heiß und leuchtet"
+],
+[
+"LUFT",
+"Wir atmen sie"
+],
+[
+"STEIN",
+"Hartes Material aus der Natur"
+],
+[
+"SAND",
+"Besteht aus kleinen Körnern am Strand"
+],
+[
+"GLAS",
+"Durchsichtiger Werkstoff"
+],
+[
+"HOLZ",
+"Material vom Baum"
+],
+[
+"PLASTIK",
+"Kunststoff"
+],
+[
+"STROM",
+"Fließt durch Kabel"
+],
+[
+"BATTERIE",
+"Speichert Energie in der Fernbedienung"
+],
+[
+"MAGNET",
+"Zieht Eisen an"
+],
+[
+"KOMPASS",
+"Zeigt die Himmelsrichtung"
+],
+[
+"KARTE",
+"Zeigt den Weg"
+],
+[
+"FOTO",
+"Bild von einer Kamera"
+],
+[
+"KAMERA",
+"Macht Bilder"
+],
+[
+"ROBOTER",
+"Maschine, die wie ein Mensch arbeitet"
+],
+[
+"ENERGIE",
+"Antrieb für Maschinen"
+],
+[
+"SCHATZ",
+"Wird von Piraten vergraben"
+],
+[
+"PIRAT",
+"Seeräuber"
+],
+[
+"INDIANER",
+"Ureinwohner Nordamerikas"
+],
+[
+"ZIRKUS",
+"Clown und Akrobaten in der Manege"
+],
+[
+"CLOWN",
+"Lustiger Spaßmacher"
+],
+[
+"BALLON",
+"Mit Luft oder Helium gefüllt"
+],
+[
+"DETEKTIV",
+"Löst Kriminalfälle"
+],
+[
+"POLIZEI",
+"Sorgt für Recht und Ordnung"
+],
+[
+"FEUERWEHR",
+"Löscht Brände"
+],
+[
+"BAECKER",
+"Backt Brötchen"
+],
+[
+"KOCH",
+"Bereitet das Essen zu"
+],
+[
+"BAUER",
+"Arbeitet auf dem Feld"
+],
+[
+"PILOT",
+"Steuert das Flugzeug"
+],
+[
+"PFLAUME",
+"Blaue Steinfrucht"
+],
+[
+"MANGO",
+"Süße Tropenfrucht aus Asien"
+],
+[
+"KIWI",
+"Grünes Fruchtfleisch, braune Haut"
+],
+[
+"PFIRSICH",
+"Samtige Frucht mit großem Kern"
+],
+[
+"HIMBEERE",
+"Rote Beere für Marmelade"
+],
+[
+"KNOBLAUCH",
+"Scharfes Gewürz mit Zehen"
+],
+[
+"PAPRIKA",
+"Buntes Gemüse, auch Gewürz"
+],
+[
+"SPINAT",
+"Grünes Blattgemüse, angeblich stark machend"
+],
+[
+"KOHL",
+"Kopfgemüse, grün oder rot"
+],
+[
+"BROKKOLI",
+"Grünes Gemüse wie ein kleiner Baum"
+],
+[
+"ERBSE",
+"Kleine grüne Kugel in der Schote"
+],
+[
+"BOHNE",
+"Hülsenfrucht, auch Kaffee"
+],
+[
+"LINSE",
+"Kleine Hülsenfrucht, auch Teil der Brille"
+],
+[
+"REIS",
+"Getreide aus Asien"
+],
+[
+"BROETCHEN",
+"Kleines Backwerk zum Frühstück"
+],
+[
+"JOGHURT",
+"Gesäuerte Milchspeise"
+],
+[
+"SAHNE",
+"Fettreiche Milch, wird geschlagen"
+],
+[
+"ESSIG",
+"Saure Flüssigkeit zum Würzen"
+],
+[
+"SENF",
+"Gelbe Würzpaste zur Wurst"
+],
+[
+"KETCHUP",
+"Rote Soße zu Pommes"
+],
+[
+"WURST",
+"Aufschnitt oder vom Grill, aus dem Darm"
+],
+[
+"SCHINKEN",
+"Geräuchertes Fleisch vom Schwein"
+],
+[
+"SPECK",
+"Fettes Fleisch vom Bauch"
+],
+[
+"LACHS",
+"Rosa Fisch, wandert flussaufwärts"
+],
+[
+"HERING",
+"Fisch aus der Nordsee, oft eingelegt"
+],
+[
+"FORELLE",
+"Fisch im Bach"
+],
+[
+"KARPFEN",
+"Weihnachtsfisch mit Schuppen"
+],
+[
+"GARNELE",
+"Kleiner Krebs zum Essen"
+],
+[
+"MUSCHEL",
+"Weichtier in einer Schale"
+],
+[
+"AUSTER",
+"Edle Muschel"
+],
+[
+"TORTE",
+"Festliches Gebäck mit Sahne"
+],
+[
+"KEKS",
+"Süßes Gebäck zum Knabbern"
+],
+[
+"BONBON",
+"Süßigkeit zum Lutschen"
+],
+[
+"PRALINE",
+"Gefüllte Schokolade"
+],
+[
+"PUDDING",
+"Süße Speise aus Milch"
+],
+[
+"WAFFEL",
+"Gitterförmiges Gebäck"
+],
+[
+"PFANNKUCHEN",
+"Dünner Teig aus der Pfanne"
+],
+[
+"POMMES",
+"Frittierte Kartoffelstäbchen"
+],
+[
+"EINTOPF",
+"Alles in einem Topf"
+],
+[
+"KAKAO",
+"Heißes Getränk für Kinder"
+],
+[
+"SAFT",
+"Getränk aus Früchten"
+],
+[
+"BIER",
+"Getränk aus Hopfen und Malz"
+],
+[
+"WEIN",
+"Getränk aus Trauben"
+],
+[
+"MESSER",
+"Schneidet das Essen"
+],
+[
+"GABEL",
+"Besteck mit Zinken"
+],
+[
+"LOEFFEL",
+"Besteck für die Suppe"
+],
+[
+"TELLER",
+"Darauf liegt das Essen"
+],
+[
+"TASSE",
+"Darin ist der Kaffee"
+],
+[
+"KANNE",
+"Gefäß für Tee oder Kaffee"
+],
+[
+"TOPF",
+"Kocht auf dem Herd"
+],
+[
+"PFANNE",
+"Darin wird gebraten"
+],
+[
+"HERD",
+"Hier wird gekocht"
+],
+[
+"OFEN",
+"Hier wird gebacken"
+],
+[
+"KUEHLSCHRANK",
+"Hält Essen frisch und kalt"
+],
+[
+"SCHRANK",
+"Möbel für Kleidung"
+],
+[
+"REGAL",
+"Möbel für Bücher"
+],
+[
+"TEPPICH",
+"Liegt auf dem Boden"
+],
+[
+"VORHANG",
+"Hängt vor dem Fenster"
+],
+[
+"WECKER",
+"Klingelt am Morgen"
+],
+[
+"KISSEN",
+"Liegt auf dem Bett oder Sofa"
+],
+[
+"DECKE",
+"Wärmt im Bett, auch oben im Zimmer"
+],
+[
+"WAND",
+"Begrenzt das Zimmer"
+],
+[
+"KELLER",
+"Raum unter dem Haus"
+],
+[
+"GARTEN",
+"Hier wachsen Blumen am Haus"
+],
+[
+"ZAUN",
+"Umgibt den Garten"
+],
+[
+"TREPPE",
+"Führt nach oben"
+],
+[
+"BALKON",
+"Kleine Plattform vor der Wohnung"
+],
+[
+"KAMIN",
+"Feuerstelle im Wohnzimmer"
+],
+[
+"BADEWANNE",
+"Hier badet man"
+],
+[
+"DUSCHE",
+"Wasser von oben zum Waschen"
+],
+[
+"SEIFE",
+"Zum Händewaschen"
+],
+[
+"HANDTUCH",
+"Trocknet nach dem Waschen"
+],
+[
+"ZAHNBUERSTE",
+"Putzt die Zähne"
+],
+[
+"KAMM",
+"Ordnet die Haare"
+],
+[
+"BUERSTE",
+"Zum Putzen oder Haare kämmen"
+],
+[
+"NADEL",
+"Spitz, zum Nähen"
+],
+[
+"FADEN",
+"Wird zum Nähen benutzt"
+],
+[
+"KNOPF",
+"Hält die Jacke zu"
+],
+[
+"MANTEL",
+"Langes Kleidungsstück für den Winter"
+],
+[
+"PULLOVER",
+"Gestrickt und warm"
+],
+[
+"HEMD",
+"Oberteil mit Kragen"
+],
+[
+"ROCK",
+"Kleidungsstück ohne Hosenbeine"
+],
+[
+"SOCKE",
+"Wärmt den Fuß"
+],
+[
+"STIEFEL",
+"Hoher Schuh"
+],
+[
+"SCHAL",
+"Wärmt den Hals"
+],
+[
+"HUT",
+"Kopfbedeckung mit Krempe"
+],
+[
+"KETTE",
+"Schmuck um den Hals"
+],
+[
+"GUERTEL",
+"Hält die Hose"
+],
+[
+"TASCHE",
+"Darin trägt man Dinge"
+],
+[
+"SCHIRM",
+"Schützt vor Regen"
+],
+[
+"KOFFER",
+"Damit reist man"
+],
+[
+"STRASSENBAHN",
+"Fährt in der Stadt auf Schienen"
+],
+[
+"MOTORRAD",
+"Zweirad mit Motor"
+],
+[
+"ROLLER",
+"Kinder fahren damit, stehend"
+],
+[
+"FAEHRE",
+"Bringt Autos über den Fluss"
+],
+[
+"LASTWAGEN",
+"Großes Transportfahrzeug"
+],
+[
+"KRANKENWAGEN",
+"Fährt Verletzte ins Krankenhaus"
+],
+[
+"HAFEN",
+"Hier legen Schiffe an"
+],
+[
+"TANKSTELLE",
+"Hier gibt es Benzin"
+],
+[
+"KREUZUNG",
+"Hier treffen sich Straßen"
+],
+[
+"AUTOBAHN",
+"Schnellstraße ohne Tempolimit"
+],
+[
+"STAU",
+"Zähfließender Verkehr"
+],
+[
+"FUSSGAENGER",
+"Läuft zu Fuß"
+],
+[
+"SCHUELER",
+"Lernt in der Schule"
+],
+[
+"KREIDE",
+"Schreibt auf die Tafel"
+],
+[
+"BLEISTIFT",
+"Schreibt grau, kann radiert werden"
+],
+[
+"ZIRKEL",
+"Zeichnet Kreise"
+],
+[
+"FERIEN",
+"Schulfreie Zeit"
+],
+[
+"PAUSE",
+"Kurze Unterbrechung"
+],
+[
+"NOTE",
+"Bewertung in der Schule"
+],
+[
+"PRUEFUNG",
+"Test des Wissens"
+],
+[
+"DEUTSCH",
+"Fach für Sprache"
+],
+[
+"SPORT",
+"Fach mit Bewegung"
+],
+[
+"KUNST",
+"Fach mit Malen"
+],
+[
+"ERDKUNDE",
+"Fach über Länder und Berge"
+],
+[
+"STUDENT",
+"Lernt an der Universität"
+],
+[
+"UNIVERSITAET",
+"Hochschule"
+],
+[
+"BIBLIOTHEK",
+"Hier kann man Bücher leihen"
+],
+[
+"MUSEUM",
+"Hier werden Kunstwerke ausgestellt"
+],
+[
+"ZOO",
+"Hier leben viele Tiere"
+],
+[
+"PARK",
+"Grünanlage in der Stadt"
+],
+[
+"SPIELPLATZ",
+"Hier schaukeln Kinder"
+],
+[
+"SCHWIMMBAD",
+"Hier kann man schwimmen"
+],
+[
+"STADION",
+"Hier spielt Fußball"
+],
+[
+"KIRCHE",
+"Gotteshaus mit Turm"
+],
+[
+"RATHAUS",
+"Sitz der Stadtverwaltung"
+],
+[
+"BURG",
+"Mittelalterliches Gebäude mit Mauern"
+],
+[
+"TURM",
+"Hohes schmales Gebäude"
+],
+[
+"MAUER",
+"Wand aus Stein"
+],
+[
+"DORF",
+"Kleine Siedlung"
+],
+[
+"STADT",
+"Große Siedlung"
+],
+[
+"HAUPTSTADT",
+"Regierungssitz eines Landes"
+],
+[
+"KONTINENT",
+"Erdteil"
+],
+[
+"BERG",
+"Hohe Erhebung"
+],
+[
+"TAL",
+"Senke zwischen Bergen"
+],
+[
+"HUEGEL",
+"Kleiner Berg"
+],
+[
+"GIPFEL",
+"Höchster Punkt des Berges"
+],
+[
+"HOEHLE",
+"Hohlraum im Fels"
+],
+[
+"FELD",
+"Hier wächst Getreide"
+],
+[
+"FLUSS",
+"Fließt zum Meer"
+],
+[
+"BACH",
+"Kleiner Fluss"
+],
+[
+"SEE",
+"Von Land umgebenes Wasser"
+],
+[
+"MEER",
+"Salziges Wasser"
+],
+[
+"OZEAN",
+"Riesiges Meer"
+],
+[
+"KUESTE",
+"Rand des Landes am Meer"
+],
+[
+"WUESTE",
+"Trockenes Land mit viel Sand"
+],
+[
+"DSCHUNGEL",
+"Tropischer Urwald"
+],
+[
+"SAVANNE",
+"Grasland in Afrika"
+],
+[
+"GLETSCHER",
+"Fließendes Eis im Gebirge"
+],
+[
+"WASSERFALL",
+"Stürzt von oben herab"
+],
+[
+"QUELLE",
+"Hier entspringt ein Fluss"
+],
+[
+"TEICH",
+"Kleiner See"
+],
+[
+"SUMPF",
+"Nasses, weiches Land"
+],
+[
+"PLANET",
+"Himmelskörper, der die Sonne umkreist"
+],
+[
+"HIMMEL",
+"Blau über uns"
+],
+[
+"HAGEL",
+"Eisklumpen vom Himmel"
+],
+[
+"DONNER",
+"Grollt nach dem Blitz"
+],
+[
+"FROST",
+"Eiskälte"
+],
+[
+"HITZE",
+"Große Wärme"
+],
+[
+"FEBRUAR",
+"Kürzester Monat"
+],
+[
+"APRIL",
+"Wechselhafter Monat"
+],
+[
+"JULI",
+"Heißer Sommermonat"
+],
+[
+"AUGUST",
+"Monat vor September"
+],
+[
+"SEPTEMBER",
+"Beginn des Herbstes"
+],
+[
+"OKTOBER",
+"Monat mit Kürbissen"
+],
+[
+"NOVEMBER",
+"Grauer Monat"
+],
+[
+"DONNERSTAG",
+"Tag vor Freitag"
+],
+[
+"WOCHE",
+"Sieben Tage"
+],
+[
+"MONAT",
+"Etwa vier Wochen"
+],
+[
+"JAHRHUNDERT",
+"Hundert Jahre"
+],
+[
+"MORGEN",
+"Beginn des Tages"
+],
+[
+"MITTAG",
+"Zwölf Uhr"
+],
+[
+"ABEND",
+"Ende des Tages"
+],
+[
+"NACHT",
+"Wenn es dunkel ist"
+],
+[
+"MITTERNACHT",
+"Zwölf Uhr nachts"
+],
+[
+"ZAHNARZT",
+"Kümmert sich um Zähne"
+],
+[
+"APOTHEKER",
+"Verkauft Medikamente"
+],
+[
+"METZGER",
+"Verkauft Fleisch"
+],
+[
+"KELLNER",
+"Bringt das Essen im Restaurant"
+],
+[
+"FRISEUR",
+"Schneidet Haare"
+],
+[
+"POLIZIST",
+"Sorgt für Ordnung auf der Straße"
+],
+[
+"KAPITAEN",
+"Führt das Schiff"
+],
+[
+"LOKFUEHRER",
+"Fährt den Zug"
+],
+[
+"FISCHER",
+"Wirft das Netz aus"
+],
+[
+"JAEGER",
+"Geht im Wald auf die Pirsch"
+],
+[
+"FOERSTER",
+"Kümmert sich um den Wald"
+],
+[
+"GAERTNER",
+"Pflegt Pflanzen"
+],
+[
+"MALER",
+"Streicht Wände oder malt Bilder"
+],
+[
+"TISCHLER",
+"Baut Möbel aus Holz"
+],
+[
+"MAURER",
+"Baut Häuser aus Stein"
+],
+[
+"ELEKTRIKER",
+"Verlegt Kabel"
+],
+[
+"KLEMPNER",
+"Repariert Wasserrohre"
+],
+[
+"MECHANIKER",
+"Repariert Autos"
+],
+[
+"INGENIEUR",
+"Entwickelt Maschinen"
+],
+[
+"ARCHITEKT",
+"Plant Gebäude"
+],
+[
+"RICHTER",
+"Fällt Urteile"
+],
+[
+"ANWALT",
+"Vertritt Menschen vor Gericht"
+],
+[
+"SCHAUSPIELER",
+"Spielt Rollen"
+],
+[
+"MUSIKER",
+"Spielt ein Instrument"
+],
+[
+"TAENZER",
+"Bewegt sich zur Musik"
+],
+[
+"PRINZESSIN",
+"Tochter des Königs"
+],
+[
+"ZWERG",
+"Kleiner Bergmann im Märchen"
+],
+[
+"RIESE",
+"Sehr großer Mensch im Märchen"
+],
+[
+"HEXE",
+"Reitet im Märchen auf dem Besen"
+],
+[
+"FEE",
+"Märchenfigur mit Zauberstab"
+],
+[
+"GEIST",
+"Gespenst"
+],
+[
+"SOLDAT",
+"Kämpft in der Armee"
+],
+[
+"MAMA",
+"Mutter"
+],
+[
+"PAPA",
+"Vater"
+],
+[
+"OPA",
+"Großvater"
+],
+[
+"TANTE",
+"Schwester von Mutter oder Vater"
+],
+[
+"ONKEL",
+"Bruder von Mutter oder Vater"
+],
+[
+"COUSIN",
+"Sohn von Tante oder Onkel"
+],
+[
+"NACHBAR",
+"Wohnt nebenan"
+],
+[
+"KIND",
+"Junger Mensch"
+],
+[
+"JUNGE",
+"Männliches Kind"
+],
+[
+"MAEDCHEN",
+"Weibliches Kind"
+],
+[
+"GESICHT",
+"Hier sind Augen, Nase und Mund"
+],
+[
+"ZUNGE",
+"Im Mund, zum Schmecken"
+],
+[
+"LIPPE",
+"Rand des Mundes"
+],
+[
+"HALS",
+"Verbindet Kopf und Körper"
+],
+[
+"SCHULTER",
+"Hier setzt der Arm an"
+],
+[
+"ARM",
+"Von Schulter bis Hand"
+],
+[
+"ELLBOGEN",
+"Gelenk im Arm"
+],
+[
+"FINGER",
+"Fünf an jeder Hand"
+],
+[
+"DAUMEN",
+"Kürzester Finger"
+],
+[
+"NAGEL",
+"Wächst am Finger"
+],
+[
+"BRUST",
+"Vorderseite des Oberkörpers"
+],
+[
+"BAUCH",
+"Hier ist der Magen"
+],
+[
+"BEIN",
+"Zum Laufen"
+],
+[
+"ZEH",
+"Teil des Fußes"
+],
+[
+"LUNGE",
+"Zum Atmen"
+],
+[
+"MAGEN",
+"Verdaut das Essen"
+],
+[
+"LEBER",
+"Wichtiges Organ im Bauch"
+],
+[
+"NIERE",
+"Filtert das Blut"
+],
+[
+"GEHIRN",
+"Zum Denken"
+],
+[
+"KNOCHEN",
+"Teil des Skeletts"
+],
+[
+"MUSKEL",
+"Macht Bewegung möglich"
+],
+[
+"HAUT",
+"Umhüllt den Körper"
+],
+[
+"BLUT",
+"Rote Flüssigkeit im Körper"
+],
+[
+"SKELETT",
+"Gerüst aus Knochen"
+],
+[
+"SCHNUPFEN",
+"Verstopfte Nase"
+],
+[
+"HUSTEN",
+"Reizt den Hals"
+],
+[
+"FIEBER",
+"Erhöhte Körpertemperatur"
+],
+[
+"SPRITZE",
+"Damit wird geimpft"
+],
+[
+"KATER",
+"Männliche Katze"
+],
+[
+"KANINCHEN",
+"Kleiner Verwandter des Hasen"
+],
+[
+"RATTE",
+"Größeres Nagetier"
+],
+[
+"REH",
+"Scheues Waldtier"
+],
+[
+"HIRSCH",
+"Männchen mit Geweih"
+],
+[
+"WILDSCHWEIN",
+"Wilde Verwandte des Hausschweins"
+],
+[
+"SCHWEIN",
+"Grunzt auf dem Bauernhof"
+],
+[
+"ZIEGE",
+"Meckert auf der Weide"
+],
+[
+"HUHN",
+"Legt Eier"
+],
+[
+"HAHN",
+"Kräht am Morgen"
+],
+[
+"ENTE",
+"Schwimmt und quakt"
+],
+[
+"GANS",
+"Großer Vogel, schnattert"
+],
+[
+"TRUTHAHN",
+"Großer Vogel zum Erntedank"
+],
+[
+"TAUBE",
+"Friedenssymbol, Vogel"
+],
+[
+"SPATZ",
+"Kleiner brauner Vogel"
+],
+[
+"AMSEL",
+"Schwarzer Singvogel"
+],
+[
+"SCHWAN",
+"Eleganter weißer Wasservogel"
+],
+[
+"PAPAGEI",
+"Bunter Vogel, der sprechen lernt"
+],
+[
+"STRAUSS",
+"Größter Vogel, läuft schnell"
+],
+[
+"FLAMINGO",
+"Rosa Vogel auf einem Bein"
+],
+[
+"KUCKUCK",
+"Vogel, der sich selbst ruft"
+],
+[
+"SCHLANGE",
+"Langes Tier ohne Beine"
+],
+[
+"EIDECHSE",
+"Kleines Reptil"
+],
+[
+"SCHILDKROETE",
+"Tier mit Panzer"
+],
+[
+"KROETE",
+"Verwandte des Frosches"
+],
+[
+"DELPHIN",
+"Verspielter Meeressäuger"
+],
+[
+"ROBBE",
+"Meerestier mit Flossen"
+],
+[
+"SEEHUND",
+"Robbe an der Nordsee"
+],
+[
+"OKTOPUS",
+"Acht Arme im Meer"
+],
+[
+"QUALLE",
+"Glibberiges Tier im Meer"
+],
+[
+"KRABBE",
+"Läuft seitwärts"
+],
+[
+"HUMMER",
+"Großer Meereskrebs"
+],
+[
+"WESPE",
+"Gelb-schwarz und stechend"
+],
+[
+"HUMMEL",
+"Pelzige Biene"
+],
+[
+"FLIEGE",
+"Summt und nervt"
+],
+[
+"MUECKE",
+"Sticht im Sommer"
+],
+[
+"MARIENKAEFER",
+"Roter Käfer mit schwarzen Punkten"
+],
+[
+"SCHNECKE",
+"Langsames Tier mit Haus"
+],
+[
+"WURM",
+"Kriecht in der Erde"
+],
+[
+"KAEFER",
+"Insekt mit hartem Panzer"
+],
+[
+"GRILLE",
+"Zirpt im Gras"
+],
+[
+"LIBELLE",
+"Fliegt am Teich"
+],
+[
+"PANTHER",
+"Schwarze Großkatze"
+],
+[
+"LEOPARD",
+"Gepunktete Großkatze"
+],
+[
+"GEPARD",
+"Schnellstes Landtier"
+],
+[
+"NASHORN",
+"Hat ein Horn auf der Nase"
+],
+[
+"NILPFERD",
+"Dickhäutiges Tier im Wasser"
+],
+[
+"AFFE",
+"Klettert und frisst Bananen"
+],
+[
+"GORILLA",
+"Größter Menschenaffe"
+],
+[
+"LAMA",
+"Südamerikanisches Tier, das spucken kann"
+],
+[
+"PANDA",
+"Schwarz-weißer Bär, mag Bambus"
+],
+[
+"KOALA",
+"Schläft auf Eukalyptus"
+],
+[
+"KAENGURU",
+"Springt mit Beutel"
+],
+[
+"EICHHOERNCHEN",
+"Sammelt Nüsse"
+],
+[
+"MAULWURF",
+"Wühlt unter der Erde"
+],
+[
+"FLEDERMAUS",
+"Fliegt nachts"
+],
+[
+"BIBER",
+"Baut Dämme"
+],
+[
+"OTTER",
+"Schwimmt gern im Fluss"
+],
+[
+"BAUM",
+"Hat Stamm und Krone"
+],
+[
+"FICHTE",
+"Häufiger Nadelbaum"
+],
+[
+"BIRKE",
+"Baum mit weißer Rinde"
+],
+[
+"LINDE",
+"Baum mit herzförmigen Blättern"
+],
+[
+"PALME",
+"Baum am Strand"
+],
+[
+"KAKTUS",
+"Stachelige Pflanze der Wüste"
+],
+[
+"SONNENBLUME",
+"Große gelbe Blume mit Kernen"
+],
+[
+"MARGERITE",
+"Weiße Blume mit gelber Mitte"
+],
+[
+"VEILCHEN",
+"Kleine blaue Frühlingsblume"
+],
+[
+"LILIE",
+"Edle Blume"
+],
+[
+"GRAS",
+"Grüner Halm auf der Wiese"
+],
+[
+"BLATT",
+"Grüner Teil der Pflanze"
+],
+[
+"WURZEL",
+"Hält den Baum in der Erde"
+],
+[
+"STAMM",
+"Hauptteil des Baumes"
+],
+[
+"AST",
+"Zweig am Baum"
+],
+[
+"ZWEIG",
+"Kleiner Ast"
+],
+[
+"RINDE",
+"Schutzschicht des Baumes"
+],
+[
+"PILZ",
+"Wächst im Wald, nicht Pflanze nicht Tier"
+],
+[
+"MOOS",
+"Weiches Grün am Waldboden"
+],
+[
+"FARN",
+"Pflanze mit gefiederten Blättern"
+],
+[
+"SAMEN",
+"Daraus wächst eine Pflanze"
+],
+[
+"BLUETE",
+"Entsteht vor der Frucht"
+],
+[
+"NUSS",
+"Harte Schale, Kern darin"
+],
+[
+"EICHEL",
+"Futter für Wildschweine, wächst am Laubbaum"
+],
+[
+"TANNENZAPFEN",
+"Frucht der Tanne"
+],
+[
+"BASKETBALL",
+"Ball in den Korb werfen"
+],
+[
+"HANDBALL",
+"Ball ins Tor werfen"
+],
+[
+"VOLLEYBALL",
+"Ball über das Netz schlagen"
+],
+[
+"RADFAHREN",
+"Sport auf zwei Rädern"
+],
+[
+"SKIFAHREN",
+"Sport im Schnee"
+],
+[
+"TURNEN",
+"Übungen am Barren"
+],
+[
+"BOXEN",
+"Kampfsport mit Handschuhen"
+],
+[
+"JUDO",
+"Japanischer Kampfsport"
+],
+[
+"REITEN",
+"Sport mit Pferd"
+],
+[
+"GOLF",
+"Ball ins Loch schlagen"
+],
+[
+"BALL",
+"Rundes Spielgerät"
+],
+[
+"TRAINER",
+"Betreut die Mannschaft"
+],
+[
+"MANNSCHAFT",
+"Team im Sport"
+],
+[
+"MEDAILLE",
+"Preis für Sieger"
+],
+[
+"POKAL",
+"Trophäe für den Gewinner"
+],
+[
+"OLYMPIA",
+"Weltweite Sportspiele"
+],
+[
+"SIEG",
+"Gewinn eines Wettkampfs"
+],
+[
+"NIEDERLAGE",
+"Verlust eines Spiels"
+],
+[
+"UNENTSCHIEDEN",
+"Kein Sieger"
+],
+[
+"LIED",
+"Wird gesungen"
+],
+[
+"TROMPETE",
+"Blechblasinstrument"
+],
+[
+"SCHLAGZEUG",
+"Trommeln und Becken"
+],
+[
+"HARFE",
+"Zupfinstrument mit vielen Saiten"
+],
+[
+"ORGEL",
+"Instrument in der Kirche"
+],
+[
+"ORCHESTER",
+"Viele Musiker zusammen"
+],
+[
+"CHOR",
+"Viele Sänger zusammen"
+],
+[
+"KONZERT",
+"Musikalische Aufführung"
+],
+[
+"MELODIE",
+"Abfolge von Tönen"
+],
+[
+"TAKT",
+"Rhythmische Einheit"
+],
+[
+"OPER",
+"Gesungenes Theaterstück"
+],
+[
+"BALLETT",
+"Tanzkunst auf Zehenspitzen"
+],
+[
+"BILD",
+"Gemälde oder Foto"
+],
+[
+"GEMAELDE",
+"Auf Leinwand gemalt"
+],
+[
+"PINSEL",
+"Damit wird gemalt"
+],
+[
+"LEINWAND",
+"Darauf malt der Künstler"
+],
+[
+"STATUE",
+"Figur aus Stein oder Metall"
+],
+[
+"COMIC",
+"Bildergeschichte mit Sprechblasen"
+],
+[
+"GEDICHT",
+"Text mit Reimen"
+],
+[
+"ROMAN",
+"Langes Buch mit Geschichte"
+],
+[
+"ZEITUNG",
+"Täglich neue Nachrichten"
+],
+[
+"ZEITSCHRIFT",
+"Erscheint regelmäßig als Heft"
+],
+[
+"BRIEF",
+"Wird mit der Post verschickt"
+],
+[
+"POST",
+"Bringt Briefe und Pakete"
+],
+[
+"PAKET",
+"Verschickt man mit der Post"
+],
+[
+"BRIEFMARKE",
+"Klebt auf dem Brief"
+],
+[
+"TELEFON",
+"Zum Anrufen"
+],
+[
+"BILDSCHIRM",
+"Zeigt Bilder am Computer"
+],
+[
+"DRUCKER",
+"Bringt Texte aufs Papier"
+],
+[
+"KABEL",
+"Leitet Strom"
+],
+[
+"STECKDOSE",
+"Hier kommt Strom aus der Wand"
+],
+[
+"MASCHINE",
+"Gerät mit Motor"
+],
+[
+"MOTOR",
+"Treibt das Auto an"
+],
+[
+"RAD",
+"Rund und dreht sich"
+],
+[
+"HAMMER",
+"Werkzeug zum Nageln"
+],
+[
+"SAEGE",
+"Schneidet Holz"
+],
+[
+"ZANGE",
+"Werkzeug zum Zupacken"
+],
+[
+"SCHRAUBE",
+"Gewindestift, wird gedreht"
+],
+[
+"LEITER",
+"Zum Hinaufsteigen"
+],
+[
+"SEIL",
+"Starker Strick"
+],
+[
+"EIMER",
+"Gefäß mit Henkel"
+],
+[
+"BESEN",
+"Zum Fegen"
+],
+[
+"STAUBSAUGER",
+"Saugt Schmutz"
+],
+[
+"WASCHMASCHINE",
+"Wäscht die Kleidung"
+],
+[
+"MUENZE",
+"Rundes Metallgeld"
+],
+[
+"SCHEIN",
+"Papiergeld"
+],
+[
+"PREIS",
+"Das kostet es"
+],
+[
+"SPARSCHWEIN",
+"Hier landen Münzen"
+],
+[
+"KUPFER",
+"Rötliches Metall"
+],
+[
+"PERLE",
+"Entsteht in der Muschel"
+],
+[
+"KRONE",
+"Schmuck auf dem Kopf des Königs"
+],
+[
+"THRON",
+"Sitz des Königs"
+],
+[
+"FLAGGE",
+"Fahne eines Landes"
+],
+[
+"WAPPEN",
+"Zeichen eines Landes oder Adels"
+],
+[
+"GLOBUS",
+"Kugel mit der Erde"
+],
+[
+"DEUTSCHLAND",
+"Land mit Hauptstadt Berlin"
+],
+[
+"FRANKFURT",
+"Stadt mit Bankenviertel am Main"
+],
+[
+"BREMEN",
+"Stadt mit Stadtmusikanten"
+],
+[
+"STUTTGART",
+"Hauptstadt von Baden-Württemberg"
+],
+[
+"HANNOVER",
+"Hauptstadt von Niedersachsen"
+],
+[
+"LEIPZIG",
+"Messestadt in Sachsen"
+],
+[
+"OESTERREICH",
+"Alpenland mit Hauptstadt Wien"
+],
+[
+"SCHWEIZ",
+"Land mit Bergen und Schokolade"
+],
+[
+"ZUERICH",
+"Größte Stadt der Schweiz"
+],
+[
+"FRANKREICH",
+"Land mit dem Eiffelturm"
+],
+[
+"ITALIEN",
+"Stiefelförmiges Land"
+],
+[
+"VENEDIG",
+"Stadt mit Kanälen"
+],
+[
+"MAILAND",
+"Modestadt in Italien"
+],
+[
+"SPANIEN",
+"Land von Stierkampf und Flamenco"
+],
+[
+"PORTUGAL",
+"Land an der Westküste Europas"
+],
+[
+"ENGLAND",
+"Teil von Großbritannien"
+],
+[
+"IRLAND",
+"Grüne Insel"
+],
+[
+"DUBLIN",
+"Hauptstadt von Irland"
+],
+[
+"SCHOTTLAND",
+"Land der Kilts und Dudelsäcke"
+],
+[
+"HOLLAND",
+"Land der Tulpen und Windmühlen"
+],
+[
+"AMSTERDAM",
+"Stadt der Grachten"
+],
+[
+"BELGIEN",
+"Land der Waffeln und Pommes"
+],
+[
+"BRUESSEL",
+"Hauptstadt von Belgien"
+],
+[
+"DAENEMARK",
+"Land der Wikinger und Legosteine"
+],
+[
+"KOPENHAGEN",
+"Hauptstadt von Dänemark"
+],
+[
+"NORWEGEN",
+"Land der Fjorde"
+],
+[
+"SCHWEDEN",
+"Land von Pippi Langstrumpf"
+],
+[
+"STOCKHOLM",
+"Hauptstadt von Schweden"
+],
+[
+"FINNLAND",
+"Land der tausend Seen"
+],
+[
+"HELSINKI",
+"Hauptstadt von Finnland"
+],
+[
+"ISLAND",
+"Insel aus Feuer und Eis"
+],
+[
+"POLEN",
+"Land östlich von Deutschland"
+],
+[
+"TSCHECHIEN",
+"Land mit Hauptstadt Prag"
+],
+[
+"UNGARN",
+"Land mit Hauptstadt Budapest"
+],
+[
+"GRIECHENLAND",
+"Land mit Akropolis"
+],
+[
+"TUERKEI",
+"Land zwischen Europa und Asien"
+],
+[
+"ISTANBUL",
+"Stadt am Bosporus"
+],
+[
+"RUSSLAND",
+"Größtes Land der Erde"
+],
+[
+"UKRAINE",
+"Land mit Hauptstadt Kiew"
+],
+[
+"KIEW",
+"Hauptstadt der Ukraine"
+],
+[
+"AEGYPTEN",
+"Land der Pyramiden"
+],
+[
+"AFRIKA",
+"Kontinent mit der Sahara"
+],
+[
+"ASIEN",
+"Größter Kontinent"
+],
+[
+"EUROPA",
+"Kontinent mit Deutschland"
+],
+[
+"AMERIKA",
+"Kontinent im Westen"
+],
+[
+"AUSTRALIEN",
+"Insel-Kontinent der Kängurus"
+],
+[
+"ANTARKTIS",
+"Eiskontinent am Südpol"
+],
+[
+"ARKTIS",
+"Eisregion am Nordpol"
+],
+[
+"CHINA",
+"Land der Großen Mauer"
+],
+[
+"JAPAN",
+"Land der aufgehenden Sonne"
+],
+[
+"INDIEN",
+"Land mit dem Taj Mahal"
+],
+[
+"INDONESIEN",
+"Land mit tausenden Inseln"
+],
+[
+"THAILAND",
+"Land mit Elefanten und Bangkok"
+],
+[
+"KOREA",
+"Halbinsel in Ostasien"
+],
+[
+"VIETNAM",
+"Land in Südostasien"
+],
+[
+"BRASILIEN",
+"Land des Karnevals"
+],
+[
+"ARGENTINIEN",
+"Land der Pampa und des Tango"
+],
+[
+"PERU",
+"Land von Machu Picchu"
+],
+[
+"MEXIKO",
+"Land nördlich von Guatemala"
+],
+[
+"KANADA",
+"Land mit Ahornblatt"
+],
+[
+"KUBA",
+"Karibikinsel mit Havanna"
+],
+[
+"WASHINGTON",
+"Hauptstadt der USA"
+],
+[
+"HAWAII",
+"Inselgruppe im Pazifik"
+],
+[
+"ALASKA",
+"Größter US-Bundesstaat"
+],
+[
+"KALIFORNIEN",
+"Sonnenstaat an der Westküste"
+],
+[
+"MISSISSIPPI",
+"Großer Fluss in den USA"
+],
+[
+"ZUGSPITZE",
+"Höchster Berg Deutschlands"
+],
+[
+"MONTBLANC",
+"Höchster Gipfel der Alpen"
+],
+[
+"HIMALAYA",
+"Gebirge mit dem Mount Everest"
+],
+[
+"BODENSEE",
+"Großer See im Süden Deutschlands"
+],
+[
+"MITTELMEER",
+"Meer zwischen Europa und Afrika"
+],
+[
+"SUEDPOL",
+"Kältester Ort im Süden"
+],
+[
+"NORDPOL",
+"Ganz oben auf dem Globus"
+],
+[
+"AEQUATOR",
+"Imaginäre Linie um die Erde"
+],
+[
+"PYRAMIDE",
+"Steinbauwerk der Pharaonen"
+],
+[
+"KOLOSSEUM",
+"Antikes Stadion in Rom"
+],
+[
+"EIFFELTURM",
+"Wahrzeichen von Paris"
+],
+[
+"DOM",
+"Große Kirche"
+],
+[
+"WINDMUEHLE",
+"Mahlt Korn mit Wind"
+],
+[
+"LEUCHTTURM",
+"Warnt Schiffe vor Küsten"
+],
+[
+"BAUERNHOF",
+"Hier leben Kühe und Hühner"
+],
+[
+"SCHEUNE",
+"Hier lagert das Heu"
+],
+[
+"STALL",
+"Wohnort von Pferd oder Kuh"
+],
+[
+"HEU",
+"Getrocknetes Gras"
+],
+[
+"STROH",
+"Getrocknete Halme"
+],
+[
+"ERNTE",
+"Einholen der Früchte"
+],
+[
+"WEIZEN",
+"Getreide für Brot"
+],
+[
+"ROGGEN",
+"Dunkles Brotgetreide"
+],
+[
+"MAIS",
+"Gelbe Körner am Kolben"
+],
+[
+"HAFER",
+"Getreide für Pferde und Müsli"
+],
+[
+"GERSTE",
+"Getreide für Bier"
+],
+[
+"MEHL",
+"Gemahlenes Getreide"
+],
+[
+"TEIG",
+"Mischung zum Backen"
+],
+[
+"HOCHZEIT",
+"Fest zweier Verliebter"
+],
+[
+"KARNEVAL",
+"Verkleidung im Februar"
+],
+[
+"SILVESTER",
+"Letzter Tag des Jahres"
+],
+[
+"NIKOLAUS",
+"Bringt am 6. Dezember Süßes"
+],
+[
+"KERZE",
+"Wachs mit Docht"
+],
+[
+"FLAMME",
+"Leuchtendes Feuerzüngelchen"
+],
+[
+"RAUCH",
+"Steigt vom Feuer auf"
+],
+[
+"ASCHE",
+"Rest nach dem Verbrennen"
+],
+[
+"FUNKE",
+"Kleines Feuerteilchen"
+],
+[
+"DAMPF",
+"Heißer Nebel aus Wasser"
+],
+[
+"TROPFEN",
+"Kleine Menge Flüssigkeit"
+],
+[
+"PFUETZE",
+"Wasser auf der Straße nach Regen"
+],
+[
+"FELS",
+"Großer Stein"
+],
+[
+"LEHM",
+"Zäher Boden zum Töpfern"
+],
+[
+"KOHLE",
+"Schwarzer Brennstoff"
+],
+[
+"OEL",
+"Zähe Flüssigkeit zum Brennen"
+],
+[
+"BENZIN",
+"Treibstoff für Autos"
+],
+[
+"GAS",
+"Luftförmiger Brennstoff"
+],
+[
+"SAUERSTOFF",
+"Gas, das wir zum Atmen brauchen"
+],
+[
+"WASSERSTOFF",
+"Leichtestes Element"
+],
+[
+"ATOM",
+"Kleinster Baustein der Materie"
+],
+[
+"KRAFT",
+"Stärke"
+],
+[
+"SCHATTEN",
+"Dunkler Fleck hinter Dingen"
+],
+[
+"BRAUN",
+"Farbe von Schokolade"
+],
+[
+"GRAU",
+"Farbe von Asche"
+],
+[
+"ROSA",
+"Helles Rot"
+],
+[
+"LILA",
+"Mischung aus Rot und Blau"
+],
+[
+"GROSS",
+"Gegenteil von klein"
+],
+[
+"KLEIN",
+"Gegenteil von groß"
+],
+[
+"LANG",
+"Gegenteil von kurz"
+],
+[
+"KURZ",
+"Gegenteil von lang"
+],
+[
+"HOCH",
+"Gegenteil von tief"
+],
+[
+"TIEF",
+"Gegenteil von hoch"
+],
+[
+"SCHNELL",
+"Gegenteil von langsam"
+],
+[
+"LANGSAM",
+"Gegenteil von schnell"
+],
+[
+"HEISS",
+"Gegenteil von kalt"
+],
+[
+"KALT",
+"Gegenteil von warm"
+],
+[
+"NASS",
+"Gegenteil von trocken"
+],
+[
+"TROCKEN",
+"Gegenteil von nass"
+],
+[
+"ALT",
+"Gegenteil von jung"
+],
+[
+"JUNG",
+"Gegenteil von alt"
+],
+[
+"NEU",
+"Gegenteil von alt bei Dingen"
+],
+[
+"LAUT",
+"Gegenteil von leise"
+],
+[
+"LEISE",
+"Gegenteil von laut"
+],
+[
+"HELL",
+"Gegenteil von dunkel"
+],
+[
+"DUNKEL",
+"Gegenteil von hell"
+],
+[
+"SCHWER",
+"Gegenteil von leicht"
+],
+[
+"LEICHT",
+"Gegenteil von schwer"
+],
+[
+"STARK",
+"Gegenteil von schwach"
+],
+[
+"WEICH",
+"Gegenteil von hart"
+],
+[
+"HART",
+"Gegenteil von weich"
+],
+[
+"SUESS",
+"Schmeckt wie Zucker"
+],
+[
+"SAUER",
+"Schmeckt wie Zitrone"
+],
+[
+"BITTER",
+"Schmeckt wie Kaffee ohne Zucker"
+],
+[
+"SCHARF",
+"Schmeckt wie Chili"
+],
+[
+"FRISCH",
+"Gerade erst gemacht"
+],
+[
+"LEER",
+"Nichts drin"
+],
+[
+"VOLL",
+"Nichts mehr hinein"
+],
+[
+"GESUND",
+"Nicht krank"
+],
+[
+"KRANK",
+"Nicht gesund"
+],
+[
+"GLUECKLICH",
+"Voller Freude"
+],
+[
+"TRAURIG",
+"Voller Kummer"
+],
+[
+"WUETEND",
+"Voller Zorn"
+],
+[
+"MUEDE",
+"Möchte schlafen"
+],
+[
+"HUNGRIG",
+"Will etwas essen"
+],
+[
+"DURSTIG",
+"Will etwas trinken"
+],
+[
+"MUTIG",
+"Hat keine Angst"
+],
+[
+"KLUG",
+"Gescheit"
+],
+[
+"LUSTIG",
+"Zum Lachen"
+],
+[
+"FREUNDLICH",
+"Nett zu anderen"
+],
+[
+"LAECHELN",
+"Zeigt Freude im Gesicht"
+],
+[
+"LACHEN",
+"Ausdruck von Freude"
+],
+[
+"WEINEN",
+"Tränen vergießen"
+],
+[
+"SCHLAFEN",
+"Nachts im Bett tun"
+],
+[
+"TRAEUMEN",
+"Im Schlaf Bilder sehen"
+],
+[
+"ESSEN",
+"Mahlzeit zu sich nehmen"
+],
+[
+"TRINKEN",
+"Flüssigkeit zu sich nehmen"
+],
+[
+"KOCHEN",
+"Essen zubereiten"
+],
+[
+"BACKEN",
+"Im Ofen zubereiten"
+],
+[
+"SPRINGEN",
+"Mit beiden Beinen abheben"
+],
+[
+"SINGEN",
+"Mit der Stimme Musik machen"
+],
+[
+"LESEN",
+"Buchstaben aufnehmen"
+],
+[
+"SCHREIBEN",
+"Mit dem Stift tun"
+],
+[
+"RECHNEN",
+"Mit Zahlen arbeiten"
+],
+[
+"MALEN",
+"Mit Farben gestalten"
+],
+[
+"BASTELN",
+"Handarbeiten"
+],
+[
+"SPIELEN",
+"Zum Spaß tun"
+],
+[
+"LERNEN",
+"Wissen erwerben"
+],
+[
+"DENKEN",
+"Mit dem Kopf arbeiten"
+],
+[
+"RATEN",
+"Eine Lösung vermuten"
+],
+[
+"FRAGEN",
+"Wissen wollen"
+],
+[
+"ANTWORT",
+"Reaktion auf eine Frage"
+],
+[
+"FRAGE",
+"Möchte man beantwortet haben"
+],
+[
+"RAETSEL",
+"Aufgabe zum Knobeln"
+],
+[
+"WITZ",
+"Soll zum Lachen bringen"
+],
+[
+"GEHEIMNIS",
+"Darf niemand wissen"
+],
+[
+"IDEE",
+"Guter Einfall"
+],
+[
+"EINS",
+"Erste Zahl"
+],
+[
+"ZWEI",
+"Zahl nach eins"
+],
+[
+"DREI",
+"Zahl nach zwei"
+],
+[
+"VIER",
+"Zahl nach drei"
+],
+[
+"FUENF",
+"Zahl nach vier"
+],
+[
+"SECHS",
+"Zahl nach fünf"
+],
+[
+"SIEBEN",
+"Zahl nach sechs"
+],
+[
+"ACHT",
+"Zahl nach sieben"
+],
+[
+"NEUN",
+"Zahl nach acht"
+],
+[
+"ZEHN",
+"Zahl nach neun"
+],
+[
+"TAUSEND",
+"Zehn mal hundert"
+],
+[
+"MILLION",
+"Tausend mal tausend"
+],
+[
+"KUGEL",
+"Runder Körper"
+],
+[
+"LINIE",
+"Strich"
+],
+[
+"PUNKT",
+"Kleiner Fleck"
+]
+],
+"en": [
+[
+"DOG",
+"Man's best friend"
+],
+[
+"CAT",
+"Pet that purrs"
+],
+[
+"HORSE",
+"Animal you can ride"
+],
+[
+"COW",
+"Gives milk"
+],
+[
+"SHEEP",
+"Gives wool"
+],
+[
+"DONKEY",
+"Grey animal with long ears"
+],
+[
+"ELEPHANT",
+"Largest land animal"
+],
+[
+"GIRAFFE",
+"Animal with a very long neck"
+],
+[
+"LION",
+"King of the jungle"
+],
+[
+"TIGER",
+"Big striped cat"
+],
+[
+"ZEBRA",
+"Black and white striped animal"
+],
+[
+"DOLPHIN",
+"Clever sea mammal"
+],
+[
+"WHALE",
+"Largest animal in the ocean"
+],
+[
+"SHARK",
+"Predator with a big fin"
+],
+[
+"EAGLE",
+"Large bird of prey"
+],
+[
+"OWL",
+"Night bird, a symbol of wisdom"
+],
+[
+"FROG",
+"Jumps and croaks"
+],
+[
+"SPIDER",
+"Eight legs and a web"
+],
+[
+"BEE",
+"Makes honey"
+],
+[
+"ANT",
+"Tiny hard working insect"
+],
+[
+"BUTTERFLY",
+"Grows from a caterpillar"
+],
+[
+"HEDGEHOG",
+"Small spiky animal"
+],
+[
+"RABBIT",
+"Long ears, hops"
+],
+[
+"FOX",
+"Clever animal with red fur"
+],
+[
+"WOLF",
+"Wild animal that howls"
+],
+[
+"BEAR",
+"Sleeps through winter"
+],
+[
+"CAMEL",
+"Desert animal with humps"
+],
+[
+"PENGUIN",
+"Flightless bird of the ice"
+],
+[
+"CROCODILE",
+"Reptile with a big mouth in the river"
+],
+[
+"MOUSE",
+"Small rodent that likes cheese"
+],
+[
+"APPLE",
+"Round fruit, red or green"
+],
+[
+"PEAR",
+"Fruit shaped like a light bulb"
+],
+[
+"BANANA",
+"Yellow curved fruit"
+],
+[
+"ORANGE",
+"Citrus fruit and a colour"
+],
+[
+"LEMON",
+"Sour yellow fruit"
+],
+[
+"STRAWBERRY",
+"Red fruit with seeds outside"
+],
+[
+"CHERRY",
+"Small red fruit with a stone"
+],
+[
+"GRAPE",
+"Grows on a vine"
+],
+[
+"MELON",
+"Big fruit with lots of water"
+],
+[
+"PINEAPPLE",
+"Tropical fruit with a crown"
+],
+[
+"TOMATO",
+"Red fruit in ketchup"
+],
+[
+"POTATO",
+"Tuber that becomes fries"
+],
+[
+"CUCUMBER",
+"Green vegetable in salads"
+],
+[
+"CARROT",
+"Orange root vegetable"
+],
+[
+"ONION",
+"Makes you cry when cut"
+],
+[
+"CHEESE",
+"Made from milk, can have holes"
+],
+[
+"BREAD",
+"Bought at the bakery"
+],
+[
+"BUTTER",
+"Spread made from cream"
+],
+[
+"MILK",
+"White drink from cows"
+],
+[
+"PASTA",
+"Italian dish made of dough"
+],
+[
+"PIZZA",
+"Italian dish with toppings"
+],
+[
+"SALAD",
+"Healthy dish of leaves"
+],
+[
+"SOUP",
+"Eaten with a spoon"
+],
+[
+"CAKE",
+"Sweet treat for birthdays"
+],
+[
+"CHOCOLATE",
+"Sweet and brown, made from cocoa"
+],
+[
+"HONEY",
+"Sweet food made by bees"
+],
+[
+"SUGAR",
+"Sweetens your coffee"
+],
+[
+"SALT",
+"White seasoning"
+],
+[
+"PEPPER",
+"Spicy seasoning"
+],
+[
+"COFFEE",
+"Morning wake up drink"
+],
+[
+"TEA",
+"Hot drink made of leaves"
+],
+[
+"WATER",
+"H2O"
+],
+[
+"SUN",
+"The star that gives us light"
+],
+[
+"MOON",
+"Earth's natural satellite"
+],
+[
+"STAR",
+"Twinkles in the night sky"
+],
+[
+"EARTH",
+"Our home planet"
+],
+[
+"MARS",
+"The red planet"
+],
+[
+"VENUS",
+"Planet named after a goddess"
+],
+[
+"JUPITER",
+"Largest planet"
+],
+[
+"SATURN",
+"Planet with famous rings"
+],
+[
+"MERCURY",
+"Planet closest to the sun"
+],
+[
+"NEPTUNE",
+"Last planet of the solar system"
+],
+[
+"COMET",
+"Space object with a tail"
+],
+[
+"GALAXY",
+"The Milky Way is one"
+],
+[
+"ROCKET",
+"Flies into space"
+],
+[
+"CLOUD",
+"White and fluffy in the sky"
+],
+[
+"RAIN",
+"Falls from the clouds"
+],
+[
+"SNOW",
+"White flakes in winter"
+],
+[
+"THUNDER",
+"Loud noise after lightning"
+],
+[
+"LIGHTNING",
+"Bright flash in a storm"
+],
+[
+"FOG",
+"Thick mist"
+],
+[
+"WIND",
+"Moving air"
+],
+[
+"STORM",
+"Very strong wind and rain"
+],
+[
+"RAINBOW",
+"Colourful arch after rain"
+],
+[
+"SPRING",
+"Season after winter"
+],
+[
+"SUMMER",
+"Hottest season"
+],
+[
+"AUTUMN",
+"Season when leaves fall"
+],
+[
+"WINTER",
+"Coldest season"
+],
+[
+"MONDAY",
+"First day of the working week"
+],
+[
+"TUESDAY",
+"Day after Monday"
+],
+[
+"FRIDAY",
+"Last working day"
+],
+[
+"SATURDAY",
+"Weekend day"
+],
+[
+"SUNDAY",
+"Day of rest"
+],
+[
+"JANUARY",
+"First month"
+],
+[
+"APRIL",
+"Month of showers"
+],
+[
+"JUNE",
+"Month before July"
+],
+[
+"DECEMBER",
+"Last month of the year"
+],
+[
+"LONDON",
+"Capital of England"
+],
+[
+"PARIS",
+"Capital of France"
+],
+[
+"ROME",
+"Capital of Italy"
+],
+[
+"MADRID",
+"Capital of Spain"
+],
+[
+"BERLIN",
+"Capital of Germany"
+],
+[
+"VIENNA",
+"Capital of Austria"
+],
+[
+"ATHENS",
+"Capital of Greece"
+],
+[
+"LISBON",
+"Capital of Portugal"
+],
+[
+"OSLO",
+"Capital of Norway"
+],
+[
+"WARSAW",
+"Capital of Poland"
+],
+[
+"PRAGUE",
+"Capital of the Czech Republic"
+],
+[
+"CAIRO",
+"Capital of Egypt"
+],
+[
+"TOKYO",
+"Capital of Japan"
+],
+[
+"BEIJING",
+"Capital of China"
+],
+[
+"MOSCOW",
+"Capital of Russia"
+],
+[
+"DUBLIN",
+"Capital of Ireland"
+],
+[
+"THAMES",
+"River through London"
+],
+[
+"RHINE",
+"Famous river in Germany"
+],
+[
+"NILE",
+"Longest river in Africa"
+],
+[
+"AMAZON",
+"River through the rainforest in Brazil"
+],
+[
+"ALPS",
+"Mountain range in Europe"
+],
+[
+"EVEREST",
+"Highest mountain on Earth"
+],
+[
+"SAHARA",
+"Largest hot desert"
+],
+[
+"ATLANTIC",
+"Ocean between Europe and America"
+],
+[
+"PACIFIC",
+"Largest ocean"
+],
+[
+"ISLAND",
+"Land surrounded by water"
+],
+[
+"VOLCANO",
+"Mountain that erupts lava"
+],
+[
+"BEACH",
+"Sand by the sea"
+],
+[
+"FOREST",
+"Many trees together"
+],
+[
+"MEADOW",
+"Grassy field with flowers"
+],
+[
+"FLOWER",
+"Blooms in the garden"
+],
+[
+"ROSE",
+"Flower with thorns"
+],
+[
+"TULIP",
+"Spring flower from the Netherlands"
+],
+[
+"OAK",
+"Tree with acorns"
+],
+[
+"PINE",
+"Evergreen tree"
+],
+[
+"HOUSE",
+"Building to live in"
+],
+[
+"DOOR",
+"You open it to enter"
+],
+[
+"WINDOW",
+"Made of glass, you look through it"
+],
+[
+"ROOF",
+"Top of a house"
+],
+[
+"KITCHEN",
+"Room for cooking"
+],
+[
+"BED",
+"Where you sleep"
+],
+[
+"SOFA",
+"Comfortable seat"
+],
+[
+"CHAIR",
+"Has four legs and a back"
+],
+[
+"TABLE",
+"You eat on it"
+],
+[
+"LAMP",
+"Gives light"
+],
+[
+"MIRROR",
+"Shows your reflection"
+],
+[
+"CLOCK",
+"Shows the time"
+],
+[
+"KEY",
+"Opens a lock"
+],
+[
+"CAR",
+"Vehicle with four wheels"
+],
+[
+"BUS",
+"Public road transport"
+],
+[
+"TRAIN",
+"Runs on rails"
+],
+[
+"BICYCLE",
+"Two wheels and pedals"
+],
+[
+"AIRPLANE",
+"Flies with passengers"
+],
+[
+"SHIP",
+"Sails on the sea"
+],
+[
+"BOAT",
+"Small vessel on water"
+],
+[
+"TRACTOR",
+"Farm vehicle"
+],
+[
+"HELICOPTER",
+"Flies with a rotor"
+],
+[
+"ROAD",
+"Cars drive on it"
+],
+[
+"BRIDGE",
+"Connects two banks"
+],
+[
+"TUNNEL",
+"Passage through a mountain"
+],
+[
+"STATION",
+"Trains stop here"
+],
+[
+"AIRPORT",
+"Planes take off here"
+],
+[
+"SCHOOL",
+"Children learn here"
+],
+[
+"TEACHER",
+"Instructs the class"
+],
+[
+"BOOK",
+"Has pages and a story"
+],
+[
+"PENCIL",
+"You write with it"
+],
+[
+"ERASER",
+"Removes pencil marks"
+],
+[
+"RULER",
+"Measures straight lines"
+],
+[
+"SCISSORS",
+"Cut paper"
+],
+[
+"PAPER",
+"You write on it"
+],
+[
+"MATHS",
+"Subject with numbers"
+],
+[
+"BIOLOGY",
+"Study of life"
+],
+[
+"CHEMISTRY",
+"Subject with test tubes"
+],
+[
+"PHYSICS",
+"Study of force and energy"
+],
+[
+"HISTORY",
+"School subject about the past"
+],
+[
+"MUSIC",
+"Songs and melodies"
+],
+[
+"GUITAR",
+"Stringed instrument with six strings"
+],
+[
+"PIANO",
+"Instrument with black and white keys"
+],
+[
+"VIOLIN",
+"Instrument played with a bow"
+],
+[
+"FLUTE",
+"Wind instrument"
+],
+[
+"DRUM",
+"Percussion instrument"
+],
+[
+"SINGER",
+"Performs songs"
+],
+[
+"MOVIE",
+"Shown in the cinema"
+],
+[
+"CINEMA",
+"Place to watch films on a big screen"
+],
+[
+"THEATRE",
+"Actors perform on stage"
+],
+[
+"STAGE",
+"Where actors stand"
+],
+[
+"TELEVISION",
+"Device for watching shows"
+],
+[
+"RADIO",
+"Device that plays music"
+],
+[
+"PHONE",
+"Used to call people"
+],
+[
+"COMPUTER",
+"Machine with a keyboard"
+],
+[
+"KEYBOARD",
+"Has letter keys"
+],
+[
+"INTERNET",
+"Worldwide network"
+],
+[
+"GAME",
+"Fun to play and win"
+],
+[
+"FOOTBALL",
+"Most popular sport with a round ball"
+],
+[
+"TENNIS",
+"Sport with racket and net"
+],
+[
+"CHESS",
+"Board game with king and queen"
+],
+[
+"CARDS",
+"Poker is played with them"
+],
+[
+"DICE",
+"Has six sides with dots"
+],
+[
+"GOAL",
+"Scored in football"
+],
+[
+"SWIMMING",
+"Moving through water"
+],
+[
+"RUNNING",
+"Moving fast on foot"
+],
+[
+"DANCING",
+"Moving to music"
+],
+[
+"DOCTOR",
+"Treats the sick"
+],
+[
+"HOSPITAL",
+"Patients are treated here"
+],
+[
+"MEDICINE",
+"Helps when you are ill"
+],
+[
+"HEART",
+"Pumps blood"
+],
+[
+"HEAD",
+"Has hair and a nose"
+],
+[
+"NOSE",
+"For smelling"
+],
+[
+"EAR",
+"For hearing"
+],
+[
+"EYE",
+"For seeing"
+],
+[
+"MOUTH",
+"For speaking and eating"
+],
+[
+"TOOTH",
+"Bites the apple"
+],
+[
+"HAND",
+"Has five fingers"
+],
+[
+"FOOT",
+"Has five toes"
+],
+[
+"KNEE",
+"Joint in the leg"
+],
+[
+"BACK",
+"Rear side of the body"
+],
+[
+"HAIR",
+"Grows on your head"
+],
+[
+"DRESS",
+"Clothing for women"
+],
+[
+"TROUSERS",
+"Cover your legs"
+],
+[
+"JACKET",
+"Keeps you warm in autumn"
+],
+[
+"SHOE",
+"Worn on the foot"
+],
+[
+"HAT",
+"Worn on the head"
+],
+[
+"GLOVE",
+"Keeps your fingers warm"
+],
+[
+"GLASSES",
+"Help you see"
+],
+[
+"RING",
+"Jewellery on a finger"
+],
+[
+"GOLD",
+"Yellow precious metal"
+],
+[
+"SILVER",
+"Shiny white metal"
+],
+[
+"IRON",
+"Metal that can rust"
+],
+[
+"DIAMOND",
+"Hardest gem"
+],
+[
+"MONEY",
+"You pay with it"
+],
+[
+"BANK",
+"Place for your account"
+],
+[
+"KING",
+"Ruler with a crown"
+],
+[
+"QUEEN",
+"Female ruler"
+],
+[
+"PRINCE",
+"Son of the king"
+],
+[
+"CASTLE",
+"Big building for kings"
+],
+[
+"KNIGHT",
+"Warrior in armour"
+],
+[
+"DRAGON",
+"Fire breathing creature"
+],
+[
+"WIZARD",
+"Has a magic wand"
+],
+[
+"CHRISTMAS",
+"Holiday with presents in December"
+],
+[
+"EASTER",
+"Holiday with bunnies and eggs"
+],
+[
+"BIRTHDAY",
+"Yearly celebration with candles"
+],
+[
+"PRESENT",
+"Wrapped and given as a gift"
+],
+[
+"PARTY",
+"Celebration with music"
+],
+[
+"FRIEND",
+"Trusted companion"
+],
+[
+"FAMILY",
+"Parents and children"
+],
+[
+"MOTHER",
+"Female parent"
+],
+[
+"FATHER",
+"Male parent"
+],
+[
+"BROTHER",
+"Male sibling"
+],
+[
+"SISTER",
+"Female sibling"
+],
+[
+"BABY",
+"Very young child"
+],
+[
+"LOVE",
+"Strong feeling for someone"
+],
+[
+"HAPPY",
+"Feeling joy"
+],
+[
+"FEAR",
+"Feeling in danger"
+],
+[
+"DREAM",
+"Pictures while you sleep"
+],
+[
+"COLOUR",
+"Red, blue or green"
+],
+[
+"RED",
+"Colour of love"
+],
+[
+"BLUE",
+"Colour of the sky"
+],
+[
+"GREEN",
+"Colour of grass"
+],
+[
+"YELLOW",
+"Colour of the sun"
+],
+[
+"BLACK",
+"Colour of the night"
+],
+[
+"WHITE",
+"Colour of snow"
+],
+[
+"CIRCLE",
+"Round shape"
+],
+[
+"SQUARE",
+"Four equal sides"
+],
+[
+"TRIANGLE",
+"Has three corners"
+],
+[
+"NUMBER",
+"One, two, three"
+],
+[
+"ZERO",
+"Nothing in numbers"
+],
+[
+"HUNDRED",
+"Ten times ten"
+],
+[
+"TIME",
+"Measured in seconds and hours"
+],
+[
+"SECOND",
+"Sixty make a minute"
+],
+[
+"MINUTE",
+"Sixty seconds"
+],
+[
+"HOUR",
+"Sixty minutes"
+],
+[
+"DAY",
+"Twenty four hours"
+],
+[
+"YEAR",
+"Twelve months"
+],
+[
+"LIGHT",
+"Makes things bright"
+],
+[
+"FIRE",
+"Hot and glowing"
+],
+[
+"AIR",
+"We breathe it"
+],
+[
+"STONE",
+"Hard natural material"
+],
+[
+"SAND",
+"Tiny grains on the beach"
+],
+[
+"GLASS",
+"Transparent material"
+],
+[
+"WOOD",
+"Material from trees"
+],
+[
+"PLASTIC",
+"Synthetic material"
+],
+[
+"ELECTRICITY",
+"Flows through cables"
+],
+[
+"BATTERY",
+"Stores energy in a remote"
+],
+[
+"MAGNET",
+"Attracts iron"
+],
+[
+"COMPASS",
+"Shows north"
+],
+[
+"MAP",
+"Shows the way"
+],
+[
+"PHOTO",
+"Picture from a camera"
+],
+[
+"CAMERA",
+"Takes pictures"
+],
+[
+"ROBOT",
+"Machine that works like a person"
+],
+[
+"ENERGY",
+"Power for machines"
+],
+[
+"TREASURE",
+"Buried by pirates"
+],
+[
+"PIRATE",
+"Sea robber"
+],
+[
+"CIRCUS",
+"Clowns and acrobats"
+],
+[
+"CLOWN",
+"Funny entertainer"
+],
+[
+"BALLOON",
+"Filled with air or helium"
+],
+[
+"DETECTIVE",
+"Solves crimes"
+],
+[
+"POLICE",
+"Keep law and order"
+],
+[
+"BAKER",
+"Makes bread"
+],
+[
+"COOK",
+"Prepares food"
+],
+[
+"FARMER",
+"Works in the fields"
+],
+[
+"PILOT",
+"Flies the plane"
+],
+[
+"PLUM",
+"Purple stone fruit"
+],
+[
+"MANGO",
+"Sweet tropical fruit"
+],
+[
+"KIWI",
+"Green fruit with brown fuzzy skin"
+],
+[
+"PEACH",
+"Fuzzy fruit with a big stone"
+],
+[
+"RASPBERRY",
+"Red berry for jam"
+],
+[
+"GARLIC",
+"Pungent bulb with cloves"
+],
+[
+"SPINACH",
+"Leafy green vegetable"
+],
+[
+"CABBAGE",
+"Round leafy vegetable"
+],
+[
+"BROCCOLI",
+"Green vegetable like a small tree"
+],
+[
+"PEA",
+"Small green ball in a pod"
+],
+[
+"BEAN",
+"Legume, also coffee"
+],
+[
+"LENTIL",
+"Small legume"
+],
+[
+"RICE",
+"Grain grown in paddies"
+],
+[
+"NOODLE",
+"Pasta strand"
+],
+[
+"YOGURT",
+"Fermented milk food"
+],
+[
+"CREAM",
+"Fatty part of milk"
+],
+[
+"VINEGAR",
+"Sour liquid for dressing"
+],
+[
+"MUSTARD",
+"Yellow sauce for sausages"
+],
+[
+"KETCHUP",
+"Red sauce for fries"
+],
+[
+"SAUSAGE",
+"Grilled meat in a skin"
+],
+[
+"HAM",
+"Cured meat from a pig"
+],
+[
+"BACON",
+"Salty strips of pork"
+],
+[
+"FISH",
+"Swims in water"
+],
+[
+"SALMON",
+"Pink fish that swims upstream"
+],
+[
+"HERRING",
+"Small silver sea fish"
+],
+[
+"TROUT",
+"Fish from a stream"
+],
+[
+"SHRIMP",
+"Small pink seafood"
+],
+[
+"OYSTER",
+"Shellfish that may hold a pearl"
+],
+[
+"COOKIE",
+"Sweet baked snack"
+],
+[
+"CANDY",
+"Sweets"
+],
+[
+"PUDDING",
+"Soft sweet dessert"
+],
+[
+"WAFFLE",
+"Grid-patterned breakfast"
+],
+[
+"PANCAKE",
+"Flat cake from a pan"
+],
+[
+"COCOA",
+"Hot chocolate drink"
+],
+[
+"JUICE",
+"Drink pressed from fruit"
+],
+[
+"BEER",
+"Drink made from hops and malt"
+],
+[
+"WINE",
+"Drink made from grapes"
+],
+[
+"KNIFE",
+"Cutting tool for food"
+],
+[
+"FORK",
+"Cutlery with prongs"
+],
+[
+"SPOON",
+"Used for soup"
+],
+[
+"PLATE",
+"Food goes on it"
+],
+[
+"CUP",
+"Holds your tea"
+],
+[
+"TEAPOT",
+"Pours tea"
+],
+[
+"POT",
+"Cooks on the stove"
+],
+[
+"STOVE",
+"Where you cook"
+],
+[
+"OVEN",
+"Where you bake"
+],
+[
+"FRIDGE",
+"Keeps food cold"
+],
+[
+"CLOSET",
+"Furniture for clothes"
+],
+[
+"SHELF",
+"Holds books"
+],
+[
+"CARPET",
+"Covers the floor"
+],
+[
+"CURTAIN",
+"Hangs by the window"
+],
+[
+"PILLOW",
+"Rests your head on the bed"
+],
+[
+"BLANKET",
+"Keeps you warm in bed"
+],
+[
+"WALL",
+"Side of a room"
+],
+[
+"BASEMENT",
+"Room under the house"
+],
+[
+"GARDEN",
+"Flowers grow here"
+],
+[
+"FENCE",
+"Surrounds the yard"
+],
+[
+"STAIRS",
+"Lead up to the next floor"
+],
+[
+"BALCONY",
+"Small platform outside an upper window"
+],
+[
+"FIREPLACE",
+"Place for a cozy fire"
+],
+[
+"BATHTUB",
+"You take a bath in it"
+],
+[
+"SHOWER",
+"Water from above to wash"
+],
+[
+"SOAP",
+"Used to wash hands"
+],
+[
+"TOWEL",
+"Dries you off"
+],
+[
+"TOOTHBRUSH",
+"Cleans your teeth"
+],
+[
+"COMB",
+"Tidies hair"
+],
+[
+"BRUSH",
+"Used for painting or hair"
+],
+[
+"NEEDLE",
+"Sharp, used for sewing"
+],
+[
+"THREAD",
+"Used with a needle"
+],
+[
+"BUTTON",
+"Closes your shirt"
+],
+[
+"ZIPPER",
+"Closes a jacket with teeth"
+],
+[
+"COAT",
+"Long winter garment"
+],
+[
+"SWEATER",
+"Knitted warm top"
+],
+[
+"SHIRT",
+"Top with a collar"
+],
+[
+"SKIRT",
+"Clothing without legs"
+],
+[
+"SOCK",
+"Warms the foot"
+],
+[
+"BOOT",
+"Tall shoe"
+],
+[
+"SCARF",
+"Warms the neck"
+],
+[
+"CAP",
+"Hat with a peak"
+],
+[
+"NECKLACE",
+"Jewellery for the neck"
+],
+[
+"BELT",
+"Holds trousers up"
+],
+[
+"BAG",
+"Carries your things"
+],
+[
+"BACKPACK",
+"Worn on the back"
+],
+[
+"UMBRELLA",
+"Protects from rain"
+],
+[
+"SUITCASE",
+"You travel with it"
+],
+[
+"TRAM",
+"City vehicle on rails"
+],
+[
+"MOTORCYCLE",
+"Two wheels with an engine"
+],
+[
+"SCOOTER",
+"Kids ride it standing"
+],
+[
+"FERRY",
+"Carries cars across water"
+],
+[
+"TRUCK",
+"Big transport vehicle"
+],
+[
+"AMBULANCE",
+"Takes the sick to hospital"
+],
+[
+"HARBOR",
+"Where ships dock"
+],
+[
+"PATH",
+"Small track to walk on"
+],
+[
+"HIGHWAY",
+"Fast road for cars"
+],
+[
+"STUDENT",
+"Learns at school"
+],
+[
+"CLASS",
+"Group of pupils"
+],
+[
+"BLACKBOARD",
+"Teacher writes on it"
+],
+[
+"CHALK",
+"Writes on a blackboard"
+],
+[
+"NOTEBOOK",
+"You write in it"
+],
+[
+"HOLIDAYS",
+"Time off from school"
+],
+[
+"BREAK",
+"Short pause"
+],
+[
+"GRADE",
+"Mark at school"
+],
+[
+"EXAM",
+"Test of knowledge"
+],
+[
+"SCIENCE",
+"Subject about nature"
+],
+[
+"UNIVERSITY",
+"Place of higher education"
+],
+[
+"LIBRARY",
+"Where you borrow books"
+],
+[
+"MUSEUM",
+"Where art is displayed"
+],
+[
+"THEATER",
+"Actors perform on stage here"
+],
+[
+"ZOO",
+"Many animals live here"
+],
+[
+"PARK",
+"Green space in a city"
+],
+[
+"PLAYGROUND",
+"Kids swing here"
+],
+[
+"STADIUM",
+"Where football is played"
+],
+[
+"CHURCH",
+"House of worship with a tower"
+],
+[
+"PALACE",
+"Home of a king"
+],
+[
+"TOWER",
+"Tall narrow building"
+],
+[
+"VILLAGE",
+"Small settlement"
+],
+[
+"TOWN",
+"Bigger than a village"
+],
+[
+"CITY",
+"Large urban place"
+],
+[
+"COUNTRY",
+"Nation"
+],
+[
+"CONTINENT",
+"Huge land mass"
+],
+[
+"MOUNTAIN",
+"High landform"
+],
+[
+"VALLEY",
+"Low land between hills"
+],
+[
+"HILL",
+"Small mountain"
+],
+[
+"SUMMIT",
+"Top of a mountain"
+],
+[
+"CAVE",
+"Hollow in a rock"
+],
+[
+"FIELD",
+"Where crops grow"
+],
+[
+"RIVER",
+"Flows to the sea"
+],
+[
+"STREAM",
+"Small river"
+],
+[
+"LAKE",
+"Water surrounded by land"
+],
+[
+"SEA",
+"Salty water"
+],
+[
+"OCEAN",
+"Huge sea"
+],
+[
+"COAST",
+"Edge of the land at the sea"
+],
+[
+"DESERT",
+"Dry land with sand"
+],
+[
+"JUNGLE",
+"Tropical rainforest"
+],
+[
+"SAVANNA",
+"African grassland"
+],
+[
+"GLACIER",
+"Slow river of ice"
+],
+[
+"WATERFALL",
+"Water falling from a height"
+],
+[
+"POND",
+"Small lake"
+],
+[
+"SWAMP",
+"Wet soft land"
+],
+[
+"PLANET",
+"Orbits the sun"
+],
+[
+"SKY",
+"Blue above us"
+],
+[
+"HAIL",
+"Ice balls from the sky"
+],
+[
+"FROST",
+"Freezing cold"
+],
+[
+"FEBRUARY",
+"Shortest month"
+],
+[
+"MARCH",
+"Start of spring"
+],
+[
+"JULY",
+"Hot summer month"
+],
+[
+"AUGUST",
+"Month before September"
+],
+[
+"SEPTEMBER",
+"Start of autumn"
+],
+[
+"OCTOBER",
+"Month with pumpkins"
+],
+[
+"NOVEMBER",
+"Grey month before December"
+],
+[
+"WEDNESDAY",
+"Middle of the week"
+],
+[
+"THURSDAY",
+"Day before Friday"
+],
+[
+"WEEK",
+"Seven days"
+],
+[
+"MONTH",
+"About four weeks"
+],
+[
+"CENTURY",
+"One hundred years"
+],
+[
+"MORNING",
+"Start of the day"
+],
+[
+"NOON",
+"Twelve o'clock"
+],
+[
+"EVENING",
+"End of the day"
+],
+[
+"NIGHT",
+"When it is dark"
+],
+[
+"MIDNIGHT",
+"Twelve at night"
+],
+[
+"DENTIST",
+"Looks after your teeth"
+],
+[
+"NURSE",
+"Cares for patients"
+],
+[
+"BUTCHER",
+"Sells meat"
+],
+[
+"WAITER",
+"Brings food in a restaurant"
+],
+[
+"BARBER",
+"Cuts hair"
+],
+[
+"POLICEMAN",
+"Keeps order on the street"
+],
+[
+"FIREFIGHTER",
+"Puts out fires"
+],
+[
+"CAPTAIN",
+"Leads a ship"
+],
+[
+"FISHERMAN",
+"Catches fish"
+],
+[
+"HUNTER",
+"Tracks game in the woods"
+],
+[
+"GARDENER",
+"Looks after plants"
+],
+[
+"PAINTER",
+"Uses a brush on canvas"
+],
+[
+"CARPENTER",
+"Builds with wood"
+],
+[
+"MASON",
+"Builds with stone"
+],
+[
+"ELECTRICIAN",
+"Installs wiring"
+],
+[
+"PLUMBER",
+"Fixes water pipes"
+],
+[
+"MECHANIC",
+"Repairs cars"
+],
+[
+"ENGINEER",
+"Designs machines"
+],
+[
+"ARCHITECT",
+"Plans buildings"
+],
+[
+"JUDGE",
+"Decides court cases"
+],
+[
+"LAWYER",
+"Represents people in court"
+],
+[
+"ACTOR",
+"Plays roles"
+],
+[
+"MUSICIAN",
+"Plays an instrument"
+],
+[
+"DANCER",
+"Moves to music"
+],
+[
+"MAGICIAN",
+"Performs tricks"
+],
+[
+"PRINCESS",
+"Daughter of a king"
+],
+[
+"DWARF",
+"Small mountain miner in tales"
+],
+[
+"GIANT",
+"Enormously big being"
+],
+[
+"WITCH",
+"Rides a broom in stories"
+],
+[
+"FAIRY",
+"Magical being with a wand"
+],
+[
+"GHOST",
+"Spooky spirit"
+],
+[
+"SOLDIER",
+"Fights in an army"
+],
+[
+"GRANDMA",
+"Parent of a parent, female"
+],
+[
+"GRANDPA",
+"Parent of a parent, male"
+],
+[
+"AUNT",
+"Parent's sister"
+],
+[
+"UNCLE",
+"Parent's brother"
+],
+[
+"COUSIN",
+"Child of an aunt or uncle"
+],
+[
+"NEIGHBOR",
+"Lives next door"
+],
+[
+"CHILD",
+"Young person"
+],
+[
+"FACE",
+"Eyes, nose and mouth"
+],
+[
+"TONGUE",
+"Helps you taste"
+],
+[
+"LIP",
+"Edge of the mouth"
+],
+[
+"NECK",
+"Connects head and body"
+],
+[
+"SHOULDER",
+"Where the arm joins"
+],
+[
+"ARM",
+"From shoulder to hand"
+],
+[
+"ELBOW",
+"Joint of the arm"
+],
+[
+"FINGER",
+"Five on each hand"
+],
+[
+"THUMB",
+"Shortest finger"
+],
+[
+"NAIL",
+"Grows on a finger"
+],
+[
+"CHEST",
+"Front of the upper body"
+],
+[
+"BELLY",
+"Where the stomach is"
+],
+[
+"LEG",
+"Used for walking"
+],
+[
+"TOE",
+"Part of the foot"
+],
+[
+"LUNG",
+"Used for breathing"
+],
+[
+"STOMACH",
+"Digests food"
+],
+[
+"LIVER",
+"Big organ in the belly"
+],
+[
+"KIDNEY",
+"Filters blood"
+],
+[
+"BRAIN",
+"You think with it"
+],
+[
+"BONE",
+"Part of the skeleton"
+],
+[
+"MUSCLE",
+"Makes movement possible"
+],
+[
+"SKIN",
+"Covers the body"
+],
+[
+"BLOOD",
+"Red fluid in the body"
+],
+[
+"SKELETON",
+"Frame of bones"
+],
+[
+"COLD",
+"Causes a runny nose"
+],
+[
+"COUGH",
+"Irritates the throat"
+],
+[
+"FEVER",
+"High body temperature"
+],
+[
+"BANDAGE",
+"Covers a wound"
+],
+[
+"SYRINGE",
+"Used for injections"
+],
+[
+"RAT",
+"Larger rodent"
+],
+[
+"HAMSTER",
+"Has cheek pouches"
+],
+[
+"DEER",
+"Shy forest animal"
+],
+[
+"BOAR",
+"Wild pig"
+],
+[
+"PIG",
+"Oinks on the farm"
+],
+[
+"GOAT",
+"Bleats on a meadow"
+],
+[
+"CHICKEN",
+"Lays eggs"
+],
+[
+"ROOSTER",
+"Crows in the morning"
+],
+[
+"DUCK",
+"Swims and quacks"
+],
+[
+"GOOSE",
+"Large honking bird"
+],
+[
+"TURKEY",
+"Big bird eaten at Thanksgiving"
+],
+[
+"PIGEON",
+"City bird"
+],
+[
+"SPARROW",
+"Small brown bird"
+],
+[
+"BLACKBIRD",
+"Black singing bird"
+],
+[
+"STORK",
+"Said to bring babies"
+],
+[
+"SWAN",
+"Elegant white water bird"
+],
+[
+"PARROT",
+"Colourful bird that mimics speech"
+],
+[
+"OSTRICH",
+"Biggest bird, runs fast"
+],
+[
+"FLAMINGO",
+"Pink bird on one leg"
+],
+[
+"CUCKOO",
+"Bird that calls its own name"
+],
+[
+"SNAKE",
+"Long reptile without legs"
+],
+[
+"LIZARD",
+"Small reptile"
+],
+[
+"TURTLE",
+"Animal with a shell"
+],
+[
+"TOAD",
+"Relative of the frog"
+],
+[
+"SEAL",
+"Sea animal with flippers"
+],
+[
+"OCTOPUS",
+"Eight arms in the sea"
+],
+[
+"JELLYFISH",
+"Wobbly sea animal"
+],
+[
+"CRAB",
+"Walks sideways"
+],
+[
+"LOBSTER",
+"Large sea crustacean"
+],
+[
+"WASP",
+"Yellow and black stinger"
+],
+[
+"FLY",
+"Buzzing pest"
+],
+[
+"MOSQUITO",
+"Bites in summer"
+],
+[
+"LADYBUG",
+"Red beetle with black spots"
+],
+[
+"SNAIL",
+"Slow animal with a shell"
+],
+[
+"WORM",
+"Crawls in the soil"
+],
+[
+"BEETLE",
+"Insect with hard wing cases"
+],
+[
+"CRICKET",
+"Chirps in the grass"
+],
+[
+"DRAGONFLY",
+"Flies near ponds"
+],
+[
+"PANTHER",
+"Black big cat"
+],
+[
+"LEOPARD",
+"Spotted big cat"
+],
+[
+"CHEETAH",
+"Fastest land animal"
+],
+[
+"RHINO",
+"Has a horn on its nose"
+],
+[
+"HIPPO",
+"Big animal that lives in rivers"
+],
+[
+"MONKEY",
+"Climbs and eats bananas"
+],
+[
+"GORILLA",
+"Largest ape"
+],
+[
+"LLAMA",
+"South American animal that spits"
+],
+[
+"PANDA",
+"Black and white bear that loves bamboo"
+],
+[
+"KOALA",
+"Sleeps on eucalyptus"
+],
+[
+"KANGAROO",
+"Hops with a pouch"
+],
+[
+"SQUIRREL",
+"Collects nuts"
+],
+[
+"MOLE",
+"Digs under the ground"
+],
+[
+"BAT",
+"Flies at night"
+],
+[
+"BEAVER",
+"Builds dams"
+],
+[
+"OTTER",
+"Likes swimming in rivers"
+],
+[
+"TREE",
+"Has trunk and crown"
+],
+[
+"BEECH",
+"Tree with smooth bark"
+],
+[
+"BIRCH",
+"Tree with white bark"
+],
+[
+"PALM",
+"Tree on the beach"
+],
+[
+"CACTUS",
+"Prickly desert plant"
+],
+[
+"SUNFLOWER",
+"Tall yellow flower with seeds"
+],
+[
+"DAISY",
+"White flower with a yellow centre"
+],
+[
+"VIOLET",
+"Small blue spring flower"
+],
+[
+"LILY",
+"Elegant flower"
+],
+[
+"GRASS",
+"Green blades on a meadow"
+],
+[
+"LEAF",
+"Green part of a plant"
+],
+[
+"ROOT",
+"Holds the tree in the ground"
+],
+[
+"TRUNK",
+"Main part of a tree"
+],
+[
+"BRANCH",
+"Limb of a tree"
+],
+[
+"TWIG",
+"Small branch"
+],
+[
+"BARK",
+"Outer layer of a tree"
+],
+[
+"MUSHROOM",
+"Grows in the forest, neither plant nor animal"
+],
+[
+"MOSS",
+"Soft green carpet on the forest floor"
+],
+[
+"FERN",
+"Plant with feathery leaves"
+],
+[
+"SEED",
+"A plant grows from it"
+],
+[
+"BLOSSOM",
+"Flower on a fruit tree"
+],
+[
+"NUT",
+"Hard shell with a kernel"
+],
+[
+"ACORN",
+"Fruit of the oak"
+],
+[
+"SOCCER",
+"Most popular ball sport"
+],
+[
+"BASKETBALL",
+"Ball into the hoop"
+],
+[
+"HANDBALL",
+"Throw the ball into the goal"
+],
+[
+"VOLLEYBALL",
+"Hit the ball over the net"
+],
+[
+"CYCLING",
+"Sport on two wheels"
+],
+[
+"SKIING",
+"Sport on snow"
+],
+[
+"BOXING",
+"Fighting with gloves"
+],
+[
+"JUDO",
+"Japanese martial art"
+],
+[
+"GOLF",
+"Hit the ball into the hole"
+],
+[
+"BALL",
+"Round toy"
+],
+[
+"REFEREE",
+"Whistles during the game"
+],
+[
+"COACH",
+"Trains the team"
+],
+[
+"TEAM",
+"Group of players"
+],
+[
+"MEDAL",
+"Prize for the winners"
+],
+[
+"TROPHY",
+"Cup for the champion"
+],
+[
+"OLYMPICS",
+"Worldwide sports games"
+],
+[
+"VICTORY",
+"Winning a contest"
+],
+[
+"DEFEAT",
+"Losing a game"
+],
+[
+"SONG",
+"Sung piece"
+],
+[
+"TRUMPET",
+"Brass instrument"
+],
+[
+"DRUMS",
+"Beaten with sticks"
+],
+[
+"HARP",
+"Plucked instrument with many strings"
+],
+[
+"ORGAN",
+"Church instrument"
+],
+[
+"ORCHESTRA",
+"Many musicians together"
+],
+[
+"CHOIR",
+"Many singers together"
+],
+[
+"CONCERT",
+"Musical performance"
+],
+[
+"MELODY",
+"Sequence of notes"
+],
+[
+"OPERA",
+"Sung theatre"
+],
+[
+"BALLET",
+"Dance on tiptoe"
+],
+[
+"PICTURE",
+"A painting or a photo"
+],
+[
+"PAINTING",
+"Art on canvas"
+],
+[
+"COLOR",
+"Red, blue, green"
+],
+[
+"CANVAS",
+"Artists paint on it"
+],
+[
+"STATUE",
+"Figure made of stone or metal"
+],
+[
+"COMIC",
+"Picture story with speech bubbles"
+],
+[
+"FAIRYTALE",
+"Story with witches and princes"
+],
+[
+"POEM",
+"Text with rhymes"
+],
+[
+"NOVEL",
+"Long book with a story"
+],
+[
+"NEWSPAPER",
+"Daily news in print"
+],
+[
+"MAGAZINE",
+"Regular printed issue"
+],
+[
+"LETTER",
+"Sent by post"
+],
+[
+"POSTMAN",
+"Delivers letters"
+],
+[
+"PARCEL",
+"Sent by mail"
+],
+[
+"STAMP",
+"Sticks on a letter"
+],
+[
+"TELEPHONE",
+"Used for calls"
+],
+[
+"SCREEN",
+"Shows pictures on a computer"
+],
+[
+"PRINTER",
+"Puts text on paper"
+],
+[
+"CABLE",
+"Carries electricity"
+],
+[
+"SOCKET",
+"Wall outlet for power"
+],
+[
+"MACHINE",
+"Device with a motor"
+],
+[
+"ENGINE",
+"Drives the car"
+],
+[
+"WHEEL",
+"Round and turns"
+],
+[
+"HAMMER",
+"Tool for nails"
+],
+[
+"SAW",
+"Cuts wood"
+],
+[
+"PLIERS",
+"Tool for gripping"
+],
+[
+"SCREW",
+"Threaded fastener"
+],
+[
+"LADDER",
+"Used for climbing up"
+],
+[
+"ROPE",
+"Strong cord"
+],
+[
+"BUCKET",
+"Container with a handle"
+],
+[
+"BROOM",
+"Used for sweeping"
+],
+[
+"WASHER",
+"Cleans the laundry"
+],
+[
+"COIN",
+"Round metal money"
+],
+[
+"BANKNOTE",
+"Paper money"
+],
+[
+"PRICE",
+"What it costs"
+],
+[
+"COPPER",
+"Reddish metal"
+],
+[
+"PEARL",
+"Forms inside an oyster"
+],
+[
+"CROWN",
+"Worn by a king"
+],
+[
+"THRONE",
+"Seat of a king"
+],
+[
+"FLAG",
+"Banner of a country"
+],
+[
+"GLOBE",
+"Ball showing the earth"
+],
+[
+"GERMANY",
+"Country with the capital Berlin"
+],
+[
+"HAMBURG",
+"Port city on the Elbe"
+],
+[
+"MUNICH",
+"Capital of Bavaria"
+],
+[
+"COLOGNE",
+"City with a famous cathedral"
+],
+[
+"AUSTRIA",
+"Alpine country with capital Vienna"
+],
+[
+"SWITZERLAND",
+"Country of mountains and chocolate"
+],
+[
+"FRANCE",
+"Country with the Eiffel Tower"
+],
+[
+"ITALY",
+"Boot-shaped country"
+],
+[
+"VENICE",
+"City with canals"
+],
+[
+"SPAIN",
+"Land of flamenco"
+],
+[
+"PORTUGAL",
+"Country on Europe's west coast"
+],
+[
+"ENGLAND",
+"Part of Great Britain"
+],
+[
+"IRELAND",
+"The Emerald Isle"
+],
+[
+"SCOTLAND",
+"Land of kilts and bagpipes"
+],
+[
+"HOLLAND",
+"Land of tulips and windmills"
+],
+[
+"AMSTERDAM",
+"City of canals"
+],
+[
+"BELGIUM",
+"Land of waffles and fries"
+],
+[
+"DENMARK",
+"Land of Vikings and Lego"
+],
+[
+"NORWAY",
+"Land of fjords"
+],
+[
+"SWEDEN",
+"Land of IKEA"
+],
+[
+"FINLAND",
+"Land of a thousand lakes"
+],
+[
+"ICELAND",
+"Island of fire and ice"
+],
+[
+"POLAND",
+"Country east of Germany"
+],
+[
+"HUNGARY",
+"Country with capital Budapest"
+],
+[
+"GREECE",
+"Country with the Acropolis"
+],
+[
+"RUSSIA",
+"Largest country in the world"
+],
+[
+"UKRAINE",
+"Country with capital Kyiv"
+],
+[
+"EGYPT",
+"Land of the pyramids"
+],
+[
+"AFRICA",
+"Continent with the Sahara"
+],
+[
+"ASIA",
+"Largest continent"
+],
+[
+"EUROPE",
+"Continent with Germany"
+],
+[
+"AMERICA",
+"Continent in the west"
+],
+[
+"AUSTRALIA",
+"Island continent of kangaroos"
+],
+[
+"ANTARCTICA",
+"Icy continent at the south pole"
+],
+[
+"ARCTIC",
+"Icy region at the north pole"
+],
+[
+"CHINA",
+"Land of the Great Wall"
+],
+[
+"JAPAN",
+"Land of the rising sun"
+],
+[
+"INDIA",
+"Land of the Taj Mahal"
+],
+[
+"THAILAND",
+"Country with Bangkok"
+],
+[
+"KOREA",
+"Peninsula in East Asia"
+],
+[
+"VIETNAM",
+"Country in Southeast Asia"
+],
+[
+"BRAZIL",
+"Land of carnival"
+],
+[
+"ARGENTINA",
+"Land of tango"
+],
+[
+"PERU",
+"Home of Machu Picchu"
+],
+[
+"MEXICO",
+"Country south of the USA"
+],
+[
+"CANADA",
+"Country with a maple leaf"
+],
+[
+"CUBA",
+"Caribbean island with Havana"
+],
+[
+"HAWAII",
+"Pacific island state"
+],
+[
+"ALASKA",
+"Biggest US state"
+],
+[
+"CALIFORNIA",
+"Sunny US state on the west coast"
+],
+[
+"DANUBE",
+"River through Vienna and Budapest"
+],
+[
+"BALTIC",
+"Sea north of Germany"
+],
+[
+"HIMALAYA",
+"Mountain range with Everest"
+],
+[
+"MEDITERRANEAN",
+"Sea between Europe and Africa"
+],
+[
+"EQUATOR",
+"Imaginary line around the earth"
+],
+[
+"PYRAMID",
+"Stone tomb of pharaohs"
+],
+[
+"COLOSSEUM",
+"Ancient arena in Rome"
+],
+[
+"LIGHTHOUSE",
+"Warns ships of the coast"
+],
+[
+"WINDMILL",
+"Grinds grain with wind"
+],
+[
+"FARM",
+"Cows and chickens live here"
+],
+[
+"BARN",
+"Where hay is stored"
+],
+[
+"STABLE",
+"Home of a horse"
+],
+[
+"HAY",
+"Dried grass"
+],
+[
+"STRAW",
+"Dried stalks"
+],
+[
+"HARVEST",
+"Gathering of crops"
+],
+[
+"WHEAT",
+"Grain for bread"
+],
+[
+"RYE",
+"Dark bread grain"
+],
+[
+"CORN",
+"Yellow kernels on a cob"
+],
+[
+"OATS",
+"Porridge grain"
+],
+[
+"BARLEY",
+"Grain for beer"
+],
+[
+"FLOUR",
+"Ground grain"
+],
+[
+"DOUGH",
+"Mixture for baking"
+],
+[
+"EGG",
+"Laid by a hen"
+],
+[
+"GIFT",
+"Something you give"
+],
+[
+"WEDDING",
+"Ceremony for two people in love"
+],
+[
+"CARNIVAL",
+"Festival of costumes"
+],
+[
+"CANDLE",
+"Wax with a wick"
+],
+[
+"FLAME",
+"Glowing part of a fire"
+],
+[
+"SMOKE",
+"Rises from a fire"
+],
+[
+"ASH",
+"Left after burning"
+],
+[
+"SPARK",
+"Tiny glowing particle"
+],
+[
+"ICE",
+"Frozen water"
+],
+[
+"STEAM",
+"Hot water vapour"
+],
+[
+"DROP",
+"Tiny amount of liquid"
+],
+[
+"PUDDLE",
+"Water on the road after rain"
+],
+[
+"ROCK",
+"Large stone"
+],
+[
+"SOIL",
+"Ground for plants"
+],
+[
+"CLAY",
+"Sticky earth for pottery"
+],
+[
+"COAL",
+"Black fuel"
+],
+[
+"OIL",
+"Thick liquid fuel"
+],
+[
+"GAS",
+"Fuel that is not liquid"
+],
+[
+"OXYGEN",
+"Gas we need to breathe"
+],
+[
+"HYDROGEN",
+"Lightest element"
+],
+[
+"ATOM",
+"Tiny building block of matter"
+],
+[
+"SHADOW",
+"Dark shape behind things"
+],
+[
+"BROWN",
+"Colour of chocolate"
+],
+[
+"GRAY",
+"Colour of ash"
+],
+[
+"PINK",
+"Light red"
+],
+[
+"PURPLE",
+"Mix of red and blue"
+],
+[
+"BIG",
+"Opposite of small"
+],
+[
+"SMALL",
+"Opposite of big"
+],
+[
+"LONG",
+"Opposite of short"
+],
+[
+"SHORT",
+"Opposite of long"
+],
+[
+"HIGH",
+"Opposite of low"
+],
+[
+"LOW",
+"Opposite of high"
+],
+[
+"FAST",
+"Opposite of slow"
+],
+[
+"SLOW",
+"Opposite of fast"
+],
+[
+"HOT",
+"Opposite of cold"
+],
+[
+"WET",
+"Opposite of dry"
+],
+[
+"DRY",
+"Opposite of wet"
+],
+[
+"OLD",
+"Opposite of young"
+],
+[
+"YOUNG",
+"Opposite of old"
+],
+[
+"NEW",
+"Opposite of old for things"
+],
+[
+"LOUD",
+"Opposite of quiet"
+],
+[
+"QUIET",
+"Opposite of loud"
+],
+[
+"BRIGHT",
+"Opposite of dark"
+],
+[
+"DARK",
+"Opposite of light"
+],
+[
+"HEAVY",
+"Opposite of light in weight"
+],
+[
+"STRONG",
+"Opposite of weak"
+],
+[
+"SOFT",
+"Opposite of hard"
+],
+[
+"HARD",
+"Opposite of soft"
+],
+[
+"SWEET",
+"Tastes like sugar"
+],
+[
+"SOUR",
+"Tastes like lemon"
+],
+[
+"BITTER",
+"Tastes like black coffee"
+],
+[
+"SPICY",
+"Tastes like chili"
+],
+[
+"FRESH",
+"Just made"
+],
+[
+"EMPTY",
+"Nothing inside"
+],
+[
+"FULL",
+"No room left"
+],
+[
+"HEALTHY",
+"Not ill"
+],
+[
+"SICK",
+"Not well"
+],
+[
+"SAD",
+"Full of sorrow"
+],
+[
+"ANGRY",
+"Full of rage"
+],
+[
+"TIRED",
+"Wants to sleep"
+],
+[
+"HUNGRY",
+"Wants to eat"
+],
+[
+"THIRSTY",
+"Wants to drink"
+],
+[
+"BRAVE",
+"Has no fear"
+],
+[
+"SMART",
+"Clever"
+],
+[
+"FUNNY",
+"Makes you laugh"
+],
+[
+"KIND",
+"Nice to others"
+],
+[
+"SMILE",
+"Shows joy on your face"
+],
+[
+"LAUGH",
+"Sound of joy"
+],
+[
+"CRY",
+"Shed tears"
+],
+[
+"SLEEP",
+"Rest at night"
+],
+[
+"EAT",
+"Take in a meal"
+],
+[
+"DRINK",
+"Take in liquid"
+],
+[
+"COOKING",
+"Preparing food"
+],
+[
+"BAKING",
+"Preparing in the oven"
+],
+[
+"JUMP",
+"Spring off the ground"
+],
+[
+"DANCE",
+"Move to the beat"
+],
+[
+"SING",
+"Make music with your voice"
+],
+[
+"READ",
+"Take in the words"
+],
+[
+"WRITE",
+"Put words on paper"
+],
+[
+"DRAW",
+"Make a picture with a pencil"
+],
+[
+"PLAY",
+"Do for fun"
+],
+[
+"LEARN",
+"Gain knowledge"
+],
+[
+"THINK",
+"Use your brain"
+],
+[
+"GUESS",
+"Try to find an answer"
+],
+[
+"ASK",
+"Want to know"
+],
+[
+"ANSWER",
+"Reply to a question"
+],
+[
+"QUESTION",
+"Needs an answer"
+],
+[
+"PUZZLE",
+"Brain teaser"
+],
+[
+"JOKE",
+"Short funny story"
+],
+[
+"SECRET",
+"Nobody may know"
+],
+[
+"IDEA",
+"Good thought"
+],
+[
+"ONE",
+"First number"
+],
+[
+"TWO",
+"Number after one"
+],
+[
+"THREE",
+"Number after two"
+],
+[
+"FOUR",
+"Number after three"
+],
+[
+"FIVE",
+"Number after four"
+],
+[
+"SIX",
+"Number after five"
+],
+[
+"SEVEN",
+"Number after six"
+],
+[
+"EIGHT",
+"Number after seven"
+],
+[
+"NINE",
+"Number after eight"
+],
+[
+"TEN",
+"Number after nine"
+],
+[
+"THOUSAND",
+"Ten times a hundred"
+],
+[
+"MILLION",
+"A thousand thousand"
+],
+[
+"SPHERE",
+"Round body"
+],
+[
+"CUBE",
+"Has six faces"
+],
+[
+"LINE",
+"A stroke"
+],
+[
+"POINT",
+"Tiny dot"
+]
+]
+}
