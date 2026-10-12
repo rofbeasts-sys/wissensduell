@@ -4431,6 +4431,9 @@ async function fourupsApi(action, payload, lang) {
 // Belohnung = hoechste geloeste Stufe des Tages (NICHT addiert): Sudoku 25/50/75, Kreuzwort klein 25 / mittel 50 / gross 75.
 // Muenzen werden erst am NAECHSTEN Tag abgeholt. Stufen muessen der Reihe nach geloest werden.
 const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 } };
+const DAILY_WV_BONUS = { small: 5, medium: 10, big: 50 }; // Zusatz-Muenzen, wenn ALLE (max) Woerter gefunden wurden
+// Hilfen kosten Muenzen (vom Guthaben, sofort). Preise liegen nur hier; der Client bekommt sie mit dem Raetsel.
+const DAILY_HINTS = { sudoku: { cell: 5 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 } };
 const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"] };
 const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
@@ -4511,11 +4514,44 @@ async function dailyApi(action, payload, lang) {
   if (action === "puzzle") {
     const pz = dailyGet(date, type, diff, lang);
     if (user && !d.solved[skey] && !d.started[skey]) { d.started[skey] = Date.now(); await saveUsers(); }
-    return { ok: true, date, type, diff, reward: DAILY_REWARDS[type][diff], solved: !!d.solved[skey], ...pz.pub };
+    return { ok: true, date, type, diff, reward: DAILY_REWARDS[type][diff], solved: !!d.solved[skey], hints: DAILY_HINTS[type], ...pz.pub };
+  }
+  if (action === "hint") {
+    if (!user) return errObj("notLoggedIn", lang);
+    if (d.solved[skey]) return { ok: false, error: lang === "en" ? "Already solved." : "Schon gelöst." };
+    const hk = String(payload.hint || ""), cost = DAILY_HINTS[type][hk];
+    if (!cost) return errObj("invalidInput", lang);
+    if ((user.stats.coins || 0) < cost) return { ok: false, error: lang === "en" ? "Not enough coins." : "Nicht genug Münzen.", cost };
+    const pz = dailyGet(date, type, diff, lang);
+    const pick = arr => arr.length ? arr[Math.floor(Math.random() * arr.length)] : null;
+    let out = null;
+    if (type === "sudoku") {
+      const cur = Array.isArray(payload.cur) ? payload.cur : [], bad = []; for (let i = 0; i < 81; i++) if (Number(cur[i]) !== pz.solution[i]) bad.push(i);
+      const idx = Number.isInteger(payload.idx) && bad.includes(payload.idx) ? payload.idx : pick(bad);
+      if (idx !== null) out = { idx, value: pz.solution[idx] };
+    } else if (type === "cw") {
+      const sol = pz.solution, cur = Array.isArray(payload.cur) ? payload.cur : [];
+      if (hk === "letter") {
+        const r = payload.r, c = payload.c;
+        if (Number.isInteger(r) && Number.isInteger(c) && sol[r] && sol[r][c] && sol[r][c] !== "." && String((cur[r] || "")[c] || "").toUpperCase() !== sol[r][c]) out = { r, c, letter: sol[r][c] };
+      } else {
+        const w = pz.pub.words[payload.wi];
+        if (w) { const cells = []; for (let j = 0; j < w.len; j++) { const r = w.r + (w.dir === "down" ? j : 0), c = w.c + (w.dir === "across" ? j : 0); cells.push({ r, c, letter: sol[r][c] }); } out = { cells }; }
+      }
+    } else if (type === "ws") {
+      const fw = new Set(Array.isArray(payload.found) ? payload.found.map(String) : []), rest = pz.solution.filter(p => !fw.has(p.w));
+      const p = pick(rest); if (p) out = hk === "start" ? { r: p.r, c: p.c, len: p.w.length } : { w: p.w, r: p.r, c: p.c, r2: p.r2, c2: p.c2 };
+    } else if (type === "wv") {
+      const fw = new Set(Array.isArray(payload.found) ? payload.found.map(String) : []), rest = (pz.solution.planted || []).filter(p => !fw.has(p.w));
+      const p = pick(rest); if (p) out = hk === "start" ? { r: p.path[0][0], c: p.path[0][1], len: p.w.length } : { w: p.w, path: p.path };
+    }
+    if (!out) return { ok: false, error: lang === "en" ? "Nothing to reveal." : "Hier gibt es nichts aufzudecken." };
+    user.stats.coins = (user.stats.coins || 0) - cost; await saveUsers();
+    return { ok: true, hint: hk, cost, balance: user.stats.coins, ...out };
   }
   if (action === "submit") {
     const pz = dailyGet(date, type, diff, lang);
-    let wrong = 0; const wrongCells = [];
+    let wrong = 0, wvBonus = 0; const wrongCells = [];
     if (type === "sudoku") {
       const g = Array.isArray(payload.grid) ? payload.grid : [];
       if (g.length !== 81) return errObj("invalidInput", lang);
@@ -4545,6 +4581,7 @@ async function dailyApi(action, payload, lang) {
         if (ok) good.add(f.w);
       }
       wrong = Math.max(0, pz.solution.n - good.size);
+      if (!wrong && good.size >= (pz.solution.max || 1e9)) wvBonus = DAILY_WV_BONUS[diff] || 0;
     } else {
       const L = Array.isArray(payload.letters) ? payload.letters : [];
       if (L.length !== pz.solution.length) return errObj("invalidInput", lang);
@@ -4558,12 +4595,12 @@ async function dailyApi(action, payload, lang) {
     d.solved[skey] = Date.now(); delete d.started[skey];
     // Belohnung wird NICHT sofort gezahlt: sie wird fuer "datum:typ" auf die hoechste geloeste Stufe gesetzt (nicht addiert)
     // und kann ab dem naechsten Tag abgeholt werden.
-    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff], bk = date + ":" + type;
+    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff] + wvBonus, bk = date + ":" + type;
     if (gain > ((d.best[bk] && d.best[bk].r) || 0)) d.best[bk] = { r: gain, day: dailyToday() };
     else if (d.best[bk]) d.best[bk].day = dailyToday();
     await saveUsers();
     const po = dailyPayout(d, dailyToday());
-    return { ok: true, correct: true, coins: 0, reward: gain, deferred: true, claimable: po.claimable, pending: po.pending, balance: user.stats.coins || 0 };
+    return { ok: true, correct: true, coins: 0, reward: gain, bonus: wvBonus, deferred: true, claimable: po.claimable, pending: po.pending, balance: user.stats.coins || 0 };
   }
   return errObj("invalidInput", lang);
 }
