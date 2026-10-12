@@ -28,6 +28,7 @@ const { WebSocketServer } = require("./lib/miniws");
 // Erfolge: gleiche Datei wie im Browser (public/achievements.js) - eine Definition, ein Regelwerk
 const Achv = require("./public/achievements.js");
 const DailyPz = require("./lib/dailyPuzzles.js");
+const DailyWords = require("./lib/dailyWords.js");
 
 /* ------------------------------------------------------------------------ */
 /* Sicherheits-/Stabilitaets-Helfer                                          */
@@ -4427,8 +4428,11 @@ async function fourupsApi(action, payload, lang) {
 // ---------------------------------------------------------------------------
 // Tagesraetsel (Sudoku + Kreuzwort)
 // ---------------------------------------------------------------------------
-const DAILY_REWARDS = { sudoku: { easy: 10, medium: 25, hard: 75 }, cw: { small: 25, big: 75 } };
-const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:big": 120 };
+// Belohnung = hoechste geloeste Stufe des Tages (NICHT addiert): Sudoku 25/50/75, Kreuzwort klein 25 / mittel 50 / gross 75.
+// Muenzen werden erst am NAECHSTEN Tag abgeholt. Stufen muessen der Reihe nach geloest werden.
+const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 } };
+const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"] };
+const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
 const dailyCache = new Map();
 let CW_SCHEDULE = null; try { CW_SCHEDULE = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "shared/crosswordSchedule.json"), "utf8")); } catch (e) { console.error("Kreuzwort-Plan nicht geladen:", e.message); }
@@ -4440,18 +4444,32 @@ function dailyWeekDates(today) { // Montag bis heute
   for (let i = back; i >= 0; i--) out.push(dailyAddDays(today, -i)); return out;
 }
 function dailyAllowedDates(today) { return dailyDow(today) === 0 ? dailyWeekDates(today) : [today]; } // nachholen nur sonntags
-const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "big"]];
+const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"]];
 function dailyState(user) {
   if (!user.stats.daily || typeof user.stats.daily !== "object") user.stats.daily = { solved: {}, started: {} };
   const d = user.stats.daily; if (!d.solved) d.solved = {}; if (!d.started) d.started = {};
+  if (!d.best || typeof d.best !== "object") d.best = {};   // "datum:typ" -> { r: hoechste Belohnung, day: Tag der letzten Loesung }
+  if (!d.paid || typeof d.paid !== "object") d.paid = {};   // "datum:typ" -> bereits abgeholt
   return d;
 }
+function dailyLocked(d, date, type, diff) {
+  const ord = DAILY_ORDER[type], i = ord.indexOf(diff);
+  return i > 0 && !d.solved[date + ":" + type + ":" + ord[i - 1]];
+}
+// Abholbar = Tag der Loesung liegt vor heute; "pending" = erst morgen abholbar
+function dailyPayout(d, today) {
+  let claimable = 0, pending = 0;
+  for (const k of Object.keys(d.best)) { const b = d.best[k], due = Math.max(0, (b.r || 0) - (d.paid[k] || 0)); if (!due) continue; if (b.day < today) claimable += due; else pending += due; }
+  return { claimable, pending };
+}
 function dailyGet(date, type, diff, lang) {
-  const key = date + ":" + type + ":" + diff + ":" + (type === "cw" ? (lang === "en" ? "en" : "de") : "x");
+  const key = date + ":" + type + ":" + diff + ":" + (type === "sudoku" ? "x" : (lang === "en" ? "en" : "de"));
   if (dailyCache.has(key)) return dailyCache.get(key);
   if (dailyCache.size > 60) dailyCache.delete(dailyCache.keys().next().value);
   let v;
   if (type === "sudoku") { const s = DailyPz.makeSudoku(date, diff); v = { pub: { puzzle: s.puzzle }, solution: s.solution }; }
+  else if (type === "ws") { const w = DailyWords.makeWordSearch(date, diff, lang === "en" ? "en" : "de"); v = { pub: w.pub, solution: w.solution }; }
+  else if (type === "wv") { const w = DailyWords.makeBoggle(date, diff, lang === "en" ? "en" : "de"); v = { pub: w.pub, solution: w.solution }; }
   else {
     // Fester Plan (shared/crosswordSchedule.json): jedes Wort kommt pro Zyklus nur einmal vor. Ohne Plan: alte Zufallserzeugung.
     const lg = lang === "en" ? "en" : "de", sched = CW_SCHEDULE && CW_SCHEDULE[lg];
@@ -4473,13 +4491,23 @@ async function dailyApi(action, payload, lang) {
   const today = dailyToday(), allowed = dailyAllowedDates(today);
   const d = user ? dailyState(user) : { solved: {}, started: {} };
   if (action === "state") {
-    const days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], solved: !!d.solved[date + ":" + t + ":" + df] })) }));
-    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user };
+    const days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: (t === "ws" || t === "wv") ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], locked: !!user && dailyLocked(d, date, t, df) })) }));
+    const po = user ? dailyPayout(d, today) : { claimable: 0, pending: 0 };
+    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending };
   }
-  const date = String(payload.date || ""), type = payload.type === "cw" ? "cw" : "sudoku", diff = String(payload.diff || "");
+  if (action === "claim") {
+    if (!user) return errObj("notLoggedIn", lang);
+    let granted = 0;
+    if (!isRestricted(user)) for (const k of Object.keys(d.best)) { const b = d.best[k], due = Math.max(0, (b.r || 0) - (d.paid[k] || 0)); if (due && b.day < today) { granted += due; d.paid[k] = b.r; } }
+    if (granted) { user.stats.coins = (user.stats.coins || 0) + granted; await saveUsers(); }
+    const po = dailyPayout(d, today);
+    return { ok: true, granted, balance: user.stats.coins || 0, claimable: po.claimable, pending: po.pending };
+  }
+  const date = String(payload.date || ""), type = ["cw", "ws", "wv"].includes(payload.type) ? payload.type : "sudoku", diff = String(payload.diff || "");
   if (!DAILY_REWARDS[type] || !DAILY_REWARDS[type][diff] || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return errObj("invalidInput", lang);
   if (!allowed.includes(date)) return { ok: false, error: lang === "en" ? "This puzzle is not available now. Missed puzzles can be caught up on Sundays." : "Dieses Rätsel ist gerade nicht verfügbar. Verpasste Rätsel kannst du sonntags nachholen." };
   const skey = date + ":" + type + ":" + diff;
+  if (user && dailyLocked(d, date, type, diff)) return { ok: false, error: lang === "en" ? "Solve the easier puzzle first." : "Löse zuerst das leichtere Rätsel." };
   if (action === "puzzle") {
     const pz = dailyGet(date, type, diff, lang);
     if (user && !d.solved[skey] && !d.started[skey]) { d.started[skey] = Date.now(); await saveUsers(); }
@@ -4492,6 +4520,31 @@ async function dailyApi(action, payload, lang) {
       const g = Array.isArray(payload.grid) ? payload.grid : [];
       if (g.length !== 81) return errObj("invalidInput", lang);
       for (let i = 0; i < 81; i++) if (Number(g[i]) !== pz.solution[i]) { wrong++; wrongCells.push(i); }
+    } else if (type === "ws") {
+      // Gefundene Woerter: jedes Wort mit Start/Ende; muss zur serverseitigen Platzierung passen (in beide Richtungen)
+      const found = Array.isArray(payload.found) ? payload.found.slice(0, 40) : [];
+      for (const p of pz.solution) {
+        const ok = found.some(f => f && String(f.w) === p.w && ((f.r === p.r && f.c === p.c && f.r2 === p.r2 && f.c2 === p.c2) || (f.r === p.r2 && f.c === p.c2 && f.r2 === p.r && f.c2 === p.c)));
+        if (!ok) wrong++;
+      }
+    } else if (type === "wv") {
+      // Boggle-artig: found = [{ w, path:[[r,c],...] }] - jeder Pfad muss ueber benachbarte, verschiedene Felder das Wort buchstabieren,
+      // und das Wort muss zur Kategorie des Tages gehoeren. Gewertet werden verschiedene Woerter, gefordert sind n.
+      const found = Array.isArray(payload.found) ? payload.found.slice(0, 60) : [];
+      const g = pz.solution.grid, N = g.length, good = new Set();
+      for (const f of found) {
+        if (!f || typeof f.w !== "string" || !Array.isArray(f.path) || f.path.length !== f.w.length || !pz.solution.pool.has(f.w)) continue;
+        let ok = true; const seen = new Set();
+        for (let k = 0; k < f.path.length && ok; k++) {
+          const q = f.path[k]; if (!Array.isArray(q)) { ok = false; break; }
+          const r = q[0], c = q[1];
+          if (!Number.isInteger(r) || !Number.isInteger(c) || r < 0 || c < 0 || r >= N || c >= N || g[r][c] !== f.w[k] || seen.has(r + "," + c)) { ok = false; break; }
+          seen.add(r + "," + c);
+          if (k > 0) { const p = f.path[k - 1]; if (Math.max(Math.abs(p[0] - r), Math.abs(p[1] - c)) !== 1) ok = false; }
+        }
+        if (ok) good.add(f.w);
+      }
+      wrong = Math.max(0, pz.solution.n - good.size);
     } else {
       const L = Array.isArray(payload.letters) ? payload.letters : [];
       if (L.length !== pz.solution.length) return errObj("invalidInput", lang);
@@ -4503,10 +4556,14 @@ async function dailyApi(action, payload, lang) {
     const started = d.started[skey] || 0, minMs = (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * 1000;
     if (!started || Date.now() - started < minMs * DAILY_MIN_SCALE) return { ok: true, correct: true, coins: 0, tooFast: true };
     d.solved[skey] = Date.now(); delete d.started[skey];
-    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff];
-    user.stats.coins = (user.stats.coins || 0) + gain;
+    // Belohnung wird NICHT sofort gezahlt: sie wird fuer "datum:typ" auf die hoechste geloeste Stufe gesetzt (nicht addiert)
+    // und kann ab dem naechsten Tag abgeholt werden.
+    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff], bk = date + ":" + type;
+    if (gain > ((d.best[bk] && d.best[bk].r) || 0)) d.best[bk] = { r: gain, day: dailyToday() };
+    else if (d.best[bk]) d.best[bk].day = dailyToday();
     await saveUsers();
-    return { ok: true, correct: true, coins: gain, balance: user.stats.coins };
+    const po = dailyPayout(d, dailyToday());
+    return { ok: true, correct: true, coins: 0, reward: gain, deferred: true, claimable: po.claimable, pending: po.pending, balance: user.stats.coins || 0 };
   }
   return errObj("invalidInput", lang);
 }
