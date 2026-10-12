@@ -116,6 +116,10 @@
   .ttts-pixel .ttt-cell{ background:#2d2d52; border:4px solid #0d0d1c; border-radius:0; box-shadow:inset -4px -4px 0 #1b1b36,inset 4px 4px 0 #46467a; }
   .ttts-chalk{ padding:10px; border-radius:14px; background:#1f3a2e; box-shadow:inset 0 0 40px #0008; }
   .ttts-chalk .ttt-cell{ background:none; border:0; box-shadow:none; }
+  .live-strip{ margin:4px auto 10px; max-width:520px; text-align:center; font-size:13px; color:var(--muted,#9aa6c6); }
+  .live-strip:empty{ display:none; }
+  .live-top{ font-size:14px; color:var(--text,#e8ecff); margin-bottom:4px; }
+  .live-ev{ padding:2px 0; }
   .belt-ico{ display:inline-block; vertical-align:middle; }
   .belt-row{ display:inline-flex; align-items:center; gap:8px; font-weight:700; }
   .ttt-style-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:8px; }
@@ -462,6 +466,8 @@
 <div id="settingsOverlay" class="settings-overlay hidden"></div>
 
 <script src="/achievements.js"></script>
+<script src="/dame-engine.js"></script>
+<script src="/muehle-engine.js"></script>
 <script>
 /* =========================================================================
    BRAIN TEST (ehem. WISSENSDUELL) — Solo & Lokaler Multiplayer (Pass & Play)
@@ -4129,7 +4135,7 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 
 // Feature-Schalter (Coming soon): sicherer Standard = gesperrt, bis der Server
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
-let lockedFeatures = ['shop','arena','chess_online','party','ordering','blitz','biology','chess_fantasy','achievements','ttt_quantum','fourups_abilities'];
+let lockedFeatures = ['shop','arena','chess_online','party','ordering','blitz','biology','chess_fantasy','achievements','ttt_quantum','fourups_abilities','brain_royale','dame','muehle'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
@@ -4212,6 +4218,41 @@ function openAdminReset(){
   };
 }
 let bpSid=''; try{ bpSid=sessionStorage.getItem('bp_sid')||''; if(!bpSid){ bpSid=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now()).replace(/-/g,''); sessionStorage.setItem('bp_sid',bpSid); } }catch(e){ bpSid=String(Math.random()).slice(2)+Date.now(); }
+/* Oeffentliche, ECHTE Live-Anzeige (Online-Zaehler + Aktivitaets-Feed) */
+let liveStats=null;
+function liveEventText(e){
+  const who=e.name?esc(e.name):L('Ein Spieler','A player');
+  if(e.kind==='klasse') return who+' '+L('hat Klasse '+e.n+' erreicht','reached Class '+e.n);
+  if(e.kind==='belt'){ const r=TTT_RANKS[Math.min(e.n,TTT_RANKS.length-1)]; return who+' '+L('hat den '+r.name+' erreicht (Tic Tac Toe)','earned the '+r.name+' (Tic Tac Toe)'); }
+  if(e.kind==='legend') return who+' '+L('hat in Chess Fantasy eine Legende gezogen','pulled a legend in Chess Fantasy');
+  return '';
+}
+function liveAgo(t){ const m=Math.max(0,Math.round((Date.now()-t)/60000)); if(m<1) return L('gerade eben','just now'); if(m<60) return L('vor '+m+' Min','' +m+' min ago'); const h=Math.round(m/60); return L('vor '+h+' Std',h+' h ago'); }
+function liveStripHtml(){
+  const d=liveStats; if(!d) return '';
+  const parts=[];
+  if(d.online) parts.push('🟢 <b>'+d.online+'</b> '+L('online','online'));
+  if(d.today>=5) parts.push('👥 <b>'+d.today+'</b> '+L('Spieler heute','players today'));
+  const feed=(d.feed||[]).slice(0,3).map(e=>'<div class="live-ev">✨ '+liveEventText(e)+' <span style="opacity:.55">· '+liveAgo(e.t)+'</span></div>').join('');
+  if(!parts.length && !feed) return '';
+  return (parts.length?'<div class="live-top">'+parts.join(' &nbsp;·&nbsp; ')+'</div>':'')+feed;
+}
+async function liveRefresh(){
+  try{ const r=await fetch('/api/public-stats',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); const j=await r.json(); if(j&&j.ok){ liveStats=j; const el=document.getElementById('liveStrip'); if(el) el.innerHTML=liveStripHtml(); } }catch(e){}
+}
+setInterval(()=>{ if(!document.hidden) liveRefresh(); },30000); setTimeout(liveRefresh,1500);
+async function saveLoginName(){
+  const ln=(document.getElementById('lnNew')||{}).value||'', pw=(document.getElementById('lnPw')||{}).value||'', m=document.getElementById('lnMsg');
+  const r=await apiCall('/api/set-login-name',{token:account.token,password:pw,loginName:ln.trim()});
+  if(r&&r.ok){ account.profile.hasLoginName=true; renderSettingsModal(); }
+  else if(m){ m.style.color='#ff8aa0'; m.textContent=(r&&r.error)||L('Fehlgeschlagen.','Failed.'); }
+}
+async function toggleFeedOptIn(){
+  if(!account) return;
+  const on=!account.profile.feedOptIn;
+  const r=await apiCall('/api/feed-optin',{token:account.token,enabled:on});
+  if(r&&r.ok){ account.profile.feedOptIn=!!r.feedOptIn; renderSettingsModal(); }
+}
 function bpPing(){ if(document.hidden) return; fetch('/api/presence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:bpSid,logged:!!account})}).catch(()=>{}); }
 setInterval(bpPing,60000); setTimeout(bpPing,2500);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) bpPing(); });
@@ -4297,9 +4338,10 @@ function renderAccountAuth(mode){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${mode==='login' ? L('ANMELDEN','LOG IN') : L('KONTO ERSTELLEN','CREATE ACCOUNT')}</div>
-      <div class="picker-sub">${mode==='login' ? L('Melde dich mit deinem Benutzernamen an.','Log in with your username.') : L('Wähle einen Benutzernamen und ein Passwort (mind. 6 Zeichen).','Choose a username and a password (min. 6 characters).')}</div>
+      <div class="picker-sub">${mode==='login' ? L('Melde dich mit deinem Anmeldenamen an.','Log in with your login name.') : L('Wähle einen Spielnamen (sehen alle), einen privaten Anmeldenamen (kennst nur du) und ein Passwort (mind. 6 Zeichen).','Choose a game name (everyone sees it), a private login name (only you know it) and a password (min. 6 characters).')}</div>
       <div class="picker-form" style="flex-direction:column; gap:10px;">
-        <input id="authUsername" type="text" placeholder="${L('Benutzername','Username')}" maxlength="20" autocomplete="username">
+        <input id="authUsername" type="text" placeholder="${mode==='login' ? L('Anmeldename','Login name') : L('Spielname (öffentlich)','Game name (public)')}" maxlength="20" autocomplete="username">
+        ${mode==='register' ? `<input id="authLogin" type="text" placeholder="${L('Anmeldename (privat – nicht der Spielname!)','Login name (private – not your game name!)')}" maxlength="20" autocomplete="off" autocapitalize="none">` : ''}
         <input id="authPassword" type="password" placeholder="${L('Passwort','Password')}" maxlength="60" autocomplete="${mode==='login'?'current-password':'new-password'}" onkeydown="if(event.key==='Enter')submitAccountAuth('${mode}')">
       </div>
       <div id="authError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
@@ -4434,7 +4476,9 @@ async function submitAccountAuth(mode){
   errBox.classList.add("hidden");
   btn.disabled = true;
   btn.textContent = "…";
-  const result = await apiCall(mode==='login' ? "/api/login" : "/api/register", { username, password });
+  const loginName = mode==='register' ? ((document.getElementById("authLogin")||{}).value || "").trim() : undefined;
+  if(mode==='register' && !loginName){ errBox.textContent = L("Bitte einen privaten Anmeldenamen wählen.","Please choose a private login name."); errBox.classList.remove("hidden"); btn.disabled = false; btn.textContent = 'KONTO ERSTELLEN'; return; }
+  const result = await apiCall(mode==='login' ? "/api/login" : "/api/register", mode==='login' ? { username, password } : { username, password, loginName });
   if(!result.ok){
     errBox.textContent = result.error || L("Etwas ist schiefgelaufen.","Something went wrong.");
     errBox.classList.remove("hidden");
@@ -5221,6 +5265,15 @@ function renderChessHub(){
           <h3>Chess Fantasy</h3>
           <p>${fantasyComing ? 'Coming soon' : fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : L('Schach-RPG mit Truhen, Fähigkeiten und Rängen.','Chess RPG with chests, abilities and ranks.')}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
         </div>
+        ${dmAllowed() ? `<div class="mode-card" onclick="dmIntro()" style="${featureLocked('dame') ? 'border-color:var(--warn);' : ''}">
+          <div class="icon">⛀</div>
+          <h3>${L('Dame','Checkers')} ${featureLocked('dame') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
+          <p>${L('Klassisches Dame – Bot, Freunde, Zufallsgegner.','Classic checkers – bot, friends, random opponent.')}</p>
+        </div>` : `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+          <div class="icon">⛀</div>
+          <h3>${L('Dame','Checkers')}</h3>
+          <p>Coming soon</p>
+        </div>`}
         ${featureLocked('chess_online') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">🌐</div>
           <h3>Chess Online</h3>
@@ -5472,6 +5525,21 @@ function renderSettingsModal(){
         <button class="btn ${streamerMode ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleStreamerMode()">${streamerMode ? '🎥 ' + L('An','On') : '🎥 ' + L('Aus','Off')}</button>
         <div class="settings-track" style="margin-top:8px;">${L('Raum-Codes werden als Sternchen angezeigt und du bekommst keine Freundschaftsanfragen. Hat dir jemand vorher eine geschickt und du schickst ihm eine, seid ihr direkt Freunde.','Room codes are shown as stars and you will not receive friend requests. If someone already sent you one and you send them one, you become friends right away.')}</div>
       </div>
+      ${account ? `<div class="settings-section">
+        <div class="settings-label">🔐 ${L('Anmeldename','Login name')}</div>
+        ${account.profile.hasLoginName
+          ? `<div class="settings-track">✅ ${L('Dein privater Anmeldename ist gesetzt. Dein Spielname ('+esc(account.profile.username)+') ist nur noch zum Anzeigen da und kein Login mehr.','Your private login name is set. Your game name ('+esc(account.profile.username)+') is display-only and no longer works as a login.')}</div>`
+          : `<div class="settings-track" style="margin-bottom:8px;">⚠️ ${L('Dein Spielname ist noch gleichzeitig dein Login – jeder kann ihn sehen. Setze einen geheimen Anmeldenamen:','Your game name is still also your login – everyone can see it. Set a secret login name:')}</div>
+             <input id="lnNew" type="text" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="${L('Neuer Anmeldename (privat)','New login name (private)')}" style="width:100%;margin-bottom:6px;">
+             <input id="lnPw" type="password" maxlength="60" autocomplete="current-password" placeholder="${L('Passwort bestätigen','Confirm password')}" style="width:100%;margin-bottom:6px;">
+             <div id="lnMsg" class="settings-track"></div>
+             <button class="btn btn-primary btn-block" onclick="saveLoginName()">${L('Anmeldename speichern','Save login name')}</button>`}
+      </div>` : ``}
+      ${account ? `<div class="settings-section">
+        <div class="settings-label">${L('Live-Feed','Live feed')}</div>
+        <button class="btn ${account.profile.feedOptIn ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleFeedOptIn()">${account.profile.feedOptIn ? '✨ ' + L('Name wird gezeigt','Name shown') : '✨ ' + L('Anonym','Anonymous')}</button>
+        <div class="settings-track" style="margin-top:8px;">${L('Wenn an, erscheint dein Name im öffentlichen Live-Feed (z. B. „Mia hat Klasse 2 erreicht“). Sonst steht dort „Ein Spieler“.','If on, your name appears in the public live feed (e.g. “Mia reached Class 2”). Otherwise it says “A player”.')}</div>
+      </div>` : ``}
       <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
     </div>
   `;
@@ -5727,7 +5795,7 @@ function closeIntro(openFull){
   const o = document.getElementById('introOv'); if(o) o.remove();
   if(openFull === true) openGuide();
 }
-window.addEventListener('load', () => setTimeout(() => { try{ if(!document.getElementById('resetNoticeBox')) showIntro(false); }catch(e){} }, 1200));
+window.addEventListener('load', () => setTimeout(() => { try{ if(!document.getElementById('resetNoticeBox') && !new URLSearchParams(location.search).get('br') && !new URLSearchParams(location.search).get('dm') && !new URLSearchParams(location.search).get('mu')) showIntro(false); }catch(e){} }, 1200));
 
 const SOCIAL_LINKS = [
   { name:'TikTok', c:'#25f4ee', url:'https://www.tiktok.com/@pinkypuls', svg:'<svg viewBox="0 0 24 24"><path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.2-1.5z"/></svg>' },
@@ -6012,6 +6080,7 @@ function renderMainMenu(){
     <div class="menu-hero">
       <h1 onclick="titleTap()" style="user-select:none;-webkit-user-select:none;cursor:pointer;-webkit-tap-highlight-color:transparent;">${t('app_title')}</h1>
     </div>
+    <div id="liveStrip" class="live-strip">${liveStripHtml()}</div>
     <div class="menu-grid">
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
         <div class="icon">🎯</div>
@@ -6077,6 +6146,11 @@ function renderMainMenu(){
         <h3>Tic Tac Toe</h3>
         <p>${L('Gegen den Bot – vom weißen bis zum Meister-Gürtel','Against the bot – from white to master belt')}</p>
       </div>
+      ${brAllowed() ? `<div class="mode-card" onclick="brIntro()" style="border-color:var(--warn);">
+        <div class="icon">⚔️</div>
+        <h3>Brain Royale ${featureLocked('brain_royale') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
+        <p>${featureLocked('brain_royale') ? L('Test – nur für dich sichtbar','Test – only visible to you') : L('Figuren-Duell mit Quiz','Piece duel with quiz')}</p>
+      </div>` : ''}
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon">🔴</div>
         <h3>Fourups</h3>
@@ -8490,6 +8564,1043 @@ function fuSkinPicker(back){
   const cur = fuSkin().id;
   return `<div class="fu-skins">${FU_SKINS.map(k=>{ const open=fuSkinOpen(k.id); return `<div class="fu-skin${k.id===cur?' on':''}${open?'':' lk'}" style="${fuVars(k)}" ${open?`onclick="fuSetSkin('${k.id}','${back}')"`:''}><div class="pv"><i class="a"></i><i class="b"></i></div>${L(k.n[0],k.n[1])}${open?'':`<div style="font-size:10px;color:#ffd45a">🔒 Lv ${fuSkinNeed(k.id)}</div>`}</div>`; }).join('')}</div><div style="text-align:center;margin-top:6px"><button class="btn btn-ghost" style="padding:3px 10px;font-size:12px" onclick="fuTable()">📋 ${L('Freischalt-Tabelle','Unlock table')}</button></div>`;
 }
+/* ============================================================================
+   BRAIN ROYALE (Test, nur in der Admin-Ansicht sichtbar)
+   3 Figuren je Seite (2 Bauern + Dame), 1 Schritt pro Zug. Kommt eine Figur in das
+   Feld einer gegnerischen, gibt es ein schnelles Duell (Quiz oder Kopfrechnen).
+   Gewinner haelt das Feld, Verlierer verliert ein Herz und geht zurueck zum Start.
+   Bauern haben 2 Herzen, die Dame 1: Gewinnt die Dame ein Duell, ist die Figur sofort
+   tot; verliert sie eins, ist das Spiel verloren. Sieg: alle 3 Figuren oder die Dame toeten.
+   ============================================================================ */
+const BR_COLS = 5, BR_ROWS = 7, BR_DUEL_SEC = 12, BR_MAX_MOVES = 90;
+let br = null, brTimers = [];
+function brT(fn, ms){ const id = setTimeout(fn, ms); brTimers.push(id); return id; }
+function brClearTimers(){ brTimers.forEach(clearTimeout); brTimers = []; const o = document.getElementById("brDuelOv"); if(o) o.remove(); }
+function brExit(){ brClearTimers(); if(br && br.ws){ try{ br.ws.send(JSON.stringify({action:'brLeave'})); br.ws.close(); }catch(e){} } br = null; renderMainMenu(); }
+
+function brAllowed(){ return !featureLocked('brain_royale') || adminViewOn(); }
+function brIntro(){
+  if(!brAllowed()){ renderMainMenu(); return; }
+  brClearTimers();
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">⚔️ BRAIN ROYALE <span style="font-size:12px;color:var(--warn);">ADMIN TEST</span></div>
+      <div class="picker-sub">${L('3 Figuren, 1 Schritt pro Zug. Triffst du eine gegnerische Figur, gibt es ein Duell.','3 pieces, 1 step per turn. Step into an enemy piece and you duel.')}</div>
+      <div class="explanation" style="margin:10px 0;text-align:left;">
+        ♟ ${L('Bauer: 2 Herzen. Verliert er ein Duell → zurück zum Start, −1 Herz.','Pawn: 2 hearts. Loses a duel → back to start, −1 heart.')}<br>
+        ♛ ${L('Dame: 1 Herz. Gewinnt sie, ist die gegnerische Figur sofort tot. Verliert sie, hast du verloren!','Queen: 1 heart. If she wins, the enemy piece dies instantly. If she loses, you lose!')}<br>
+        🏆 ${L('Gewinnen: alle 3 gegnerischen Figuren oder die gegnerische Dame töten.','Win: kill all 3 enemy pieces or the enemy queen.')}
+      </div>
+      <span id="brIntroMark"></span>
+      <div class="settings-label">${L('Steine','Pieces')} · ${account ? dmWins() + ' ' + L('Siege gegen echte Spieler (Dame + Brain Royale)','wins vs real players (Checkers + Brain Royale)') : L('Zum Freischalten anmelden','Log in to unlock')}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0">${dmSkinGrid()}</div>
+      <div class="settings-track" style="margin-bottom:10px">🏅 ${L('Gleiche Steine wie in Dame. Nur Siege gegen echte Spieler zählen, nicht gegen den Bot.','Same pieces as Checkers. Only wins against real players count, not the bot.')}</div>
+      <div class="actions-row" style="flex-direction:column;gap:8px;">
+        <button class="btn btn-primary" onclick="brStart('easy')">${L('Leicht','Easy')}</button>
+        <button class="btn btn-primary" onclick="brStart('normal')">${L('Normal','Normal')}</button>
+        <button class="btn btn-primary" onclick="brStart('hard')">${L('Schwer','Hard')}</button>
+        <button class="btn" onclick="brMpQueue()" style="border-color:var(--accent-2)">🎲 ${L('Zufallsgegner (online)','Random opponent (online)')}</button>
+        <button class="btn" onclick="brMpCreate()" style="border-color:var(--accent-2)">👥 ${L('Gegen Freund (Code / Link)','Vs friend (code / link)')}</button>
+        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('braintest_main_menu')}</button>
+      </div>
+    </div>`);
+}
+function brStart(diff){
+  if(!brAllowed()) return;
+  brClearTimers();
+  const mk = (side, r, row) => [
+    { id:side+"0", side, kind:"p", c:1, r:row, sc:1, hp:2, alive:true },
+    { id:side+"q", side, kind:"q", c:2, r:row, sc:2, hp:1, alive:true },
+    { id:side+"1", side, kind:"p", c:3, r:row, sc:3, hp:2, alive:true }
+  ];
+  br = { diff, pieces: mk("y",0,BR_ROWS-1).concat(mk("o",0,0)), turn:"y", sel:null, busy:false, over:false, moves:0, msg: L('Du bist dran – wähle eine Figur.','Your turn – pick a piece.'), last:null };
+  br.pieces.forEach(p => { p.sr = p.r; });
+  brRender();
+}
+function brAt(c, r){ return br.pieces.find(p => p.alive && p.c === c && p.r === r); }
+function brMovesOf(p){
+  const fr = p.side === "y" ? -1 : 1, out = [];
+  [[-1,fr],[0,fr],[1,fr],[-1,0],[1,0]].forEach(([dc,dr]) => {
+    const c = p.c + dc, r = p.r + dr;
+    if(c < 0 || c >= BR_COLS || r < 0 || r >= BR_ROWS) return;
+    const o = brAt(c, r);
+    if(o && o.side === p.side) return;
+    out.push({ c, r, hit: o || null });
+  });
+  return out;
+}
+function brStatusHtml(side){
+  return br.pieces.filter(p => p.side === side).map(p =>
+    `<span style="display:inline-flex;flex-direction:column;align-items:center;margin:0 8px;opacity:${p.alive?1:.4}"><span style="font-size:22px">${p.kind==='q'?'♛':'♟'}</span><span style="font-size:12px;color:#ff5a7a">${p.alive ? '♥'.repeat(p.hp) : '☠'}</span></span>`
+  ).join("");
+}
+function brRender(){
+  if(!br) return;
+  const sel = br.sel ? br.pieces.find(p => p.id === br.sel) : null;
+  const targets = sel ? brMovesOf(sel) : [];
+  let cells = "";
+  for(let r = 0; r < BR_ROWS; r++){
+    for(let c = 0; c < BR_COLS; c++){
+      const p = brAt(c, r), tg = targets.find(m => m.c === c && m.r === r);
+      const base = r === 0 ? "background:rgba(255,93,162,.13)" : r === BR_ROWS-1 ? "background:rgba(80,220,255,.12)" : ((r+c)%2 ? "background:rgba(255,255,255,.03)" : "background:rgba(255,255,255,.07)");
+      const ring = tg ? (tg.hit ? "box-shadow:inset 0 0 0 3px #ff5d8f" : "box-shadow:inset 0 0 0 3px #7cff8c") : (sel && p && p.id === sel.id ? "box-shadow:inset 0 0 0 3px #ffc446" : "");
+      let inner = "";
+      if(p){
+                inner = `<div style="width:100%;display:flex;justify-content:center">${dmStone(dmSkin(), p.side === 'y' ? 'w' : 'b', p.kind === 'q', 76)}</div><div style="position:absolute;bottom:1px;font-size:11px;color:#ff5a7a">${'♥'.repeat(p.hp)}</div>`;
+      } else if(tg){
+        inner = `<div style="width:26%;aspect-ratio:1;border-radius:50%;background:rgba(124,255,140,.7)"></div>`;
+      }
+      cells += `<div onclick="brCell(${c},${r})" style="position:relative;aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;${base};${ring}">${inner}</div>`;
+    }
+  }
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title" style="margin-bottom:4px;">⚔️ BRAIN ROYALE</div>
+      <div style="text-align:center;margin-bottom:6px;">${brStatusHtml("o")}</div>
+      <div style="display:grid;grid-template-columns:repeat(${BR_COLS},1fr);gap:5px;max-width:420px;margin:0 auto;">${cells}</div>
+      <div style="text-align:center;margin-top:6px;">${brStatusHtml("y")}</div>
+      ${br.mp ? brMpInfoHtml() : ''}
+      <div class="explanation" style="margin:10px 0;text-align:center;">${br.mp ? brMpMsg() : br.msg}</div>
+      <div class="actions-row"><button class="btn btn-ghost" onclick="${br.mp ? 'brMpLeave()' : 'brExit()'}">${L('Beenden','Quit')}</button></div>
+    </div>`);
+}
+function brCell(c, r){
+  if(br && br.mp){ brMpCell(c, r); return; }
+  if(!br || br.over || br.busy || br.turn !== "y") return;
+  const p = brAt(c, r);
+  if(p && p.side === "y"){ br.sel = p.id; br.msg = L('Wohin? Grün = frei, Rot = Duell.','Where to? Green = free, red = duel.'); brRender(); return; }
+  if(!br.sel) return;
+  const sel = br.pieces.find(x => x.id === br.sel);
+  const mv = brMovesOf(sel).find(m => m.c === c && m.r === r);
+  if(!mv) return;
+  br.sel = null;
+  brApply(sel, mv);
+}
+function brApply(p, mv){
+  br.moves++;
+  if(mv.hit){ br.busy = true; brRender(); brDuel(p, mv.hit, mv); return; }
+  p.c = mv.c; p.r = mv.r;
+  brEndTurn();
+}
+function brHome(p){
+  const row = p.side === "y" ? BR_ROWS-1 : 0;
+  const order = [p.sc, 2, 1, 3, 0, 4].filter((v, i, a) => a.indexOf(v) === i);
+  for(const c of order){ if(!brAt(c, row)){ p.c = c; p.r = row; return; } }
+}
+function brHit(p, killInstantly){
+  // Figur verliert ein Duell
+  p.hp = killInstantly ? 0 : p.hp - 1;
+  if(p.hp <= 0){ p.alive = false; p.hp = 0; } else brHome(p);
+}
+function brCheckOver(){
+  for(const side of ["y","o"]){
+    const mine = br.pieces.filter(p => p.side === side);
+    if(!mine.find(p => p.kind === "q").alive || mine.every(p => !p.alive)) return side === "y" ? "o" : "y";
+  }
+  return null;
+}
+function brEndTurn(){
+  const w = brCheckOver();
+  if(w){ brFinish(w); return; }
+  if(br.moves >= BR_MAX_MOVES){
+    const hp = s => br.pieces.filter(p => p.side === s).reduce((a, p) => a + (p.alive ? p.hp : 0), 0);
+    brFinish(hp("y") > hp("o") ? "y" : hp("o") > hp("y") ? "o" : "draw"); return;
+  }
+  br.busy = false;
+  br.turn = br.turn === "y" ? "o" : "y";
+  const has = br.pieces.some(p => p.alive && p.side === br.turn && brMovesOf(p).length);
+  if(!has){ br.turn = br.turn === "y" ? "o" : "y"; }
+  if(br.turn === "o"){ br.msg = L('Gegner denkt …','Opponent is thinking …'); brRender(); brT(brBotMove, 800); }
+  else { br.msg = L('Du bist dran – wähle eine Figur.','Your turn – pick a piece.'); brRender(); }
+}
+function brDanger(side, c, r){
+  // kann eine Figur der Gegenseite dieses Feld im naechsten Zug erreichen?
+  return br.pieces.some(e => e.alive && e.side !== side && brMovesOf(e).some(m => m.c === c && m.r === r));
+}
+function brBotMove(){
+  if(!br || br.over || br.turn !== "o") return;
+  const noise = br.diff === "easy" ? 26 : br.diff === "hard" ? 2 : 9;
+  let best = null, bs = -1e9;
+  br.pieces.filter(p => p.alive && p.side === "o").forEach(p => {
+    brMovesOf(p).forEach(m => {
+      let s = Math.random() * noise;
+      if(m.hit){ s += m.hit.kind === "q" ? 100 : (p.kind === "q" ? 45 : (m.hit.hp === 1 ? 35 : 20)); if(p.kind === "q" && m.hit.kind !== "q" ) s += 0; }
+      else { s += (m.r > p.r) ? 5 : (m.r === p.r ? 0 : -3); if(p.kind === "q" && m.r > p.r) s -= 4; }
+      if(p.kind === "q" && !m.hit && brDanger("o", m.c, m.r)) s -= 45;
+      if(p.kind === "q" && m.hit && m.hit.kind === "p" && br.diff === "easy") s -= 20;
+      if(p.kind === "p" && !m.hit && brDanger("o", m.c, m.r)) s -= (p.hp === 1 ? 10 : 3);
+      if(s > bs){ bs = s; best = { p, m }; }
+    });
+  });
+  if(!best){ brEndTurn(); return; }
+  br.msg = L('Gegner zieht …','Opponent moves …');
+  brApply(best.p, best.m);
+}
+/* ---- Duell ---- */
+function brMakeQuestion(){
+  if(Math.random() < 0.5){
+    const pool = []; const KQ = klasseQuestionsPool();
+    [1,2,3,4].forEach(k => { if(KQ[k]) pool.push(...KQ[k]); });
+    if(pool.length){
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      const order = shuffleArray(q.a.map((x, i) => i));
+      return { kind: L("QUIZ","QUIZ"), text: q.q, opts: order.map(i => q.a[i]), correct: order.indexOf(q.c) };
+    }
+  }
+  const a = 3 + Math.floor(Math.random() * 17), b = 2 + Math.floor(Math.random() * 9), t = Math.floor(Math.random() * 3);
+  const ans = t === 0 ? a + b * 3 : t === 1 ? a * b : a + 20 - b;
+  const text = t === 0 ? `${a} + ${b*3} = ?` : t === 1 ? `${a} × ${b} = ?` : `${a} + ${20-b} = ?`;
+  const real = t === 0 ? a + b*3 : t === 1 ? a * b : a + 20 - b;
+  const set = new Set([real]); while(set.size < 4){ const d = (Math.floor(Math.random()*7) - 3) || 4; set.add(Math.max(0, real + d)); }
+  const opts = shuffleArray([...set]);
+  return { kind: L("KOPFRECHNEN","MATH"), text, opts: opts.map(String), correct: opts.indexOf(real) };
+}
+function brDuel(att, def, mv){
+  const q = brMakeQuestion();
+  const acc = br.diff === "easy" ? 0.45 : br.diff === "hard" ? 0.85 : 0.65;
+  const botDelay = (br.diff === "easy" ? 5500 : br.diff === "hard" ? 2600 : 4000) + Math.random() * 2500;
+  const botRight = Math.random() < acc;
+  const d = { q, att, def, mv, userOut: false, botOut: false, done: false, t0: Date.now() };
+  const ov = document.createElement("div"); ov.id = "brDuelOv";
+  ov.style.cssText = "position:fixed;inset:0;z-index:99990;background:rgba(5,8,20,.92);display:flex;align-items:center;justify-content:center;padding:14px;";
+  const youAtt = att.side === "y";
+  ov.innerHTML = `<div style="background:#101a2b;border:3px solid #ffc446;border-radius:18px;padding:16px;max-width:440px;width:100%;color:#fff;font-family:system-ui,sans-serif;text-align:center">
+    <div style="font-weight:900;font-size:20px;color:#ffc446">⚔️ ${L('DUELL','DUEL')} · ${q.kind}</div>
+    <div style="margin:6px 0;font-size:13px;opacity:.8">${youAtt ? L('Du greifst an.','You attack.') : L('Du wirst angegriffen!','You are attacked!')} ${att.kind==='q'||def.kind==='q' ? L('(Dame im Spiel!)','(Queen involved!)') : ''}</div>
+    <div style="font-size:20px;font-weight:800;margin:10px 0 14px">${q.text}</div>
+    <div id="brOpts" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${q.opts.map((o, i) => `<button class="btn btn-ghost" data-i="${i}" style="padding:12px 6px;font-weight:800">${esc(String(o))}</button>`).join("")}</div>
+    <div style="height:10px;border-radius:6px;background:#26334f;margin-top:14px;overflow:hidden"><div id="brBar" style="height:100%;width:100%;background:#ffc446"></div></div>
+    <div id="brDuelMsg" style="margin-top:10px;font-weight:800;min-height:22px"></div></div>`;
+  document.body.appendChild(ov);
+  const bar = ov.querySelector("#brBar"), msg = ov.querySelector("#brDuelMsg");
+  const iv = setInterval(() => { const f = Math.max(0, 1 - (Date.now() - d.t0) / (BR_DUEL_SEC * 1000)); bar.style.width = (f * 100) + "%"; if(f <= 0) finish(null); }, 100);
+  brTimers.push(iv);
+  function finish(winnerSide){
+    if(d.done) return; d.done = true; clearInterval(iv);
+    // niemand richtig: Verteidiger haelt das Feld
+    const w = winnerSide || def.side;
+    ov.querySelectorAll("button").forEach((b, i) => { b.disabled = true; if(i === q.correct) b.style.background = "rgba(60,200,100,.5)"; });
+    msg.style.color = w === "y" ? "#7cff8c" : "#ff8aa0";
+    msg.textContent = (winnerSide ? "" : L("Zeit abgelaufen – ","Time up – ")) + (w === "y" ? L("Du gewinnst das Duell!","You win the duel!") : L("Der Gegner gewinnt das Duell!","The opponent wins the duel!"));
+    brT(() => { ov.remove(); brResolve(d, w); }, 1500);
+  }
+  ov.querySelectorAll("#brOpts button").forEach(b => b.onclick = () => {
+    if(d.done || d.userOut) return;
+    const i = +b.dataset.i;
+    if(i === q.correct){ finish("y"); }
+    else { d.userOut = true; b.style.background = "rgba(255,80,110,.5)"; b.disabled = true; msg.style.color = "#ff8aa0"; msg.textContent = L("Falsch! Jetzt hängt es am Gegner …","Wrong! Now it's up to the opponent …"); if(d.botOut) finish(null); }
+  });
+  brT(() => { if(d.done) return; if(botRight) finish("o"); else { d.botOut = true; if(d.userOut) finish(null); } }, botDelay);
+}
+function brResolve(d, winnerSide){
+  const { att, def, mv } = d;
+  const attWins = att.side === winnerSide;
+  const winner = attWins ? att : def, loser = attWins ? def : att;
+  brHit(loser, winner.kind === "q");
+  if(attWins){ att.c = mv.c; att.r = mv.r; }
+  br.last = null;
+  brEndTurn();
+}
+function brFinish(w){
+  br.over = true; br.busy = false; brRender();
+  const win = w === "y", draw = w === "draw";
+  const ov = document.createElement("div"); ov.id = "brDuelOv";
+  ov.style.cssText = "position:fixed;inset:0;z-index:99990;background:rgba(5,8,20,.9);display:flex;align-items:center;justify-content:center;padding:14px;";
+  const yq = br.pieces.find(p => p.id === "yq"), oq = br.pieces.find(p => p.id === "oq");
+  const why = draw ? L("Unentschieden nach zu vielen Zügen.","Draw after too many moves.") : win ? (!oq.alive ? L("Die gegnerische Dame ist gefallen!","The enemy queen has fallen!") : L("Alle gegnerischen Figuren sind besiegt!","All enemy pieces are defeated!")) : (!yq.alive ? L("Deine Dame ist gefallen!","Your queen has fallen!") : L("Alle deine Figuren sind besiegt!","All your pieces are defeated!"));
+  ov.innerHTML = `<div style="background:#101a2b;border:3px solid ${win?'#7cff8c':draw?'#ffc446':'#ff5d8f'};border-radius:18px;padding:22px;max-width:380px;width:100%;color:#fff;text-align:center;font-family:system-ui,sans-serif">
+    <div style="font-size:34px;font-weight:900;color:${win?'#7cff8c':draw?'#ffc446':'#ff8aa0'}">${draw ? L('UNENTSCHIEDEN','DRAW') : win ? L('SIEG!','VICTORY!') : L('NIEDERLAGE','DEFEAT')}</div>
+    <div style="margin:10px 0 16px">${why}</div>
+    <div style="display:flex;gap:8px;justify-content:center"><button class="btn btn-primary" onclick="brClearTimers();brIntro()">${L('Nochmal','Again')}</button><button class="btn btn-ghost" onclick="brExit()">${t('braintest_main_menu')}</button></div></div>`;
+  document.body.appendChild(ov);
+}
+
+
+/* ---- Brain Royale online (Raumcode / Link) ---- */
+function brMpName(){ try{ return (account && account.profile && account.profile.username) || ''; }catch(e){ return ''; } }
+function brLangCode(){ return currentLang === 'de' ? 'de' : 'en'; }
+function brSessSave(code, key){ try{ localStorage.setItem('br_sess', JSON.stringify({ code, key, t: Date.now() })); }catch(e){} }
+function brSessGet(){ try{ const x = JSON.parse(localStorage.getItem('br_sess') || 'null'); if(x && x.code && x.key && Date.now() - x.t < 3*3600*1000) return x; }catch(e){} return null; }
+function brSessClear(){ try{ localStorage.removeItem('br_sess'); }catch(e){} }
+function brMpNew(){ return { mp:true, ws:null, pieces:[], turn:"a", over:false, winner:null, duel:null, names:["",""], full:false, sel:null, code:null, left:false, leftSec:0, lost:false, leaving:false, queued:false }; }
+function brMpConnect(onOpen){
+  brClearTimers();
+  if(br && br.ws){ br.leaving = true; try{ br.ws.close(); }catch(e){} }
+  br = brMpNew();
+  brMpAttach(onOpen, 0);
+}
+// Verbindung aufbauen; bei Abbruch (Neuladen/Funkloch) automatisch mit gespeichertem Schluessel zurueckholen
+function brMpAttach(onOpen, attempt){
+  const me = br; let ws;
+  try{ ws = new WebSocket(wsUrl()); }catch(e){ br = null; brIntro(); return; }
+  me.ws = ws;
+  const to = setTimeout(() => { if(ws.readyState !== WebSocket.OPEN){ try{ ws.close(); }catch(e){} } }, 5000);
+  ws.onopen = () => { clearTimeout(to); me.lost = false; onOpen(); };
+  ws.onmessage = ev => { if(br !== me || me.ws !== ws) return; let m; try{ m = JSON.parse(ev.data); }catch(e){ return; } brMpHandle(m); };
+  ws.onclose = () => {
+    clearTimeout(to);
+    if(br !== me || me.ws !== ws || me.leaving) return;
+    const sess = brSessGet();
+    if(!sess){ br = null; brClearTimers(); if(!me.queued) brIntro(); else brIntro(); return; }
+    me.lost = true; brMpRefresh();
+    if(attempt < 30) brT(() => { if(br === me && !me.leaving) brMpAttach(() => me.ws.send(JSON.stringify({ action:'brRejoin', code:sess.code, key:sess.key, lang:brLangCode() })), attempt + 1); }, 2000);
+    else { brSessClear(); br = null; brClearTimers(); showInviteToast(L('Verbindung zum Spiel verloren.','Lost connection to the game.')); renderMainMenu(); }
+  };
+}
+function brMpRejoinSaved(){
+  const sess = brSessGet(); if(!sess || (br && br.mp)) return false;
+  br = brMpNew(); br.code = sess.code; br.lost = true;
+  brMpAttach(() => br.ws.send(JSON.stringify({ action:'brRejoin', code:sess.code, key:sess.key, lang:brLangCode() })), 0);
+  brRender();
+  return true;
+}
+function brMpCreate(){
+  if(!brAllowed()) return;
+  const nm = brMpName() || 'Player';
+  brMpConnect(() => br.ws.send(JSON.stringify({ action:'brCreateRoom', name:nm, lang:brLangCode(), token: account ? account.token : undefined, adminKey:adminKeyStored() })));
+}
+function brMpQueue(){
+  if(!brAllowed()) return;
+  const nm = brMpName() || 'Player';
+  brMpConnect(() => br.ws.send(JSON.stringify({ action:'brQueue', name:nm, lang:brLangCode(), token: account ? account.token : undefined, adminKey:adminKeyStored() })));
+  br.queued = true; brQueueScreen(false);
+  brT(() => { if(br && br.mp && br.queued && !br.full) brQueueScreen(true); }, 25000);
+}
+function brQueueScreen(showBot){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🎲 ${L('ZUFALLSGEGNER','RANDOM OPPONENT')}</div>
+      <div class="picker-sub">${L('Suche einen Gegner …','Looking for an opponent …')}${currentLang==='de' ? '' : ''}</div>
+      <div style="text-align:center;font-size:42px;margin:14px 0">⚔️</div>
+      <div class="explanation" style="text-align:center">${L('Du bekommst die Fragen in deiner Sprache – auch wenn dein Gegner eine andere spricht.','You get the questions in your language – even if your opponent speaks another one.')}</div>
+      ${showBot ? `<div class="explanation" style="text-align:center;margin-top:8px">${L('Noch niemand gefunden.','No one found yet.')}</div>
+        <button class="btn btn-primary btn-block" style="margin-top:8px" onclick="brQueueBot()">${L('Stattdessen gegen den Bot spielen','Play against the bot instead')}</button>` : ''}
+      <div class="actions-row" style="margin-top:12px"><button class="btn btn-ghost" onclick="brQueueCancel()">${L('Abbrechen','Cancel')}</button></div>
+    </div>`);
+}
+function brQueueCancel(){ if(br && br.ws){ br.leaving = true; try{ br.ws.send(JSON.stringify({ action:'brQueueCancel' })); br.ws.close(); }catch(e){} } br = null; brClearTimers(); brIntro(); }
+function brQueueBot(){ if(br && br.ws){ br.leaving = true; try{ br.ws.send(JSON.stringify({ action:'brQueueCancel' })); br.ws.close(); }catch(e){} } br = null; brClearTimers(); brStart('normal'); }
+function brJoinScreen(code, err){
+  brClearTimers();
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">⚔️ BRAIN ROYALE</div>
+      <div class="picker-sub">${L('Du wurdest zu einem Duell eingeladen.','You have been invited to a duel.')} ${L('Code','Code')}: <b style="letter-spacing:3px;color:#ffd45a">${esc(code)}</b></div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:20px">${err ? esc(err) : ''}</div>
+      <input id="brJoinName" type="text" maxlength="20" placeholder="${L('Dein Name','Your name')}" value="${esc(brMpName())}" style="text-align:center;margin-top:6px">
+      <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="brMpJoin('${esc(code)}', document.getElementById('brJoinName').value)">${L('Beitreten','Join')}</button>
+      <div class="actions-row" style="margin-top:12px"><button class="btn btn-ghost" onclick="renderMainMenu()">${L('Abbrechen','Cancel')}</button></div>
+    </div>`);
+}
+function brMpJoin(code, name){
+  const nm = String(name || '').trim().slice(0, 20) || L('Gast','Guest');
+  const c = String(code || '').trim().toUpperCase();
+  brMpConnect(() => br.ws.send(JSON.stringify({ action:'brJoinRoom', code:c, name:nm, lang:brLangCode(), token: account ? account.token : undefined })));
+}
+function brMpHandle(m){
+  if(!br || !br.mp) return;
+  if(m.type === 'brError'){
+    const c = br.code; br.leaving = true; try{ br.ws.close(); }catch(e){}
+    brClearTimers(); const wasGone = !!m.gone; br = null;
+    if(wasGone){ brSessClear(); showInviteToast(L('Das Spiel gibt es nicht mehr.','That game no longer exists.')); renderMainMenu(); }
+    else if(c){ brJoinScreen(c, m.message); }
+    else { showInviteToast(m.message || 'Error'); brIntro(); }
+    return;
+  }
+  if(m.type === 'brQueued'){ br.queued = true; return; }
+  if(m.type === 'brJoined'){ br.code = m.roomCode; br.queued = false; if(m.key) brSessSave(m.roomCode, m.key); return; }
+  if(m.type === 'brOpponentLeft'){ br.left = true; br.leftSec = m.graceSec || 0; brMpRefresh(); return; }
+  if(m.type === 'brOpponentBack'){ br.left = false; brMpRefresh(); return; }
+  if(m.type === 'brState'){
+    br.code = m.roomCode; br.pieces = m.pieces; br.turn = m.turn; br.over = m.over; br.winner = m.winner; br.why = m.why;
+    br.names = m.names; br.full = m.full; br.credited = m.credited; if(m.dameWins != null && account && account.profile) account.profile.dameWins = m.dameWins; br.left = false; br.lost = false; br.queued = false;
+    const sess = brSessGet(); if(sess){ brSessSave(sess.code, sess.key); }
+    if(m.duel){ if(!br.duel) br.duelT0 = Date.now() - (12000 - m.duel.remaining); }
+    br.duel = m.duel;
+    if(br.sel && !br.pieces.find(p => p.id === br.sel && p.alive)) br.sel = null;
+    brMpRefresh(); return;
+  }
+}
+function brMpRefresh(){
+  if(!br || !br.mp) return;
+  brRender();
+  brMpDuelUi();
+  if(br.over){ brMpFinishUi(); } else { const f = document.getElementById('brFinOv'); if(f) f.remove(); }
+}
+function brMpInfoHtml(){
+  const me = br.names[0] || L('Du','You'), op = br.names[1] || L('Gegner','Opponent');
+  let h = `<div style="text-align:center;font-size:13px;color:var(--text-dim);margin-bottom:6px">${esc(me)} <b>vs</b> ${esc(op)}</div>`;
+  if(!br.full && br.code && !br.lost){
+    const link = location.origin + '/?br=' + br.code;
+    h += `<div class="explanation" style="text-align:center;margin-bottom:8px">${L('Raumcode','Room code')}: <b style="font-size:22px;letter-spacing:4px;color:#ffd45a">${esc(br.code)}</b><br>
+      <span style="font-size:12px;word-break:break-all">${esc(link)}</span><br>
+      <button class="btn btn-ghost" style="margin-top:6px;padding:6px 12px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(link)}')">📋 ${L('Link kopieren','Copy link')}</button></div>`;
+  }
+  return h;
+}
+function brMpMsg(){
+  if(br.lost) return L('Verbindung verloren – verbinde neu …','Connection lost – reconnecting …');
+  if(br.left) return br.leftSec ? L('Dein Gegner hat die Verbindung verloren – ich warte bis zu '+br.leftSec+' Sekunden …','Your opponent disconnected – waiting up to '+br.leftSec+' seconds …') : L('Dein Gegner hat das Spiel verlassen.','Your opponent left the game.');
+  if(!br.full) return L('Warte auf deinen Freund …','Waiting for your friend …');
+  if(br.over) return '';
+  if(br.duel) return L('Duell läuft …','Duel in progress …');
+  return br.turn === 'y' ? L('Du bist dran – wähle eine Figur.','Your turn – pick a piece.') : L('Gegner ist am Zug …','Opponent is thinking …');
+}
+function brMpCell(c, r){
+  if(!br.full || br.over || br.duel || br.turn !== 'y' || br.left || br.lost) return;
+  const p = brAt(c, r);
+  if(p && p.side === 'y'){ br.sel = p.id; brRender(); return; }
+  if(!br.sel) return;
+  const sel = br.pieces.find(x => x.id === br.sel);
+  const mv = sel && brMovesOf(sel).find(m => m.c === c && m.r === r);
+  if(!mv) return;
+  const id = br.sel; br.sel = null;
+  br.ws.send(JSON.stringify({ action:'brMove', id, c, r }));
+}
+function brMpDuelUi(){
+  let ov = document.getElementById('brDuelOv');
+  if(!br.duel){ if(ov) ov.remove(); clearInterval(br.barIv); return; }
+  const d = br.duel;
+  if(!ov){
+    ov = document.createElement('div'); ov.id = 'brDuelOv';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(5,8,20,.92);display:flex;align-items:center;justify-content:center;padding:14px;';
+    document.body.appendChild(ov);
+  }
+  const winTxt = d.done ? (d.winner === 'y' ? L('Du gewinnst das Duell!','You win the duel!') : L('Der Gegner gewinnt das Duell!','The opponent wins the duel!')) : '';
+  ov.innerHTML = `<div style="background:#101a2b;border:3px solid #ffc446;border-radius:18px;padding:16px;max-width:440px;width:100%;color:#fff;font-family:system-ui,sans-serif;text-align:center">
+    <div style="font-weight:900;font-size:20px;color:#ffc446">⚔️ ${L('DUELL','DUEL')} · ${esc(d.kind)}</div>
+    <div style="margin:6px 0;font-size:13px;opacity:.8">${d.att === 'y' ? L('Du greifst an.','You attack.') : L('Du wirst angegriffen!','You are attacked!')} ${d.queen ? L('(Dame im Spiel!)','(Queen involved!)') : ''}</div>
+    <div style="font-size:20px;font-weight:800;margin:10px 0 14px">${esc(d.text)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${d.opts.map((o, i) => `<button class="btn btn-ghost" ${d.done || d.youOut ? 'disabled' : ''} onclick="brMpAnswer(${i})" style="padding:12px 6px;font-weight:800;${d.done && i === d.correct ? 'background:rgba(60,200,100,.5)' : ''}">${esc(String(o))}</button>`).join('')}</div>
+    <div style="height:10px;border-radius:6px;background:#26334f;margin-top:14px;overflow:hidden"><div id="brBar" style="height:100%;width:100%;background:#ffc446"></div></div>
+    <div style="margin-top:10px;font-weight:800;min-height:22px;color:${d.done ? (d.winner === 'y' ? '#7cff8c' : '#ff8aa0') : '#ff8aa0'}">${d.done ? winTxt : (d.youOut ? L('Falsch! Jetzt hängt es am Gegner …','Wrong! Now it\'s up to the opponent …') : (d.oppOut ? L('Der Gegner lag falsch – deine Chance!','The opponent was wrong – your chance!') : ''))}</div></div>`;
+  clearInterval(br.barIv);
+  br.barIv = setInterval(() => { const b = document.getElementById('brBar'); if(!b || !br) return; b.style.width = Math.max(0, 100 - (Date.now() - br.duelT0) / 120) + '%'; }, 100);
+}
+function brMpAnswer(i){ if(br && br.mp && br.duel && !br.duel.done && !br.duel.youOut) br.ws.send(JSON.stringify({ action:'brAnswer', i })); }
+function brMpFinishUi(){
+  if(document.getElementById('brFinOv')) return;
+  const win = br.winner === 'y', draw = br.winner === 'draw';
+  const ov = document.createElement('div'); ov.id = 'brFinOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99991;background:rgba(5,8,20,.9);display:flex;align-items:center;justify-content:center;padding:14px;';
+  const yq = br.pieces.find(p => p.id === 'yq'), oq = br.pieces.find(p => p.id === 'oq');
+  const why = br.why === 'left' ? (win ? L('Dein Gegner hat das Spiel verlassen.','Your opponent left the game.') : L('Du hast das Spiel verlassen.','You left the game.')) : draw ? L('Unentschieden nach zu vielen Zügen.','Draw after too many moves.') : win ? (oq && !oq.alive ? L('Die gegnerische Dame ist gefallen!','The enemy queen has fallen!') : (br.why === 'moves' ? L('Nach Herzen vorne!','Ahead on hearts!') : L('Alle gegnerischen Figuren sind besiegt!','All enemy pieces are defeated!'))) : (yq && !yq.alive ? L('Deine Dame ist gefallen!','Your queen has fallen!') : (br.why === 'moves' ? L('Nach Herzen hinten.','Behind on hearts.') : L('Alle deine Figuren sind besiegt!','All your pieces are defeated!')));
+  ov.innerHTML = `<div style="background:#101a2b;border:3px solid ${win?'#7cff8c':draw?'#ffc446':'#ff5d8f'};border-radius:18px;padding:22px;max-width:380px;width:100%;color:#fff;text-align:center;font-family:system-ui,sans-serif">
+    <div style="font-size:34px;font-weight:900;color:${win?'#7cff8c':draw?'#ffc446':'#ff8aa0'}">${draw ? L('UNENTSCHIEDEN','DRAW') : win ? L('SIEG!','VICTORY!') : L('NIEDERLAGE','DEFEAT')}</div>
+    <div style="margin:10px 0 6px">${why}</div>${brMilestoneHtml(win)}
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px"><button class="btn btn-primary" onclick="brMpRematch()">${L('Nochmal','Again')}</button><button class="btn btn-ghost" onclick="brMpLeave()">${t('braintest_main_menu')}</button></div></div>`;
+  document.body.appendChild(ov);
+}
+function brMilestoneHtml(win){
+  if(!win) return '';
+  if(br.credited){ const w = br.credited.wins; const un = DM_SKINS.find(s => s.wins === w && s.wins > 0); const nx = DM_SKINS.find(s => s.wins > w);
+    return `<div style="margin-top:10px;color:#ffd45a;font-weight:800">🏅 ${L('Meilenstein','Milestone')}: ${w} ${L('Siege gegen echte Spieler','wins vs real players')}${un ? '<br>🎉 ' + L('Neue Steine: ','New pieces: ') + L(un.de, un.en) : ''}${nx ? '<br><span style="font-weight:600;color:#9fb0d0">' + L('Nächste bei ','Next at ') + nx.wins + '</span>' : ''}</div>`; }
+  if(!account) return `<div style="margin-top:10px;color:#9fb0d0;font-size:13px">${L('Melde dich an, damit Siege für Meilensteine zählen.','Log in so wins count toward milestones.')}</div>`;
+  return `<div style="margin-top:10px;color:#9fb0d0;font-size:13px">${L('Dieser Sieg zählt nicht (zu kurz, gleiches Konto oder Tageslimit gegen denselben Gegner).','This win did not count (too short, same account, or daily limit vs the same opponent).')}</div>`;
+}
+function brMpRematch(){ if(br && br.ws && !br.left && !br.lost) br.ws.send(JSON.stringify({ action:'brRematch' })); }
+function brMpLeave(){
+  brSessClear();
+  if(br){ br.leaving = true; clearInterval(br.barIv); try{ br.ws.send(JSON.stringify({ action:'brLeave' })); br.ws.close(); }catch(e){} }
+  brClearTimers(); const f = document.getElementById('brFinOv'); if(f) f.remove();
+  br = null; renderMainMenu();
+}
+window.addEventListener('load', () => setTimeout(() => { try{ const c = new URLSearchParams(location.search).get('br'); if(c){ history.replaceState(null,'',location.pathname); brJoinScreen(String(c).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)); } else { brMpRejoinSaved(); } }catch(e){} }, 1500));
+
+/* ============================================================================
+   DAME (Deutsche Dame) - Regeln in /dame-engine.js (gemeinsam mit dem Server).
+   Modi: gegen Bot, Freund per Code/Link, Zufallsgegner. Steine: 6 Varianten, 5 davon per
+   Meilenstein (Siege gegen ECHTE Spieler - Bot-Siege zaehlen nicht, der Server zaehlt).
+   ============================================================================ */
+const DM_SKINS = [
+  { id:'wood',  wins:0,  de:'Klassisch Holz', en:'Classic wood' },
+  { id:'neon',  wins:3,  de:'Neon',           en:'Neon' },
+  { id:'glass', wins:8,  de:'Glas',           en:'Glass' },
+  { id:'flat',  wins:15, de:'Flach',          en:'Flat' },
+  { id:'metal', wins:30, de:'Gold & Silber',  en:'Gold & silver' },
+  { id:'pulse', wins:50, de:'Brain-Pulse',    en:'Brain Pulse' }
+];
+let dm = null, dmTimers = [], dmIv = null;
+function dmT(fn, ms){ const id = setTimeout(fn, ms); dmTimers.push(id); return id; }
+function dmClearTimers(){ dmTimers.forEach(clearTimeout); dmTimers = []; clearInterval(dmIv); dmIv = null; const o = document.getElementById('dmOv'); if(o) o.remove(); }
+function dmAllowed(){ return !featureLocked('dame') || adminViewOn(); }
+function dmWins(){ return (account && account.profile && account.profile.dameWins) || 0; }
+function dmSkinUnlocked(id){ if(adminViewOn()) return true; const s = DM_SKINS.find(x => x.id === id); return !!s && dmWins() >= s.wins; }
+function dmSkin(){ let id = 'wood'; try{ id = localStorage.getItem('dm_skin') || 'wood'; }catch(e){} return dmSkinUnlocked(id) ? id : 'wood'; }
+function dmSetSkin(id){ if(!dmSkinUnlocked(id)) return; try{ localStorage.setItem('dm_skin', id); }catch(e){} if(dm && dm.board) dmRender(); else if(document.getElementById('brIntroMark')) brIntro(); else dmIntro(); }
+function dmSquares(skin){
+  if(skin === 'wood' || skin === 'metal') return ['#ebdcbc', '#7a5537'];
+  if(skin === 'flat') return ['#e1e8f5', '#96aad0'];
+  if(skin === 'glass') return ['#32426b', '#16203c'];
+  return ['#3c486e', '#1b2444'];
+}
+function dmStone(skin, color, king, pct){
+  const w = color === 'w'; let bg, bd, sh, gc;
+  if(skin === 'neon'){ const c = w ? '#50dcff' : '#ff5da2'; bg = '#0a0e1e'; bd = '4px solid ' + c; sh = `0 0 10px ${c}99, inset 0 0 0 7px #0a0e1e, inset 0 0 0 9px ${c}66`; gc = c; }
+  else if(skin === 'glass'){ const a = w ? '#c8f5ff' : '#ffcde1', b = w ? '#1e8cc8' : '#be2864'; bg = `radial-gradient(ellipse at 35% 22%, rgba(255,255,255,.75) 0 16%, transparent 18%), radial-gradient(circle at 35% 30%, ${a}, ${b})`; bd = '2px solid rgba(255,255,255,.5)'; sh = '0 3px 6px rgba(0,0,0,.5)'; gc = '#fff'; }
+  else if(skin === 'flat'){ bg = w ? '#f0f4ff' : '#232d50'; bd = '3px solid ' + (w ? '#aab9d7' : '#5a6eaa'); sh = `0 2px 4px rgba(0,0,0,.35), inset 0 0 0 7px ${w ? '#f0f4ff' : '#232d50'}, inset 0 0 0 9px ${w ? '#aab9d7' : '#5a6eaa'}`; gc = w ? '#232d50' : '#f0f4ff'; }
+  else if(skin === 'metal'){ const a = w ? '#fff0aa' : '#f5f8ff', b = w ? '#aa7814' : '#6e788c'; bg = `radial-gradient(circle at 40% 30%, ${a}, ${b})`; bd = '3px solid ' + (w ? '#5a3c08' : '#3c4452'); sh = `0 3px 5px rgba(0,0,0,.5), inset 0 0 0 6px transparent, inset 0 0 0 8px ${w ? '#7a550f88' : '#4a526088'}`; gc = w ? '#5a3c08' : '#2c323e'; }
+  else if(skin === 'pulse'){ bg = w ? 'linear-gradient(135deg,#c8ff3c,#50e1ff)' : 'linear-gradient(135deg,#ffc446,#ff5da2)'; bd = '3px solid #fff'; sh = '0 3px 6px rgba(0,0,0,.45), inset 0 0 0 7px transparent, inset 0 0 0 9px rgba(8,12,26,.25)'; gc = '#08110c'; }
+  else { const a = w ? '#ebcd96' : '#5a3723', b = w ? '#aa783c' : '#28160c'; bg = `radial-gradient(circle at 35% 30%, ${a}, ${b})`; bd = '2px solid #1e0f05'; sh = '0 3px 5px rgba(0,0,0,.5), inset 0 0 0 5px rgba(0,0,0,.12), inset 0 0 0 9px rgba(0,0,0,.08)'; gc = w ? '#4a2c0e' : '#ffd778'; }
+  return `<div style="width:${pct}%;aspect-ratio:1;border-radius:50%;background:${bg};border:${bd};box-shadow:${sh};display:flex;align-items:center;justify-content:center;color:${gc};font-size:clamp(14px,5.2vw,28px);font-weight:900;box-sizing:border-box">${king ? '♛' : ''}</div>`;
+}
+function dmName(){ try{ return (account && account.profile && account.profile.username) || ''; }catch(e){ return ''; } }
+
+function dmSkinGrid(){
+  const skin = dmSkin();
+  return DM_SKINS.map(s => {
+    const un = dmSkinUnlocked(s.id), sel = skin === s.id;
+    return `<div onclick="dmSetSkin('${s.id}')" style="border:2px solid ${sel ? '#7cff8c' : 'rgba(255,255,255,.15)'};border-radius:12px;padding:8px 4px;text-align:center;opacity:${un ? 1 : .55};cursor:${un ? 'pointer' : 'default'}">
+      <div style="display:flex;gap:2px;justify-content:center;width:80px;margin:0 auto">${dmStone(s.id, 'w', false, 48)}${dmStone(s.id, 'b', true, 48)}</div>
+      <div style="font-size:12px;font-weight:800;margin-top:4px">${L(s.de, s.en)}</div>
+      <div style="font-size:11px;color:var(--text-dim)">${un ? (sel ? '✓ ' + L('aktiv','active') : (s.wins ? '🔓' : '')) : '🔒 ' + s.wins + ' ' + L('Siege','wins')}</div></div>`;
+  }).join('');
+}
+function dmIntro(msg){
+  if(!dmAllowed()){ renderChessHub(); return; }
+  dmClearTimers();
+  const skin = dmSkin(), wins = dmWins();
+  const next = DM_SKINS.find(s => s.wins > wins);
+  const skinCards = dmSkinGrid();
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">♛ ${L('DAME','CHECKERS')} ${featureLocked('dame') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</div>
+      <div class="picker-sub">${L('Deutsche Dame: Schlagzwang, Damen ziehen beliebig weit.','German draughts: captures are mandatory, kings fly.')}</div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:18px">${msg ? esc(msg) : ''}</div>
+      <div class="settings-label">${L('Steine','Pieces')} · ${account ? wins + ' ' + L('Siege gegen echte Spieler','wins vs real players') : L('Zum Freischalten anmelden','Log in to unlock')}</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0">${skinCards}</div>
+      <div class="settings-track" style="margin-bottom:10px">🏅 ${L('Meilensteine zählen nur Siege gegen echte Spieler (Zufallsgegner oder Freund), nicht gegen den Bot.','Milestones only count wins against real players (random opponent or friend), not the bot.')}${next && account ? ' ' + L('Nächster Stein bei ' + next.wins + ' Siegen.','Next pieces at ' + next.wins + ' wins.') : ''}</div>
+      <div class="actions-row" style="flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px"><button class="btn btn-primary" style="flex:1" onclick="dmStartBot('easy')">🤖 ${L('Leicht','Easy')}</button><button class="btn btn-primary" style="flex:1" onclick="dmStartBot('normal')">🤖 ${L('Normal','Normal')}</button><button class="btn btn-primary" style="flex:1" onclick="dmStartBot('hard')">🤖 ${L('Schwer','Hard')}</button></div>
+        <button class="btn" style="border-color:var(--accent-2)" onclick="dmMpQueue()">🎲 ${L('Zufallsgegner (online)','Random opponent (online)')}</button>
+        <button class="btn" style="border-color:var(--accent-2)" onclick="dmMpCreate()">👥 ${L('Gegen Freund (Code / Link)','Vs friend (code / link)')}</button>
+        <input id="dmCodeIn" type="text" maxlength="8" placeholder="CODE" style="text-transform:uppercase;text-align:center;letter-spacing:4px">
+        <button class="btn btn-ghost" onclick="dmJoinScreen(document.getElementById('dmCodeIn').value.trim().toUpperCase())">${L('Mit Code beitreten','Join with code')}</button>
+        <button class="btn btn-ghost" onclick="renderChessHub()">${t('btn_back')}</button>
+      </div>
+    </div>`);
+}
+/* ---------- Spiel (Bot + Online teilen sich Anzeige und Zuglogik) ---------- */
+function dmStartBot(level){
+  if(!dmAllowed()) return;
+  dmClearTimers();
+  dm = { mode:'bot', level, board: Dame.initialBoard(), turn:'w', you:'w', over:false, winner:null, why:null, last:null, plies:0, quiet:0, sel:null, path:null, busy:false, names:[dmName() || L('Du','You'), L('Bot','Bot')], full:true };
+  dmRender();
+}
+function dmFlip(){ return dm && dm.you === 'b'; }
+function dmMyMoves(){ return (dm && !dm.over && dm.turn === dm.you && dm.full) ? Dame.legalMoves(dm.board, dm.you) : []; }
+function dmPrefixMoves(){
+  const mv = dmMyMoves(); if(!dm.path) return mv;
+  return mv.filter(m => m.path.length >= dm.path.length && dm.path.every((s, i) => m.path[i][0] === s[0] && m.path[i][1] === s[1]));
+}
+function dmCell(dr, dc){
+  if(!dm || dm.over || dm.busy || dm.turn !== dm.you || !dm.full || dm.left || dm.lost) return;
+  const r = dmFlip() ? 7 - dr : dr, c = dmFlip() ? 7 - dc : dc;
+  const p = dm.board[r][c];
+  const all = dmMyMoves();
+  if(p && p.c === dm.you){
+    if(dm.path && dm.path.length > 1) return; // mitten in einer Schlagfolge
+    if(dm.sel && dm.sel[0] === r && dm.sel[1] === c){ dm.sel = null; dm.path = null; dmRender(); return; }
+    if(all.some(m => m.path[0][0] === r && m.path[0][1] === c)){ dm.sel = [r, c]; dm.path = [[r, c]]; dmRender(); }
+    return;
+  }
+  if(!dm.sel || !dm.path) return;
+  const cand = dmPrefixMoves().filter(m => m.path.length > dm.path.length && m.path[dm.path.length][0] === r && m.path[dm.path.length][1] === c);
+  if(!cand.length) return;
+  dm.path = dm.path.concat([[r, c]]);
+  const done = all.find(m => m.path.length === dm.path.length && m.path.every((s, i) => s[0] === dm.path[i][0] && s[1] === dm.path[i][1]));
+  if(done){ const path = dm.path; dm.sel = null; dm.path = null; dmCommit(path, done); }
+  else dmRender();
+}
+function dmCommit(path, mv){
+  if(dm.mode === 'mp'){ dm.busy = true; dmRender(); dm.ws.send(JSON.stringify({ action:'dmMove', path })); return; }
+  dmApplyLocal(mv);
+  if(!dm.over){ dm.busy = true; dmRender(); dmT(dmBotTurn, 450); }
+}
+function dmApplyLocal(mv){
+  const moved = dm.board[mv.path[0][0]][mv.path[0][1]];
+  dm.board = Dame.applyMove(dm.board, mv); dm.last = mv.path; dm.plies++;
+  dm.quiet = (mv.captured.length || !moved.k) ? 0 : dm.quiet + 1;
+  dm.turn = Dame.other(dm.turn);
+  const res = Dame.result(dm.board, dm.turn);
+  if(res){ dm.over = true; dm.winner = res; dm.why = 'done'; }
+  else if(dm.quiet >= 40){ dm.over = true; dm.winner = 'draw'; dm.why = 'draw'; }
+  dmRender();
+}
+function dmBotTurn(){
+  if(!dm || dm.mode !== 'bot' || dm.over) return;
+  const mv = Dame.botMove(dm.board, Dame.other(dm.you), dm.level);
+  dm.busy = false;
+  if(!mv){ dm.over = true; dm.winner = dm.you; dm.why = 'done'; dmRender(); return; }
+  dmApplyLocal(mv);
+}
+function dmStatusText(){
+  if(dm.lost) return L('Verbindung verloren – verbinde neu …','Connection lost – reconnecting …');
+  if(dm.left) return dm.leftSec ? L('Dein Gegner hat die Verbindung verloren – ich warte bis zu ' + dm.leftSec + ' Sekunden …','Your opponent disconnected – waiting up to ' + dm.leftSec + ' seconds …') : L('Dein Gegner hat das Spiel verlassen.','Your opponent left the game.');
+  if(!dm.full) return L('Warte auf deinen Freund …','Waiting for your friend …');
+  if(dm.over) return '';
+  const cap = dmMyMoves().some(m => m.captured.length);
+  if(dm.turn === dm.you) return cap ? L('Du bist dran – Schlagzwang!','Your turn – you must capture!') : L('Du bist dran.','Your turn.');
+  return dm.mode === 'bot' ? L('Bot denkt …','Bot is thinking …') : L('Gegner ist am Zug …','Opponent to move …');
+}
+function dmRender(){
+  if(!dm || !dm.board) return;
+  const skin = dmSkin(), sq = dmSquares(skin), flip = dmFlip();
+  const moves = dmPrefixMoves();
+  const targets = new Set(), starts = new Set();
+  if(dm.sel && dm.path){ moves.forEach(m => { if(m.path.length > dm.path.length){ const s = m.path[dm.path.length]; targets.add(s[0] + ',' + s[1]); } }); }
+  else if(dm.turn === dm.you && dm.full && !dm.over && !dm.busy){ dmMyMoves().forEach(m => starts.add(m.path[0][0] + ',' + m.path[0][1])); }
+  const lastSet = new Set((dm.last || []).map(s => s[0] + ',' + s[1]));
+  let cells = '';
+  for(let dr = 0; dr < 8; dr++) for(let dc = 0; dc < 8; dc++){
+    const r = flip ? 7 - dr : dr, c = flip ? 7 - dc : dc;
+    const dark = (r + c) % 2 === 1, p = dm.board[r][c], k = r + ',' + c;
+    let inner = '', ring = '';
+    if(p) inner = dmStone(skin, p.c, p.k, 82);
+    else if(targets.has(k)) inner = '<div style="width:30%;aspect-ratio:1;border-radius:50%;background:rgba(124,255,140,.85)"></div>';
+    if(dm.sel && dm.sel[0] === r && dm.sel[1] === c) ring = 'box-shadow:inset 0 0 0 3px #ffc446;';
+    else if(targets.has(k) && p) ring = 'box-shadow:inset 0 0 0 3px #ff5d8f;';
+    else if(starts.has(k)) ring = 'box-shadow:inset 0 0 0 2px rgba(124,255,140,.7);';
+    else if(lastSet.has(k)) ring = 'box-shadow:inset 0 0 0 2px rgba(255,196,70,.6);';
+    cells += `<div onclick="dmCell(${dr},${dc})" style="aspect-ratio:1;background:${dark ? sq[1] : sq[0]};display:flex;align-items:center;justify-content:center;cursor:pointer;${ring}">${inner}</div>`;
+  }
+  const ct = Dame.counts(dm.board);
+  const me = dm.names[0] || L('Du','You'), op = dm.names[1] || L('Gegner','Opponent');
+  const mine = dm.you === 'w' ? ct.w : ct.b, theirs = dm.you === 'w' ? ct.b : ct.w;
+  let info = '';
+  if(dm.mode === 'mp' && !dm.full && dm.code && !dm.lost){
+    const link = location.origin + '/?dm=' + dm.code;
+    info = `<div class="explanation" style="text-align:center;margin-bottom:8px">${L('Raumcode','Room code')}: <b style="font-size:22px;letter-spacing:4px;color:#ffd45a">${esc(dm.code)}</b><br><span style="font-size:12px;word-break:break-all">${esc(link)}</span><br>
+      <button class="btn btn-ghost" style="margin-top:6px;padding:6px 12px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(link)}')">📋 ${L('Link kopieren','Copy link')}</button></div>`;
+  }
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title" style="margin-bottom:2px">♛ ${L('DAME','CHECKERS')}</div>
+      <div style="text-align:center;font-size:13px;color:var(--text-dim)">${esc(op)} <b>${theirs}</b> &nbsp;vs&nbsp; <b>${mine}</b> ${esc(me)}${dm.mode === 'mp' ? ` &nbsp;·&nbsp; ⏱ <span id="dmClock">–</span>` : ''}</div>
+      ${info}
+      <div style="display:grid;grid-template-columns:repeat(8,1fr);max-width:440px;margin:8px auto;border-radius:10px;overflow:hidden;border:3px solid rgba(255,255,255,.12)">${cells}</div>
+      <div class="explanation" style="text-align:center;margin:6px 0">${dmStatusText()}</div>
+      ${dm.mode === 'bot' ? `<div class="settings-track" style="text-align:center">${L('Bot-Spiele zählen nicht für Meilensteine.','Bot games do not count for milestones.')}</div>` : ''}
+      <div class="actions-row">${dm.mode === 'mp' && dm.full && !dm.over ? `<button class="btn btn-ghost" onclick="dmResign()">${L('Aufgeben','Resign')}</button>` : ''}<button class="btn btn-ghost" onclick="dmQuit()">${L('Beenden','Quit')}</button></div>
+    </div>`);
+  dmClockStart();
+  if(dm.over) dmFinishUi(); else { const f = document.getElementById('dmOv'); if(f) f.remove(); }
+}
+function dmClockStart(){
+  clearInterval(dmIv);
+  if(!dm || dm.mode !== 'mp' || !dm.deadline || dm.over) return;
+  const tick = () => { const el = document.getElementById('dmClock'); if(!el || !dm || !dm.deadline) return; const s = Math.max(0, Math.round((dm.deadline - Date.now()) / 1000)); el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  tick(); dmIv = setInterval(tick, 500);
+}
+function dmFinishUi(){
+  if(document.getElementById('dmOv')) return;
+  const win = dm.winner === dm.you, draw = dm.winner === 'draw';
+  const ov = document.createElement('div'); ov.id = 'dmOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99991;background:rgba(5,8,20,.9);display:flex;align-items:center;justify-content:center;padding:14px;';
+  const why = dm.why === 'left' ? (win ? L('Dein Gegner hat das Spiel verlassen.','Your opponent left the game.') : L('Du hast das Spiel verlassen.','You left the game.'))
+    : dm.why === 'timeout' ? (win ? L('Dein Gegner war zu langsam.','Your opponent ran out of time.') : L('Deine Zeit ist abgelaufen.','You ran out of time.'))
+    : dm.why === 'resign' ? (win ? L('Dein Gegner hat aufgegeben.','Your opponent resigned.') : L('Du hast aufgegeben.','You resigned.'))
+    : draw ? L('Unentschieden – zu lange ohne Schlag.','Draw – too long without a capture.')
+    : win ? L('Alle gegnerischen Steine sind geschlagen oder blockiert!','All enemy pieces are captured or blocked!') : L('Du hast keine Züge mehr oder keine Steine.','You have no moves or pieces left.');
+  let extra = '';
+  if(dm.mode === 'mp' && win){
+    if(dm.credited){ const w = dm.credited.wins; const un = DM_SKINS.find(s => s.wins === w && s.wins > 0); const nx = DM_SKINS.find(s => s.wins > w);
+      extra = `<div style="margin-top:10px;color:#ffd45a;font-weight:800">🏅 ${L('Meilenstein','Milestone')}: ${w} ${L('Siege gegen echte Spieler','wins vs real players')}${un ? '<br>🎉 ' + L('Neue Steine: ','New pieces: ') + L(un.de, un.en) : ''}${nx ? '<br><span style="font-weight:600;color:#9fb0d0">' + L('Nächste bei ','Next at ') + nx.wins + '</span>' : ''}</div>`; }
+    else if(!account) extra = `<div style="margin-top:10px;color:#9fb0d0;font-size:13px">${L('Melde dich an, damit Siege für Meilensteine zählen.','Log in so wins count toward milestones.')}</div>`;
+    else extra = `<div style="margin-top:10px;color:#9fb0d0;font-size:13px">${L('Dieser Sieg zählt nicht (zu kurz, gleiches Konto oder Tageslimit gegen denselben Gegner).','This win did not count (too short, same account, or daily limit vs the same opponent).')}</div>`;
+  }
+  ov.innerHTML = `<div style="background:#101a2b;border:3px solid ${win ? '#7cff8c' : draw ? '#ffc446' : '#ff5d8f'};border-radius:18px;padding:22px;max-width:380px;width:100%;color:#fff;text-align:center;font-family:system-ui,sans-serif">
+    <div style="font-size:34px;font-weight:900;color:${win ? '#7cff8c' : draw ? '#ffc446' : '#ff8aa0'}">${draw ? L('UNENTSCHIEDEN','DRAW') : win ? L('SIEG!','VICTORY!') : L('NIEDERLAGE','DEFEAT')}</div>
+    <div style="margin:10px 0 6px">${why}</div>${extra}
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px"><button class="btn btn-primary" onclick="dmAgain()">${L('Nochmal','Again')}</button><button class="btn btn-ghost" onclick="dmQuit()">${t('braintest_main_menu')}</button></div></div>`;
+  document.body.appendChild(ov);
+}
+function dmAgain(){
+  if(!dm) return;
+  if(dm.mode === 'bot'){ const lv = dm.level; const o = document.getElementById('dmOv'); if(o) o.remove(); dmStartBot(lv); }
+  else if(dm.ws && !dm.left && !dm.lost) dm.ws.send(JSON.stringify({ action:'dmRematch' }));
+}
+function dmResign(){ if(dm && dm.mode === 'mp' && dm.ws) dm.ws.send(JSON.stringify({ action:'dmResign' })); }
+function dmQuit(){
+  dmSessClear();
+  if(dm && dm.ws){ dm.leaving = true; try{ dm.ws.send(JSON.stringify({ action:'dmLeave' })); dm.ws.close(); }catch(e){} }
+  dmClearTimers(); dm = null; dmIntroOrMenu();
+}
+function dmIntroOrMenu(){ if(dmAllowed()) dmIntro(); else renderMainMenu(); }
+/* ---------- Online ---------- */
+function dmSessSave(code, key){ try{ localStorage.setItem('dm_sess', JSON.stringify({ code, key, t: Date.now() })); }catch(e){} }
+function dmSessGet(){ try{ const x = JSON.parse(localStorage.getItem('dm_sess') || 'null'); if(x && x.code && x.key && Date.now() - x.t < 3*3600*1000) return x; }catch(e){} return null; }
+function dmSessClear(){ try{ localStorage.removeItem('dm_sess'); }catch(e){} }
+function dmMpNew(){ return { mode:'mp', ws:null, board:null, turn:'w', you:'w', over:false, winner:null, why:null, last:null, plies:0, sel:null, path:null, busy:false, names:['',''], full:false, code:null, left:false, leftSec:0, lost:false, leaving:false, queued:false, deadline:null, credited:null }; }
+function dmMpConnect(onOpen){
+  dmClearTimers();
+  if(dm && dm.ws){ dm.leaving = true; try{ dm.ws.close(); }catch(e){} }
+  dm = dmMpNew(); dm.board = Dame.initialBoard();
+  dmMpAttach(onOpen, 0);
+}
+function dmMpAttach(onOpen, attempt){
+  const me = dm; let ws;
+  try{ ws = new WebSocket(wsUrl()); }catch(e){ dm = null; dmIntroOrMenu(); return; }
+  me.ws = ws;
+  const to = setTimeout(() => { if(ws.readyState !== WebSocket.OPEN){ try{ ws.close(); }catch(e){} } }, 5000);
+  ws.onopen = () => { clearTimeout(to); me.lost = false; onOpen(); };
+  ws.onmessage = ev => { if(dm !== me || me.ws !== ws) return; let m; try{ m = JSON.parse(ev.data); }catch(e){ return; } dmMpHandle(m); };
+  ws.onclose = () => {
+    clearTimeout(to);
+    if(dm !== me || me.ws !== ws || me.leaving) return;
+    const sess = dmSessGet();
+    if(!sess){ dm = null; dmClearTimers(); dmIntroOrMenu(); return; }
+    me.lost = true; dmRender();
+    if(attempt < 30) dmT(() => { if(dm === me && !me.leaving) dmMpAttach(() => me.ws.send(JSON.stringify({ action:'dmRejoin', code:sess.code, key:sess.key })), attempt + 1); }, 2000);
+    else { dmSessClear(); dm = null; dmClearTimers(); showInviteToast(L('Verbindung zum Spiel verloren.','Lost connection to the game.')); renderMainMenu(); }
+  };
+}
+function dmMpRejoinSaved(){
+  const sess = dmSessGet(); if(!sess || (dm && dm.mode === 'mp')) return false;
+  dm = dmMpNew(); dm.board = Dame.initialBoard(); dm.code = sess.code; dm.lost = true;
+  dmMpAttach(() => dm.ws.send(JSON.stringify({ action:'dmRejoin', code:sess.code, key:sess.key })), 0);
+  dmRender();
+  return true;
+}
+function dmMpCreate(){
+  if(!dmAllowed()) return;
+  dmMpConnect(() => dm.ws.send(JSON.stringify({ action:'dmCreateRoom', name:dmName() || 'Player', token: account ? account.token : undefined, adminKey: adminKeyStored() })));
+}
+function dmMpQueue(){
+  if(!dmAllowed()) return;
+  dmMpConnect(() => dm.ws.send(JSON.stringify({ action:'dmQueue', name:dmName() || 'Player', token: account ? account.token : undefined, adminKey: adminKeyStored() })));
+  dm.queued = true; dmQueueScreen(false);
+  dmT(() => { if(dm && dm.mode === 'mp' && dm.queued && !dm.full) dmQueueScreen(true); }, 25000);
+}
+function dmQueueScreen(showBot){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🎲 ${L('ZUFALLSGEGNER','RANDOM OPPONENT')}</div>
+      <div class="picker-sub">${L('Suche einen Gegner …','Looking for an opponent …')}</div>
+      <div style="text-align:center;font-size:42px;margin:14px 0">♛</div>
+      ${!account ? `<div class="explanation" style="text-align:center">${L('Tipp: Melde dich an, damit deine Siege für neue Steine zählen.','Tip: log in so your wins count toward new pieces.')}</div>` : ''}
+      ${showBot ? `<div class="explanation" style="text-align:center;margin-top:8px">${L('Noch niemand gefunden.','No one found yet.')}</div><button class="btn btn-primary btn-block" style="margin-top:8px" onclick="dmQueueBot()">${L('Stattdessen gegen den Bot spielen','Play against the bot instead')}</button>` : ''}
+      <div class="actions-row" style="margin-top:12px"><button class="btn btn-ghost" onclick="dmQueueCancel()">${L('Abbrechen','Cancel')}</button></div>
+    </div>`);
+}
+function dmLeaveQueue(){ if(dm && dm.ws){ dm.leaving = true; try{ dm.ws.send(JSON.stringify({ action:'dmQueueCancel' })); dm.ws.close(); }catch(e){} } dm = null; dmClearTimers(); }
+function dmQueueCancel(){ dmLeaveQueue(); dmIntroOrMenu(); }
+function dmQueueBot(){ dmLeaveQueue(); dmStartBot('normal'); }
+function dmJoinScreen(code, err){
+  dmClearTimers();
+  if(!code){ dmIntro(L('Bitte Code eingeben.','Please enter a code.')); return; }
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">♛ ${L('DAME','CHECKERS')}</div>
+      <div class="picker-sub">${L('Du wurdest zu einer Partie eingeladen.','You have been invited to a game.')} ${L('Code','Code')}: <b style="letter-spacing:3px;color:#ffd45a">${esc(code)}</b></div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:20px">${err ? esc(err) : ''}</div>
+      <input id="dmJoinName" type="text" maxlength="20" placeholder="${L('Dein Name','Your name')}" value="${esc(dmName())}" style="text-align:center;margin-top:6px">
+      <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="dmMpJoin('${esc(code)}', document.getElementById('dmJoinName').value)">${L('Beitreten','Join')}</button>
+      <div class="actions-row" style="margin-top:12px"><button class="btn btn-ghost" onclick="renderMainMenu()">${L('Abbrechen','Cancel')}</button></div>
+    </div>`);
+}
+function dmMpJoin(code, name){
+  const nm = String(name || '').trim().slice(0, 20) || L('Gast','Guest');
+  dmMpConnect(() => dm.ws.send(JSON.stringify({ action:'dmJoinRoom', code:String(code).toUpperCase(), name:nm, token: account ? account.token : undefined })));
+}
+function dmMpHandle(m){
+  if(!dm || dm.mode !== 'mp') return;
+  if(m.type === 'dmError'){
+    const c = dm.code; dm.leaving = true; try{ dm.ws.close(); }catch(e){}
+    dmClearTimers(); dm = null;
+    if(m.gone){ dmSessClear(); showInviteToast(L('Das Spiel gibt es nicht mehr.','That game no longer exists.')); renderMainMenu(); }
+    else if(c){ dmJoinScreen(c, m.message); }
+    else { showInviteToast(m.message || 'Error'); dmIntroOrMenu(); }
+    return;
+  }
+  if(m.type === 'dmQueued'){ dm.queued = true; return; }
+  if(m.type === 'dmJoined'){ dm.code = m.roomCode; dm.queued = false; if(m.key) dmSessSave(m.roomCode, m.key); return; }
+  if(m.type === 'dmOpponentLeft'){ dm.left = true; dm.leftSec = m.graceSec || 0; dmRender(); return; }
+  if(m.type === 'dmOpponentBack'){ dm.left = false; dmRender(); return; }
+  if(m.type === 'dmIllegal'){ dm.busy = false; dm.sel = null; dm.path = null; dmRender(); return; }
+  if(m.type === 'dmState'){
+    dm.code = m.roomCode; dm.board = m.board; dm.turn = m.turn; dm.you = m.you; dm.over = m.over; dm.winner = m.winner; dm.why = m.why;
+    dm.last = m.last; dm.plies = m.plies; dm.names = m.names; dm.full = m.full; dm.left = false; dm.lost = false; dm.queued = false; dm.busy = false;
+    dm.deadline = m.remaining != null ? Date.now() + m.remaining : null; dm.credited = m.credited;
+    if(m.dameWins != null && account && account.profile) account.profile.dameWins = m.dameWins;
+    const sess = dmSessGet(); if(sess) dmSessSave(sess.code, sess.key);
+    if(!(dm.path && dm.turn === dm.you)){ dm.sel = null; dm.path = null; }
+    dmRender(); return;
+  }
+}
+window.addEventListener('load', () => setTimeout(() => { try{ const c = new URLSearchParams(location.search).get('dm'); if(c){ history.replaceState(null,'',location.pathname); dmJoinScreen(String(c).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)); } else { dmMpRejoinSaved(); } }catch(e){} }, 1500));
+
+/* ============================================================================
+   MUEHLE (Neun-Maenner-Muehle) - Regeln in /muehle-engine.js (gemeinsam mit dem Server).
+   Nur sichtbar/spielbar fuer Admin, solange 'muehle' gesperrt ist. Bot, Freund (Code/Link), Zufallsgegner.
+   ============================================================================ */
+let mu = null, muTimers = [], muIv = null;
+function muT(fn, ms){ const id = setTimeout(fn, ms); muTimers.push(id); return id; }
+function muClearTimers(){ muTimers.forEach(clearTimeout); muTimers = []; clearInterval(muIv); muIv = null; const o = document.getElementById('muOv'); if(o) o.remove(); }
+function muAllowed(){ return !featureLocked('muehle') || adminViewOn(); }
+function muName(){ try{ return (account && account.profile && account.profile.username) || ''; }catch(e){ return ''; } }
+// Koordinaten auf einem 0..6 Raster: Ring r (0 aussen) -> Abstand r
+const MU_XY = (() => { const o = []; for(let ring = 0; ring < 3; ring++){ const a = ring, b = 3, c = 6 - ring; [[a,a],[b,a],[c,a],[c,b],[c,c],[b,c],[a,c],[a,b]].forEach(p => o.push(p)); } return o; })();
+function muStone(color, size){
+  const w = color === 'w';
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%, ${w ? '#fff6dc,#c9a45c' : '#6b4a35,#1c0f07'});border:2px solid ${w ? '#6b4a20' : '#000'};box-shadow:0 3px 5px rgba(0,0,0,.55);box-sizing:border-box"></div>`;
+}
+function muIntro(msg){
+  if(!muAllowed()){ startTicTacToeFlow(); return; }
+  muClearTimers();
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">⚪ ${L('MÜHLE','NINE MEN\'S MORRIS')} ${featureLocked('muehle') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</div>
+      <div class="picker-sub">${L('Klassische Mühle: 9 Steine setzen, dann ziehen. Drei in einer Reihe = Mühle = gegnerischen Stein entfernen. Mit nur 3 Steinen darfst du springen.','Classic mills: place 9 pieces, then move. Three in a row = mill = remove an enemy piece. With only 3 pieces you may fly.')}</div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:18px">${msg ? esc(msg) : ''}</div>
+      <div class="actions-row" style="flex-direction:column;gap:8px">
+        <div style="display:flex;gap:8px"><button class="btn btn-primary" style="flex:1" onclick="muStartBot('easy')">🤖 ${L('Leicht','Easy')}</button><button class="btn btn-primary" style="flex:1" onclick="muStartBot('normal')">🤖 ${L('Normal','Normal')}</button><button class="btn btn-primary" style="flex:1" onclick="muStartBot('hard')">🤖 ${L('Schwer','Hard')}</button></div>
+        <button class="btn" style="border-color:var(--accent-2)" onclick="muMpQueue()">🎲 ${L('Zufallsgegner (online)','Random opponent (online)')}</button>
+        <button class="btn" style="border-color:var(--accent-2)" onclick="muMpCreate()">👥 ${L('Gegen Freund (Code / Link)','Vs friend (code / link)')}</button>
+        <input id="muCodeIn" type="text" maxlength="8" placeholder="CODE" style="text-transform:uppercase;text-align:center;letter-spacing:4px">
+        <button class="btn btn-ghost" onclick="muJoinScreen(document.getElementById('muCodeIn').value.trim().toUpperCase())">${L('Mit Code beitreten','Join with code')}</button>
+        <button class="btn btn-ghost" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
+      </div>
+    </div>`);
+}
+function muStartBot(level){
+  if(!muAllowed()) return;
+  muClearTimers();
+  const st = Mill.initial();
+  mu = { mode:'bot', level, ...st, you:'w', over:false, winner:null, why:null, last:null, plies:0, sel:null, pending:null, busy:false, names:[muName() || L('Du','You'), L('Bot','Bot')], full:true };
+  muRender();
+}
+function muState(){ return { b: mu.b, hand: mu.hand, turn: mu.turn, quiet: mu.quiet || 0 }; }
+function muMyMoves(){ return (mu && !mu.over && mu.turn === mu.you && mu.full) ? Mill.legalMoves(muState(), mu.you) : []; }
+function muCell(p){
+  if(!mu || mu.over || mu.busy || mu.turn !== mu.you || !mu.full || mu.left || mu.lost) return;
+  const all = muMyMoves();
+  // Zweite Phase: Stein zum Entfernen waehlen
+  if(mu.pending){
+    const m = all.find(x => x.from === mu.pending.from && x.to === mu.pending.to && x.rm === p);
+    if(m){ mu.pending = null; mu.sel = null; muCommit(m); } return;
+  }
+  const ph = Mill.phase(muState(), mu.you);
+  if(ph === 'place'){
+    const cands = all.filter(x => x.to === p); if(!cands.length) return;
+    return muChoose(cands);
+  }
+  if(mu.b[p] === mu.you){ mu.sel = (mu.sel === p) ? null : (all.some(x => x.from === p) ? p : null); muRender(); return; }
+  if(mu.sel == null) return;
+  const cands = all.filter(x => x.from === mu.sel && x.to === p); if(!cands.length) return;
+  muChoose(cands);
+}
+function muChoose(cands){
+  if(cands[0].rm == null){ mu.sel = null; muCommit(cands[0]); return; }
+  mu.pending = { from: cands[0].from, to: cands[0].to }; muRender();
+}
+function muCommit(m){
+  if(mu.mode === 'mp'){ mu.busy = true; muRender(); mu.ws.send(JSON.stringify({ action:'muMove', from:m.from, to:m.to, rm:m.rm })); return; }
+  muApplyLocal(m);
+  if(!mu.over){ mu.busy = true; muRender(); muT(muBotTurn, 500); }
+}
+function muApplyLocal(m){
+  const ns = Mill.apply(muState(), m);
+  mu.b = ns.b; mu.hand = ns.hand; mu.turn = ns.turn; mu.quiet = ns.quiet; mu.plies++; mu.last = { from:m.from, to:m.to, rm:m.rm };
+  const res = Mill.result(muState());
+  if(res){ mu.over = true; mu.winner = res; mu.why = 'done'; }
+  else if(mu.quiet >= 50){ mu.over = true; mu.winner = 'draw'; mu.why = 'draw'; }
+  muRender();
+}
+function muBotTurn(){
+  if(!mu || mu.mode !== 'bot' || mu.over) return;
+  const m = Mill.botMove(muState(), Mill.other(mu.you), mu.level);
+  mu.busy = false;
+  if(!m){ mu.over = true; mu.winner = mu.you; mu.why = 'done'; muRender(); return; }
+  muApplyLocal(m);
+}
+function muStatusText(){
+  if(mu.lost) return L('Verbindung verloren – verbinde neu …','Connection lost – reconnecting …');
+  if(mu.left) return mu.leftSec ? L('Dein Gegner hat die Verbindung verloren – ich warte bis zu ' + mu.leftSec + ' Sekunden …','Your opponent disconnected – waiting up to ' + mu.leftSec + ' seconds …') : L('Dein Gegner hat das Spiel verlassen.','Your opponent left the game.');
+  if(!mu.full) return L('Warte auf deinen Freund …','Waiting for your friend …');
+  if(mu.over) return '';
+  if(mu.turn !== mu.you) return mu.mode === 'bot' ? L('Bot denkt …','Bot is thinking …') : L('Gegner ist am Zug …','Opponent to move …');
+  if(mu.pending) return L('Mühle! Tippe einen gegnerischen Stein zum Entfernen.','Mill! Tap an enemy piece to remove it.');
+  const ph = Mill.phase(muState(), mu.you);
+  return ph === 'place' ? L('Du bist dran – setze einen Stein.','Your turn – place a piece.') : ph === 'fly' ? L('Du bist dran – du darfst springen!','Your turn – you may fly!') : L('Du bist dran – ziehe einen Stein.','Your turn – move a piece.');
+}
+function muRender(){
+  if(!mu || !mu.b) return;
+  const all = muMyMoves(), S = 56, PAD = 22, W = S * 6 + PAD * 2;
+  const xy = p => [PAD + MU_XY[p][0] * S, PAD + MU_XY[p][1] * S];
+  let lines = '';
+  for(let ring = 0; ring < 3; ring++){ const a = PAD + ring * S, c = PAD + (6 - ring) * S; lines += `<rect x="${a}" y="${a}" width="${c - a}" height="${c - a}" fill="none" stroke="#c9a45c" stroke-width="3"/>`; }
+  [[3,0,3,2],[3,4,3,6],[0,3,2,3],[4,3,6,3]].forEach(l => { lines += `<line x1="${PAD + l[0] * S}" y1="${PAD + l[1] * S}" x2="${PAD + l[2] * S}" y2="${PAD + l[3] * S}" stroke="#c9a45c" stroke-width="3"/>`; });
+  const targets = new Set(), rms = new Set(), starts = new Set();
+  const ph = mu.you && Mill.phase(muState(), mu.you);
+  if(mu.pending){ all.filter(x => x.from === mu.pending.from && x.to === mu.pending.to).forEach(x => rms.add(x.rm)); }
+  else if(ph === 'place'){ all.forEach(x => targets.add(x.to)); }
+  else if(mu.sel != null){ all.filter(x => x.from === mu.sel).forEach(x => targets.add(x.to)); }
+  else if(!mu.busy && mu.turn === mu.you && mu.full && !mu.over){ all.forEach(x => starts.add(x.from)); }
+  let spots = '';
+  for(let p = 0; p < 24; p++){
+    const [x, y] = xy(p), pc = mu.b[p], r = 21;
+    let ring = '';
+    if(rms.has(p)) ring = 'box-shadow:0 0 0 4px #ff5d8f;'; else if(mu.sel === p) ring = 'box-shadow:0 0 0 4px #ffc446;'; else if(starts.has(p)) ring = 'box-shadow:0 0 0 3px rgba(124,255,140,.7);';
+    else if(mu.last && (mu.last.to === p)) ring = 'box-shadow:0 0 0 3px rgba(255,196,70,.7);';
+    let inner = pc ? muStone(pc, r * 2 - 4) : (targets.has(p) ? '<div style="width:14px;height:14px;border-radius:50%;background:rgba(124,255,140,.9)"></div>' : '<div style="width:10px;height:10px;border-radius:50%;background:#c9a45c"></div>');
+    spots += `<div onclick="muCell(${p})" style="position:absolute;left:${x - r}px;top:${y - r}px;width:${r * 2}px;height:${r * 2}px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;${ring}">${inner}</div>`;
+  }
+  const me = mu.names[0] || L('Du','You'), op = mu.names[1] || L('Gegner','Opponent');
+  const opC = Mill.other(mu.you), myTot = Mill.total(muState(), mu.you), opTot = Mill.total(muState(), opC);
+  let info = '';
+  if(mu.mode === 'mp' && !mu.full && mu.code && !mu.lost){
+    const link = location.origin + '/?mu=' + mu.code;
+    info = `<div class="explanation" style="text-align:center;margin-bottom:8px">${L('Raumcode','Room code')}: <b style="font-size:22px;letter-spacing:4px;color:#ffd45a">${esc(mu.code)}</b><br><span style="font-size:12px;word-break:break-all">${esc(link)}</span><br>
+      <button class="btn btn-ghost" style="margin-top:6px;padding:6px 12px" onclick="navigator.clipboard&&navigator.clipboard.writeText('${esc(link)}')">📋 ${L('Link kopieren','Copy link')}</button></div>`;
+  }
+  const hand = c => mu.hand[c] > 0 ? ` · ${mu.hand[c]} ${L('im Vorrat','in hand')}` : '';
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title" style="margin-bottom:2px">⚪ ${L('MÜHLE','MORRIS')}</div>
+      <div style="text-align:center;font-size:13px;color:var(--text-dim)">${esc(op)} <b>${opTot}</b>${hand(opC)} &nbsp;vs&nbsp; <b>${myTot}</b>${hand(mu.you)} ${esc(me)}${mu.mode === 'mp' ? ` &nbsp;·&nbsp; ⏱ <span id="muClock">–</span>` : ''}</div>
+      ${info}
+      <div style="position:relative;width:${W}px;max-width:100%;height:${W}px;margin:8px auto;background:#3b2a1a;border-radius:12px;border:3px solid rgba(255,255,255,.12);transform-origin:top center">
+        <svg width="${W}" height="${W}" style="position:absolute;left:0;top:0">${lines}</svg>${spots}
+      </div>
+      <div class="explanation" style="text-align:center;margin:6px 0">${muStatusText()}</div>
+      <div class="actions-row">${mu.mode === 'mp' && mu.full && !mu.over ? `<button class="btn btn-ghost" onclick="muResign()">${L('Aufgeben','Resign')}</button>` : ''}<button class="btn btn-ghost" onclick="muQuit()">${L('Beenden','Quit')}</button></div>
+    </div>`);
+  muClockStart();
+  if(mu.over) muFinishUi(); else { const f = document.getElementById('muOv'); if(f) f.remove(); }
+}
+function muClockStart(){
+  clearInterval(muIv);
+  if(!mu || mu.mode !== 'mp' || !mu.deadline || mu.over) return;
+  const tick = () => { const el = document.getElementById('muClock'); if(!el || !mu || !mu.deadline) return; const s = Math.max(0, Math.round((mu.deadline - Date.now()) / 1000)); el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  tick(); muIv = setInterval(tick, 500);
+}
+function muFinishUi(){
+  if(document.getElementById('muOv')) return;
+  const win = mu.winner === mu.you, draw = mu.winner === 'draw';
+  const ov = document.createElement('div'); ov.id = 'muOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99991;background:rgba(5,8,20,.9);display:flex;align-items:center;justify-content:center;padding:14px;';
+  const why = mu.why === 'left' ? (win ? L('Dein Gegner hat das Spiel verlassen.','Your opponent left the game.') : L('Du hast das Spiel verlassen.','You left the game.'))
+    : mu.why === 'timeout' ? (win ? L('Dein Gegner war zu langsam.','Your opponent ran out of time.') : L('Deine Zeit ist abgelaufen.','You ran out of time.'))
+    : mu.why === 'resign' ? (win ? L('Dein Gegner hat aufgegeben.','Your opponent resigned.') : L('Du hast aufgegeben.','You resigned.'))
+    : draw ? L('Unentschieden – zu lange ohne Mühle.','Draw – too long without a mill.')
+    : win ? L('Dein Gegner hat nur noch 2 Steine oder kann nicht mehr ziehen!','Your opponent has 2 pieces left or cannot move!') : L('Du hast nur noch 2 Steine oder kannst nicht mehr ziehen.','You have 2 pieces left or cannot move.');
+  ov.innerHTML = `<div style="background:#101a2b;border:3px solid ${win ? '#7cff8c' : draw ? '#ffc446' : '#ff5d8f'};border-radius:18px;padding:22px;max-width:380px;width:100%;color:#fff;text-align:center;font-family:system-ui,sans-serif">
+    <div style="font-size:34px;font-weight:900;color:${win ? '#7cff8c' : draw ? '#ffc446' : '#ff8aa0'}">${draw ? L('UNENTSCHIEDEN','DRAW') : win ? L('SIEG!','VICTORY!') : L('NIEDERLAGE','DEFEAT')}</div>
+    <div style="margin:10px 0 6px">${why}</div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px"><button class="btn btn-primary" onclick="muAgain()">${L('Nochmal','Again')}</button><button class="btn btn-ghost" onclick="muQuit()">${t('braintest_main_menu')}</button></div></div>`;
+  document.body.appendChild(ov);
+}
+function muAgain(){
+  if(!mu) return;
+  if(mu.mode === 'bot'){ const lv = mu.level; const o = document.getElementById('muOv'); if(o) o.remove(); muStartBot(lv); }
+  else if(mu.ws && !mu.left && !mu.lost) mu.ws.send(JSON.stringify({ action:'muRematch' }));
+}
+function muResign(){ if(mu && mu.mode === 'mp' && mu.ws) mu.ws.send(JSON.stringify({ action:'muResign' })); }
+function muQuit(){
+  muSessClear();
+  if(mu && mu.ws){ mu.leaving = true; try{ mu.ws.send(JSON.stringify({ action:'muLeave' })); mu.ws.close(); }catch(e){} }
+  muClearTimers(); mu = null; muIntroOrMenu();
+}
+function muIntroOrMenu(){ if(muAllowed()) muIntro(); else startTicTacToeFlow(); }
+/* ---------- Online ---------- */
+function muSessSave(code, key){ try{ localStorage.setItem('mu_sess', JSON.stringify({ code, key, t: Date.now() })); }catch(e){} }
+function muSessGet(){ try{ const x = JSON.parse(localStorage.getItem('mu_sess') || 'null'); if(x && x.code && x.key && Date.now() - x.t < 3*3600*1000) return x; }catch(e){} return null; }
+function muSessClear(){ try{ localStorage.removeItem('mu_sess'); }catch(e){} }
+function muMpNew(){ return { mode:'mp', ws:null, ...Mill.initial(), you:'w', over:false, winner:null, why:null, last:null, plies:0, sel:null, pending:null, busy:false, names:['',''], full:false, code:null, left:false, leftSec:0, lost:false, leaving:false, queued:false, deadline:null }; }
+function muMpConnect(onOpen){
+  muClearTimers();
+  if(mu && mu.ws){ mu.leaving = true; try{ mu.ws.close(); }catch(e){} }
+  mu = muMpNew();
+  muMpAttach(onOpen, 0);
+}
+function muMpAttach(onOpen, attempt){
+  const me = mu; let ws;
+  try{ ws = new WebSocket(wsUrl()); }catch(e){ mu = null; muIntroOrMenu(); return; }
+  me.ws = ws;
+  const to = setTimeout(() => { if(ws.readyState !== WebSocket.OPEN){ try{ ws.close(); }catch(e){} } }, 5000);
+  ws.onopen = () => { clearTimeout(to); me.lost = false; onOpen(); };
+  ws.onmessage = ev => { if(mu !== me || me.ws !== ws) return; let m; try{ m = JSON.parse(ev.data); }catch(e){ return; } muMpHandle(m); };
+  ws.onclose = () => {
+    clearTimeout(to);
+    if(mu !== me || me.ws !== ws || me.leaving) return;
+    const sess = muSessGet();
+    if(!sess){ mu = null; muClearTimers(); muIntroOrMenu(); return; }
+    me.lost = true; muRender();
+    if(attempt < 30) muT(() => { if(mu === me && !me.leaving) muMpAttach(() => me.ws.send(JSON.stringify({ action:'muRejoin', code:sess.code, key:sess.key })), attempt + 1); }, 2000);
+    else { muSessClear(); mu = null; muClearTimers(); showInviteToast(L('Verbindung zum Spiel verloren.','Lost connection to the game.')); renderMainMenu(); }
+  };
+}
+function muMpRejoinSaved(){
+  const sess = muSessGet(); if(!sess || (mu && mu.mode === 'mp')) return false;
+  mu = muMpNew(); mu.code = sess.code; mu.lost = true;
+  muMpAttach(() => mu.ws.send(JSON.stringify({ action:'muRejoin', code:sess.code, key:sess.key })), 0);
+  muRender();
+  return true;
+}
+function muMpCreate(){ if(!muAllowed()) return; muMpConnect(() => mu.ws.send(JSON.stringify({ action:'muCreateRoom', name:muName() || 'Player', adminKey: adminKeyStored() }))); }
+function muMpQueue(){
+  if(!muAllowed()) return;
+  muMpConnect(() => mu.ws.send(JSON.stringify({ action:'muQueue', name:muName() || 'Player', adminKey: adminKeyStored() })));
+  mu.queued = true; muQueueScreen(false);
+  muT(() => { if(mu && mu.mode === 'mp' && mu.queued && !mu.full) muQueueScreen(true); }, 25000);
+}
+function muQueueScreen(showBot){
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🎲 ${L('ZUFALLSGEGNER','RANDOM OPPONENT')}</div>
+      <div class="picker-sub">${L('Suche einen Gegner …','Looking for an opponent …')}</div>
+      <div style="text-align:center;font-size:42px;margin:14px 0">⚪</div>
+      ${showBot ? `<div class="explanation" style="text-align:center;margin-top:8px">${L('Noch niemand gefunden.','No one found yet.')}</div><button class="btn btn-primary btn-block" style="margin-top:8px" onclick="muQueueBot()">${L('Stattdessen gegen den Bot spielen','Play against the bot instead')}</button>` : ''}
+      <div class="actions-row" style="margin-top:12px"><button class="btn btn-ghost" onclick="muQueueCancel()">${L('Abbrechen','Cancel')}</button></div>
+    </div>`);
+}
+function muLeaveQueue(){ if(mu && mu.ws){ mu.leaving = true; try{ mu.ws.send(JSON.stringify({ action:'muQueueCancel' })); mu.ws.close(); }catch(e){} } mu = null; muClearTimers(); }
+function muQueueCancel(){ muLeaveQueue(); muIntroOrMenu(); }
+function muQueueBot(){ muLeaveQueue(); muStartBot('normal'); }
+function muJoinScreen(code, err){
+  muClearTimers();
+  if(!code){ muIntro(L('Bitte Code eingeben.','Please enter a code.')); return; }
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">⚪ ${L('MÜHLE','MORRIS')}</div>
+      <div class="picker-sub">${L('Du wurdest zu einer Partie eingeladen.','You have been invited to a game.')} ${L('Code','Code')}: <b style="letter-spacing:3px;color:#ffd45a">${esc(code)}</b></div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:20px">${err ? esc(err) : ''}</div>
+      <input id="muJoinName" type="text" maxlength="20" placeholder="${L('Dein Name','Your name')}" value="${esc(muName())}" style="text-align:center;margin-top:6px">
+      <button class="btn btn-primary btn-block" style="margin-top:12px" onclick="muMpJoin('${esc(code)}', document.getElementById('muJoinName').value)">${L('Beitreten','Join')}</button>
+      <div class="actions-row" style="margin-top:12px"><button class="btn btn-ghost" onclick="renderMainMenu()">${L('Abbrechen','Cancel')}</button></div>
+    </div>`);
+}
+function muMpJoin(code, name){
+  const nm = String(name || '').trim().slice(0, 20) || L('Gast','Guest');
+  muMpConnect(() => mu.ws.send(JSON.stringify({ action:'muJoinRoom', code:String(code).toUpperCase(), name:nm })));
+}
+function muMpHandle(m){
+  if(!mu || mu.mode !== 'mp') return;
+  if(m.type === 'muError'){
+    const c = mu.code; mu.leaving = true; try{ mu.ws.close(); }catch(e){}
+    muClearTimers(); mu = null;
+    if(m.gone){ muSessClear(); showInviteToast(L('Das Spiel gibt es nicht mehr.','That game no longer exists.')); renderMainMenu(); }
+    else if(c){ muJoinScreen(c, m.message); }
+    else { showInviteToast(m.message || 'Error'); muIntroOrMenu(); }
+    return;
+  }
+  if(m.type === 'muQueued'){ mu.queued = true; return; }
+  if(m.type === 'muJoined'){ mu.code = m.roomCode; mu.queued = false; if(m.key) muSessSave(m.roomCode, m.key); return; }
+  if(m.type === 'muOpponentLeft'){ mu.left = true; mu.leftSec = m.graceSec || 0; muRender(); return; }
+  if(m.type === 'muOpponentBack'){ mu.left = false; muRender(); return; }
+  if(m.type === 'muIllegal'){ mu.busy = false; mu.sel = null; mu.pending = null; muRender(); return; }
+  if(m.type === 'muState'){
+    mu.code = m.roomCode; mu.b = m.b; mu.hand = m.hand; mu.turn = m.turn; mu.you = m.you; mu.over = m.over; mu.winner = m.winner; mu.why = m.why;
+    mu.last = m.last; mu.plies = m.plies; mu.names = m.names; mu.full = m.full; mu.left = false; mu.lost = false; mu.queued = false; mu.busy = false;
+    mu.deadline = m.remaining != null ? Date.now() + m.remaining : null;
+    mu.sel = null; mu.pending = null;
+    const sess = muSessGet(); if(sess) muSessSave(sess.code, sess.key);
+    muRender(); return;
+  }
+}
+window.addEventListener('load', () => setTimeout(() => { try{ const c = new URLSearchParams(location.search).get('mu'); if(c){ history.replaceState(null,'',location.pathname); muJoinScreen(String(c).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)); } else { muMpRejoinSaved(); } }catch(e){} }, 1500));
+
 function startFourupsFlow(){
   fuStyle();
   renderApp(`
@@ -9212,6 +10323,11 @@ function startTicTacToeFlow(){
           <h3>${L('Online-Modus','Online mode')}</h3>
           <p>${L('Raum erstellen oder einem Raum beitreten.','Create a room or join one.')}</p>
         </div>
+        ${muAllowed() ? `<div class="mode-card" onclick="muIntro()" style="${featureLocked('muehle') ? 'border-color:var(--warn);' : ''}">
+          <div class="icon">⚪</div>
+          <h3>${L('Mühle','Morris')} ${featureLocked('muehle') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
+          <p>${L('Klassische Mühle – Bot, Freunde, Zufallsgegner.','Classic mills – bot, friends, random opponent.')}</p>
+        </div>` : ''}
       </div>
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -10772,7 +11888,7 @@ function endSoloRound(){
         ${solo.isRepeat ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.repeatKlasseIdx})">${t('braintest_repeat_again')}</button>
         <button class="btn btn-ghost" onclick="renderKlassenOverview(solo.profile)">${t('braintest_to_overview')}</button>` : `
         ${canOfferHaupttest ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true)">${t('braintest_start_main_short')}</button>` : ``}
-        ${needsPriorMainNow ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.startTier-1})">🔁 Haupttest ${klasseName(solo.startTier-1)} wiederholen</button>` : `
+        ${needsPriorMainNow ? `<button class="btn btn-primary" onclick="beginSolo(solo.profile, true, ${solo.startTier-1})">🔁 ${L('Haupttest '+klasseName(solo.startTier-1)+' wiederholen','Repeat main test '+klasseName(solo.startTier-1))}</button>` : `
         <button class="btn ${canOfferHaupttest?'btn-ghost':'btn-primary'}" onclick="beginSolo(solo.profile, ${solo.isHaupttest})">${solo.isHaupttest && passed ? t('braintest_practice_of').replace('{k}', klasseName(solo.profile.klasse||0).toUpperCase()) : t('braintest_another_round')}</button>`}`}
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('braintest_main_menu')}</button>
       </div>

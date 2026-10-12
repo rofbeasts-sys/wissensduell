@@ -2799,6 +2799,232 @@ function fuHandleDisconnect(ws) {
   if (other) send(other.ws, { type: "fuOpponentLeft" });
   if (room.players.every(p => !p.connected)) fuRooms.delete(code);
 }
+/* ---- Brain Royale (Raumcode-Duell + Zufallsgegner, Fragen je Spieler in eigener Sprache) ---- */
+const BR = require("./lib/brainRoyale");
+const BR_QUESTIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/brQuestions.json"), "utf8"));
+const BR_GRACE_MS = 60000; // so lange wird der Platz nach einem Verbindungsabbruch freigehalten (Neuladen/Handy-Sperre)
+const brRooms = new Map();
+let brQueue = []; // wartende Spieler { ws, name, lang }
+function brAllowed(adminKey, ip) { return !featureLocked("brain_royale") || adminOk(adminKey, ip); }
+function brMakeCode() { let c; do { c = randomRoomCode(); } while (brRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
+function brLang(v) { return v === "de" ? "de" : "en"; }
+// Frage in BEIDEN Sprachen mit gleicher Antwortreihenfolge - jeder sieht sie in seiner Sprache
+function brMakeQuestion() {
+  if (Math.random() < 0.5 && BR_QUESTIONS.length) {
+    const q = BR_QUESTIONS[crypto.randomInt(BR_QUESTIONS.length)];
+    const order = [0, 1, 2, 3].sort(() => Math.random() - 0.5);
+    const pick = a => order.map(i => a[i]);
+    return { kind: { de: "QUIZ", en: "QUIZ" }, text: { de: q.de.q, en: q.en.q }, opts: { de: pick(q.de.a), en: pick(q.en.a) }, correct: order.indexOf(0) };
+  }
+  const a = 3 + crypto.randomInt(17), b = 2 + crypto.randomInt(9), t = crypto.randomInt(3);
+  const real = t === 0 ? a + b * 3 : t === 1 ? a * b : a + 20 - b;
+  const text = t === 0 ? a + " + " + (b * 3) + " = ?" : t === 1 ? a + " × " + b + " = ?" : a + " + " + (20 - b) + " = ?";
+  const set = new Set([real]);
+  while (set.size < 4) { const d = (crypto.randomInt(7) - 3) || 4; set.add(Math.max(0, real + d)); }
+  const opts = [...set].sort(() => Math.random() - 0.5).map(String);
+  return { kind: { de: "KOPFRECHNEN", en: "MATH" }, text: { de: text, en: text }, opts: { de: opts, en: opts }, correct: opts.indexOf(String(real)) };
+}
+const BR_MIN_MOVES_FOR_CREDIT = 8;
+function brCredit(room) {
+  try {
+    const st = room.st;
+    room.credited = true;
+    if (!st.winner || st.winner === "draw" || room.players.length !== 2 || st.moves < BR_MIN_MOVES_FOR_CREDIT) return;
+    const win = room.players.find(p => p.side === st.winner), lose = room.players.find(p => p !== win);
+    if (!win || !lose || !win.username || !lose.username || win.username.toLowerCase() === lose.username.toLowerCase()) return;
+    const wu = findUserByName(win.username); if (!wu || isRestricted(wu)) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const pk = "br|" + day + "|" + win.username.toLowerCase() + "|" + lose.username.toLowerCase();
+    if ((dmPairDay.get(pk) || 0) >= DM_PAIR_CAP_PER_DAY) return;
+    dmPairDay.set(pk, (dmPairDay.get(pk) || 0) + 1);
+    wu.stats.dameWins = (wu.stats.dameWins || 0) + 1; // gemeinsamer Stein-Zaehler (Dame + Brain Royale)
+    win.credited = true;
+    saveUsers();
+  } catch (e) { console.error("brCredit", e); }
+}
+function brBroadcast(room) {
+  if (room.st.over && !room.credited) brCredit(room);
+  const n = side => { const p = room.players.find(x => x.side === side); return p ? p.name : ""; };
+  room.players.forEach(p => {
+    if (!p.connected) return;
+    const uu = p.username ? findUserByName(p.username) : null, w = uu ? (uu.stats.dameWins || 0) : null;
+    send(p.ws, { type: "brState", roomCode: room.code, ...BR.view(room.st, p.side, [n(p.side), n(p.side === "a" ? "b" : "a")], room.players.length === 2, p.lang), credited: p.credited ? { wins: w } : null, dameWins: w });
+  });
+}
+function brArmDuel(room) {
+  clearTimeout(room.timer);
+  const d = room.st.duel; if (!d || d.done) return;
+  room.timer = setTimeout(() => { if (room.st.duel === d && BR.finishDuel(room.st, null)) brAfterFinish(room); }, BR.DUEL_MS + 300);
+}
+function brAfterFinish(room) {
+  clearTimeout(room.timer);
+  brBroadcast(room);
+  room.timer = setTimeout(() => { BR.resolveDuel(room.st); brBroadcast(room); }, 1600);
+}
+function brQueueRemove(ws) { brQueue = brQueue.filter(q => q.ws !== ws); }
+function brNewRoom(p1, p2) {
+  const code = brMakeCode();
+  const sides = Math.random() < 0.5 ? ["a", "b"] : ["b", "a"];
+  const mk = (p, side) => ({ ws: p.ws, name: p.name, username: p.username || null, lang: p.lang, side, connected: true, key: crypto.randomBytes(8).toString("hex") });
+  const room = { code, players: p2 ? [mk(p1, sides[0]), mk(p2, sides[1])] : [mk(p1, "a")], st: BR.create(), timer: null };
+  brRooms.set(code, room);
+  room.players.forEach(pl => { pl.ws.brRoomCode = code; send(pl.ws, { type: "brJoined", roomCode: code, key: pl.key }); });
+  brBroadcast(room);
+  return room;
+}
+function brHandleDisconnect(ws, leaveForGood) {
+  brQueueRemove(ws);
+  const code = ws.brRoomCode; if (!code) return;
+  const room = brRooms.get(code); ws.brRoomCode = null; if (!room) return;
+  const pl = room.players.find(p => p.ws === ws); if (!pl) return;
+  pl.connected = false;
+  const other = room.players.find(p => p !== pl && p.connected);
+  if (other) send(other.ws, { type: "brOpponentLeft", graceSec: leaveForGood ? 0 : Math.round(BR_GRACE_MS / 1000) });
+  clearTimeout(pl.graceTimer);
+  if (room.players.every(p => !p.connected)) {
+    if (leaveForGood) { clearTimeout(room.timer); brRooms.delete(code); return; }
+    pl.graceTimer = setTimeout(() => { if (room.players.every(p => !p.connected)) { clearTimeout(room.timer); brRooms.delete(code); } }, BR_GRACE_MS);
+    return;
+  }
+  if (leaveForGood) { forfeit(room, pl); return; }
+  pl.graceTimer = setTimeout(() => { if (!pl.connected) forfeit(room, pl); }, BR_GRACE_MS);
+}
+// Spieler weg: wer noch da ist, gewinnt
+function forfeit(room, gone) {
+  if (!room.st.over && room.players.length === 2) { room.st.over = true; room.st.winner = gone.side === "a" ? "b" : "a"; room.st.why = "left"; room.st.duel = null; clearTimeout(room.timer); brBroadcast(room); }
+}
+/* ---- DAME (Deutsche Dame, serverautoritativ): Raumcode-Duell + Zufallsgegner. Meilensteine zaehlen NUR Siege gegen echte Spieler. ---- */
+const Dame = require("./public/dame-engine.js");
+const DM_GRACE_MS = 60000, DM_MOVE_MS = 120000, DM_QUIET_LIMIT = 40, DM_MIN_PLIES_FOR_CREDIT = 12, DM_PAIR_CAP_PER_DAY = 3;
+const DAME_SKINS = [{ id: "wood", wins: 0 }, { id: "neon", wins: 3 }, { id: "glass", wins: 8 }, { id: "flat", wins: 15 }, { id: "metal", wins: 30 }, { id: "pulse", wins: 50 }];
+const dmRooms = new Map();
+let dmQueue = [];
+const dmPairDay = new Map(); // "tag|a|b" -> gezaehlte Siege
+function dameAllowed(adminKey, ip) { return !featureLocked("dame") || adminOk(adminKey, ip); }
+function dmMakeCode() { let c; do { c = randomRoomCode(); } while (dmRooms.has(c) || brRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
+function dmFreshState() { return { board: Dame.initialBoard(), turn: "w", plies: 0, quiet: 0, over: false, winner: null, why: null, last: null }; }
+function dmView(room, p) {
+  const opp = room.players.find(x => x !== p);
+  const wins = p.username && findUserByName(p.username) ? (findUserByName(p.username).stats.dameWins || 0) : null;
+  return { type: "dmState", roomCode: room.code, you: p.color, board: room.st.board, turn: room.st.turn, over: room.st.over, winner: room.st.winner, why: room.st.why,
+    plies: room.st.plies, last: room.st.last, names: [p.name, opp ? opp.name : ""], full: room.players.length === 2, remaining: room.deadline ? Math.max(0, room.deadline - Date.now()) : null,
+    credited: p.credited ? { wins } : null, dameWins: wins };
+}
+function dmBroadcast(room) { room.players.forEach(p => { if (p.connected) send(p.ws, dmView(room, p)); }); }
+function dmArm(room) {
+  clearTimeout(room.timer); room.deadline = null;
+  if (room.st.over || room.players.length < 2) return;
+  room.deadline = Date.now() + DM_MOVE_MS;
+  const turnAt = room.st.plies;
+  room.timer = setTimeout(() => { if (!room.st.over && room.st.plies === turnAt) dmEnd(room, Dame.other(room.st.turn), "timeout"); }, DM_MOVE_MS + 200);
+}
+function dmEnd(room, winnerColor, why) {
+  if (room.st.over) return;
+  room.st.over = true; room.st.winner = winnerColor; room.st.why = why; clearTimeout(room.timer); room.deadline = null;
+  dmCredit(room);
+  dmBroadcast(room);
+}
+// Meilenstein: nur Sieg gegen einen ECHTEN Mitspieler (zwei verschiedene angemeldete Konten), nie gegen den Bot
+function dmCredit(room) {
+  try {
+    const st = room.st;
+    if (!st.winner || st.winner === "draw" || room.players.length !== 2 || st.plies < DM_MIN_PLIES_FOR_CREDIT) return;
+    const win = room.players.find(p => p.color === st.winner), lose = room.players.find(p => p !== win);
+    if (!win.username || !lose.username || win.username.toLowerCase() === lose.username.toLowerCase()) return;
+    const wu = findUserByName(win.username); if (!wu || isRestricted(wu)) return;
+    const day = new Date().toISOString().slice(0, 10);
+    const pk = day + "|" + win.username.toLowerCase() + "|" + lose.username.toLowerCase();
+    if ((dmPairDay.get(pk) || 0) >= DM_PAIR_CAP_PER_DAY) return;
+    dmPairDay.set(pk, (dmPairDay.get(pk) || 0) + 1);
+    wu.stats.dameWins = (wu.stats.dameWins || 0) + 1;
+    win.credited = true;
+    saveUsers();
+  } catch (e) { console.error("dmCredit", e); }
+}
+function dmQueueRemove(ws) { dmQueue = dmQueue.filter(q => q.ws !== ws); }
+function dmNewRoom(p1, p2) {
+  const code = dmMakeCode();
+  const colors = Math.random() < 0.5 ? ["w", "b"] : ["b", "w"];
+  const mk = (p, color) => ({ ws: p.ws, name: p.name, username: p.username, color, connected: true, key: crypto.randomBytes(8).toString("hex") });
+  const room = { code, players: p2 ? [mk(p1, colors[0]), mk(p2, colors[1])] : [mk(p1, "w")], st: dmFreshState(), timer: null, deadline: null };
+  dmRooms.set(code, room);
+  room.players.forEach(pl => { pl.ws.dmRoomCode = code; send(pl.ws, { type: "dmJoined", roomCode: code, key: pl.key }); });
+  dmArm(room);
+  dmBroadcast(room);
+  return room;
+}
+function dmHandleDisconnect(ws, leaveForGood) {
+  dmQueueRemove(ws);
+  const code = ws.dmRoomCode; if (!code) return;
+  const room = dmRooms.get(code); ws.dmRoomCode = null; if (!room) return;
+  const pl = room.players.find(p => p.ws === ws); if (!pl) return;
+  pl.connected = false;
+  const other = room.players.find(p => p !== pl && p.connected);
+  if (other) send(other.ws, { type: "dmOpponentLeft", graceSec: leaveForGood ? 0 : Math.round(DM_GRACE_MS / 1000) });
+  clearTimeout(pl.graceTimer);
+  if (room.players.every(p => !p.connected)) {
+    if (leaveForGood) { clearTimeout(room.timer); dmRooms.delete(code); return; }
+    pl.graceTimer = setTimeout(() => { if (room.players.every(p => !p.connected)) { clearTimeout(room.timer); dmRooms.delete(code); } }, DM_GRACE_MS);
+    return;
+  }
+  if (leaveForGood) { if (!room.st.over && room.players.length === 2) dmEnd(room, other ? other.color : null, "left"); return; }
+  pl.graceTimer = setTimeout(() => { if (!pl.connected && !room.st.over && room.players.length === 2) dmEnd(room, other ? other.color : null, "left"); }, DM_GRACE_MS);
+}
+/* ---- MUEHLE (Neun-Maenner-Muehle, serverautoritativ): Raumcode-Duell + Zufallsgegner. Nur Admin, solange "muehle" gesperrt ist. ---- */
+const Mill = require("./public/muehle-engine.js");
+const MU_GRACE_MS = 60000, MU_MOVE_MS = 120000, MU_QUIET_LIMIT = 50;
+const muRooms = new Map();
+let muQueue = [];
+function muehleAllowed(adminKey, ip) { return !featureLocked("muehle") || adminOk(adminKey, ip); }
+function muMakeCode() { let c; do { c = randomRoomCode(); } while (muRooms.has(c) || brRooms.has(c) || dmRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
+function muFreshState() { return { ...Mill.initial(), plies: 0, over: false, winner: null, why: null, last: null }; }
+function muView(room, p) {
+  const opp = room.players.find(x => x !== p), st = room.st;
+  return { type: "muState", roomCode: room.code, you: p.color, b: st.b, hand: st.hand, turn: st.turn, over: st.over, winner: st.winner, why: st.why,
+    plies: st.plies, last: st.last, names: [p.name, opp ? opp.name : ""], full: room.players.length === 2, remaining: room.deadline ? Math.max(0, room.deadline - Date.now()) : null };
+}
+function muBroadcast(room) { room.players.forEach(p => { if (p.connected) send(p.ws, muView(room, p)); }); }
+function muArm(room) {
+  clearTimeout(room.timer); room.deadline = null;
+  if (room.st.over || room.players.length < 2) return;
+  room.deadline = Date.now() + MU_MOVE_MS;
+  const turnAt = room.st.plies;
+  room.timer = setTimeout(() => { if (!room.st.over && room.st.plies === turnAt) muEnd(room, Mill.other(room.st.turn), "timeout"); }, MU_MOVE_MS + 200);
+}
+function muEnd(room, winnerColor, why) {
+  if (room.st.over) return;
+  room.st.over = true; room.st.winner = winnerColor; room.st.why = why; clearTimeout(room.timer); room.deadline = null;
+  muBroadcast(room);
+}
+function muQueueRemove(ws) { muQueue = muQueue.filter(q => q.ws !== ws); }
+function muNewRoom(p1, p2) {
+  const code = muMakeCode();
+  const colors = Math.random() < 0.5 ? ["w", "b"] : ["b", "w"];
+  const mk = (p, color) => ({ ws: p.ws, name: p.name, color, connected: true, key: crypto.randomBytes(8).toString("hex") });
+  const room = { code, players: p2 ? [mk(p1, colors[0]), mk(p2, colors[1])] : [mk(p1, "w")], st: muFreshState(), timer: null, deadline: null };
+  muRooms.set(code, room);
+  room.players.forEach(pl => { pl.ws.muRoomCode = code; send(pl.ws, { type: "muJoined", roomCode: code, key: pl.key }); });
+  muArm(room);
+  muBroadcast(room);
+  return room;
+}
+function muHandleDisconnect(ws, leaveForGood) {
+  muQueueRemove(ws);
+  const code = ws.muRoomCode; if (!code) return;
+  const room = muRooms.get(code); ws.muRoomCode = null; if (!room) return;
+  const pl = room.players.find(p => p.ws === ws); if (!pl) return;
+  pl.connected = false;
+  const other = room.players.find(p => p !== pl && p.connected);
+  if (other) send(other.ws, { type: "muOpponentLeft", graceSec: leaveForGood ? 0 : Math.round(MU_GRACE_MS / 1000) });
+  clearTimeout(pl.graceTimer);
+  if (room.players.every(p => !p.connected)) {
+    if (leaveForGood) { clearTimeout(room.timer); muRooms.delete(code); return; }
+    pl.graceTimer = setTimeout(() => { if (room.players.every(p => !p.connected)) { clearTimeout(room.timer); muRooms.delete(code); } }, MU_GRACE_MS);
+    return;
+  }
+  if (leaveForGood) { if (!room.st.over && room.players.length === 2) muEnd(room, other ? other.color : null, "left"); return; }
+  pl.graceTimer = setTimeout(() => { if (!pl.connected && !room.st.over && room.players.length === 2) muEnd(room, other ? other.color : null, "left"); }, MU_GRACE_MS);
+}
 function fuFreshBoard() { return Array.from({ length: FOURUPS_ROWS }, () => Array(FOURUPS_COLS).fill(0)); }
 function startPartyFourupsRound(room, def) {
   const teamIds = Array.from(room.teams.keys());
@@ -2987,6 +3213,8 @@ const ERR_TEXT = {
   invalidInput: { de: "Ungültige Eingabe.", en: "Invalid input." },
   usernameLength: { de: "Benutzername muss 3-20 Zeichen haben (Buchstaben, Zahlen, _).", en: "Username must be 3-20 characters (letters, numbers, _)." },
   passwordLength: { de: "Passwort muss mindestens 6 Zeichen haben.", en: "Password must be at least 6 characters." },
+  loginNameTaken: { de: "Dieser Anmeldename ist bereits vergeben.", en: "This login name is already taken." },
+  loginNameSame: { de: "Der Anmeldename muss sich vom Spielnamen unterscheiden.", en: "The login name must be different from your game name." },
   usernameTaken: { de: "Dieser Benutzername ist bereits vergeben.", en: "This username is already taken." },
   tooManyAccounts: { de: "Von diesem Anschluss wurden zu viele Konten angelegt. Bitte in ", en: "Too many accounts have been created from this connection. Please try again in " },
   loginFailed: { de: "Benutzername oder Passwort ist falsch.", en: "Username or password is incorrect." },
@@ -3072,6 +3300,13 @@ function hashPassword(password, salt) {
 }
 const BUSY = { ok: false, error: "Der Server ist gerade ausgelastet. Bitte gleich nochmal versuchen." };
 const DUMMY_SALT = "0".repeat(32);
+// Anmeldename (privat) - getrennt vom Spielnamen (oeffentlich, user.username). Aeltere Konten
+// ohne eigenen Anmeldenamen melden sich weiter mit dem Spielnamen an, bis sie einen setzen.
+function findUserByLogin(name) {
+  const norm = (typeof name === "string" ? name : "").trim().toLowerCase();
+  if (!norm) return undefined;
+  return users.find(u => (u.loginName || u.username).toLowerCase() === norm);
+}
 function findUserByName(username) {
   const norm = (typeof username === "string" ? username : "").trim().toLowerCase();
   return users.find(u => u.username.toLowerCase() === norm);
@@ -3120,10 +3355,40 @@ function freshModeStats() {
 function publicProfile(user) {
   // Interne Anticheat-Daten gehoeren nicht zum Client
 
-  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
 }
 
-async function registerUser(username, password, ip, lang) {
+function checkLoginName(loginName, gameName, selfUser, lang) {
+  if (typeof loginName !== "string") return errObj("invalidInput", lang);
+  const ln = loginName.trim();
+  if (ln.length < 3 || ln.length > 20 || !/^[a-zA-Z0-9_äöüÄÖÜß]+$/.test(ln)) return errObj("usernameLength", lang);
+  if (typeof gameName === "string" && ln.toLowerCase() === gameName.trim().toLowerCase()) return errObj("loginNameSame", lang);
+  const other = findUserByLogin(ln);
+  if (other && other !== selfUser) return errObj("loginNameTaken", lang);
+  return null;
+}
+// Bestehendes Konto: privaten Anmeldenamen setzen/aendern (Passwort noetig). Danach klappt die Anmeldung
+// NUR noch damit - der Spielname bleibt oeffentlich und ist kein Login mehr.
+async function setLoginName(token, password, loginName, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const u = findUserByToken(token);
+  if (!u) return errObj("notLoggedIn", lang);
+  if (typeof password !== "string" || password.length > 200) return errObj("loginFailed", lang);
+  const kUser = "ln|" + u.username.toLowerCase();
+  if (rlWait(kUser)) return errObj("tooManyAttempts", lang, "", "");
+  const lnErr = checkLoginName(loginName, u.username, u, lang);
+  if (lnErr) return lnErr;
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
+  hashInFlight++;
+  let h; try { h = await hashPassword(password, u.salt); } finally { hashInFlight--; }
+  const a = Buffer.from(h, "hex"), b = Buffer.from(u.passwordHash, "hex");
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) { rlHit(kUser, 5, 10 * 60 * 1000, 10 * 60 * 1000); return errObj("loginFailed", lang); }
+  if (findUserByLogin(loginName) && findUserByLogin(loginName) !== u) return errObj("loginNameTaken", lang);
+  u.loginName = loginName.trim();
+  await saveUsers();
+  return { ok: true, hasLoginName: true };
+}
+async function registerUser(username, password, ip, lang, loginName) {
   if (typeof username !== "string" || typeof password !== "string") {
     return errObj("invalidInput", lang);
   }
@@ -3138,6 +3403,11 @@ async function registerUser(username, password, ip, lang) {
   if (findUserByName(username)) {
     return errObj("usernameTaken", lang);
   }
+  if (loginName !== undefined && loginName !== null && loginName !== "") {
+    const lnErr = checkLoginName(loginName, username, null, lang);
+    if (lnErr) return lnErr;
+    loginName = loginName.trim();
+  } else loginName = null; // Abwaertskompatibel (alte Clients/Tests): Spielname = Anmeldename
   const regWait = rlWait("r|" + ip);
   if (regWait) return { ...errObj("tooManyAccounts", lang, waitText(regWait, lang) + (lang === "en" ? "." : " erneut versuchen.")), retryAfterSec: regWait };
   if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
@@ -3147,9 +3417,11 @@ async function registerUser(username, password, ip, lang) {
   let passwordHash;
   try { passwordHash = await hashPassword(password, salt); } finally { hashInFlight--; }
   if (findUserByName(username)) return errObj("usernameTaken", lang); // waehrend des Hashens vergeben
+  if (loginName && findUserByLogin(loginName)) return errObj("loginNameTaken", lang);
   const token = crypto.randomBytes(24).toString("hex");
   const user = {
     username, salt, passwordHash,
+    ...(loginName ? { loginName } : {}),
     avatar: null,
     stats: defaultStats(),
     tokens: [{ token, createdAt: Date.now() }],
@@ -3176,7 +3448,7 @@ async function loginUser(username, password, ip, lang) {
   const wait = Math.max(rlWait(kPair), rlWait(kIp), rlWait(kUser));
   if (wait) return { ...errObj("tooManyAttempts", lang, waitText(wait, lang) + (lang === "en" ? "." : " erneut versuchen.")), retryAfterSec: wait };
   if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
-  const user = findUserByName(username);
+  const user = findUserByLogin(username);
   const genericError = errObj("loginFailed", lang);
   const failed = () => {
     rlHit(kPair, AUTH_MAX_FAILS_PAIR, AUTH_WINDOW_MS, AUTH_LOCK_MS);
@@ -3239,11 +3511,26 @@ async function saveUserStats(token, stats, lang) {
   // beliebig Muenzen schenken.
   const oldCoins = user.stats.coins || 0, oldPrestige = user.stats.braintestPrestige || 0;
   const oldAnswers = (user.stats.correctAnswers || 0) + (user.stats.wrongAnswers || 0), oldWL = (user.stats.wins || 0) + (user.stats.losses || 0);
+  const oldKlasse = user.stats.klasse || 0, oldTtt = user.stats.tttRank || 0;
+  const oldCorrect = user.stats.correctAnswers || 0, oldWrong = user.stats.wrongAnswers || 0, oldWins = user.stats.wins || 0, oldLosses = user.stats.losses || 0, oldRounds = user.stats.roundsPlayed || 0;
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
       user.stats[k] = Math.max(0, Math.round(stats[k]));
     }
   });
+  // Schutz vor Konsolen-/API-Schummeln: Nach dem ersten Abgleich (lokale Staende duerfen gross sein)
+  // darf ein Speichern Klasse und Guertel nur um EINE Stufe erhoehen und Zaehler nur
+  // glaubwuerdig wachsen lassen. Alles darueber wird gekappt und vermerkt.
+  if (user.stats.syncedOnce) {
+    if ((user.stats.klasse || 0) > oldKlasse + 1) { flagCheat(user, "Klassensprung " + oldKlasse + "->" + user.stats.klasse); user.stats.klasse = oldKlasse + 1; }
+    if ((user.stats.tttRank || 0) > oldTtt + 1) { flagCheat(user, "Guertelsprung " + oldTtt + "->" + user.stats.tttRank); user.stats.tttRank = oldTtt + 1; }
+    const capRise = (k, old, max) => { if ((user.stats[k] || 0) - old > max) { flagCheat(user, k + " +" + ((user.stats[k] || 0) - old)); user.stats[k] = old + max; } };
+    capRise("correctAnswers", oldCorrect, 600); capRise("wrongAnswers", oldWrong, 600);
+    capRise("wins", oldWins, 150); capRise("losses", oldLosses, 150); capRise("roundsPlayed", oldRounds, 200);
+  }
+  user.stats.syncedOnce = true;
+  user.stats.klasse = Math.min(9, user.stats.klasse || 0); user.stats.tttRank = Math.min(6, user.stats.tttRank || 0);
+  ["score", "bestScore", "roundsPlayed", "wins", "losses", "correctAnswers", "wrongAnswers"].forEach(k => { if ((user.stats[k] || 0) > 10000000) user.stats[k] = 10000000; });
   // Plausibilitaet: ein Speichern, das hunderte Antworten/Siege auf einmal
   // addiert (bei einem Konto, das schon Daten hat), ist verdaechtig. Nur
   // vermerken, nicht sperren (der erste Abgleich lokaler Stände darf gross sein).
@@ -3263,6 +3550,10 @@ async function saveUserStats(token, stats, lang) {
       if (rise > prestigeBonus + free) flagCheat(user, "Muenzen +" + rise + " gekappt");
       user.stats.coins = oldCoins + Math.min(rise, prestigeBonus + free);
     }
+  }
+  if (!isRestricted(user)) {
+    if ((user.stats.klasse || 0) > oldKlasse && (user.stats.klasse || 0) - oldKlasse === 1) feedPush(user, "klasse", (user.stats.klasse || 0) + 1);
+    if ((user.stats.tttRank || 0) > oldTtt && (user.stats.tttRank || 0) - oldTtt === 1) feedPush(user, "belt", user.stats.tttRank || 0);
   }
   // Profilbild: einfacher String (Emoji), aber kein Zahlenwert - eigene,
   // lockere Pruefung (nicht leer, vernuenftige Laenge fuer ein einzelnes
@@ -3486,6 +3777,14 @@ async function friendsAccept(token, fromUsername, lang) {
   notifyAccount(from.username, { type: "friendRequestAccepted", by: friendSummary(me) });
   return { ok: true, friends: (await friendsList(token, lang)).friends };
 }
+async function setFeedOptIn(token, enabled, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const me = findUserByToken(token);
+  if (!me) return errObj("notLoggedIn", lang);
+  me.feedOptIn = enabled === true;
+  await saveUsers();
+  return { ok: true, feedOptIn: me.feedOptIn };
+}
 async function setStreamerMode(token, enabled, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
@@ -3595,7 +3894,7 @@ async function forgotRequest(username, key, note, ip, lang) {
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const generic = { ok: true };
   if (rlHit("fr|" + ip, 6, 60 * 60 * 1000, 60 * 60 * 1000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
-  const u = findUserByName(typeof username === "string" ? username : "");
+  const u = findUserByLogin(typeof username === "string" ? username : "");
   if (!u) return generic;
   if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
   hashInFlight++;
@@ -3612,7 +3911,7 @@ async function forgotComplete(username, key, newPassword, ip, lang) {
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const kIp = "fc|" + ip;
   if (rlWait(kIp)) return errObj("tooManyAttempts", lang, "", "");
-  const u = findUserByName(typeof username === "string" ? username : "");
+  const u = findUserByLogin(typeof username === "string" ? username : "");
   const bad = () => { rlHit(kIp, 8, 60 * 60 * 1000, 60 * 60 * 1000); return { ok: false, error: lang === "en" ? "Not possible. Check name and key, and wait for the admin's approval." : "Nicht möglich. Name und Schlüssel prüfen und auf die Freigabe des Admins warten." }; };
   if (!u || !u.resetRequest || u.resetRequest.status !== "approved") return bad();
   if (typeof newPassword !== "string" || newPassword.length < 6 || newPassword.length > 200) return errObj("passwordLength", lang);
@@ -4242,6 +4541,7 @@ async function chessApi(action, payload, lang) {
     c.keys -= chest.cost;
     const roll = chessRollChest(payload.type);
     roll.results.forEach(r => { c.granted[r.pid] = (c.granted[r.pid] || 0) + Math.pow(10, r.rankIdx); });
+    if (!isRestricted(user) && roll.results.some(r => r.rankIdx >= 3)) feedPush(user, "legend", 0);
     await saveUsers();
     return { ok: true, ...roll, ...chessPublic(user) };
   }
@@ -4571,6 +4871,7 @@ function presenceTouch(sid, logged) {
   if (typeof sid !== "string" || sid.length < 8 || sid.length > 40) return;
   if (presence.size > 20000 && !presence.has(sid)) return;
   presence.set(sid, { t: Date.now(), logged: !!logged });
+  seenTodayAdd(sid);
 }
 function presenceCounts() {
   const now = Date.now(); let total = 0, logged = 0;
@@ -4579,8 +4880,28 @@ function presenceCounts() {
 }
 let presencePeakDay = "", presencePeakVal = 0;
 function presencePeak(n) { const d = new Date().toISOString().slice(0, 10); if (d !== presencePeakDay) { presencePeakDay = d; presencePeakVal = 0; } if (n > presencePeakVal) presencePeakVal = n; return presencePeakVal; }
+// Oeffentlicher Live-Bereich: echte Zahlen + echter Aktivitaets-Feed (nur echte Ereignisse am Server).
+// Namen erscheinen nur, wenn der Spieler es in den Einstellungen erlaubt hat (feedOptIn) - sonst "ein Spieler".
+const PUBLIC_ONLINE_MIN = Math.max(1, parseInt(process.env.PUBLIC_ONLINE_MIN || "3", 10) || 3);
+const feed = []; // { t, kind, name|null, n }
+const seenToday = { day: "", set: new Set() };
+function seenTodayAdd(sid) {
+  const d = new Date().toISOString().slice(0, 10);
+  if (seenToday.day !== d) { seenToday.day = d; seenToday.set = new Set(); }
+  if (seenToday.set.size < 50000) seenToday.set.add(sid);
+}
+function feedPush(user, kind, n) {
+  feed.unshift({ t: Date.now(), kind, name: user && user.feedOptIn ? user.username : null, n: n | 0 });
+  if (feed.length > 30) feed.length = 30;
+}
+function publicStats() {
+  const c = presenceCounts();
+  const d = new Date().toISOString().slice(0, 10);
+  const cutoff = Date.now() - 24 * 3600 * 1000;
+  return { ok: true, online: c.online >= PUBLIC_ONLINE_MIN ? c.online : null, today: seenToday.day === d ? seenToday.set.size : 0, feed: feed.filter(e => e.t > cutoff).slice(0, 8) };
+}
 const LOCKED_FEATURES = new Set(
-  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,party,ordering,blitz,biology,chess_fantasy,achievements,ttt_quantum,fourups_abilities" : process.env.LOCKED_FEATURES)
+  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,party,ordering,blitz,biology,chess_fantasy,achievements,ttt_quantum,fourups_abilities,brain_royale,dame,muehle" : process.env.LOCKED_FEATURES)
     .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
 );
 function featureLocked(name) { return LOCKED_FEATURES.has(name); }
@@ -4888,7 +5209,7 @@ const server = http.createServer((req, res) => {
       let lang = "de"; // ausserhalb von try/catch deklariert, damit der Fehlerfall unten (Parsing-Fehler vor dem eigentlichen Setzen) ebenfalls die richtige Sprache kennt, falls schon ermittelt
       const ip = clientIp(req);
       try {
-        const isPoll = req.url === "/api/presence" || req.url === "/api/admin-online" || req.url === "/api/chess-online/state" || req.url === "/api/chess-online/inbox"; // Polling zaehlt nicht gegen die IP-Grenze (sonst sperrt eine Klasse hinter einer IP sich selbst), hat aber ein eigenes Limit je Konto
+        const isPoll = req.url === "/api/presence" || req.url === "/api/public-stats" || req.url === "/api/admin-online" || req.url === "/api/chess-online/state" || req.url === "/api/chess-online/inbox"; // Polling zaehlt nicht gegen die IP-Grenze (sonst sperrt eine Klasse hinter einer IP sich selbst), hat aber ein eigenes Limit je Konto
         if (rlHit(isPoll ? "gp|" + ip : "g|" + ip, (isPoll ? API_MAX_PER_MIN_IP * 6 : API_MAX_PER_MIN_IP) + 1, 60000, 60000).lockedUntil > Date.now()) { // +1: genau API_MAX_PER_MIN_IP Aufrufe sind erlaubt
           res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60", ...SECURITY_HEADERS });
           return res.end(JSON.stringify(errObj("tooManyRequests", "de")));
@@ -4899,7 +5220,7 @@ const server = http.createServer((req, res) => {
         // Client schickt sein aktuelles "lang" mit jedem Aufruf mit (siehe
         // apiCall() im Client) - unbekannt/fehlend faellt auf Deutsch zurueck.
         lang = payload.lang === "en" ? "en" : "de";
-        if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang);
+        if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
         else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
@@ -4941,6 +5262,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
+        else if (req.url === "/api/public-stats") result = publicStats();
+        else if (req.url === "/api/set-login-name") result = await setLoginName(payload.token, payload.password, payload.loginName, lang);
+        else if (req.url === "/api/feed-optin") result = await setFeedOptIn(payload.token, payload.enabled, lang);
         else if (req.url === "/api/streamer-mode") result = await setStreamerMode(payload.token, payload.enabled, lang);
         else if (req.url === "/api/party-invite") result = await partyInvite(payload.token, payload.friend, payload.code, payload.game, lang, adminOk(payload.adminKey, ip));
         else if (req.url === "/api/friends-accept") result = await friendsAccept(payload.token, payload.username, lang);
@@ -5014,7 +5338,7 @@ wss.on("connection", (ws, req) => {
     if (Date.now() - ws.lastSeen > WS_DEAD_AFTER_MS) { ws.terminate(); return; }
     ws.ping();
   }, WS_PING_EVERY_MS);
-  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); fuHandleDisconnect(ws); accountDisconnect(ws); });
+  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); fuHandleDisconnect(ws); brHandleDisconnect(ws, false); dmHandleDisconnect(ws, false); accountDisconnect(ws); });
 
   ws.on("message", (raw) => {
     // Nachrichten-Eimer: zu schnelle Nachrichten werden verworfen, Dauerfeuer kappt die Verbindung
@@ -5245,6 +5569,244 @@ wss.on("connection", (ws, req) => {
       fuBroadcast(room);
       return;
     }
+    if (msg.action === "brCreateRoom") {
+      if (!brAllowed(msg.adminKey, ws.ip)) return send(ws, { type: "brError", message: "Nicht verfügbar." });
+      if (ws.brRoomCode) brHandleDisconnect(ws, true);
+      brQueueRemove(ws);
+      const hu = findUserByToken(msg.token);
+      brNewRoom({ ws, name: cleanStr(msg.name, 20) || "Host", lang: brLang(msg.lang), username: hu ? hu.username : null }, null);
+      return;
+    }
+    if (msg.action === "brJoinRoom") {
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "brError", message: "Zu viele falsche Codes. Bitte kurz warten." });
+      const room = brRooms.get(cleanCode(msg.code));
+      if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "brError", message: "Raum nicht gefunden." }); }
+      if (room.players.length >= 2) return send(ws, { type: "brError", message: "Der Raum ist schon voll." });
+      if (ws.brRoomCode) brHandleDisconnect(ws, true);
+      brQueueRemove(ws);
+      const ju = findUserByToken(msg.token);
+      const pl = { ws, name: cleanStr(msg.name, 20) || "Spieler", username: ju ? ju.username : null, lang: brLang(msg.lang), side: "b", connected: true, key: crypto.randomBytes(8).toString("hex") };
+      room.players.push(pl);
+      ws.brRoomCode = room.code;
+      send(ws, { type: "brJoined", roomCode: room.code, key: pl.key });
+      brBroadcast(room);
+      return;
+    }
+    if (msg.action === "brRejoin") {
+      // Nach Neuladen/Verbindungsabbruch: Platz per geheimem Schluessel zurueckholen
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "brError", message: "Bitte kurz warten." });
+      const room = brRooms.get(cleanCode(msg.code));
+      const pl = room && room.players.find(p => typeof msg.key === "string" && p.key === msg.key);
+      if (!room || !pl) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "brError", message: "Das Spiel gibt es nicht mehr.", gone: true }); }
+      if (pl.ws && pl.ws !== ws && pl.connected) { try { pl.ws.brRoomCode = null; } catch (e) {} }
+      clearTimeout(pl.graceTimer);
+      pl.ws = ws; pl.connected = true; if (msg.lang) pl.lang = brLang(msg.lang);
+      ws.brRoomCode = room.code;
+      send(ws, { type: "brJoined", roomCode: room.code, key: pl.key });
+      room.players.forEach(p => { if (p !== pl && p.connected) send(p.ws, { type: "brOpponentBack" }); });
+      brBroadcast(room);
+      return;
+    }
+    if (msg.action === "brQueue") {
+      if (!brAllowed(msg.adminKey, ws.ip)) return send(ws, { type: "brError", message: "Nicht verfügbar." });
+      if (ws.brRoomCode) brHandleDisconnect(ws, true);
+      brQueueRemove(ws);
+      const qu = findUserByToken(msg.token);
+      const me = { ws, name: cleanStr(msg.name, 20) || "Spieler", lang: brLang(msg.lang), username: qu ? qu.username : null };
+      const other = brQueue.find(q => q.ws !== ws && q.ws.readyState === 1);
+      if (other) { brQueue = brQueue.filter(q => q !== other); brNewRoom(other, me); }
+      else { brQueue.push(me); send(ws, { type: "brQueued" }); }
+      return;
+    }
+    if (msg.action === "brQueueCancel") { brQueueRemove(ws); return; }
+    if (msg.action === "brMove") {
+      const room = brRooms.get(ws.brRoomCode);
+      if (!room || room.players.length < 2) return;
+      const me = room.players.find(p => p.ws === ws); if (!me) return;
+      // Client sendet in seiner Sicht (eigene Figuren "y", unten) - zurueck in absolute Koordinaten
+      const id = typeof msg.id === "string" && /^y[0-9q]$/.test(msg.id) ? me.side + msg.id.slice(1) : null;
+      const c = Number(msg.c); let r = Number(msg.r);
+      if (!id || !Number.isInteger(c) || !Number.isInteger(r)) return;
+      if (me.side === "b") r = BR.ROWS - 1 - r;
+      const res = BR.move(room.st, me.side, id, c, r, brMakeQuestion);
+      if (!res.ok) return;
+      brBroadcast(room);
+      if (res.duel) brArmDuel(room);
+      return;
+    }
+    if (msg.action === "brAnswer") {
+      const room = brRooms.get(ws.brRoomCode); if (!room) return;
+      const me = room.players.find(p => p.ws === ws); if (!me) return;
+      const i = Number(msg.i); if (!Number.isInteger(i)) return;
+      if (BR.answer(room.st, me.side, i)) { if (room.st.duel && room.st.duel.done) brAfterFinish(room); else brBroadcast(room); }
+      return;
+    }
+    if (msg.action === "brRematch") {
+      const room = brRooms.get(ws.brRoomCode);
+      if (!room || !room.st.over || room.players.length < 2 || room.players.some(p => !p.connected)) return;
+      clearTimeout(room.timer);
+      room.st = BR.create(); room.credited = false; room.players.forEach(p => { p.credited = false; });
+      if (Math.random() < 0.5) room.players.forEach(p => { p.side = p.side === "a" ? "b" : "a"; });
+      brBroadcast(room);
+      return;
+    }
+    if (msg.action === "brLeave") { brHandleDisconnect(ws, true); return; }
+    if (msg.action === "dmCreateRoom") {
+      if (!dameAllowed(msg.adminKey, ws.ip)) return send(ws, { type: "dmError", message: "Nicht verfügbar." });
+      if (ws.dmRoomCode) dmHandleDisconnect(ws, true);
+      dmQueueRemove(ws);
+      const u = findUserByToken(msg.token);
+      dmNewRoom({ ws, name: cleanStr(msg.name, 20) || (u && u.username) || "Host", username: u ? u.username : null }, null);
+      return;
+    }
+    if (msg.action === "dmJoinRoom") {
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "dmError", message: "Zu viele falsche Codes. Bitte kurz warten." });
+      const room = dmRooms.get(cleanCode(msg.code));
+      if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "dmError", message: "Raum nicht gefunden." }); }
+      if (room.players.length >= 2) return send(ws, { type: "dmError", message: "Der Raum ist schon voll." });
+      if (ws.dmRoomCode) dmHandleDisconnect(ws, true);
+      dmQueueRemove(ws);
+      const u = findUserByToken(msg.token);
+      const pl = { ws, name: cleanStr(msg.name, 20) || (u && u.username) || "Spieler", username: u ? u.username : null, color: room.players[0].color === "w" ? "b" : "w", connected: true, key: crypto.randomBytes(8).toString("hex") };
+      room.players.push(pl); ws.dmRoomCode = room.code;
+      send(ws, { type: "dmJoined", roomCode: room.code, key: pl.key });
+      dmArm(room); dmBroadcast(room);
+      return;
+    }
+    if (msg.action === "dmRejoin") {
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "dmError", message: "Bitte kurz warten." });
+      const room = dmRooms.get(cleanCode(msg.code));
+      const pl = room && room.players.find(p => typeof msg.key === "string" && p.key === msg.key);
+      if (!room || !pl) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "dmError", message: "Das Spiel gibt es nicht mehr.", gone: true }); }
+      if (pl.ws && pl.ws !== ws && pl.connected) { try { pl.ws.dmRoomCode = null; } catch (e) {} }
+      clearTimeout(pl.graceTimer);
+      pl.ws = ws; pl.connected = true; ws.dmRoomCode = room.code;
+      send(ws, { type: "dmJoined", roomCode: room.code, key: pl.key });
+      room.players.forEach(p => { if (p !== pl && p.connected) send(p.ws, { type: "dmOpponentBack" }); });
+      dmBroadcast(room);
+      return;
+    }
+    if (msg.action === "dmQueue") {
+      if (!dameAllowed(msg.adminKey, ws.ip)) return send(ws, { type: "dmError", message: "Nicht verfügbar." });
+      if (ws.dmRoomCode) dmHandleDisconnect(ws, true);
+      dmQueueRemove(ws);
+      const u = findUserByToken(msg.token);
+      const me = { ws, name: cleanStr(msg.name, 20) || (u && u.username) || "Spieler", username: u ? u.username : null };
+      const other = dmQueue.find(q => q.ws !== ws && q.ws.readyState === 1 && !(me.username && q.username && me.username.toLowerCase() === q.username.toLowerCase()));
+      if (other) { dmQueue = dmQueue.filter(q => q !== other); dmNewRoom(other, me); }
+      else { dmQueue.push(me); send(ws, { type: "dmQueued" }); }
+      return;
+    }
+    if (msg.action === "dmQueueCancel") { dmQueueRemove(ws); return; }
+    if (msg.action === "dmMove") {
+      const room = dmRooms.get(ws.dmRoomCode);
+      if (!room || room.st.over || room.players.length < 2) return;
+      const me = room.players.find(p => p.ws === ws); if (!me || me.color !== room.st.turn) return;
+      const mv = Dame.findMove(room.st.board, me.color, msg.path);
+      if (!mv) return send(ws, { type: "dmIllegal" });
+      const st = room.st, moved = st.board[mv.path[0][0]][mv.path[0][1]];
+      st.board = Dame.applyMove(st.board, mv); st.plies++; st.last = mv.path;
+      st.quiet = (mv.captured.length || !moved.k) ? 0 : st.quiet + 1;
+      st.turn = Dame.other(st.turn);
+      const res = Dame.result(st.board, st.turn);
+      if (res) { dmEnd(room, res, "done"); return; }
+      if (st.quiet >= DM_QUIET_LIMIT) { dmEnd(room, "draw", "draw"); return; }
+      dmArm(room); dmBroadcast(room);
+      return;
+    }
+    if (msg.action === "dmResign") {
+      const room = dmRooms.get(ws.dmRoomCode); if (!room || room.st.over || room.players.length < 2) return;
+      const me = room.players.find(p => p.ws === ws); if (!me) return;
+      dmEnd(room, Dame.other(me.color), "resign");
+      return;
+    }
+    if (msg.action === "dmRematch") {
+      const room = dmRooms.get(ws.dmRoomCode);
+      if (!room || !room.st.over || room.players.length < 2 || room.players.some(p => !p.connected)) return;
+      clearTimeout(room.timer);
+      room.st = dmFreshState();
+      if (Math.random() < 0.5) room.players.forEach(p => { p.color = Dame.other(p.color); });
+      room.players.forEach(p => { p.credited = false; });
+      dmArm(room); dmBroadcast(room);
+      return;
+    }
+    if (msg.action === "dmLeave") { dmHandleDisconnect(ws, true); return; }
+    if (msg.action === "muCreateRoom") {
+      if (!muehleAllowed(msg.adminKey, ws.ip)) return send(ws, { type: "muError", message: "Nicht verfügbar." });
+      if (ws.muRoomCode) muHandleDisconnect(ws, true);
+      muQueueRemove(ws);
+      muNewRoom({ ws, name: cleanStr(msg.name, 20) || "Host" }, null);
+      return;
+    }
+    if (msg.action === "muJoinRoom") {
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "muError", message: "Zu viele falsche Codes. Bitte kurz warten." });
+      const room = muRooms.get(cleanCode(msg.code));
+      if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "muError", message: "Raum nicht gefunden." }); }
+      if (room.players.length >= 2) return send(ws, { type: "muError", message: "Der Raum ist schon voll." });
+      if (ws.muRoomCode) muHandleDisconnect(ws, true);
+      muQueueRemove(ws);
+      const pl = { ws, name: cleanStr(msg.name, 20) || "Spieler", color: room.players[0].color === "w" ? "b" : "w", connected: true, key: crypto.randomBytes(8).toString("hex") };
+      room.players.push(pl); ws.muRoomCode = room.code;
+      send(ws, { type: "muJoined", roomCode: room.code, key: pl.key });
+      muArm(room); muBroadcast(room);
+      return;
+    }
+    if (msg.action === "muRejoin") {
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "muError", message: "Bitte kurz warten." });
+      const room = muRooms.get(cleanCode(msg.code));
+      const pl = room && room.players.find(p => typeof msg.key === "string" && p.key === msg.key);
+      if (!room || !pl) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "muError", message: "Das Spiel gibt es nicht mehr.", gone: true }); }
+      if (pl.ws && pl.ws !== ws && pl.connected) { try { pl.ws.muRoomCode = null; } catch (e) {} }
+      clearTimeout(pl.graceTimer);
+      pl.ws = ws; pl.connected = true; ws.muRoomCode = room.code;
+      send(ws, { type: "muJoined", roomCode: room.code, key: pl.key });
+      room.players.forEach(p => { if (p !== pl && p.connected) send(p.ws, { type: "muOpponentBack" }); });
+      muBroadcast(room);
+      return;
+    }
+    if (msg.action === "muQueue") {
+      if (!muehleAllowed(msg.adminKey, ws.ip)) return send(ws, { type: "muError", message: "Nicht verfügbar." });
+      if (ws.muRoomCode) muHandleDisconnect(ws, true);
+      muQueueRemove(ws);
+      const me = { ws, name: cleanStr(msg.name, 20) || "Spieler" };
+      const other = muQueue.find(q => q.ws !== ws && q.ws.readyState === 1 && true);
+      if (other) { muQueue = muQueue.filter(q => q !== other); muNewRoom(other, me); }
+      else { muQueue.push(me); send(ws, { type: "muQueued" }); }
+      return;
+    }
+    if (msg.action === "muQueueCancel") { muQueueRemove(ws); return; }
+    if (msg.action === "muMove") {
+      const room = muRooms.get(ws.muRoomCode);
+      if (!room || room.st.over || room.players.length < 2) return;
+      const me = room.players.find(p => p.ws === ws); if (!me || me.color !== room.st.turn) return;
+      const iv = v => (v === null || v === undefined) ? null : (Number.isInteger(v) && v >= 0 && v < 24 ? v : NaN);
+      const from = iv(msg.from), to = iv(msg.to), rm = iv(msg.rm);
+      const mv = (to === null || Number.isNaN(from) || Number.isNaN(to) || Number.isNaN(rm)) ? null : Mill.findMove(room.st, me.color, from, to, rm);
+      if (!mv) return send(ws, { type: "muIllegal" });
+      const st = room.st, ns = Mill.apply(st, mv);
+      st.b = ns.b; st.hand = ns.hand; st.turn = ns.turn; st.quiet = ns.quiet; st.plies++; st.last = { from: mv.from, to: mv.to, rm: mv.rm };
+      const res = Mill.result(st);
+      if (res) { muEnd(room, res, "done"); return; }
+      if (st.quiet >= MU_QUIET_LIMIT) { muEnd(room, "draw", "draw"); return; }
+      muArm(room); muBroadcast(room);
+      return;
+    }
+    if (msg.action === "muResign") {
+      const room = muRooms.get(ws.muRoomCode); if (!room || room.st.over || room.players.length < 2) return;
+      const me = room.players.find(p => p.ws === ws); if (!me) return;
+      muEnd(room, Mill.other(me.color), "resign");
+      return;
+    }
+    if (msg.action === "muRematch") {
+      const room = muRooms.get(ws.muRoomCode);
+      if (!room || !room.st.over || room.players.length < 2 || room.players.some(p => !p.connected)) return;
+      clearTimeout(room.timer);
+      room.st = muFreshState();
+      if (Math.random() < 0.5) room.players.forEach(p => { p.color = Mill.other(p.color); });
+      muArm(room); muBroadcast(room);
+      return;
+    }
+    if (msg.action === "muLeave") { muHandleDisconnect(ws, true); return; }
     if (msg.action === "fuLeave") { fuHandleDisconnect(ws); return; }
     if (msg.action === "tttLeave") {
       tttHandleDisconnect(ws);
