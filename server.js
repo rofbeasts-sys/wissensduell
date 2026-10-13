@@ -4431,7 +4431,6 @@ async function fourupsApi(action, payload, lang) {
 // Belohnung = hoechste geloeste Stufe des Tages (NICHT addiert): Sudoku 25/50/75, Kreuzwort klein 25 / mittel 50 / gross 75.
 // Muenzen werden erst am NAECHSTEN Tag abgeholt. Stufen muessen der Reihe nach geloest werden.
 const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 } };
-const DAILY_WV_BONUS = { small: 5, medium: 10, big: 50 }; // Zusatz-Muenzen, wenn ALLE (max) Woerter gefunden wurden
 // Hilfen kosten Muenzen (vom Guthaben, sofort). Preise liegen nur hier; der Client bekommt sie mit dem Raetsel.
 const DAILY_HINTS = { sudoku: { cell: 5 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 } };
 const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"] };
@@ -4454,6 +4453,42 @@ function dailyState(user) {
   if (!d.best || typeof d.best !== "object") d.best = {};   // "datum:typ" -> { r: hoechste Belohnung, day: Tag der letzten Loesung }
   if (!d.paid || typeof d.paid !== "object") d.paid = {};   // "datum:typ" -> bereits abgeholt
   return d;
+}
+// ---- Wochenziele (Montag-Sonntag, Berlin): je Raetselart + gesamt; Belohnung = hoechste erreichte Stufe, wird nach Wochenende abgeholt ----
+const WEEKLY_TIERS = { sudoku: [7, 14, 21], cw: [7, 14, 21], ws: [7, 14, 21], wv: [400, 700, 1000] };  // geloeste Stufen bzw. Punkte (wv)
+const WEEKLY_TOTAL_PCT = [40, 70, 90];
+const WEEKLY_REWARD = { type: [{ keys: 10, coins: 0 }, { keys: 25, coins: 10 }, { keys: 50, coins: 20 }], total: [{ keys: 20, coins: 0 }, { keys: 50, coins: 20 }, { keys: 100, coins: 40 }] };
+const WEEKLY_TYPES = ["sudoku", "cw", "ws", "wv"];
+function dailyWeekStart(date) { const dow = dailyDow(date), back = dow === 0 ? 6 : dow - 1; return dailyAddDays(date, -back); }
+function weeklyProgress(d, start) {
+  const dates = new Set(); for (let i = 0; i < 7; i++) dates.add(dailyAddDays(start, i));
+  const val = { sudoku: 0, cw: 0, ws: 0, wv: 0 };
+  for (const k of Object.keys(d.solved || {})) { const [dt, ty] = k.split(":"); if (dates.has(dt) && ty in val && ty !== "wv") val[ty]++; }
+  for (const k of Object.keys(d.wvPts || {})) { const [dt] = k.split(":"); if (dates.has(dt)) val.wv += Math.max(0, d.wvPts[k] | 0); }
+  return val;
+}
+function weeklyTierOf(v, tiers) { return v >= tiers[2] ? 3 : v >= tiers[1] ? 2 : v >= tiers[0] ? 1 : 0; }
+function weeklyEval(val) {
+  const tier = {}; WEEKLY_TYPES.forEach(t => { tier[t] = weeklyTierOf(val[t], WEEKLY_TIERS[t]); });
+  const pct = Math.round(WEEKLY_TYPES.reduce((a, t) => a + Math.min(1, val[t] / WEEKLY_TIERS[t][2]), 0) / WEEKLY_TYPES.length * 100);
+  tier.total = pct >= WEEKLY_TOTAL_PCT[2] ? 3 : pct >= WEEKLY_TOTAL_PCT[1] ? 2 : pct >= WEEKLY_TOTAL_PCT[0] ? 1 : 0;
+  return { tier, pct };
+}
+const weeklyRw = (kind, tier) => (tier > 0 ? WEEKLY_REWARD[kind][tier - 1] : { keys: 0, coins: 0 });
+// Offene Belohnungen aus beendeten Wochen (letzte 8): gibt { keys, coins, marks } zurueck; marks = zu speichernde bezahlte Stufen
+function weeklyDue(d, today) {
+  if (!d.weekPaid || typeof d.weekPaid !== "object") d.weekPaid = {};
+  const cur = dailyWeekStart(today); let keys = 0, coins = 0; const marks = [];
+  for (let w = 1; w <= 8; w++) {
+    const st = dailyAddDays(cur, -7 * w), ev = weeklyEval(weeklyProgress(d, st)), paid = d.weekPaid[st] || {}, mark = {};
+    for (const k of [...WEEKLY_TYPES, "total"]) {
+      const now = ev.tier[k], was = paid[k] || 0; if (now <= was) continue;
+      const a = weeklyRw(k === "total" ? "total" : "type", now), b = weeklyRw(k === "total" ? "total" : "type", was);
+      keys += a.keys - b.keys; coins += a.coins - b.coins; mark[k] = now;
+    }
+    if (Object.keys(mark).length) marks.push({ st, mark });
+  }
+  return { keys, coins, marks };
 }
 function dailyLocked(d, date, type, diff) {
   const ord = DAILY_ORDER[type], i = ord.indexOf(diff);
@@ -4537,7 +4572,10 @@ async function dailyApi(action, payload, lang) {
   if (action === "state") {
     const days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], locked: !!user && dailyLocked(d, date, t, df) })) }));
     const po = user ? dailyPayout(d, today) : { claimable: 0, pending: 0 };
-    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending };
+    const ws0 = dailyWeekStart(today), wval = weeklyProgress(d, ws0), wev = weeklyEval(wval), due = user ? weeklyDue(d, today) : { keys: 0, coins: 0 };
+    const weekly = { start: ws0, daysLeft: 7 - (dailyDow(today) === 0 ? 6 : dailyDow(today) - 1), types: {}, total: { pct: wev.pct, tiers: WEEKLY_TOTAL_PCT, tier: wev.tier.total }, rewards: WEEKLY_REWARD, due: { keys: due.keys, coins: due.coins } };
+    WEEKLY_TYPES.forEach(t => { weekly.types[t] = { val: wval[t], tiers: WEEKLY_TIERS[t], tier: wev.tier[t] }; });
+    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending, weekly };
   }
   if (action === "word") {
     const ip = String(payload.__ip || "x"), now = Date.now(), rr = wordRate.get(ip) || { t: now, n: 0 };
@@ -4551,9 +4589,16 @@ async function dailyApi(action, payload, lang) {
     if (!user) return errObj("notLoggedIn", lang);
     let granted = 0;
     if (!isRestricted(user)) for (const k of Object.keys(d.best)) { const b = d.best[k], due = Math.max(0, (b.r || 0) - (d.paid[k] || 0)); if (due && b.day < today) { granted += due; d.paid[k] = b.r; } }
-    if (granted) { user.stats.coins = (user.stats.coins || 0) + granted; await saveUsers(); }
+    let wkKeys = 0, wkCoins = 0;
+    if (!isRestricted(user)) {
+      const due = weeklyDue(d, today);
+      due.marks.forEach(m => { d.weekPaid[m.st] = Object.assign(d.weekPaid[m.st] || {}, m.mark); });
+      wkKeys = due.keys; wkCoins = due.coins;
+      if (wkKeys) { const c = chessState(user); c.keys += wkKeys; }
+    }
+    if (granted || wkCoins || wkKeys) { user.stats.coins = (user.stats.coins || 0) + granted + wkCoins; await saveUsers(); }
     const po = dailyPayout(d, today);
-    return { ok: true, granted, balance: user.stats.coins || 0, claimable: po.claimable, pending: po.pending };
+    return { ok: true, granted: granted + wkCoins, dailyCoins: granted, weeklyCoins: wkCoins, weeklyKeys: wkKeys, balance: user.stats.coins || 0, claimable: po.claimable, pending: po.pending };
   }
   const date = String(payload.date || ""), type = ["cw", "ws", "wv"].includes(payload.type) ? payload.type : "sudoku", diff = String(payload.diff || "");
   if (!DAILY_REWARDS[type] || !DAILY_REWARDS[type][diff] || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return errObj("invalidInput", lang);
@@ -4591,8 +4636,8 @@ async function dailyApi(action, payload, lang) {
       const fw = new Set(Array.isArray(payload.found) ? payload.found.map(String) : []), rest = pz.solution.filter(p => !fw.has(p.w));
       const p = pick(rest); if (p) out = hk === "start" ? { r: p.r, c: p.c, len: p.w.length } : { w: p.w, r: p.r, c: p.c, r2: p.r2, c2: p.c2 };
     } else if (type === "wv") {
-      const fw = new Set(Array.isArray(payload.found) ? payload.found.map(String) : []), rest = (pz.solution.planted || []).filter(p => !fw.has(p.w));
-      const p = pick(rest); if (p) out = hk === "start" ? { r: p.path[0][0], c: p.path[0][1], len: p.w.length } : { w: p.w, path: p.path };
+      const fw = new Set(Array.isArray(payload.found) ? payload.found.map(String) : []), rest = [...pz.solution.solved.entries()].map(([w, path]) => ({ w, path })).filter(p => !fw.has(p.w));
+      const longer = rest.filter(p => p.w.length >= 5); const p = pick(hk === "word" && longer.length ? longer : rest); if (p) out = hk === "start" ? { r: p.path[0][0], c: p.path[0][1], len: p.w.length } : { w: p.w, path: p.path };
     }
     if (!out) return { ok: false, error: lang === "en" ? "Nothing to reveal." : "Hier gibt es nichts aufzudecken." };
     user.stats.coins = (user.stats.coins || 0) - cost; await saveUsers();
@@ -4600,7 +4645,7 @@ async function dailyApi(action, payload, lang) {
   }
   if (action === "submit") {
     const pz = dailyGet(date, type, diff, lang);
-    let wrong = 0, wvBonus = 0; const wrongCells = [];
+    let wrong = 0, wvPts = 0; const wrongCells = [];
     if (type === "sudoku") {
       const g = Array.isArray(payload.grid) ? payload.grid : [];
       if (g.length !== 81) return errObj("invalidInput", lang);
@@ -4618,7 +4663,7 @@ async function dailyApi(action, payload, lang) {
       const found = Array.isArray(payload.found) ? payload.found.slice(0, 60) : [];
       const g = pz.solution.grid, N = g.length, good = new Set();
       for (const f of found) {
-        if (!f || typeof f.w !== "string" || !Array.isArray(f.path) || f.path.length !== f.w.length || f.w.length < 3) continue;
+        if (!f || typeof f.w !== "string" || !Array.isArray(f.path) || f.path.length !== f.w.length || f.w.length < (pz.solution.minLen || 3)) continue;
         if (!pz.solution.pool.has(f.w) && !(await wordCheck(f.w, lang === "en" ? "en" : "de")).valid) continue;
         let ok = true; const seen = new Set();
         for (let k = 0; k < f.path.length && ok; k++) {
@@ -4630,8 +4675,9 @@ async function dailyApi(action, payload, lang) {
         }
         if (ok) good.add(f.w);
       }
-      wrong = Math.max(0, pz.solution.n - good.size);
-      if (!wrong && good.size >= (pz.solution.max || 1e9)) wvBonus = DAILY_WV_BONUS[diff] || 0;
+      let pts = 0; good.forEach(w => { pts += DailyWords.wordPoints(w.length); });
+      wrong = Math.max(0, pz.solution.n - pts); // = fehlende Punkte
+      wvPts = pts;
     } else {
       const L = Array.isArray(payload.letters) ? payload.letters : [];
       if (L.length !== pz.solution.length) return errObj("invalidInput", lang);
@@ -4643,14 +4689,15 @@ async function dailyApi(action, payload, lang) {
     const started = d.started[skey] || 0, minMs = (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * 1000;
     if (!started || Date.now() - started < minMs * DAILY_MIN_SCALE) return { ok: true, correct: true, coins: 0, tooFast: true };
     d.solved[skey] = Date.now(); delete d.started[skey];
+    if (type === "wv") { if (!d.wvPts) d.wvPts = {}; d.wvPts[date + ":" + diff] = Math.min(wvPts, 400); }
     // Belohnung wird NICHT sofort gezahlt: sie wird fuer "datum:typ" auf die hoechste geloeste Stufe gesetzt (nicht addiert)
     // und kann ab dem naechsten Tag abgeholt werden.
-    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff] + wvBonus, bk = date + ":" + type;
+    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff], bk = date + ":" + type;
     if (gain > ((d.best[bk] && d.best[bk].r) || 0)) d.best[bk] = { r: gain, day: dailyToday() };
     else if (d.best[bk]) d.best[bk].day = dailyToday();
     await saveUsers();
     const po = dailyPayout(d, dailyToday());
-    return { ok: true, correct: true, coins: 0, reward: gain, bonus: wvBonus, deferred: true, claimable: po.claimable, pending: po.pending, balance: user.stats.coins || 0 };
+    return { ok: true, correct: true, coins: 0, reward: gain, wvPoints: wvPts, deferred: true, claimable: po.claimable, pending: po.pending, balance: user.stats.coins || 0 };
   }
   return errObj("invalidInput", lang);
 }
