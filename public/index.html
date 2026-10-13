@@ -5928,7 +5928,7 @@ function dzWeek(){
 }
 function dzList(r){
   // Zwei grosse Buttons pro Tag (Sudoku / Kreuzwort): jeweils die naechste noch offene Stufe, danach die naechste.
-  const card=(day,kind)=>{
+  const card=(day,kind,half)=>{
     const its=day.items.filter(i=>i.type===kind), total=its.length;
     const idx=its.findIndex(i=>!i.solved), done=idx<0, it=done?null:its[idx];
     const pips=its.map(i=>i.solved?'●':'○').join(' ');
@@ -5941,20 +5941,22 @@ function dzList(r){
     return `<button class="btn ${done?'btn-ghost':'btn-primary'}" style="margin:0;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;${done?'opacity:.75;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
       <span style="font-size:24px;line-height:1">${ico}</span><span style="font-size:14px;font-weight:900">${name}</span>
       <span style="font-size:11.5px;font-weight:600">${done?'✓ '+L('Alles geschafft','All done'):L('Stufe','Level')+' '+(idx+1)+'/'+total+' · '+shortLv}</span>
-      <span style="font-size:11px;letter-spacing:3px;opacity:.9">${pips}</span><span class="dz-coin" style="font-size:13px">🪙 ${done?best:it.reward}</span></button>`;
+      <span style="font-size:11px;letter-spacing:3px;opacity:.9">${pips}</span><span class="dz-coin" style="font-size:13px">🪙 ${half?Math.floor((done?best:it.reward)/2):(done?best:it.reward)}</span></button>`;
     return `<button class="btn ${done?'btn-ghost':'btn-primary'} btn-block" style="margin:6px 0;padding:14px 16px;text-align:left;display:flex;justify-content:space-between;align-items:center;${done?'opacity:.7;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
       <span><span style="font-size:18px;font-weight:900">${ico} ${name}</span><br><span style="font-size:13px;font-weight:600">${done?'✓ '+L('Alle Stufen geschafft','All levels done'):L('Stufe','Level')+' '+(idx+1)+'/'+total+' · '+lvName}</span><br><span style="font-size:12px;letter-spacing:3px;opacity:.9">${pips}</span></span>
       <span class="dz-coin" style="font-size:15px">${done?'🪙 '+best:'🪙 '+it.reward}</span></button>`;
   };
-  const dayBtns=day=>`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${card(day,'sudoku')+card(day,'cw')+card(day,'ws')+card(day,'wv')}</div>`;
+  const dayBtns=(day,half)=>`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${card(day,'sudoku',half)+card(day,'cw',half)+card(day,'ws',half)+card(day,'wv',half)}</div>`;
   const today=r.days[r.days.length-1];
   const missed=r.isSunday?r.days.slice(0,-1).filter(d=>d.items.some(i=>!i.solved)):[];
   if(!missed.some(d=>d.date===dzCatch)) dzCatch=missed.length?missed[0].date:null;
   const wd=d=>[L('So','Su'),L('Mo','Mo'),L('Di','Tu'),L('Mi','We'),L('Do','Th'),L('Fr','Fr'),L('Sa','Sa')][new Date(d+'T12:00:00').getDay()];
   const cd=missed.find(d=>d.date===dzCatch);
-  const catchUp=missed.length?`<div style="margin:14px 0 6px;padding:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)"><div style="font-weight:900;font-size:14px;margin-bottom:8px">⏪ ${L('Nachholen','Catch up')} <span style="font-weight:600;font-size:12px;color:#9fb0d0">· ${L('nur sonntags','Sundays only')}</span></div>
-    <div style="display:flex;gap:6px;margin-bottom:10px">${missed.map(d=>{const sel=d.date===dzCatch,sv=d.items.filter(i=>i.solved).length;return `<button class="btn ${sel?'btn-primary':'btn-ghost'}" style="flex:1;margin:0;padding:6px 0;display:flex;flex-direction:column;align-items:center;line-height:1.2" onclick="dzCatchSel('${d.date}')"><span style="font-weight:900;font-size:14px">${wd(d.date)}</span><span style="font-size:10.5px;opacity:.85">${sv}/${d.items.length}</span></button>`;}).join('')}</div>
-    <div style="font-size:12px;color:#9fb0d0;margin-bottom:6px">${dzDayLabel(cd.date)}</div>${dayBtns(cd)}</div>`:'';
+  const cu=r.catchup||null, usedD=cu?cu.used:[], isLocked=d=>!!cu&&cu.left<=0&&!usedD.includes(d.date);
+  const catchUp=missed.length?`<div style="margin:14px 0 6px;padding:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)"><div style="display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:14px;margin-bottom:4px"><span>⏪ ${L('Nachholen','Catch up')}</span>${cu?`<span style="font-size:12px;color:#ffd45a">${L(cu.left+' von '+cu.max+' Tagen übrig',cu.left+' of '+cu.max+' days left')}</span>`:''}</div>
+    <div style="font-size:11.5px;color:#9fb0d0;margin-bottom:8px">${L('Nur sonntags · halbe Münzen · du suchst die Tage selbst aus','Sundays only · half coins · pick your own days')}</div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">${missed.map(d=>{const sel=d.date===dzCatch,sv=d.items.filter(i=>i.solved).length,lk=isLocked(d),us=usedD.includes(d.date);return `<button class="btn ${sel?'btn-primary':'btn-ghost'}" style="flex:1;margin:0;padding:6px 0;display:flex;flex-direction:column;align-items:center;line-height:1.2;${lk?'opacity:.4;':''}${us&&!sel?'border-color:#7ae582;':''}" onclick="dzCatchSel('${d.date}')"><span style="font-weight:900;font-size:14px">${lk?'🔒':''}${wd(d.date)}</span><span style="font-size:10.5px;opacity:.85">${us?'✓ ':''}${sv}/${d.items.length}</span></button>`;}).join('')}</div>
+    <div style="font-size:12px;color:#9fb0d0;margin-bottom:6px">${dzDayLabel(cd.date)}${cu&&!usedD.includes(cd.date)&&cu.left>0?' · '+L('Start verbraucht 1 Tag','Starting uses 1 day'):''}</div>${isLocked(cd)?`<div style="padding:18px 8px;text-align:center;font-size:13px;color:#ffb3b3">🔒 ${L('Keine Nachhol-Tage mehr übrig.','No catch-up days left.')}</div>`:dayBtns(cd,true)}</div>`:'';
   renderApp(`<div class="panel"><div class="dz-wrap">
     <div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div>
     <div class="picker-sub">${L('Jeden Tag neue Rätsel. Nur die höchste Stufe zählt – Münzen ab morgen abholbar.','New puzzles every day. Only your highest level counts – collect coins from tomorrow.')}</div>
