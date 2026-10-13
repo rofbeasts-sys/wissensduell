@@ -4488,6 +4488,47 @@ function dailyGet(date, type, diff, lang) {
   }
   dailyCache.set(key, v); return v;
 }
+// ---- Woerterbuch fuer "Woerter verbinden": lokale Liste + Wiktionary-Abfrage fuer alles andere (Ergebnis wird gemerkt) ----
+const wordCache = new Map(); // WORT (A-Z) -> true/false
+const wordRate = new Map();  // ip -> { t, n }
+function wordCandidates(w, lg) {
+  const low = w.toLowerCase(), set = new Set();
+  let vars = [low];
+  if (lg !== "en") {
+    const subs = [["ae", "ä"], ["oe", "ö"], ["ue", "ü"], ["ss", "ß"]];
+    for (const [a, b] of subs) {
+      const next = new Set(vars);
+      for (const v of vars) { let i = v.indexOf(a); while (i >= 0 && next.size < 24) { next.add(v.slice(0, i) + b + v.slice(i + a.length)); i = v.indexOf(a, i + 1); } }
+      vars = [...next].slice(0, 24);
+    }
+  }
+  vars.forEach(v => { set.add(v); set.add(v[0].toUpperCase() + v.slice(1)); });
+  return [...set].slice(0, 40);
+}
+async function wordCheck(w, lg) {
+  w = String(w || "").toUpperCase();
+  if (!/^[A-Z]{3,12}$/.test(w)) return { valid: false };
+  const pool = DailyWords.generalPool(lg === "en" ? "en" : "de");
+  if (!wordCheck._set) wordCheck._set = {};
+  const setKey = lg === "en" ? "en" : "de";
+  if (!wordCheck._set[setKey]) wordCheck._set[setKey] = new Set(pool);
+  if (wordCheck._set[setKey].has(w)) return { valid: true };
+  const ck = setKey + ":" + w;
+  if (wordCache.has(ck)) return { valid: wordCache.get(ck) };
+  try {
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 4500);
+    const url = "https://" + setKey + ".wiktionary.org/w/api.php?action=query&format=json&formatversion=2&titles=" + encodeURIComponent(wordCandidates(w, setKey).join("|"));
+    const res = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "BrainPulse/1.0 (word check)" } });
+    clearTimeout(to);
+    if (!res.ok) return { valid: false, uncertain: true };
+    const j = await res.json();
+    const pages = (j && j.query && j.query.pages) || [];
+    const ok = pages.some(pg => pg && !pg.missing && !pg.invalid);
+    if (wordCache.size > 30000) wordCache.delete(wordCache.keys().next().value);
+    wordCache.set(ck, ok);
+    return { valid: ok };
+  } catch (e) { return { valid: false, uncertain: true }; }
+}
 async function dailyApi(action, payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = payload.token ? findUserByToken(payload.token) : null;
@@ -4497,6 +4538,14 @@ async function dailyApi(action, payload, lang) {
     const days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], locked: !!user && dailyLocked(d, date, t, df) })) }));
     const po = user ? dailyPayout(d, today) : { claimable: 0, pending: 0 };
     return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending };
+  }
+  if (action === "word") {
+    const ip = String(payload.__ip || "x"), now = Date.now(), rr = wordRate.get(ip) || { t: now, n: 0 };
+    if (now - rr.t > 60000) { rr.t = now; rr.n = 0; }
+    rr.n++; wordRate.set(ip, rr); if (wordRate.size > 5000) wordRate.delete(wordRate.keys().next().value);
+    if (rr.n > 80) return { ok: false, error: lang === "en" ? "Too many checks, wait a moment." : "Zu viele Prüfungen, warte einen Moment." };
+    const r = await wordCheck(payload.word, lang === "en" ? "en" : "de");
+    return { ok: true, valid: !!r.valid, uncertain: !!r.uncertain };
   }
   if (action === "claim") {
     if (!user) return errObj("notLoggedIn", lang);
@@ -4569,7 +4618,8 @@ async function dailyApi(action, payload, lang) {
       const found = Array.isArray(payload.found) ? payload.found.slice(0, 60) : [];
       const g = pz.solution.grid, N = g.length, good = new Set();
       for (const f of found) {
-        if (!f || typeof f.w !== "string" || !Array.isArray(f.path) || f.path.length !== f.w.length || !pz.solution.pool.has(f.w)) continue;
+        if (!f || typeof f.w !== "string" || !Array.isArray(f.path) || f.path.length !== f.w.length || f.w.length < 3) continue;
+        if (!pz.solution.pool.has(f.w) && !(await wordCheck(f.w, lang === "en" ? "en" : "de")).valid) continue;
         let ok = true; const seen = new Set();
         for (let k = 0; k < f.path.length && ok; k++) {
           const q = f.path[k]; if (!Array.isArray(q)) { ok = false; break; }
@@ -5336,7 +5386,7 @@ const server = http.createServer((req, res) => {
         else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && featureLocked("shop") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
         else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
-        else if (req.url.startsWith("/api/daily/")) result = await dailyApi(req.url.slice(11), payload, lang);
+        else if (req.url.startsWith("/api/daily/")) { payload.__ip = ip; result = await dailyApi(req.url.slice(11), payload, lang); }
         else if (req.url.startsWith("/api/fourups/")) { payload.__ip = ip; result = await fourupsApi(req.url.slice(13), payload, lang); }
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
         else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
