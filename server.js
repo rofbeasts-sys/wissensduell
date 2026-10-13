@@ -4446,12 +4446,14 @@ function dailyWeekDates(today) { // Montag bis heute
   for (let i = back; i >= 0; i--) out.push(dailyAddDays(today, -i)); return out;
 }
 function dailyAllowedDates(today) { return dailyDow(today) === 0 ? dailyWeekDates(today) : [today]; } // nachholen nur sonntags
+const DAILY_CATCH_MAX = 3; // Nachholen: so viele verpasste Tage pro Woche (frei waehlbar), nachgeholt = halbe Muenzen
 const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"]];
 function dailyState(user) {
   if (!user.stats.daily || typeof user.stats.daily !== "object") user.stats.daily = { solved: {}, started: {} };
   const d = user.stats.daily; if (!d.solved) d.solved = {}; if (!d.started) d.started = {};
   if (!d.best || typeof d.best !== "object") d.best = {};   // "datum:typ" -> { r: hoechste Belohnung, day: Tag der letzten Loesung }
   if (!d.paid || typeof d.paid !== "object") d.paid = {};   // "datum:typ" -> bereits abgeholt
+  if (!d.catchDays || typeof d.catchDays !== "object") d.catchDays = {}; // Wochenstart -> genutzte Nachhol-Tage (max. DAILY_CATCH_MAX pro Woche)
   return d;
 }
 // ---- Wochenziele (Montag-Sonntag, Berlin): je Raetselart + gesamt; Belohnung = hoechste erreichte Stufe, wird nach Wochenende abgeholt ----
@@ -4570,12 +4572,12 @@ async function dailyApi(action, payload, lang) {
   const today = dailyToday(), allowed = dailyAllowedDates(today);
   const d = user ? dailyState(user) : { solved: {}, started: {} };
   if (action === "state") {
-    const days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], locked: !!user && dailyLocked(d, date, t, df) })) }));
+    const catchUsed = (user ? (d.catchDays[dailyWeekStart(today)] || []) : []), catchLeft = Math.max(0, DAILY_CATCH_MAX - catchUsed.length), days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date) && (date === today || !user || catchUsed.includes(date) || catchLeft > 0), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], locked: !!user && dailyLocked(d, date, t, df) })) }));
     const po = user ? dailyPayout(d, today) : { claimable: 0, pending: 0 };
     const ws0 = dailyWeekStart(today), wval = weeklyProgress(d, ws0), wev = weeklyEval(wval), due = user ? weeklyDue(d, today) : { keys: 0, coins: 0 };
     const weekly = { start: ws0, daysLeft: 7 - (dailyDow(today) === 0 ? 6 : dailyDow(today) - 1), types: {}, total: { pct: wev.pct, tiers: WEEKLY_TOTAL_PCT, tier: wev.tier.total }, rewards: WEEKLY_REWARD, due: { keys: due.keys, coins: due.coins } };
     WEEKLY_TYPES.forEach(t => { weekly.types[t] = { val: wval[t], tiers: WEEKLY_TIERS[t], tier: wev.tier[t] }; });
-    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending, weekly };
+    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending, weekly, catchup: (dailyDow(today) === 0 && user) ? { left: catchLeft, max: DAILY_CATCH_MAX, used: catchUsed } : undefined };
   }
   if (action === "word") {
     const ip = String(payload.__ip || "x"), now = Date.now(), rr = wordRate.get(ip) || { t: now, n: 0 };
@@ -4604,11 +4606,19 @@ async function dailyApi(action, payload, lang) {
   if (!DAILY_REWARDS[type] || !DAILY_REWARDS[type][diff] || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return errObj("invalidInput", lang);
   if (!allowed.includes(date)) return { ok: false, error: lang === "en" ? "This puzzle is not available now. Missed puzzles can be caught up on Sundays." : "Dieses Rätsel ist gerade nicht verfügbar. Verpasste Rätsel kannst du sonntags nachholen." };
   const skey = date + ":" + type + ":" + diff;
+  if (user && date !== today) { // Nachholen (nur sonntags): max. DAILY_CATCH_MAX Tage pro Woche, Tag frei waehlbar; der erste Start eines Tages verbraucht einen Platz
+    const ws0 = dailyWeekStart(today); if (!Array.isArray(d.catchDays[ws0])) d.catchDays[ws0] = [];
+    const cu = d.catchDays[ws0];
+    if (!cu.includes(date)) {
+      if (action !== "puzzle" || cu.length >= DAILY_CATCH_MAX) return { ok: false, error: lang === "en" ? "No catch-up days left this week." : "Keine Nachhol-Tage mehr übrig in dieser Woche." };
+      cu.push(date); await saveUsers();
+    }
+  }
   if (user && dailyLocked(d, date, type, diff)) return { ok: false, error: lang === "en" ? "Solve the easier puzzle first." : "Löse zuerst das leichtere Rätsel." };
   if (action === "puzzle") {
     const pz = dailyGet(date, type, diff, lang);
     if (user && !d.solved[skey] && !d.started[skey]) { d.started[skey] = Date.now(); await saveUsers(); }
-    return { ok: true, date, type, diff, reward: DAILY_REWARDS[type][diff], solved: !!d.solved[skey], hints: DAILY_HINTS[type], ...pz.pub };
+    return { ok: true, date, type, diff, reward: date === today ? DAILY_REWARDS[type][diff] : Math.floor(DAILY_REWARDS[type][diff] / 2), solved: !!d.solved[skey], hints: DAILY_HINTS[type], ...pz.pub };
   }
   if (action === "hint") {
     if (!user) return errObj("notLoggedIn", lang);
@@ -4692,7 +4702,7 @@ async function dailyApi(action, payload, lang) {
     if (type === "wv") { if (!d.wvPts) d.wvPts = {}; d.wvPts[date + ":" + diff] = Math.min(wvPts, 400); }
     // Belohnung wird NICHT sofort gezahlt: sie wird fuer "datum:typ" auf die hoechste geloeste Stufe gesetzt (nicht addiert)
     // und kann ab dem naechsten Tag abgeholt werden.
-    const gain = isRestricted(user) ? 0 : DAILY_REWARDS[type][diff], bk = date + ":" + type;
+    const gain = isRestricted(user) ? 0 : (date === today ? DAILY_REWARDS[type][diff] : Math.floor(DAILY_REWARDS[type][diff] / 2)), bk = date + ":" + type; // nachgeholt = halbe Muenzen
     if (gain > ((d.best[bk] && d.best[bk].r) || 0)) d.best[bk] = { r: gain, day: dailyToday() };
     else if (d.best[bk]) d.best[bk].day = dailyToday();
     await saveUsers();
