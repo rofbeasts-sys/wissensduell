@@ -5894,7 +5894,8 @@ async function startDailyFlow(){
   if(!r.ok){ renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">${r.error||'Fehler'}</div><div class="actions-row"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div></div>`); return; }
   dzLast=r; dzList(r);
 }
-let dzLast=null;
+let dzLast=null, dzCatch=null;
+function dzCatchSel(d){ dzCatch=d; dzList(dzLast); }
 function dzWeekBtn(r){
   const w=r&&r.weekly; if(!w) return '';
   const pct=w.total.pct, tier=w.total.tier, due=w.due&&(w.due.keys||w.due.coins);
@@ -5932,23 +5933,34 @@ function dzList(r){
     const lvName=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[it.diff]:tierN[it.diff]+' · '+(kind==='wv'?({small:15,medium:30,big:50})[it.diff]+' '+L('Punkte','points'):wsN[it.diff]+' '+L('Wörter','words'))+(it.cat?' · '+it.cat.icon+' '+it.cat.name:'')):'';
     const best=its.filter(i=>i.solved).length?its.filter(i=>i.solved).slice(-1)[0].reward:0;
     const can=!done&&day.open&&!it.locked;
+    const shortLv=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:'7×7',medium:'11×11',big:'17×17'})[it.diff]:kind==='wv'?({small:15,medium:30,big:50})[it.diff]+' '+L('Pkt.','pts'):wsN[it.diff]+' '+L('Wörter','words')+(it.cat?' '+it.cat.icon:'')):'';
+    return `<button class="btn ${done?'btn-ghost':'btn-primary'}" style="margin:0;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;${done?'opacity:.75;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
+      <span style="font-size:24px;line-height:1">${ico}</span><span style="font-size:14px;font-weight:900">${name}</span>
+      <span style="font-size:11.5px;font-weight:600">${done?'✓ '+L('Alles geschafft','All done'):L('Stufe','Level')+' '+(idx+1)+'/'+total+' · '+shortLv}</span>
+      <span style="font-size:11px;letter-spacing:3px;opacity:.9">${pips}</span><span class="dz-coin" style="font-size:13px">🪙 ${done?best:it.reward}</span></button>`;
     return `<button class="btn ${done?'btn-ghost':'btn-primary'} btn-block" style="margin:6px 0;padding:14px 16px;text-align:left;display:flex;justify-content:space-between;align-items:center;${done?'opacity:.7;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
       <span><span style="font-size:18px;font-weight:900">${ico} ${name}</span><br><span style="font-size:13px;font-weight:600">${done?'✓ '+L('Alle Stufen geschafft','All levels done'):L('Stufe','Level')+' '+(idx+1)+'/'+total+' · '+lvName}</span><br><span style="font-size:12px;letter-spacing:3px;opacity:.9">${pips}</span></span>
       <span class="dz-coin" style="font-size:15px">${done?'🪙 '+best:'🪙 '+it.reward}</span></button>`;
   };
-  const dayBtns=day=>card(day,'sudoku')+card(day,'cw')+card(day,'ws')+card(day,'wv');
+  const dayBtns=day=>`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${card(day,'sudoku')+card(day,'cw')+card(day,'ws')+card(day,'wv')}</div>`;
   const today=r.days[r.days.length-1];
   const missed=r.isSunday?r.days.slice(0,-1).filter(d=>d.items.some(i=>!i.solved)):[];
+  if(!missed.some(d=>d.date===dzCatch)) dzCatch=missed.length?missed[0].date:null;
+  const wd=d=>[L('So','Su'),L('Mo','Mo'),L('Di','Tu'),L('Mi','We'),L('Do','Th'),L('Fr','Fr'),L('Sa','Sa')][new Date(d+'T12:00:00').getDay()];
+  const cd=missed.find(d=>d.date===dzCatch);
+  const catchUp=missed.length?`<div style="margin:14px 0 6px;padding:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)"><div style="font-weight:900;font-size:14px;margin-bottom:8px">⏪ ${L('Nachholen','Catch up')} <span style="font-weight:600;font-size:12px;color:#9fb0d0">· ${L('nur sonntags','Sundays only')}</span></div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">${missed.map(d=>{const sel=d.date===dzCatch,sv=d.items.filter(i=>i.solved).length;return `<button class="btn ${sel?'btn-primary':'btn-ghost'}" style="flex:1;margin:0;padding:6px 0;display:flex;flex-direction:column;align-items:center;line-height:1.2" onclick="dzCatchSel('${d.date}')"><span style="font-weight:900;font-size:14px">${wd(d.date)}</span><span style="font-size:10.5px;opacity:.85">${sv}/${d.items.length}</span></button>`;}).join('')}</div>
+    <div style="font-size:12px;color:#9fb0d0;margin-bottom:6px">${dzDayLabel(cd.date)}</div>${dayBtns(cd)}</div>`:'';
   renderApp(`<div class="panel"><div class="dz-wrap">
     <div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div>
-    <div class="picker-sub">${L('Jeden Tag neue Rätsel. Fang mit dem leichten an – danach schaltest du das nächste frei. Die Münzen bekommst du für die höchste geschaffte Stufe (nicht zusammengerechnet) und kannst sie ab dem nächsten Tag abholen. Verpasste Rätsel der Woche kannst du sonntags nachholen.','New puzzles every day. Start with the easy one – each solved puzzle unlocks the next. You earn the coins of the highest level you finish (not added up) and can collect them from the next day. Missed puzzles of the week can be caught up on Sundays.')}</div>
-    <div class="picker-sub" style="font-size:12px">${L('Sudoku: Leicht 25 · Mittel 50 · Schwer 75 &nbsp;|&nbsp; Kreuzwort: Klein 25 · Mittel 50 · Groß 75 &nbsp;|&nbsp; Wörter: Klein 25 · Mittel 50 · Groß 75','Sudoku: Easy 25 · Medium 50 · Hard 75 &nbsp;|&nbsp; Crossword: Small 25 · Medium 50 · Large 75 &nbsp;|&nbsp; Words: Small 25 · Medium 50 · Large 75')}</div>
+    <div class="picker-sub">${L('Jeden Tag neue Rätsel. Nur die höchste Stufe zählt – Münzen ab morgen abholbar.','New puzzles every day. Only your highest level counts – collect coins from tomorrow.')}</div>
+    <div class="picker-sub" style="font-size:12px">${L('Stufe 1 = 25 · Stufe 2 = 50 · Stufe 3 = 75 🪙','Level 1 = 25 · Level 2 = 50 · Level 3 = 75 🪙')}</div>
     ${r.loggedIn?'':`<div class="picker-sub" style="color:#ffd45a">${L('Melde dich an, um Münzen zu bekommen.','Log in to earn coins.')}</div>`}
     ${(r.claimable>0||(r.weekly&&r.weekly.due&&(r.weekly.due.keys||r.weekly.due.coins)))?`<button class="btn btn-primary btn-block" style="margin:8px 0" onclick="dzClaim()">🎁 ${L('Abholen: ','Collect: ')}${[r.claimable>0?r.claimable+' 🪙':'',r.weekly&&r.weekly.due&&r.weekly.due.coins?'+'+r.weekly.due.coins+' 🪙 ('+L('Woche','week')+')':'',r.weekly&&r.weekly.due&&r.weekly.due.keys?'🔑 '+r.weekly.due.keys:''].filter(Boolean).join(' · ')}</button>`:''}
     ${r.pending>0?`<div class="picker-sub" style="color:#ffd45a">⏳ ${L('Ab morgen abholbar: ','Collectable from tomorrow: ')}${r.pending} ${L('Münzen','coins')}</div>`:''}
     <div class="dz-day"><h4>${L('Heute','Today')} · ${dzDayLabel(today.date)}</h4>${dayBtns(today)}</div>
     ${dzWeekBtn(r)}
-    ${missed.length?`<div class="picker-sub" style="margin-top:14px">${L('Sonntag: Nachholen','Sunday: catch up')}</div>`+missed.map(d=>`<div class="dz-day"><h4>${dzDayLabel(d.date)}</h4>${dayBtns(d)}</div>`).join(''):''}
+    ${missed.length?catchUp:''}
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div></div>`);
 }
