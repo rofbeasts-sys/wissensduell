@@ -6155,12 +6155,12 @@ function dzWvHtml(){
   let g='';
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
     const k=r+','+c, on=curK[k]!==undefined, fd=foundCells[k];
-    const bg=on?(dz.flash==='bad'?'#ff5d6e':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fd?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)');
+    const bg=on?(dz.flash==='bad'?'#ff5d6e':dz.flash==='dup'?'#4aa8ff':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fd?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)');
     g+=`<div data-k="${k}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:900;font-size:clamp(14px,${Math.floor(330/N)/10*1.0}cqw,28px);background:${bg};color:${on?'#10161f':'#fff'};border:2px solid ${on?'#fff':'rgba(255,255,255,.12)'};user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
   }
-  const words=Object.keys(dz.found).map(w=>`<span style="padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;margin:3px;display:inline-block;background:#7cff8c;color:#10161f">${esc(w)} <small>+${dzWvPoints(w.length)}</small></span>`).join('');
+  const words=Object.keys(dz.found).map(w=>`<span data-w="${esc(w)}" style="transition:background .15s;padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;margin:3px;display:inline-block;background:#7cff8c;color:#10161f">${esc(w)} <small>+${dzWvPoints(w.length)}</small></span>`).join('');
   const pts=dzWvPts(), bon=({small:5,medium:10,big:50})[dz.diff];
-  return `<div id="dzWvWord" style="min-height:34px;font-size:24px;font-weight:900;letter-spacing:3px;color:${dz.flash==='bad'?'#ff8a9a':dz.flash==='ok'?'#7cff8c':'#ffd45a'}">${esc(word)||'&nbsp;'}</div>
+  return `<div id="dzWvWord" style="min-height:34px;font-size:24px;font-weight:900;letter-spacing:3px;color:${dz.flash==='bad'?'#ff8a9a':dz.flash==='dup'?'#6ab8ff':dz.flash==='ok'?'#7cff8c':'#ffd45a'}">${esc(word)||'&nbsp;'}</div>
     <div id="dzWvGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:${N>7?4:6}px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>
     <div style="font-weight:800;margin:6px 0;color:${pts>=dz.n?'#7cff8c':'#fff'}">${pts} / ${dz.n} ${L('Punkte','points')}${pts>=dz.n?'':' · '+L('noch','left:')+' '+(dz.n-pts)}</div>
     <div style="height:8px;border-radius:6px;background:rgba(255,255,255,.1);margin:0 auto 6px;max-width:300px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(pts/dz.n*100))}%;background:${pts>=dz.n?'#7cff8c':'#3de0ff'}"></div></div>
@@ -6176,8 +6176,8 @@ function dzWvPaintOnly(){
   const curK={}; dz.cur.forEach((p,i)=>{ curK[p[0]+','+p[1]]=i; });
   const fc={}; Object.values(dz.found).forEach(f=>f.path.forEach(p=>{ fc[p[0]+','+p[1]]=1; }));
   gEl.querySelectorAll('[data-k]').forEach(el=>{ const k=el.dataset.k, on=curK[k]!==undefined;
-    el.style.background=on?(dz.flash==='bad'?'#ff5d6e':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fc[k]?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)'); el.style.color=on?'#10161f':'#fff'; });
-  const w=document.getElementById('dzWvWord'); if(w){ w.textContent=dz.cur.map(p=>dz.grid[p[0]][p[1]]).join('')||'\u00a0'; w.style.color=dz.flash==='bad'?'#ff8a9a':dz.flash==='ok'?'#7cff8c':'#ffd45a'; }
+    el.style.background=on?(dz.flash==='bad'?'#ff5d6e':dz.flash==='dup'?'#4aa8ff':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fc[k]?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)'); el.style.color=on?'#10161f':'#fff'; });
+  const w=document.getElementById('dzWvWord'); if(w){ w.textContent=dz.cur.map(p=>dz.grid[p[0]][p[1]]).join('')||'\u00a0'; w.style.color=dz.flash==='bad'?'#ff8a9a':dz.flash==='dup'?'#6ab8ff':dz.flash==='ok'?'#7cff8c':'#ffd45a'; }
 }
 function dzWvClear(){ if(!dz||dz.kind!=='wv') return; dz.cur=[]; dz.flash=''; dzWvPaintOnly(); }
 async function dzWvCommit(){
@@ -6185,7 +6185,9 @@ async function dzWvCommit(){
   if(dz.cur.length<3){ if(dz.cur.length>1) dzMsg(L('Zu kurz – mindestens 3 Buchstaben.','Too short – at least 3 letters.'),'#ffd45a'); dz.cur=[]; dz.flash=''; dzWvPaintOnly(); return; }
   const path=dz.cur.map(p=>[p[0],p[1]]), w=path.map(p=>dz.grid[p[0]][p[1]]).join('');
   const bad=()=>{ dz.flash='bad'; if(typeof sfx==='function') sfx('tap'); dzWvPaintOnly(); setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },300); };
-  if(dz.found[w]){ dzMsg(L('Das hast du schon.','Already found.'),'#ffd45a'); bad(); return; }
+  if(dz.found[w]){ dzMsg(L('Das hast du schon.','Already found.'),'#6ab8ff'); dz.flash='dup'; if(typeof sfx==='function') sfx('tap'); dzWvPaintOnly();
+    const chip=document.querySelector('[data-w="'+w+'"]'); if(chip){ chip.style.background='#4aa8ff'; chip.style.color='#fff'; setTimeout(()=>{ chip.style.background='#7cff8c'; chip.style.color='#10161f'; },700); }
+    setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },600); return; }
   if(!dz.vset) dz.vset=new Set(dz.valid);
   let ok=dz.vset.has(w)||(dz.okExt&&dz.okExt[w]);
   if(!ok&&!(dz.noExt&&dz.noExt[w])){
@@ -6194,7 +6196,7 @@ async function dzWvCommit(){
     dz.busy=false; if(!dz||dz.kind!=='wv') return;
     if(r&&r.ok&&r.valid){ ok=true; (dz.okExt=dz.okExt||{})[w]=1; }
     else if(r&&r.ok&&!r.uncertain){ (dz.noExt=dz.noExt||{})[w]=1; }
-    dzMsg('');
+    dzMsg((!ok&&(!r||!r.ok||r.uncertain))?L('Wörterbuch gerade nicht erreichbar – versuch es gleich nochmal.','Dictionary not reachable right now – try again in a moment.'):'','#ffd45a');
   }
   if(!ok){ bad(); return; }
   dz.found[w]={w,path}; dz.flash='ok'; dzSave(); if(typeof sfx==='function') sfx('mill');
