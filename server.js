@@ -4457,7 +4457,7 @@ function dailyState(user) {
 // ---- Wochenziele (Montag-Sonntag, Berlin): je Raetselart + gesamt; Belohnung = hoechste erreichte Stufe, wird nach Wochenende abgeholt ----
 const WEEKLY_TIERS = { sudoku: [7, 14, 21], cw: [7, 14, 21], ws: [7, 14, 21], wv: [400, 700, 1000] };  // geloeste Stufen bzw. Punkte (wv)
 const WEEKLY_TOTAL_PCT = [40, 70, 90];
-const WEEKLY_REWARD = { type: [{ keys: 10, coins: 0 }, { keys: 25, coins: 10 }, { keys: 50, coins: 20 }], total: [{ keys: 20, coins: 0 }, { keys: 50, coins: 20 }, { keys: 100, coins: 40 }] };
+const WEEKLY_REWARD = { type: [{ keys: 0, coins: 75 }, { keys: 0, coins: 150 }, { keys: 0, coins: 500 }], total: [{ keys: 20, coins: 0 }, { keys: 50, coins: 0 }, { keys: 100, coins: 0 }] };
 const WEEKLY_TYPES = ["sudoku", "cw", "ws", "wv"];
 function dailyWeekStart(date) { const dow = dailyDow(date), back = dow === 0 ? 6 : dow - 1; return dailyAddDays(date, -back); }
 function weeklyProgress(d, start) {
