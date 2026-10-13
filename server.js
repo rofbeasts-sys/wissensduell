@@ -4432,7 +4432,7 @@ async function fourupsApi(action, payload, lang) {
 // Muenzen werden erst am NAECHSTEN Tag abgeholt. Stufen muessen der Reihe nach geloest werden.
 const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 } };
 // Hilfen kosten Muenzen (vom Guthaben, sofort). Preise liegen nur hier; der Client bekommt sie mit dem Raetsel.
-const DAILY_HINTS = { sudoku: { cell: 5 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 } };
+const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 } };
 const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"] };
 const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
