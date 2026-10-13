@@ -5858,6 +5858,10 @@ function dzStyle(){
   .dzs-c.x{background:#a3202f !important;color:#fff !important}
   .dzc.x{background:#c0283a !important;color:#fff !important}
   .dzc-list div.it.x{color:#ff7b8a;font-weight:700}
+  .dzs-c.s3{box-shadow:inset 0 0 0 2px #ffd45a}
+  .dzs-nt{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;font-size:min(3cqw,11px);line-height:1;font-weight:700;color:#b8c6e6;align-items:center;justify-items:center;padding:1px;box-sizing:border-box}
+  .dzs-nt b{font-weight:600}.dzs-nt b.h{color:#ffd45a;font-weight:900}
+  .dz-key.on{background:linear-gradient(135deg,#c3ff4d,#3de0ff);color:#0b1020;box-shadow:0 0 0 2px #fff}
   .dzs-c.br{border-right:3px solid #cfd6ff}.dzs-c.bb{border-bottom:3px solid #cfd6ff}
   .dz-pad{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:min(100cqw,440px);margin:6px auto}
   .dz-key{padding:12px 0;border-radius:10px;border:0;background:rgba(255,255,255,.1);color:var(--text);font-size:18px;font-weight:800;cursor:pointer}
@@ -5983,7 +5987,8 @@ async function dzOpen(date,type,diff){
   } else if(type==='sudoku'){
     const sig=r.puzzle.join('');
     const cur=(saved&&saved.sig===sig&&Array.isArray(saved.cur)&&saved.cur.length===81)?saved.cur:r.puzzle.slice();
-    dz={kind:'sudoku',date,type,diff,key,sig,reward:r.reward,puzzle:r.puzzle,cur,sel:-1,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
+    const notes=(saved&&saved.sig===sig&&Array.isArray(saved.notes)&&saved.notes.length===81)?saved.notes:Array(81).fill(0);
+    dz={kind:'sudoku',date,type,diff,key,sig,reward:r.reward,puzzle:r.puzzle,cur,notes,noteMode:false,armed:0,sel:-1,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else {
     const N=r.size, sig=r.words.length+':'+N;
     const letters=(saved&&saved.sig===sig&&Array.isArray(saved.letters))?saved.letters:Array.from({length:N},()=>Array(N).fill(''));
@@ -5994,7 +5999,7 @@ async function dzOpen(date,type,diff){
   }
   dz.hints=r.hints||{}; dzFrame(); dzTimerStart();
 }
-function dzSave(){ if(!dz) return; try{ if(dz.kind==='ws'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } if(dz.kind==='wv'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } localStorage.setItem(dz.key, JSON.stringify(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()})); }catch(e){} }
+function dzSave(){ if(!dz) return; try{ if(dz.kind==='ws'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } if(dz.kind==='wv'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } localStorage.setItem(dz.key, JSON.stringify(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,notes:dz.notes,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()})); }catch(e){} }
 function dzFrame(){
   if(!dz) return;
   const head=`<div class="picker-title">${dzIcon(dz.type)} ${dzTypeName(dz.type,dz.diff).toUpperCase()}</div>${dz.cat?`<div class="picker-sub" style="font-size:16px;font-weight:800;color:#ffd45a">${dz.cat.icon} ${esc(dz.cat.name)}</div>`:''}<div class="picker-sub">${dzDayLabel(dz.date)} · 🪙 ${dz.reward}${account?'':' · '+L('ohne Anmeldung keine Münzen','no coins without login')}</div><div class="dz-timer" id="dzTimer">⏱ ${dzFmt(dzElapsed())}</div>`;
@@ -6026,7 +6031,7 @@ async function dzHint(hk){
   if(!dz) return;
   if(!r||!r.ok){ dzMsg((r&&r.error)||L('Fehler','Error')); return; }
   if(account&&account.profile) account.profile.coins=r.balance;
-  if(dz.kind==='sudoku'){ dz.cur[r.idx]=r.value; dz.puzzle[r.idx]=r.value; dz.sel=r.idx; }
+  if(dz.kind==='sudoku'){ dz.cur[r.idx]=r.value; dz.puzzle[r.idx]=r.value; dz.sel=r.idx; if(dz.notes) dz.notes[r.idx]=0; }
   else if(dz.kind==='cw'){ if(r.cells) r.cells.forEach(x=>{ dz.letters[x.r][x.c]=x.letter; }); else dz.letters[r.r][r.c]=r.letter; }
   else if(dz.kind==='ws'){ if(r.w){ dz.found[r.w]={w:r.w,r:r.r,c:r.c,r2:r.r2,c2:r.c2}; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
   else if(dz.kind==='wv'){ if(r.w){ dz.found[r.w]={w:r.w,path:r.path}; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
@@ -6049,23 +6054,43 @@ function dzConflicts(){
   return bad;
 }
 function dzSudokuHtml(){
-  const cur=dz.cur, sel=dz.sel, bad=dzConflicts(), sv=sel>=0?cur[sel]:0, sr=(sel/9)|0, sc=sel%9;
+  const cur=dz.cur, sel=dz.sel, bad=dzConflicts(), hl=dz.armed||(sel>=0?cur[sel]:0), sr=(sel/9)|0, sc=sel%9;
   let g='';
   for(let i=0;i<81;i++){
-    const r=(i/9)|0,c=i%9, given=dz.puzzle[i]>0;
-    const cl=['dzs-c', given?'g':'', i===sel?'s':'', (sel>=0&&i!==sel&&(r===sr||c===sc||(((r/3)|0)===((sr/3)|0)&&((c/3)|0)===((sc/3)|0))))?'p':'', (sv&&cur[i]===sv&&i!==sel)?'s2':'', (!given&&bad.has(i))?'e':'', (dz.wrong&&dz.wrong[i]===cur[i]&&!given)?'x':'', c%3===2&&c<8?'br':'', r%3===2&&r<8?'bb':''].join(' ');
-    g+=`<div class="${cl}" onclick="dzSel(${i})">${cur[i]||''}</div>`;
+    const r=(i/9)|0,c=i%9, given=dz.puzzle[i]>0, nt=dz.notes[i]||0;
+    const cl=['dzs-c', given?'g':'', i===sel?'s':'', (sel>=0&&i!==sel&&(r===sr||c===sc||(((r/3)|0)===((sr/3)|0)&&((c/3)|0)===((sc/3)|0))))?'p':'', (hl&&cur[i]===hl&&i!==sel)?'s2':'', (!given&&bad.has(i))?'e':'', (dz.wrong&&dz.wrong[i]===cur[i]&&!given)?'x':'', c%3===2&&c<8?'br':'', r%3===2&&r<8?'bb':''].join(' ');
+    let inner=cur[i]||'';
+    if(!cur[i]&&nt){ inner='<div class="dzs-nt">'; for(let n=1;n<=9;n++) inner+=(nt&(1<<n))?`<b${hl===n?' class="h"':''}>${n}</b>`:'<b></b>'; inner+='</div>'; }
+    g+=`<div class="${cl}" onclick="dzSel(${i})">${inner}</div>`;
   }
   const cnt=n=>cur.filter(v=>v===n).length;
   let pad='';
-  for(let n=1;n<=9;n++) pad+=`<button class="dz-key" ${cnt(n)>=9?'disabled':''} onclick="dzNum(${n})">${n}</button>`;
+  for(let n=1;n<=9;n++) pad+=`<button class="dz-key${dz.armed===n?' on':''}" ${cnt(n)>=9?'disabled':''} onclick="dzNum(${n})">${n}</button>`;
   pad+=`<button class="dz-key" onclick="dzNum(0)">⌫</button>`;
-  return `<div class="dzs-board">${g}</div><div class="dz-pad">${pad}</div>`;
+  const tog=`<div class="dz-pad" style="grid-template-columns:1fr;margin-bottom:0"><button class="dz-key${dz.noteMode?' on':''}" style="font-size:14px" onclick="dzNoteToggle()">✏️ ${L('Notizen','Notes')}: ${dz.noteMode?L('AN','ON'):L('AUS','OFF')}</button></div>`;
+  const tip=dz.armed?L('Zahl '+dz.armed+' ist gewählt – tippe auf Felder. Nochmal auf die Zahl = abwählen.','Number '+dz.armed+' selected – tap cells. Tap the number again to deselect.'):L('Feld antippen, dann Zahl – oder erst Zahl wählen, dann Felder antippen.','Tap a cell then a number – or pick a number first, then tap cells.');
+  return `<div class="dzs-board">${g}</div>${tog}<div class="dz-pad">${pad}</div><div style="font-size:11.5px;opacity:.75;margin-top:2px">${tip}</div>`;
 }
-function dzSel(i){ if(!dz||dz.kind!=='sudoku') return; dz.sel=i; dzPaint(); }
+function dzNoteToggle(){ if(!dz||dz.kind!=='sudoku') return; dz.noteMode=!dz.noteMode; dzPaint(); }
+function dzSudPlace(i,n){
+  if(dz.puzzle[i]>0) return;
+  if(n===0){ dz.cur[i]=0; dz.notes[i]=0; return; }
+  if(dz.noteMode){ if(dz.cur[i]) return; dz.notes[i]^=(1<<n); return; }
+  if(dz.cur[i]===n){ dz.cur[i]=0; return; }
+  dz.cur[i]=n; dz.notes[i]=0;
+  const r=(i/9)|0,c=i%9;
+  for(let j=0;j<81;j++){ const r2=(j/9)|0,c2=j%9; if(r===r2||c===c2||(((r/3)|0)===((r2/3)|0)&&((c/3)|0)===((c2/3)|0))) dz.notes[j]&=~(1<<n); }
+}
+function dzSel(i){
+  if(!dz||dz.kind!=='sudoku') return;
+  if(dz.armed){ if(dz.puzzle[i]>0){ return; } dzSudPlace(i,dz.armed); dzMsg(''); if(dz.cur.filter(v=>v===dz.armed).length>=9) dz.armed=0; dzSave(); dzPaint(); return; }
+  dz.sel=(dz.sel===i)?-1:i; dzPaint();
+}
 function dzNum(n){
-  if(!dz||dz.kind!=='sudoku'||dz.sel<0||dz.puzzle[dz.sel]>0) return;
-  dz.cur[dz.sel]=n; dzMsg(''); dzSave(); dzPaint();
+  if(!dz||dz.kind!=='sudoku') return;
+  if(n===0){ if(dz.armed){ dz.armed=0; dzPaint(); return; } if(dz.sel>=0){ dzSudPlace(dz.sel,0); dzSave(); dzPaint(); } return; }
+  if(dz.sel>=0&&dz.puzzle[dz.sel]===0){ dzSudPlace(dz.sel,n); dzMsg(''); if(!dz.noteMode) dz.sel=-1; dzSave(); dzPaint(); return; }
+  dz.armed=(dz.armed===n)?0:n; dz.sel=-1; dzPaint();
 }
 /* ---------- Woerter finden (Wortsuche) ---------- */
 const DZ_COLORS=['#7cff8c','#50dcff','#ff5da2','#ffc446','#b48cff','#ff8a50','#4be3b0','#ff6b6b','#8cc8ff','#e8ff6b','#ffa8d8','#6bffea','#d2b48c','#9fe870','#f5a3ff'];
