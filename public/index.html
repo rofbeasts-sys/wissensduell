@@ -5892,7 +5892,34 @@ async function startDailyFlow(){
   renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">…</div></div></div>`);
   const r=await apiCall('/api/daily/state',{token:account&&account.token});
   if(!r.ok){ renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">${r.error||'Fehler'}</div><div class="actions-row"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div></div>`); return; }
-  dzList(r);
+  dzLast=r; dzList(r);
+}
+let dzLast=null;
+function dzWeekBtn(r){
+  const w=r&&r.weekly; if(!w) return '';
+  const pct=w.total.pct, tier=w.total.tier, due=w.due&&(w.due.keys||w.due.coins);
+  const mk=w.total.tiers.map((t,i)=>`<div style="position:absolute;left:${t}%;top:-4px;width:2px;height:22px;background:#fff;opacity:.85"></div><div style="position:absolute;left:${t}%;top:20px;font-size:10px;transform:translateX(-50%)">${['🥉','🥈','🥇'][i]}</div>`).join('');
+  return `<button class="btn btn-block" onclick="dzWeek()" style="margin:14px 0 6px;padding:12px 14px;text-align:left;display:block;border:2px solid #c3ff4d;background:linear-gradient(135deg,#1f2a4d,#18304a);box-shadow:0 0 16px rgba(195,255,77,.25)">
+    <div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px"><span>🎯 ${L('WOCHENZIEL','WEEKLY GOAL')}</span><span style="color:#ffd45a">${tier?['','🥉','🥈','🥇'][tier]+' ':''}${pct} %</span></div>
+    <div style="position:relative;height:16px;border-radius:10px;background:#0c1224;border:1px solid #2c3658;margin:10px 0 24px"><div style="height:100%;width:${Math.min(100,pct)}%;border-radius:10px;background:linear-gradient(90deg,#c3ff4d,#3de0ff)"></div>${mk}</div>
+    <div style="font-size:12px;color:#cdd8f5;display:flex;justify-content:space-between"><span>${L('Tippen für Details','Tap for details')}</span><span>${L('noch '+w.daysLeft+' Tag(e)',''+w.daysLeft+' day(s) left')}</span></div></button>`;
+}
+function dzWeek(){
+  const r=dzLast; if(!r||!r.weekly){ startDailyFlow(); return; }
+  const w=r.weekly, rw=w.rewards, names={sudoku:['🔢','Sudoku'],cw:['✏️',L('Kreuzwort','Crossword')],ws:['🔍',L('Wörter finden','Find words')],wv:['🔗',L('Wörter verbinden','Connect words')]};
+  const rwTxt=x=>(x.keys?'🔑 '+x.keys:'')+(x.coins?(x.keys?' + ':'')+'🪙 '+x.coins:'');
+  const row=t=>{ const o=w.types[t], max=o.tiers[2], unit=t==='wv'?' '+L('Punkte','pts'):'', pct=Math.min(100,Math.round(o.val/max*100));
+    const chips=o.tiers.map((x,i)=>`<div style="flex:1;text-align:center;font-size:11px;border-radius:10px;padding:5px 2px;background:${o.tier>i?'#2e4a1d':'#12182c'};border:1px solid ${o.tier>i?'#c3ff4d':'#2c3658'};color:${o.tier>i?'#eaffc0':'#9fb0d0'}">${['🥉','🥈','🥇'][i]} ${x}<br>${rwTxt(rw.type[i])}</div>`).join('');
+    const mk=o.tiers.map(x=>`<div style="position:absolute;left:${Math.round(x/max*100)}%;top:0;bottom:0;width:2px;background:#fff;opacity:.8"></div>`).join('');
+    return `<div style="margin:12px 0"><div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px"><span>${names[t][0]} ${names[t][1]}</span><span style="font-size:12px;color:#9fb0d0;font-weight:600">${o.val} / ${max}${unit}${t==='wv'?'':' '+L('gelöst','solved')}</span></div><div style="position:relative;height:14px;border-radius:9px;background:#0c1224;border:1px solid #2c3658;margin:6px 0;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#c3ff4d,#3de0ff)"></div>${mk}</div><div style="display:flex;gap:6px">${chips}</div></div>`; };
+  const tc=w.total.tiers.map((x,i)=>`<div style="flex:1;text-align:center;font-size:11px;border-radius:10px;padding:5px 2px;background:${w.total.tier>i?'#2e4a1d':'#12182c'};border:1px solid ${w.total.tier>i?'#c3ff4d':'#2c3658'};color:${w.total.tier>i?'#eaffc0':'#9fb0d0'}">${['🥉','🥈','🥇'][i]} ${x} %<br>${rwTxt(rw.total[i])}</div>`).join('');
+  const mk2=w.total.tiers.map(x=>`<div style="position:absolute;left:${x}%;top:0;bottom:0;width:2px;background:#fff;opacity:.8"></div>`).join('');
+  const due=w.due&&(w.due.keys||w.due.coins)?`<button class="btn btn-primary btn-block" style="margin:10px 0" onclick="dzClaim()">🎁 ${L('Wochenbelohnung abholen: ','Collect weekly reward: ')}${rwTxt(w.due)}</button>`:'';
+  renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">🎯 ${L('WOCHENZIEL','WEEKLY GOAL')}</div>
+    <div class="picker-sub">${L('Mo–So · noch '+w.daysLeft+' Tag(e). Es zählt die höchste erreichte Stufe pro Rätselart. Die Belohnung (Schlüssel für Kisten und Münzen) holst du nach Wochenende ab.','Mon–Sun · '+w.daysLeft+' day(s) left. The highest tier per puzzle type counts. Collect the reward (keys for chests and coins) after the week ends.')}</div>
+    ${due}${['sudoku','cw','ws','wv'].map(row).join('')}
+    <div style="margin:16px 0 6px;padding:12px;border:2px solid #c3ff4d;border-radius:16px;background:linear-gradient(135deg,#1f2a4d,#18304a)"><div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px"><span>⭐ ${L('GESAMT','TOTAL')}</span><span style="color:#ffd45a">${w.total.pct} %</span></div><div style="position:relative;height:16px;border-radius:10px;background:#0c1224;border:1px solid #2c3658;margin:10px 0;overflow:hidden"><div style="height:100%;width:${Math.min(100,w.total.pct)}%;background:linear-gradient(90deg,#c3ff4d,#3de0ff)"></div>${mk2}</div><div style="display:flex;gap:6px">${tc}</div></div>
+    <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="dzList(dzLast)">${t('btn_back')}</button></div></div></div>`);
 }
 function dzList(r){
   // Zwei grosse Buttons pro Tag (Sudoku / Kreuzwort): jeweils die naechste noch offene Stufe, danach die naechste.
@@ -5902,7 +5929,7 @@ function dzList(r){
     const pips=its.map(i=>i.solved?'●':'○').join(' ');
     const ico=dzIcon(kind), name=kind==='sudoku'?'Sudoku':kind==='cw'?L('Kreuzworträtsel','Crossword'):kind==='ws'?L('Wörter finden','Find words'):L('Wörter verbinden','Connect words');
     const wsN={small:5,medium:10,big:15}, tierN=({small:L('Klein','Small'),medium:L('Mittel','Medium'),big:L('Groß','Large')});
-    const lvName=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[it.diff]:tierN[it.diff]+' · '+wsN[it.diff]+' '+L('Wörter','words')+(it.cat?' · '+it.cat.icon+' '+it.cat.name:'')):'';
+    const lvName=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[it.diff]:tierN[it.diff]+' · '+(kind==='wv'?({small:15,medium:30,big:50})[it.diff]+' '+L('Punkte','points'):wsN[it.diff]+' '+L('Wörter','words'))+(it.cat?' · '+it.cat.icon+' '+it.cat.name:'')):'';
     const best=its.filter(i=>i.solved).length?its.filter(i=>i.solved).slice(-1)[0].reward:0;
     const can=!done&&day.open&&!it.locked;
     return `<button class="btn ${done?'btn-ghost':'btn-primary'} btn-block" style="margin:6px 0;padding:14px 16px;text-align:left;display:flex;justify-content:space-between;align-items:center;${done?'opacity:.7;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
@@ -5915,18 +5942,19 @@ function dzList(r){
   renderApp(`<div class="panel"><div class="dz-wrap">
     <div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div>
     <div class="picker-sub">${L('Jeden Tag neue Rätsel. Fang mit dem leichten an – danach schaltest du das nächste frei. Die Münzen bekommst du für die höchste geschaffte Stufe (nicht zusammengerechnet) und kannst sie ab dem nächsten Tag abholen. Verpasste Rätsel der Woche kannst du sonntags nachholen.','New puzzles every day. Start with the easy one – each solved puzzle unlocks the next. You earn the coins of the highest level you finish (not added up) and can collect them from the next day. Missed puzzles of the week can be caught up on Sundays.')}</div>
-    <div class="picker-sub" style="font-size:12px">${L('Sudoku: Leicht 25 · Mittel 50 · Schwer 75 &nbsp;|&nbsp; Kreuzwort: Klein 25 · Mittel 50 · Groß 75 &nbsp;|&nbsp; Wörter: Klein 25 · Mittel 50 · Groß 75 (+Bonus für alle Wörter 5/10/50)','Sudoku: Easy 25 · Medium 50 · Hard 75 &nbsp;|&nbsp; Crossword: Small 25 · Medium 50 · Large 75 &nbsp;|&nbsp; Words: Small 25 · Medium 50 · Large 75')}</div>
+    <div class="picker-sub" style="font-size:12px">${L('Sudoku: Leicht 25 · Mittel 50 · Schwer 75 &nbsp;|&nbsp; Kreuzwort: Klein 25 · Mittel 50 · Groß 75 &nbsp;|&nbsp; Wörter: Klein 25 · Mittel 50 · Groß 75','Sudoku: Easy 25 · Medium 50 · Hard 75 &nbsp;|&nbsp; Crossword: Small 25 · Medium 50 · Large 75 &nbsp;|&nbsp; Words: Small 25 · Medium 50 · Large 75')}</div>
     ${r.loggedIn?'':`<div class="picker-sub" style="color:#ffd45a">${L('Melde dich an, um Münzen zu bekommen.','Log in to earn coins.')}</div>`}
-    ${r.claimable>0?`<button class="btn btn-primary btn-block" style="margin:8px 0" onclick="dzClaim()">🪙 ${L('Abholen: ','Collect: ')}${r.claimable} ${L('Münzen','coins')}</button>`:''}
+    ${(r.claimable>0||(r.weekly&&r.weekly.due&&(r.weekly.due.keys||r.weekly.due.coins)))?`<button class="btn btn-primary btn-block" style="margin:8px 0" onclick="dzClaim()">🎁 ${L('Abholen: ','Collect: ')}${[r.claimable>0?r.claimable+' 🪙':'',r.weekly&&r.weekly.due&&r.weekly.due.coins?'+'+r.weekly.due.coins+' 🪙 ('+L('Woche','week')+')':'',r.weekly&&r.weekly.due&&r.weekly.due.keys?'🔑 '+r.weekly.due.keys:''].filter(Boolean).join(' · ')}</button>`:''}
     ${r.pending>0?`<div class="picker-sub" style="color:#ffd45a">⏳ ${L('Ab morgen abholbar: ','Collectable from tomorrow: ')}${r.pending} ${L('Münzen','coins')}</div>`:''}
     <div class="dz-day"><h4>${L('Heute','Today')} · ${dzDayLabel(today.date)}</h4>${dayBtns(today)}</div>
+    ${dzWeekBtn(r)}
     ${missed.length?`<div class="picker-sub" style="margin-top:14px">${L('Sonntag: Nachholen','Sunday: catch up')}</div>`+missed.map(d=>`<div class="dz-day"><h4>${dzDayLabel(d.date)}</h4>${dayBtns(d)}</div>`).join(''):''}
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div></div>`);
 }
 async function dzClaim(){
   const r=await apiCall('/api/daily/claim',{token:account&&account.token});
-  if(r&&r.ok){ if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance; if(typeof sfx==='function'&&r.granted) sfx('win'); showInviteToast(r.granted?L('+'+r.granted+' Münzen abgeholt! 🪙','+'+r.granted+' coins collected! 🪙'):L('Gerade nichts abzuholen.','Nothing to collect right now.')); }
+  if(r&&r.ok){ if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance; if(typeof sfx==='function'&&r.granted) sfx('win'); showInviteToast((r.granted||r.weeklyKeys)?L('Abgeholt: '+(r.granted?'+'+r.granted+' 🪙 ':'')+(r.weeklyKeys?'+'+r.weeklyKeys+' 🔑':''),'Collected: '+(r.granted?'+'+r.granted+' 🪙 ':'')+(r.weeklyKeys?'+'+r.weeklyKeys+' 🔑':'')):L('Gerade nichts abzuholen.','Nothing to collect right now.')); }
   startDailyFlow();
 }
 async function dzOpen(date,type,diff){
@@ -5939,7 +5967,7 @@ async function dzOpen(date,type,diff){
     dz={kind:'ws',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,words:r.words,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},sel:null,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else if(type==='wv'){
     const sig=r.grid.join('');
-    dz={kind:'wv',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,valid:r.valid,n:r.n,max:r.max||r.n,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},cur:[],flash:'',msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
+    dz={kind:'wv',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,valid:r.valid,n:r.n,max:r.max||r.n,minLen:r.minLen||3,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},cur:[],flash:'',msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else if(type==='sudoku'){
     const sig=r.puzzle.join('');
     const cur=(saved&&saved.sig===sig&&Array.isArray(saved.cur)&&saved.cur.length===81)?saved.cur:r.puzzle.slice();
@@ -5998,7 +6026,7 @@ function dzMsg(m,color){ const e=document.getElementById('dzMsg'); if(e){ e.text
 function dzPaint(){
   if(!dz) return; const b=document.getElementById('dzBody'); if(!b) return;
   if(dz.kind==='sudoku') b.innerHTML=dzSudokuHtml(); else if(dz.kind==='ws') b.innerHTML=dzWsHtml(); else if(dz.kind==='wv') b.innerHTML=dzWvHtml(); else b.innerHTML=dzCwHtml();
-  const full=dz.kind==='sudoku'?dz.cur.every(v=>v>0):dz.kind==='ws'?Object.keys(dz.found).length===dz.words.length:dz.kind==='wv'?Object.keys(dz.found).length>=dz.n:dz.cells.every((row,r)=>row.every((c,cc)=>!c||dz.letters[r][cc]));
+  const full=dz.kind==='sudoku'?dz.cur.every(v=>v>0):dz.kind==='ws'?Object.keys(dz.found).length===dz.words.length:dz.kind==='wv'?dzWvPts()>=dz.n:dz.cells.every((row,r)=>row.every((c,cc)=>!c||dz.letters[r][cc]));
   const btn=document.getElementById('dzDone'); if(btn){ btn.disabled=!full; btn.style.opacity=full?1:.45; }
 }
 /* ---------- Sudoku ---------- */
@@ -6079,6 +6107,8 @@ function dzPaintWsOnly(){
     el.style.color=ci!==undefined||isP||selK===k?'#10161f':'#fff'; });
 }
 /* ---------- Woerter verbinden (Boggle-artig): ueber benachbarte Buchstaben wischen, auch diagonal ---------- */
+function dzWvPoints(len){ return len<3?0:len<=4?1:len===5?2:len===6?3:len===7?5:11; }
+function dzWvPts(){ return Object.keys(dz.found).reduce((a,w)=>a+dzWvPoints(w.length),0); }
 function dzWvHtml(){
   const N=dz.size, cur=dz.cur, curK={}; cur.forEach((p,i)=>{ curK[p[0]+','+p[1]]=i; });
   const foundCells={}; Object.values(dz.found).forEach(f=>f.path.forEach(p=>{ foundCells[p[0]+','+p[1]]=1; }));
@@ -6089,13 +6119,15 @@ function dzWvHtml(){
     const bg=on?(dz.flash==='bad'?'#ff5d6e':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fd?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)');
     g+=`<div data-k="${k}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:900;font-size:clamp(14px,${Math.floor(330/N)/10*1.0}cqw,28px);background:${bg};color:${on?'#10161f':'#fff'};border:2px solid ${on?'#fff':'rgba(255,255,255,.12)'};user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
   }
-  const words=Object.keys(dz.found).map(w=>`<span style="padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;margin:3px;display:inline-block;background:#7cff8c;color:#10161f">${esc(w)}</span>`).join('');
-  const done=Object.keys(dz.found).length;
+  const words=Object.keys(dz.found).map(w=>`<span style="padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;margin:3px;display:inline-block;background:#7cff8c;color:#10161f">${esc(w)} <small>+${dzWvPoints(w.length)}</small></span>`).join('');
+  const pts=dzWvPts(), bon=({small:5,medium:10,big:50})[dz.diff];
   return `<div id="dzWvWord" style="min-height:34px;font-size:24px;font-weight:900;letter-spacing:3px;color:${dz.flash==='bad'?'#ff8a9a':dz.flash==='ok'?'#7cff8c':'#ffd45a'}">${esc(word)||'&nbsp;'}</div>
     <div id="dzWvGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:${N>7?4:6}px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>
-    <div style="font-weight:800;margin:6px 0;color:${done>=dz.n?'#7cff8c':'#fff'}">${done} / ${dz.n} ${L('Wörter','words')}${done>=dz.n?'':' · '+L('noch','left:')+' '+Math.max(0,dz.n-done)}</div><div style="font-size:12px;color:${done>=dz.max?'#7cff8c':'#ffd45a'}">${done>=dz.max?L('🏆 Alle gefunden – Bonus sicher!','🏆 All found – bonus secured!'):L('Weitersuchen lohnt sich: bis zu '+dz.max+' Wörter = Bonus (+'+({small:5,medium:10,big:50})[dz.diff]+' 🪙)','Keep going: up to '+dz.max+' words = bonus (+'+({small:5,medium:10,big:50})[dz.diff]+' 🪙)')}</div>
-    ${dz.diff==='big'?'':`<div style="text-align:center;min-height:30px">${words}</div>`}
-    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (ab 3 Buchstaben, Umlaute als AE, OE, UE – z. B. BAER). Oder tippe die Buchstaben nacheinander an und bestätige mit ✔.','Swipe across neighbouring letters (diagonals too) to spell any words (3+ letters). Or tap the letters one by one and confirm with ✔.')}</div>
+    <div style="font-weight:800;margin:6px 0;color:${pts>=dz.n?'#7cff8c':'#fff'}">${pts} / ${dz.n} ${L('Punkte','points')}${pts>=dz.n?'':' · '+L('noch','left:')+' '+(dz.n-pts)}</div>
+    <div style="height:8px;border-radius:6px;background:rgba(255,255,255,.1);margin:0 auto 6px;max-width:300px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(pts/dz.n*100))}%;background:${pts>=dz.n?'#7cff8c':'#3de0ff'}"></div></div>
+    <div style="font-size:12px;color:#9aa">${L('Ziel: '+dz.n+' Punkte zum Lösen der Stufe','Goal: '+dz.n+' points to clear the level')}</div>
+    <div style="text-align:center;min-height:30px">${words}</div>
+    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (ab 3 Buchstaben, Umlaute als AE, OE, UE – z. B. BAER). Punkte: 3–4 Buchstaben = 1, 5 = 2, 6 = 3, 7 = 5, ab 8 = 11. Oder tippe die Buchstaben nacheinander an und bestätige mit ✔.','Swipe across neighbouring letters (diagonals too) to spell any words (3+ letters). Points: 3–4 letters = 1, 5 = 2, 6 = 3, 7 = 5, 8+ = 11. Or tap the letters one by one and confirm with ✔.')}</div>
     <div class="actions-row" style="margin:6px 0"><button class="btn btn-ghost" onclick="dzWvClear()">✖ ${L('Löschen','Clear')}</button><button class="btn btn-primary" onclick="dzWvCommit()">✔ ${L('Wort prüfen','Check word')}</button></div>`;
 }
 function dzWvAdj(a,b){ return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]))===1; }
@@ -6111,7 +6143,7 @@ function dzWvPaintOnly(){
 function dzWvClear(){ if(!dz||dz.kind!=='wv') return; dz.cur=[]; dz.flash=''; dzWvPaintOnly(); }
 async function dzWvCommit(){
   if(!dz||dz.kind!=='wv') return;
-  if(dz.cur.length<3){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); return; }
+  if(dz.cur.length<3){ if(dz.cur.length>1) dzMsg(L('Zu kurz – mindestens 3 Buchstaben.','Too short – at least 3 letters.'),'#ffd45a'); dz.cur=[]; dz.flash=''; dzWvPaintOnly(); return; }
   const path=dz.cur.map(p=>[p[0],p[1]]), w=path.map(p=>dz.grid[p[0]][p[1]]).join('');
   const bad=()=>{ dz.flash='bad'; if(typeof sfx==='function') sfx('tap'); dzWvPaintOnly(); setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },300); };
   if(dz.found[w]){ dzMsg(L('Das hast du schon.','Already found.'),'#ffd45a'); bad(); return; }
@@ -6127,9 +6159,9 @@ async function dzWvCommit(){
   }
   if(!ok){ bad(); return; }
   dz.found[w]={w,path}; dz.flash='ok'; dzSave(); if(typeof sfx==='function') sfx('mill');
-  dzPaint(); const done=Object.keys(dz.found).length;
-  if(done>=dz.max) dzMsg(L('Alle gefunden! Tippe auf „Fertig – prüfen“ für den Bonus.','All found! Tap “Done – check” for the bonus.'),'#7cff8c');
-  else if(done>=dz.n) dzMsg(L('Geschafft! Du kannst „Fertig“ drücken oder weitersuchen (Bonus bei '+dz.max+').','Done! Tap “Done” or keep searching (bonus at '+dz.max+').'),'#7cff8c');
+  dzPaint(); const pts=dzWvPts(), gain=dzWvPoints(w.length);
+  dzMsg('+'+gain+' '+L('Punkte','points'),'#7cff8c');
+  if(pts>=dz.n && pts-gain<dz.n) dzMsg(L('Ziel geschafft! Du kannst „Fertig – prüfen“ drücken oder weitersuchen.','Goal reached! Tap “Done – check” or keep going.'),'#7cff8c');
   setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },350);
 }
 (function(){
@@ -6237,14 +6269,14 @@ async function dzSubmit(){
     else { dz.wrongC={}; (r.wrongCells||[]).forEach(k=>{ const p=k.split(','); dz.wrongC[k]=dz.letters[+p[0]][+p[1]]; }); }
     dzPaint();
   }
-  if(!r.correct){ dzMsg(dz.kind==='wv'?L(r.wrong+' Wort/Wörter fehlen noch.',r.wrong+' word(s) still missing.'):dz.kind==='ws'?L(r.wrong+' Wort/Wörter fehlen noch.',r.wrong+' word(s) still missing.'):dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
+  if(!r.correct){ dzMsg(dz.kind==='wv'?L(r.wrong+' Punkt(e) fehlen noch.',r.wrong+' point(s) still missing.'):dz.kind==='ws'?L(r.wrong+' Wort/Wörter fehlen noch.',r.wrong+' word(s) still missing.'):dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
   const solvedTime=dzElapsed(); dzTimerStop();
   try{ localStorage.removeItem(dz.key); }catch(e){}
   if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance;
   const txt=r.tooFast?L('Richtig! Aber so schnell gibt es keine Münzen. Probiere es später nochmal mit „Fertig“.','Correct! But no coins for such a fast solve. Try “Done” again a little later.')
     :r.needLogin?L('Richtig! Melde dich an, um Münzen zu bekommen.','Correct! Log in to earn coins.')
     :r.already?L('Richtig! Schon eingelöst.','Correct! Already claimed.')
-    :r.deferred?L('Richtig! 🎉 Belohnung: '+r.reward+' Münzen'+(r.bonus?' (inkl. Bonus +'+r.bonus+' 🏆)':'')+' – abholbar ab morgen. Höhere Stufe = mehr (nicht addiert).','Correct! 🎉 Reward: '+r.reward+' coins – collect from tomorrow. A higher level pays more (not added up).')
+    :r.deferred?L('Richtig! 🎉 Belohnung: '+r.reward+' Münzen'+' – abholbar ab morgen. Höhere Stufe = mehr (nicht addiert).','Correct! 🎉 Reward: '+r.reward+' coins – collect from tomorrow. A higher level pays more (not added up).')
     :L('Richtig! 🎉 +'+r.coins+' Münzen','Correct! 🎉 +'+r.coins+' coins');
   if(r.tooFast){ dzMsg(txt,'#ffd45a'); dzTimerStart(); return; }
   renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div><div class="dz-timer">⏱ ${dzFmt(solvedTime)}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
