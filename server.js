@@ -4542,9 +4542,11 @@ function wordCandidates(w, lg) {
   vars.forEach(v => { set.add(v); set.add(v[0].toUpperCase() + v.slice(1)); });
   return [...set].slice(0, 40);
 }
+let _wlog = 0;
+function wordLog(m) { const n = Date.now(); if (n - _wlog > 60000) { _wlog = n; console.log("[Woerter-Pruefung] " + m); } }
 async function wordCheck(w, lg) {
   w = String(w || "").toUpperCase();
-  if (!/^[A-Z]{3,12}$/.test(w)) return { valid: false };
+  if (!/^[A-Z]{3,12}$/.test(w) || DailyWords.isBlocked(w)) return { valid: false };
   const pool = DailyWords.generalPool(lg === "en" ? "en" : "de");
   if (!wordCheck._set) wordCheck._set = {};
   const setKey = lg === "en" ? "en" : "de";
@@ -4555,16 +4557,16 @@ async function wordCheck(w, lg) {
   try {
     const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 4500);
     const url = "https://" + setKey + ".wiktionary.org/w/api.php?action=query&format=json&formatversion=2&titles=" + encodeURIComponent(wordCandidates(w, setKey).join("|"));
-    const res = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "BrainPulse/1.0 (word check)" } });
+    const res = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": "BrainPulse/1.0 (https://brain-pulse-z17r.onrender.com; Wortpruefung fuer ein Quizspiel)", "Accept": "application/json" } });
     clearTimeout(to);
-    if (!res.ok) return { valid: false, uncertain: true };
+    if (!res.ok) { wordLog("Wiktionary HTTP " + res.status); return { valid: false, uncertain: true }; }
     const j = await res.json();
     const pages = (j && j.query && j.query.pages) || [];
     const ok = pages.some(pg => pg && !pg.missing && !pg.invalid);
     if (wordCache.size > 30000) wordCache.delete(wordCache.keys().next().value);
     wordCache.set(ck, ok);
     return { valid: ok };
-  } catch (e) { return { valid: false, uncertain: true }; }
+  } catch (e) { wordLog("Wiktionary Fehler: " + (e && e.message)); return { valid: false, uncertain: true }; }
 }
 async function dailyApi(action, payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
