@@ -6095,7 +6095,7 @@ function dzWvHtml(){
     <div id="dzWvGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:${N>7?4:6}px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>
     <div style="font-weight:800;margin:6px 0;color:${done>=dz.n?'#7cff8c':'#fff'}">${done} / ${dz.n} ${L('Wörter','words')}${done>=dz.n?'':' · '+L('noch','left:')+' '+Math.max(0,dz.n-done)}</div><div style="font-size:12px;color:${done>=dz.max?'#7cff8c':'#ffd45a'}">${done>=dz.max?L('🏆 Alle gefunden – Bonus sicher!','🏆 All found – bonus secured!'):L('Weitersuchen lohnt sich: bis zu '+dz.max+' Wörter = Bonus (+'+({small:5,medium:10,big:50})[dz.diff]+' 🪙)','Keep going: up to '+dz.max+' words = bonus (+'+({small:5,medium:10,big:50})[dz.diff]+' 🪙)')}</div>
     ${dz.diff==='big'?'':`<div style="text-align:center;min-height:30px">${words}</div>`}
-    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (mind. 4 Buchstaben). Oder tippe die Buchstaben nacheinander an und bestätige mit ✔.','Swipe across neighbouring letters (diagonals too) to spell any words (4+ letters). Or tap the letters one by one and confirm with ✔.')}</div>
+    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (ab 3 Buchstaben, Umlaute als AE, OE, UE – z. B. BAER). Oder tippe die Buchstaben nacheinander an und bestätige mit ✔.','Swipe across neighbouring letters (diagonals too) to spell any words (3+ letters). Or tap the letters one by one and confirm with ✔.')}</div>
     <div class="actions-row" style="margin:6px 0"><button class="btn btn-ghost" onclick="dzWvClear()">✖ ${L('Löschen','Clear')}</button><button class="btn btn-primary" onclick="dzWvCommit()">✔ ${L('Wort prüfen','Check word')}</button></div>`;
 }
 function dzWvAdj(a,b){ return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]))===1; }
@@ -6109,17 +6109,28 @@ function dzWvPaintOnly(){
   const w=document.getElementById('dzWvWord'); if(w){ w.textContent=dz.cur.map(p=>dz.grid[p[0]][p[1]]).join('')||'\u00a0'; w.style.color=dz.flash==='bad'?'#ff8a9a':dz.flash==='ok'?'#7cff8c':'#ffd45a'; }
 }
 function dzWvClear(){ if(!dz||dz.kind!=='wv') return; dz.cur=[]; dz.flash=''; dzWvPaintOnly(); }
-function dzWvCommit(){
-  if(!dz||dz.kind!=='wv'||dz.cur.length<2){ if(dz&&dz.kind==='wv'){ dz.cur=[]; dzWvPaintOnly(); } return; }
-  const w=dz.cur.map(p=>dz.grid[p[0]][p[1]]).join('');
-  if(dz.valid.includes(w)&&!dz.found[w]){
-    dz.found[w]={w,path:dz.cur.map(p=>[p[0],p[1]])}; dz.flash='ok'; dzSave(); if(typeof sfx==='function') sfx('mill');
-    dzPaint(); const done=Object.keys(dz.found).length; if(done>=dz.max) dzMsg(L('Alle gefunden! Tippe auf „Fertig – prüfen“ für den Bonus.','All found! Tap “Done – check” for the bonus.'),'#7cff8c'); else if(done>=dz.n) dzMsg(L('Geschafft! Du kannst „Fertig“ drücken oder weitersuchen (Bonus bei '+dz.max+').','Done! Tap “Done” or keep searching (bonus at '+dz.max+').'),'#7cff8c');
-    setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },350);
-  } else {
-    dz.flash='bad'; if(typeof sfx==='function') sfx('tap'); dzWvPaintOnly();
-    setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },300);
+async function dzWvCommit(){
+  if(!dz||dz.kind!=='wv') return;
+  if(dz.cur.length<3){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); return; }
+  const path=dz.cur.map(p=>[p[0],p[1]]), w=path.map(p=>dz.grid[p[0]][p[1]]).join('');
+  const bad=()=>{ dz.flash='bad'; if(typeof sfx==='function') sfx('tap'); dzWvPaintOnly(); setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },300); };
+  if(dz.found[w]){ dzMsg(L('Das hast du schon.','Already found.'),'#ffd45a'); bad(); return; }
+  if(!dz.vset) dz.vset=new Set(dz.valid);
+  let ok=dz.vset.has(w)||(dz.okExt&&dz.okExt[w]);
+  if(!ok&&!(dz.noExt&&dz.noExt[w])){
+    dzMsg(L('Prüfe Wort …','Checking word …'),'#ffd45a'); dz.busy=true;
+    let r=null; try{ r=await apiCall('/api/daily/word',{word:w}); }catch(e){}
+    dz.busy=false; if(!dz||dz.kind!=='wv') return;
+    if(r&&r.ok&&r.valid){ ok=true; (dz.okExt=dz.okExt||{})[w]=1; }
+    else if(r&&r.ok&&!r.uncertain){ (dz.noExt=dz.noExt||{})[w]=1; }
+    dzMsg('');
   }
+  if(!ok){ bad(); return; }
+  dz.found[w]={w,path}; dz.flash='ok'; dzSave(); if(typeof sfx==='function') sfx('mill');
+  dzPaint(); const done=Object.keys(dz.found).length;
+  if(done>=dz.max) dzMsg(L('Alle gefunden! Tippe auf „Fertig – prüfen“ für den Bonus.','All found! Tap “Done – check” for the bonus.'),'#7cff8c');
+  else if(done>=dz.n) dzMsg(L('Geschafft! Du kannst „Fertig“ drücken oder weitersuchen (Bonus bei '+dz.max+').','Done! Tap “Done” or keep searching (bonus at '+dz.max+').'),'#7cff8c');
+  setTimeout(()=>{ if(dz&&dz.kind==='wv'){ dz.cur=[]; dz.flash=''; dzWvPaintOnly(); } },350);
 }
 (function(){
   let drag=false, moved=false;
@@ -9615,7 +9626,7 @@ function muStatusText(){
 }
 function muRender(){
   if(!mu || !mu.b) return;
-  const all = muMyMoves(), S = 56, PAD = 22, W = S * 6 + PAD * 2;
+  const all = muMyMoves(), PAD = 22, avail = Math.max(240, Math.min(400, (document.documentElement.clientWidth || window.innerWidth || 400) - 64)), S = Math.floor((avail - PAD * 2) / 6), W = S * 6 + PAD * 2;
   const xy = p => [PAD + MU_XY[p][0] * S, PAD + MU_XY[p][1] * S];
   let lines = '';
   for(let ring = 0; ring < 3; ring++){ const a = PAD + ring * S, c = PAD + (6 - ring) * S; lines += `<rect x="${a}" y="${a}" width="${c - a}" height="${c - a}" fill="none" stroke="#c9a45c" stroke-width="3"/>`; }
@@ -9628,7 +9639,7 @@ function muRender(){
   else if(!mu.busy && mu.turn === mu.you && mu.full && !mu.over){ all.forEach(x => starts.add(x.from)); }
   let spots = '';
   for(let p = 0; p < 24; p++){
-    const [x, y] = xy(p), pc = mu.b[p], r = 21;
+    const [x, y] = xy(p), pc = mu.b[p], r = Math.min(21, Math.floor(S * 0.4));
     let ring = '';
     if(rms.has(p)) ring = 'box-shadow:0 0 0 4px #ff5d8f;'; else if(mu.sel === p) ring = 'box-shadow:0 0 0 4px #ffc446;'; else if(starts.has(p)) ring = 'box-shadow:0 0 0 3px rgba(124,255,140,.7);';
     else if(mu.last && (mu.last.to === p)) ring = 'box-shadow:0 0 0 3px rgba(255,196,70,.7);';
