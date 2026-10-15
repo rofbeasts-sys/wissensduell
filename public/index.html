@@ -6661,6 +6661,25 @@ function avatarPickerChoose(profileId, emoji, isAccountProfile){
   }
   renderAvatarPicker(profileId, avatarPickerBackFn);
 }
+
+/* Sammlung "Meine Rahmen" in der Statistik: erhaltene Rahmen farbig, noch nicht erhaltene grau mit Schloss */
+const FRAME_LIST = [
+  { phase:1, de:'Beta 1', en:'Beta 1', dDe:'Für die ersten Tester', dEn:'For the first testers' },
+  { phase:2, de:'Beta 2', en:'Beta 2', dDe:'Zweite Testphase', dEn:'Second test phase' },
+  { phase:3, de:'Beta 3', en:'Beta 3', dDe:'Dritte Testphase', dEn:'Third test phase' }
+];
+function framesCollectionHtml(){
+  if(!account || !account.profile) return '';
+  const mine = account.profile.betaPhase|0, av = account.profile.avatar;
+  const owned = FRAME_LIST.filter(f => f.phase === mine);
+  if(!owned.length) return ''; // nichts erhalten -> Bereich bleibt unsichtbar
+  const tile = f => `<div style="flex:0 1 110px;min-width:96px;text-align:center;padding:12px 6px;border-radius:14px;border:1px solid ${BETA_COL[f.phase][1]}88;background:${BETA_COL[f.phase][1]}14">
+      <div style="display:inline-block;padding:6px">${framedAvatarHtml(av, 52, f.phase)}</div>
+      <div style="font-weight:800;font-size:14px;margin-top:6px;color:${BETA_COL[f.phase][1]}">${L(f.de,f.en)}</div>
+      <div style="font-size:11px;opacity:.65;margin-top:3px">${L(f.dDe,f.dEn)}</div></div>`;
+  return `<div class="stat-card" style="margin-top:12px"><div class="st-head"><div class="st-name" style="font-size:16px">🏅 ${L('MEINE RAHMEN','MY FRAMES')}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${owned.map(tile).join('')}</div></div>`;
+}
+
 function renderStatistik(){
   setAudioZone("menu");
   // Angemeldet -> NUR die Konto-Statistik zeigen, nicht zusaetzlich noch
@@ -6673,7 +6692,7 @@ function renderStatistik(){
     <div class="panel">
       <div class="picker-title">${L('STATISTIK','STATISTICS')}</div>
       <div class="picker-sub">${account ? L('Dein Konto-Profil gilt für alle Modi.','Your account profile applies to all modes.') : L('Detaillierte Werte je gespeichertem Profil.','Detailed values for each saved profile.')}</div>
-      ${account ? statCardHtml(accountAsProfile(), account.profile) : ``}
+      ${account ? statCardHtml(accountAsProfile(), account.profile) + framesCollectionHtml() : ``}
       ${showLocalHint ? `<p style="color:var(--text-dim)">${L('Noch keine Profile vorhanden.','No profiles yet.')}</p>` : ``}
       ${account ? `` : profiles.map(p => statCardHtml(p)).join("")}
       <div class="actions-row" style="margin-top:10px;">
