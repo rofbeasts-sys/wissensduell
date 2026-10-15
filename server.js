@@ -4685,6 +4685,22 @@ async function dailyApi(action, payload, lang) {
     const po = dailyPayout(d, today);
     return { ok: true, granted: granted + wkCoins, dailyCoins: granted, weeklyCoins: wkCoins, weeklyKeys: wkKeys, balance: user.stats.coins || 0, claimable: po.claimable, pending: po.pending };
   }
+  if (action === "board") { // Bestenliste: schnellste Zeiten je Raetselart und Stufe (Heute / Allzeit), Top 5
+    const out = { today: {}, all: {}, mine: {} };
+    for (const type of Object.keys(DAILY_REWARDS)) for (const diff of Object.keys(DAILY_REWARDS[type])) {
+      const k = type + ":" + diff, tl = [], al = [];
+      for (const u of users) {
+        if (isRestricted(u) || !u.stats || !u.stats.daily) continue;
+        const b = u.stats.daily.bt && u.stats.daily.bt[k], t0 = u.stats.daily.btd && u.stats.daily.btd[k];
+        if (b) al.push({ name: u.username, avatar: u.avatar || null, s: b.s });
+        if (t0 && t0.date === today) tl.push({ name: u.username, avatar: u.avatar || null, s: t0.s });
+        if (user && u === user && b) out.mine[k] = { s: b.s, today: t0 && t0.date === today ? t0.s : null };
+      }
+      const top = arr => arr.sort((x, y) => x.s - y.s).slice(0, 5);
+      out.today[k] = top(tl); out.all[k] = top(al);
+    }
+    return Object.assign({ ok: true }, out);
+  }
   const date = String(payload.date || ""), type = ["cw", "ws", "wv"].includes(payload.type) ? payload.type : "sudoku", diff = String(payload.diff || "");
   if (!DAILY_REWARDS[type] || !DAILY_REWARDS[type][diff] || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return errObj("invalidInput", lang);
   if (!allowed.includes(date)) return { ok: false, error: lang === "en" ? "This puzzle is not available now. Missed puzzles can be caught up on Sundays." : "Dieses Rätsel ist gerade nicht verfügbar. Verpasste Rätsel kannst du sonntags nachholen." };
@@ -4781,6 +4797,16 @@ async function dailyApi(action, payload, lang) {
     if (d.solved[skey]) return { ok: true, correct: true, coins: 0, already: true, balance: user.stats.coins || 0 };
     const started = d.started[skey] || 0, minMs = (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * 1000;
     if (!started || Date.now() - started < minMs * DAILY_MIN_SCALE) return { ok: true, correct: true, coins: 0, tooFast: true };
+    if (date === today) { // Bestzeit (nur das Tagesraetsel von heute): Clientzeit (ohne Pausen), begrenzt durch die echte Dauer seit Start
+      const wallS = (Date.now() - started) / 1000, cl = Number(payload.secs);
+      const floorS = Math.max(1, (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * DAILY_MIN_SCALE);
+      const secs = Math.round(Math.max(floorS, Math.min(isFinite(cl) && cl > 0 ? cl : wallS, wallS)));
+      if (!d.bt || typeof d.bt !== "object") d.bt = {};
+      if (!d.btd || typeof d.btd !== "object") d.btd = {};
+      const bk2 = type + ":" + diff;
+      if (!d.bt[bk2] || secs < d.bt[bk2].s) d.bt[bk2] = { s: secs, date };
+      if (!d.btd[bk2] || d.btd[bk2].date !== today || secs < d.btd[bk2].s) d.btd[bk2] = { s: secs, date };
+    }
     d.solved[skey] = Date.now(); delete d.started[skey];
     if (type === "wv") { if (!d.wvPts) d.wvPts = {}; d.wvPts[date + ":" + diff] = Math.min(wvPts, 400); }
     // Belohnung wird NICHT sofort gezahlt: sie wird fuer "datum:typ" auf die hoechste geloeste Stufe gesetzt (nicht addiert)
