@@ -3356,7 +3356,7 @@ function freshModeStats() {
 function publicProfile(user) {
   // Interne Anticheat-Daten gehoeren nicht zum Client
 
-  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, betaPhase: user.betaPhase | 0, socialClaimed: Object.keys(user.social || {}), cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
 }
 
 function checkLoginName(loginName, gameName, selfUser, lang) {
@@ -3429,6 +3429,7 @@ async function registerUser(username, password, ip, lang, loginName) {
     createdAt: Date.now(),
     friends: [], incomingRequests: [], outgoingRequests: []
   };
+  { const bm = await loadBetaMeta(); if (bm.phase > 0) user.betaPhase = bm.phase; }
   users.push(user);
   if (!(await saveUsers())) {
     // Nicht gespeichert -> Konto zurueckrollen statt so zu tun, als waere alles gut
@@ -3822,6 +3823,86 @@ async function saveResetMeta() {
     return res.ok;
   }
   try { fs.mkdirSync(path.dirname(META_FILE), { recursive: true }); fs.writeFileSync(META_FILE, JSON.stringify(resetMeta), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
+}
+/* ---- Beta-Phasen: der Admin stellt die laufende Phase um (0 = keine). Neue Konten bekommen das passende Abzeichen dauerhaft. ---- */
+let betaMeta = null; // { phase: 0..3 }
+const BETA_FILE = USERS_FILE + ".beta.json";
+const BETA_MAX = 3;
+async function loadBetaMeta() {
+  if (betaMeta) return betaMeta;
+  let m = { phase: 0 };
+  try {
+    if (USE_UPSTASH) {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_beta`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+      const d = await res.json();
+      if (d && d.result) m = JSON.parse(d.result);
+    } else if (fs.existsSync(BETA_FILE)) {
+      m = JSON.parse(fs.readFileSync(BETA_FILE, "utf8"));
+    }
+  } catch (e) { console.error("Beta-Phase nicht lesbar:", e.message); }
+  const p = Math.floor(Number(m && m.phase)) || 0;
+  betaMeta = { phase: p >= 0 && p <= BETA_MAX ? p : 0 };
+  return betaMeta;
+}
+async function saveBetaMeta() {
+  if (USE_UPSTASH) {
+    const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}_beta`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(betaMeta) });
+    return res.ok;
+  }
+  try { fs.mkdirSync(path.dirname(BETA_FILE), { recursive: true }); fs.writeFileSync(BETA_FILE, JSON.stringify(betaMeta), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
+}
+function betaCounts() { const c = { 1: 0, 2: 0, 3: 0 }; for (const u of users) { const p = u.betaPhase | 0; if (p >= 1 && p <= BETA_MAX) c[p]++; } return c; }
+// Admin: Phase lesen/setzen (phase 0..3) und optional einem bestehenden Konto ein Abzeichen geben/entziehen (grantUser + grantPhase 0..3)
+async function adminBeta(key, ip, payload, lang) {
+  if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  await loadBetaMeta();
+  const p = payload || {};
+  if (p.phase !== undefined && p.phase !== null) {
+    const n = Math.floor(Number(p.phase));
+    if (!(n >= 0 && n <= BETA_MAX)) return { ok: false, error: "Phase muss 0 bis 3 sein." };
+    betaMeta.phase = n;
+    if (!(await saveBetaMeta())) return serviceDownMsg(lang);
+  }
+  let granted = null;
+  if (typeof p.grantUser === "string" && p.grantUser.trim()) {
+    const u = findUserByName(p.grantUser.trim());
+    if (!u) return { ok: false, error: "Konto nicht gefunden." };
+    const g = Math.floor(Number(p.grantPhase));
+    if (!(g >= 0 && g <= BETA_MAX)) return { ok: false, error: "Abzeichen muss 0 bis 3 sein." };
+    if (g) u.betaPhase = g; else delete u.betaPhase;
+    if (!(await saveUsers())) return serviceDownMsg(lang);
+    granted = { username: u.username, betaPhase: g };
+  }
+  return { ok: true, phase: betaMeta.phase, counts: betaCounts(), granted };
+}
+/* ---- Folgen-Bonus: einmalig Muenzen je Netzwerk (Ehrensystem - ob wirklich gefolgt wird, laesst sich nicht pruefen) ---- */
+const SOCIAL_BONUS = { tiktok: 50, instagram: 50, clapper: 50 };
+const SOCIAL_MIN_WAIT_MS = 8000, SOCIAL_OPEN_MAX_MS = 24 * 3600 * 1000;
+async function socialClaim(payload, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const user = findUserByToken(payload && payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const net = String((payload && payload.network) || "");
+  if (!Object.prototype.hasOwnProperty.call(SOCIAL_BONUS, net)) return errObj("invalidInput", lang);
+  const step = payload.step === "claim" ? "claim" : "open";
+  const claimed = () => Object.keys(user.social || {});
+  if (user.social && user.social[net]) return { ok: true, already: true, balance: user.stats.coins || 0, claimed: claimed() };
+  if (step === "open") {
+    user.socialOpen = user.socialOpen || {};
+    user.socialOpen[net] = Date.now();
+    return { ok: true, claimed: claimed() };
+  }
+  const t = user.socialOpen && user.socialOpen[net];
+  const now = Date.now();
+  if (!t || now - t > SOCIAL_OPEN_MAX_MS) return { ok: false, error: lang === "en" ? "Tap the button first to open the profile." : "Tippe zuerst auf den Knopf, um das Profil zu öffnen." };
+  if (now - t < SOCIAL_MIN_WAIT_MS) return { ok: false, tooEarly: true, error: lang === "en" ? "Take a moment to follow us first." : "Nimm dir kurz Zeit, uns zu folgen." };
+  if (isRestricted(user)) return { ok: false, error: lang === "en" ? "Not available for this account." : "Für dieses Konto nicht verfügbar." };
+  const amount = SOCIAL_BONUS[net];
+  user.social = Object.assign({}, user.social, { [net]: now });
+  user.stats.coins = (user.stats.coins || 0) + amount;
+  if (!(await saveUsers())) { user.stats.coins -= amount; delete user.social[net]; return serviceDownMsg(lang); }
+  return { ok: true, granted: amount, balance: user.stats.coins, claimed: claimed() };
 }
 // Admin: Konto pruefen / neues Passwort setzen ("Passwort vergessen"). Passwoerter sind nur als Hash
 // gespeichert und lassen sich NICHT auslesen - nur neu setzen. Ohne newPassword nur Pruefung + aehnliche Namen.
@@ -5449,6 +5530,8 @@ const server = http.createServer((req, res) => {
         else if (req.url.startsWith("/api/fourups/")) { payload.__ip = ip; result = await fourupsApi(req.url.slice(13), payload, lang); }
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
         else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
+        else if (req.url === "/api/social-claim") result = await socialClaim(payload, lang);
+        else if (req.url === "/api/admin-beta") result = await adminBeta(payload.key, ip, payload, lang);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
         else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token, lang);
         else if (req.url === "/api/arena-buy-heart") result = await arenaBuyHeart(payload.token, lang);
