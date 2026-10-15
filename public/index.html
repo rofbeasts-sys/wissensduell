@@ -4261,13 +4261,42 @@ let adminOnline=null;
 async function adminOnlineRefresh(){ if(!adminKeyStored()) return; try{ const r=await fetch('/api/admin-online',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:adminKeyStored()})}); const j=await r.json(); adminOnline=(j&&j.ok)?j:null; }catch(e){ adminOnline=null; } const el=document.getElementById('adminOnl'); if(el) el.innerHTML=adminOnlineHtml(); }
 function adminOnlineHtml(){ const o=adminOnline; return o?('🟢 '+o.online+' <span style="opacity:.7;font-weight:600">('+o.loggedIn+' '+L('Konto','acc')+' · '+o.guests+' '+L('Gast','guest')+' · ↑'+o.peakToday+')</span>'):'🟢 –'; }
 setInterval(adminOnlineRefresh,30000); setTimeout(adminOnlineRefresh,3000);
+
+async function adminBetaCall(extra){
+  const r = await fetch('/api/admin-beta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({key:adminKeyStored()},extra||{}))});
+  return r.json().catch(()=>({ok:false,error:'Verbindung fehlgeschlagen.'}));
+}
+async function openAdminBeta(){
+  let d = document.getElementById('adminBeta'); if(d) d.remove();
+  d = document.createElement('div'); d.id='adminBeta';
+  d.style.cssText='position:fixed;inset:0;z-index:100000;background:#000b;display:flex;align-items:center;justify-content:center;padding:20px';
+  document.body.appendChild(d);
+  const paint = (r, msg) => {
+    if(!r || !r.ok){ d.innerHTML = '<div style="background:#12182b;border:1px solid #38bdf8;border-radius:16px;padding:18px;max-width:340px;width:100%;color:#fff;font-family:system-ui,sans-serif"><div>'+esc((r&&r.error)||'Fehler')+'</div><button id="abClose" style="margin-top:12px">OK</button></div>'; d.querySelector('#abClose').onclick=()=>d.remove(); return; }
+    const c = r.counts||{};
+    const btn = n => `<button data-p="${n}" style="flex:1;padding:10px 0;border-radius:10px;border:2px solid ${r.phase===n?'#c6ff3d':'#38bdf855'};background:${r.phase===n?'#c6ff3d22':'#0b1020'};color:#fff;font-weight:800;cursor:pointer">${n===0?'Aus':'Beta '+n}</button>`;
+    d.innerHTML = `<div style="background:#12182b;border:1px solid #38bdf8;border-radius:16px;padding:18px;max-width:340px;width:100%;color:#fff;font-family:system-ui,sans-serif">
+      <div style="font-weight:800;margin-bottom:4px">🏅 Beta-Phase</div>
+      <div style="font-size:12px;opacity:.75;margin-bottom:10px">Neue Konten bekommen das Abzeichen der laufenden Phase. Bestehende behalten ihres.</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">${[0,1,2,3].map(btn).join('')}</div>
+      <div style="display:flex;gap:10px;align-items:center;font-size:13px;margin-bottom:12px">${[1,2,3].map(n=>betaBadgeHtml(n,20)+' <b>'+(c[n]||0)+'</b>').join(' &nbsp; ')}</div>
+      <div style="font-size:12px;opacity:.75;margin-bottom:4px">Abzeichen von Hand vergeben (0 = entfernen)</div>
+      <div style="display:flex;gap:6px"><input id="abUser" placeholder="Spielname" style="flex:1;min-width:0;padding:8px;border-radius:8px;border:1px solid #38bdf855;background:#0b1020;color:#fff"><select id="abG" style="padding:8px;border-radius:8px;background:#0b1020;color:#fff;border:1px solid #38bdf855"><option>1</option><option>2</option><option>3</option><option>0</option></select><button id="abGo" style="padding:8px 12px;border-radius:8px;font-weight:800;cursor:pointer">OK</button></div>
+      <div id="abMsg" style="font-size:12px;margin-top:8px;min-height:16px;color:#c6ff3d">${msg||''}</div>
+      <button id="abClose" style="margin-top:8px;padding:8px 14px;border-radius:8px;cursor:pointer">Schließen</button></div>`;
+    d.querySelectorAll('button[data-p]').forEach(b=>b.onclick=async()=>paint(await adminBetaCall({phase:+b.dataset.p}), 'Phase gesetzt.'));
+    d.querySelector('#abGo').onclick=async()=>{ const u=d.querySelector('#abUser').value.trim(); if(!u) return; const g=+d.querySelector('#abG').value; const rr=await adminBetaCall({grantUser:u,grantPhase:g}); if(rr&&rr.ok) paint(rr, u+': '+(g?'Beta '+g:'entfernt')); else d.querySelector('#abMsg').textContent=(rr&&rr.error)||'Fehler'; };
+    d.querySelector('#abClose').onclick=()=>d.remove();
+  };
+  paint(await adminBetaCall({}));
+}
 function renderAdminPill(){
   let p = document.getElementById('adminPill');
   if(!adminKeyStored()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
   p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + (on ? '#ff5d8f' : '#38bdf8') + ';color:#fff;box-shadow:0 4px 18px #0008';
-  p.innerHTML = '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
+  p.innerHTML = '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminBeta()" title="Beta-Phasen" style="cursor:pointer;padding:2px 6px">🏅</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
 }
 async function toggleAdminView(){
   try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
@@ -4328,9 +4357,25 @@ async function restoreAccountSession(){
   else if(!result.unavailable && !result.error){ localStorage.removeItem(ACCOUNT_TOKEN_KEY); }
 }
 
+
+/* ---- Beta-Abzeichen (Beta 1/2/3): wird vom Server nach dem Anmeldezeitpunkt vergeben und bleibt dauerhaft ---- */
+const BETA_COL = { 1:['#fff0a8','#e0a800','#8a5a00'], 2:['#ffffff','#b9c3d4','#6d7a90'], 3:['#ffc791','#d9803a','#7a3d12'] };
+function betaBadgeHtml(phase, size){
+  phase = phase|0; if(phase<1 || phase>3) return '';
+  size = size || 20; const c = BETA_COL[phase], id = 'bbg'+phase+'_'+size;
+  const tip = L('Beta '+phase+' Tester – von Anfang an dabei','Beta '+phase+' tester – there from the start');
+  return `<span class="beta-badge" title="${tip}" style="display:inline-flex;vertical-align:middle;line-height:0"><svg width="${size}" height="${Math.round(size*1.16)}" viewBox="0 0 24 28" aria-label="Beta ${phase}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c[0]}"/><stop offset=".55" stop-color="${c[1]}"/><stop offset="1" stop-color="${c[2]}"/></linearGradient></defs><path d="M12 1 22 5v8c0 7-5 12-10 14C7 25 2 20 2 13V5z" fill="url(#${id})" stroke="#1b1230" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 3.200 20 6.200V13c0 5.600-3.800 9.600-8 11.400" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1"/><text x="12" y="18.200" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="13" fill="#1b1230">${phase}</text></svg></span>`;
+}
+function betaLabelHtml(phase){ phase=phase|0; return (phase>=1&&phase<=3) ? `<span style="font-size:11px;font-weight:800;color:${BETA_COL[phase][1]};margin-left:5px;letter-spacing:.5px">BETA ${phase}</span>` : ''; }
+/* Rahmen um das Profilbild (Beta 1/2/3): Ring in Gold/Silber/Bronze + kleines Schild mit der Zahl */
+(function(){ const st=document.createElement('style'); st.textContent=`.bp-fr{position:relative;display:inline-flex;vertical-align:middle;border-radius:50%;padding:calc(var(--s)*.065);box-sizing:content-box}.bp-fr.f1{background:conic-gradient(from 20deg,#fff0a8,#e0a800,#8a5a00,#ffe27a,#c98a00,#fff0a8);box-shadow:0 0 calc(var(--s)*.28) #e0a80088;animation:bpfrPulse 3.2s ease-in-out infinite}.bp-fr.f2{background:conic-gradient(from 20deg,#ffffff,#b9c3d4,#6d7a90,#e8edf5,#9aa6ba,#ffffff);box-shadow:0 0 calc(var(--s)*.22) #b9c3d466}.bp-fr.f3{background:conic-gradient(from 20deg,#ffc791,#d9803a,#7a3d12,#f0a060,#b8641f,#ffc791);box-shadow:0 0 calc(var(--s)*.22) #d9803a66}.bp-fr-in{display:inline-flex;align-items:center;justify-content:center;width:var(--s);height:var(--s);border-radius:50%;overflow:hidden;background:#1b1230;line-height:1;font-size:calc(var(--s)*.7)}.bp-fr-in img{width:100%!important;height:100%!important}.bp-fr-chip{position:absolute;right:calc(var(--s)*-.12);bottom:calc(var(--s)*-.16);line-height:0}@keyframes bpfrPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}@media (prefers-reduced-motion:reduce){.bp-fr.f1{animation:none}}`; document.head.appendChild(st); })();
+function framedAvatarHtml(avatar, px, phase){
+  phase=phase|0; if(phase<1||phase>3) return avatarHtml(avatar||'🙂', px);
+  return `<span class="bp-fr f${phase}" style="--s:${px}px" title="Beta ${phase}"><span class="bp-fr-in">${avatarHtml(avatar||'🙂', px)}</span><span class="bp-fr-chip">${betaBadgeHtml(phase, Math.max(12,Math.round(px*.5)))}</span></span>`;
+}
 function accountIndicatorHtml(){
   if(account){
-    return `<div class="account-bar">${account.profile.avatar ? avatarHtml(account.profile.avatar, 20) : "👤"} ${esc(account.profile.username)} · <button class="account-link" onclick="startFriendsFlow()">👥 ${L('Freunde','Friends')}</button> · <button class="account-link" onclick="openRecoveryKey()">🔑 ${L('Schlüssel','Key')}</button> · <button class="account-link" onclick="logoutAccount()">${L('Abmelden','Log out')}</button></div>`;
+    return `<div class="account-bar">${(account.profile.betaPhase|0) ? framedAvatarHtml(account.profile.avatar, 22, account.profile.betaPhase) : (account.profile.avatar ? avatarHtml(account.profile.avatar, 20) : "👤")} ${esc(account.profile.username)}${betaLabelHtml(account.profile.betaPhase)} · <button class="account-link" onclick="startFriendsFlow()">👥 ${L('Freunde','Friends')}</button> · <button class="account-link" onclick="openRecoveryKey()">🔑 ${L('Schlüssel','Key')}</button> · <button class="account-link" onclick="logoutAccount()">${L('Abmelden','Log out')}</button></div>`;
   }
   return `<div class="account-bar"><button class="account-link" onclick="renderAccountAuth('login')">${L('Anmelden','Log in')}</button></div>`;
 }
@@ -5808,7 +5853,39 @@ function socialAgeGate(age, name){
     'Bitte bestätige, dass du mindestens '+age+' Jahre alt bist, um zu '+name+' weitergeleitet zu werden.\n\n'+name+' ist erst ab '+age+' Jahren erlaubt.',
     'Please confirm that you are at least '+age+' years old to be redirected to '+name+'.\n\n'+name+' is only allowed for ages '+age+'+.'));
 }
-
+/* Folgen-Bonus: einmalig 50 Muenzen je Netzwerk (Ehrensystem) */
+const SOCIAL_BONUS_COINS = 50;
+function socialDone(net){ return !!(account && account.profile && (account.profile.socialClaimed||[]).includes(net)); }
+function socialPost(net, step){
+  return fetch('/api/social-claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:account.token,network:net,step:step,lang:currentLang})}).then(r=>r.json()).catch(()=>({ok:false,error:L('Verbindung fehlgeschlagen.','Connection failed.')}));
+}
+function socialClick(name, key, age){
+  if(age && !socialAgeGate(age, name)) return false;
+  if(account && account.token && !socialDone(key)){
+    socialPost(key,'open');
+    setTimeout(()=>socialAsk(name,key), 9000);
+  }
+  return true;
+}
+function socialAsk(name, key){
+  if(!account || socialDone(key) || document.getElementById('socAsk')) return;
+  const d=document.createElement('div'); d.id='socAsk';
+  d.style.cssText='position:fixed;inset:0;z-index:100000;background:#000b;display:flex;align-items:center;justify-content:center;padding:20px';
+  d.innerHTML=`<div style="background:#12182b;border:1px solid #c6ff3d;border-radius:16px;padding:18px;max-width:320px;width:100%;color:#fff;font-family:system-ui,sans-serif;text-align:center"><div style="font-size:34px">🪙</div><div style="font-weight:800;margin:6px 0">${L('Folgst du uns auf '+name+'?','Do you follow us on '+name+'?')}</div><div style="font-size:13px;opacity:.8;margin-bottom:12px">${L('Dann hol dir einmalig '+SOCIAL_BONUS_COINS+' Münzen. Wir verlassen uns auf deine Ehrlichkeit. Danke!','Then claim '+SOCIAL_BONUS_COINS+' coins once. We rely on your honesty. Thank you!')}</div><button id="socYes" class="btn btn-primary" style="width:100%;margin-bottom:8px">${L('Ja, '+SOCIAL_BONUS_COINS+' Münzen abholen','Yes, claim '+SOCIAL_BONUS_COINS+' coins')}</button><button id="socNo" class="btn btn-ghost" style="width:100%">${L('Später','Later')}</button><div id="socMsg" style="font-size:12px;margin-top:8px;min-height:14px;color:#ffd45a"></div></div>`;
+  document.body.appendChild(d);
+  d.querySelector('#socNo').onclick=()=>d.remove();
+  d.querySelector('#socYes').onclick=async()=>{
+    const msg=d.querySelector('#socMsg'); msg.textContent='…';
+    const r=await socialPost(key,'claim');
+    if(r&&r.ok){
+      if(Array.isArray(r.claimed)) account.profile.socialClaimed=r.claimed;
+      if(typeof r.balance==='number') account.profile.coins=r.balance;
+      d.remove(); if(typeof sfx==='function'&&r.granted) sfx('win');
+      if(typeof showInviteToast==='function') showInviteToast(r.granted?L('Danke fürs Folgen! +'+r.granted+' 🪙','Thanks for following! +'+r.granted+' 🪙'):L('Schon abgeholt.','Already claimed.'));
+      if(typeof renderMainMenu==='function') try{ renderMainMenu(); }catch(e){}
+    } else msg.textContent=(r&&r.error)||L('Fehler','Error');
+  };
+}
 const FOLLOW_GOAL = 100;
 const FOLLOW_NOW = null; // optional: aktuelle Followerzahl von Hand eintragen (z.B. 37) -> zeigt einen Fortschrittsbalken
 function profBubbleHtml(){
@@ -5819,7 +5896,9 @@ function profBubbleHtml(){
 function socialBarHtml(){
   const list = SOCIAL_LINKS.filter(x => x.url);
   if(!list.length) return '';
-  return `<div class="soc-bar"><div class="soc-txt">${L('Folge uns für mehr Content!','Follow us for more content!')}</div><div class="soc-row">${list.map(x => `<a class="soc-btn" style="--c:${x.c}" href="${x.url}" target="_blank" rel="noopener noreferrer"${x.age ? ` onclick="return socialAgeGate(${x.age}, '${x.name}')"` : ''}>${x.svg}<span>${x.name}</span></a>`).join('')}</div></div>`;
+  const key = x => x.name.toLowerCase();
+  const chip = x => (account && !socialDone(key(x))) ? ` <small style="font-weight:800;color:#ffd45a;background:#ffd45a22;border-radius:8px;padding:1px 6px">+${SOCIAL_BONUS_COINS} 🪙</small>` : (account && socialDone(key(x)) ? ' <small style="color:#7dff9a">✓</small>' : '');
+  return `<div class="soc-bar"><div class="soc-txt">${L('Folge uns für mehr Content!','Follow us for more content!')}</div><div class="soc-row">${list.map(x => `<a class="soc-btn" style="--c:${x.c}" href="${x.url}" target="_blank" rel="noopener noreferrer" onclick="return socialClick('${x.name}','${key(x)}',${x.age||0})">${x.svg}<span>${x.name}</span>${chip(x)}</a>`).join('')}</div></div>`;
 }
 
 function legalLinksHtml(){
@@ -6475,7 +6554,7 @@ function statCardHtml(p, extraArena){
   return `
     <div class="stat-card">
       <div class="st-head">
-        <span class="avatar-badge" style="font-size:22px; cursor:pointer;" onclick="renderAvatarPicker('${p.id}', renderStatistik)" title="${L('Profilbild ändern','Change profile picture')}">${avatarHtml(p.avatar, 30)}</span>
+        <span class="avatar-badge" style="font-size:22px; cursor:pointer;" onclick="renderAvatarPicker('${p.id}', renderStatistik)" title="${L('Profilbild ändern','Change profile picture')}">${(p.isAccount && account && (account.profile.betaPhase|0)) ? framedAvatarHtml(p.avatar, 30, account.profile.betaPhase) : avatarHtml(p.avatar, 30)}</span>
         <div class="st-name">${esc(p.name)}${p.isAccount ? `<small>${L('Konto – gilt für alle Modi','Account – applies to all modes')}</small>` : ''}</div>
         ${klasseBadgeWithName(p.klasse||0, 46)}
       </div>
@@ -6553,7 +6632,7 @@ function renderAvatarPicker(profileId, backFn){
     <div class="panel">
       <div class="picker-title">${L('Profilbild wählen','Choose profile picture')}</div>
       <div class="picker-sub">${esc(profile.name)} – ${L('tippe auf ein Bild','tap a picture')}</div>
-      <div style="height:96px; display:flex; align-items:center; justify-content:center; font-size:72px; line-height:1; margin:16px 0;">${avatarHtml(profile.avatar || "🙂", 96)}</div>
+      <div style="height:96px; display:flex; align-items:center; justify-content:center; font-size:72px; line-height:1; margin:16px 0;">${(isAccountProfile && account && (account.profile.betaPhase|0)) ? framedAvatarHtml(profile.avatar, 84, account.profile.betaPhase) : avatarHtml(profile.avatar || "🙂", 96)}</div>
       <div class="picker-sub" style="margin-top:6px;">${L('Figuren','Characters')}</div>
       <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:8px;">
         ${AVATAR_IMAGES.map(i => `
