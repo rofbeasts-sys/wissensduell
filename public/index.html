@@ -6006,6 +6006,28 @@ function dzWeek(){
     <div style="margin:16px 0 6px;padding:12px;border:2px solid #c3ff4d;border-radius:16px;background:linear-gradient(135deg,#1f2a4d,#18304a)"><div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px"><span>⭐ ${L('GESAMT','TOTAL')}</span><span style="color:#ffd45a">${w.total.pct} %</span></div><div style="position:relative;height:16px;border-radius:10px;background:#0c1224;border:1px solid #2c3658;margin:10px 0;overflow:hidden"><div style="height:100%;width:${Math.min(100,w.total.pct)}%;background:linear-gradient(90deg,#c3ff4d,#3de0ff)"></div>${mk2}</div><div style="display:flex;gap:6px">${tc}</div></div>
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="dzList(dzLast)">${t('btn_back')}</button></div></div></div>`);
 }
+let dzBoardTab='sudoku', dzBoardMode='today', dzBoardData=null;
+async function dzBoard(tab,mode){
+  if(tab) dzBoardTab=tab; if(mode) dzBoardMode=mode;
+  if(!dzBoardData||!tab&&!mode){ const r=await apiCall('/api/daily/board',{token:account&&account.token}); if(!r||!r.ok){ dzList(dzLast); return; } dzBoardData=r; }
+  const B=dzBoardData, types=[['sudoku','🔢','Sudoku'],['cw','✏️',L('Kreuzwort','Crossword')],['ws','🔎',L('Finden','Find')],['wv','🔗',L('Verbinden','Connect')]];
+  const diffs={sudoku:[['easy',L('Leicht','Easy')],['medium',L('Mittel','Medium')],['hard',L('Schwer','Hard')]],cw:[['small','7×7'],['medium','11×11'],['big','17×17']],ws:[['small',L('Klein','Small')],['medium',L('Mittel','Medium')],['big',L('Groß','Large')]],wv:[['small',L('Klein','Small')],['medium',L('Mittel','Medium')],['big',L('Groß','Large')]]}[dzBoardTab];
+  const me=account&&account.profile?account.profile.username:null, med=['🥇','🥈','🥉','4.','5.'];
+  const blocks=diffs.map(([dk,dn])=>{
+    const k=dzBoardTab+':'+dk, rows=(B[dzBoardMode][k]||[]), mine=B.mine&&B.mine[k];
+    const list=rows.length?rows.map((x,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:10px;${x.name===me?'background:rgba(198,255,61,.14);':''}"><span style="width:28px;text-align:left">${med[i]}</span>${typeof avatarHtml==='function'?avatarHtml(x.avatar,26):''}<span style="flex:1;text-align:left;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.name}</span><b style="color:#c6ff3d">⏱ ${dzFmt(x.s)}</b></div>`).join(''):`<div style="padding:8px;color:#9fb0d0;font-size:13px">${L('Noch keine Zeit. Sei der Erste!','No time yet. Be the first!')}</div>`;
+    const myl=mine?`<div style="font-size:12px;color:#9fb0d0;margin-top:4px">${L('Deine Bestzeit','Your best')}: ${dzFmt(mine.s)}${dzBoardMode==='today'&&mine.today!==null?' · '+L('heute','today')+' '+dzFmt(mine.today):''}</div>`:'';
+    return `<div style="margin:10px 0;padding:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)"><div style="font-weight:900;text-align:left;margin-bottom:4px">${dn}</div>${list}${myl}</div>`;
+  }).join('');
+  renderApp(`<div class="panel"><div class="dz-wrap">
+    <div class="picker-title">🏆 ${L('BESTENLISTE','LEADERBOARD')}</div>
+    <div class="picker-sub">${L('Die 5 schnellsten Zeiten bei den Tagesrätseln.','The 5 fastest times in the daily puzzles.')}</div>
+    <div style="display:flex;gap:6px;margin:8px 0">${[['today',L('Heute','Today')],['all',L('Allzeit','All time')]].map(([m,n])=>`<button class="btn ${dzBoardMode===m?'btn-primary':'btn-ghost'}" style="flex:1;margin:0;padding:8px" onclick="dzBoard(null,'${m}')">${n}</button>`).join('')}</div>
+    <div style="display:flex;gap:6px;margin:8px 0">${types.map(([t,i,n])=>`<button class="btn ${dzBoardTab===t?'btn-primary':'btn-ghost'}" style="flex:1;margin:0;padding:8px 2px;font-size:12px" onclick="dzBoard('${t}')">${i}<br>${n}</button>`).join('')}</div>
+    ${blocks}
+    <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="dzBoardData=null;dzList(dzLast)">${t('btn_back')}</button></div>
+  </div></div>`);
+}
 function dzList(r){
   // Zwei grosse Buttons pro Tag (Sudoku / Kreuzwort): jeweils die naechste noch offene Stufe, danach die naechste.
   const card=(day,kind,half)=>{
@@ -6046,6 +6068,7 @@ function dzList(r){
     ${r.pending>0?`<div class="picker-sub" style="color:#ffd45a">⏳ ${L('Ab morgen abholbar: ','Collectable from tomorrow: ')}${r.pending} ${L('Münzen','coins')}</div>`:''}
     <div class="dz-day"><h4>${L('Heute','Today')} · ${dzDayLabel(today.date)}</h4>${dayBtns(today)}</div>
     ${dzWeekBtn(r)}
+    <button class="btn btn-ghost btn-block" style="margin:8px 0" onclick="dzBoardData=null;dzBoard()">🏆 ${L('Bestenliste','Leaderboard')}</button>
     ${missed.length?catchUp:''}
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div></div>`);
@@ -6350,16 +6373,17 @@ function dzCell(r,c){
   else { dz.sel=[r,c]; if(cv[dz.dir]===undefined) dz.dir=dz.dir==='across'?'down':'across'; }
   dzPaint();
 }
-function dzPick(i){ const w=dz.words[i]; dz.sel=[w.r,w.c]; dz.dir=w.dir; dzPaint(); window.scrollTo({top:document.querySelector('.dzc-clue')?document.querySelector('.dzc-clue').getBoundingClientRect().top+window.scrollY-60:0,behavior:'smooth'}); }
+function dzFirstEmpty(w){ for(let j=0;j<w.len;j++){ const r=w.r+(w.dir==='down'?j:0), c=w.c+(w.dir==='across'?j:0); if(!dz.letters[r][c]) return [r,c]; } return [w.r,w.c]; }
+function dzPick(i){ const w=dz.words[i]; dz.sel=dzFirstEmpty(w); dz.dir=w.dir; dzPaint(); window.scrollTo({top:document.querySelector('.dzc-clue')?document.querySelector('.dzc-clue').getBoundingClientRect().top+window.scrollY-60:0,behavior:'smooth'}); }
 function dzStep(d){
   const wi=dzActiveWord(); if(wi===null) return; const n=dz.words.length, j=(wi+d+n)%n, w=dz.words[j];
-  dz.sel=[w.r,w.c]; dz.dir=w.dir; dzPaint();
+  dz.sel=dzFirstEmpty(w); dz.dir=w.dir; dzPaint();
 }
 function dzLetter(ch){
   if(!dz||dz.kind!=='cw'||!dz.sel) return;
   const [r,c]=dz.sel; dz.letters[r][c]=ch; dzMsg('');
   const wi=dzActiveWord();
-  if(wi!==null){ const w=dz.words[wi], k=dz.dir===w.dir?(w.dir==='across'?c-w.c:r-w.r):-1; if(k>=0&&k<w.len-1){ dz.sel=[r+(w.dir==='down'?1:0),c+(w.dir==='across'?1:0)]; } }
+  if(wi!==null){ const w=dz.words[wi], k=dz.dir===w.dir?(w.dir==='across'?c-w.c:r-w.r):-1; if(k>=0&&k<w.len-1){ let n=k+1; for(let j=k+1;j<w.len;j++){ if(!dz.letters[w.r+(w.dir==='down'?j:0)][w.c+(w.dir==='across'?j:0)]){ n=j; break; } } dz.sel=[w.r+(w.dir==='down'?n:0),w.c+(w.dir==='across'?n:0)]; } }
   dzSave(); dzPaint();
 }
 function dzBack(){
@@ -6381,7 +6405,7 @@ async function dzSubmit(){
   if(!dz||dz.busy) return; dz.busy=true;
   const body={token:account&&account.token,date:dz.date,type:dz.type,diff:dz.diff};
   if(dz.kind==='ws') body.found=Object.values(dz.found); else if(dz.kind==='wv') body.found=Object.values(dz.found); else if(dz.kind==='sudoku') body.grid=dz.cur; else body.letters=dz.cells.map((row,r)=>row.map((c,cc)=>c?(dz.letters[r][cc]||'.'):'.').join(''));
-  const r=await apiCall('/api/daily/submit',body); dz.busy=false;
+  body.secs=dzElapsed(); const r=await apiCall('/api/daily/submit',body); dz.busy=false;
   if(!r.ok){ dzMsg(r.error||'Fehler'); return; }
   if(!r.correct){
     if(dz.kind==='wv'){ /* Server prueft nur Vollstaendigkeit */ }
