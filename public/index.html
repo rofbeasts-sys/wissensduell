@@ -6036,10 +6036,10 @@ function dzList(r){
     const pips=its.map(i=>i.solved?'●':'○').join(' ');
     const ico=dzIcon(kind), name=kind==='sudoku'?'Sudoku':kind==='cw'?L('Kreuzworträtsel','Crossword'):kind==='ws'?L('Wörter finden','Find words'):L('Wörter verbinden','Connect words');
     const wsN={small:5,medium:10,big:15}, tierN=({small:L('Klein','Small'),medium:L('Mittel','Medium'),big:L('Groß','Large')});
-    const lvName=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[it.diff]:tierN[it.diff]+' · '+(kind==='wv'?({small:15,medium:30,big:50})[it.diff]+' '+L('Punkte','points'):wsN[it.diff]+' '+L('Wörter','words'))+(it.cat?' · '+it.cat.icon+' '+it.cat.name:'')):'';
+    const lvName=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[it.diff]:tierN[it.diff]+' · '+(kind==='wv'?({small:21,medium:42,big:70})[it.diff]+' '+L('Punkte','points'):wsN[it.diff]+' '+L('Wörter','words'))+(it.cat?' · '+it.cat.icon+' '+it.cat.name:'')):'';
     const best=its.filter(i=>i.solved).length?its.filter(i=>i.solved).slice(-1)[0].reward:0;
     const can=!done&&day.open&&!it.locked;
-    const shortLv=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:'7×7',medium:'11×11',big:'17×17'})[it.diff]:kind==='wv'?({small:15,medium:30,big:50})[it.diff]+' '+L('Pkt.','pts'):wsN[it.diff]+' '+L('Wörter','words')+(it.cat?' '+it.cat.icon:'')):'';
+    const shortLv=it?(kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:'7×7',medium:'11×11',big:'17×17'})[it.diff]:kind==='wv'?({small:21,medium:42,big:70})[it.diff]+' '+L('Pkt.','pts'):wsN[it.diff]+' '+L('Wörter','words')+(it.cat?' '+it.cat.icon:'')):'';
     return `<button class="btn ${done?'btn-ghost':'btn-primary'}" style="margin:0;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;${done?'opacity:.75;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
       <span style="font-size:24px;line-height:1">${ico}</span><span style="font-size:14px;font-weight:900">${name}</span>
       <span style="font-size:11.5px;font-weight:600">${done?'✓ '+L('Alles geschafft','All done'):L('Stufe','Level')+' '+(idx+1)+'/'+total+' · '+shortLv}</span>
@@ -6088,7 +6088,7 @@ async function dzOpen(date,type,diff){
     dz={kind:'ws',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,words:r.words,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},sel:null,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else if(type==='wv'){
     const sig=r.grid.join('');
-    dz={kind:'wv',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,valid:r.valid,n:r.n,max:r.max||r.n,minLen:r.minLen||3,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},cur:[],flash:'',msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
+    dz={kind:'wv',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,valid:r.valid,n:r.n,max:r.max||r.n,minLen:r.minLen||3,cat:r.cat,long:r.long||0,found:(saved&&saved.sig===sig&&saved.found)||{},cur:[],flash:'',msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else if(type==='sudoku'){
     const sig=r.puzzle.join('');
     const cur=(saved&&saved.sig===sig&&Array.isArray(saved.cur)&&saved.cur.length===81)?saved.cur:r.puzzle.slice();
@@ -6249,7 +6249,7 @@ function dzPaintWsOnly(){
     el.style.color=ci!==undefined||isP||selK===k?'#10161f':'#fff'; });
 }
 /* ---------- Woerter verbinden (Boggle-artig): ueber benachbarte Buchstaben wischen, auch diagonal ---------- */
-function dzWvPoints(len){ return len<3?0:len<=4?1:len===5?2:len===6?3:len===7?5:11; }
+function dzWvPoints(len){ return len<3?0:len===3?1:len===4?2:len===5?3:5; }
 function dzWvPts(){ return Object.keys(dz.found).reduce((a,w)=>a+dzWvPoints(w.length),0); }
 function dzWvHtml(){
   const N=dz.size, cur=dz.cur, curK={}; cur.forEach((p,i)=>{ curK[p[0]+','+p[1]]=i; });
@@ -6267,10 +6267,10 @@ function dzWvHtml(){
     <div id="dzWvGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:${N>7?4:6}px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>
     <div style="font-weight:800;margin:6px 0;color:${pts>=dz.n?'#7cff8c':'#fff'}">${pts} / ${dz.n} ${L('Punkte','points')}${pts>=dz.n?'':' · '+L('noch','left:')+' '+(dz.n-pts)}</div>
     <div style="height:8px;border-radius:6px;background:rgba(255,255,255,.1);margin:0 auto 6px;max-width:300px;overflow:hidden"><div style="height:100%;width:${Math.min(100,Math.round(pts/dz.n*100))}%;background:${pts>=dz.n?'#7cff8c':'#3de0ff'}"></div></div>
-    <div style="font-size:12px;color:#9aa">${L('Ziel: '+dz.n+' Punkte zum Lösen der Stufe','Goal: '+dz.n+' points to clear the level')}</div>
+    <div style="font-size:12px;color:#ffd45a;margin-bottom:2px">${dz.long?L('💡 Im Feld versteckt sich ein langes Wort mit '+dz.long+' Buchstaben!','💡 A long word with '+dz.long+' letters is hidden in the grid!'):''}</div><div style="font-size:12px;color:#9aa">${L('Ziel: '+dz.n+' Punkte zum Lösen der Stufe','Goal: '+dz.n+' points to clear the level')}</div>
     <div style="text-align:center;min-height:30px">${words}</div>
-    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (ab 3 Buchstaben, Umlaute als AE, OE, UE – z. B. BAER). Punkte: 3–4 Buchstaben = 1, 5 = 2, 6 = 3, 7 = 5, ab 8 = 11. Oder tippe die Buchstaben nacheinander an und bestätige mit ✔.','Swipe across neighbouring letters (diagonals too) to spell any words (3+ letters). Points: 3–4 letters = 1, 5 = 2, 6 = 3, 7 = 5, 8+ = 11. Or tap the letters one by one and confirm with ✔.')}</div>
-    <div class="actions-row" style="margin:6px 0"><button class="btn btn-ghost" onclick="dzWvClear()">✖ ${L('Löschen','Clear')}</button><button class="btn btn-primary" onclick="dzWvCommit()">✔ ${L('Wort prüfen','Check word')}</button></div>`;
+    <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (ab 3 Buchstaben, Umlaute als AE, OE, UE – z. B. BAER). Punkte: 3 Buchstaben = 1, 4 = 2, 5 = 3, ab 6 = 5.','Swipe across neighbouring letters (diagonals too) to spell any words (3+ letters). Points: 3 letters = 1, 4 = 2, 5 = 3, 6+ = 5.')}</div>
+    <div class="actions-row" style="margin:6px 0"><button class="btn btn-ghost" onclick="dzWvClear()">✖ ${L('Löschen','Clear')}</button></div>`;
 }
 function dzWvAdj(a,b){ return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]))===1; }
 function dzWvPaintOnly(){
@@ -6323,8 +6323,7 @@ async function dzWvCommit(){
     if(!dz||dz.kind!=='wv'||!e.target.closest('#dzWvGrid')) return;
     const t=tileAt(e.clientX,e.clientY); if(!t||!t.k) return; e.preventDefault();
     const last=dz.cur[dz.cur.length-1];
-    if(dz.cur.length&&last&&!dz.cur.some(p=>p[0]===t.k[0]&&p[1]===t.k[1])&&dzWvAdj(last,t.k)){ dz.cur.push(t.k); }   // Tipp-Kette: naechster Nachbar
-    else if(!dz.cur.some(p=>p[0]===t.k[0]&&p[1]===t.k[1])) dz.cur=[t.k];
+    dz.cur=[t.k];
     dz.flash=''; drag=true; moved=false; dzWvPaintOnly();
   },true);
   document.addEventListener('pointermove',e=>{
@@ -6338,7 +6337,7 @@ async function dzWvCommit(){
   });
   document.addEventListener('pointerup',()=>{
     if(!drag) return; drag=false;
-    if(dz&&dz.kind==='wv'&&moved) dzWvCommit();   // gewischt: sofort pruefen; getippt: mit ✔ bestaetigen
+    if(dz&&dz.kind==='wv'){ if(moved) dzWvCommit(); else { dz.cur=[]; dzWvPaintOnly(); } }   // nur Wischen zaehlt
   },true);
 })();
 /* ---------- Kreuzwort ---------- */
@@ -6363,7 +6362,14 @@ function dzCwHtml(){
   const rows=currentLang==='en'?['QWERTYUIOP','ASDFGHJKL','ZXCVBNM']:['QWERTZUIOP','ASDFGHJKL','YXCVBNM'];
   const kb=rows.map((row,i)=>`<div>${row.split('').map(ch=>`<button class="dz-key" onclick="dzLetter('${ch}')">${ch}</button>`).join('')}${i===2?`<button class="dz-key" style="flex:1.6" onclick="dzBack()">⌫</button>`:''}</div>`).join('');
   const list=dir=>dz.words.map((w,i)=>({w,i})).filter(x=>x.w.dir===dir).map(x=>`<div class="it${x.i===wi?' a':''}${dzWordWrong(x.w)?' x':''}" onclick="dzPick(${x.i})"><b style="display:inline;color:#ffd45a">${x.w.n}</b> ${x.w.clue}</div>`).join('');
-  return `${clue}<div class="dzc-grid" style="--n:${N}">${g}</div><div class="dzc-kb">${kb}</div>
+  let strip='';
+  if(N>=15&&aw){
+    let bx='';
+    for(let j=0;j<aw.len;j++){ const r=aw.r+(aw.dir==='down'?j:0), c=aw.c+(aw.dir==='across'?j:0), cur=dz.sel&&dz.sel[0]===r&&dz.sel[1]===c, ov=aw.dir==='across'?'down':'across', cross=dz.cover[r][c][ov]!==undefined&&!!dz.letters[r][c];
+      bx+=`<div onclick="dzCell(${r},${c});dz.dir='${aw.dir}';dzPaint()" style="width:38px;height:46px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:7px;font:800 26px sans-serif;color:#223;background:${cur?'#ffd45a':cross?'#cfe9ff':'#f4f6ff'};${cur?'box-shadow:0 0 0 3px #fff;':''}">${dz.letters[r][c]||''}</div>`; }
+    strip=`<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin:8px 0">${bx}</div><div style="text-align:center;font-size:11px;color:var(--text-dim)">${L('Blaue Felder sind schon durch ein anderes Wort belegt und werden übersprungen.','Blue boxes are already filled by a crossing word and are skipped.')}</div>`;
+  }
+  return `${clue}<div class="dzc-grid" style="--n:${N}">${g}</div>${strip}<div class="dzc-kb">${kb}</div>
     <div class="dzc-list"><div><b>${L('Waagerecht →','Across →')}</b>${list('across')}</div><div><b>${L('Senkrecht ↓','Down ↓')}</b>${list('down')}</div></div>`;
 }
 function dzCell(r,c){
