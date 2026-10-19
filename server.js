@@ -4538,7 +4538,7 @@ function dailyState(user) {
   return d;
 }
 // ---- Wochenziele (Montag-Sonntag, Berlin): je Raetselart + gesamt; Belohnung = hoechste erreichte Stufe, wird nach Wochenende abgeholt ----
-const WEEKLY_TIERS = { sudoku: [7, 14, 21], cw: [7, 14, 21], ws: [7, 14, 21], wv: [400, 700, 1000] };  // geloeste Stufen bzw. Punkte (wv)
+const WEEKLY_TIERS = { sudoku: [7, 14, 21], cw: [7, 14, 21], ws: [7, 14, 21], wv: [550, 1000, 1400] };  // geloeste Stufen bzw. Punkte (wv)
 const WEEKLY_TOTAL_PCT = [40, 70, 90];
 const WEEKLY_REWARD = { type: [{ keys: 0, coins: 75 }, { keys: 0, coins: 150 }, { keys: 0, coins: 500 }], total: [{ keys: 20, coins: 0 }, { keys: 50, coins: 0 }, { keys: 100, coins: 0 }] };
 const WEEKLY_TYPES = ["sudoku", "cw", "ws", "wv"];
