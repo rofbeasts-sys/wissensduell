@@ -116,7 +116,7 @@ function drSetupRender(){
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0">${cards}</div>
     <div class="settings-label">${L('Deine Sofort-Fähigkeiten (Mana)','Your instant abilities (mana)')}</div><div style="margin:4px 0 6px">${hand || '<span style="font-size:13px;color:#9ab">' + L('Noch keine – erspiele sie dir durch Level.', 'None yet – unlock them by leveling.') + '</span>'}</div>${nextUnlock()}
     <div class="actions-row" style="flex-direction:column;gap:8px;">
-      <button class="btn btn-primary" ${sel.length === 5 ? '' : 'disabled style="opacity:.4"'} onclick="drBegin()">${L('Los geht’s','Go')}</button>
+      <button class="btn btn-primary" ${sel.length === 5 ? '' : 'disabled style="opacity:.4"'} onclick="drToPlace()">${L('Weiter: Felder legen','Next: place fields')}</button>
       <button class="btn btn-ghost" onclick="drIntro()">${L('Abbrechen','Cancel')}</button></div></div>`);
 }
 window.drPickCard = function(i){
@@ -127,19 +127,61 @@ window.drPickCard = function(i){
 function place(owner, t){
   for(let n = 0; n < 60; n++){
     const key = (1 + rnd(R - 3)) + ',' + rnd(C);
-    if(!g.tiles[owner][key] && key !== g.pos[owner].join(',')){ g.tiles[owner][key] = t; return; }
+    if(!g.tiles[owner][key] && key !== g.pos[owner].join(',')){ g.tiles[owner][key] = t; return key; }
   }
+  return null;
 }
-window.drBegin = function(){
-  if(g.chosen.length !== 5) return;
-  g.chosen.forEach(i => { const t = g.cards[i]; place(GOOD.indexOf(t) !== -1 ? 0 : 1, t); });
-  // KI: 3 gute + 2 schlechte
+function botPlace(){
   const tpA = GOOD.concat(BAD).filter(t => TLV[t] <= g.lv[1]), gA = tpA.filter(t => GOOD.indexOf(t) !== -1), bA = tpA.filter(t => BAD.indexOf(t) !== -1);
-  const gs = [0, 1, 2].map(() => pick(gA)), bs = [0, 1].map(() => pick(bA));
-  gs.forEach(t => place(1, t)); bs.forEach(t => place(0, t));
-  g.phase = 'play'; g.sc = null; g.log = [L('Los! Du beginnst.', 'Go! You start.')];
+  [0, 1, 2].forEach(() => place(1, pick(gA))); [0, 1].forEach(() => place(0, pick(bA)));
+}
+window.drToPlace = function(){
+  if(g.chosen.length !== 5) return;
+  g.hand = g.chosen.map(i => ({ t:g.cards[i], at:null })); g.selH = 0; botPlace(); g.phase = 'place'; drPlaceRender();
+};
+function drGrid(o){
+  const cs = 27; let h = '';
+  const sel = g.selH != null ? g.hand[g.selH] : null, need = sel && !sel.at ? (GOOD.indexOf(sel.t) !== -1 ? 0 : 1) : -1;
+  for(let r = 0; r < R; r++) for(let c = 0; c < C; c++){
+    const key = r + ',' + c, t = g.tiles[o][key], ok = need === o && !t && r >= 1 && r <= R - 3;
+    const mineT = g.hand.some(x => x.at && x.at[0] === o && x.at[1] === key);
+    const bg = r === R - 1 ? 'rgba(80,220,120,.3)' : r === 0 ? 'rgba(80,180,255,.25)' : ((r + c) % 2 ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.1)');
+    h += `<div onclick="drPlaceCell(${o},${r},${c})" style="height:${cs}px;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:4px;background:${bg};${ok ? 'box-shadow:inset 0 0 0 2px #7cff8c;cursor:pointer;' : ''}${mineT ? 'box-shadow:inset 0 0 0 2px #ffc446;' : ''}">${t ? TI[t] : ''}</div>`;
+  }
+  return `<div style="flex:1"><div style="text-align:center;font-size:12px;font-weight:700;margin-bottom:3px">${o === 0 ? L('Dein Brett (gute)', 'Your board (good)') : L('Gegner-Brett (schlechte)', 'Enemy board (bad)')}</div><div style="display:grid;grid-template-columns:repeat(${C},1fr);gap:2px">${h}</div></div>`;
+}
+function drPlaceRender(){
+  const left = g.hand.filter(x => !x.at).length;
+  const chips = g.hand.map((x, i) => `<div onclick="drHandSel(${i})" style="cursor:pointer;text-align:center;padding:6px 8px;border-radius:12px;border:3px solid ${g.selH === i ? '#ffc446' : (GOOD.indexOf(x.t) !== -1 ? '#3ccf7a' : '#ff5d7a')};background:rgba(255,255,255,${x.at ? '.02' : '.08'});opacity:${x.at ? .4 : 1}"><div style="font-size:26px">${TI[x.t]}</div><div style="font-size:10px">${L(TN[x.t][0], TN[x.t][1])}</div></div>`).join('');
+  renderApp(`<div class="panel" style="padding:10px"><div class="picker-title">🧩 ${L('FELDER LEGEN', 'PLACE FIELDS')}</div>
+    <div class="picker-sub">${L('Karte antippen, dann ein grün markiertes Feld. Gute auf dein Brett, schlechte auf das des Gegners. Der Gegner legt seine auch.', 'Tap a card, then a green field. Good on your board, bad on the enemy’s. The enemy places too.')}</div>
+    <div style="display:flex;gap:6px;justify-content:center;margin:8px 0">${chips}</div>
+    <div style="display:flex;gap:8px">${drGrid(0)}${drGrid(1)}</div>
+    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:10px">
+      <button class="btn btn-primary" ${left ? 'disabled style="opacity:.4"' : ''} onclick="drPlaceDone()">${L('Los geht’s', 'Go')}</button>
+      <button class="btn" onclick="drAuto()">🎲 ${L('Rest zufällig legen', 'Place the rest randomly')}</button></div></div>`);
+}
+window.drHandSel = function(i){
+  const h = g.hand[i];
+  if(h.at){ delete g.tiles[h.at[0]][h.at[1]]; h.at = null; }
+  g.selH = i; drPlaceRender();
+};
+window.drPlaceCell = function(o, r, c){
+  if(g.selH == null) return; const h = g.hand[g.selH], key = r + ',' + c;
+  if(h.at || (GOOD.indexOf(h.t) !== -1 ? 0 : 1) !== o || r < 1 || r > R - 3 || g.tiles[o][key]) return;
+  g.tiles[o][key] = h.t; h.at = [o, key];
+  const nx = g.hand.findIndex(x => !x.at); g.selH = nx === -1 ? null : nx; drPlaceRender();
+};
+window.drAuto = function(){
+  g.hand.forEach(h => { if(!h.at){ const o = GOOD.indexOf(h.t) !== -1 ? 0 : 1, k = place(o, h.t); if(k) h.at = [o, k]; } });
+  g.selH = null; drPlaceRender();
+};
+window.drPlaceDone = function(){
+  if(g.hand.some(x => !x.at)) return;
+  g.phase = 'play'; g.sc = null; g.view = 0; g.log = [L('Los! Du beginnst.', 'Go! You start.')];
   startTurn(0);
 };
+window.drBegin = function(){ drToPlace(); drAuto(); drPlaceDone(); };
 
 /* ---- Rundenablauf ---- */
 function say(s){ g.log.unshift(s); if(g.log.length > 5) g.log.pop(); }
@@ -285,11 +327,11 @@ function board(p, small){
 }
 
 /* ---- 3D-Szene (CSS 3D, Figuren aus dice-3d.js) ---- */
-const T3 = 60, TILT = 54, SC = 0.4;
+const T3 = 60, TILT = 54, SC = 0.7;
 function ensureCss(){
   if(document.getElementById('dr3dCss')) return;
   const st = document.createElement('style'); st.id = 'dr3dCss';
-  st.textContent = '.drst{position:relative;flex:1;height:230px;perspective:1400px;overflow:visible}.drcam{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}.drst .b{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}.drst .g{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}.drst .f{position:absolute;backface-visibility:visible}.drrac{transition:transform .5s cubic-bezier(.3,1.4,.5,1)}.dritem{position:absolute;width:44px;height:44px;left:-22px;top:-44px;font-size:34px;line-height:44px;text-align:center;transform-origin:50% 100%;transform:translateZ(6px) rotateX(-' + TILT + 'deg);filter:drop-shadow(0 0 5px rgba(255,255,255,.55))}.drlbl{position:absolute;left:0;right:0;top:-2px;text-align:center;font-size:12px;font-weight:700;z-index:2}';
+  st.textContent = '.drst{position:relative;width:100%;height:340px;perspective:1800px;overflow:visible}.drcam{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}.drst .b,.drst .g{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}.drst .f{position:absolute;backface-visibility:visible}.drrac{transition:transform .45s ease-out}.dritem{position:absolute;width:44px;height:44px;left:-22px;top:-44px;font-size:34px;line-height:44px;text-align:center;transform-origin:50% 100%;transform:translateZ(6px) rotateX(-' + TILT + 'deg)}.drlbl{position:absolute;left:6px;top:0;font-size:12px;font-weight:700;z-index:2}#drMini{position:absolute;right:4px;top:18px;z-index:6;padding:4px;border-radius:10px;background:rgba(10,12,40,.85);border:2px solid #ffc446;cursor:pointer;text-align:center;font-size:10px;line-height:1.2}';
   document.head.appendChild(st);
 }
 const tx = c => (c - (C - 1) / 2) * T3, ty = r => (r - (R - 1) / 2) * T3;
@@ -301,13 +343,14 @@ function buildScenes(){
     const cam = document.createElement('div'); cam.className = 'drcam'; cam.style.transform = 'scale(' + SC + ') rotateX(' + TILT + 'deg)'; el.appendChild(cam);
     for(let r = 0; r < R; r++) for(let c = 0; c < C; c++){
       const goal = r === R - 1, start = r === 0, chk = (r + c) % 2;
-      const col = goal ? (chk ? [60, 190, 110] : [240, 240, 240]) : start ? [70, 130, 230] : (chk ? [64, 70, 112] : [48, 54, 92]);
-      cam.appendChild(D.box(T3 - 3, T3 - 3, 10, col, tx(c), ty(r), -5));
+      const col = goal ? (chk ? '#3cbe6e' : '#f0f0f0') : start ? '#4682e6' : (chk ? '#40466f' : '#30365c');
+      const tl = document.createElement('div'); tl.className = 'f'; tl.style.cssText = 'width:' + (T3 - 3) + 'px;height:' + (T3 - 3) + 'px;left:' + (tx(c) - (T3 - 3) / 2) + 'px;top:' + (ty(r) - (T3 - 3) / 2) + 'px;background:' + col + ';box-shadow:0 7px 0 rgba(0,0,0,.4)';
+      cam.appendChild(tl);
     }
-    const blk = document.createElement('div'); blk.className = 'f'; blk.style.cssText = 'display:none;width:' + (C * T3) + 'px;height:' + (T3 - 4) + 'px;left:' + (-C * T3 / 2) + 'px;top:' + (-(T3 - 4) / 2) + 'px;background:rgba(255,150,50,.55);box-shadow:0 0 18px #ff9a3d;transform:translateZ(2px)'; cam.appendChild(blk);
+    const blk = document.createElement('div'); blk.className = 'f'; blk.style.cssText = 'display:none;width:' + (C * T3) + 'px;height:' + (T3 - 4) + 'px;left:' + (-C * T3 / 2) + 'px;top:' + (-(T3 - 4) / 2) + 'px;background:rgba(255,150,50,.55);transform:translateZ(2px)'; cam.appendChild(blk);
     const rac = D.grp(tx(g.pos[p][1]), ty(g.pos[p][0]), 0); rac.classList.add('drrac');
     const fig = D.FIG[g.fig[p]](); const inner = D.grp(0, 0, 0, 'scale3d(.62,.62,.62)'); inner.appendChild(fig); rac.appendChild(inner); cam.appendChild(rac);
-    el._cam = cam; el._rac = rac; el._blk = blk; el._items = {}; return el;
+    el._cam = cam; el._rac = rac; el._blk = blk; el._items = {}; el.style.display = p === (g.view || 0) ? '' : 'none'; return el;
   });
 }
 function updScene(p){
@@ -318,7 +361,7 @@ function updScene(p){
     if(el._items[k]) return;
     const [r, c] = k.split(',').map(Number), d = document.createElement('div'); d.className = 'g'; d.style.transform = 'translate3d(' + tx(c) + 'px,' + ty(r) + 'px,0)';
     const t = g.tiles[p][k], good = GOOD.indexOf(t) !== -1;
-    const pad = document.createElement('div'); pad.className = 'f'; pad.style.cssText = 'width:' + (T3 - 10) + 'px;height:' + (T3 - 10) + 'px;left:' + (-(T3 - 10) / 2) + 'px;top:' + (-(T3 - 10) / 2) + 'px;border-radius:12px;background:' + (good ? 'rgba(60,220,130,.45)' : 'rgba(255,70,100,.45)') + ';box-shadow:0 0 16px ' + (good ? '#3cdc82' : '#ff4664') + ';transform:translateZ(1px)';
+    const pad = document.createElement('div'); pad.className = 'f'; pad.style.cssText = 'width:' + (T3 - 10) + 'px;height:' + (T3 - 10) + 'px;left:' + (-(T3 - 10) / 2) + 'px;top:' + (-(T3 - 10) / 2) + 'px;border-radius:12px;background:' + (good ? 'rgba(60,220,130,.45)' : 'rgba(255,70,100,.45)') + ';border:2px solid ' + (good ? '#3cdc82' : '#ff4664') + ';transform:translateZ(1px)';
     d.appendChild(pad);
     const it = document.createElement('div'); it.className = 'dritem'; it.textContent = TI[t]; d.appendChild(it);
     cam.appendChild(d); el._items[k] = d;
@@ -331,7 +374,7 @@ function bar(p){
   return `<div style="flex:1;font-size:12px;line-height:1.5;padding:2px 3px;border-radius:10px;${g.cur === p && !g.over ? 'background:rgba(255,196,70,.15);' : ''}"><div>${f.ic} <b>${nm(p)}</b>${g.shield[p] ? ' 🛡️' : ''}${g.skip[p] ? ' ⏸️' : ''}</div><div>${hearts}</div><div>🔷 <b>${g.mana[p]}</b>/10 · ✨ ${g.left[p]}×</div></div>`;
 }
 function render(){
-  if(!g || g.phase === 'setup') return;
+  if(!g || g.phase === 'setup' || g.phase === 'place') return;
   const mine = g.cur === 0 && !g.over, rolled = g.rolled;
   const btn = (txt, fn, dis, col) => `<button class="btn" ${dis ? 'disabled' : ''} onclick="${fn}" style="${dis ? 'opacity:.35;' : ''}${col ? 'border-color:' + col : ''};padding:8px 10px;font-size:13px">${txt}</button>`;
   let actions = '';
@@ -357,16 +400,26 @@ function render(){
   if(!st || !g.sc[0].parentNode || g.sc[0].parentNode !== st){
     renderApp(`<div class="panel" style="padding:10px">
       <div id="drTop" style="display:flex;gap:8px"></div>
-      <div id="drStage" style="display:flex;gap:4px;margin:2px 0 4px"></div>
+      <div id="drStage" style="position:relative;margin:2px 0 4px"></div>
       <div id="drAct" style="margin:6px 0"></div>
       <div id="drLog" style="font-size:12px;color:#9ab;line-height:1.5;min-height:60px"></div>
       <button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="drIntro()">${L('Beenden', 'Quit')}</button></div>`);
-    const s2 = document.getElementById('drStage'); s2.appendChild(g.sc[0]); s2.appendChild(g.sc[1]);
+    const s2 = document.getElementById('drStage'); s2.appendChild(g.sc[0]); s2.appendChild(g.sc[1]); const mn = document.createElement('div'); mn.id = 'drMini'; mn.onclick = drSwap; s2.appendChild(mn);
   }
   document.getElementById('drTop').innerHTML = bar(0) + bar(1);
   document.getElementById('drAct').innerHTML = actions;
   document.getElementById('drLog').innerHTML = g.log.map((x, i) => `<div style="opacity:${1 - i * .18}">${x}</div>`).join('');
-  updScene(0); updScene(1);
+  updScene(g.view || 0); updMini();
+}
+window.drSwap = function(){ if(!g || !g.sc) return; g.view = 1 - (g.view || 0); g.sc[0].style.display = g.view === 0 ? '' : 'none'; g.sc[1].style.display = g.view === 1 ? '' : 'none'; updScene(g.view); updMini(); };
+function updMini(){
+  const mn = document.getElementById('drMini'); if(!mn) return; const q = 1 - (g.view || 0), cs = 8; let h = '';
+  for(let r = 0; r < R; r++) for(let c = 0; c < C; c++){
+    const t = g.tiles[q][r + ',' + c], me = g.pos[q][0] === r && g.pos[q][1] === c;
+    const bg = me ? '#ffd45a' : t ? (GOOD.indexOf(t) !== -1 ? '#3cdc82' : '#ff4664') : (r === R - 1 ? '#3a8a5a' : r === 0 ? '#3a64a8' : ((r + c) % 2 ? '#262b52' : '#30365c'));
+    h += '<div style="width:' + cs + 'px;height:' + cs + 'px;background:' + bg + (me ? ';border-radius:50%' : '') + '"></div>';
+  }
+  mn.innerHTML = '<div style="display:grid;grid-template-columns:repeat(' + C + ',' + cs + 'px);gap:1px">' + h + '</div><div>' + (q === 1 ? '🤖 ' + L('Gegner', 'Enemy') : '🧍 ' + L('Du', 'You')) + '</div>';
 }
 
 window.brDuelHub = function(){
