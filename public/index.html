@@ -469,6 +469,7 @@
 <script src="/achievements.js"></script>
 <script src="/dame-engine.js"></script>
 <script src="/muehle-engine.js"></script>
+<script src="/dice-3d.js"></script>
 <script src="/dice-race.js"></script>
 <script>
 /* =========================================================================
@@ -6530,10 +6531,10 @@ function renderMainMenu(){
         <h3>Tic Tac Toe</h3>
         <p>${L('Gegen den Bot – vom weißen bis zum Meister-Gürtel','Against the bot – from white to master belt')}</p>
       </div>
-      ${brAllowed() ? `<div class="mode-card" onclick="brIntro()" style="border-color:var(--warn);">
+      ${brAllowed() ? `<div class="mode-card" onclick="brDuelHub()" style="border-color:var(--warn);">
         <div class="icon">⚔️</div>
-        <h3>Brain Royale ${featureLocked('brain_royale') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
-        <p>${featureLocked('brain_royale') ? L('Test – nur für dich sichtbar','Test – only visible to you') : L('Figuren-Duell mit Quiz','Piece duel with quiz')}</p>
+        <h3>Brain Duel ${featureLocked('brain_royale') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
+        <p>${featureLocked('brain_royale') ? L('Brain Royale + Brain Mana – Test, nur für dich sichtbar','Brain Royale + Brain Mana – test, only visible to you') : L('Brain Royale + Brain Mana','Brain Royale + Brain Mana')}</p>
       </div>` : ''}
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon">🔴</div>
@@ -9002,10 +9003,9 @@ function brIntro(){
         <button class="btn btn-primary" onclick="brStart('easy')">${L('Leicht','Easy')}</button>
         <button class="btn btn-primary" onclick="brStart('normal')">${L('Normal','Normal')}</button>
         <button class="btn btn-primary" onclick="brStart('hard')">${L('Schwer','Hard')}</button>
-        <button class="btn" onclick="drIntro()" style="border-color:#ffc446">🎲 ${L('Würfel-Rennen (Test)','Dice Race (test)')}</button>
         <button class="btn" onclick="brMpQueue()" style="border-color:var(--accent-2)">🎲 ${L('Zufallsgegner (online)','Random opponent (online)')}</button>
         <button class="btn" onclick="brMpCreate()" style="border-color:var(--accent-2)">👥 ${L('Gegen Freund (Code / Link)','Vs friend (code / link)')}</button>
-        <button class="btn btn-ghost" onclick="renderMainMenu()">${t('braintest_main_menu')}</button>
+        <button class="btn btn-ghost" onclick="brDuelHub()">${L('Zurück','Back')}</button>
       </div>
     </div>`);
 }

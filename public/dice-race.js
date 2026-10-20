@@ -17,15 +17,16 @@ const GOOD = ['boost','schild','stern','herz'], BAD = ['loch','drift','mauer','p
 const TI = { boost:'🚀', schild:'🛡️', stern:'⭐', herz:'❤️', loch:'🕳️', drift:'🌀', mauer:'🧱', pause:'⏸️', bombe:'💣' };
 const TN = { boost:['Boost','Boost'], schild:['Schild','Shield'], stern:['Stern','Star'], herz:['Herz','Heart'], loch:['Loch','Hole'], drift:['Drift','Drift'], mauer:['Mauer','Wall'], pause:['Pause','Pause'], bombe:['Bombe','Bomb'] };
 const INST = {
-  neu:{ic:'🎲',c:2,lv:1,de:'Neu würfeln',en:'Re-roll'}, heil:{ic:'💚',c:3,lv:1,de:'Heilung',en:'Heal'},
-  feuerball:{ic:'🔥',c:4,lv:15,de:'Feuerball',en:'Fireball'}, schild:{ic:'🛡️',c:3,lv:30,de:'Schild',en:'Shield'},
-  richtung:{ic:'🎯',c:4,lv:45,de:'Richtung ↓',en:'Direction ↓'}, eis:{ic:'❄️',c:4,lv:55,de:'Einfrieren',en:'Freeze'},
-  turbo:{ic:'⚡',c:5,lv:65,de:'Turbo',en:'Turbo'}, sperre:{ic:'🚧',c:4,lv:75,de:'Sperre',en:'Block'}, tausch:{ic:'🔄',c:6,lv:95,de:'Tausch',en:'Swap'}
+  neu:{ic:'🎲',c:2,lv:15,de:'Neu würfeln',en:'Re-roll'}, heil:{ic:'💚',c:3,lv:30,de:'Heilung',en:'Heal'},
+  feuerball:{ic:'🔥',c:4,lv:45,de:'Feuerball',en:'Fireball'}, schild:{ic:'🛡️',c:3,lv:50,de:'Schild',en:'Shield'},
+  richtung:{ic:'🎯',c:4,lv:60,de:'Richtung ↓',en:'Direction ↓'}, eis:{ic:'❄️',c:4,lv:65,de:'Einfrieren',en:'Freeze'},
+  turbo:{ic:'⚡',c:5,lv:70,de:'Turbo',en:'Turbo'}, sperre:{ic:'🚧',c:4,lv:75,de:'Sperre',en:'Block'}, tausch:{ic:'🔄',c:6,lv:80,de:'Tausch',en:'Swap'}
 };
+const TLV = { boost:1, loch:1, stern:5, drift:10, schild:20, mauer:25, herz:35, pause:40, bombe:55 };
 const DIRS = { 1:[1,0,'↓'], 2:[1,-1,'↙'], 3:[1,1,'↘'], 4:[0,1,'→'], 5:[0,-1,'←'] };
 const TIERS = ['Rekrut','Bronze','Silber','Gold','Smaragd','Diamant','Black Knight','Lava','Engel','Legende'];
 const TCOL = ['#a07848','#c27a3a','#7fa4ff','#ffd45a','#4be08c','#6fe8ff','#ff3b4e','#ff8a30','#fff2b0','#ff6ad5'];
-let g = null, timers = [], drMode = 'normal', drTestLv = 100;
+let g = null, timers = [], drMode = 'normal', drTestLv = 100, drDiff = 'normal';
 
 /* ---- XP / Level je Figur (lokal gespeichert) ---- */
 const cum = L => L <= 1 ? 0 : Math.floor(62 * Math.pow(L - 1, 1.6));
@@ -54,8 +55,8 @@ window.drIntro = function(){
       <div style="font-size:10px;color:#9ab;padding:0 4px">${L(f.sp, f.spEn)} · ${usesOf(f, lv)}×</div></div>`;
   }).join('');
   renderApp(`<div class="panel">
-    <div class="picker-title">🎲 ${L('WÜRFEL-RENNEN','DICE RACE')} <span style="font-size:12px;color:var(--warn);">ADMIN TEST${drMode === 'test' ? ' · 🧪' : ''}</span></div>
-    <div class="picker-sub">${L('Jeder hat sein eigenes Brett. Wer zuerst unten ankommt, gewinnt.','Everyone has their own board. First one at the bottom wins.')}</div>
+    <div class="picker-title">🎲 ${L('BRAIN MANA','BRAIN MANA')} <span style="font-size:12px;color:var(--warn);">ADMIN TEST${drMode === 'test' ? ' · 🧪' : ''}</span></div>
+    <div class="picker-sub">${L('Würfeln, Fallen & Fähigkeiten. Jeder hat sein eigenes Brett. Wer zuerst unten ankommt, gewinnt.','Everyone has their own board. First one at the bottom wins.')}</div>
     <div class="explanation" style="margin:10px 0;text-align:left;">
       🎲 ${L('1 ↓ · 2 ↙ · 3 ↘ · 4 → · 5 ← · 6 Joker (Richtung frei)','1 ↓ · 2 ↙ · 3 ↘ · 4 → · 5 ← · 6 Joker (free direction)')}<br>
       🔷 ${L('Mana: Start 8, max. 10, +1 alle 2 eigenen Runden.','Mana: start 8, max 10, +1 every 2 own turns.')}<br>
@@ -65,29 +66,43 @@ window.drIntro = function(){
       <button class="btn ${drMode === 'normal' ? 'btn-primary' : ''}" style="flex:1" onclick="drSetMode('normal')">🎮 ${L('Normal (wie online)', 'Normal (like online)')}</button>
       <button class="btn ${drMode === 'test' ? 'btn-primary' : ''}" style="flex:1" onclick="drSetMode('test')">🧪 ${L('Alles freigeschaltet', 'Everything unlocked')}</button></div>
     ${drMode === 'test' ? `<div class="settings-label">${L('Level der Figur','Figure level')}</div><div style="display:flex;gap:6px;margin:4px 0 8px">${[1, 25, 50, 75, 100].map(l => `<button class="btn ${drTestLv === l ? 'btn-primary' : ''}" style="flex:1;padding:6px 0" onclick="drSetLv(${l})">${l}</button>`).join('')}</div><div class="settings-track">${L('Testmodus: alle 9 Sofort-Fähigkeiten und alle 9 Feld-Fähigkeiten zur Wahl, kein XP.','Test mode: all 9 instant and all 9 field abilities, no XP.')}</div>` : ''}
+    <div class="settings-label">${L('Schwierigkeit gegen den Bot','Bot difficulty')}</div>
+    <div style="display:flex;gap:6px;margin:4px 0 4px">${[['easy', 'Leicht', 'Easy'], ['normal', 'Normal', 'Normal'], ['hard', 'Schwer', 'Hard']].map(d => `<button class="btn ${drDiff === d[0] ? 'btn-primary' : ''}" style="flex:1;padding:6px 0" onclick="drSetDiff('${d[0]}')">${L(d[1], d[2])}</button>`).join('')}</div>
+    <div class="settings-track" style="margin-bottom:6px">${drDiff === 'easy' ? L('Bot: 20 Level niedriger, setzt Fähigkeiten selten ein. XP-Sieg ×0,5.','Bot: 20 levels lower, rarely uses abilities. Win XP ×0.5.') : drDiff === 'hard' ? L('Bot: 20 Level höher, nutzt Fähigkeiten clever. XP-Sieg ×1,5.','Bot: 20 levels higher, uses abilities smartly. Win XP ×1.5.') : L('Bot: gleiches Level wie du.','Bot: same level as you.')}</div>
     <div class="settings-label">${L('Figur wählen (jede hat eigenes Level)','Pick a figure (own level each)')}</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0">${cards}</div>
-    <div class="actions-row" style="flex-direction:column;gap:8px;"><button class="btn btn-ghost" onclick="brIntro()">${L('Zurück','Back')}</button></div></div>`);
+    <div class="actions-row" style="flex-direction:column;gap:8px;"><button class="btn btn-ghost" onclick="brDuelHub()">${L('Zurück','Back')}</button></div></div>`);
 };
 
 /* ---- Start / Aufbau ---- */
 window.drSetMode = function(m){ drMode = m; drIntro(); };
+window.drSetDiff = function(d){ drDiff = d; drIntro(); };
 window.drSetLv = function(l){ drTestLv = l; drIntro(); };
 window.drStart = function(figId){
   clr();
   const lv = drMode === 'test' ? drTestLv : lvOf(xpGet(figId)), opp = pick(FIGS).id;
-  g = { fig:[figId, opp], lv:[lv, lv], pos:[[0, 2], [0, 3]], mana:[8, 8], hp:[3, 3], shield:[0, 0], skip:[0, 0], turns:[0, 0],
+  const aiLv = Math.max(1, Math.min(100, lv + (drDiff === 'easy' ? -20 : drDiff === 'hard' ? 20 : 0)));
+  g = { fig:[figId, opp], lv:[lv, aiLv], pos:[[0, 2], [0, 3]], mana:[8, 8], hp:[3, 3], shield:[0, 0], skip:[0, 0], turns:[0, 0],
         tiles:[{}, {}], sp:[null, null], left:[0, 0], used:[{}, {}], rev:[0, 0], undo:[0, 0], inst:[[], []],
-        phase:'setup', cur:0, d:null, turbo:false, log:[L('Wähle 5 von 8 Feld-Fähigkeiten.','Pick 5 of 8 field abilities.')], over:false, xpMsg:'' };
-  g.left = [usesOf(figOf(0), lv), usesOf(figOf(1), lv)];
-  const pool = Object.keys(INST).filter(k => INST[k].lv <= lv);
-  g.inst[0] = drMode === 'test' ? Object.keys(INST) : shuffle(pool).slice(0, 4);
-  g.inst[1] = shuffle(Object.keys(INST).filter(k => INST[k].lv <= lv)).slice(0, 4);
-  g.cards = []; if(drMode === 'test') g.cards = GOOD.concat(BAD); else for(let i = 0; i < 8; i++) g.cards.push(pick(GOOD.concat(BAD)));
+        skill: drDiff === 'easy' ? 0.35 : 1, phase:'setup', cur:0, d:null, turbo:false, log:[], over:false, xpMsg:'' };
+  g.left = [usesOf(figOf(0), lv), usesOf(figOf(1), aiLv)];
+  const instPool = l => Object.keys(INST).filter(k => INST[k].lv <= l);
+  g.inst[0] = drMode === 'test' ? Object.keys(INST) : shuffle(instPool(lv)).slice(0, 4);
+  g.inst[1] = shuffle(instPool(aiLv)).slice(0, 4);
+  const tilePool = l => GOOD.concat(BAD).filter(t => TLV[t] <= l);
+  g.cards = []; if(drMode === 'test') g.cards = GOOD.concat(BAD); else { const tp = tilePool(lv); for(let i = 0; i < 8; i++) g.cards.push(pick(tp)); }
   g.chosen = [];
   drSetupRender();
 };
 function shuffle(a){ a = a.slice(); for(let i = a.length - 1; i > 0; i--){ const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function nextUnlock(){
+  if(drMode === 'test') return '';
+  const lv = g.lv[0], list = [];
+  Object.keys(TLV).forEach(t => { if(TLV[t] > lv) list.push([TLV[t], TI[t] + ' ' + L(TN[t][0], TN[t][1]) + ' (' + (GOOD.indexOf(t) !== -1 ? L('für dich', 'for you') : L('gegen Gegner', 'vs enemy')) + ')']); });
+  Object.keys(INST).forEach(k => { if(INST[k].lv > lv) list.push([INST[k].lv, INST[k].ic + ' ' + L(INST[k].de, INST[k].en) + ' (' + L('sofort', 'instant') + ')']); });
+  list.sort((a, b) => a[0] - b[0]);
+  return list.length ? `<div style="font-size:12px;color:#ffd45a;margin-bottom:10px">🔓 ${L('Nächste Freischaltung', 'Next unlock')}: Lv ${list[0][0]} · ${list[0][1]}</div>` : '';
+}
 function drSetupRender(){
   const sel = g.chosen;
   const cards = g.cards.map((t, i) => {
@@ -99,7 +114,7 @@ function drSetupRender(){
   renderApp(`<div class="panel"><div class="picker-title">🎲 ${L('AUFBAU','SETUP')} · ${figOf(0).ic} ${L(figOf(0).de, figOf(0).en)} Lv ${g.lv[0]}</div>
     <div class="picker-sub">${L('Tippe 5 Karten an' + (drMode === 'test' ? ' (alle 9 zur Wahl)' : '') + '. Gute landen zufällig auf deinem Brett, schlechte auf dem des Gegners.','Tap 5 cards. Good ones go on your board, bad ones on the enemy board.')} (${sel.length}/5)</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0">${cards}</div>
-    <div class="settings-label">${L('Deine Sofort-Fähigkeiten (Mana)','Your instant abilities (mana)')}</div><div style="margin:4px 0 10px">${hand}</div>
+    <div class="settings-label">${L('Deine Sofort-Fähigkeiten (Mana)','Your instant abilities (mana)')}</div><div style="margin:4px 0 6px">${hand || '<span style="font-size:13px;color:#9ab">' + L('Noch keine – erspiele sie dir durch Level.', 'None yet – unlock them by leveling.') + '</span>'}</div>${nextUnlock()}
     <div class="actions-row" style="flex-direction:column;gap:8px;">
       <button class="btn btn-primary" ${sel.length === 5 ? '' : 'disabled style="opacity:.4"'} onclick="drBegin()">${L('Los geht’s','Go')}</button>
       <button class="btn btn-ghost" onclick="drIntro()">${L('Abbrechen','Cancel')}</button></div></div>`);
@@ -119,9 +134,10 @@ window.drBegin = function(){
   if(g.chosen.length !== 5) return;
   g.chosen.forEach(i => { const t = g.cards[i]; place(GOOD.indexOf(t) !== -1 ? 0 : 1, t); });
   // KI: 3 gute + 2 schlechte
-  const gs = shuffle(GOOD.concat(GOOD)).slice(0, 3), bs = shuffle(BAD.concat(BAD)).slice(0, 2);
+  const tpA = GOOD.concat(BAD).filter(t => TLV[t] <= g.lv[1]), gA = tpA.filter(t => GOOD.indexOf(t) !== -1), bA = tpA.filter(t => BAD.indexOf(t) !== -1);
+  const gs = [0, 1, 2].map(() => pick(gA)), bs = [0, 1].map(() => pick(bA));
   gs.forEach(t => place(1, t)); bs.forEach(t => place(0, t));
-  g.phase = 'play'; g.log = [L('Los! Du beginnst.', 'Go! You start.')];
+  g.phase = 'play'; g.sc = null; g.log = [L('Los! Du beginnst.', 'Go! You start.')];
   startTurn(0);
 };
 
@@ -200,10 +216,11 @@ function endTurn(p){ if(g.over) return; g.locked = true; g.d = null; g.rolled = 
 function finish(w){
   g.over = true; g.winner = w;
   const id = g.fig[0], xp0 = xpGet(id), l0 = lvOf(xp0);
-  let xp = xp0 + (w === 0 ? 100 : -30); xp = Math.max(0, xp);
+  const mul = drDiff === 'easy' ? .5 : drDiff === 'hard' ? 1.5 : 1, gain = Math.round(100 * mul), loss = drDiff === 'easy' ? 15 : 30;
+  let xp = xp0 + (w === 0 ? gain : -loss); xp = Math.max(0, xp);
   const floorLv = l0 >= 10 ? Math.floor(l0 / 10) * 10 : 1; if(lvOf(xp) < floorLv) xp = cum(floorLv);
   xpSet(id, xp); const l1 = lvOf(xp);
-  g.xpMsg = drMode === 'test' ? L('Testmodus – kein XP','Test mode – no XP') : (w === 0 ? '+100 XP' : '−30 XP') + (l1 > l0 ? ' · ⬆️ Level ' + l1 + (tierOf(l1) > tierOf(l0) ? ' · ' + TIERS[tierOf(l1)] + '!' : '') : (l1 < l0 ? ' · ⬇️ Level ' + l1 : ''));
+  g.xpMsg = drMode === 'test' ? L('Testmodus – kein XP','Test mode – no XP') : (w === 0 ? '+' + gain + ' XP' : '−' + loss + ' XP') + (l1 > l0 ? ' · ⬆️ Level ' + l1 + (tierOf(l1) > tierOf(l0) ? ' · ' + TIERS[tierOf(l1)] + '!' : '') : (l1 < l0 ? ' · ⬇️ Level ' + l1 : ''));
   say(w === 0 ? L('🏆 Du gewinnst!', '🏆 You win!') : L('Der Gegner gewinnt.', 'The enemy wins.'));
   render();
 }
@@ -221,9 +238,9 @@ window.drSpecial = function(){ if(!g || g.over || g.locked || g.cur !== 0) retur
 /* ---- Computer ---- */
 function aiTurn(){
   if(!g || g.over || g.cur !== 1) return;
-  const p = 1, o = 0, diff = g.pos[o][0] - g.pos[p][0], has = a => g.inst[p].indexOf(a) !== -1 && g.mana[p] >= INST[a].c;
+  const p = 1, o = 0, diff = g.pos[o][0] - g.pos[p][0], has = a => g.inst[p].indexOf(a) !== -1 && g.mana[p] >= INST[a].c && Math.random() < g.skill;
   const f = g.fig[p];
-  if(g.left[p] > 0){
+  if(g.left[p] > 0 && Math.random() < g.skill){
     if(f === 'knight' && !g.shield[p] && g.turns[p] >= 2) useSpecial(p);
     else if(f === 'healer' && (g.hp[p] < 3 || diff >= 2)) useSpecial(p);
     else if(f === 'thief' && g.mana[o] >= 3 && g.mana[p] <= 8) useSpecial(p);
@@ -266,9 +283,52 @@ function board(p, small){
   }
   return `<div style="flex:1"><div style="text-align:center;font-size:12px;margin-bottom:3px;font-weight:700">${you ? L('Dein Brett', 'Your board') : L('Brett des Gegners', 'Enemy board')}</div><div style="display:grid;grid-template-columns:repeat(${C},1fr);gap:2px">${cells.join('')}</div></div>`;
 }
+
+/* ---- 3D-Szene (CSS 3D, Figuren aus dice-3d.js) ---- */
+const T3 = 60, TILT = 54, SC = 0.4;
+function ensureCss(){
+  if(document.getElementById('dr3dCss')) return;
+  const st = document.createElement('style'); st.id = 'dr3dCss';
+  st.textContent = '.drst{position:relative;flex:1;height:230px;perspective:1400px;overflow:visible}.drcam{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d}.drst .b{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}.drst .g{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}.drst .f{position:absolute;backface-visibility:visible}.drrac{transition:transform .5s cubic-bezier(.3,1.4,.5,1)}.dritem{position:absolute;width:44px;height:44px;left:-22px;top:-44px;font-size:34px;line-height:44px;text-align:center;transform-origin:50% 100%;transform:translateZ(6px) rotateX(-' + TILT + 'deg);filter:drop-shadow(0 0 5px rgba(255,255,255,.55))}.drlbl{position:absolute;left:0;right:0;top:-2px;text-align:center;font-size:12px;font-weight:700;z-index:2}';
+  document.head.appendChild(st);
+}
+const tx = c => (c - (C - 1) / 2) * T3, ty = r => (r - (R - 1) / 2) * T3;
+function buildScenes(){
+  ensureCss(); const D = window.DR3D;
+  g.sc = [0, 1].map(p => {
+    const el = document.createElement('div'); el.className = 'drst';
+    const lbl = document.createElement('div'); lbl.className = 'drlbl'; lbl.textContent = p === 0 ? L('Dein Brett', 'Your board') : L('Brett des Gegners', 'Enemy board'); el.appendChild(lbl);
+    const cam = document.createElement('div'); cam.className = 'drcam'; cam.style.transform = 'scale(' + SC + ') rotateX(' + TILT + 'deg)'; el.appendChild(cam);
+    for(let r = 0; r < R; r++) for(let c = 0; c < C; c++){
+      const goal = r === R - 1, start = r === 0, chk = (r + c) % 2;
+      const col = goal ? (chk ? [60, 190, 110] : [240, 240, 240]) : start ? [70, 130, 230] : (chk ? [64, 70, 112] : [48, 54, 92]);
+      cam.appendChild(D.box(T3 - 3, T3 - 3, 10, col, tx(c), ty(r), -5));
+    }
+    const blk = document.createElement('div'); blk.className = 'f'; blk.style.cssText = 'display:none;width:' + (C * T3) + 'px;height:' + (T3 - 4) + 'px;left:' + (-C * T3 / 2) + 'px;top:' + (-(T3 - 4) / 2) + 'px;background:rgba(255,150,50,.55);box-shadow:0 0 18px #ff9a3d;transform:translateZ(2px)'; cam.appendChild(blk);
+    const rac = D.grp(tx(g.pos[p][1]), ty(g.pos[p][0]), 0); rac.classList.add('drrac');
+    const fig = D.FIG[g.fig[p]](); const inner = D.grp(0, 0, 0, 'scale3d(.62,.62,.62)'); inner.appendChild(fig); rac.appendChild(inner); cam.appendChild(rac);
+    el._cam = cam; el._rac = rac; el._blk = blk; el._items = {}; return el;
+  });
+}
+function updScene(p){
+  const el = g.sc[p], cam = el._cam;
+  el._rac.style.transform = 'translate3d(' + tx(g.pos[p][1]) + 'px,' + ty(g.pos[p][0]) + 'px,0)';
+  const keys = Object.keys(g.tiles[p]);
+  keys.forEach(k => {
+    if(el._items[k]) return;
+    const [r, c] = k.split(',').map(Number), d = document.createElement('div'); d.className = 'g'; d.style.transform = 'translate3d(' + tx(c) + 'px,' + ty(r) + 'px,0)';
+    const t = g.tiles[p][k], good = GOOD.indexOf(t) !== -1;
+    const pad = document.createElement('div'); pad.className = 'f'; pad.style.cssText = 'width:' + (T3 - 10) + 'px;height:' + (T3 - 10) + 'px;left:' + (-(T3 - 10) / 2) + 'px;top:' + (-(T3 - 10) / 2) + 'px;border-radius:12px;background:' + (good ? 'rgba(60,220,130,.45)' : 'rgba(255,70,100,.45)') + ';box-shadow:0 0 16px ' + (good ? '#3cdc82' : '#ff4664') + ';transform:translateZ(1px)';
+    d.appendChild(pad);
+    const it = document.createElement('div'); it.className = 'dritem'; it.textContent = TI[t]; d.appendChild(it);
+    cam.appendChild(d); el._items[k] = d;
+  });
+  Object.keys(el._items).forEach(k => { if(!g.tiles[p][k]){ el._items[k].remove(); delete el._items[k]; } });
+  const b = el._blk; if(g.sp[p] != null){ b.style.display = 'block'; b.style.transform = 'translate3d(0,' + ty(g.sp[p]) + 'px,2px)'; } else b.style.display = 'none';
+}
 function bar(p){
   const f = figOf(p), hearts = '❤️'.repeat(Math.max(0, g.hp[p])) + '🖤'.repeat(Math.max(0, 3 - g.hp[p]));
-  return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:3px 2px"><span>${f.ic} <b>${nm(p)}</b> · ${hearts}${g.shield[p] ? ' 🛡️' : ''}${g.skip[p] ? ' ⏸️' : ''}</span><span>🔷 <b>${g.mana[p]}</b>/10 · ✨ ${g.left[p]}×</span></div>`;
+  return `<div style="flex:1;font-size:12px;line-height:1.5;padding:2px 3px;border-radius:10px;${g.cur === p && !g.over ? 'background:rgba(255,196,70,.15);' : ''}"><div>${f.ic} <b>${nm(p)}</b>${g.shield[p] ? ' 🛡️' : ''}${g.skip[p] ? ' ⏸️' : ''}</div><div>${hearts}</div><div>🔷 <b>${g.mana[p]}</b>/10 · ✨ ${g.left[p]}×</div></div>`;
 }
 function render(){
   if(!g || g.phase === 'setup') return;
@@ -292,13 +352,33 @@ function render(){
     }).join('');
     actions = main + `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${btn('✨ ' + L(figOf(0).sp, figOf(0).spEn) + ' (' + g.left[0] + '×)', 'drSpecial()', spDis, '#ffc446')}${ib}</div>`;
   }
-  renderApp(`<div class="panel" style="padding:10px">
-    ${bar(1)}
-    <div style="display:flex;gap:8px">${board(0, 14)}${board(1, 14)}</div>
-    ${bar(0)}
-    <div style="margin:8px 0">${actions}</div>
-    <div style="font-size:12px;color:#9ab;line-height:1.5;min-height:60px">${g.log.map((x, i) => `<div style="opacity:${1 - i * .18}">${x}</div>`).join('')}</div>
-    <button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="drIntro()">${L('Beenden', 'Quit')}</button></div>`);
+  if(!g.sc) buildScenes();
+  const st = document.getElementById('drStage');
+  if(!st || !g.sc[0].parentNode || g.sc[0].parentNode !== st){
+    renderApp(`<div class="panel" style="padding:10px">
+      <div id="drTop" style="display:flex;gap:8px"></div>
+      <div id="drStage" style="display:flex;gap:4px;margin:2px 0 4px"></div>
+      <div id="drAct" style="margin:6px 0"></div>
+      <div id="drLog" style="font-size:12px;color:#9ab;line-height:1.5;min-height:60px"></div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="drIntro()">${L('Beenden', 'Quit')}</button></div>`);
+    const s2 = document.getElementById('drStage'); s2.appendChild(g.sc[0]); s2.appendChild(g.sc[1]);
+  }
+  document.getElementById('drTop').innerHTML = bar(0) + bar(1);
+  document.getElementById('drAct').innerHTML = actions;
+  document.getElementById('drLog').innerHTML = g.log.map((x, i) => `<div style="opacity:${1 - i * .18}">${x}</div>`).join('');
+  updScene(0); updScene(1);
 }
+
+window.brDuelHub = function(){
+  if(typeof brAllowed === 'function' && !brAllowed()){ renderMainMenu(); return; }
+  if(typeof brClearTimers === 'function') brClearTimers(); clr(); g = null;
+  renderApp(`<div class="panel">
+    <div class="picker-title">⚔️ BRAIN DUEL <span style="font-size:12px;color:var(--warn);">ADMIN TEST</span></div>
+    <div class="picker-sub">${L('Zwei Duell-Modi – wähle deinen.','Two duel modes – pick yours.')}</div>
+    <div class="actions-row" style="flex-direction:column;gap:10px;margin-top:10px">
+      <div class="mode-card" onclick="brIntro()" style="border-color:var(--warn);cursor:pointer"><div class="icon">⚔️</div><h3>Brain Royale</h3><p>${L('Figuren-Duell mit Quiz','Piece duel with quiz')}</p></div>
+      <div class="mode-card" onclick="drIntro()" style="border-color:#ffc446;cursor:pointer"><div class="icon">🎲</div><h3>Brain Mana</h3><p>${L('Würfeln, Fallen & Fähigkeiten','Dice, traps & abilities')}</p></div>
+      <button class="btn btn-ghost" onclick="renderMainMenu()">${L('Zurück zum Menü','Back to menu')}</button></div></div>`);
+};
 window.drState = function(){ return g; };
 })();
