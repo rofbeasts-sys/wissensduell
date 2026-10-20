@@ -469,6 +469,7 @@
 <script src="/achievements.js"></script>
 <script src="/dame-engine.js"></script>
 <script src="/muehle-engine.js"></script>
+<script src="/dice-race.js"></script>
 <script>
 /* =========================================================================
    BRAIN TEST (ehem. WISSENSDUELL) — Solo & Lokaler Multiplayer (Pass & Play)
@@ -9001,6 +9002,7 @@ function brIntro(){
         <button class="btn btn-primary" onclick="brStart('easy')">${L('Leicht','Easy')}</button>
         <button class="btn btn-primary" onclick="brStart('normal')">${L('Normal','Normal')}</button>
         <button class="btn btn-primary" onclick="brStart('hard')">${L('Schwer','Hard')}</button>
+        <button class="btn" onclick="drIntro()" style="border-color:#ffc446">🎲 ${L('Würfel-Rennen (Test)','Dice Race (test)')}</button>
         <button class="btn" onclick="brMpQueue()" style="border-color:var(--accent-2)">🎲 ${L('Zufallsgegner (online)','Random opponent (online)')}</button>
         <button class="btn" onclick="brMpCreate()" style="border-color:var(--accent-2)">👥 ${L('Gegen Freund (Code / Link)','Vs friend (code / link)')}</button>
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('braintest_main_menu')}</button>

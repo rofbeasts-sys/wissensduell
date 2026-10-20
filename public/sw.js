@@ -35,7 +35,7 @@ self.addEventListener("activate", (event) => {
 
 function isAppShellRequest(url) {
   // Die Startseite selbst sowie das eine JS-Modul, das sie laedt.
-  return url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/achievements.js" || url.pathname === "/dame-engine.js" || url.pathname === "/muehle-engine.js";
+  return url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/achievements.js" || url.pathname === "/dame-engine.js" || url.pathname === "/muehle-engine.js" || url.pathname === "/dice-race.js";
 }
 function isStaticAsset(url) {
   return url.pathname.startsWith("/icons/") || url.pathname === "/manifest.json";
