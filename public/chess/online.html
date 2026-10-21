@@ -21,13 +21,13 @@
   .chip.active{ color:var(--text); border-color:var(--accent); background:color-mix(in srgb, var(--accent) 18%, var(--bg-alt)); }
   #status{ text-align:center; font-weight:800; font-size:15px; min-height:24px; margin:4px 0 8px; }
   .boardwrap{ position:relative; width:100%; }
-  #board{ --cell:calc(min(100vw - 32px, 448px) / 8); display:grid; grid-template-columns:repeat(8, var(--cell)); grid-template-rows:repeat(8, var(--cell)); width:calc(var(--cell) * 8); margin:0 auto; border-radius:12px; overflow:hidden; border:2px solid var(--line); user-select:none; touch-action:manipulation; }
+  #board{ --cell:calc(min(100vw - 32px, 448px) / 8); display:grid; grid-template-columns:repeat(8, var(--cell)); grid-template-rows:repeat(8, var(--cell)); width:calc(var(--cell) * 8); margin:0 auto; border-radius:12px; overflow:hidden; border:2px solid var(--line); box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 0 5px #4a2d18,0 0 0 7px #2b190c; user-select:none; touch-action:manipulation; }
   .sq{ overflow:visible; position:relative; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell) * .74); line-height:1; cursor:pointer; }
-  .sq.l{ background:var(--sq-light); } .sq.d{ background:var(--sq-dark); }
+  .sq.l{ background:linear-gradient(135deg,color-mix(in srgb,var(--sq-light) 100%,#fff 18%),var(--sq-light) 60%,color-mix(in srgb,var(--sq-light) 92%,#000)); } .sq.d{ background:linear-gradient(135deg,color-mix(in srgb,var(--sq-dark) 100%,#fff 14%),var(--sq-dark) 60%,color-mix(in srgb,var(--sq-dark) 88%,#000)); }
   .sq.last{ box-shadow:inset 0 0 0 100px rgba(246,246,105,.5); }
   .sq.sel{ box-shadow:inset 0 0 0 100px rgba(246,246,105,.65); }
   .sq.check{ box-shadow:inset 0 0 0 100px rgba(255,93,143,.55); }
-  .sq.hint::after{ content:""; position:absolute; width:30%; height:30%; border-radius:50%; background:rgba(0,0,0,.25); }
+  .sq.hint::after{ content:""; position:absolute; width:30%; height:30%; border-radius:50%; background:rgba(20,200,90,.65); box-shadow:0 0 8px rgba(29,229,138,.8); }
   .sq.hint.cap::after{ width:86%; height:86%; background:none; border:4px solid rgba(0,0,0,.25); }
   .sq .coord{ position:absolute; font-size:calc(var(--cell) * .2); color:rgba(60,80,40,.7); font-weight:700; }
   .sq .rk{ top:2px; left:3px; } .sq .fl{ bottom:1px; right:3px; }
@@ -80,6 +80,7 @@
   </div>
 
   <div id="game" style="display:none">
+    <div class="chips" id="moveMode"></div>
     <div id="status"></div>
     <div class="cap" id="capTop"></div>
     <div class="boardwrap"><div id="board"></div></div>
@@ -99,6 +100,7 @@
 <script src="engine.js"></script>
 <script src="analysis.js"></script>
 <script src="/chess/pieces.js"></script>
+<script src="/chess/drag.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
@@ -262,6 +264,7 @@ function showEnd(){
   try{ const k = "bp_chess_online_stats"; const s = JSON.parse(localStorage.getItem(k) || "null") || { games:0, wins:0, losses:0, draws:0 }; s.games++; if(res === "win") s.wins++; else if(res === "loss") s.losses++; else s.draws++; localStorage.setItem(k, JSON.stringify(s)); }catch(e){}
 }
 $("board").addEventListener("click", (e) => {
+  if(bpMoveMode() === "drag") return;
   const t = e.target.closest(".sq"); if(!t || !S || S.status !== "playing" || S.turn !== S.color || busy) return;
   const r = +t.dataset.r, c = +t.dataset.c;
   const mv = moves.find(m => m.tr===r && m.tc===c);
@@ -270,6 +273,12 @@ $("board").addEventListener("click", (e) => {
   if(p && p.col === S.color){ sel = { r, c }; moves = legalFor(r, c); } else { sel = null; moves = []; }
   draw();
 });
+bpMoveUI($("moveMode"));
+bpDragInit({ board: $("board"),
+  canPick: (r, c) => S && S.status === "playing" && S.turn === S.color && !busy && S.board[r][c] && S.board[r][c].col === S.color,
+  pick: (r, c) => { sel = { r, c }; moves = legalFor(r, c); draw(); },
+  drop: (r, c) => { const mv = moves.find(m => m.tr===r && m.tc===c); if(sel && mv){ tryMove(mv); return true; } return false; },
+  cancel: () => { sel = null; moves = []; draw(); } });
 function tryMove(mv){
   const p = S.board[mv.fr][mv.fc];
   if(p.t === "P" && (mv.tr === 0 || mv.tr === 7)){

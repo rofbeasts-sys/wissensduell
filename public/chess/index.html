@@ -21,13 +21,13 @@
   .chip.active{ color:var(--text); border-color:var(--accent); background:color-mix(in srgb, var(--accent) 18%, var(--bg-alt)); }
   #status{ text-align:center; font-weight:800; font-size:15px; min-height:24px; margin:4px 0 8px; }
   .boardwrap{ position:relative; width:100%; }
-  #board{ --cell:calc(min(100vw - 32px, 448px) / 8); display:grid; grid-template-columns:repeat(8, var(--cell)); grid-template-rows:repeat(8, var(--cell)); width:calc(var(--cell) * 8); margin:0 auto; border-radius:12px; overflow:hidden; border:2px solid var(--line); user-select:none; touch-action:manipulation; }
+  #board{ --cell:calc(min(100vw - 32px, 448px) / 8); display:grid; grid-template-columns:repeat(8, var(--cell)); grid-template-rows:repeat(8, var(--cell)); width:calc(var(--cell) * 8); margin:0 auto; border-radius:12px; overflow:hidden; border:2px solid var(--line); box-shadow:0 12px 28px rgba(0,0,0,.45),0 0 0 5px #4a2d18,0 0 0 7px #2b190c; user-select:none; touch-action:manipulation; }
   .sq{ overflow:visible; position:relative; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell) * .74); line-height:1; cursor:pointer; }
-  .sq.l{ background:var(--sq-light); } .sq.d{ background:var(--sq-dark); }
+  .sq.l{ background:linear-gradient(135deg,color-mix(in srgb,var(--sq-light) 100%,#fff 18%),var(--sq-light) 60%,color-mix(in srgb,var(--sq-light) 92%,#000)); } .sq.d{ background:linear-gradient(135deg,color-mix(in srgb,var(--sq-dark) 100%,#fff 14%),var(--sq-dark) 60%,color-mix(in srgb,var(--sq-dark) 88%,#000)); }
   .sq.last{ box-shadow:inset 0 0 0 100px rgba(246,246,105,.5); }
   .sq.sel{ box-shadow:inset 0 0 0 100px rgba(246,246,105,.65); }
   .sq.check{ box-shadow:inset 0 0 0 100px rgba(255,93,143,.55); }
-  .sq.hint::after{ content:""; position:absolute; width:30%; height:30%; border-radius:50%; background:rgba(0,0,0,.25); }
+  .sq.hint::after{ content:""; position:absolute; width:30%; height:30%; border-radius:50%; background:rgba(20,200,90,.65); box-shadow:0 0 8px rgba(29,229,138,.8); }
   .sq.hint.cap::after{ width:86%; height:86%; background:none; border:4px solid rgba(0,0,0,.25); }
   .sq .coord{ position:absolute; font-size:calc(var(--cell) * .2); color:rgba(60,80,40,.7); font-weight:700; }
   .sq .rk{ top:2px; left:3px; } .sq .fl{ bottom:1px; right:3px; }
@@ -58,6 +58,7 @@
   <div class="top"><a class="back" href="/" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}">←</a><h1 id="title">Chess Original</h1></div>
   <div class="sub" id="sub"></div>
   <div class="chips" id="levels"></div>
+  <div class="chips" id="moveMode"></div>
   <div id="status"></div>
   <div class="cap" id="capBlack"></div>
   <div class="boardwrap"><div id="board"></div></div>
@@ -78,6 +79,7 @@
 <script src="engine.js"></script>
 <script src="analysis.js"></script>
 <script src="/chess/pieces.js"></script>
+<script src="/chess/drag.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
@@ -164,6 +166,7 @@ function setStatus(txt, color){
 }
 
 $("board").addEventListener("click", (e) => {
+  if(bpMoveMode() === "drag") return;
   const t = e.target.closest(".sq"); if(!t || G.over || G.busy || G.turn !== "w") return;
   const r = +t.dataset.r, c = +t.dataset.c;
   const mv = G.moves.find(m => m.tr===r && m.tc===c);
@@ -174,6 +177,12 @@ $("board").addEventListener("click", (e) => {
   render();
 });
 
+bpMoveUI($("moveMode"));
+bpDragInit({ board: $("board"),
+  canPick: (r, c) => !G.over && !G.busy && G.turn === "w" && G.board[r][c] && G.board[r][c].col === "w",
+  pick: (r, c) => { G.selected = { r, c }; G.moves = getLegalMoves(G.board, r, c, G.last); render(); },
+  drop: (r, c) => { const mv = G.moves.find(m => m.tr===r && m.tc===c); if(G.selected && mv){ tryMove(mv); return true; } return false; },
+  cancel: () => { G.selected = null; G.moves = []; render(); } });
 function tryMove(mv){
   const p = G.board[mv.fr][mv.fc];
   if(p.t === "P" && mv.tr === 0){
