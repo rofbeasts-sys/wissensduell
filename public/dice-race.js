@@ -137,7 +137,7 @@ window.drIntro = function(){
     <div class="settings-label">${L('Schwierigkeit gegen den Bot','Bot difficulty')}</div>
     <div style="display:flex;gap:6px;margin:4px 0 4px">${[['easy', 'Leicht', 'Easy'], ['normal', 'Normal', 'Normal'], ['hard', 'Schwer', 'Hard']].map(d => `<button class="btn ${drDiff === d[0] ? 'btn-primary' : ''}" style="flex:1;padding:6px 0" onclick="drSetDiff('${d[0]}')">${L(d[1], d[2])}</button>`).join('')}</div>
     <div class="settings-track" style="margin-bottom:6px">${drDiff === 'easy' ? L('Bot: 20 Level niedriger, setzt Fähigkeiten selten ein. XP-Sieg ×0,5.','Bot: 20 levels lower, rarely uses abilities. Win XP ×0.5.') : drDiff === 'hard' ? L('Bot: 20 Level höher, nutzt Fähigkeiten clever. XP-Sieg ×1,5.','Bot: 20 levels higher, uses abilities smartly. Win XP ×1.5.') : L('Bot: gleiches Level wie du.','Bot: same level as you.')}</div>
-    <div style="margin:6px 0"><label style="font-size:13px;cursor:pointer"><input type="checkbox" ${drDeco ? 'checked' : ''} onchange="drToggleDeco(this.checked)"> 🏔️ ${L('Landschaft (Berge, Wald, Wasserfall) – bei Ruckeln ausschalten','Scenery (mountains, forest, waterfall) – turn off if laggy')}</label></div>
+    <div style="margin:6px 0"><label style="font-size:13px;cursor:pointer"><input type="checkbox" ${drDeco ? 'checked' : ''} onchange="drToggleDeco(this.checked)"> 🏔️ ${L('Landschaft (Berge, Wald, Wasserfall), bei Ruckeln ausschalten','Scenery (mountains, forest, waterfall), turn off if laggy')}</label></div>
     ${tut ? `<div class="explanation" style="margin:8px 0;text-align:left;border:2px solid #ffc446"><b>${L('So geht’s', 'How to play')}</b><br>🎲 ${L('Würfeln und laufen: Wer zuerst unten ist, gewinnt.', 'Roll and move: first one down wins.')}<br>🪤 ${L('Vorher legst du Felder: gute auf dein Brett, Fallen auf das des Gegners.', 'Before the game place tiles: good on yours, traps on the enemy’s.')}<br>❤️ ${L('Leben 0 = zurück an den Start.', 'Life 0 = back to start.')}<br>🔷 ${L('Mana für Sofort-Karten, ✨ für die Figuren-Fähigkeit.', 'Mana for instant cards, ✨ for your figure ability.')}<br>🔄 ${L('Einmal pro Spiel: Gratis-Wurf.', 'Once per game: free re-roll.')}<button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="drTutDone()">${L('Verstanden', 'Got it')}</button></div>` : ''}
     <button class="btn" style="width:100%;margin:4px 0" onclick="drLevels()">📊 ${L('Level-Tabelle', 'Level table')}</button>
     <div class="settings-label">${L('Figur wählen (jede hat eigenes Level)','Pick a figure (own level each)')}</div>
@@ -188,7 +188,7 @@ function drSetupRender(){
   renderApp(`<div class="panel"><div class="picker-title">🎲 ${L('AUFBAU','SETUP')} · ${figOf(0).ic} ${L(figOf(0).de, figOf(0).en)} Lv ${g.lv[0]}</div>
     <div class="picker-sub">${L('Tippe 5 Karten an' + (drMode === 'test' ? ' (alle 9 zur Wahl)' : '') + '. Gute landen zufällig auf deinem Brett, schlechte auf dem des Gegners.','Tap 5 cards. Good ones go on your board, bad ones on the enemy board.')} (${sel.length}/5)</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0">${cards}</div>
-    <div class="settings-label">${L('Deine Sofort-Fähigkeiten (Mana)','Your instant abilities (mana)')}</div><div style="margin:4px 0 6px">${hand || '<span style="font-size:13px;color:#9ab">' + L('Noch keine – erspiele sie dir durch Level.', 'None yet – unlock them by leveling.') + '</span>'}</div>${nextUnlock()}
+    <div class="settings-label">${L('Deine Sofort-Fähigkeiten (Mana)','Your instant abilities (mana)')}</div><div style="margin:4px 0 6px">${hand || '<span style="font-size:13px;color:#9ab">' + L('Noch keine, erspiele sie dir durch Level.', 'None yet, unlock them by leveling.') + '</span>'}</div>${nextUnlock()}
     <div class="actions-row" style="flex-direction:column;gap:8px;">
       <button class="btn btn-primary" ${sel.length === 5 ? '' : 'disabled style="opacity:.4"'} onclick="drToPlace()">${L('Weiter: Felder legen','Next: place fields')}</button>
       <button class="btn btn-ghost" onclick="drIntro()">${L('Abbrechen','Cancel')}</button></div></div>`);
@@ -263,7 +263,7 @@ function startTurn(p){
   if(g.over) return;
   g.cur = p; g.locked = false; g.turns[p]++; g.d = null; g.turbo = false; g.rolled = false; g.spUsedNow = false;
   if(g.turns[p] % 2 === 0 && g.mana[p] < 10) g.mana[p]++;
-  if(g.skip[p]){ g.skip[p] = 0; say(nm(p) + ': ' + L('Pause – Runde ausgesetzt.', 'Paused – turn skipped.')); render(); tm(() => startTurn(1 - p), 1100); return; }
+  if(g.skip[p]){ g.skip[p] = 0; say(nm(p) + ': ' + L('Pause, Runde ausgesetzt.', 'Paused, turn skipped.')); render(); tm(() => startTurn(1 - p), 1100); return; }
   g.phase = 'play'; render();
   if(p === 1) tm(aiTurn, 900);
 }
@@ -273,7 +273,7 @@ function damage(p, n, why){
   const f = g.fig[p];
   if(g.hp[p] <= 0){
     if(f === 'healer' && g.lv[p] >= 100 && !g.rev[p]){ g.rev[p] = 1; g.hp[p] = 20; say(nm(p) + ': 💚 ' + L('Wiederbelebung!', 'Revive!')); return; }
-    g.hp[p] = 100; g.pos[p] = [0, g.pos[p][1]]; say(nm(p) + ': 💥 ' + L('kaputt – zurück zum Start, Leben voll', 'broken – back to start, life full'));
+    g.hp[p] = 100; g.pos[p] = [0, g.pos[p][1]]; say(nm(p) + ': 💥 ' + L('kaputt, zurück zum Start, Leben voll', 'broken, back to start, life full'));
   }
 }
 function useInst(p, a){
@@ -340,7 +340,7 @@ function finish(w){
   let xp = xp0 + (w === 0 ? gain : -loss); xp = Math.max(0, xp);
   const floorLv = l0 >= 10 ? Math.floor(l0 / 10) * 10 : 1; if(lvOf(xp) < floorLv) xp = cum(floorLv);
   xpSet(id, xp); const l1 = lvOf(xp);
-  g.xpMsg = drMode === 'test' ? L('Testmodus – kein XP','Test mode – no XP') : (w === 0 ? '+' + gain + ' XP' : '−' + loss + ' XP') + (l1 > l0 ? ' · ⬆️ Level ' + l1 + (tierOf(l1) > tierOf(l0) ? ' · ' + TIERS[tierOf(l1)] + '!' : '') : (l1 < l0 ? ' · ⬇️ Level ' + l1 : ''));
+  g.xpMsg = drMode === 'test' ? L('Testmodus, kein XP','Test mode, no XP') : (w === 0 ? '+' + gain + ' XP' : '−' + loss + ' XP') + (l1 > l0 ? ' · ⬆️ Level ' + l1 + (tierOf(l1) > tierOf(l0) ? ' · ' + TIERS[tierOf(l1)] + '!' : '') : (l1 < l0 ? ' · ⬇️ Level ' + l1 : ''));
   sfx(w === 0 ? 'win' : 'lose'); say(w === 0 ? L('🏆 Du gewinnst!', '🏆 You win!') : L('Der Gegner gewinnt.', 'The enemy wins.'));
   render();
 }
@@ -562,7 +562,7 @@ function render(){
     let main;
     if(!mine) main = `<div style="text-align:center;padding:10px;color:#9ab">${L('Gegner ist dran …', 'Enemy’s turn …')}</div>`;
     else if(!rolled) main = `<button class="btn btn-primary" style="width:100%;font-size:18px" onclick="drRoll()">🎲 ${L('Würfeln', 'Roll')}</button>`;
-    else if(g.d === 6) main = `<div style="text-align:center;margin-bottom:4px">🎲 6 – Joker: ${L('Richtung wählen', 'choose direction')}</div><div style="display:flex;gap:6px;justify-content:center">${[1, 2, 3, 4, 5].map(k => `<button class="btn btn-primary" onclick="drMoveDir(${k})" style="font-size:20px;padding:6px 12px">${DIRS[k][2]}</button>`).join('')}</div>`;
+    else if(g.d === 6) main = `<div style="text-align:center;margin-bottom:4px">🎲 6, Joker: ${L('Richtung wählen', 'choose direction')}</div><div style="display:flex;gap:6px;justify-content:center">${[1, 2, 3, 4, 5].map(k => `<button class="btn btn-primary" onclick="drMoveDir(${k})" style="font-size:20px;padding:6px 12px">${DIRS[k][2]}</button>`).join('')}</div>`;
     else main = `<button class="btn btn-primary" style="width:100%;font-size:18px" onclick="drGo()">🎲 ${g.d} → ${DIRS[g.d][2]} ${L('Gehen', 'Move')}${g.turbo ? ' ⚡×2' : ''}</button>`;
     const needRoll = ['mage', 'robot'].indexOf(g.fig[0]) !== -1;
     const spDis = !mine || g.left[0] <= 0 || (needRoll && !rolled);
@@ -627,7 +627,7 @@ window.brDuelHub = function(){
   if(typeof brClearTimers === 'function') brClearTimers(); clr(); g = null;
   renderApp(`<div class="panel">
     <div class="picker-title">⚔️ BRAIN DUEL <span style="font-size:12px;color:var(--warn);">ADMIN TEST</span></div>
-    <div class="picker-sub">${L('Zwei Duell-Modi – wähle deinen.','Two duel modes – pick yours.')}</div>
+    <div class="picker-sub">${L('Zwei Duell-Modi, wähle deinen.','Two duel modes, pick yours.')}</div>
     <div class="actions-row" style="flex-direction:column;gap:10px;margin-top:10px">
       <div class="mode-card" onclick="brIntro()" style="border-color:var(--warn);cursor:pointer"><div class="icon">⚔️</div><h3>Brain Royale</h3><p>${L('Figuren-Duell mit Quiz','Piece duel with quiz')}</p></div>
       <div class="mode-card" onclick="drIntro()" style="border-color:#ffc446;cursor:pointer"><div class="icon">🎲</div><h3>Brain Mana</h3><p>${L('Würfeln, Fallen & Fähigkeiten','Dice, traps & abilities')}</p></div>
