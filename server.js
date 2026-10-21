@@ -1,5 +1,5 @@
 /**
- * BRAIN PULSE PARTY (ehem. WISSENSDUELL PARTY) – Server
+ * BRAIN PULSE PARTY (ehem. WISSENSDUELL PARTY), Server
  * ---------------------------------------------------------------------------
  * Kleiner Node.js-Server (http + ws), den der Host im eigenen WLAN startet.
  * Andere Geräte im selben Netzwerk verbinden sich per Browser mit der
@@ -13,7 +13,7 @@
  *  - Die vier Spiel-Engines: knowledgeQuiz, orderingGame, chronologyGame, higherLowerGame
  *
  * Alle Inhalte (Fragen, Einordnen-/Mehr-oder-Weniger-Datensätze) liegen
- * getrennt in ./shared/*.json und werden hier nur eingelesen – neue
+ * getrennt in ./shared/*.json und werden hier nur eingelesen, neue
  * Kategorien lassen sich dort ergänzen, ohne den Server-Code anzufassen.
  * ---------------------------------------------------------------------------
  */
@@ -192,7 +192,7 @@ const MAX_PARTICIPANTS = 6;
 const SUPPORTED_LANGS = ["de", "en", "fr", "es"];
 
 // Stadt-Land-Fluss-Konstanten (hier oben, da schon beim Aufbau des
-// Rundenpools benötigt – siehe buildRoundDefPool()/slfBuildRoundDef()).
+// Rundenpools benötigt, siehe buildRoundDefPool()/slfBuildRoundDef()).
 const SLF_DEFAULT_CATEGORIES = ["Stadt", "Land", "Fluss", "Name", "Tier", "Beruf", "Pflanze", "Farbe", "Automarke", "Promi"];
 const SLF_LETTERS = "ABCDEFGHIJKLMNOPRSTUVWZ".split(""); // Q, X, Y ausgelassen (zu schwer für flüssiges Spiel)
 const SLF_ANSWER_MS = 80000;      // Zeit zum Schreiben
@@ -240,7 +240,7 @@ function pickBotName(room) {
 }
 
 // Bot-Wortschatz für Stadt Land Fluss: NUR für die 7 klassischen
-// Original-Kategorien (fest, überschaubar) – für den 50-Kategorien-
+// Original-Kategorien (fest, überschaubar), für den 50-Kategorien-
 // Party-Mix-Pool wäre ein vollständiges, verlässliches Wörterbuch über alle
 // Buchstaben kein seriös leistbarer Umfang. Bots lassen ein Feld einfach
 // leer, wenn sie für Buchstabe+Kategorie kein Wort kennen.
@@ -281,7 +281,7 @@ const SLF_BOT_WORDS_EN = {
 };
 
 /* ------------------------------------------------------------------------ */
-/* Verfügbare Rundentypen (modular, leicht erweiterbar – Punkt 15)           */
+/* Verfügbare Rundentypen (modular, leicht erweiterbar, Punkt 15)           */
 /* Stadt Land Fluss ist EIGENSTÄNDIGER Modus (eigener Menüpunkt, eigenes    */
 /* Solo & Multiplayer) und steht daher NICHT mehr im normalen Mix-Pool.     */
 /* ------------------------------------------------------------------------ */
@@ -364,7 +364,7 @@ const ARENA_CHALLENGE_POOL = ROUND_DEF_POOL.filter(r => ["orderingGame", "chrono
 DEDICATED_POOLS.arena = ARENA_CHALLENGE_POOL;
 function findRoundDef(id) {
   // Alle DEDICATED_POOLS-Einträge sind Teilmengen von ROUND_DEF_POOL (siehe
-  // oben) – nur SLF_ROUND_DEF_POOL enthält davon unabhängige, eigene IDs.
+  // oben), nur SLF_ROUND_DEF_POOL enthält davon unabhängige, eigene IDs.
   return ROUND_DEF_POOL.find(r => r.id === id) || SLF_ROUND_DEF_POOL.find(r => r.id === id);
 }
 function roundDefPoolForLanguage(language, gameMode) {
@@ -1078,7 +1078,7 @@ function advanceQuizQuestion(room) {
 /* Ende der Runde auf (Auflösung). Teams sind hier abwechselnd am Zug.       */
 /* Einordnen (orderingGame) hat seit dem großen Umbau eine EIGENE, komplett  */
 /* gleichzeitige Engine (jeder Spieler für sich, eigenes Raster, eigene      */
-/* Leben, kein Rundenwechsel) – siehe Abschnitt "RUNDE: orderingGame" weiter */
+/* Leben, kein Rundenwechsel), siehe Abschnitt "RUNDE: orderingGame" weiter */
 /* unten, NICHT diese Funktion hier.                                        */
 /* ------------------------------------------------------------------------ */
 function startRankingRound(room, def) {
@@ -1093,7 +1093,7 @@ function startRankingRound(room, def) {
 
   // Manche Kategorien enthalten deutlich mehr als MAX_ROUND_ITEMS Elemente
   // (größerer, "echter" Datenpool). Damit eine Runde nicht ewig dauert, wird
-  // daraus jedes Mal eine zufällige Auswahl gezogen – bei "Mehr oder Weniger"
+  // daraus jedes Mal eine zufällige Auswahl gezogen, bei "Mehr oder Weniger"
   // bleibt das Referenzelement (seedId) dabei garantiert immer Teil der
   // Auswahl, egal wie die Zufallsauswahl sonst ausfällt.
   // Ausnahme: "Chronologie" soll bewusst IMMER die vollständige Liste zeigen
@@ -1243,7 +1243,7 @@ function correctInsertIndexFor(rt, value) {
 // Lässt einen Bot automatisch ziehen, wenn das gerade aktive Team
 // ausschließlich aus Bots besteht (ein menschliches Teammitglied zieht
 // weiterhin immer selbst). Gilt nur für Chronologie & Mehr-oder-Weniger
-// (rundenbasiert) – Einordnen hat eine eigene Bot-Funktion, siehe unten.
+// (rundenbasiert), Einordnen hat eine eigene Bot-Funktion, siehe unten.
 function scheduleBotRankMove(room) {
   const rt = room.runtime;
   if (!rt) return;
@@ -1354,7 +1354,7 @@ function handleRankPlace(room, playerId, itemId, insertIndex) {
     applyMistakePenalty(room, teamId);
     if (rt.lives.get(teamId) <= 0) rt.eliminated.add(teamId);
 
-    // Bei falscher Antwort wird NICHTS einsortiert – das Element bleibt
+    // Bei falscher Antwort wird NICHTS einsortiert, das Element bleibt
     // unplatziert und stellt sich hinten wieder in den Nachziehstapel/Pool
     // an, sodass beim nächsten Zug automatisch das nächste (andere) Element
     // dran ist. Das falsch geratene Element kann später erneut versucht
@@ -1415,13 +1415,13 @@ function finishRankingRound(room) {
 }
 
 /* ------------------------------------------------------------------------ */
-/* RUNDE: orderingGame ("Einordnen") – EIGENE, komplett gleichzeitige Engine */
+/* RUNDE: orderingGame ("Einordnen"), EIGENE, komplett gleichzeitige Engine */
 /* Jeder Spieler (nicht Team!) bekommt sein eigenes, unabhängiges 1..N-      */
 /* Positionsraster mit denselben Elementen und eigene 3 Leben. Alle Spieler  */
 /* platzieren gleichzeitig, ohne Rundenwechsel. Der erste UND der letzte     */
 /* Tipp sind automatisch immer richtig (beim ersten gibt es noch keinen      */
 /* Nachbarn zum Vergleichen; beim letzten bleibt rechnerisch zwangsläufig    */
-/* nur noch das passende Element für den letzten freien Slot übrig) – beides */
+/* nur noch das passende Element für den letzten freien Slot übrig), beides */
 /* ergibt sich automatisch aus der Nachbar-Prüfung unten, ohne Sonderfall.   */
 /* Sobald jemand ALLE Elemente korrekt UND ohne ein Leben zu verlieren       */
 /* geschafft hat, bekommen alle anderen nur noch ORDERING_HURRY_MS Zeit.     */
@@ -1520,7 +1520,7 @@ function handleOrderingArenaTimeout(room, playerId) {
 // Prüft, ob das Einsortieren an slotIndex im festen 1..N-Positionsraster
 // EINES Spielers korrekt ist. Verglichen wird nur mit den jeweils nächsten
 // bereits befüllten Nachbarslots (leere Slots dazwischen werden
-// übersprungen) – noch leere Slots links/rechts vom Spielfeldrand gelten
+// übersprungen), noch leere Slots links/rechts vom Spielfeldrand gelten
 // als "kein Widerspruch". Dadurch ist der allererste Tipp automatisch immer
 // richtig (kein Nachbar vorhanden), und der letzte verbleibende Tipp bei nur
 // noch einem freien Slot ist es rechnerisch zwangsläufig ebenfalls.
@@ -1738,7 +1738,7 @@ function scheduleNextBotOrderingMove(room, rt, bot, tier) {
 /* RUNDE: guessPicture ("Bild erraten")                                      */
 /* Ein Bild/Emoji wird zunehmend deutlicher; je früher richtig geraten wird  */
 /* (Freitext, tippfehlertolerant), desto mehr Punkte gibt es. Alle Spieler   */
-/* können jederzeit raten – wer zuerst richtig liegt, bekommt die Punkte.   */
+/* können jederzeit raten, wer zuerst richtig liegt, bekommt die Punkte.   */
 /* ------------------------------------------------------------------------ */
 const GUESS_TIER_MS = 3000;           // Dauer je Punktestufe
 const GUESS_TIERS = [5, 3, 2, 1];     // Punkte je Stufe (zentral anpassbar)
@@ -1886,11 +1886,11 @@ function scheduleBotGuesses(room) {
 /* ------------------------------------------------------------------------ */
 /* RUNDE: guessMusic ("Musik raten")                                         */
 /* Ein YouTube-Clip spielt für alle gemeinsam/synchron (geteilte Wiedergabe).*/
-/* Jede/r kann bis zu MUSIC_MAX_REPLAYS mal "Nochmal hören" anfordern – der  */
+/* Jede/r kann bis zu MUSIC_MAX_REPLAYS mal "Nochmal hören" anfordern, der  */
 /* Clip spielt dabei ab der Stopp-Stelle weiter (nicht von vorne). Das senkt */
 /* die maximal erreichbare Punktzahl je Feld für ALLE Spieler (geteilte      */
 /* Entscheidung, da alle dasselbe hören). Jede/r gibt unabhängig von den     */
-/* anderen drei Antworten ab: Künstler, Titel, Jahr – jedes Feld zählt       */
+/* anderen drei Antworten ab: Künstler, Titel, Jahr, jedes Feld zählt       */
 /* einzeln (schon ein richtiges Feld gibt Punkte, mehr richtige Felder geben */
 /* entsprechend mehr). Punkte je richtigem Feld = MUSIC_FIELD_MAX_POINTS     */
 /* minus Anzahl der bis zur EIGENEN Abgabe bereits genutzten Wiederholungen  */
@@ -1955,7 +1955,7 @@ function nextMusicItem(room) {
   scheduleBotMusicGuesses(room);
 }
 
-// Jede/r Spieler/in kann das anfordern (nicht nur der Host) – wirkt sich auf
+// Jede/r Spieler/in kann das anfordern (nicht nur der Host), wirkt sich auf
 // ALLE aus, da die Wiedergabe geteilt ist. Läuft ab der Stopp-Stelle weiter.
 function handleMusicReplay(room, playerId) {
   const rt = room.runtime;
@@ -1990,7 +1990,7 @@ function handleMusicSubmit(room, playerId, answers) {
   if (!player) return;
 
   // Punkte-Obergrenze je Feld wird JETZT festgeschrieben (Stand der bis zu
-  // diesem Zeitpunkt genutzten Wiederholungen) – spätere Wiederholungen durch
+  // diesem Zeitpunkt genutzten Wiederholungen), spätere Wiederholungen durch
   // andere Spieler wirken sich nicht mehr rückwirkend auf diese Abgabe aus.
   const cap = currentMusicFieldCap(rt);
   const clean = {
@@ -2067,7 +2067,7 @@ function resolveMusicItem(room) {
 }
 
 // Bots geben wie bei anderen Modi mit schwierigkeitsabhängiger Verzögerung
-// und Trefferquote ab – über denselben handleMusicSubmit()-Weg wie Menschen,
+// und Trefferquote ab, über denselben handleMusicSubmit()-Weg wie Menschen,
 // damit sie exakt denselben Regeln (inkl. aktuellem Wiederholungs-Stand)
 // unterliegen. Bots fordern selbst keine Wiederholungen an.
 function scheduleBotMusicGuesses(room) {
@@ -2092,10 +2092,10 @@ function scheduleBotMusicGuesses(room) {
 
 /* ------------------------------------------------------------------------ */
 /* RUNDE: nennsBlitz ("Nenn's Blitz")                                        */
-/* Freitext, keine feste Lösungsliste – alle Spieler:innen tippen GLEICH-    */
-/* ZEITIG frei Begriffe zu einer Kategorie (kein Buzzer, kein reihum mehr –  */
+/* Freitext, keine feste Lösungsliste, alle Spieler:innen tippen GLEICH-    */
+/* ZEITIG frei Begriffe zu einer Kategorie (kein Buzzer, kein reihum mehr,  */
 /* nach Rückfrage bewusst so vereinfacht). Jede neu getippte, im EIGENEN     */
-/* Feld noch nicht genannte Antwort zählt vorläufig – dieselbe Antwort von   */
+/* Feld noch nicht genannte Antwort zählt vorläufig, dieselbe Antwort von   */
 /* zwei verschiedenen Spieler:innen zählt für beide unabhängig (kein "wer    */
 /* zuerst"-Wettrennen, jede/r sammelt für sich). Nach Ablauf der Zeit folgt  */
 /* eine Anfechtungsphase (Mechanik von Stadt Land Fluss übernommen:          */
@@ -2122,7 +2122,7 @@ function startNennsBlitzRound(room, def) {
   const ds = dsFor("nennsBlitz", def.datasetKey, room.language);
   const teamIds = Array.from(room.teams.keys());
   // Solo-Party-Räume bestehen strukturell immer aus genau 1 menschlichen
-  // Spieler:in (keine Bots, kein Warten auf weitere Beitritte) – daher
+  // Spieler:in (keine Bots, kein Warten auf weitere Beitritte), daher
   // ist "genau 1 Spieler im Raum" hier ein zuverlässiges Solo-Kriterium.
   const isSolo = room.players.size === 1;
   const durationMs = isSolo
@@ -2153,7 +2153,7 @@ function startNennsBlitzRound(room, def) {
 // zeit hinweg ein paar Platzhalter-Antworten abgeben (schwierigkeitsabhängige
 // Trefferquote/Tempo aus BOT_TIERS). Da die Validierung bewusst freitext-
 // basiert ist (keine feste Lösungsliste), kennen Bots keine "echten"
-// Kategorie-Begriffe – sie tragen trotzdem zum Tempo/Ablauf bei, zählen aber
+// Kategorie-Begriffe, sie tragen trotzdem zum Tempo/Ablauf bei, zählen aber
 // inhaltlich nicht als realistische Antworten.
 function scheduleNennsBlitzBots(room, durationMs) {
   const rt = room.runtime;
@@ -2183,7 +2183,7 @@ function handleNennsBlitzSubmit(room, playerId, text) {
   if (!trimmed) return;
   const norm = normalizeNennsBlitzText(trimmed);
   if (!norm) return;
-  // Duplikat-Prüfung im eigenen Feld – dieselbe Antwort von einer anderen
+  // Duplikat-Prüfung im eigenen Feld, dieselbe Antwort von einer anderen
   // Person zählt unabhängig davon ebenfalls (siehe Kommentar oben).
   if (st.answers.some(a => normalizeNennsBlitzText(a.text) === norm)) return;
   const id = "a" + (++rt.answerCounter);
@@ -2276,7 +2276,7 @@ function finalizeNennsBlitzRound(room) {
     const validCount = st.answers.filter(a => !invalidatedIds.has(pid + "|" + a.id)).length;
     results.push({ playerId: pid, name: player ? player.name : "?", total: validCount });
     if (player && player.teamId) {
-      // 1 Punkt pro gültiger Antwort, je Team aufsummiert – für Solo wie
+      // 1 Punkt pro gültiger Antwort, je Team aufsummiert, für Solo wie
       // Duell gleichermaßen (vom Nutzer bestätigt).
       rt.roundPointsByTeam.set(player.teamId, (rt.roundPointsByTeam.get(player.teamId) || 0) + validCount);
     }
@@ -2457,11 +2457,11 @@ function levenshteinDistance(a, b) {
 // Zusätzlich: vermuteter Schreibfehler. Wenn zwei unterschiedliche, aber sich
 // nur in einem Buchstaben unterscheidende Wörter (Editierdistanz 1) in
 // derselben Kategorie auftauchen, ist das sehr wahrscheinlich dasselbe
-// gemeinte Wort mit einem Tippfehler – dann ziehen wir beiden Beteiligten
+// gemeinte Wort mit einem Tippfehler, dann ziehen wir beiden Beteiligten
 // 5 Punkte von der jeweiligen Grundwertung ab (nie unter 0).
 // `invalidPlayerCatPairs` enthält per Anfechtung für ungültig erklärte
 // Antworten (Set aus "playerId|kategorie") und wird wie eine leere Antwort
-// behandelt – dadurch wirkt sich eine erfolgreiche Anfechtung automatisch auf
+// behandelt, dadurch wirkt sich eine erfolgreiche Anfechtung automatisch auf
 // die Wertung der ÜBRIGEN Antworten in derselben Kategorie aus (z.B. wird aus
 // "10 Punkte, da noch jemand anders gültig war" wieder "20 Punkte, da jetzt
 // einzige gültige Antwort", sobald die Konkurrenz-Antwort wegfällt).
@@ -2642,7 +2642,7 @@ function finishRoundEngine(room, roundPointsByTeam) {
 function startPartyTicTacToeRound(room, def) {
   const teamIds = Array.from(room.teams.keys());
   if (teamIds.length !== 2) {
-    broadcast(room, { type: "ticTacToeSkipped", reason: "Tic Tac Toe braucht genau 2 Teams – diese Runde entfällt." });
+    broadcast(room, { type: "ticTacToeSkipped", reason: "Tic Tac Toe braucht genau 2 Teams, diese Runde entfällt." });
     return finishRoundEngine(room, new Map(teamIds.map(id => [id, 0])));
   }
   const [teamA, teamB] = teamIds;
@@ -3030,7 +3030,7 @@ function fuFreshBoard() { return Array.from({ length: FOURUPS_ROWS }, () => Arra
 function startPartyFourupsRound(room, def) {
   const teamIds = Array.from(room.teams.keys());
   if (teamIds.length !== 2) {
-    broadcast(room, { type: "ticTacToeSkipped", reason: "4 gewinnt braucht genau 2 Teams – diese Runde entfällt." });
+    broadcast(room, { type: "ticTacToeSkipped", reason: "4 gewinnt braucht genau 2 Teams, diese Runde entfällt." });
     return finishRoundEngine(room, new Map(teamIds.map(id => [id, 0])));
   }
   const [a, b] = teamIds; const aFirst = Math.random() < 0.5;
@@ -5354,7 +5354,7 @@ async function shopCreateCheckout(token, packageId, origin, lang) {
   const params = {
     mode: "payment",
     "line_items[0][price_data][currency]": "eur",
-    "line_items[0][price_data][product_data][name]": pkg.label + " – Brain Pulse",
+    "line_items[0][price_data][product_data][name]": pkg.label + ", Brain Pulse",
     "line_items[0][price_data][unit_amount]": String(pkg.priceCents),
     "line_items[0][quantity]": "1",
     success_url: origin + "/?shop=success",
@@ -6247,7 +6247,7 @@ wss.on("connection", (ws, req) => {
         break;
       case "setNennsBlitzDuration":
         // Nur relevant für Solo (im Duell/Multiplayer ist die Zeit immer
-        // fest 120s, siehe NENNSBLITZ_DUELL_MS) – wird trotzdem unabhängig
+        // fest 120s, siehe NENNSBLITZ_DUELL_MS), wird trotzdem unabhängig
         // vom aktuellen Spielerstand gespeichert, falls z.B. später noch
         // jemand beitritt und der Raum doch kein Solo mehr ist (dann greift
         // ohnehin automatisch die feste Duell-Zeit statt dieser Auswahl).
@@ -6393,7 +6393,7 @@ wss.on("connection", (ws, req) => {
           // Wichtig: Teams (insb. bei "Alle gegen alle") werden erst hier final
           // zugewiesen. Ohne diesen roomUpdate hätte der Client noch die alte
           // (leere) teamId je Spieler zwischengespeichert und würde fälschlich
-          // glauben, niemand sei je am Zug – alle Klick-Buttons blieben dann
+          // glauben, niemand sei je am Zug, alle Klick-Buttons blieben dann
           // unsichtbar. phase wird deshalb VOR dem Broadcast schon auf
           // "playing" gesetzt, damit der Client dabei nicht kurz zurück in
           // den Warteraum/die Solo-Konfiguration zurückspringt.
