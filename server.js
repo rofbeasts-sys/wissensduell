@@ -5211,7 +5211,7 @@ function publicStats() {
   return { ok: true, online: c.online >= PUBLIC_ONLINE_MIN ? c.online : null, today: seenToday.day === d ? seenToday.set.size : 0, feed: feed.filter(e => e.t > cutoff).slice(0, 8) };
 }
 const LOCKED_FEATURES = new Set(
-  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,ordering,blitz,chess_fantasy,achievements,ttt_quantum,fourups_abilities,brain_royale,dame" : process.env.LOCKED_FEATURES)
+  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,ordering,blitz,chess_fantasy,ttt_quantum,fourups_abilities,brain_royale" : process.env.LOCKED_FEATURES)
     .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
 );
 function featureLocked(name) { return LOCKED_FEATURES.has(name); }
