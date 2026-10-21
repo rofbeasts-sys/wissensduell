@@ -48,6 +48,9 @@ var FACES=[ // n = Normale, u = rechts, v = runter (Weltkoordinaten, y nach unte
  {n:[0,1,0],u:[1,0,0],v:[0,0,-1],css:"rotateX(-90deg)",col:"#7cff8c"}];
 var N=3, level=1, hearts=3, cells={}, order=[], busy=false, over=false;
 var best=1; try{ best=parseInt(localStorage.getItem("bp_arrow_best"),10)||1; }catch(e){}
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+if(PP){ try{ best=Math.max(best,(PP.fruitData().hoodLevel||1)); }catch(e){} }
+level=best;
 function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
 function key(c){return Math.round(c[0]*2)+","+Math.round(c[1]*2)+","+Math.round(c[2]*2)}
 function add(a,b,k){return [a[0]+b[0]*k,a[1]+b[1]*k,a[2]+b[2]*k]}
@@ -141,7 +144,8 @@ function tap(el){
 function end(win){
   over=true; var ov=$("ov"); ov.classList.add("show");
   if(win){
-    if(level>=best){ best=level+1; try{ localStorage.setItem("bp_arrow_best",String(best)); }catch(e){} }
+    if(PP){ try{ PP.brainSubmit("hood",level); }catch(e){} }
+    if(level>=best){ best=level+1; try{ localStorage.setItem("bp_arrow_best",String(best)); }catch(e){} if(PP){ try{ PP.fruitSet({hoodLevel:best}); }catch(e){} } }
     $("ot").textContent="🎉 "+T.won; $("op").textContent=T.wonp; $("o1").textContent=T.next;
     $("o1").onclick=function(){ level++; start(); };
   } else {
