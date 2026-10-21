@@ -22,6 +22,12 @@ h1{font-size:17px;margin:0;flex:1}
 .t.s .in{background:#ffffff33!important;border-color:#fff!important;box-shadow:0 0 12px #ffffffaa}
 .t.stone .in{background:#3a3f55;border-color:#5a6180}
 .t.bad{animation:sh .3s}@keyframes sh{25%{margin-left:-5px}75%{margin-left:5px}}
+.bos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px 14px 0;max-width:460px;margin:0 auto}
+.bo{position:relative;background:#ffffff0d;border:2px solid transparent;border-radius:14px;padding:7px 2px;text-align:center;color:#eef;font-family:inherit;cursor:pointer}
+.bo.on{border-color:#ffc446;background:#ffc44622}.bo.zero{opacity:.55}
+.bo .bi{font-size:24px;display:block}.bo b{font-size:11px;display:block;margin-top:1px}
+.bo i{position:absolute;top:-6px;right:-3px;background:#c6ff3d;color:#08110c;font-style:normal;font-weight:900;font-size:12px;border-radius:99px;min-width:20px;padding:2px 5px}
+.bo.zero i{background:#ffc446}
 .info{text-align:center;color:#8d97b5;font-size:12px;padding:10px 14px}
 .ov{position:absolute;inset:0;background:rgba(5,8,20,.88);display:none;align-items:center;justify-content:center;z-index:9;padding:20px}
 .ov.show{display:flex}.box{background:#121a2e;border:3px solid #c6ff3d;border-radius:20px;padding:24px;text-align:center;max-width:340px;width:100%}
@@ -32,6 +38,7 @@ h1{font-size:17px;margin:0;flex:1}
 <div class="top"><a class="back" href="/" id="back">←</a><h1 id="title"></h1><span class="pill" id="lvl"></span><span class="pill" id="mv"></span></div>
 <div class="goal" id="goal"></div>
 <div class="wrap"><div class="board" id="board"></div></div>
+<div class="bos" id="bos"></div>
 <div class="info" id="info"></div>
 <div class="ov" id="ov"><div class="box"><h2 id="ot"></h2><p id="op"></p><div style="display:flex;gap:8px;justify-content:center"><button class="btn pri" id="o1"></button><button class="btn" id="o2"></button></div></div></div>
 <script>
@@ -42,7 +49,17 @@ var T = lang==="en" ? {title:"Brain Fruit",level:"Level",moves:"Moves",hint:"Swa
 var $=function(i){return document.getElementById(i)};
 var COLS=7, ROWS=8, FR=["🍓","🍋","🍏","🫐","🍇","🍊"], COL=["#ff5d8f","#ffc446","#7cff8c","#3de0ff","#b19cd9","#ff9a3c"];
 var level=1, moves=0, goal=[], types=4, grid=[], cs=44, busy=false, over=false, sel=null, uid=0;
+var P=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") P=window.parent; }catch(e){}
 var best=1; try{ best=parseInt(localStorage.getItem("bp_fruit_best"),10)||1; }catch(e){}
+if(P){ try{ best=Math.max(best,(P.fruitData().fruitLevel||1)); }catch(e){} }
+level=best;
+var BO=[{id:"hammer",ic:"🔨"},{id:"broom",ic:"🧹"},{id:"shuffle",ic:"🔀"},{id:"moves",ic:"➕"}], boMode=null;
+var BON=lang==="en"?{hammer:"Hammer",broom:"Broom",shuffle:"Shuffle",moves:"+5 moves",tipH:"🔨 Tap a tile to smash it",tipB:"🧹 Tap a row to sweep it",buy:"Buy for ",coins:" coins?",short:"Not enough coins",bought:"Bought!",none:"No booster left",reward:"Bonus: new boosters!"}
+ :{hammer:"Hammer",broom:"Besen",shuffle:"Mischen",moves:"+5 Züge",tipH:"🔨 Tippe ein Feld an, um es zu zerschlagen",tipB:"🧹 Tippe eine Reihe an, um sie wegzufegen",buy:"Kaufen für ",coins:" Münzen?",short:"Nicht genug Münzen",bought:"Gekauft!",none:"Kein Booster mehr",reward:"Bonus: neue Booster!"};
+function inv(){ try{ return P?P.fruitData():{hammer:0,broom:0,shuffle:0,moves:0}; }catch(e){ return {hammer:0,broom:0,shuffle:0,moves:0}; } }
+function drawBos(){
+  var f=inv(); $("bos").innerHTML=BO.map(function(b){ var n=f[b.id]||0; return '<button class="bo'+(boMode===b.id?' on':'')+(n?'':' zero')+'" data-b="'+b.id+'"><span class="bi">'+b.ic+'</span><b>'+BON[b.id]+'</b><i>'+(n||"+")+'</i></button>'; }).join("");
+}
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms)})}
 function rnd(n){return Math.floor(Math.random()*n)}
 function params(L){
@@ -195,8 +212,10 @@ function ensureMove(){
 }
 function finish(win){
   over=true; $("ov").classList.add("show");
-  if(win){ if(level>=best){ best=level+1; try{ localStorage.setItem("bp_fruit_best",String(best)); }catch(e){} }
-    $("ot").textContent="🎉 "+T.won; $("op").textContent=T.wonp; $("o1").textContent=T.next; $("o1").onclick=function(){ level++; start(); };
+  if(win){ if(P){ try{ P.brainSubmit("fruit",level); }catch(e){} }
+    if(level>=best){ best=level+1; try{ localStorage.setItem("bp_fruit_best",String(best)); }catch(e){} if(P){ try{ P.fruitSet({fruitLevel:best}); }catch(e){} } }
+    var rw=""; if(level%5===0&&P){ try{ var got=P.fruitGrant(2); rw="  "+BON.reward+" "+got.map(function(g){ return BO.filter(function(b){return b.id===g})[0].ic; }).join(" "); }catch(e){} }
+    $("ot").textContent="🎉 "+T.won; $("op").textContent=T.wonp+rw; $("o1").textContent=T.next; $("o1").onclick=function(){ level++; start(); };
   } else { $("ot").textContent="💔 "+T.lost; $("op").textContent=T.lostp+level+" · "+T.best+best; $("o1").textContent=T.retry; $("o1").onclick=function(){ start(); }; }
   $("o2").textContent=T.quit; $("o2").onclick=quit;
 }
@@ -207,18 +226,51 @@ function start(){
   goal=[]; var pool=[]; for(var i=0;i<types;i++) pool.push(i); pool.sort(function(){return Math.random()-.5});
   for(var g=0;g<p.nGoal;g++) goal.push({type:pool[g],n:p.per,got:0});
   if(p.stones>0) goal.push({stone:true,n:p.stones,got:0});
-  sync(); ensureMove(); hud(); $("info").textContent=T.hint;
+  boMode=null; sync(); ensureMove(); hud(); drawBos(); $("info").textContent=T.hint;
 }
+function setInfo(t){ $("info").textContent=t||T.hint; }
+function useBooster(id){
+  if(busy||over) return;
+  var f=inv(), n=f[id]||0;
+  if(!n){ // kaufen
+    if(!P){ setInfo(BON.none); return; }
+    var cost=(P.FRUIT_BOOSTERS.filter(function(b){return b.id===id})[0]||{}).cost||20;
+    if(window.confirm(BON.buy+cost+BON.coins)){ var r=P.fruitBuy(id); setInfo(r.ok?BON.bought:BON.short); drawBos(); }
+    return;
+  }
+  if(id==="hammer"||id==="broom"){ boMode=(boMode===id?null:id); drawBos(); setInfo(boMode?(id==="hammer"?BON.tipH:BON.tipB):null); return; }
+  boMode=null;
+  if(id==="moves"){ spend(id); moves+=5; hud(); drawBos(); return; }
+  if(id==="shuffle"){ spend(id); shuffleAll(); drawBos(); return; }
+}
+function spend(id){ try{ var f=P.fruitData(); P.fruitSet(Object.fromEntries([[id,Math.max(0,(f[id]||0)-1)]])); }catch(e){} }
+function shuffleAll(){
+  var tiles=[]; for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++){ var t=grid[r][c]; if(t&&!t.stone&&!t.sp) tiles.push(t); }
+  var n=0; do{ var ts=tiles.map(function(t){return t.type}).sort(function(){return Math.random()-.5}); tiles.forEach(function(t,i){ t.type=ts[i]; }); n++; }while((runs().length||!hasMove())&&n<60);
+  sync();
+}
+async function boosterHit(t){
+  var id=boMode; boMode=null; drawBos(); setInfo(null); busy=true;
+  var set=new Set();
+  if(id==="hammer") set.add(t);
+  else for(var c=0;c<COLS;c++){ if(grid[t.r][c]) set.add(grid[t.r][c]); }
+  spend(id); drawBos();
+  expand(set); await remove(set); await gravity(); await resolve(null); ensureMove();
+  busy=false; hud();
+  if(done()) finish(true); else if(moves<=0) finish(false);
+}
+$("bos").addEventListener("click",function(e){ var b=e.target.closest(".bo"); if(b) useBooster(b.dataset.b); });
 // Eingabe: Wischen oder zwei Tippen
 var down=null;
 $("board").addEventListener("pointerdown",function(e){ var el=e.target.closest(".t"); if(!el||busy||over) return; var t=findById(+el.dataset.id); down={t:t,x:e.clientX,y:e.clientY,done:false}; });
 window.addEventListener("pointermove",function(e){
-  if(!down||down.done||!down.t) return; var dx=e.clientX-down.x, dy=e.clientY-down.y;
+  if(!down||down.done||!down.t||boMode) return; var dx=e.clientX-down.x, dy=e.clientY-down.y;
   if(Math.abs(dx)<cs*0.3&&Math.abs(dy)<cs*0.3) return; down.done=true;
   var r=down.t.r+(Math.abs(dy)>Math.abs(dx)?(dy>0?1:-1):0), c=down.t.c+(Math.abs(dx)>=Math.abs(dy)?(dx>0?1:-1):0);
   if(inb(r,c)) trySwap(down.t,grid[r][c]);
 });
 window.addEventListener("pointerup",function(){
+  if(down&&!down.done&&down.t&&boMode&&!busy&&!over){ boosterHit(down.t); down=null; return; }
   if(down&&!down.done&&down.t&&!down.t.stone){
     var t=down.t; if(sel&&sel!==t&&adj(sel,t)){ var s=sel; sel=null; trySwap(s,t); } else { sel=(sel===t?null:t); sync(); }
   }
