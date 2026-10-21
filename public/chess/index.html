@@ -260,6 +260,7 @@ function finish(res){
     if(res.result === "win") s.wins++; else if(res.result === "loss") s.losses++; else s.draws++;
     saveStats(s);
     $("stats").textContent = T.stats(s);
+    try{ const q = JSON.parse(localStorage.getItem("wq_achv_q") || "[]"); q.push({ t:"chess", won: res.result === "win", level: level, moves: G.rec.length, lost: G.capB.length }); localStorage.setItem("wq_achv_q", JSON.stringify(q.slice(-50))); }catch(e){}
   }
   $("endTitle").textContent = (res.result === "win" ? "🏆 " : res.result === "loss" ? "💀 " : "🤝 ") + title;
   $("endText").textContent = text;
