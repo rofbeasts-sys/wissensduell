@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Brain Hood</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0a0d16;color:#eef;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;touch-action:none;user-select:none}
+.top{display:flex;align-items:center;gap:10px;padding:12px 14px}
+.back{color:#eef;text-decoration:none;font-size:22px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#ffffff12}
+h1{font-size:17px;margin:0;flex:1}
+.pill{background:#ffffff14;border-radius:99px;padding:6px 12px;font-size:13px;font-weight:800;white-space:nowrap}
+.stage{position:absolute;left:0;right:0;top:64px;bottom:120px;display:flex;align-items:center;justify-content:center;perspective:1100px;touch-action:none}
+.cube{position:relative;transform-style:preserve-3d;transform:rotateX(-28deg) rotateY(-38deg)}
+.face{position:absolute;left:0;top:0;display:grid;gap:5px;padding:7px;background:#18213a;border:2px solid;border-radius:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.cell{border-radius:9px;background:#ffffff0d;display:flex;align-items:center;justify-content:center;font-weight:900;position:relative;transition:transform .35s ease,opacity .35s ease;transform-style:flat}
+.cell.has{cursor:pointer;background:#ffffff14}
+.cell .g{display:block;line-height:1;pointer-events:none}
+.cell.bad{background:#ff5d8f55!important;animation:sh .35s}
+.cell.blk{outline:3px solid #ff5d8f;background:#ff5d8f33!important}
+@keyframes sh{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.cell.fly{opacity:0;pointer-events:none}
+.bar{position:absolute;left:0;right:0;bottom:0;padding:10px 14px 16px;text-align:center}
+.info{font-size:13px;color:#8d97b5;margin-bottom:10px}
+.btns{display:flex;gap:8px;justify-content:center}
+.btn{background:#ffffff14;color:#eef;border:0;border-radius:12px;padding:10px 14px;font-size:16px;font-weight:800;cursor:pointer}
+.ov{position:absolute;inset:0;background:rgba(5,8,20,.88);display:none;align-items:center;justify-content:center;z-index:9;padding:20px}
+.ov.show{display:flex}.box{background:#121a2e;border:3px solid #c6ff3d;border-radius:20px;padding:24px;text-align:center;max-width:340px;width:100%}
+.box h2{margin:0 0 8px;font-size:28px}.box p{color:#b7c0dc;margin:0 0 16px}
+.pri{background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#08110c}
+</style></head><body>
+<div class="top"><a class="back" href="/" id="back">←</a><h1 id="title"></h1><span class="pill" id="lvl"></span><span class="pill" id="hp"></span></div>
+<div class="stage" id="stage"><div class="cube" id="cube"></div></div>
+<div class="bar"><div class="info" id="info"></div>
+<div class="btns"><button class="btn" id="bl">⟲</button><button class="btn" id="bu">⟰</button><button class="btn" id="bd">⟱</button><button class="btn" id="br">⟳</button></div></div>
+<div class="ov" id="ov"><div class="box"><h2 id="ot"></h2><p id="op"></p><div style="display:flex;gap:8px;justify-content:center"><button class="btn pri" id="o1"></button><button class="btn" id="o2"></button></div></div></div>
+<script>
+(function(){
+var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
+var T = lang==="en" ? {title:"Brain Hood",level:"Level",left:n=>n+" arrows left",hint:"Drag to rotate · tap an arrow to push it out. It needs a free path to the edge of the next face.",won:"Level cleared!",wonp:"Next cube is bigger and trickier.",next:"Next level",lost:"Out of hearts",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level "}
+ : {title:"Brain Hood",level:"Level",left:n=>"Noch "+n+" Pfeile",hint:"Würfel ziehen zum Drehen · Pfeil antippen = er schiebt sich raus. Sein Weg bis zur Kante der nächsten Seite muss frei sein.",won:"Level geschafft!",wonp:"Der nächste Würfel ist größer und kniffliger.",next:"Nächstes Level",lost:"Keine Herzen mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level "};
+var $=function(i){return document.getElementById(i)};
+var FACES=[ // n = Normale, u = rechts, v = runter (Weltkoordinaten, y nach unten) + CSS-Transform
+ {n:[0,0,1],u:[1,0,0],v:[0,1,0],css:"rotateY(0deg)",col:"#c6ff3d"},
+ {n:[0,0,-1],u:[-1,0,0],v:[0,1,0],css:"rotateY(180deg)",col:"#ff5d8f"},
+ {n:[1,0,0],u:[0,0,-1],v:[0,1,0],css:"rotateY(90deg)",col:"#3de0ff"},
+ {n:[-1,0,0],u:[0,0,1],v:[0,1,0],css:"rotateY(-90deg)",col:"#b19cd9"},
+ {n:[0,-1,0],u:[1,0,0],v:[0,0,1],css:"rotateX(90deg)",col:"#ffc446"},
+ {n:[0,1,0],u:[1,0,0],v:[0,0,-1],css:"rotateX(-90deg)",col:"#7cff8c"}];
+var N=3, level=1, hearts=3, cells={}, order=[], busy=false, over=false;
+var best=1; try{ best=parseInt(localStorage.getItem("bp_arrow_best"),10)||1; }catch(e){}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]}
+function key(c){return Math.round(c[0]*2)+","+Math.round(c[1]*2)+","+Math.round(c[2]*2)}
+function add(a,b,k){return [a[0]+b[0]*k,a[1]+b[1]*k,a[2]+b[2]*k]}
+function neg(a){return [-a[0],-a[1],-a[2]]}
+// ein Schritt auf der Wuerfeloberflaeche
+function step(c,n,d){
+  var nc=add(c,d,1), h=N/2;
+  var along=Math.abs(dot(nc,d)); // Komponente in Laufrichtung
+  if(along>h+0.01){ // ueber die Kante -> naechste Seite
+    var r=c.slice();
+    for(var i=0;i<3;i++){ if(d[i]!==0) r[i]=d[i]*h; if(n[i]!==0) r[i]=n[i]*(h-0.5); }
+    return {c:r,n:d,d:neg(n),wrap:true};
+  }
+  return {c:nc,n:n,d:d,wrap:false};
+}
+function pathOf(cell){
+  var out=[], c=cell.c, n=cell.n, d=cell.d, after=false, cnt=0, guard=0;
+  while(guard++<4*N+4){
+    var s=step(c,n,d); c=s.c; n=s.n; d=s.d;
+    if(s.wrap) after=true;
+    out.push(key(c));
+    if(after){ cnt++; if(cnt>=N) break; }
+  }
+  return out;
+}
+function build(){
+  cells={}; order=[];
+  var h=N/2, all=[];
+  FACES.forEach(function(f,fi){ for(var r=0;r<N;r++) for(var c=0;c<N;c++){
+    var pos=add(add(add([0,0,0],f.u,c-(N-1)/2),f.v,r-(N-1)/2),f.n,h);
+    var cell={f:fi,r:r,c:c,c3:pos,pos:pos,c_:pos,n:f.n,u:f.u,v:f.v,d:null,el:null};
+    cell.c=pos; cell.c3=pos; cells[key(pos)]=cell; all.push(cell);
+  }});
+  // loesbar erzeugen: Reihenfolge der Platzierung = umgekehrte Entfernungsreihenfolge
+  var density=Math.min(0.9,0.5+level*0.02), want=Math.round(all.length*density);
+  var pool=all.slice().sort(function(){return Math.random()-.5}), placed=0;
+  var dirs=function(cell){return [cell.u,cell.v,neg(cell.u),neg(cell.v)].sort(function(){return Math.random()-.5})};
+  for(var i=0;i<pool.length&&placed<want;i++){
+    var cell=pool[i], ds=dirs(cell);
+    for(var k=0;k<ds.length;k++){
+      cell.d=ds[k];
+      var free=pathOf(cell).every(function(kk){return !cells[kk]||!cells[kk].d});
+      if(free){ placed++; cell.placedOrder=placed; break; } else cell.d=null;
+    }
+  }
+}
+function render(){
+  var cube=$("cube"); cube.innerHTML="";
+  var size=Math.min(window.innerWidth*0.52, (window.innerHeight-260)*0.62, 300);
+  var cs=size/N; cube.style.width=cube.style.height=size+"px";
+  FACES.forEach(function(f,fi){
+    var fe=document.createElement("div"); fe.className="face"; fe.style.width=fe.style.height=size+"px";
+    fe.style.gridTemplateColumns="repeat("+N+",1fr)"; fe.style.borderColor=f.col+"66";
+    fe.style.transform=f.css+" translateZ("+(size/2)+"px)";
+    for(var r=0;r<N;r++) for(var c=0;c<N;c++){
+      var pos=add(add(add([0,0,0],f.u,c-(N-1)/2),f.v,r-(N-1)/2),f.n,N/2), cell=cells[key(pos)];
+      var el=document.createElement("div"); el.className="cell"+(cell.d?" has":""); el.style.fontSize=(cs*0.6)+"px";
+      if(cell.d){
+        var dl=[dot(cell.d,f.u),dot(cell.d,f.v)], ang=Math.atan2(dl[1],dl[0])*180/Math.PI;
+        el.innerHTML='<span class="g" style="color:'+f.col+';transform:rotate('+ang+'deg)">➜</span>';
+        el.dataset.k=key(pos);
+      }
+      cell.el=el; fe.appendChild(el);
+    }
+    cube.appendChild(fe);
+  });
+  updateHud();
+}
+function count(){var n=0;for(var k in cells) if(cells[k].d) n++;return n}
+function updateHud(){
+  $("lvl").textContent=T.level+" "+level; $("hp").textContent=new Array(hearts+1).join("❤️")||"💔";
+  $("info").textContent=count()?T.left(count()):T.hint;
+}
+function tap(el){
+  if(busy||over||!el||!el.dataset.k) return;
+  var cell=cells[el.dataset.k]; if(!cell||!cell.d) return;
+  var p=pathOf(cell), block=null;
+  for(var i=0;i<p.length;i++){ if(cells[p[i]]&&cells[p[i]].d){ block=cells[p[i]]; break; } }
+  if(block){
+    el.classList.add("bad"); if(block.el) block.el.classList.add("blk");
+    hearts--; updateHud(); busy=true;
+    setTimeout(function(){ el.classList.remove("bad"); if(block.el) block.el.classList.remove("blk"); busy=false; if(hearts<=0) end(false); },500);
+    return;
+  }
+  // frei: rausschieben
+  var f=FACES[cell.f], dl=[dot(cell.d,f.u),dot(cell.d,f.v)];
+  el.style.transform="translate("+(dl[0]*160)+"%,"+(dl[1]*160)+"%) scale(.6)"; el.classList.add("fly");
+  cell.d=null; el.classList.remove("has"); delete el.dataset.k; updateHud();
+  if(!count()){ busy=true; setTimeout(function(){ end(true); },450); }
+}
+function end(win){
+  over=true; var ov=$("ov"); ov.classList.add("show");
+  if(win){
+    if(level>=best){ best=level+1; try{ localStorage.setItem("bp_arrow_best",String(best)); }catch(e){} }
+    $("ot").textContent="🎉 "+T.won; $("op").textContent=T.wonp; $("o1").textContent=T.next;
+    $("o1").onclick=function(){ level++; start(); };
+  } else {
+    $("ot").textContent="💔 "+T.lost; $("op").textContent=T.lostp+level+" · "+T.best+best; $("o1").textContent=T.retry;
+    $("o1").onclick=function(){ start(); };
+  }
+  $("o2").textContent=T.quit; $("o2").onclick=quit;
+}
+function quit(){ if(window.parent!==window) parent.postMessage({bpArrowBack:true},location.origin); else location.href="/"; }
+function start(){
+  N=Math.min(6,3+Math.floor((level-1)/3)); hearts=3; over=false; busy=false;
+  $("ov").classList.remove("show"); build(); render();
+}
+// Drehen: Ziehen auf der Buehne, Tippen auf ein Feld
+var rx=-28, ry=-38, drag=null;
+function applyRot(){ $("cube").style.transform="rotateX("+rx+"deg) rotateY("+ry+"deg)"; }
+var st=$("stage");
+st.addEventListener("pointerdown",function(e){ drag={x:e.clientX,y:e.clientY,moved:false,t:e.target.closest&&e.target.closest(".cell")}; });
+window.addEventListener("pointermove",function(e){
+  if(!drag) return; var dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(!drag.moved && Math.abs(dx)+Math.abs(dy)<8) return; drag.moved=true;
+  ry+=dx*0.6; rx=Math.max(-85,Math.min(85,rx-dy*0.6)); drag.x=e.clientX; drag.y=e.clientY; applyRot();
+});
+window.addEventListener("pointerup",function(){ if(drag&&!drag.moved&&drag.t) tap(drag.t); drag=null; });
+$("bl").onclick=function(){ry-=90;applyRot()}; $("br").onclick=function(){ry+=90;applyRot()};
+$("bu").onclick=function(){rx=Math.min(85,rx+60);applyRot()}; $("bd").onclick=function(){rx=Math.max(-85,rx-60);applyRot()};
+$("back").onclick=function(e){ e.preventDefault(); quit(); };
+$("title").textContent="🧊 "+T.title; document.title=T.title;
+window.addEventListener("resize",function(){ if(!over) render(); });
+start();
+window.__arrow={cells:function(){return cells},pathOf:pathOf,step:step,N:function(){return N},regen:function(l){level=l;start();}};
+})();
+</script></body></html>
