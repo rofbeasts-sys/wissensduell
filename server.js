@@ -3344,6 +3344,8 @@ function defaultStats() {
     speedMathLevel: 1, speedMathHearts: 3, speedMathHeartsDate: null,
     biologyBest: {}, biologyPerfect: {}, oosLast: null, oosBest: null,
     coins: 0,
+    fruit: null,
+    brain: null,
     achv: Achv.newState(),
     modeStats: freshModeStats() };
 }
@@ -3475,6 +3477,89 @@ async function loginUser(username, password, ip, lang) {
   return { ok: true, token, profile: publicProfile(user) };
 }
 
+
+/* ============================================================================
+   BRAINING-BESTENLISTE (Brain Hood / Brain Fruit)
+   - Wochenliste: Punkte = Summe der Level-Nummern, die in der Woche geschafft wurden
+     (schwere Level zaehlen mehr). Reset jeden Montag 0:00 (Europe/Berlin).
+   - Rang (Elo-Stufe 1-10) richtet sich nach dem hoechsten erreichten Level und faellt nie.
+   - Top 5 der Vorwoche bekommen Preise (einmal pro Woche abholbar).
+   ============================================================================ */
+const BRAIN_GAMES = ["fruit", "hood"];
+const BRAIN_RANK_LEVELS = [1, 50, 150, 400, 700, 1000, 1500, 2200, 3000, 4000];
+const BRAIN_REWARDS = [ { coins: 100, hammer: 3 }, { coins: 70, hammer: 2 }, { coins: 50, hammer: 1 }, { coins: 30, hammer: 0 }, { coins: 20, hammer: 0 } ];
+const BRAIN_MIN_GAP_MS = 5000;
+function brainRankOf(level) { let r = 1; for (let i = 0; i < BRAIN_RANK_LEVELS.length; i++) if (level >= BRAIN_RANK_LEVELS[i]) r = i + 1; return r; }
+function berlinFakeNow() { // "Berlin-Wanduhr" als UTC-Millisekunden
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date());
+  const g = (t) => Number(parts.find(x => x.type === t).value);
+  return Date.UTC(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"), g("second"));
+}
+const WEEK_MS = 7 * 86400000, MONDAY_OFFSET = 4 * 86400000;
+function brainWeekInfo() { const f = berlinFakeNow(); const id = Math.floor((f - MONDAY_OFFSET) / WEEK_MS); return { id, endsInMs: (id + 1) * WEEK_MS + MONDAY_OFFSET - f }; }
+function brainState(user) {
+  const st = user.stats;
+  if (!st.brain || typeof st.brain !== "object") st.brain = { weeks: {}, best: { fruit: 0, hood: 0 }, last: { fruit: 0, hood: 0 }, claimed: 0 };
+  const b = st.brain; if (!b.weeks) b.weeks = {}; if (!b.best) b.best = { fruit: 0, hood: 0 }; if (!b.last) b.last = { fruit: 0, hood: 0 };
+  const cur = brainWeekInfo().id;
+  for (const k of Object.keys(b.weeks)) if (Number(k) < cur - 2) delete b.weeks[k]; // nur die letzten Wochen behalten
+  return b;
+}
+function brainPts(user, week, game) { const b = user.stats.brain; return (b && b.weeks && b.weeks[week] && b.weeks[week][game]) || 0; }
+function brainTop(week, game, n) {
+  return users.map(u => ({ u, pts: brainPts(u, week, game) })).filter(x => x.pts > 0)
+    .sort((a, b) => b.pts - a.pts || String(a.u.username).localeCompare(String(b.u.username))).slice(0, n);
+}
+async function brainSubmit(token, game, level, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  if (!BRAIN_GAMES.includes(game)) return errObj("invalidInput", lang);
+  level = Math.round(Number(level)); if (!Number.isFinite(level) || level < 1 || level > 9999) return errObj("invalidInput", lang);
+  const b = brainState(user), f = user.stats.fruit || {};
+  const saved = game === "fruit" ? (f.fruitLevel || 1) : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
+  const maxOk = Math.max(b.best[game], saved) + 1;
+  if (level > maxOk) return { ok: false, error: "level" };
+  const now = Date.now(); if (now - (b.last[game] || 0) < BRAIN_MIN_GAP_MS) return { ok: false, error: "tooFast" };
+  b.last[game] = now;
+  b.best[game] = Math.max(b.best[game], level);
+  const w = brainWeekInfo().id; if (!b.weeks[w]) b.weeks[w] = { fruit: 0, hood: 0 };
+  b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + level);
+  await saveUsers();
+  return { ok: true, points: b.weeks[w][game], rank: brainRankOf(b.best[game]) };
+}
+function brainBoard(token, game) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  if (!BRAIN_GAMES.includes(game)) return { ok: false };
+  const wk = brainWeekInfo(), me = token ? findUserByToken(token) : null;
+  const top = brainTop(wk.id, game, 10).map((x, i) => ({ pos: i + 1, name: x.u.username, avatar: x.u.avatar || "🙂", pts: x.pts, rank: brainRankOf(((x.u.stats.brain || {}).best || {})[game] || 0) }));
+  let mine = null;
+  if (me) {
+    const b = brainState(me), pts = brainPts(me, wk.id, game);
+    const all = brainTop(wk.id, game, 100000); const idx = all.findIndex(x => x.u === me);
+    mine = { pts, pos: idx >= 0 ? idx + 1 : null, rank: brainRankOf(b.best[game] || 0), level: b.best[game] || 0 };
+  }
+  return { ok: true, top, mine, endsInMs: wk.endsInMs, rewards: BRAIN_REWARDS };
+}
+async function brainClaim(token, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  const b = brainState(user), prev = brainWeekInfo().id - 1;
+  if (b.claimed >= prev) return { ok: true, rewards: [], profile: publicProfile(user) };
+  const rewards = [];
+  for (const game of BRAIN_GAMES) {
+    const top = brainTop(prev, game, 5), i = top.findIndex(x => x.u === user);
+    if (i >= 0) rewards.push({ game, pos: i + 1, ...BRAIN_REWARDS[i] });
+  }
+  b.claimed = prev;
+  if (rewards.length) {
+    user.stats.coins = (user.stats.coins || 0) + rewards.reduce((a, r) => a + r.coins, 0);
+    if (!user.stats.fruit || typeof user.stats.fruit !== "object") user.stats.fruit = { fruitLevel: 1, hoodLevel: 1, hammer: 2, broom: 1, shuffle: 1, moves: 1 };
+    user.stats.fruit.hammer = Math.min(999, (user.stats.fruit.hammer || 0) + rewards.reduce((a, r) => a + r.hammer, 0));
+  }
+  await saveUsers();
+  return { ok: true, rewards, profile: publicProfile(user) };
+}
+
 function sessionUser(token) {
   // Konten noch nicht geladen -> NICHT "abgemeldet" melden (der Client wuerde
   // sonst sein gespeichertes Token loeschen), sondern "nicht verfuegbar".
@@ -3594,6 +3679,16 @@ async function saveUserStats(token, stats, lang) {
   }
   if (typeof stats.speedMathHeartsDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(stats.speedMathHeartsDate)) {
     user.stats.speedMathHeartsDate = stats.speedMathHeartsDate;
+  }
+  // Braining (Brain Fruit / Brain Hood): Level + Booster-Vorrat, strikt auf Zahlen begrenzt
+  if (stats.fruit && typeof stats.fruit === "object" && !Array.isArray(stats.fruit)) {
+    const f = stats.fruit, cur = user.stats.fruit && typeof user.stats.fruit === "object" ? user.stats.fruit : {};
+    const n = (v, max) => (typeof v === "number" && Number.isFinite(v)) ? Math.max(0, Math.min(max, Math.round(v))) : 0;
+    user.stats.fruit = {
+      fruitLevel: Math.max(1, cur.fruitLevel || 1, n(f.fruitLevel, 9999)),
+      hoodLevel: Math.max(1, cur.hoodLevel || 1, n(f.hoodLevel, 9999)),
+      hammer: n(f.hammer, 999), broom: n(f.broom, 999), shuffle: n(f.shuffle, 999), moves: n(f.moves, 999)
+    };
   }
   // Order of Speed: letzte + beste Runde {level, points, sec}
   for (const key of ["oosLast", "oosBest"]) {
@@ -5533,6 +5628,9 @@ const server = http.createServer((req, res) => {
         if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
         else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
+        else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang);
+        else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
+        else if (req.url === "/api/braining/claim") result = await brainClaim(payload.token, lang);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
         else if (req.url === "/api/presence") { presenceTouch(payload.sid, payload.logged); result = { ok: true }; }
