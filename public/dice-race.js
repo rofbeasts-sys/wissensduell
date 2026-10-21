@@ -306,7 +306,7 @@ function useSpecial(p){
   if(ok){ g.left[p]--; say(nm(p) + ': ✨ ' + L(figOf(p).sp, figOf(p).spEn)); }
   return ok;
 }
-function roll(p){ if(g.slow[p]){ g.d = 1 + rnd(3); g.slow[p] = 0; say(nm(p) + ': 🐌 ' + L('Zeitlupe: nur 1–3', 'Slow-mo: only 1–3')); } else g.d = 1 + rnd(6); g.rolled = true; fx('dice', g.d); sfx('dice'); say(nm(p) + ': 🎲 ' + g.d + (g.d === 6 ? ' Joker' : ' ' + DIRS[g.d][2])); }
+function roll(p){ if(g.slow[p]){ g.d = 1 + rnd(3); g.slow[p] = 0; say(nm(p) + ': 🐌 ' + L('Zeitlupe: nur 1–3', 'Slow-mo: only 1–3')); } else g.d = 1 + rnd(6); g.rolled = true; fx('dice', p, g.d); sfx('dice'); say(nm(p) + ': 🎲 ' + g.d + (g.d === 6 ? ' Joker' : ' ' + DIRS[g.d][2])); }
 function move(p, d){
   const o = 1 - p; const steps = g.turbo ? 2 : 1; const dir = DIRS[d];
   for(let s = 0; s < steps && !g.over; s++){

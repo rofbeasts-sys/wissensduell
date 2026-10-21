@@ -30,13 +30,19 @@
     { id: "slf",       title: "Scattergories", icon: "✏️" },
     { id: "biology",   title: "Biologie", icon: "🧬" },
     { id: "ttt",       title: "Tic Tac Toe", icon: "⭕" },
+    { id: "chess",     title: "Schach", icon: "♟️" },
+    { id: "four",      title: "4 gewinnt", icon: "🔴" },
+    { id: "mill",      title: "Mühle", icon: "⚪" },
+    { id: "dame",      title: "Dame", icon: "♛" },
+    { id: "daily",     title: "Daily Puzzles", icon: "🧩" },
     { id: "general",   title: "Allgemein", icon: "🌟" }
   ];
   // Englische Kategorie-Titel (fuer die Anzeige UND fuer die automatisch
   // generierten cat_*-Erfolgstitel/-beschreibungen weiter unten).
   const CATEGORY_TITLES_EN = {
     braintest: "Brain Test", ordering: "Drag and Drop", mow: "Higher or Lower", blitz: "Quick-Fire",
-    slf: "Scattergories", biology: "Biology", ttt: "Tic Tac Toe", general: "General"
+    slf: "Scattergories", biology: "Biology", ttt: "Tic Tac Toe", general: "General",
+    chess: "Chess", four: "Connect Four", mill: "Nine Men's Morris", dame: "Checkers", daily: "Daily Puzzles"
   };
 
   const sum = (arr) => arr.reduce((a, b) => a + (b ? 1 : 0), 0);
@@ -97,7 +103,40 @@
     ...[[3, "3"], [7, "7"], [30, "30"], [100, "100"]].map(([n, label], i) => ({
       id: "streak_" + n, cat: "general", icon: ["🔥", "📅", "🗓️", "🎇"][i], title: label + " Tage in Folge",
       desc: "Spiele " + label + " Kalendertage in Folge mindestens eine Runde.", progress: P(s => s.streak.longest, n)
-    }))
+    })),
+    // ---------------------------------------------------------------- Schach / 4 gewinnt / Mühle / Dame / Daily
+    { id: "chess_win_1",  cat: "chess", icon: "♟️", title: "Erster Sieg", desc: "Besiege den Schach-Bot einmal.", progress: P(s => s.chess.wins, 1) },
+    { id: "chess_win_10", cat: "chess", icon: "♞", title: "Schachspieler", desc: "Gewinne 10 Partien gegen den Schach-Bot.", progress: P(s => s.chess.wins, 10) },
+    { id: "chess_win_50", cat: "chess", icon: "♜", title: "Schachmeister", desc: "Gewinne 50 Partien gegen den Schach-Bot.", progress: P(s => s.chess.wins, 50) },
+    { id: "chess_master", cat: "chess", icon: "👑", title: "Meister geschlagen", desc: "Besiege den Bot auf der Stufe Meister.", progress: P(s => s.chess.masterWins, 1) },
+    { id: "chess_fast",   cat: "chess", icon: "⚡", title: "Blitzmatt", desc: "Gewinne eine Partie in höchstens 20 Zügen.", progress: P(s => s.chess.fast, 1) },
+    { id: "chess_flawless", cat: "chess", icon: "🛡️", title: "Ohne Verlust", desc: "Gewinne eine Partie, ohne eine einzige Figur zu verlieren.", progress: P(s => s.chess.flawless, 1) },
+    { id: "chess_games_25", cat: "chess", icon: "🎲", title: "Vielspieler", desc: "Spiele 25 Schachpartien.", progress: P(s => s.chess.games, 25) },
+    { id: "four_win_1",  cat: "four", icon: "🔴", title: "Erste Vier", desc: "Gewinne ein Spiel 4 gewinnt.", progress: P(s => s.four.wins, 1) },
+    { id: "four_win_10", cat: "four", icon: "🟡", title: "Vierer-Profi", desc: "Gewinne 10 Spiele 4 gewinnt.", progress: P(s => s.four.wins, 10) },
+    { id: "four_win_50", cat: "four", icon: "🏆", title: "Vierer-Meister", desc: "Gewinne 50 Spiele 4 gewinnt.", progress: P(s => s.four.wins, 50) },
+    { id: "four_hard",   cat: "four", icon: "😈", title: "Schwerer Gegner", desc: "Besiege den schweren Bot in 4 gewinnt.", progress: P(s => s.four.hardWins, 1) },
+    { id: "four_quick",  cat: "four", icon: "🚀", title: "Blitzvier", desc: "Gewinne mit nur 4 eigenen Steinen.", progress: P(s => s.four.quick, 1) },
+    { id: "four_diag",   cat: "four", icon: "↗️", title: "Diagonal", desc: "Gewinne mit einer diagonalen Vierer-Reihe.", progress: P(s => s.four.diag, 1) },
+    { id: "four_online", cat: "four", icon: "🌐", title: "Online-Sieger", desc: "Gewinne 4 gewinnt gegen einen echten Gegner.", progress: P(s => s.four.online, 1) },
+    { id: "mill_win_1",  cat: "mill", icon: "⚪", title: "Erste Mühle", desc: "Gewinne ein Mühle-Spiel.", progress: P(s => s.mill.wins, 1) },
+    { id: "mill_win_10", cat: "mill", icon: "⚫", title: "Mühle-Profi", desc: "Gewinne 10 Mühle-Spiele.", progress: P(s => s.mill.wins, 10) },
+    { id: "mill_win_25", cat: "mill", icon: "🏆", title: "Mühle-Meister", desc: "Gewinne 25 Mühle-Spiele.", progress: P(s => s.mill.wins, 25) },
+    { id: "mill_hard",   cat: "mill", icon: "😈", title: "Schwerer Gegner", desc: "Besiege den schweren Bot in Mühle.", progress: P(s => s.mill.hardWins, 1) },
+    { id: "mill_mills_25", cat: "mill", icon: "⚙️", title: "Mühlenbauer", desc: "Schließe insgesamt 25 Mühlen.", progress: P(s => s.mill.mills, 25) },
+    { id: "mill_online", cat: "mill", icon: "🌐", title: "Online-Sieger", desc: "Gewinne Mühle gegen einen echten Gegner.", progress: P(s => s.mill.online, 1) },
+    { id: "dame_win_1",  cat: "dame", icon: "♛", title: "Erster Sieg", desc: "Gewinne ein Spiel Dame.", progress: P(s => s.dame.wins, 1) },
+    { id: "dame_win_10", cat: "dame", icon: "👸", title: "Dame-Profi", desc: "Gewinne 10 Spiele Dame.", progress: P(s => s.dame.wins, 10) },
+    { id: "dame_win_25", cat: "dame", icon: "🏆", title: "Dame-Meisterin", desc: "Gewinne 25 Spiele Dame.", progress: P(s => s.dame.wins, 25) },
+    { id: "dame_hard",   cat: "dame", icon: "😈", title: "Schwerer Gegner", desc: "Besiege den schweren Bot in Dame.", progress: P(s => s.dame.hardWins, 1) },
+    { id: "dame_online", cat: "dame", icon: "🌐", title: "Online-Siegerin", desc: "Gewinne Dame gegen einen echten Gegner.", progress: P(s => s.dame.online, 1) },
+    { id: "daily_1",      cat: "daily", icon: "🧩", title: "Erstes Rätsel", desc: "Löse ein Daily Puzzle.", progress: P(s => s.daily.solved, 1) },
+    { id: "daily_10",     cat: "daily", icon: "📆", title: "Rätselfreund", desc: "Löse 10 Daily Puzzles.", progress: P(s => s.daily.solved, 10) },
+    { id: "daily_50",     cat: "daily", icon: "🧠", title: "Rätselprofi", desc: "Löse 50 Daily Puzzles.", progress: P(s => s.daily.solved, 50) },
+    { id: "daily_sudoku", cat: "daily", icon: "🔢", title: "Sudoku-Löser", desc: "Löse ein Daily-Sudoku.", progress: P(s => s.daily.sudoku, 1) },
+    { id: "daily_cw",     cat: "daily", icon: "✏️", title: "Kreuzworträtsler", desc: "Löse ein Daily-Kreuzworträtsel.", progress: P(s => s.daily.cw, 1) },
+    { id: "daily_all_types", cat: "daily", icon: "🎯", title: "Allrounder", desc: "Löse jede Rätselart (Sudoku, Kreuzworträtsel, Wortsuche, Wortnetz) mindestens einmal.", progress: P(s => (s.daily.sudoku > 0) + (s.daily.cw > 0) + (s.daily.ws > 0) + (s.daily.wv > 0), 4) },
+    { id: "daily_streak_7", cat: "daily", icon: "🔥", title: "7 Rätseltage in Folge", desc: "Löse an 7 Kalendertagen in Folge ein Daily Puzzle.", progress: P(s => s.daily.longest, 7) }
   ];
   // Kategorie-Abschluss: einmal je Kategorie, zaehlt nur die "richtigen" Erfolge dieser
   // Kategorie (nicht sich selbst und nicht die Sammel-Erfolge unten).
@@ -179,6 +218,38 @@
     streak_7: { title: "7 days in a row", desc: "Play at least one round on 7 calendar days in a row." },
     streak_30: { title: "30 days in a row", desc: "Play at least one round on 30 calendar days in a row." },
     streak_100: { title: "100 days in a row", desc: "Play at least one round on 100 calendar days in a row." },
+    chess_win_1: { title: "First win", desc: "Beat the chess bot once." },
+    chess_win_10: { title: "Chess player", desc: "Win 10 games against the chess bot." },
+    chess_win_50: { title: "Chess master", desc: "Win 50 games against the chess bot." },
+    chess_master: { title: "Master defeated", desc: "Beat the bot on Master level." },
+    chess_fast: { title: "Lightning mate", desc: "Win a game in 20 moves or fewer." },
+    chess_flawless: { title: "No losses", desc: "Win a game without losing a single piece." },
+    chess_games_25: { title: "Regular", desc: "Play 25 chess games." },
+    four_win_1: { title: "First four", desc: "Win a game of Connect Four." },
+    four_win_10: { title: "Connect Four pro", desc: "Win 10 games of Connect Four." },
+    four_win_50: { title: "Connect Four master", desc: "Win 50 games of Connect Four." },
+    four_hard: { title: "Tough opponent", desc: "Beat the hard bot in Connect Four." },
+    four_quick: { title: "Lightning four", desc: "Win with only 4 of your own discs." },
+    four_diag: { title: "Diagonal", desc: "Win with a diagonal row of four." },
+    four_online: { title: "Online winner", desc: "Win Connect Four against a real opponent." },
+    mill_win_1: { title: "First mill", desc: "Win a game of Nine Men's Morris." },
+    mill_win_10: { title: "Morris pro", desc: "Win 10 games of Nine Men's Morris." },
+    mill_win_25: { title: "Morris master", desc: "Win 25 games of Nine Men's Morris." },
+    mill_hard: { title: "Tough opponent", desc: "Beat the hard bot in Nine Men's Morris." },
+    mill_mills_25: { title: "Mill builder", desc: "Close 25 mills in total." },
+    mill_online: { title: "Online winner", desc: "Win Nine Men's Morris against a real opponent." },
+    dame_win_1: { title: "First win", desc: "Win a game of Checkers." },
+    dame_win_10: { title: "Checkers pro", desc: "Win 10 games of Checkers." },
+    dame_win_25: { title: "Checkers master", desc: "Win 25 games of Checkers." },
+    dame_hard: { title: "Tough opponent", desc: "Beat the hard bot in Checkers." },
+    dame_online: { title: "Online winner", desc: "Win Checkers against a real opponent." },
+    daily_1: { title: "First puzzle", desc: "Solve a Daily Puzzle." },
+    daily_10: { title: "Puzzle fan", desc: "Solve 10 Daily Puzzles." },
+    daily_50: { title: "Puzzle pro", desc: "Solve 50 Daily Puzzles." },
+    daily_sudoku: { title: "Sudoku solver", desc: "Solve a Daily Sudoku." },
+    daily_cw: { title: "Crossword solver", desc: "Solve a Daily Crossword." },
+    daily_all_types: { title: "All-rounder", desc: "Solve every puzzle type (Sudoku, Crossword, Word Search, Word Web) at least once." },
+    daily_streak_7: { title: "7 puzzle days in a row", desc: "Solve a Daily Puzzle on 7 calendar days in a row." },
     collector_5: { title: "Collector", desc: "Unlock 5 achievements." },
     collector_15: { title: "Well-rounded", desc: "Unlock 15 achievements." },
     collector_all: { title: "Complete", desc: "Unlock every other achievement." }
@@ -209,12 +280,20 @@
       sm: { level: 0 },
       bio: { topicsDone: 0, perfectCount: 0, sexualkundeUnlocked: 0 },
       streak: { current: 0, longest: 0, lastDate: null },
+      chess: { wins: 0, masterWins: 0, fast: 0, flawless: 0, games: 0 },
+      four: { wins: 0, hardWins: 0, quick: 0, diag: 0, online: 0 },
+      mill: { wins: 0, hardWins: 0, mills: 0, online: 0 },
+      dame: { wins: 0, hardWins: 0, online: 0 },
+      party: { played: 0, wins: 0 },
+      music: { played: 0, correct: 0 },
+      daily: { solved: 0, sudoku: 0, cw: 0, ws: 0, wv: 0, current: 0, longest: 0, lastDate: null },
       unlocked: {}
     };
   }
   const CAPS = { perfectRuns: 1e6, completed: 1e7, flawless: 1e7, best: 1000, total: 1e7, allFilled: 1e7, firstFull: 1e7, unique: 1e7,
     maxRank: 6, win3: 1e7, quantumWins: 1e7, quizmixWins: 1e7, quizmix3: 1e7, quizmix3Perfect: 1e7, meisterDraws: 1e6, correct: 1e9, level: 100, current: 1e5, longest: 1e5,
-    topicsDone: 18, perfectCount: 18 };
+    topicsDone: 18, perfectCount: 18,
+    wins: 1e7, masterWins: 1e7, fast: 1e7, flawless: 1e7, games: 1e7, hardWins: 1e7, quick: 1e7, diag: 1e7, online: 1e7, mills: 1e7, solved: 1e7, sudoku: 1e7, cw: 1e7, ws: 1e7, wv: 1e7, played: 1e7, correct: 1e9 };
   const num = (v, cap) => { v = Number(v); return Number.isFinite(v) && v > 0 ? Math.min(Math.floor(v), cap) : 0; };
   const flags = (a) => Array.from({ length: KLASSEN }, (_, i) => (Array.isArray(a) && a[i] ? 1 : 0));
 
@@ -230,6 +309,9 @@
     s.blitz.best = g(raw.blitz, "best", CAPS.best); s.blitz.total = g(raw.blitz, "total", CAPS.total);
     s.slf.allFilled = g(raw.slf, "allFilled", CAPS.allFilled); s.slf.firstFull = g(raw.slf, "firstFull", CAPS.firstFull); s.slf.unique = g(raw.slf, "unique", CAPS.unique);
     for (const k of ["maxRank", "win3", "quantumWins", "quizmixWins", "quizmix3", "quizmix3Perfect", "meisterDraws"]) s.ttt[k] = g(raw.ttt, k, CAPS[k]);
+    for (const [grp, keys] of [["chess", ["wins", "masterWins", "fast", "flawless", "games"]], ["four", ["wins", "hardWins", "quick", "diag", "online"]], ["mill", ["wins", "hardWins", "mills", "online"]], ["dame", ["wins", "hardWins", "online"]], ["daily", ["solved", "sudoku", "cw", "ws", "wv", "current", "longest"]], ["party", ["played", "wins"]], ["music", ["played", "correct"]]])
+      for (const k of keys) s[grp][k] = g(raw[grp], k, CAPS[k]);
+    if (raw.daily && typeof raw.daily.lastDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.daily.lastDate)) s.daily.lastDate = raw.daily.lastDate;
     s.gen.correct = g(raw.gen, "correct", CAPS.correct);
     s.sm.level = g(raw.sm, "level", CAPS.level);
     s.bio.topicsDone = g(raw.bio, "topicsDone", CAPS.topicsDone);
@@ -339,6 +421,52 @@
         }
         break;
       }
+      case "chess": { // nur bei GEWONNENEN Partien (games: bei jeder beendeten Partie)
+        state.chess.games = Math.min(CAPS.games, state.chess.games + 1);
+        if (evt.won) {
+          state.chess.wins++;
+          if (Number(evt.level) >= 4) state.chess.masterWins++;
+          const mv = Number(evt.moves); if (mv > 0 && mv <= 20) state.chess.fast++;
+          if (evt.lost === 0) state.chess.flawless++;
+        }
+        break;
+      }
+      case "four": { // nur bei gewonnenen Spielen
+        const o = state.four; o.wins++;
+        if (evt.hard) o.hardWins++;
+        if (evt.online) o.online++;
+        if (evt.diag) o.diag++;
+        if (Number(evt.discs) === 4) o.quick++;
+        break;
+      }
+      case "mill": { // won + mills (eigene geschlossene Muehlen dieser Partie)
+        const o = state.mill; o.mills = Math.min(CAPS.mills, o.mills + num(evt.mills, 100));
+        if (evt.won) { o.wins++; if (evt.hard) o.hardWins++; if (evt.online) o.online++; }
+        break;
+      }
+      case "dame": {
+        const o = state.dame; o.wins++;
+        if (evt.hard) o.hardWins++;
+        if (evt.online) o.online++;
+        break;
+      }
+      case "party": { state.party.played = Math.min(CAPS.played, state.party.played + 1); if (evt.won) state.party.wins++; break; }
+      case "music": { // Statistik: jede Musik-Runde zaehlt als gespielt
+        state.music.played = Math.min(CAPS.played, state.music.played + 1);
+        if (evt.correct) state.music.correct++;
+        break;
+      }
+      case "daily": {
+        const o = state.daily, ty = String(evt.type);
+        o.solved++;
+        if (["sudoku", "cw", "ws", "wv"].includes(ty)) o[ty]++;
+        const day = evt.date;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(day || "") && o.lastDate !== day) {
+          o.current = (o.lastDate === shiftDay(day, -1)) ? o.current + 1 : 1;
+          o.lastDate = day; o.longest = Math.max(o.longest, o.current);
+        }
+        break;
+      }
       case "tttRank": state.ttt.maxRank = Math.max(state.ttt.maxRank, num(evt.rank, CAPS.maxRank)); break;
       case "tttDraw": if (evt.meister) state.ttt.meisterDraws = Math.min(CAPS.meisterDraws, state.ttt.meisterDraws + 1); break;
       case "speedmath": state.sm.level = Math.max(state.sm.level, num(evt.level, CAPS.level)); break;
@@ -365,6 +493,9 @@
     mx(out.bt, a.bt, b.bt); mx(out.ord, a.ord, b.ord); mx(out.mow, a.mow, b.mow); mx(out.blitz, a.blitz, b.blitz);
     mx(out.slf, a.slf, b.slf); mx(out.ttt, a.ttt, b.ttt); mx(out.gen, a.gen, b.gen);
     mx(out.sm, a.sm, b.sm);
+    for (const grp of ["chess", "four", "mill", "dame", "party", "music"]) mx(out[grp], a[grp], b[grp]);
+    mx(out.daily, a.daily, b.daily);
+    { const n2 = (!a.daily.lastDate || (b.daily.lastDate && b.daily.lastDate >= a.daily.lastDate)) ? b.daily : a.daily; out.daily.current = n2.current; out.daily.lastDate = n2.lastDate; }
     out.bio.topicsDone = Math.max(a.bio.topicsDone, b.bio.topicsDone);
     out.bio.perfectCount = Math.max(a.bio.perfectCount, b.bio.perfectCount);
     out.bio.sexualkundeUnlocked = a.bio.sexualkundeUnlocked | b.bio.sexualkundeUnlocked;

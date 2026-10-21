@@ -189,7 +189,7 @@
   .achv-toast .ic{ font-size:30px; }
   @keyframes achvIn{ from{ transform:translate(-50%,30px); opacity:0; } to{ transform:translate(-50%,0); opacity:1; } }
   .achv-card{ display:flex; gap:12px; align-items:center; padding:12px; margin-top:8px; border-radius:14px; background:rgba(255,255,255,0.04); border:2px solid transparent; opacity:.72; }
-  .achv-card.done{ opacity:1; border-color:var(--accent-2); background:rgba(0,255,150,0.07); }
+  .achv-card.done{ opacity:1; border-color:#ffc446; background:rgba(255,196,70,0.09); }
   .achv-ic{ font-size:28px; width:40px; text-align:center; flex-shrink:0; }
   .achv-title{ font-weight:800; font-size:15px; }
   .achv-desc{ font-size:12px; color:var(--text-dim); margin-top:2px; }
@@ -379,6 +379,14 @@
   .st-hero-nums{ flex:1; display:grid; grid-template-columns:1fr 1fr; gap:10px 8px; }
   .st-hero-nums div{ display:flex; flex-direction:column; } .st-hero-nums b{ font-size:20px; line-height:1.1; } .st-hero-nums span{ font-size:10px; color:var(--text-dim); }
   .st-section{ margin:18px 0 8px; font-size:12px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); }
+  .st-tabs{ display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px; -webkit-overflow-scrolling:touch; }
+  .st-tabs .chip-btn{ white-space:nowrap; flex-shrink:0; }
+  .st-row{ display:flex; align-items:center; gap:12px; padding:11px 2px; border-bottom:1px solid rgba(255,255,255,.07); }
+  .st-row.empty{ opacity:.5; }
+  .st-row i{ font-style:normal; font-size:20px; width:28px; text-align:center; }
+  .st-row .t{ flex:1; min-width:0; font-weight:700; font-size:14px; }
+  .st-row .sb{ height:4px; border-radius:4px; background:rgba(255,255,255,.1); margin-top:6px; overflow:hidden; } .st-row .sb div{ height:100%; border-radius:4px; }
+  .st-row .v{ font-weight:800; font-size:15px; text-align:right; } .st-row .v small{ display:block; font-weight:400; color:var(--text-dim); font-size:11px; }
   .st-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .st-mode{ position:relative; background:linear-gradient(160deg,color-mix(in srgb,var(--mc) 16%,#1c2338),#1c2338 70%); border:1px solid color-mix(in srgb,var(--mc) 35%,#262e46); border-radius:14px; padding:10px 11px 11px; min-width:0; }
   .st-mode.empty{ opacity:.6; }
@@ -397,6 +405,16 @@
 
   /* ---------- Party (WLAN) ---------- */
 
+  /* ---- Mühle-Menü ---- */
+  .mu2{ background:none; border:none; padding:14px; }
+  .mu2 .mm-hd{ text-align:center; padding:18px 12px 14px; border-radius:22px; background:radial-gradient(circle at 50% 0%,rgba(198,255,61,.18),transparent 60%),linear-gradient(180deg,#1b2342,#121830); border:1px solid #ffffff1c; box-shadow:0 10px 26px #0007; }
+  .mu2 .mm-hd h2{ margin:6px 0 4px; font-size:26px; letter-spacing:.06em; }
+  .mu2 .mm-hd p{ margin:0; color:var(--text-dim); font-size:13px; line-height:1.5; }
+  .mu2 .mm-cd{ margin-top:12px; border-radius:20px; background:linear-gradient(180deg,#171e3a,#10162c); border:1px solid #ffffff17; padding:14px; box-shadow:0 6px 18px #0005; }
+  .mu2 .mm-cd h4{ margin:0 0 4px; font-size:16px; }
+  .mu2 .mm-cd small{ color:var(--text-dim); font-size:12px; display:block; margin-bottom:10px; }
+  .mu2 .mm-seg{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; background:#0b1022; border-radius:14px; padding:4px; }
+  .mu2 .mm-seg button{ border:none; cursor:pointer; font-family:inherit; font-weight:800; font-size:14px; padding:11px 4px; border-radius:11px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#08110c; }
   /* ---- Wartezimmer (Party Raum) neu ---- */
   .lobby2{ padding:14px; background:none; border:none; }
   .lobby2 .lb-hd{ text-align:center; padding:18px 12px 14px; border-radius:22px; background:radial-gradient(circle at 50% 0%,rgba(61,224,255,.25),transparent 60%),linear-gradient(180deg,#1b2342,#121830); border:1px solid #ffffff1c; box-shadow:0 10px 26px #0007; }
@@ -4158,7 +4176,7 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 
 // Feature-Schalter (Coming soon): sicherer Standard = gesperrt, bis der Server
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
-let lockedFeatures = ['shop','arena','chess_online','ordering','blitz','chess_fantasy','achievements','ttt_quantum','fourups_abilities','brain_royale','dame'];
+let lockedFeatures = ['shop','arena','chess_online','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
@@ -5033,6 +5051,15 @@ function achvRecord(evt, ownerHint){
     return newly;
   }catch(e){ console.error("Erfolge:", e); return []; }
 }
+// Schach (eigene Seite /chess/) legt Ergebnisse in eine Warteschlange; hier abholen.
+function achvDrainQueue(){
+  try{
+    const raw = localStorage.getItem('wq_achv_q'); if(!raw) return;
+    localStorage.removeItem('wq_achv_q');
+    const arr = JSON.parse(raw); if(!Array.isArray(arr)) return;
+    arr.slice(0, 50).forEach(e => { if(e && e.t === 'chess') achvRecord(e); });
+  }catch(e){}
+}
 const achvToastQueue = []; let achvToastBusy = false, achvLastToast = null;
 function achvToast(ids){ ids.forEach(id => achvToastQueue.push(id)); achvToastNext(); }
 function achvToastNext(){
@@ -5044,7 +5071,7 @@ function achvToastNext(){
   achvToastBusy = true;
   const el = document.createElement("div");
   el.className = "achv-toast";
-  el.innerHTML = `<span class="ic">${d.icon}</span><div><b>Erfolg freigeschaltet!</b><br>${esc(d.title)}</div>`;
+  el.innerHTML = `<span class="ic">${d.icon}</span><div><b>${currentLang === "en" ? "Achievement unlocked!" : "Erfolg freigeschaltet!"}</b><br>${esc(Achv.getTitle(d.id, currentLang))}</div>`;
   document.body.appendChild(el);
   setTimeout(() => { try{ el.remove(); }catch(e){} achvToastBusy = false; achvToastNext(); }, 3800);
 }
@@ -5059,10 +5086,11 @@ function startAchievementsFlow(){
   }
   renderProfilePicker(L("WER SPIELT?","WHO IS PLAYING?"), L("Wie heißt du?","What's your name?"), [], renderAchievements, "renderMainMenu");
 }
+var achvTab = "all", achvCur = null;
 function renderAchievements(profile){
   if(profile && profile.isAccount && account) profile = account.profile;
   if(profile && !profile.isAccount){ try{ localStorage.setItem(LAST_PROFILE_KEY, profile.id); }catch(e){} }
-  achvEnsure(profile);
+  achvEnsure(profile); achvCur = profile;
   const st = profile.achv, sum = Achv.summary(st);
   const locale = currentLang === "en" ? "en-US" : "de-DE";
   const fmt = n => Number(n).toLocaleString(locale);
@@ -5082,16 +5110,38 @@ function renderAchievements(profile){
         </div>
       </div>`;
   };
+  const en = currentLang === "en";
+  const tab = (typeof achvTab !== "undefined" && achvTab) || "all";
+  const pctOf = d => { const [c, tg] = Achv.progressOf(st, d.id); return tg > 0 ? c / tg : 0; };
+  const open = Achv.DEFS.filter(d => !st.unlocked[d.id] && Achv.progressOf(st, d.id)[1] > 1);
+  const near = tab === "all" ? open.filter(d => pctOf(d) >= 0.4).sort((a, b) => pctOf(b) - pctOf(a)).slice(0, 3) : [];
+  const catList = tab === "all" ? Achv.CATEGORIES : Achv.CATEGORIES.filter(c => c.id === tab);
+  const R = 34, C = 2 * Math.PI * R, ratio = sum.total ? sum.done / sum.total : 0;
+  const tabs = [{ id: "all", icon: "🏆", title: en ? "All" : "Alle" }].concat(Achv.CATEGORIES.map(c => ({ id: c.id, icon: c.icon, title: Achv.getCategoryTitle(c.id, currentLang) })));
+  const catCard = c => {
+    const list = Achv.DEFS.filter(d => d.cat === c.id);
+    const done = list.filter(d => st.unlocked[d.id]).length;
+    // freigeschaltete zuerst, dann nach Fortschritt
+    const sorted = list.slice().sort((a, b) => (!!st.unlocked[b.id] - !!st.unlocked[a.id]) || (pctOf(b) - pctOf(a)));
+    return `<div style="margin-top:18px; font-weight:800; font-size:14px; color:var(--accent-2);">${c.icon} ${esc(Achv.getCategoryTitle(c.id, currentLang))} <span style="font-weight:400; color:var(--text-dim);">(${done}/${list.length})</span></div>${sorted.map(card).join("")}`;
+  };
   renderApp(`
     <div class="panel">
-      <div class="picker-title">🏆 ${currentLang === "en" ? "ACHIEVEMENTS" : "ERFOLGE"}</div>
-      <div class="picker-sub">${esc(profile.name || profile.username || "")} – ${currentLang === "en" ? `${sum.done} of ${sum.total} unlocked` : `${sum.done} von ${sum.total} freigeschaltet`}</div>
-      <div class="achv-bar" style="height:10px; margin:10px 0 4px;"><div style="width:${sum.done/sum.total*100}%"></div></div>
-      ${Achv.CATEGORIES.map(c => {
-        const list = Achv.DEFS.filter(d => d.cat === c.id);
-        const done = list.filter(d => st.unlocked[d.id]).length;
-        return `<div style="margin-top:18px; font-weight:800; font-size:14px; color:var(--accent-2);">${c.icon} ${esc(Achv.getCategoryTitle(c.id, currentLang))} <span style="font-weight:400; color:var(--text-dim);">(${done}/${list.length})</span></div>${list.map(card).join("")}`;
-      }).join("")}
+      <div class="picker-title">🏆 ${en ? "ACHIEVEMENTS" : "ERFOLGE"}</div>
+      <div style="display:flex; align-items:center; gap:16px; margin:10px 0 6px;">
+        <svg width="84" height="84" viewBox="0 0 84 84" style="flex-shrink:0">
+          <circle cx="42" cy="42" r="${R}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="8"/>
+          <circle cx="42" cy="42" r="${R}" fill="none" stroke="#ffc446" stroke-width="8" stroke-linecap="round" stroke-dasharray="${(C * ratio).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 42 42)"/>
+          <text x="42" y="47" text-anchor="middle" font-size="16" font-weight="800" fill="currentColor">${Math.round(ratio * 100)}%</text>
+        </svg>
+        <div><div style="font-weight:800; font-size:18px;">${esc(en ? `${sum.done} of ${sum.total}` : `${sum.done} von ${sum.total}`)}</div>
+          <div class="picker-sub" style="margin:2px 0 0;">${esc(profile.name || profile.username || "")} – ${en ? "unlocked" : "freigeschaltet"}</div></div>
+      </div>
+      <div style="display:flex; gap:6px; overflow-x:auto; padding:8px 0 4px; -webkit-overflow-scrolling:touch;">
+        ${tabs.map(x => `<button class="chip-btn${x.id === tab ? ' active selected on' : ''}" style="white-space:nowrap; flex-shrink:0;" onclick="achvTab='${x.id}'; renderAchievements(achvCur)">${x.icon} ${esc(x.title)}</button>`).join("")}
+      </div>
+      ${near.length ? `<div style="margin-top:14px; font-weight:800; font-size:14px; color:#ffc446;">🔥 ${en ? "Almost there" : "Fast geschafft"}</div>${near.map(card).join("")}` : ""}
+      ${catList.map(catCard).join("")}
       <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
@@ -5127,7 +5177,13 @@ function achvOnPartyMessage(msg){
         break;
       }
       case "musicPlayerSubmitted": { // Song erraten = Titel richtig, ohne dass wiederholt wurde
-        if(msg.playerId === me && msg.correct && msg.correct.title && !msg.replaysUsed) achvRecord({ t:"music", n:1 });
+        if(msg.playerId === me) achvRecord({ t:"music", correct: !!(msg.correct && msg.correct.title) });
+        break;
+      }
+      case "gameEnd": {
+        const myTeam = party.room && party.room.players.find(p => p.id === me)?.teamId;
+        const top = (msg.ranking || [])[0];
+        achvRecord({ t:"party", won: !!(myTeam && top && top.id === myTeam && (msg.ranking || []).length > 1) });
         break;
       }
       case "slfReveal": {
@@ -5292,6 +5348,7 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
   try{
     if(e.origin !== location.origin || !e.data) return;
     if(e.data.bpOpenShop === true){ startShopFlow(); return; }
+    if(e.data.bpArrowBack === true || e.data.bpFruitBack === true){ startBrainingHub(); return; }
     if(e.data.bpChessBack !== true) return;
     renderChessHub();
   }catch(err){}
@@ -6444,6 +6501,7 @@ async function dzSubmit(){
   }
   if(!r.correct){ dzMsg(dz.kind==='wv'?L(r.wrong+' Punkt(e) fehlen noch.',r.wrong+' point(s) still missing.'):dz.kind==='ws'?L(r.wrong+' Wort/Wörter fehlen noch.',r.wrong+' word(s) still missing.'):dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
   const solvedTime=dzElapsed(); dzTimerStop();
+  try{ if(!r.tooFast) achvRecord({ t:'daily', type:dz.type, date:dz.date }); }catch(e){}
   try{ localStorage.removeItem(dz.key); }catch(e){}
   if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance;
   const txt=r.tooFast?L('Richtig! Aber so schnell gibt es keine Münzen. Probiere es später nochmal mit „Fertig“.','Correct! But no coins for such a fast solve. Try “Done” again a little later.')
@@ -6455,8 +6513,30 @@ async function dzSubmit(){
   renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div><div class="dz-timer">⏱ ${dzFmt(solvedTime)}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
 }
 
+function startBrainingHub(){
+  setAudioZone("menu");
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">🧠 BRAINING</div>
+      <div class="picker-sub">${L('Denkspiele ohne Ende – jedes Level wird schwerer.','Endless puzzles – every level gets harder.')}</div>
+      <div class="menu-grid" style="margin-top:14px;">
+        <div class="mode-card" onclick="renderChessFrame('/arrows/index.html')">
+          <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <h3>Brain Hood</h3>
+          <p>${L('Pfeil-Würfel','Arrow cube')}</p>
+        </div>
+        <div class="mode-card" onclick="renderChessFrame('/fruit/index.html')">
+          <div class="icon" style="font-size:40px;line-height:46px;">🍓</div>
+          <h3>Brain Fruit</h3>
+          <p>${L('Match mit Bomben','Match with bombs')}</p>
+        </div>
+      </div>
+      <div class="actions-row" style="margin-top:18px;"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
+    </div>`);
+}
 function renderMainMenu(){
   setAudioZone("menu");
+  try{ achvDrainQueue(); }catch(e){}
   // Brain Test hat mittlerweile sowohl eine deutsche als auch eine englische
   // Fragendatenbank (siehe klasseQuestionsPool()) - nur bei den Sprachen ohne
   // eigene Datenbank (noch) gesperrt zeigen.
@@ -6519,6 +6599,11 @@ function renderMainMenu(){
 
     <div class="menu-section-title">${L('Modi','Modes')}</div>
     <div class="menu-grid">
+      <div class="mode-card" onclick="startBrainingHub()">
+        <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><circle cx="33" cy="33" r="6" fill="#ff5d8f"/><path d="M33 27C33 24 35 23 37 23" stroke="#7cff8c" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
+        <h3>Braining</h3>
+        <p>${L('Denkspiele ohne Ende.','Endless puzzles.')}</p>
+      </div>
       <div class="mode-card" onclick="startSpeedMathFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 8V40M8 24H40" stroke="#c6ff3d" stroke-width="6" stroke-linecap="round"/></svg></div>
         <h3>Speed Math</h3>
@@ -6557,11 +6642,6 @@ function renderMainMenu(){
         <h3>Fourups</h3>
         <p>${L('4 gewinnt – gegen den Bot oder zu zweit','Connect 4 – vs the bot or two players')}</p>
       </div>
-      ${muAllowed() ? `<div class="mode-card" onclick="muIntro()">
-        <div class="icon"><svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg></div>
-        <h3>${L('Mühle','Morris')}</h3>
-        <p>${L('Klassische Mühle – Bot, Freunde, Zufallsgegner.','Classic mills – bot, friends, random opponent.')}</p>
-      </div>` : ''}
     </div>
 
     <div class="menu-secondary">
@@ -6591,19 +6671,58 @@ function statModeCard(icon, title, color, played, good, goodLabel, sub){
     <div class="st-bar"><i style="width:${pct}%"></i></div>
   </div>`;
 }
+var statTab = 'all';
 function statCardHtml(p, extraArena){
   const totalGames = p.wins + p.losses;
   const winRate = totalGames > 0 ? Math.round((p.wins/totalGames)*100) : 0;
   const modeStats = p.modeStats || freshModeStats();
-  const cards = MODE_STAT_DEFS.map(m => {
-    const s = modeStats[m.key] || {played:0, correct:0};
-    const goodLabel = L(m.correctLabel || 'richtig', ({'Siege':'wins','Alle Felder':'all fields'})[m.correctLabel] || 'correct');
-    return statModeCard(m.icon, m.label, m.color, s.played || 0, s.correct || 0, goodLabel);
-  });
+  const ap = (p.isAccount && account) ? account.profile : p;
+  let ach = null; try{ achvEnsure(ap); ach = ap.achv; }catch(e){}
+  const ms = k => modeStats[k] || {played:0, correct:0};
   const co = chessOriginalSummary() || {games:0, wins:0, draws:0, losses:0};
-  cards.push(statModeCard('♟', 'Chess Original', '#3de0ff', co.games, co.wins, L('Siege','wins'), co.games ? `${co.draws} ${L('Remis','draws')} · ${co.losses} ${L('Niederl.','losses')}` : ''));
   const cw = chessWorldSummary() || {games:0, wins:0, rank:null};
-  cards.push(statModeCard('🐉', 'Chess Fantasy', '#e3b23c', cw.games, cw.wins, L('Siege','wins'), cw.rank || ''));
+  const R = (icon, title, color, a, b, lbl) => ({ icon, title, color, a, b, lbl });   // a von b (mit Balken)
+  const S = (icon, title, color, a, lbl) => ({ icon, title, color, a, b:null, lbl }); // nur ein Wert
+  const win = L('Siege','wins'), ok = L('richtig','correct');
+  const groups = [
+    { id:'know', title:L('Wissen','Knowledge'), rows:[
+      S('🧠','Brain Test','#c6ff3d', (p.klasse||0) + ' / 10', L('Klassen','classes')),
+      R('🔢','Drag and Drop','#9fb0ff', ms('ordering').correct, ms('ordering').played, ok),
+      R('⚖️','Higher or Lower','#3de0ff', ms('higherlower').correct, ms('higherlower').played, ok),
+      R('🧮','Speed Math','#ffb443', ms('speedmath').correct, ms('speedmath').played, ok),
+      R('🔢','Order of Speed','#9fb0ff', ms('orderofspeed').correct, ms('orderofspeed').played, ok),
+      R('🧬','Biologie','#7affc4', ms('biology').correct, ms('biology').played, ok),
+      S('⚡','Quick-Fire','#ffd166', ach ? ach.blitz.best : 0, L('Rekord','best')),
+      S('📅','Daily Puzzles','#c6ff3d', ach ? ach.daily.solved : 0, L('gelöst','solved'))
+    ]},
+    { id:'board', title:L('Brettspiele','Board games'), rows:[
+      R('⭕','Tic Tac Toe','#ff6b6b', ms('ttt').correct, ms('ttt').played, win),
+      R('⚛️','Quantum','#b19cd9', ms('quantum').correct, ms('quantum').played, win),
+      S('🔴',L('4 gewinnt','Connect Four'),'#ffd166', ach ? ach.four.wins : 0, win),
+      S('⚪',L('Mühle','Nine Men\'s Morris'),'#e8e8e8', ach ? ach.mill.wins : 0, win),
+      S('♛',L('Dame','Checkers'),'#c58cff', ach ? ach.dame.wins : 0, win),
+      R('♟','Schach','#3de0ff', co.wins, co.games, win),
+      R('🐉','Chess Fantasy','#e3b23c', cw.wins, cw.games, win)
+    ]},
+    { id:'party', title:'Party', rows:[
+      R('🏠',L('Party Raum','Party Room'),'#3de0ff', ach ? ach.party.wins : 0, ach ? ach.party.played : 0, win),
+      R('🗺️','Scattergories','#ffd166', ms('slf').correct, ms('slf').played, L('alle Felder','all fields')),
+      ...(extraArena ? [S('🏟️','Arena','#ff6b6b', extraArena.arenaPoints||0, L('Punkte','points'))] : [])
+    ]}
+  ];
+  const rowHtml = r => {
+    const has = r.b === null ? (typeof r.a === 'string' ? r.a.charAt(0) !== '0' : r.a > 0) : r.b > 0;
+    const pct = r.b ? Math.min(100, Math.round(r.a / r.b * 100)) : (r.b === null && typeof r.a === 'string' ? Math.min(100, (parseInt(r.a)||0) * 10) : 0);
+    const showBar = r.b !== null || typeof r.a === 'string';
+    return `<div class="st-row ${has ? '' : 'empty'}"><i>${r.icon}</i><div class="t">${r.title}${showBar ? `<div class="sb"><div style="width:${pct}%;background:${r.color}"></div></div>` : ''}</div><div class="v">${r.b !== null ? r.a + ' / ' + r.b : r.a}<small>${r.lbl}</small></div></div>`;
+  };
+  const tabDefs = [{id:'all', t:L('Alle','All')}].concat(groups.map(g => ({id:g.id, t:g.title})));
+  const framesHtml = (p.isAccount && typeof framesCollectionHtml === 'function') ? framesCollectionHtml() : '';
+  if(framesHtml) tabDefs.push({id:'frames', t:'🏅 ' + L('Rahmen','Frames')});
+  const tab = tabDefs.some(x => x.id === statTab) ? statTab : 'all';
+  let body;
+  if(tab === 'frames') body = framesHtml.replace('class="stat-card" style="margin-top:12px"', 'style="margin-top:12px"');
+  else body = groups.filter(g => tab === 'all' || g.id === tab).map(g => (tab === 'all' ? `<div class="st-section">${g.title}</div>` : '') + g.rows.map(rowHtml).join('')).join('');
   return `
     <div class="stat-card">
       <div class="st-head">
@@ -6620,8 +6739,8 @@ function statCardHtml(p, extraArena){
           ${extraArena ? `<div><b style="color:var(--warn)">${extraArena.arenaPoints||0}</b><span>${L('Arena-Punkte','Arena pts')}</span></div>` : ''}
         </div>
       </div>
-      <div class="st-section">${L('Nach Spielmodus','By game mode')}</div>
-      <div class="st-grid">${cards.join('')}</div>
+      <div class="st-tabs">${tabDefs.map(x => `<button class="chip-btn${x.id === tab ? ' active' : ''}" onclick="statTab='${x.id}'; renderStatistik()">${x.t}</button>`).join('')}</div>
+      ${body}
     </div>
   `;
 }
@@ -6745,7 +6864,7 @@ function renderStatistik(){
     <div class="panel">
       <div class="picker-title">${L('STATISTIK','STATISTICS')}</div>
       <div class="picker-sub">${account ? L('Dein Konto-Profil gilt für alle Modi.','Your account profile applies to all modes.') : L('Detaillierte Werte je gespeichertem Profil.','Detailed values for each saved profile.')}</div>
-      ${account ? statCardHtml(accountAsProfile(), account.profile) + framesCollectionHtml() : ``}
+      ${account ? statCardHtml(accountAsProfile(), account.profile) : ``}
       ${showLocalHint ? `<p style="color:var(--text-dim)">${L('Noch keine Profile vorhanden.','No profiles yet.')}</p>` : ``}
       ${account ? `` : profiles.map(p => statCardHtml(p)).join("")}
       <div class="actions-row" style="margin-top:10px;">
@@ -9619,6 +9738,7 @@ function dmClockStart(){
 }
 function dmFinishUi(){
   if(document.getElementById('dmOv')) return;
+  try{ if(!dm.achvDone){ dm.achvDone = true; if(dm.winner === dm.you) achvRecord({ t:'dame', hard: dm.mode==='bot' && dm.level==='hard', online: dm.mode==='mp' }); } }catch(e){}
   const win = dm.winner === dm.you, draw = dm.winner === 'draw';
   const ov = document.createElement('div'); ov.id = 'dmOv';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99991;background:rgba(5,8,20,.9);display:flex;align-items:center;justify-content:center;padding:14px;';
@@ -9774,18 +9894,15 @@ function muIntro(msg){
   if(!muAllowed()){ startTicTacToeFlow(); return; }
   muClearTimers();
   renderApp(`
-    <div class="panel">
-      <div class="picker-title">⚪ ${L('MÜHLE','NINE MEN\'S MORRIS')} ${featureLocked('muehle') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</div>
-      <div class="picker-sub">${L('Klassische Mühle: 9 Steine setzen, dann ziehen. Drei in einer Reihe = Mühle = gegnerischen Stein entfernen. Mit nur 3 Steinen darfst du springen.','Classic mills: place 9 pieces, then move. Three in a row = mill = remove an enemy piece. With only 3 pieces you may fly.')}</div>
-      <div style="color:#ff8a8a;font-weight:700;min-height:18px">${msg ? esc(msg) : ''}</div>
-      <div class="actions-row" style="flex-direction:column;gap:8px">
-        <div style="display:flex;gap:8px"><button class="btn btn-primary" style="flex:1" onclick="muStartBot('easy')">🤖 ${L('Leicht','Easy')}</button><button class="btn btn-primary" style="flex:1" onclick="muStartBot('normal')">🤖 ${L('Normal','Normal')}</button><button class="btn btn-primary" style="flex:1" onclick="muStartBot('hard')">🤖 ${L('Schwer','Hard')}</button></div>
-        <button class="btn" style="border-color:var(--accent-2)" onclick="muMpQueue()">🎲 ${L('Zufallsgegner (online)','Random opponent (online)')}</button>
-        <button class="btn" style="border-color:var(--accent-2)" onclick="muMpCreate()">👥 ${L('Gegen Freund (Code / Link)','Vs friend (code / link)')}</button>
-        <input id="muCodeIn" type="text" maxlength="8" placeholder="CODE" style="text-transform:uppercase;text-align:center;letter-spacing:4px">
-        <button class="btn btn-ghost" onclick="muJoinScreen(document.getElementById('muCodeIn').value.trim().toUpperCase())">${L('Mit Code beitreten','Join with code')}</button>
-        <button class="btn btn-ghost" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
-      </div>
+    <div class="panel mu2">
+      <div class="mm-hd"><svg viewBox="0 0 40 40" width="46" height="46"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg><h2>${L('MÜHLE','NINE MEN\'S MORRIS')} ${featureLocked('muehle') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</h2>
+        <p>${L('9 Steine setzen, dann ziehen. Drei in einer Reihe = Mühle = gegnerischen Stein entfernen. Mit nur 3 Steinen darfst du springen.','Place 9 pieces, then move. Three in a row = mill = remove an enemy piece. With only 3 pieces you may fly.')}</p></div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:18px;text-align:center">${msg ? esc(msg) : ''}</div>
+      <div class="mm-cd"><h4>🤖 ${L('Gegen den Bot','Against the bot')}</h4><small>${L('Wähle die Stärke','Choose the level')}</small>
+        <div class="mm-seg"><button onclick="muStartBot('easy')">${L('Leicht','Easy')}</button><button onclick="muStartBot('normal')">${L('Normal','Normal')}</button><button onclick="muStartBot('hard')">${L('Schwer','Hard')}</button></div></div>
+      <div class="mm-cd"><h4>🌐 Online</h4><small>${L('Spiel live gegen einen zufälligen Gegner','Play live against a random opponent')}</small>
+        <button class="btn btn-primary" style="width:100%" onclick="muMpQueue()">${L('Gegner suchen','Find opponent')}</button></div>
+      <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" style="width:100%" onclick="startTicTacToeFlow()">${t('btn_back')}</button></div>
     </div>`);
 }
 function muStartBot(level){
@@ -9826,6 +9943,7 @@ function muCommit(m){
 }
 function muApplyLocal(m){
   const ns = Mill.apply(muState(), m);
+  if(m.rm != null && mu.turn === mu.you) mu.myMills = (mu.myMills||0) + 1;
   mu.b = ns.b; mu.hand = ns.hand; mu.turn = ns.turn; mu.quiet = ns.quiet; mu.plies++; mu.last = { from:m.from, to:m.to, rm:m.rm };
   const res = Mill.result(muState());
   if(res){ mu.over = true; mu.winner = res; mu.why = 'done'; }
@@ -9900,8 +10018,14 @@ function muClockStart(){
   const tick = () => { const el = document.getElementById('muClock'); if(!el || !mu || !mu.deadline) return; const s = Math.max(0, Math.round((mu.deadline - Date.now()) / 1000)); el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   tick(); muIv = setInterval(tick, 500);
 }
+function muAchv(){
+  if(!mu || mu.achvDone) return; mu.achvDone = true;
+  const win = mu.winner === mu.you;
+  achvRecord({ t:'mill', won:win, hard: mu.mode==='bot' && mu.level==='hard', online: mu.mode==='mp', mills: mu.myMills||0 });
+}
 function muFinishUi(){
   if(document.getElementById('muOv')) return;
+  try{ muAchv(); }catch(e){}
   const win = mu.winner === mu.you, draw = mu.winner === 'draw';
   const ov = document.createElement('div'); ov.id = 'muOv';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99991;background:rgba(5,8,20,.9);display:flex;align-items:center;justify-content:center;padding:14px;';
@@ -10052,7 +10176,7 @@ function startFourupsFlow(){
           <h3>${L('Mit Freunden','With friends')}</h3>
           <p>${L('Online gegen einen Freund – per Einladung oder Code.','Online vs a friend – by invite or code.')}</p>
         </div>
-      </div>` : `<div class="picker-sub" style="margin-top:10px;text-align:center">🎉 ${L('Online spielst du 4 gewinnt im Party Raum.','Play Connect 4 online in the party room.')}</div>`}
+      </div>` : ''}
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
       </div>
@@ -10163,7 +10287,8 @@ function fuMpHandle(m){
   if(!fuMp) return;
   if(m.type==='fuError'){ const msg=m.message||'Fehler'; fuMpClose(); fuMpMenu(msg); return; }
   if(m.type==='fuJoined'){ fuMp.code=m.roomCode; fuMp.you=m.you; return; }
-  if(m.type==='fuState'){ fuMp.st=m; fuMp.you=m.you; fuMp.code=m.roomCode; fuMp.left=false; fuMpRender(); return; }
+  if(m.type==='fuState'){ try{ const wasOver = fuMp.st && fuMp.st.over; if(m.over && !wasOver && m.winner===m.you){ let n=0; (m.board||[]).forEach(row=>row.forEach(v=>{ if(v===m.you) n++; })); const wc=m.winCells||[], a=wc[0], b2=wc[1]; achvRecord({ t:'four', hard:false, online:true, diag: !!(a&&b2&&a[0]!==b2[0]&&a[1]!==b2[1]), discs:n }); } }catch(e){}
+    fuMp.st=m; fuMp.you=m.you; fuMp.code=m.roomCode; fuMp.left=false; fuMpRender(); return; }
   if(m.type==='fuOpponentLeft'){ fuMp.left=true; fuMpRender(); return; }
 }
 function fuMpMove(c){
@@ -10223,7 +10348,9 @@ function fuPlace(c){
   const r = fuDropRow(fu.b,c); if(r<0) return false;
   fu.b[r][c] = fu.turn; fu.last=[r,c];
   const w = fuCheck(fu.b,r,c);
-  if(w){ fu.over=true; fu.win=w; fu.score[w.p]++; }
+  if(w){ fu.over=true; fu.win=w; fu.score[w.p]++;
+    try{ if(fu.mode==='bot' && w.p===1){ let n=0; fu.b.forEach(row=>row.forEach(v=>{ if(v===1) n++; }));
+      const a=w.cells[0], b2=w.cells[1]; achvRecord({ t:'four', hard: fu.level>=3, online:false, diag: !!(a&&b2&&a[0]!==b2[0]&&a[1]!==b2[1]), discs:n }); } }catch(e){} }
   else if(fu.b[0].every(v=>v)){ fu.over=true; fu.score.d++; }
   else fu.turn = 3 - fu.turn;
   return true;
