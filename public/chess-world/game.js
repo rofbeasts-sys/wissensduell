@@ -928,7 +928,7 @@ function onLoss(){
 }
 
 // ============================================================
-// SOUND EFFECTS (Web Audio API — kein MP3 nötig)
+// SOUND EFFECTS (Web Audio API, kein MP3 nötig)
 // ============================================================
 let _audioCtx=null;
 function getAudioCtx(){
@@ -983,7 +983,7 @@ function startNewGame(){
   chess.rec=[];
   chess.board=initBoard();
 
-  // Alle Figuren immer auf dem Brett — Rang kommt aus pregameSetup, Anzahl ist immer voll
+  // Alle Figuren immer auf dem Brett, Rang kommt aus pregameSetup, Anzahl ist immer voll
   const ownedCount={};
   ['turm','springer','laeufer','dame','koenig','bauer'].forEach(group=>{
     ownedCount[group]=PREGAME_GROUP_SLOTS[group]||1;
@@ -1206,7 +1206,7 @@ function showPieceAbilityPanel(r, c, piece){
       +'<button onclick="hidePieceAbilityPanel()" style="background:none;border:none;color:#5a41b0;font-size:.9rem;cursor:pointer;padding:2px 6px">✕</button>'
     +'</div>'
     +'<div style="background:#1a0f3a;border-radius:6px;padding:6px 8px;margin-bottom:5px">'
-      +'<div style="font-size:.44rem;color:#ffd45a;letter-spacing:1px;margin-bottom:2px">⚡ AKTIV — '+cp.abilityLabel+'</div>'
+      +'<div style="font-size:.44rem;color:#ffd45a;letter-spacing:1px;margin-bottom:2px">⚡ AKTIV, '+cp.abilityLabel+'</div>'
       +'<div style="font-size:.57rem;color:#ffd45a;line-height:1.45">'+(abilData?.aktiv||cp.desc)+'</div>'
     +'</div>'
     +(abilData?.passiv
@@ -1267,10 +1267,10 @@ function handleClick(r,c){
       chess.abilitiesLeft['king_buff']=false; // legacy compat
       chess.kingSwapPending=false;
       chess.extraMove=true;
-      chess.moveLog.push({text:'♔ Königstausch! König tauscht mit '+('abcdefgh'[c])+(8-r)+' — jetzt noch normal ziehen!',ai:false,special:true});
+      chess.moveLog.push({text:'♔ Königstausch! König tauscht mit '+('abcdefgh'[c])+(8-r)+', jetzt noch normal ziehen!',ai:false,special:true});
       renderBoard();renderMoveLog();renderAbilities();
     } else {
-      // Cancel swap — Fähigkeit zurückgeben
+      // Cancel swap, Fähigkeit zurückgeben
       chess.kingSwapPending=false;
       chess.abilitiesUsedCount=Math.max(0,(chess.abilitiesUsedCount||1)-1);
       chess._lastUsedUid&&chess.usedAbilityUids.delete(chess._lastUsedUid);
@@ -1463,7 +1463,7 @@ function aiTurn(){
   // KI prüft ob Lage hoffnungslos ist
   if(aiShouldResign()){
     chess.status='checkmate';
-    chess.moveLog.push({text:'🏳️ KI gibt auf — die Lage ist hoffnungslos!',ai:true,special:true});
+    chess.moveLog.push({text:'🏳️ KI gibt auf, die Lage ist hoffnungslos!',ai:true,special:true});
     showResult(true,'KI gibt auf! Du gewinnst! 🏳️');
     return;
   }
@@ -1486,7 +1486,7 @@ function aiTurn(){
   if(move) doMove(move,true);
 }
 
-// KI versucht eine Fähigkeit einzusetzen — gibt true zurück wenn genutzt
+// KI versucht eine Fähigkeit einzusetzen, gibt true zurück wenn genutzt
 function aiTryUseAbility(){
   const idx=G.rankIdx;
   // 0=Amateur3,1=Amateur2,2=Amateur1, 3=Bronze3,4=Bronze2,5=Bronze1
@@ -1676,7 +1676,7 @@ function aiTryUseAbility(){
   }
 
   // ── DAME-FÄHIGKEIT (ab Diamant) ──────────────────────────────
-  // Dame: Feuerball — alle Figuren in Radius 2
+  // Dame: Feuerball, alle Figuren in Radius 2
   if(idx>=15&&!chess.aiUsedQueenAbility){
     for(let r=0;r<8;r++)for(let c=0;c<8;c++){
       if(chess.board[r][c]?.t==='Q'&&chess.board[r][c]?.col==='b'){
@@ -1833,7 +1833,7 @@ function renderAbilities(){
 
 // Generate valid jump targets for a knight at (kr,kc) given rankIdx
 // Rules:
-//   Rang 1 (0): 2 random steps, any direction — fully random, shown after click
+//   Rang 1 (0): 2 random steps, any direction, fully random, shown after click
 //   Rang 2 (1): 3 random steps
 //   Rang 3 (2): player picks 2 steps, each must curve (no straight line)
 //   Rang 4 (3): player picks 3 steps
@@ -1862,7 +1862,7 @@ function getKnightJumpTargets(board,startR,startC,steps){
     }
     for(const[dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]]){
       // Curve rule: must change BOTH row and col direction compared to last step
-      // i.e. not (dr===lastDr) AND not (dc===lastDc) — need at least one change
+      // i.e. not (dr===lastDr) AND not (dc===lastDc), need at least one change
       // We enforce: not going purely straight (must have a turn somewhere)
       if(lastDr!==null&&dr===lastDr&&dc===lastDc)continue; // no same dir
       if(lastDr!==null&&dr===lastDr&&dc===0&&lastDc===0)continue;
@@ -1905,7 +1905,7 @@ function handleKnightAbilityClick(r,c){
   const kap=chess.knightAbilityPending;
   if(!kap)return false;
 
-  // Phase 1: no knight selected yet — click must be on a knight
+  // Phase 1: no knight selected yet, click must be on a knight
   if(!kap.selectedKnight){
     const isKnight=kap.knights.some(k=>k.r===r&&k.c===c);
     if(!isKnight)return true; // consumed click, did nothing
@@ -1949,7 +1949,7 @@ function handleKnightAbilityClick(r,c){
   return true;
 }
 
-// Wird von renderAbilities aufgerufen — spezifische Figur mit uid
+// Wird von renderAbilities aufgerufen, spezifische Figur mit uid
 function useAbilityForPiece(piece, cp, r, c){
   if(!piece||!piece.uid)return;
   if(chess.usedAbilityUids.has(piece.uid)){
@@ -2145,7 +2145,7 @@ function useAbility(id,desc,overrideRi){
       break;
     }
 
-    // ── SPRINGER (unverändert — schon rang-basiert) ─────────────────
+    // ── SPRINGER (unverändert, schon rang-basiert) ─────────────────
     case 'knight_magic':{
       const knights=[];
       for(let r=0;r<8;r++)for(let c=0;c<8;c++)
@@ -2244,7 +2244,7 @@ function useAbility(id,desc,overrideRi){
       if(ri<=1){
         chess.extraMove=true;
         logText=ri===0?'🌪 Windstoß! Nochmal ziehen!':'🌪 Sturmböe! 2× Extra-Zug!';
-        if(ri===1){chess.extraMove=true;} // wird eh nur 1× genutzt — stattdessen 2 Extra-Züge
+        if(ri===1){chess.extraMove=true;} // wird eh nur 1× genutzt, stattdessen 2 Extra-Züge
       } else if(ri===2){
         chess.extraMove=true;
         // Teleportiert Dame auf ein zufälliges freies Feld
@@ -2643,7 +2643,7 @@ function renderShopScreen(){
   el.appendChild(sg);
   const lg=document.createElement('div');
   lg.style.cssText='text-align:center;font-size:.5rem;color:#9a8fc4;margin:10px 0 4px;line-height:1.5';
-  lg.innerHTML=cwT('Kisten enthalten Zufallsinhalte – die Chancen stehen bei jeder Kiste. Gold &amp; Schlüssel haben keinen Geldwert. ','Chests contain random items – the odds are shown on each chest. Gold &amp; keys have no cash value. ')+'<a href="/legal.html#kisten" target="_blank" rel="noopener" style="color:#7be0ff">'+cwT('Mehr Infos','More info')+'</a>';
+  lg.innerHTML=cwT('Kisten enthalten Zufallsinhalte, die Chancen stehen bei jeder Kiste. Gold &amp; Schlüssel haben keinen Geldwert. ','Chests contain random items, the odds are shown on each chest. Gold &amp; keys have no cash value. ')+'<a href="/legal.html#kisten" target="_blank" rel="noopener" style="color:#7be0ff">'+cwT('Mehr Infos','More info')+'</a>';
   el.appendChild(lg);
 
   // ── Gold kaufen (mit Brain-Pulse-Coins) ──
@@ -2703,7 +2703,7 @@ let currentScreen='';
 
 // Which variant is selected per group for pregame
 // e.g. {dame:'v', bauer:'s', ...}
-// pregameSetup: {group: [{v,ri}, ...]} — ein Eintrag pro Position
+// pregameSetup: {group: [{v,ri}, ...]}, ein Eintrag pro Position
 // Gruppen-Größen: turm:2, springer:2, laeufer:2, dame:1, koenig:1, bauer:8
 // PREGAME_GROUP_SLOTS moved to top
 
@@ -2735,7 +2735,7 @@ function getDefaultPregameSetup(){
         pool.push({v:o.v,ri:o.ri});
     });
 
-    // Immer alle Slots füllen — fehlende mit Basis-Rang (Rang 0, erste verfügbare Variante)
+    // Immer alle Slots füllen, fehlende mit Basis-Rang (Rang 0, erste verfügbare Variante)
     const fallback={v:pg.pids[0]?pidVariant(pg.pids[0]):'s',ri:0};
     while(pool.length<slots)pool.push({...fallback});
     setup[group]=pool.slice(0,slots);
@@ -2745,7 +2745,7 @@ function getDefaultPregameSetup(){
 }
 
 let pregameSetup={};
-// currentPickerPos: {group, posIdx} — welche Position gerade bearbeitet wird
+// currentPickerPos: {group, posIdx}, welche Position gerade bearbeitet wird
 let currentPickerPos=null;
 
 const PREGAME_LAYOUT_BACK=['R','N','B','Q','K','B','N','R'];
@@ -2770,7 +2770,7 @@ function openPiecePicker(group,posIdx){
   if(!modal||!grid)return;
 
   const cp0=COLL_PIECES[pg.pids[0]];
-  title.textContent=(cp0?cp0.name.toUpperCase():group.toUpperCase())+' – POSITION '+(posIdx+1);
+  title.textContent=(cp0?cp0.name.toUpperCase():group.toUpperCase())+', POSITION '+(posIdx+1);
   grid.innerHTML='';
 
   const cur=pregameSetup[group]?.[posIdx];
@@ -3118,116 +3118,116 @@ const PIECE_PASSIVES = {
 // ── Pro Rang: {aktiv, passiv} für jede Variante ────────────────────
 const RANK_ABILITIES = {
   bauer_s: [
-    {aktiv:'Geisterpfad — Bauer schlägt diesen Zug auch vorwärts.', passiv:null},
-    {aktiv:'Schildblock — blockiert einmal einen Angreifer (2 Züge Schutz)', passiv:'Kann Angreifer einmal abwehren'},
-    {aktiv:'Speerstoß — droht 2 Felder diagonal + Extra-Zug', passiv:'Droht 2 Felder diagonal'},
-    {aktiv:'Eisenwille — alle Bauern überleben nächsten Treffer', passiv:'Überlebt ersten Treffer automatisch'},
-    {aktiv:'Königsgarde-Aura — alle Nachbarn 1 Zug unschlagbar', passiv:'Alle Nachbarfiguren erhalten +1 Schutz'},
+    {aktiv:'Geisterpfad, Bauer schlägt diesen Zug auch vorwärts.', passiv:null},
+    {aktiv:'Schildblock, blockiert einmal einen Angreifer (2 Züge Schutz)', passiv:'Kann Angreifer einmal abwehren'},
+    {aktiv:'Speerstoß, droht 2 Felder diagonal + Extra-Zug', passiv:'Droht 2 Felder diagonal'},
+    {aktiv:'Eisenwille, alle Bauern überleben nächsten Treffer', passiv:'Überlebt ersten Treffer automatisch'},
+    {aktiv:'Königsgarde-Aura, alle Nachbarn 1 Zug unschlagbar', passiv:'Alle Nachbarfiguren erhalten +1 Schutz'},
   ],
   bauer_b: [
-    {aktiv:'Fernschuss — schlägt 1 Feld diagonal ohne Bewegung (Basis)', passiv:null},
-    {aktiv:'Fernschuss — schlägt 1 Feld diagonal ohne Bewegung', passiv:'Kann diagonal schlagen ohne zu ziehen'},
-    {aktiv:'Bogenhagel — alle Bauern schlagen bis 2 Felder diagonal', passiv:'Reichweite 2 Felder diagonal'},
-    {aktiv:'Doppelschuss — trifft 2 Feinde in Reichweite gleichzeitig', passiv:'Zwei Angriffe pro Fähigkeit'},
-    {aktiv:'Präzisionsschuss — eliminiert stärkste Figur in Radius 2', passiv:'Zielt immer auf stärkste Figur in Reichweite'},
+    {aktiv:'Fernschuss, schlägt 1 Feld diagonal ohne Bewegung (Basis)', passiv:null},
+    {aktiv:'Fernschuss, schlägt 1 Feld diagonal ohne Bewegung', passiv:'Kann diagonal schlagen ohne zu ziehen'},
+    {aktiv:'Bogenhagel, alle Bauern schlagen bis 2 Felder diagonal', passiv:'Reichweite 2 Felder diagonal'},
+    {aktiv:'Doppelschuss, trifft 2 Feinde in Reichweite gleichzeitig', passiv:'Zwei Angriffe pro Fähigkeit'},
+    {aktiv:'Präzisionsschuss, eliminiert stärkste Figur in Radius 2', passiv:'Zielt immer auf stärkste Figur in Reichweite'},
   ],
   bauer_sh: [
-    {aktiv:'Schutzschild — gibt Nachbarfigur 1 Zug Schutz (Basis)', passiv:null},
-    {aktiv:'Schutzschild — gibt Nachbarfigur 1 Zug Schutz', passiv:'Kann Nachbarfiguren schützen'},
-    {aktiv:'Opfer — gibt sich für König hin, König 2 Züge unschlagbar', passiv:'Kann sich für den König opfern'},
-    {aktiv:'Schildmauer — alle Bauern 1 Zug unschlagbar', passiv:'Alle Bauern starten mit Schutzschicht'},
-    {aktiv:'Eisenwand — vorderste Figur jeder Spalte 2 Züge unschlagbar', passiv:'Ganze Front 2 Züge unschlagbar'},
+    {aktiv:'Schutzschild, gibt Nachbarfigur 1 Zug Schutz (Basis)', passiv:null},
+    {aktiv:'Schutzschild, gibt Nachbarfigur 1 Zug Schutz', passiv:'Kann Nachbarfiguren schützen'},
+    {aktiv:'Opfer, gibt sich für König hin, König 2 Züge unschlagbar', passiv:'Kann sich für den König opfern'},
+    {aktiv:'Schildmauer, alle Bauern 1 Zug unschlagbar', passiv:'Alle Bauern starten mit Schutzschicht'},
+    {aktiv:'Eisenwand, vorderste Figur jeder Spalte 2 Züge unschlagbar', passiv:'Ganze Front 2 Züge unschlagbar'},
   ],
   bauer_a: [
-    {aktiv:'Dolchstoß — schlägt Figur direkt vor ihm ohne Bewegung (Basis)', passiv:null},
-    {aktiv:'Dolchstoß — schlägt Figur direkt vor ihm ohne Bewegung', passiv:'Kann geradeaus schlagen'},
-    {aktiv:'Unsichtbar — 3 Züge Schutz + schlägt vorwärts', passiv:'KI greift Mörder nicht gezielt an'},
-    {aktiv:'Schattenklinge — schlägt stärkste Nachbarfigur + Extra-Zug', passiv:'Schlägt und springt zurück'},
-    {aktiv:'Königsmörder — eliminiert wertvollste Nachbarfigur', passiv:'Zielt immer auf wertvollste benachbarte Figur'},
+    {aktiv:'Dolchstoß, schlägt Figur direkt vor ihm ohne Bewegung (Basis)', passiv:null},
+    {aktiv:'Dolchstoß, schlägt Figur direkt vor ihm ohne Bewegung', passiv:'Kann geradeaus schlagen'},
+    {aktiv:'Unsichtbar, 3 Züge Schutz + schlägt vorwärts', passiv:'KI greift Mörder nicht gezielt an'},
+    {aktiv:'Schattenklinge, schlägt stärkste Nachbarfigur + Extra-Zug', passiv:'Schlägt und springt zurück'},
+    {aktiv:'Königsmörder, eliminiert wertvollste Nachbarfigur', passiv:'Zielt immer auf wertvollste benachbarte Figur'},
   ],
   bauer_be: [
-    {aktiv:'Raserei — schlägt vorwärts + Extra-Zug (Basis)', passiv:null},
-    {aktiv:'Raserei — schlägt vorwärts + Extra-Zug', passiv:'Extra-Zug nach jedem Schlag'},
-    {aktiv:'Wut — schlägt vorwärts UND rückwärts + Extra-Zug', passiv:'Kann auch rückwärts schlagen'},
-    {aktiv:'Blutrausch — stärker nach Kill + Extra-Zug', passiv:'Jeder Schlag erhöht Angriffskraft'},
-    {aktiv:'Götterzorn — schlägt ALLE Feinde in seiner Spalte', passiv:'Vernichtet gesamte Spalte'},
+    {aktiv:'Raserei, schlägt vorwärts + Extra-Zug (Basis)', passiv:null},
+    {aktiv:'Raserei, schlägt vorwärts + Extra-Zug', passiv:'Extra-Zug nach jedem Schlag'},
+    {aktiv:'Wut, schlägt vorwärts UND rückwärts + Extra-Zug', passiv:'Kann auch rückwärts schlagen'},
+    {aktiv:'Blutrausch, stärker nach Kill + Extra-Zug', passiv:'Jeder Schlag erhöht Angriffskraft'},
+    {aktiv:'Götterzorn, schlägt ALLE Feinde in seiner Spalte', passiv:'Vernichtet gesamte Spalte'},
   ],
   bauer_h: [
-    {aktiv:'Heilung — bringt zuletzt geschlagenen Bauern zurück (Basis)', passiv:null},
-    {aktiv:'Heilung — bringt zuletzt geschlagenen Bauern zurück', passiv:'Kann Bauern wiederbeleben'},
-    {aktiv:'Segnung — gibt Nachbarfiguren 2 Züge Schutz', passiv:'Heilt Nachbarn passiv'},
-    {aktiv:'Auferstehung — bringt beliebige geschlagene Figur zurück', passiv:'Kann jede Figur wiederbeleben'},
-    {aktiv:'Massenheilung — alle geschlagenen Bauern kehren zurück', passiv:'Alle Bauern werden wiederbelebt'},
+    {aktiv:'Heilung, bringt zuletzt geschlagenen Bauern zurück (Basis)', passiv:null},
+    {aktiv:'Heilung, bringt zuletzt geschlagenen Bauern zurück', passiv:'Kann Bauern wiederbeleben'},
+    {aktiv:'Segnung, gibt Nachbarfiguren 2 Züge Schutz', passiv:'Heilt Nachbarn passiv'},
+    {aktiv:'Auferstehung, bringt beliebige geschlagene Figur zurück', passiv:'Kann jede Figur wiederbeleben'},
+    {aktiv:'Massenheilung, alle geschlagenen Bauern kehren zurück', passiv:'Alle Bauern werden wiederbelebt'},
   ],
   turm_s: [
-    {aktiv:'Schutzwall — Turm 2 Züge unschlagbar (Basis)', passiv:null},
-    {aktiv:'Schutzwall — 1 Turm 2 Züge unschlagbar', passiv:'Startschutz: beginnt mit 1 Schutzschicht'},
-    {aktiv:'Festung — beide Türme 2 Züge unschlagbar', passiv:'KI zieht nie zuerst auf den Turm'},
-    {aktiv:'Kaiserwall — alle Figuren 1 Zug + KI gesperrt', passiv:'Beginnt mit 2 Schutzschichten'},
-    {aktiv:'Unzerstörbar — 2 Figuren 3 Züge Schutz + KI pausiert', passiv:'Absoluter Schutz, durchbricht gegnerischen Schutz'},
+    {aktiv:'Schutzwall, Turm 2 Züge unschlagbar (Basis)', passiv:null},
+    {aktiv:'Schutzwall, 1 Turm 2 Züge unschlagbar', passiv:'Startschutz: beginnt mit 1 Schutzschicht'},
+    {aktiv:'Festung, beide Türme 2 Züge unschlagbar', passiv:'KI zieht nie zuerst auf den Turm'},
+    {aktiv:'Kaiserwall, alle Figuren 1 Zug + KI gesperrt', passiv:'Beginnt mit 2 Schutzschichten'},
+    {aktiv:'Unzerstörbar, 2 Figuren 3 Züge Schutz + KI pausiert', passiv:'Absoluter Schutz, durchbricht gegnerischen Schutz'},
   ],
   laeufer_d: [
-    {aktiv:'Dolchstoß — entfernt 1 benachbarten Feind (Basis)', passiv:null},
-    {aktiv:'Dolchstoß — entfernt 1 benachbarten Feind', passiv:'1× orthogonal ziehen pro Spiel'},
-    {aktiv:'Doppelstich — entfernt 2 benachbarte Feinde', passiv:'Zieht durch eigene Figuren hindurch'},
-    {aktiv:'Geisterdolch — entfernt wertvollste Figur auf dem Brett', passiv:'KI greift Läufer nicht als erstes an'},
-    {aktiv:'Dreifachstich — entfernt 3 stärkste Feinde', passiv:'Maximale Reichweite auf allen Diagonalen'},
+    {aktiv:'Dolchstoß, entfernt 1 benachbarten Feind (Basis)', passiv:null},
+    {aktiv:'Dolchstoß, entfernt 1 benachbarten Feind', passiv:'1× orthogonal ziehen pro Spiel'},
+    {aktiv:'Doppelstich, entfernt 2 benachbarte Feinde', passiv:'Zieht durch eigene Figuren hindurch'},
+    {aktiv:'Geisterdolch, entfernt wertvollste Figur auf dem Brett', passiv:'KI greift Läufer nicht als erstes an'},
+    {aktiv:'Dreifachstich, entfernt 3 stärkste Feinde', passiv:'Maximale Reichweite auf allen Diagonalen'},
   ],
   springer_m: [
-    {aktiv:'Arkaner Sprung — 2 Zufalls-Sprünge mit Schlag (Basis)', passiv:null},
-    {aktiv:'Arkaner Sprung — 2 Zufalls-Sprünge mit Schlag', passiv:'Startet unschlagbar für 1 Zug'},
-    {aktiv:'Arkaner Sprung — 3 Zufalls-Sprünge', passiv:'Fähigkeit 2× nutzbar'},
-    {aktiv:'Magierpfad — 2 wählbare Sprünge (Kurvenregel)', passiv:'Nach KI-Zug sofort nochmal ziehen'},
-    {aktiv:'Meisterpfad — 5 wählbare Sprünge', passiv:'Unbegrenzte Sprungkombinationen'},
+    {aktiv:'Arkaner Sprung, 2 Zufalls-Sprünge mit Schlag (Basis)', passiv:null},
+    {aktiv:'Arkaner Sprung, 2 Zufalls-Sprünge mit Schlag', passiv:'Startet unschlagbar für 1 Zug'},
+    {aktiv:'Arkaner Sprung, 3 Zufalls-Sprünge', passiv:'Fähigkeit 2× nutzbar'},
+    {aktiv:'Magierpfad, 2 wählbare Sprünge (Kurvenregel)', passiv:'Nach KI-Zug sofort nochmal ziehen'},
+    {aktiv:'Meisterpfad, 5 wählbare Sprünge', passiv:'Unbegrenzte Sprungkombinationen'},
   ],
   dame_f: [
-    {aktiv:'Feuerball — verbrennt alle Feinde in Radius 2 (Basis)', passiv:null},
-    {aktiv:'Feuerball — verbrennt alle Feinde in Radius 2', passiv:'Fähigkeit 2× nutzbar'},
-    {aktiv:'Flammensturm — verbrennt alle Feinde in Radius 3', passiv:'Startet unschlagbar für 1 Zug'},
-    {aktiv:'Inferno — verbrennt alle Feinde in Radius 4', passiv:'+2 Felder Fähigkeits-Radius'},
-    {aktiv:'Gottesfeuer — Sofortschlag + 1 Feind brennt 3 Runden', passiv:'Brenneffekt: getroffene Feinde sterben nach 3 Zügen'},
+    {aktiv:'Feuerball, verbrennt alle Feinde in Radius 2 (Basis)', passiv:null},
+    {aktiv:'Feuerball, verbrennt alle Feinde in Radius 2', passiv:'Fähigkeit 2× nutzbar'},
+    {aktiv:'Flammensturm, verbrennt alle Feinde in Radius 3', passiv:'Startet unschlagbar für 1 Zug'},
+    {aktiv:'Inferno, verbrennt alle Feinde in Radius 4', passiv:'+2 Felder Fähigkeits-Radius'},
+    {aktiv:'Gottesfeuer, Sofortschlag + 1 Feind brennt 3 Runden', passiv:'Brenneffekt: getroffene Feinde sterben nach 3 Zügen'},
   ],
   dame_w: [
-    {aktiv:'Flutwelle — schiebt Feinde 2 Felder zurück (Basis)', passiv:null},
-    {aktiv:'Welle — Reihe vor Dame 1 Feld zurück', passiv:'Fähigkeit 2× nutzbar'},
-    {aktiv:'Flut — Reihe vor Dame 2 Felder zurück', passiv:'Startet unschlagbar für 1 Zug'},
-    {aktiv:'Tsunami — 3 Spalten vor Dame 3 Felder zurück', passiv:'+2 Felder Schubdistanz'},
-    {aktiv:'Sintflut — ganzes Brett, alle Feinde 3 Felder zurück', passiv:'Alle Feinde gleichzeitig'},
+    {aktiv:'Flutwelle, schiebt Feinde 2 Felder zurück (Basis)', passiv:null},
+    {aktiv:'Welle, Reihe vor Dame 1 Feld zurück', passiv:'Fähigkeit 2× nutzbar'},
+    {aktiv:'Flut, Reihe vor Dame 2 Felder zurück', passiv:'Startet unschlagbar für 1 Zug'},
+    {aktiv:'Tsunami, 3 Spalten vor Dame 3 Felder zurück', passiv:'+2 Felder Schubdistanz'},
+    {aktiv:'Sintflut, ganzes Brett, alle Feinde 3 Felder zurück', passiv:'Alle Feinde gleichzeitig'},
   ],
   dame_e: [
-    {aktiv:'Steinwall — alle eigenen Figuren 1 Zug unschlagbar (Basis)', passiv:null},
-    {aktiv:'Steinwall — alle eigenen Figuren 1 Zug unschlagbar', passiv:'Fähigkeit 2× nutzbar'},
-    {aktiv:'Felsenfestung — alle eigenen Figuren 2 Züge unschlagbar', passiv:'Startet unschlagbar für 1 Zug'},
-    {aktiv:'Erdschild — alle Figuren 2 Züge + Extra-Zug', passiv:'+2 Felder Fähigkeits-Radius'},
-    {aktiv:'Weltenstein — 3 Züge + Extra-Zug + König unschlagbar', passiv:'König erhält dauerhaften Schutz'},
+    {aktiv:'Steinwall, alle eigenen Figuren 1 Zug unschlagbar (Basis)', passiv:null},
+    {aktiv:'Steinwall, alle eigenen Figuren 1 Zug unschlagbar', passiv:'Fähigkeit 2× nutzbar'},
+    {aktiv:'Felsenfestung, alle eigenen Figuren 2 Züge unschlagbar', passiv:'Startet unschlagbar für 1 Zug'},
+    {aktiv:'Erdschild, alle Figuren 2 Züge + Extra-Zug', passiv:'+2 Felder Fähigkeits-Radius'},
+    {aktiv:'Weltenstein, 3 Züge + Extra-Zug + König unschlagbar', passiv:'König erhält dauerhaften Schutz'},
   ],
   dame_l: [
-    {aktiv:'Windstoß — Dame bewegt sich sofort ein zweites Mal (Basis)', passiv:null},
-    {aktiv:'Windstoß — 1 Extra-Zug', passiv:'Fähigkeit 2× nutzbar'},
-    {aktiv:'Sturmbö — 2 Extra-Züge', passiv:'Startet unschlagbar für 1 Zug'},
-    {aktiv:'Wirbelwind — Dame teleportiert auf freies Feld + Extra-Zug', passiv:'+2 Felder Fähigkeits-Radius'},
-    {aktiv:'Zeitschneide — 3 Extra-Züge', passiv:'Fähigkeit verbraucht keinen Zug'},
+    {aktiv:'Windstoß, Dame bewegt sich sofort ein zweites Mal (Basis)', passiv:null},
+    {aktiv:'Windstoß, 1 Extra-Zug', passiv:'Fähigkeit 2× nutzbar'},
+    {aktiv:'Sturmbö, 2 Extra-Züge', passiv:'Startet unschlagbar für 1 Zug'},
+    {aktiv:'Wirbelwind, Dame teleportiert auf freies Feld + Extra-Zug', passiv:'+2 Felder Fähigkeits-Radius'},
+    {aktiv:'Zeitschneide, 3 Extra-Züge', passiv:'Fähigkeit verbraucht keinen Zug'},
   ],
   dame_v: [
-    {aktiv:'Lebensquell — bringt zuletzt geschlagene eigene Figur zurück (Basis)', passiv:null},
-    {aktiv:'Lebensquell — bringt 1 geschlagene Figur zurück', passiv:'Fähigkeit 2× nutzbar'},
-    {aktiv:'Lebensfluss — bringt 2 geschlagene Figuren zurück', passiv:'Startet unschlagbar für 1 Zug'},
-    {aktiv:'Auferstehung — bringt alle geschlagenen Figuren zurück', passiv:'+2 Felder Fähigkeits-Radius'},
-    {aktiv:'Göttliche Gnade — alle zurück + Extra-Zug + König unschlagbar', passiv:'König erhält dauerhaften Lebensschutz'},
+    {aktiv:'Lebensquell, bringt zuletzt geschlagene eigene Figur zurück (Basis)', passiv:null},
+    {aktiv:'Lebensquell, bringt 1 geschlagene Figur zurück', passiv:'Fähigkeit 2× nutzbar'},
+    {aktiv:'Lebensfluss, bringt 2 geschlagene Figuren zurück', passiv:'Startet unschlagbar für 1 Zug'},
+    {aktiv:'Auferstehung, bringt alle geschlagenen Figuren zurück', passiv:'+2 Felder Fähigkeits-Radius'},
+    {aktiv:'Göttliche Gnade, alle zurück + Extra-Zug + König unschlagbar', passiv:'König erhält dauerhaften Lebensschutz'},
   ],
   dame_p: [
-    {aktiv:'Donnerschlag — entfernt wertvollste Gegnerfigur (Basis)', passiv:null},
-    {aktiv:'Donnerschlag — entfernt wertvollste Figur', passiv:'Fähigkeit 2× nutzbar'},
-    {aktiv:'Doppelschlag — entfernt 2 stärkste Figuren', passiv:'Startet unschlagbar für 1 Zug'},
-    {aktiv:'Dreifachschlag — entfernt 3 stärkste Figuren', passiv:'+2 Felder Fähigkeits-Radius'},
-    {aktiv:'Götterschlag — entfernt ALLE Feinde auf dem Brett', passiv:'Maximale Vernichtungskraft'},
+    {aktiv:'Donnerschlag, entfernt wertvollste Gegnerfigur (Basis)', passiv:null},
+    {aktiv:'Donnerschlag, entfernt wertvollste Figur', passiv:'Fähigkeit 2× nutzbar'},
+    {aktiv:'Doppelschlag, entfernt 2 stärkste Figuren', passiv:'Startet unschlagbar für 1 Zug'},
+    {aktiv:'Dreifachschlag, entfernt 3 stärkste Figuren', passiv:'+2 Felder Fähigkeits-Radius'},
+    {aktiv:'Götterschlag, entfernt ALLE Feinde auf dem Brett', passiv:'Maximale Vernichtungskraft'},
   ],
   koenig_b: [
-    {aktiv:'Königstausch — tauscht König mit Nachbarfigur, dann normal ziehen (Basis)', passiv:null},
-    {aktiv:'Königstausch — tauscht mit Nachbarfigur die Position', passiv:'Kriegsruf gibt 2 Extra-Züge'},
-    {aktiv:'Königsmanöver — tauscht + Extra-Zug', passiv:'Alle Figuren starten mit 1 Schutzschicht'},
-    {aktiv:'Königsbefehl — holt geschlagenen Turm zurück', passiv:'König erste 3 Züge unschlagbar'},
-    {aktiv:'Königszorn — Turm zurück + schlägt alle Nachbarn', passiv:'Maximale Königsmacht'},
+    {aktiv:'Königstausch, tauscht König mit Nachbarfigur, dann normal ziehen (Basis)', passiv:null},
+    {aktiv:'Königstausch, tauscht mit Nachbarfigur die Position', passiv:'Kriegsruf gibt 2 Extra-Züge'},
+    {aktiv:'Königsmanöver, tauscht + Extra-Zug', passiv:'Alle Figuren starten mit 1 Schutzschicht'},
+    {aktiv:'Königsbefehl, holt geschlagenen Turm zurück', passiv:'König erste 3 Züge unschlagbar'},
+    {aktiv:'Königszorn, Turm zurück + schlägt alle Nachbarn', passiv:'Maximale Königsmacht'},
   ],
 };
 
@@ -3517,7 +3517,7 @@ function tryCombineFromModal(){
   const cp=COLL_PIECES[dPid];
   const v=pidVariant(dPid);
   if(doRankUp(cp.group,v,dRankIdx)){
-    // Stay on same rank idx — if upgraded, show new count
+    // Stay on same rank idx, if upgraded, show new count
     showDetail(dPid,dRankIdx);
   }
 }
@@ -3810,7 +3810,7 @@ async function claimQuest(id){
     const j=await cwApi('quest-claim',{id:id});
     cwClaiming=false;
     if(!j.ok){showToast(j.noLogin?'\u26A0\uFE0F Bitte in Brain Pulse einloggen, um Schlüssel zu bekommen':(j.error||'Fehler'),'#ff9900');return;}
-    if(j.capped){showToast('Tageslimit für Aufgaben-Schlüssel erreicht – morgen weiter abholen','#ff9900');return;}
+    if(j.capped){showToast('Tageslimit für Aufgaben-Schlüssel erreicht, morgen weiter abholen','#ff9900');return;}
     if(j.granted>0)showToast('+'+j.granted+' \uD83D\uDD11 Schlüssel','#4aff4a');
     try{updateTopBar();}catch(e){}
   }
@@ -3901,7 +3901,7 @@ function trackQuestStat(stat, amount){
 }
 
 function renderQuestBadge(){
-  // Badge entfernt — keine rote Zahl auf dem Quest-Button
+  // Badge entfernt, keine rote Zahl auf dem Quest-Button
   const navBtns=document.querySelectorAll('.nav-btn');
   const questNav=navBtns[2];
   if(!questNav)return;

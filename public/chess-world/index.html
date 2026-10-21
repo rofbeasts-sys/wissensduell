@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <title>Chess World – Brain Pulse</title>
+  <title>Chess World, Brain Pulse</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -51,7 +51,7 @@
   <div class="cw-screen" id="s-play" style="display:none">
     <div id="pregame-select" style="display:none;width:100%;flex-direction:column;align-items:center;gap:10px;padding:10px 0">
       <div style="font-size:.7rem;color:#7be0ff;letter-spacing:3px;font-weight:bold;text-shadow:0 0 10px #7be0ff88">WÄHLE DEINE FIGUREN</div>
-      <div style="font-size:.58rem;color:#7be0ff;text-align:center">Tippe eine Figur um ihren Rang zu wählen — ★ markiert seltene Figuren</div>
+      <div style="font-size:.58rem;color:#7be0ff;text-align:center">Tippe eine Figur um ihren Rang zu wählen, ★ markiert seltene Figuren</div>
       <div id="pregame-board" style="display:grid;grid-template-columns:repeat(8,1fr);width:100%;border:2px solid #ffd45a;border-radius:8px;overflow:hidden;box-shadow:0 0 20px #ffd45a33"></div>
       <button onclick="confirmDameAndStart()" style="width:100%;padding:15px;background:linear-gradient(135deg,#2a1020,#2a1020);border:2px solid #ffd45a;border-radius:10px;color:#ffd45a;font-size:1rem;letter-spacing:3px;cursor:pointer;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;font-weight:700;text-shadow:0 0 10px rgba(198,255,61,0.6);box-shadow:0 0 20px rgba(200,0,0,0.3);transition:all .2s;margin-top:4px">&#9876; SPIELEN</button>
     </div>
@@ -83,7 +83,7 @@
 
   <!-- ==================== SAMMLUNG ==================== -->
   <div class="cw-screen" id="s-collection" style="display:none">
-    <div style="font-size:.55rem;color:#7be0ff;text-align:center;letter-spacing:2px;text-shadow:0 0 8px #7be0ff66">INVENTAR — Tippe für Rang-Details</div>
+    <div style="font-size:.55rem;color:#7be0ff;text-align:center;letter-spacing:2px;text-shadow:0 0 8px #7be0ff66">INVENTAR, Tippe für Rang-Details</div>
     <div id="col-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
     <div style="display:flex;align-items:center;gap:8px;width:100%;margin-top:4px">
       <div style="flex:1;height:1px;background:#5a41b0"></div>
@@ -250,7 +250,7 @@
         <button id="gmd-combine-btn" onclick="tryGmdCombine()" style="width:100%;padding:10px;border-radius:8px;border:2px solid #ffd45a;background:#2a1a5a;color:#ffd45a;font-size:.7rem;font-weight:bold;cursor:pointer;letter-spacing:1px;margin-top:4px">⚡ ENTWICKELN</button>
       </div>
     </div>
-    <div style="font-size:.5rem;color:#5a41b0;letter-spacing:2px;text-align:center;margin-bottom:8px">RANG-ÜBERSICHT — Tippe für Details</div>
+    <div style="font-size:.5rem;color:#5a41b0;letter-spacing:2px;text-align:center;margin-bottom:8px">RANG-ÜBERSICHT, Tippe für Details</div>
     <div id="gm-grid" style="display:grid;grid-template-columns:90px repeat(5,1fr);gap:4px"></div>
     <button onclick="closeGroupDetail()" class="cw-btn" style="width:100%;margin-top:14px">&#10005; SCHLIESSEN</button>
   </div>
