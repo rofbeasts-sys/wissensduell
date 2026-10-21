@@ -9658,7 +9658,7 @@ function dmAllowed(){ return !featureLocked('dame') || adminViewOn(); }
 function dmWins(){ return (account && account.profile && account.profile.dameWins) || 0; }
 function dmSkinUnlocked(id){ if(adminViewOn()) return true; const s = DM_SKINS.find(x => x.id === id); return !!s && dmWins() >= s.wins; }
 function dmSkin(){ let id = 'wood'; try{ id = localStorage.getItem('dm_skin') || 'wood'; }catch(e){} return dmSkinUnlocked(id) ? id : 'wood'; }
-function dmSetSkin(id){ if(!dmSkinUnlocked(id)) return; try{ localStorage.setItem('dm_skin', id); }catch(e){} if(dm && dm.board) dmRender(); else if(document.getElementById('brIntroMark')) brIntro(); else dmIntro(); }
+function dmSetSkin(id){ if(!dmSkinUnlocked(id)) return; try{ localStorage.setItem('dm_skin', id); }catch(e){} if(dm && dm.board) dmRender(); else if(document.getElementById('brIntroMark')) brIntro(); else if(document.getElementById('dmSkinScr')) dmSkinScreen(); else dmIntro(); }
 function dmSquares(skin){
   if(skin === 'wood' || skin === 'metal') return ['#ebdcbc', '#7a5537'];
   if(skin === 'flat') return ['#e1e8f5', '#96aad0'];
@@ -9687,28 +9687,54 @@ function dmSkinGrid(){
       <div style="font-size:11px;color:var(--text-dim)">${un ? (sel ? '✓ ' + L('aktiv','active') : (s.wins ? '🔓' : '')) : '🔒 ' + s.wins + ' ' + L('Siege','wins')}</div></div>`;
   }).join('');
 }
+const DM2_CSS = `<style>
+.dm2 .hd{display:flex;gap:12px;align-items:center}.dm2 .ic{width:54px;height:54px;flex:0 0 54px;border-radius:16px;background:linear-gradient(135deg,#c6ff3d,#3de0ff);display:grid;place-items:center;font-size:30px;color:#0b1024;box-shadow:0 6px 20px #3de0ff44}
+.dm2 h1{margin:0;font-size:26px;letter-spacing:.5px}.dm2 .sub{color:#9aa5c8;font-size:13px;margin-top:2px}
+.dm2 .lab{margin:18px 2px 8px;font-size:11px;font-weight:800;letter-spacing:1.4px;color:#8d97b5}
+.dm2 .bots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.dm2 .b{border:0;border-radius:16px;padding:12px 4px;text-align:center;font-weight:800;font-size:15px;color:#0b1024;background:linear-gradient(135deg,#c6ff3d,#3de0ff);cursor:pointer}.dm2 .b small{display:block;font-weight:700;opacity:.65;font-size:11px;margin-top:2px}.dm2 .b.m{background:linear-gradient(135deg,#ffe23d,#ffa53d)}.dm2 .b.h{background:linear-gradient(135deg,#ff8a5c,#ff4f7a);color:#fff}
+.dm2 .big{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border-radius:18px;padding:14px;margin-top:10px;background:#ffffff0d;border:1px solid #ffffff18;color:#fff;cursor:pointer;font:inherit}.dm2 .big .e{width:44px;height:44px;flex:0 0 44px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:24px;background:#ffffff14}.dm2 .big b{display:block;font-size:15px}.dm2 .big span{font-size:12px;color:#9aa5c8}.dm2 .big .ar{margin-left:auto;color:#8d97b5;font-size:22px}
+.dm2 .bar{height:6px;border-radius:4px;background:#ffffff18;margin:8px 0 0;overflow:hidden}.dm2 .bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#c6ff3d,#3de0ff)}
+.dm2 .code{display:flex;gap:8px;margin-top:10px}.dm2 .code input{flex:1;min-width:0;border-radius:14px;border:1px dashed #ffffff30;background:transparent;padding:13px;text-align:center;letter-spacing:6px;color:#fff;font-weight:800;text-transform:uppercase}.dm2 .code button{border:0;border-radius:14px;padding:0 18px;font-weight:800;background:#ffffff18;color:#fff;cursor:pointer}
+.dm2 .back{display:block;width:100%;margin-top:14px;background:none;border:0;color:#9aa5c8;font-weight:700;font-size:14px;cursor:pointer}
+.dm2 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+</style>`;
+function dmNextInfo(){
+  const wins = dmWins(), next = DM_SKINS.find(s => s.wins > wins);
+  if(!next) return { txt:L('Alle Steine freigeschaltet','All pieces unlocked'), pct:100 };
+  const prev = [...DM_SKINS].reverse().find(s => s.wins <= wins) || DM_SKINS[0];
+  const pct = Math.max(0, Math.min(100, Math.round((wins - prev.wins) / (next.wins - prev.wins) * 100)));
+  return { txt:L('Nächster Stein bei ' + next.wins + ' Siegen','Next pieces at ' + next.wins + ' wins'), pct };
+}
+function dmSkinScreen(){
+  if(!dmAllowed()){ renderChessHub(); return; }
+  const wins = dmWins(), nx = dmNextInfo();
+  renderApp(`${DM2_CSS}
+    <div class="panel dm2" id="dmSkinScr">
+      <div class="hd"><div class="ic">🎨</div><div><h1>${L('STEINE','PIECES')}</h1><div class="sub">${account ? wins + ' ' + L('Siege gegen echte Spieler','wins vs real players') : L('Zum Freischalten anmelden','Log in to unlock')}</div></div></div>
+      <div class="lab">${L('WÄHLE DEIN DESIGN','CHOOSE YOUR DESIGN')}</div>
+      <div class="grid">${dmSkinGrid()}</div>
+      <div class="bar"><i style="width:${nx.pct}%"></i></div>
+      <div class="sub" style="text-align:center;margin-top:6px">🏅 ${nx.txt}</div>
+      <div class="sub" style="text-align:center;margin-top:4px">${L('Meilensteine zählen nur Siege gegen echte Spieler (Zufallsgegner oder Freund), nicht gegen den Bot.','Milestones only count wins against real players (random opponent or friend), not the bot.')}</div>
+      <button class="back" onclick="dmIntro()">← ${t('btn_back')}</button>
+    </div>`);
+}
 function dmIntro(msg){
   if(!dmAllowed()){ renderChessHub(); return; }
   dmClearTimers();
-  const skin = dmSkin(), wins = dmWins();
-  const next = DM_SKINS.find(s => s.wins > wins);
-  const skinCards = dmSkinGrid();
-  renderApp(`
-    <div class="panel">
-      <div class="picker-title">♛ ${L('DAME','CHECKERS')} ${featureLocked('dame') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</div>
-      <div class="picker-sub">${L('Deutsche Dame: Schlagzwang, Damen ziehen beliebig weit.','German draughts: captures are mandatory, kings fly.')}</div>
-      <div style="color:#ff8a8a;font-weight:700;min-height:18px">${msg ? esc(msg) : ''}</div>
-      <div class="settings-label">${L('Steine','Pieces')} · ${account ? wins + ' ' + L('Siege gegen echte Spieler','wins vs real players') : L('Zum Freischalten anmelden','Log in to unlock')}</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0">${skinCards}</div>
-      <div class="settings-track" style="margin-bottom:10px">🏅 ${L('Meilensteine zählen nur Siege gegen echte Spieler (Zufallsgegner oder Freund), nicht gegen den Bot.','Milestones only count wins against real players (random opponent or friend), not the bot.')}${next && account ? ' ' + L('Nächster Stein bei ' + next.wins + ' Siegen.','Next pieces at ' + next.wins + ' wins.') : ''}</div>
-      <div class="actions-row" style="flex-direction:column;gap:8px">
-        <div style="display:flex;gap:8px"><button class="btn btn-primary" style="flex:1" onclick="dmStartBot('easy')">🤖 ${L('Leicht','Easy')}</button><button class="btn btn-primary" style="flex:1" onclick="dmStartBot('normal')">🤖 ${L('Normal','Normal')}</button><button class="btn btn-primary" style="flex:1" onclick="dmStartBot('hard')">🤖 ${L('Schwer','Hard')}</button></div>
-        <button class="btn" style="border-color:var(--accent-2)" onclick="dmMpQueue()">🎲 ${L('Zufallsgegner (online)','Random opponent (online)')}</button>
-        <button class="btn" style="border-color:var(--accent-2)" onclick="dmMpCreate()">👥 ${L('Gegen Freund (Code / Link)','Vs friend (code / link)')}</button>
-        <input id="dmCodeIn" type="text" maxlength="8" placeholder="CODE" style="text-transform:uppercase;text-align:center;letter-spacing:4px">
-        <button class="btn btn-ghost" onclick="dmJoinScreen(document.getElementById('dmCodeIn').value.trim().toUpperCase())">${L('Mit Code beitreten','Join with code')}</button>
-        <button class="btn btn-ghost" onclick="renderChessHub()">${t('btn_back')}</button>
-      </div>
+  const sk = DM_SKINS.find(x => x.id === dmSkin()) || DM_SKINS[0], nx = dmNextInfo();
+  renderApp(`${DM2_CSS}
+    <div class="panel dm2">
+      <div class="hd"><div class="ic">♛</div><div><h1>${L('DAME','CHECKERS')} ${featureLocked('dame') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</h1><div class="sub">${L('Deutsche Dame: Schlagzwang, Damen ziehen beliebig weit.','German draughts: captures are mandatory, kings fly.')}</div></div></div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:${msg ? 18 : 0}px;margin-top:8px">${msg ? esc(msg) : ''}</div>
+      <button class="big" style="margin-top:16px" onclick="dmSkinScreen()"><div class="e" style="gap:0"><div style="width:20px">${dmStone(sk.id, 'w', false, 100)}</div><div style="width:20px;margin-left:-4px">${dmStone(sk.id, 'b', false, 100)}</div></div><div style="flex:1;min-width:0"><b>${L('Steine','Pieces')}: ${L(sk.de, sk.en)}</b><span>${nx.txt}</span><div class="bar"><i style="width:${nx.pct}%"></i></div></div><div class="ar">›</div></button>
+      <div class="lab">${L('GEGEN DEN BOT','VS THE BOT')}</div>
+      <div class="bots"><button class="b" onclick="dmStartBot('easy')">🤖 ${L('Leicht','Easy')}<small>★☆☆</small></button><button class="b m" onclick="dmStartBot('normal')">🤖 ${L('Normal','Normal')}<small>★★☆</small></button><button class="b h" onclick="dmStartBot('hard')">🤖 ${L('Schwer','Hard')}<small>★★★</small></button></div>
+      <div class="lab">${L('ONLINE SPIELEN','PLAY ONLINE')}</div>
+      <button class="big" style="margin-top:0" onclick="dmMpQueue()"><div class="e">🎲</div><div><b>${L('Zufallsgegner','Random opponent')}</b><span>${L('Sofort gegen einen echten Spieler','Instantly vs a real player')}</span></div><div class="ar">›</div></button>
+      <button class="big" onclick="dmMpCreate()"><div class="e">👥</div><div><b>${L('Gegen Freund','Vs friend')}</b><span>${L('Per Code oder Link einladen','Invite via code or link')}</span></div><div class="ar">›</div></button>
+      <div class="code"><input id="dmCodeIn" type="text" maxlength="8" placeholder="CODE"><button onclick="dmJoinScreen(document.getElementById('dmCodeIn').value.trim().toUpperCase())">${L('Beitreten','Join')}</button></div>
+      <button class="back" onclick="renderChessHub()">← ${t('btn_back')}</button>
     </div>`);
 }
 /* ---------- Spiel (Bot + Online teilen sich Anzeige und Zuglogik) ---------- */
