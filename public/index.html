@@ -6530,6 +6530,8 @@ const FRUIT_BOOSTERS = [
   { id:'moves',   ic:'➕', cost:30, de:'+5 Züge', en:'+5 moves', dDe:'Fünf Extra-Züge',        dEn:'Five extra moves' }
 ];
 window.FRUIT_BOOSTERS = FRUIT_BOOSTERS;
+const FRUIT_SLOT_COST = 1500; window.FRUIT_SLOT_COST = FRUIT_SLOT_COST;
+window.fruitBuySlot = function(){ const o = fruitOwner(), f = fruitData(); if(!o || f.guest) return { ok:false, why:'noprofile' }; if(f.fruitSlot) return { ok:true, already:true }; if((o.coins||0) < FRUIT_SLOT_COST) return { ok:false, why:'coins' }; o.coins -= FRUIT_SLOT_COST; f.fruitSlot = 1; fruitSave(); return { ok:true }; };
 window.fruitPay = function(n){ const o = fruitOwner(); if(!o || fruitData().guest) return { ok:false, why:'noprofile' }; if((o.coins||0) < n) return { ok:false, why:'coins' }; o.coins -= n; fruitSave(); return { ok:true, coins:o.coins }; };
 function fruitOwner(){ return account ? account.profile : achvOwner(); }
 function fruitData(){
@@ -6555,11 +6557,15 @@ function fruitGrant(n){ // Belohnung: n zufaellige Booster
   const got = []; for(let i=0;i<n;i++){ const b = FRUIT_BOOSTERS[Math.floor(Math.random()*FRUIT_BOOSTERS.length)]; f[b.id] = (f[b.id]||0) + 1; got.push(b.id); }
   fruitSave(); return got;
 }
+async function shopBuySlot(){
+  const r = fruitBuySlot();
+  renderShopScreen(); shopFeedback(r.ok ? L('✓ Zusatz-Speicher gekauft!','✓ Extra storage bought!') : (r.why === 'coins' ? L('Nicht genug Münzen.','Not enough coins.') : L('Dafür brauchst du ein Profil.','You need a profile for this.')), !r.ok);
+}
 async function shopBuyFruit(id){
   const r = fruitBuy(id);
   renderShopScreen(); shopFeedback(r.ok ? L('✓ Booster gekauft!','✓ Booster bought!') : (r.why === 'coins' ? L('Nicht genug Münzen.','Not enough coins.') : L('Dafür brauchst du ein Profil.','You need a profile for this.')), !r.ok);
 }
-function brainSubmit(game, level){ if(account) apiCall('/api/braining/submit', { token: account.token, game, level }).catch(()=>{}); }
+function brainSubmit(game, level, pts){ if(account) apiCall('/api/braining/submit', { token: account.token, game, level, pts }).catch(()=>{}); }
 window.brainSubmit = brainSubmit;
 const BRAIN_RANK_NAMES = ['','1','2','3','4','5','6','7','8','9','10'];
 function brainBoardHtml(game, title, ic, r){
@@ -7170,6 +7176,12 @@ function renderShopScreen(){
         <button class="bs-buy" ${ok ? '' : 'disabled'} onclick="shopBuyFruit('${b.id}')">🪙 ${b.cost}</button>
       </div>`; }).join('')}
 
+      ${(() => { const f = fruitData(), have = !!f.fruitSlot, ok = (profile.coins||0) >= FRUIT_SLOT_COST; return `
+      <div class="bs-card" style="--c:#ffc446">
+        <span class="ic">📦</span>
+        <div class="info"><div class="nm">${L('Zusatz-Speicher','Extra storage')}</div><div class="ds">${L('Brain Fruit: ein zweites Hilfs-Objekt aus der Punkte-Leiste aufbewahren','Brain Fruit: keep a second helper from the points bar')}</div></div>
+        <button class="bs-buy" ${have || !ok ? 'disabled' : ''} onclick="shopBuySlot()">${have ? '✓' : '🪙 ' + FRUIT_SLOT_COST}</button>
+      </div>`; })()}
       <div id="shopFeedback" class="explanation hidden"></div>
       ${legalLinksHtml()}
       <div class="actions-row" style="margin-top:6px;">
