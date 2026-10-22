@@ -31,6 +31,10 @@ h1{font-size:17px;margin:0;flex:1}
 .pts{position:absolute;z-index:5;font-weight:900;color:#ffc446;text-shadow:0 0 6px #000;pointer-events:none;transition:transform .8s ease,opacity .8s ease}
 .sbar{height:12px;border-radius:8px;background:#ffffff14;overflow:hidden;margin-top:6px}.sbar div{height:100%;background:#c6ff3d}
 .t.bad{animation:sh .3s}@keyframes sh{25%{margin-left:-5px}75%{margin-left:5px}}
+.ptsrow{text-align:center;font-weight:900;color:#ffc446;font-size:22px;padding:0 14px 4px;min-height:30px}.ptsrow small{display:block;font-size:10px;letter-spacing:1.4px;color:#8d97b5;font-weight:800}
+.pbar{display:flex;align-items:center;gap:8px;max-width:460px;margin:0 auto;padding:0 14px 8px}.pbar .trk{flex:1;height:14px;border-radius:9px;background:#ffffff14;overflow:hidden}.pbar .trk i{display:block;height:100%;background:linear-gradient(90deg,#c6ff3d,#3de0ff);transition:width .25s}
+.pslot{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:22px;border:2px dashed #ffffff30;background:#ffffff0d;cursor:pointer}.pslot.rdy{border:2px solid #ffc446;background:#ffc44622;animation:pl .8s infinite alternate}.pslot.on{background:#ffc44655}.pslot.lock{opacity:.55}@keyframes pl{to{transform:scale(1.1)}}
+.hbtn{background:#ffffff14;color:#eef;border:0;border-radius:10px;padding:7px 12px;font-weight:800;margin:0 4px;cursor:pointer}
 .bos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px 14px 0;max-width:460px;margin:0 auto}
 .bo{position:relative;background:#ffffff0d;border:2px solid transparent;border-radius:14px;padding:7px 2px;text-align:center;color:#eef;font-family:inherit;cursor:pointer}
 .bo.on{border-color:#ffc446;background:#ffc44622}.bo.zero{opacity:.55}
@@ -45,7 +49,9 @@ h1{font-size:17px;margin:0;flex:1}
 .pri{background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#08110c}
 </style></head><body>
 <div class="top"><a class="back" href="/" id="back">←</a><h1 id="title"></h1><span class="pill" id="lvl"></span><span class="pill" id="mv"></span></div>
+<div class="ptsrow" id="ptsrow"></div>
 <div class="goal" id="goal"></div>
+<div class="pbar" id="pbar"></div>
 <div class="wrap"><div class="board" id="board"></div></div>
 <div class="bos" id="bos"></div>
 <div class="info" id="info"></div>
@@ -53,11 +59,11 @@ h1{font-size:17px;margin:0;flex:1}
 <script>
 (function(){
 var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
-var T = lang==="en" ? {title:"Brain Fruit",level:"Level",moves:"Moves",hint:"Swap neighbours to match 3. 4 in a row = stripe, L/T = bomb, 5 = rainbow.",won:"Level cleared!",wonp:"The next level is harder.",next:"Next level",lost:"Out of moves",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level ",stones:"Stones",cont:"+5 moves",contT:"+10 sec",noCoins:"Not enough coins.",noProf:"You need a profile for that.",time:"Time",tiUp:"Time is up",hStone:"Rocks break when you clear fruit next to them.",hStone2:"Some rocks need two hits (marked 2). Clear fruit next to them.",hIce:"Break the ice: frozen fruit cannot be swapped, but you can clear it in a match.",hSlime:"Remove all slime. Fruit under slime cannot be swapped. After 10 moves it spreads!",hCherry:"Bring the cherries to the bottom. They only fall when you clear fruit below.",hTime:"Time level! Reach the points before time runs out.",pts:"pts"}
- : {title:"Brain Fruit",level:"Level",moves:"Züge",hint:"Tausche Nachbarn, 3 in einer Reihe. 4 = Streifen, L/T = Bombe, 5 = Regenbogen.",won:"Level geschafft!",wonp:"Das nächste Level ist schwerer.",next:"Nächstes Level",lost:"Keine Züge mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level ",stones:"Steine",cont:"+5 Züge",contT:"+10 Sek",noCoins:"Nicht genug Münzen.",noProf:"Dafür brauchst du ein Profil.",time:"Zeit",tiUp:"Zeit abgelaufen",hStone:"Felsen brechen, wenn du daneben Früchte löschst.",hStone2:"Manche Felsen brauchen zwei Treffer (mit 2 markiert). Lösche Früchte daneben.",hIce:"Zerbrich das Eis: Eingefrorene Früchte lassen sich nicht tauschen, aber in einer Reihe auflösen.",hSlime:"Entferne allen Schleim. Früchte darunter sind fest. Nach 10 Zügen breitet er sich aus!",hCherry:"Bring die Kirschen nach unten. Sie fallen nur, wenn du darunter Früchte löschst.",hTime:"Zeit-Level! Erreiche die Punkte, bevor die Zeit abläuft.",pts:"Pkt"};
+var T = lang==="en" ? {title:"Brain Fruit",level:"Level",moves:"Moves",hint:"Swap neighbours to match 3. 4 in a row = stripe, L/T = bomb, 5 = rainbow.",won:"Level cleared!",wonp:"The next level is harder.",next:"Next level",lost:"Out of moves",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level ",stones:"Stones",cont:"+5 moves",ptsLbl:"POINTS",lostPts:"Points of this round are lost.",slotBuy:"Buy extra storage for 1500 coins? You can then keep a second helper.",tipCross:"Cross: tap a tile, its row and column are cleared.",tipHelper:"Helper: choose bomb or swap.",tipBomb:"Bomb: tap a tile.",tipSwapA:"Swap: choose the first tile.",tipSwapB:"Now choose the second tile.",bomb:"💣 Bomb",swap:"🔄 Swap",slotOk:"Extra storage bought!",contT:"+10 sec",noCoins:"Not enough coins.",noProf:"You need a profile for that.",time:"Time",tiUp:"Time is up",hStone:"Rocks break when you clear fruit next to them.",hStone2:"Some rocks need two hits (marked 2). Clear fruit next to them.",hIce:"Break the ice: frozen fruit cannot be swapped, but you can clear it in a match.",hSlime:"Remove all slime. Fruit under slime cannot be swapped. After 10 moves it spreads!",hCherry:"Bring the cherries to the bottom. They only fall when you clear fruit below.",hTime:"Time level! Reach the points before time runs out.",pts:"pts"}
+ : {title:"Brain Fruit",level:"Level",moves:"Züge",hint:"Tausche Nachbarn, 3 in einer Reihe. 4 = Streifen, L/T = Bombe, 5 = Regenbogen.",won:"Level geschafft!",wonp:"Das nächste Level ist schwerer.",next:"Nächstes Level",lost:"Keine Züge mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level ",stones:"Steine",cont:"+5 Züge",ptsLbl:"PUNKTE",lostPts:"Punkte dieser Runde verfallen.",slotBuy:"Zusatz-Speicher kaufen für 1500 Münzen? Du kannst dann ein zweites Hilfs-Objekt aufbewahren.",tipCross:"Kreuz: tippe ein Feld, seine Reihe und Spalte werden gelöscht.",tipHelper:"Helfer: wähle Bombe oder Tauschen.",tipBomb:"Bombe: tippe ein Feld.",tipSwapA:"Tauschen: wähle den ersten Stein.",tipSwapB:"Jetzt den zweiten Stein wählen.",bomb:"💣 Bombe",swap:"🔄 Tauschen",slotOk:"Zusatz-Speicher gekauft!",contT:"+10 Sek",noCoins:"Nicht genug Münzen.",noProf:"Dafür brauchst du ein Profil.",time:"Zeit",tiUp:"Zeit abgelaufen",hStone:"Felsen brechen, wenn du daneben Früchte löschst.",hStone2:"Manche Felsen brauchen zwei Treffer (mit 2 markiert). Lösche Früchte daneben.",hIce:"Zerbrich das Eis: Eingefrorene Früchte lassen sich nicht tauschen, aber in einer Reihe auflösen.",hSlime:"Entferne allen Schleim. Früchte darunter sind fest. Nach 10 Zügen breitet er sich aus!",hCherry:"Bring die Kirschen nach unten. Sie fallen nur, wenn du darunter Früchte löschst.",hTime:"Zeit-Level! Erreiche die Punkte, bevor die Zeit abläuft.",pts:"Pkt"};
 var $=function(i){return document.getElementById(i)};
 var COLS=7, ROWS=8, FR=["🍓","🍋","🍏","🫐","🍇","🍊"], COL=["#ff5d8f","#ffc446","#7cff8c","#3de0ff","#b19cd9","#ff9a3c"];
-var ice=[], slime=[], score=0, kind="normal", target=0, timeLeft=0, timerId=null, timeStarted=false, slimeCleared=false, moveCount=0, comps=[], failCount={}, contUsed=false, level=1, moves=0, goal=[], types=4, grid=[], cs=44, busy=false, over=false, sel=null, uid=0;
+var ice=[], slime=[], score=0, kind="normal", target=0, timeLeft=0, timerId=null, timeStarted=false, slimeCleared=false, moveCount=0, comps=[], total0=0, barPts=0, barNeed=0, barStep=0, rdy=[], slotCap=1, pmode=null, swapSel=null, helperIdx=0, failCount={}, contUsed=false, level=1, moves=0, goal=[], types=4, grid=[], cs=44, busy=false, over=false, sel=null, uid=0;
 var P=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") P=window.parent; }catch(e){}
 var best=1; try{ best=parseInt(localStorage.getItem("bp_fruit_best"),10)||1; }catch(e){}
 if(P){ try{ best=Math.max(best,(P.fruitData().fruitLevel||1)); }catch(e){} }
@@ -80,7 +86,7 @@ function kindOf(L){
 function baseMoves(L){ return Math.min(40,Math.round(20+L*0.2)); }
 function params(L){
   var kind=kindOf(L), ty=L<6?4:L<16?5:6;
-  if(kind==="time"){ var ti=Math.floor(L/10); return {kind:kind,comps:[],types:ty,stones:0,nGoal:0,per:0,moves:999,time:Math.max(45,94-ti*3),target:Math.round(800+ti*300+L*6)}; }
+  if(kind==="time"){ var ti=Math.floor(L/10); return {kind:kind,comps:[],types:ty,stones:0,nGoal:0,per:0,moves:999,time:Math.max(45,94-ti*3),target:Math.round((800+ti*300+L*6)*(1+L/20))}; }
   var d2=L>=31?Math.min(6,1+Math.floor((L-31)/10)):0, stAll=L>=21?Math.min(12,2+Math.floor((L-21)/5)):0;
   if(kind==="normal"){
     var nGoal=L>=11?2:1, per=Math.min(34,Math.round(8+L*0.8)); if(nGoal>1) per=Math.round(per*0.75);
@@ -129,9 +135,29 @@ function draw(t){
   e2.innerHTML='<div class="in" style="'+((t.stone&&!t.cherry)?'':'background:'+col+'22;border-color:'+col)+'">'+ic+(mark?'<span class="sp">'+mark+'</span>':'')+'</div>';
 }
 function sync(){ for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++){ var t=grid[r][c]; if(t){ t.r=r; t.c=c; draw(t); } } }
+function fac(L){ return 1+L/20; }
+function totalBase(){ var v=0; try{ if(P) v=P.fruitData().fruitPts||0; }catch(e){} try{ v=Math.max(v,parseInt(localStorage.getItem("bp_fruit_pts"),10)||0); }catch(e){} return v; }
+function hasSlot(){ try{ return !!(P&&P.fruitData().fruitSlot); }catch(e){ return false; } }
+function checkBar(){
+  while(barNeed>0&&barPts>=barNeed&&rdy.length<slotCap){ rdy.push(barStep===0?"cross":"helper"); barStep^=1; barPts-=barNeed; snd('ding'); }
+  if(barNeed>0&&rdy.length>=slotCap&&barPts>barNeed) barPts=barNeed;
+}
+function addBar(g){ if(kind==="time"||barNeed<=0) return; barPts+=g; checkBar(); }
+function pbarPaint(){
+  var el=$("pbar"); if(kind==="time"||barNeed<=0){ el.innerHTML=""; return; }
+  var pc=Math.min(100,barPts/barNeed*100), h='<div class="trk"><i style="width:'+pc+'%"></i></div>';
+  for(var i=0;i<2;i++){
+    if(i>=slotCap) h+='<div class="pslot lock" data-lock="1">🔒</div>';
+    else if(rdy[i]) h+='<div class="pslot rdy'+(pmode&&pmode.i===i?' on':'')+'" data-i="'+i+'">'+(rdy[i]==="cross"?"✚":"🪄")+'</div>';
+    else h+='<div class="pslot">·</div>';
+  }
+  el.innerHTML=h;
+}
+function ptsPaint(){ $("ptsrow").innerHTML='<small>'+T.ptsLbl+'</small>⭐ '+(total0+score).toLocaleString(); }
 function fmtT(t){ t=Math.max(0,Math.ceil(t)); return Math.floor(t/60)+":"+("0"+(t%60)).slice(-2); }
 function cnt(a){ var n=0; for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++) if(a[r]&&a[r][c]>0) n++; return n; }
 function hud(){
+  ptsPaint(); pbarPaint();
   $("lvl").textContent=T.level+" "+level;
   $("mv").textContent=kind==="time"?"⏱ "+fmtT(timeLeft):T.moves+" "+moves;
   if(kind==="time"){ var pc=Math.min(100,score/target*100); $("goal").innerHTML='<div style="width:min(440px,92vw)"><div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px"><span>⭐ '+score.toLocaleString()+' '+T.pts+'</span><span style="color:#8d97b5">'+target.toLocaleString()+'</span></div><div class="sbar"><div style="width:'+pc+'%"></div></div></div>'; return; }
@@ -177,7 +203,7 @@ async function remove(set,mult){
     if(slime[t.r]&&slime[t.r][t.c]>0){ slime[t.r][t.c]--; slimeCleared=true; iceHit=true; }
     t.el.classList.add("pop"); t.el.style.transform+=" scale(.2)"; grid[t.r][t.c]=null;
   });
-  if(pts){ var gained=pts*mult; score+=gained; if(cn) popPts(gained+(mult>1?"  ×"+mult:""),(sx/cn+.2)*cs,(sy/cn+.2)*cs); }
+  if(pts){ var gained=Math.round(pts*mult*fac(level)); score+=gained; addBar(gained); if(cn) popPts(gained+(mult>1?"  ×"+mult:""),(sx/cn+.2)*cs,(sy/cn+.2)*cs); }
   if(iceHit) drawLayers();
   hud(); await sleep(230);
   set.forEach(function(t){ if(t.el&&t.el.parentNode) t.el.parentNode.removeChild(t.el); });
@@ -286,11 +312,14 @@ function ensureMove(){
 function finish(win){
   if(over) return; over=true; clearInterval(timerId);
   try{ if(P&&P.sfxResult) P.sfxResult(!!win,false); }catch(e){} $("ov").classList.add("show");
-  if(win){ if(P){ try{ P.brainSubmit("fruit",level); }catch(e){} }
+  var bonus=0;
+  if(win&&kind!=="time"){ bonus=Math.round(Math.max(0,moves)*50*fac(level)); score+=bonus; }
+  if(win){ var nt=total0+score; try{ localStorage.setItem("bp_fruit_pts",String(nt)); }catch(e){} if(P){ try{ P.fruitSet({fruitPts:nt}); }catch(e){} try{ P.brainSubmit("fruit",level,score); }catch(e){} } }
+  if(win){
     if(level>=best){ best=level+1; try{ localStorage.setItem("bp_fruit_best",String(best)); }catch(e){} if(P){ try{ P.fruitSet({fruitLevel:best}); }catch(e){} } }
     var rw=""; if(level%5===0&&P){ try{ var got=P.fruitGrant(2); rw="  "+BON.reward+" "+got.map(function(g){ return BO.filter(function(b){return b.id===g})[0].ic; }).join(" "); }catch(e){} }
-    $("ot").textContent="🎉 "+T.won; $("op").textContent=T.wonp+rw; $("o1").textContent=T.next; $("o1").onclick=function(){ level++; start(); }; failCount[level]=0; $("o3").style.display="none";
-  } else { $("ot").textContent=(kind==="time"?"⏱ "+T.tiUp:"💔 "+T.lost); $("op").textContent=T.lostp+level+" · "+T.best+best; $("o1").textContent=T.retry; $("o1").onclick=function(){ start(); };
+    $("ot").textContent="🎉 "+T.won; $("op").textContent="⭐ +"+score.toLocaleString()+" "+T.pts+(bonus?" ("+bonus.toLocaleString()+" Bonus)":"")+"  "+T.wonp+rw; $("o1").textContent=T.next; $("o1").onclick=function(){ level++; start(); }; failCount[level]=0; $("o3").style.display="none";
+  } else { $("ot").textContent=(kind==="time"?"⏱ "+T.tiUp:"💔 "+T.lost); $("op").textContent=T.lostp+level+" · "+T.best+best+" · "+T.lostPts; $("o1").textContent=T.retry; $("o1").onclick=function(){ start(); };
     failCount[level]=(failCount[level]||0)+1; var o3=$("o3");
     if(P&&P.fruitPay&&failCount[level]>=2&&!contUsed){ var coins=0; try{ coins=P.fruitCoins(); }catch(e){}
       o3.style.display=""; o3.textContent="🪙 "+(kind==="time"?T.contT:T.cont)+" · 20 ("+coins+")";
@@ -303,14 +332,14 @@ function finish(win){
 function quit(){ if(window.parent!==window) parent.postMessage({bpFruitBack:true},location.origin); else location.href="/"; }
 function startTimer(){ if(timeStarted) return; timeStarted=true; timerId=setInterval(function(){ if(over){ clearInterval(timerId); return; } timeLeft--; hud(); if(timeLeft<=0){ clearInterval(timerId); finish(done()); } },1000); }
 function start(){
-  clearInterval(timerId); contUsed=false; $("o3").style.display="none"; var p=params(level); kind=p.kind; types=p.types; moves=p.moves; score=0; timeStarted=false; target=p.target||0; timeLeft=p.time||0; slimeCleared=false; over=false; busy=false; sel=null; $("ov").classList.remove("show");
+  clearInterval(timerId); contUsed=false; total0=totalBase(); barPts=0; barStep=0; rdy=[]; pmode=null; swapSel=null; sel=null; slotCap=hasSlot()?2:1; $("o3").style.display="none"; var p=params(level); kind=p.kind; types=p.types; moves=p.moves; score=0; timeStarted=false; target=p.target||0; timeLeft=p.time||0; slimeCleared=false; over=false; busy=false; sel=null; $("ov").classList.remove("show");
   $("board").innerHTML=""; size(); fill();
   goal=[]; var pool=[]; for(var i=0;i<types;i++) pool.push(i); pool.sort(function(){return Math.random()-.5});
   for(var g=0;g<p.nGoal;g++) goal.push({type:pool[g],n:p.per,got:0});
   if(p.stones>0) goal.push({stone:true,n:p.stones,got:0});
   ice=[]; slime=[]; for(var r0=0;r0<ROWS;r0++){ ice[r0]=[]; slime[r0]=[]; for(var c0=0;c0<COLS;c0++){ ice[r0][c0]=0; slime[r0][c0]=0; } }
   function pick(n,rmin,rmax){ var cs2=[]; for(var r1=rmin;r1<=rmax;r1++) for(var c1=0;c1<COLS;c1++) cs2.push([r1,c1]); cs2.sort(function(){return Math.random()-.5}); return cs2.slice(0,n); }
-  comps=p.comps; moveCount=0;
+  comps=p.comps; moveCount=0; barNeed=kind==="time"?0:Math.max(100,Math.round(p.moves*16*fac(level)/10)*10);
   function pick2(n,rmin,rmax){ var cs3=[]; for(var r4=rmin;r4<=rmax;r4++) for(var c4=0;c4<COLS;c4++){ var g4=grid[r4][c4]; if(g4&&!g4.stone&&!ice[r4][c4]&&!slime[r4][c4]) cs3.push([r4,c4]); } cs3.sort(function(){return Math.random()-.5}); return cs3.slice(0,n); }
   if(comps.indexOf("ice")>=0){ pick2(p.nIce,1,ROWS-1).forEach(function(q,ix){ ice[q[0]][q[1]]=ix<(p.ice2||0)?2:1; }); var tot=0; for(var r2=0;r2<ROWS;r2++) for(var c2=0;c2<COLS;c2++) if(ice[r2][c2]>0) tot++; goal.push({ice:true,n:tot,got:0}); }
   if(comps.indexOf("slime")>=0){ pick2(p.nSl,2,ROWS-1).forEach(function(q,ix){ slime[q[0]][q[1]]=ix<(p.sl2||0)?2:1; }); goal.push({slime:true,n:0,got:0}); }
@@ -320,6 +349,7 @@ function start(){
 function setInfo(t){ $("info").textContent=t||T.hint; }
 function useBooster(id){
   if(busy||over) return;
+  pmode=null; swapSel=null; sel=null; sync(); pbarPaint();
   var f=inv(), n=f[id]||0;
   if(!n){ // kaufen
     if(!P){ setInfo(BON.none); return; }
@@ -338,6 +368,40 @@ function shuffleAll(){
   var n=0; do{ var ts=tiles.map(function(t){return t.type}).sort(function(){return Math.random()-.5}); tiles.forEach(function(t,i){ t.type=ts[i]; }); n++; }while((runs().length||!hasMove())&&n<60);
   sync();
 }
+$("pbar").addEventListener("click",function(e){
+  var sl=e.target.closest(".pslot"); if(!sl||busy||over) return;
+  if(sl.dataset.lock){ if(!P||!P.fruitBuySlot){ setInfo(T.noProf); return; } if(window.confirm(T.slotBuy)){ var r=P.fruitBuySlot(); if(r.ok){ slotCap=2; checkBar(); setInfo(T.slotOk); hud(); } else setInfo(r.why==="coins"?T.noCoins:T.noProf); } return; }
+  var i=+sl.dataset.i; if(isNaN(i)||!rdy[i]) return;
+  boMode=null; drawBos(); swapSel=null; sel=null; sync();
+  if(pmode&&pmode.i===i){ pmode=null; setInfo(null); pbarPaint(); return; }
+  if(rdy[i]==="cross"){ pmode={t:"cross",i:i}; setInfo(T.tipCross); }
+  else { helperIdx=i; pmode={t:"helper",i:i}; $("info").innerHTML='<div>'+T.tipHelper+'</div><div style="margin-top:6px"><button class="hbtn" data-h="hbomb">'+T.bomb+'</button><button class="hbtn" data-h="hswap">'+T.swap+'</button></div>'; }
+  pbarPaint();
+});
+$("info").addEventListener("click",function(e){
+  var b=e.target.closest("[data-h]"); if(!b||!pmode) return;
+  pmode={t:b.dataset.h,i:helperIdx}; swapSel=null; setInfo(pmode.t==="hbomb"?T.tipBomb:T.tipSwapA); pbarPaint();
+});
+async function powerHit(t){
+  var m=pmode; if(!m||m.t==="helper"||t.cherry) return;
+  if(m.t==="hswap"){
+    if(t.stone||locked(t)){ snd('bad'); return; }
+    if(!swapSel){ swapSel=t; sel=t; sync(); setInfo(T.tipSwapB); return; }
+    if(swapSel===t){ swapSel=null; sel=null; sync(); setInfo(T.tipSwapA); return; }
+    var a=swapSel; swapSel=null; sel=null; busy=true;
+    rdy.splice(m.i,1); pmode=null; checkBar(); setInfo(null); hud();
+    swapGrid(a,t); sync(); await sleep(280);
+    await resolve([[a.r,a.c],[t.r,t.c]]); ensureMove();
+  } else {
+    busy=true; var set=new Set(), r,c;
+    if(m.t==="cross"){ for(c=0;c<COLS;c++) if(grid[t.r][c]&&!grid[t.r][c].cherry) set.add(grid[t.r][c]); for(r=0;r<ROWS;r++) if(grid[r][t.c]&&!grid[r][t.c].cherry) set.add(grid[r][t.c]); }
+    else { for(r=t.r-1;r<=t.r+1;r++) for(c=t.c-1;c<=t.c+1;c++) if(inb(r,c)&&grid[r][c]&&!grid[r][c].cherry) set.add(grid[r][c]); }
+    rdy.splice(m.i,1); pmode=null; checkBar(); setInfo(null); hud();
+    expand(set); await remove(set); await gravity(); await resolve(null); ensureMove();
+  }
+  busy=false; hud();
+  if(done()) finish(true); else if(moves<=0) finish(false);
+}
 async function boosterHit(t){
   var id=boMode; boMode=null; drawBos(); setInfo(null); busy=true;
   var set=new Set();
@@ -353,12 +417,13 @@ $("bos").addEventListener("click",function(e){ var b=e.target.closest(".bo"); if
 var down=null;
 $("board").addEventListener("pointerdown",function(e){ var el=e.target.closest(".t"); if(!el||busy||over) return; var t=findById(+el.dataset.id); down={t:t,x:e.clientX,y:e.clientY,done:false}; });
 window.addEventListener("pointermove",function(e){
-  if(!down||down.done||!down.t||boMode) return; var dx=e.clientX-down.x, dy=e.clientY-down.y;
+  if(!down||down.done||!down.t||boMode||pmode) return; var dx=e.clientX-down.x, dy=e.clientY-down.y;
   if(Math.abs(dx)<cs*0.3&&Math.abs(dy)<cs*0.3) return; down.done=true;
   var r=down.t.r+(Math.abs(dy)>Math.abs(dx)?(dy>0?1:-1):0), c=down.t.c+(Math.abs(dx)>=Math.abs(dy)?(dx>0?1:-1):0);
   if(inb(r,c)) trySwap(down.t,grid[r][c]);
 });
 window.addEventListener("pointerup",function(){
+  if(down&&!down.done&&down.t&&pmode&&!busy&&!over){ powerHit(down.t); down=null; return; }
   if(down&&!down.done&&down.t&&boMode&&!busy&&!over){ boosterHit(down.t); down=null; return; }
   if(down&&!down.done&&down.t&&!down.t.stone){
     var t=down.t; if(sel&&sel!==t&&adj(sel,t)){ var s=sel; sel=null; trySwap(s,t); } else { sel=(sel===t?null:t); sync(); }
@@ -370,6 +435,6 @@ $("back").onclick=function(e){ e.preventDefault(); quit(); };
 $("title").textContent="🍓 "+T.title; document.title=T.title;
 window.addEventListener("resize",function(){ if(!busy){ size(); sync(); } });
 start();
-window.__fruit={finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
+window.__fruit={hud:hud,bar:function(){return {barPts:barPts,barNeed:barNeed,rdy:rdy.slice(),total0:total0}},addBar:addBar,powerHit:powerHit,finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
 })();
 </script></body></html>
