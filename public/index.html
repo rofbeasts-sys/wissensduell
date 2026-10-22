@@ -6530,6 +6530,7 @@ const FRUIT_BOOSTERS = [
   { id:'moves',   ic:'➕', cost:30, de:'+5 Züge', en:'+5 moves', dDe:'Fünf Extra-Züge',        dEn:'Five extra moves' }
 ];
 window.FRUIT_BOOSTERS = FRUIT_BOOSTERS;
+window.fruitPay = function(n){ const o = fruitOwner(); if(!o || fruitData().guest) return { ok:false, why:'noprofile' }; if((o.coins||0) < n) return { ok:false, why:'coins' }; o.coins -= n; fruitSave(); return { ok:true, coins:o.coins }; };
 function fruitOwner(){ return account ? account.profile : achvOwner(); }
 function fruitData(){
   const o = fruitOwner(); if(!o) return { fruitLevel:1, hoodLevel:1, hammer:0, broom:0, shuffle:0, moves:0, guest:true };
@@ -12382,6 +12383,7 @@ function updateTimerUI(remaining, limit){
   fill.style.width = pct + "%";
   fill.classList.toggle("warn", pct < 30);
   num.textContent = Math.ceil(remaining) + "s";
+  const sec = Math.ceil(remaining); if(sec <= 5 && sec > 0 && window.__tickSec !== sec){ window.__tickSec = sec; try{ sfx('tick'); }catch(e){} }
 }
 
 function handleSoloAnswer(selectedIdx){
@@ -15211,8 +15213,10 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
    Schalter unten links: Ton+Musik -> nur Ton -> aus. Wird beim ersten Tippen freigeschaltet.
    ============================================================================ */
 (function(){
-  let ctx = null, master = null, musicGain = null, delayNode = null, level = 2, musicTimer = null, started = false;
-  try{ const v = localStorage.getItem('bp_sound'); if(v === '0' || v === '1' || v === '2') level = +v; }catch(e){}
+  let ctx = null, master = null, musicGain = null, delayNode = null, musicOn = true, sfxOn = true, musicTimer = null, started = false;
+  try{ const v = localStorage.getItem('bp_sound'), m = localStorage.getItem('bp_music'), e2 = localStorage.getItem('bp_sfx');
+    if(v === '0'){ musicOn = false; sfxOn = false; } else if(v === '1'){ musicOn = false; }
+    if(m === '0' || m === '1') musicOn = m === '1'; if(e2 === '0' || e2 === '1') sfxOn = e2 === '1'; }catch(e){}
   function ac(){
     if(ctx) return ctx;
     try{ ctx = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ return null; }
@@ -15246,6 +15250,14 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     move(t){ tone(520, t, 0.12, 'sine', 0.55, null, 420); noise(t, 0.03, 1600, 0.25); },
     capture(t){ tone(200, t, 0.25, 'sine', 0.8, null, 80); tone(340, t, 0.12, 'sine', 0.4, null, 160); noise(t, 0.08, 700, 0.35); },
     remove(t){ noise(t, 0.16, 500, 0.6); tone(150, t, 0.2, 'triangle', 0.5, null, 60); },
+    pop(t, a){ const k = Math.min(Math.max((a || 1) - 1, 0), 7), f = 520 * Math.pow(1.122, k); tone(f, t, 0.16, 'sine', 0.6, null, f * 1.4); },
+    boom(t){ noise(t, 0.4, 300, 0.9); tone(140, t, 0.45, 'sine', 0.8, null, 40); },
+    whoosh(t){ noise(t, 0.2, 1400, 0.45); tone(500, t, 0.2, 'sine', 0.2, null, 1300); },
+    bad(t){ tone(180, t, 0.25, 'sawtooth', 0.22, null, 120); },
+    right(t){ tone(N.E5, t, 0.14, 'triangle', 0.45); tone(N.A4 * 2, t + 0.1, 0.28, 'triangle', 0.45); },
+    wrong(t){ tone(220, t, 0.28, 'triangle', 0.5, null, 150); },
+    tick(t){ tone(1200, t, 0.04, 'square', 0.12); },
+    ding(t){ tone(N.C6, t, 0.25, 'sine', 0.5); },
     drop(t){ tone(330, t, 0.16, 'sine', 0.55, null, 150); noise(t + 0.13, 0.05, 1000, 0.5); },
     king(t){ tone(N.E5, t, 0.18, 'triangle', 0.4); tone(N.A4 * 2, t + 0.1, 0.3, 'triangle', 0.4); },
     mill(t){ [N.C5, N.E5, N.G5].forEach((f, i) => tone(f, t + i * 0.09, 0.3, 'triangle', 0.4)); },
@@ -15254,10 +15266,10 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     lose(t){ [N.G4, 349.2, 311.1, 261.6].forEach((f, i) => tone(f, t + i * 0.2, 0.45, 'triangle', 0.4)); },
     draw(t){ tone(N.E4, t, 0.25, 'triangle', 0.4); tone(N.E4, t + 0.25, 0.35, 'triangle', 0.35); }
   };
-  window.sfx = function(name){
-    if(level < 1) return;
+  window.sfx = function(name, arg){
+    if(!sfxOn) return;
     const c = resume(); if(!c) return;
-    const f = SFX[name]; if(f) try{ f(c.currentTime + 0.01); }catch(e){}
+    const f = SFX[name]; if(f) try{ f(c.currentTime + 0.01, arg); }catch(e){}
   };
   window.sfxResult = function(win, draw){ setTimeout(() => sfx(draw ? 'draw' : win ? 'win' : 'lose'), 250); };
   // ---- Hintergrundmelodie: ruhig, sparsam, Pentatonik (C-Dur), wie ein sanftes Klavier ----
@@ -15270,7 +15282,7 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
   let lastIdx = 3;
   function phrase(){
     musicTimer = null;
-    if(level < 2 || !ctx || document.hidden){ if(level >= 2) musicTimer = setTimeout(phrase, 4000); return; }
+    if(!musicOn || !ctx || document.hidden){ if(musicOn) musicTimer = setTimeout(phrase, 4000); return; }
     const t0 = ctx.currentTime + 0.1; let t = t0;
     if(Math.random() < 0.5) piano(LOW[Math.floor(Math.random() * LOW.length)], t, 0.22);
     const n = 2 + Math.floor(Math.random() * 4);
@@ -15281,22 +15293,28 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     }
     musicTimer = setTimeout(phrase, (t - t0) * 1000 + 3500 + Math.random() * 5500);
   }
-  function applyLevel(){
-    try{ localStorage.setItem('bp_sound', String(level)); }catch(e){}
-    clearTimeout(musicTimer); musicTimer = null;
-    if(level >= 2 && started){ resume(); musicTimer = setTimeout(phrase, 600); }
-    const b = document.getElementById('sfxBtn'); if(b) b.textContent = level === 2 ? '🎵' : level === 1 ? '🔊' : '🔇';
+  function faces(){
+    const m = document.getElementById('sfxMusicBtn'), e = document.getElementById('sfxBtn');
+    if(m){ m.textContent = '🎵'; m.style.opacity = musicOn ? '.9' : '.4'; m.style.textDecoration = musicOn ? 'none' : 'line-through'; m.title = musicOn ? 'Musik an' : 'Musik aus'; }
+    if(e){ e.textContent = sfxOn ? '🔊' : '🔇'; e.style.opacity = sfxOn ? '.9' : '.4'; e.title = sfxOn ? 'Töne an' : 'Töne aus'; }
   }
-  window.sfxCycle = function(){ level = (level + 1) % 3; started = true; applyLevel(); if(level > 0) sfx('tap'); };
+  function applyLevel(){
+    try{ localStorage.setItem('bp_music', musicOn ? '1' : '0'); localStorage.setItem('bp_sfx', sfxOn ? '1' : '0'); }catch(e){}
+    clearTimeout(musicTimer); musicTimer = null;
+    if(musicOn && started){ resume(); musicTimer = setTimeout(phrase, 600); }
+    faces();
+  }
+  window.sfxToggle = function(kind){ started = true; if(kind === 'music') musicOn = !musicOn; else sfxOn = !sfxOn; applyLevel(); if(sfxOn) sfx('tap'); };
+  window.sfxCycle = function(){ window.sfxToggle('sfx'); };
   function start(){ if(started) return; started = true; resume(); applyLevel(); }
   document.addEventListener('pointerdown', start, { once:true });
   document.addEventListener('keydown', start, { once:true });
-  document.addEventListener('visibilitychange', () => { if(!ctx) return; if(document.hidden) ctx.suspend().catch(() => {}); else if(level > 0) ctx.resume().catch(() => {}); });
+  document.addEventListener('visibilitychange', () => { if(!ctx) return; if(document.hidden) ctx.suspend().catch(() => {}); else if(musicOn || sfxOn) ctx.resume().catch(() => {}); });
   // Schalter
-  const btn = document.createElement('button'); btn.id = 'sfxBtn'; btn.type = 'button'; btn.title = 'Sound';
-  btn.style.cssText = 'position:fixed;left:10px;bottom:62px;z-index:99980;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,16,34,.75);color:#fff;font-size:18px;cursor:pointer;opacity:.75;padding:0';
-  btn.onclick = () => window.sfxCycle();
-  document.body.appendChild(btn); btn.textContent = level === 2 ? '🎵' : level === 1 ? '🔊' : '🔇';
+  const BTN_CSS = "position:fixed;left:10px;bottom:62px;z-index:99980;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,16,34,.75);color:#fff;font-size:18px;cursor:pointer;opacity:.75;padding:0";
+  const btn = document.createElement('button'); btn.id = 'sfxBtn'; btn.type = 'button'; btn.style.cssText = BTN_CSS; btn.onclick = () => window.sfxToggle('sfx');
+  const mbtn = document.createElement('button'); mbtn.id = 'sfxMusicBtn'; mbtn.type = 'button'; mbtn.style.cssText = BTN_CSS.replace('bottom:62px', 'bottom:106px'); mbtn.onclick = () => window.sfxToggle('music');
+  document.body.appendChild(btn); document.body.appendChild(mbtn); faces();
   // kleiner Klick bei Buttons/Karten
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('.btn, .mode-card'); if(t) sfx('tap'); }, true);
 
@@ -15320,6 +15338,12 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     const r = o.apply(this, arguments);
     try{ if(m && m.type === 'muState' && mu){ if(mu.plies > pl && mu.last){ if(mu.last.rm != null){ sfx('mill'); setTimeout(() => sfx('remove'), 350); } else sfx(mu.last.from == null ? 'place' : 'move'); } if(mu.over && !wasOver) sfxResult(mu.winner === mu.you, mu.winner === 'draw'); } }catch(e){}
     return r; }; })();
+  pre('handleSoloAnswer', i => { if(i == null){ window.__sfxSkip = Date.now(); sfx('wrong'); } });
+  // Quiz: richtig/falsch automatisch, sobald eine Antwort-Taste markiert wird
+  (function(){ let pend = false;
+    new MutationObserver(ms => { if(pend) return; if(!ms.some(m => m.target.classList && m.target.classList.contains('answer-btn') && (m.target.classList.contains('correct') || m.target.classList.contains('wrong')))) return;
+      pend = true; setTimeout(() => { pend = false; if(Date.now() - (window.__sfxSkip || 0) < 600) return; sfx(document.querySelector('.answer-btn.wrong') ? 'wrong' : 'right'); }, 30); }).observe(document.body, { attributes:true, subtree:true, attributeFilter:['class'] });
+  })();
   // Brain Royale
   pre('brApply', (p, mv) => { sfx(mv && mv.hit ? 'duel' : 'move'); });
   pre('brResolve', (d, w) => { sfx(d && d.att && d.att.side === w ? 'capture' : 'move'); });
