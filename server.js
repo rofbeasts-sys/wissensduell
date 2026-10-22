@@ -3510,7 +3510,7 @@ function brainTop(week, game, n) {
   return users.map(u => ({ u, pts: brainPts(u, week, game) })).filter(x => x.pts > 0)
     .sort((a, b) => b.pts - a.pts || String(a.u.username).localeCompare(String(b.u.username))).slice(0, n);
 }
-async function brainSubmit(token, game, level, lang) {
+async function brainSubmit(token, game, level, lang, pts) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
   if (!BRAIN_GAMES.includes(game)) return errObj("invalidInput", lang);
@@ -3523,7 +3523,10 @@ async function brainSubmit(token, game, level, lang) {
   b.last[game] = now;
   b.best[game] = Math.max(b.best[game], level);
   const w = brainWeekInfo().id; if (!b.weeks[w]) b.weeks[w] = { fruit: 0, hood: 0 };
-  b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + level);
+  // Brain Fruit zaehlt Spielpunkte (mit plausibler Obergrenze pro Runde), alles andere das Level
+  let gain = level;
+  if (game === "fruit" && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(Number(pts))));
+  b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + gain);
   await saveUsers();
   return { ok: true, points: b.weeks[w][game], rank: brainRankOf(b.best[game]) };
 }
@@ -3687,6 +3690,8 @@ async function saveUserStats(token, stats, lang) {
     user.stats.fruit = {
       fruitLevel: Math.max(1, cur.fruitLevel || 1, n(f.fruitLevel, 9999)),
       hoodLevel: Math.max(1, cur.hoodLevel || 1, n(f.hoodLevel, 9999)),
+      fruitPts: Math.max(cur.fruitPts || 0, n(f.fruitPts, 1e9)),
+      fruitSlot: Math.max(cur.fruitSlot || 0, n(f.fruitSlot, 1)),
       hammer: n(f.hammer, 999), broom: n(f.broom, 999), shuffle: n(f.shuffle, 999), moves: n(f.moves, 999)
     };
   }
@@ -5628,7 +5633,7 @@ const server = http.createServer((req, res) => {
         if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
         else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
-        else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang);
+        else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/braining/claim") result = await brainClaim(payload.token, lang);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
