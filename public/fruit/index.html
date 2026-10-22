@@ -59,8 +59,8 @@ h1{font-size:17px;margin:0;flex:1}
 <script>
 (function(){
 var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
-var T = lang==="en" ? {title:"Brain Fruit",level:"Level",moves:"Moves",hint:"Swap neighbours to match 3. 4 in a row = stripe, L/T = bomb, 5 = rainbow.",won:"Level cleared!",wonp:"The next level is harder.",next:"Next level",lost:"Out of moves",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level ",stones:"Stones",cont:"+5 moves",ptsLbl:"POINTS",lostPts:"Points of this round are lost.",slotBuy:"Buy extra storage for 1500 coins? You can then keep a second helper.",tipCross:"Cross: tap a tile, its row and column are cleared.",tipHelper:"Helper: choose bomb or swap.",tipBomb:"Bomb: tap a tile.",tipSwapA:"Swap: choose the first tile.",tipSwapB:"Now choose the second tile.",bomb:"💣 Bomb",swap:"🔄 Swap",slotOk:"Extra storage bought!",contT:"+10 sec",noCoins:"Not enough coins.",noProf:"You need a profile for that.",time:"Time",tiUp:"Time is up",hStone:"Rocks break when you clear fruit next to them.",hStone2:"Some rocks need two hits (marked 2). Clear fruit next to them.",hIce:"Break the ice: frozen fruit cannot be swapped, but you can clear it in a match.",hSlime:"Remove all slime. Fruit under slime cannot be swapped. After 10 moves it spreads!",hCherry:"Bring the cherries to the bottom. They only fall when you clear fruit below.",hTime:"Time level! Reach the points before time runs out.",pts:"pts"}
- : {title:"Brain Fruit",level:"Level",moves:"Züge",hint:"Tausche Nachbarn, 3 in einer Reihe. 4 = Streifen, L/T = Bombe, 5 = Regenbogen.",won:"Level geschafft!",wonp:"Das nächste Level ist schwerer.",next:"Nächstes Level",lost:"Keine Züge mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level ",stones:"Steine",cont:"+5 Züge",ptsLbl:"PUNKTE",lostPts:"Punkte dieser Runde verfallen.",slotBuy:"Zusatz-Speicher kaufen für 1500 Münzen? Du kannst dann ein zweites Hilfs-Objekt aufbewahren.",tipCross:"Kreuz: tippe ein Feld, seine Reihe und Spalte werden gelöscht.",tipHelper:"Helfer: wähle Bombe oder Tauschen.",tipBomb:"Bombe: tippe ein Feld.",tipSwapA:"Tauschen: wähle den ersten Stein.",tipSwapB:"Jetzt den zweiten Stein wählen.",bomb:"💣 Bombe",swap:"🔄 Tauschen",slotOk:"Zusatz-Speicher gekauft!",contT:"+10 Sek",noCoins:"Nicht genug Münzen.",noProf:"Dafür brauchst du ein Profil.",time:"Zeit",tiUp:"Zeit abgelaufen",hStone:"Felsen brechen, wenn du daneben Früchte löschst.",hStone2:"Manche Felsen brauchen zwei Treffer (mit 2 markiert). Lösche Früchte daneben.",hIce:"Zerbrich das Eis: Eingefrorene Früchte lassen sich nicht tauschen, aber in einer Reihe auflösen.",hSlime:"Entferne allen Schleim. Früchte darunter sind fest. Nach 10 Zügen breitet er sich aus!",hCherry:"Bring die Kirschen nach unten. Sie fallen nur, wenn du darunter Früchte löschst.",hTime:"Zeit-Level! Erreiche die Punkte, bevor die Zeit abläuft.",pts:"Pkt"};
+var T = lang==="en" ? {title:"Brain Fruit",level:"Level",moves:"Moves",hint:"Swap neighbours to match 3. 4 in a row = rocket, L/T = bomb, 5 = planet.",won:"Level cleared!",wonp:"The next level is harder.",next:"Next level",lost:"Out of moves",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level ",stones:"Stones",cont:"+5 moves",ptsLbl:"POINTS",lostPts:"Points of this round are lost.",slotBuy:"Buy extra storage for 1500 coins? You can then keep a second helper.",tipCross:"Rocket: tap a tile, its row and column are cleared.",tipHelper:"Helper: choose bomb or swap.",tipBomb:"Bomb: tap a tile.",tipSwapA:"Swap: choose the first tile.",tipSwapB:"Now choose the second tile.",bomb:"💣 Bomb",swap:"🔄 Swap",slotOk:"Extra storage bought!",contT:"+10 sec",noCoins:"Not enough coins.",noProf:"You need a profile for that.",time:"Time",tiUp:"Time is up",hStone:"Rocks break when you clear fruit next to them.",hStone2:"Some rocks need two hits (marked 2). Clear fruit next to them.",hIce:"Break the ice: frozen fruit cannot be swapped, but you can clear it in a match.",hSlime:"Remove all slime. Fruit under slime cannot be swapped. After 10 moves it spreads!",hCherry:"Bring the cherries to the bottom. They only fall when you clear fruit below.",hTime:"Time level! Reach the points before time runs out.",pts:"pts"}
+ : {title:"Brain Fruit",level:"Level",moves:"Züge",hint:"Tausche Nachbarn, 3 in einer Reihe. 4 = Rakete (fliegt in Richtung deiner Reihe), L/T = Bombe, 5 = Planet.",won:"Level geschafft!",wonp:"Das nächste Level ist schwerer.",next:"Nächstes Level",lost:"Keine Züge mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level ",stones:"Steine",cont:"+5 Züge",ptsLbl:"PUNKTE",lostPts:"Punkte dieser Runde verfallen.",slotBuy:"Zusatz-Speicher kaufen für 1500 Münzen? Du kannst dann ein zweites Hilfs-Objekt aufbewahren.",tipCross:"Rakete: tippe ein Feld, seine Reihe und Spalte werden gelöscht.",tipHelper:"Helfer: wähle Bombe oder Tauschen.",tipBomb:"Bombe: tippe ein Feld.",tipSwapA:"Tauschen: wähle den ersten Stein.",tipSwapB:"Jetzt den zweiten Stein wählen.",bomb:"💣 Bombe",swap:"🔄 Tauschen",slotOk:"Zusatz-Speicher gekauft!",contT:"+10 Sek",noCoins:"Nicht genug Münzen.",noProf:"Dafür brauchst du ein Profil.",time:"Zeit",tiUp:"Zeit abgelaufen",hStone:"Felsen brechen, wenn du daneben Früchte löschst.",hStone2:"Manche Felsen brauchen zwei Treffer (mit 2 markiert). Lösche Früchte daneben.",hIce:"Zerbrich das Eis: Eingefrorene Früchte lassen sich nicht tauschen, aber in einer Reihe auflösen.",hSlime:"Entferne allen Schleim. Früchte darunter sind fest. Nach 10 Zügen breitet er sich aus!",hCherry:"Bring die Kirschen nach unten. Sie fallen nur, wenn du darunter Früchte löschst.",hTime:"Zeit-Level! Erreiche die Punkte, bevor die Zeit abläuft.",pts:"Pkt"};
 var $=function(i){return document.getElementById(i)};
 var COLS=7, ROWS=8, FR=["🍓","🍋","🍏","🫐","🍇","🍊"], COL=["#ff5d8f","#ffc446","#7cff8c","#3de0ff","#b19cd9","#ff9a3c"];
 var ice=[], slime=[], score=0, kind="normal", target=0, timeLeft=0, timerId=null, timeStarted=false, slimeCleared=false, moveCount=0, comps=[], total0=0, barPts=0, barNeed=0, barStep=0, rdy=[], slotCap=1, pmode=null, swapSel=null, helperIdx=0, failCount={}, contUsed=false, level=1, moves=0, goal=[], types=4, grid=[], cs=44, busy=false, over=false, sel=null, uid=0;
@@ -130,16 +130,16 @@ function draw(t){
   var e2=t.el; e2.style.width=e2.style.height=cs+"px"; e2.style.fontSize=(cs*0.55)+"px";
   e2.className="t"+((t.stone&&!t.cherry)?" stone"+(t.hp>1?" stone2":""):"")+(t.sp?" s":"")+(sel===t?" sel":"");
   e2.style.transform="translate("+(t.c*cs)+"px,"+(t.r*cs)+"px)";
-  var col=(t.stone&&!t.cherry)?"":(t.cherry?"#ff2b4a":COL[t.type]); var ic=t.cherry?"🍒":t.stone?"🪨":(t.sp==="rb"?"🌈":FR[t.type]);
-  var mark=t.sp==="h"?"↔️":t.sp==="v"?"↕️":t.sp==="bomb"?"💣":((t.stone&&!t.cherry&&t.hp>1)?"2":"");
-  e2.innerHTML='<div class="in" style="'+((t.stone&&!t.cherry)?'':'background:'+col+'22;border-color:'+col)+'">'+ic+(mark?'<span class="sp">'+mark+'</span>':'')+'</div>';
+  var col=(t.stone&&!t.cherry)?"":(t.cherry?"#ff2b4a":COL[t.type]); var ic=t.cherry?"🍒":t.stone?"🪨":(t.sp==="rb"?"🪐":FR[t.type]);
+  var mark=(t.sp==="h"||t.sp==="v")?"🚀":t.sp==="bomb"?"💣":((t.stone&&!t.cherry&&t.hp>1)?"2":"");
+  e2.innerHTML='<div class="in" style="'+((t.stone&&!t.cherry)?'':'background:'+col+'22;border-color:'+col)+'">'+ic+(mark?'<span class="sp"'+((t.sp==="h"||t.sp==="v")?' style="font-size:.8em;right:-1px;bottom:-2px;transform:rotate('+(t.sp==="h"?45:-45)+'deg)"':'')+'>'+mark+'</span>':'')+'</div>';
 }
 function sync(){ for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++){ var t=grid[r][c]; if(t){ t.r=r; t.c=c; draw(t); } } }
 function fac(L){ return 1+L/20; }
 function totalBase(){ var v=0; try{ if(P) v=P.fruitData().fruitPts||0; }catch(e){} try{ v=Math.max(v,parseInt(localStorage.getItem("bp_fruit_pts"),10)||0); }catch(e){} return v; }
 function hasSlot(){ try{ return !!(P&&P.fruitData().fruitSlot); }catch(e){ return false; } }
 function checkBar(){
-  while(barNeed>0&&barPts>=barNeed&&rdy.length<slotCap){ rdy.push(barStep===0?"cross":"helper"); barStep^=1; barPts-=barNeed; snd('ding'); }
+  while(barNeed>0&&barPts>=barNeed&&rdy.length<slotCap){ rdy.push(Math.random()<.5?"cross":"bomb"); barPts-=barNeed; snd('ding'); }
   if(barNeed>0&&rdy.length>=slotCap&&barPts>barNeed) barPts=barNeed;
 }
 function addBar(g){ if(kind==="time"||barNeed<=0) return; barPts+=g; checkBar(); }
@@ -148,7 +148,7 @@ function pbarPaint(){
   var pc=Math.min(100,barPts/barNeed*100), h='<div class="trk"><i style="width:'+pc+'%"></i></div>';
   for(var i=0;i<2;i++){
     if(i>=slotCap) h+='<div class="pslot lock" data-lock="1">🔒</div>';
-    else if(rdy[i]) h+='<div class="pslot rdy'+(pmode&&pmode.i===i?' on':'')+'" data-i="'+i+'">'+(rdy[i]==="cross"?"✚":"🪄")+'</div>';
+    else if(rdy[i]) h+='<div class="pslot rdy'+(pmode&&pmode.i===i?' on':'')+'" data-i="'+i+'">'+(rdy[i]==="cross"?"🚀":"💣")+'</div>';
     else h+='<div class="pslot">·</div>';
   }
   el.innerHTML=h;
@@ -339,7 +339,7 @@ function start(){
   if(p.stones>0) goal.push({stone:true,n:p.stones,got:0});
   ice=[]; slime=[]; for(var r0=0;r0<ROWS;r0++){ ice[r0]=[]; slime[r0]=[]; for(var c0=0;c0<COLS;c0++){ ice[r0][c0]=0; slime[r0][c0]=0; } }
   function pick(n,rmin,rmax){ var cs2=[]; for(var r1=rmin;r1<=rmax;r1++) for(var c1=0;c1<COLS;c1++) cs2.push([r1,c1]); cs2.sort(function(){return Math.random()-.5}); return cs2.slice(0,n); }
-  comps=p.comps; moveCount=0; barNeed=kind==="time"?0:Math.max(100,Math.round(p.moves*16*fac(level)/10)*10);
+  comps=p.comps; moveCount=0; barNeed=kind==="time"?0:Math.max(100,Math.round(p.moves*40*fac(level)/10)*10);
   function pick2(n,rmin,rmax){ var cs3=[]; for(var r4=rmin;r4<=rmax;r4++) for(var c4=0;c4<COLS;c4++){ var g4=grid[r4][c4]; if(g4&&!g4.stone&&!ice[r4][c4]&&!slime[r4][c4]) cs3.push([r4,c4]); } cs3.sort(function(){return Math.random()-.5}); return cs3.slice(0,n); }
   if(comps.indexOf("ice")>=0){ pick2(p.nIce,1,ROWS-1).forEach(function(q,ix){ ice[q[0]][q[1]]=ix<(p.ice2||0)?2:1; }); var tot=0; for(var r2=0;r2<ROWS;r2++) for(var c2=0;c2<COLS;c2++) if(ice[r2][c2]>0) tot++; goal.push({ice:true,n:tot,got:0}); }
   if(comps.indexOf("slime")>=0){ pick2(p.nSl,2,ROWS-1).forEach(function(q,ix){ slime[q[0]][q[1]]=ix<(p.sl2||0)?2:1; }); goal.push({slime:true,n:0,got:0}); }
@@ -375,7 +375,7 @@ $("pbar").addEventListener("click",function(e){
   boMode=null; drawBos(); swapSel=null; sel=null; sync();
   if(pmode&&pmode.i===i){ pmode=null; setInfo(null); pbarPaint(); return; }
   if(rdy[i]==="cross"){ pmode={t:"cross",i:i}; setInfo(T.tipCross); }
-  else { helperIdx=i; pmode={t:"helper",i:i}; $("info").innerHTML='<div>'+T.tipHelper+'</div><div style="margin-top:6px"><button class="hbtn" data-h="hbomb">'+T.bomb+'</button><button class="hbtn" data-h="hswap">'+T.swap+'</button></div>'; }
+  else { pmode={t:"hbomb",i:i}; setInfo(T.tipBomb); }
   pbarPaint();
 });
 $("info").addEventListener("click",function(e){
@@ -435,6 +435,6 @@ $("back").onclick=function(e){ e.preventDefault(); quit(); };
 $("title").textContent="🍓 "+T.title; document.title=T.title;
 window.addEventListener("resize",function(){ if(!busy){ size(); sync(); } });
 start();
-window.__fruit={hud:hud,bar:function(){return {barPts:barPts,barNeed:barNeed,rdy:rdy.slice(),total0:total0}},addBar:addBar,powerHit:powerHit,finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
+window.__fruit={sync:sync,hud:hud,bar:function(){return {barPts:barPts,barNeed:barNeed,rdy:rdy.slice(),total0:total0}},addBar:addBar,powerHit:powerHit,finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
 })();
 </script></body></html>
