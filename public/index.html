@@ -4236,7 +4236,7 @@ async function loadFeatureFlags(){
 }
 
 /* ---- Gesamt-Reset: lokale Staende loeschen + Neustart-Hinweis ---- */
-const RESET_KEEP_KEYS = ['wq_lang','wq_music','wq_volume2','wq_streamer','wq_account_token','bp_admin_key','bp_admin_view','bp_reset_seen','bp_reset_notice'];
+const RESET_KEEP_KEYS = ['wq_lang','wq_music','wq_volume2','wq_streamer','wq_account_token','bp_admin_key','bp_admin_view','bp_admin_open','bp_reset_seen','bp_reset_notice'];
 function checkServerReset(epoch){
   try{
     if(!epoch) return;
@@ -4371,9 +4371,14 @@ function renderAdminPill(){
   if(!adminKeyStored()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
-  p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:6px 8px;border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + (on ? '#ff5d8f' : '#38bdf8') + ';color:#fff;box-shadow:0 4px 18px #0008';
-  p.innerHTML = '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminBeta()" title="Beta-Phasen" style="cursor:pointer;padding:2px 6px">🏅</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>';
+  const open = adminPanelOpen();
+  const col = on ? '#ff5d8f' : '#38bdf8';
+  p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:' + (open ? '4px 8px 4px 4px' : '0') + ';border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + col + ';color:#fff;box-shadow:0 4px 18px #0008';
+  const aBtn = '<span onclick="toggleAdminPanel()" title="Admin-Leiste" style="cursor:pointer;display:flex;align-items:center;justify-content:center;width:' + (open ? '30px' : '38px') + ';height:' + (open ? '30px' : '38px') + ';border-radius:50%;background:' + col + ';color:#0a0d16;font:900 16px system-ui,sans-serif;flex:0 0 auto">A</span>';
+  p.innerHTML = aBtn + (open ? '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminBeta()" title="Beta-Phasen" style="cursor:pointer;padding:2px 6px">🏅</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>' : '');
 }
+function adminPanelOpen(){ try{ return localStorage.getItem('bp_admin_open') === '1'; }catch(e){ return false; } }
+function toggleAdminPanel(){ try{ localStorage.setItem('bp_admin_open', adminPanelOpen() ? '0' : '1'); }catch(e){} renderAdminPill(); }
 async function toggleAdminView(){
   try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
   await loadFeatureFlags();
@@ -5424,6 +5429,7 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
     if(e.origin !== location.origin || !e.data) return;
     if(e.data.bpOpenShop === true){ startShopFlow(); return; }
     if(e.data.bpArrowBack === true || e.data.bpFruitBack === true){ startBrainingHub(); return; }
+    if(e.data.bpDefenseBack === true){ if(typeof brDuelHub==='function') brDuelHub(); else renderMainMenu(); return; }
     if(e.data.bpChessBack !== true) return;
     renderChessHub();
   }catch(err){}
@@ -15480,7 +15486,7 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
   const BTN_CSS = "position:fixed;left:10px;bottom:62px;z-index:99980;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,16,34,.75);color:#fff;font-size:18px;cursor:pointer;opacity:.75;padding:0";
   const btn = document.createElement('button'); btn.id = 'sfxBtn'; btn.type = 'button'; btn.style.cssText = BTN_CSS; btn.onclick = () => window.sfxToggle('sfx');
   const mbtn = document.createElement('button'); mbtn.id = 'sfxMusicBtn'; mbtn.type = 'button'; mbtn.style.cssText = BTN_CSS.replace('bottom:62px', 'bottom:106px'); mbtn.onclick = () => window.sfxToggle('music');
-  document.body.appendChild(btn); document.body.appendChild(mbtn); faces();
+  faces();
   // kleiner Klick bei Buttons/Karten
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('.btn, .mode-card'); if(t) sfx('tap'); }, true);
 
