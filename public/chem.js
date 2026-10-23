@@ -8,14 +8,19 @@ D.r.forEach(x => { const k = [x[0], x[1]].sort().join('|'); REC[k] = x[2]; if(!H
 BASE.forEach(b => { delete HOW[b]; });
 const ORDERED = BASE.concat(Object.keys(HOW).filter(n => !BASE.includes(n)));
 const TOTAL = ORDERED.length;
+const ING = new Set(); D.r.forEach(x => { ING.add(x[0]); ING.add(x[1]); });
+const USES = {}; D.r.forEach(x => { [x[0], x[1]].forEach(i => { (USES[i] = USES[i] || new Set()).add(x[2]); }); });
+function isDone(n){ const u = USES[n]; if(!u) return true; for(const r of u){ if(!have.includes(r)) return false; } return true; }
+const ENDS_AT = 100, PIN_AT = 50;
 const E = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function ukey(){ try{ return 'bp_chem_' + ((typeof account !== 'undefined' && account && account.profile && account.profile.username) || 'guest'); }catch(e){ return 'bp_chem_guest'; } }
 function load(){ try{ const v = JSON.parse(localStorage.getItem(ukey())); if(Array.isArray(v) && v.length) return BASE.filter(b => !v.includes(b)).concat(v); }catch(e){} return BASE.slice(); }
 function save(){ try{ localStorage.setItem(ukey(), JSON.stringify(have)); }catch(e){} }
-let have = BASE.slice(), slotA = null, slotB = null, filter = '', pressTimer = null, longDone = false;
+let have = BASE.slice(), slotA = null, slotB = null, filter = '', pressTimer = null, longDone = false, pinA = false, showEnds = false;
+try{ showEnds = localStorage.getItem('bp_chem_ends') === '1'; }catch(e){}
 
 window.startChem = function(){
-  have = load(); slotA = slotB = null; filter = '';
+  have = load(); slotA = slotB = null; filter = ''; pinA = false;
   if(typeof setAudioZone === 'function') setAudioZone('menu');
   draw();
 };
@@ -33,21 +38,23 @@ function draw(){
     <button class="btn btn-ghost" style="padding:7px 14px;font-size:13px;margin-bottom:10px" onclick="renderMainMenu()">&larr; Zurück</button>
     <div class="ch-top"><b style="font-size:20px">BRAINCHIMIE</b><span style="font-size:12px;color:var(--text-dim)">${have.length} / ${TOTAL} ${'entdeckt'}</span></div>
     <div class="ch-bar"><i style="width:${Math.round(have.length / TOTAL * 100)}%"></i></div>
-    <div class="ch-row"><div class="ch-slot" id="chA" onclick="chClear('A')">${slot(slotA)}</div><span class="ch-plus">+</span><div class="ch-slot" id="chB" onclick="chClear('B')">${slot(slotB)}</div></div>
+    <div class="ch-row" style="align-items:flex-start"><div style="text-align:center"><div class="ch-slot" id="chA" onclick="chClear('A')" style="${pinA ? 'border-style:solid;border-color:#c6ff3d' : ''}">${slot(slotA)}</div><button class="btn ${pinA ? 'btn-primary' : 'btn-ghost'}" style="margin-top:6px;padding:5px 12px;font-size:12px" onclick="chPin()">${have.length < PIN_AT ? '&#128274; ab ' + PIN_AT : (pinA ? 'Fixiert' : 'Fixieren')}</button></div><span class="ch-plus" style="margin-top:34px">+</span><div class="ch-slot" id="chB" onclick="chClear('B')">${slot(slotB)}</div></div>
     <button class="btn btn-primary btn-block" onclick="chCombine()" ${slotA && slotB ? '' : 'style="opacity:.5"'}>KOMBINIEREN</button>
     <div class="ch-msg" id="chMsg"></div>
     <button class="btn btn-ghost btn-block" style="margin-bottom:10px" onclick="chList()">SAMMLUNG · ALLE ELEMENTE</button>
     <input type="text" id="chSearch" placeholder="Suchen …" value="${E(filter)}" oninput="chFilter(this.value)" style="margin-top:6px;width:100%;background:#0b1022;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:10px;font-size:14px;font-family:inherit">
+    ${have.length >= ENDS_AT ? `<button class="btn ${showEnds ? 'btn-primary' : 'btn-ghost'} btn-block" style="margin-top:8px;font-size:13px" onclick="chEnds()">Fertige markieren: ${showEnds ? 'An' : 'Aus'}</button>` : `<div style="margin-top:8px;font-size:12px;color:var(--text-dim);text-align:center">&#128274; Fertige markieren ab ${ENDS_AT} Elementen (${have.length}/${ENDS_AT})</div>`}
     <div class="picker-sub" style="margin-top:12px;font-weight:800">DEINE ELEMENTE <span style="font-weight:600;opacity:.7">· lange drücken zeigt das Rezept</span></div>
     <div class="ch-els" id="chEls">${els()}</div>
     <button class="btn btn-ghost btn-block" style="margin-top:16px" onclick="renderMainMenu()">Zurück</button></div>`);
   bind();
 }
+window.chEnds = function(){ showEnds = !showEnds; try{ localStorage.setItem('bp_chem_ends', showEnds ? '1' : '0'); }catch(e){} draw(); };
 function slot(n){ return n ? `<div><div>${D.e[n] || ''}</div><small>${E(n)}</small></div>` : ''; }
 function els(){
   const f = filter.trim().toLowerCase();
   const list = have.filter(n => !f || n.toLowerCase().includes(f));
-  return list.map(n => `<button class="ch-el ${n === slotA || n === slotB ? 'sel' : ''}" data-n="${E(n)}"><i>${D.e[n] || ''}</i>${E(n)}</button>`).join('') || '<span style="color:var(--text-dim);font-size:13px">Nichts gefunden.</span>';
+  return list.map(n => `<button class="ch-el ${n === slotA || n === slotB ? 'sel' : ''}" data-n="${E(n)}"><i>${D.e[n] || ''}</i>${E(n)}${showEnds && have.length >= ENDS_AT && isDone(n) ? '<span style="font-size:15px;color:#3dff7a;font-weight:900;line-height:1">&#10003;</span>' : ''}</button>`).join('') || '<span style="color:var(--text-dim);font-size:13px">Nichts gefunden.</span>';
 }
 function bind(){
   const box = document.getElementById('chEls'); if(!box) return;
@@ -61,17 +68,19 @@ function bind(){
   });
 }
 function pick(n){
-  if(!slotA) slotA = n; else if(!slotB) slotB = n; else { slotA = n; slotB = null; }
+  if(pinA && slotA){ slotB = n; }
+  else if(!slotA) slotA = n; else if(!slotB) slotB = n; else { slotA = n; slotB = null; }
   draw();
 }
-window.chClear = function(w){ if(w === 'A') slotA = null; else slotB = null; draw(); };
+window.chPin = function(){ if(have.length < PIN_AT){ msg('Fixieren ab ' + PIN_AT + ' Elementen (' + have.length + '/' + PIN_AT + ').', '#9aa4c4'); return; } if(!slotA){ msg('Wähle erst ein Element.', '#9aa4c4'); return; } pinA = !pinA; draw(); };
+window.chClear = function(w){ if(w === 'A'){ slotA = null; pinA = false; } else slotB = null; draw(); };
 window.chFilter = function(v){ filter = v; const b = document.getElementById('chEls'); if(b){ b.innerHTML = els(); bind(); } };
 function msg(t, col){ const m = document.getElementById('chMsg'); if(m){ m.textContent = t; m.style.color = col || '#fff'; } }
 window.chCombine = function(){
   if(!slotA || !slotB) return;
   const res = REC[[slotA, slotB].sort().join('|')];
-  if(!res){ if(typeof sfx === 'function') sfx('wrong'); ['chA', 'chB'].forEach(id => { const e = document.getElementById(id); if(e){ e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); } }); msg('Nichts passiert.', '#ff7a8a'); slotA = slotB = null; setTimeout(draw, 700); return; }
-  const a = slotA, b = slotB; slotA = slotB = null;
+  if(!res){ if(typeof sfx === 'function') sfx('wrong'); ['chA', 'chB'].forEach(id => { const e = document.getElementById(id); if(e){ e.classList.remove('shake'); void e.offsetWidth; e.classList.add('shake'); } }); msg('Nichts passiert.', '#ff7a8a'); if(!pinA) slotA = null; slotB = null; setTimeout(draw, 700); return; }
+  const a = slotA, b = slotB; if(!pinA) slotA = null; slotB = null;
   if(have.includes(res)){ if(typeof sfx === 'function') sfx('tap'); draw(); msg(res + ' hast du schon.', '#9aa4c4'); return; }
   have.push(res); save();
   let coin = 0;
@@ -89,7 +98,7 @@ window.chList = function(){
     <button class="btn btn-ghost" style="padding:7px 14px;font-size:13px;margin-bottom:10px" onclick="startChemKeep()">&larr; Zurück</button>
     <div class="ch-top"><b style="font-size:20px">SAMMLUNG</b><span style="font-size:12px;color:var(--text-dim)">${have.length} / ${TOTAL}</span></div>
     <div class="ch-bar"><i style="width:${Math.round(have.length / TOTAL * 100)}%"></i></div>
-    ${ORDERED.map(n => { const f = got.has(n), h = HOW[n]; return `<div class="cl-row"><div class="cl-sym ${f ? '' : 'no'}">${D.e[n] || ''}</div><div class="cl-txt">${f ? `<b>${E(n)}</b><span>${h ? E(h[0]) + ' + ' + E(h[1]) : 'Grundelement'}</span>` : '<b style="color:var(--text-dim)">???</b>'}</div></div>`; }).join('')}
+    ${ORDERED.map(n => { const f = got.has(n), h = HOW[n]; return `<div class="cl-row"><div class="cl-sym ${f ? '' : 'no'}">${D.e[n] || ''}</div><div class="cl-txt">${f ? `<b>${E(n)}</b><span>${h ? E(h[0]) + ' + ' + E(h[1]) : 'Grundelement'}${showEnds && have.length >= ENDS_AT && isDone(n) ? ' · <b style="display:inline;color:#3dff7a;font-size:14px">&#10003;</b>' : ''}</span>` : '<b style="color:var(--text-dim)">???</b>'}</div></div>`; }).join('')}
     <button class="btn btn-primary btn-block" style="margin-top:14px" onclick="startChemKeep()">Zurück zum Kombinieren</button></div>`);
 };
 window.startChemKeep = function(){ have = load(); slotA = slotB = null; draw(); };
