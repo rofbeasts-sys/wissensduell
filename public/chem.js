@@ -30,6 +30,7 @@ function draw(){
     .ch-card{background:#161d38;border:2px solid #c6ff3d;border-radius:22px;padding:22px;text-align:center;box-shadow:0 0 40px rgba(198,255,61,.25);max-width:320px;width:100%}
     @keyframes chShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}.shake{animation:chShake .35s}
   </style>
+    <button class="btn btn-ghost" style="padding:7px 14px;font-size:13px;margin-bottom:10px" onclick="renderMainMenu()">&larr; Zurück</button>
     <div class="ch-top"><b style="font-size:20px">BRAINCHIMIE</b><span style="font-size:12px;color:var(--text-dim)">${have.length} / ${TOTAL} ${'entdeckt'}</span></div>
     <div class="ch-bar"><i style="width:${Math.round(have.length / TOTAL * 100)}%"></i></div>
     <div class="ch-row"><div class="ch-slot" id="chA" onclick="chClear('A')">${slot(slotA)}</div><span class="ch-plus">+</span><div class="ch-slot" id="chB" onclick="chClear('B')">${slot(slotB)}</div></div>
@@ -85,6 +86,7 @@ window.chCombine = function(){
 window.chList = function(){
   const got = new Set(have);
   renderApp(`<div class="panel"><style>.ch-top{display:flex;justify-content:space-between;align-items:center}.ch-bar{height:8px;background:rgba(255,255,255,.1);border-radius:9px;margin:10px 0}.ch-bar i{display:block;height:100%;background:linear-gradient(90deg,#c6ff3d,#3de0ff);border-radius:9px}.cl-row{display:flex;align-items:center;gap:12px;padding:9px 6px;border-bottom:1px solid rgba(255,255,255,.08)}.cl-sym{font-size:30px;width:44px;text-align:center;flex:0 0 44px}.cl-sym.no{filter:brightness(0) invert(.35);opacity:.8}.cl-txt{flex:1;text-align:right;min-width:0}.cl-txt b{display:block;font-size:15px}.cl-txt span{font-size:12px;color:var(--text-dim)}</style>
+    <button class="btn btn-ghost" style="padding:7px 14px;font-size:13px;margin-bottom:10px" onclick="startChemKeep()">&larr; Zurück</button>
     <div class="ch-top"><b style="font-size:20px">SAMMLUNG</b><span style="font-size:12px;color:var(--text-dim)">${have.length} / ${TOTAL}</span></div>
     <div class="ch-bar"><i style="width:${Math.round(have.length / TOTAL * 100)}%"></i></div>
     ${ORDERED.map(n => { const f = got.has(n), h = HOW[n]; return `<div class="cl-row"><div class="cl-sym ${f ? '' : 'no'}">${D.e[n] || ''}</div><div class="cl-txt">${f ? `<b>${E(n)}</b><span>${h ? E(h[0]) + ' + ' + E(h[1]) : 'Grundelement'}</span>` : '<b style="color:var(--text-dim)">???</b>'}</div></div>`; }).join('')}
