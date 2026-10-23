@@ -364,7 +364,7 @@ function showMap(){
   var h='<div class="mhd"><button class="hb" id="mclose">←</button><b>Brain Defense · '+tx("Karte","Map")+'</b><span class="pl">'+tx("Level ","Level ")+bestLevel()+'/100</span></div><div class="mnote">'+tx("Testversion (Admin): alle Level offen. Aufgabe: Wellen überstehen, dann Fertig oder weiterspielen.","Test version (admin): all levels open. Goal: survive the waves, then Done or keep playing.")+'</div><div class="mapw">'+zones.join("")+'</div>';
   var m=$("mapscr"); m.innerHTML=h; m.classList.add("show");
   $("mclose").onclick=function(){ if(S&&S.status!=="won"&&S.status!=="lost"&&S.wave>0&&!paused){ } m.classList.remove("show"); if(!S) quit(); };
-  Array.prototype.forEach.call(m.querySelectorAll(".mn"),function(e){ e.onclick=function(){ startLevel(+e.getAttribute("data-L")); }; });
+  Array.prototype.forEach.call(m.querySelectorAll(".mn"),function(e){ e.onclick=function(){ startLevel(+(e.dataset.l||e.getAttribute("data-l")||e.getAttribute("data-L"))); }; });
   var cn=m.querySelectorAll('.mn[data-L="'+Math.min(100,bestLevel())+'"]')[0]; if(cn){ var r=cn.getBoundingClientRect(); m.scrollTop+=r.top-window.innerHeight/2; } }
 window.__bd={S:function(){return S},start:startLevel,map:showMap,B:B,tm:function(){return tm}};
 requestAnimationFrame(frame); fit(); showMap();
