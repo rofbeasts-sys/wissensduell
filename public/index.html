@@ -6803,6 +6803,11 @@ function renderMainMenu(){
         <h3>Brain Duel ${featureLocked('brain_royale') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
         <p>${featureLocked('brain_royale') ? L('Brain Royale + Brain Mana, Test, nur für dich sichtbar','Brain Royale + Brain Mana, test, only visible to you') : L('Brain Royale + Brain Mana','Brain Royale + Brain Mana')}</p>
       </div>` : ''}
+      <div class="mode-card ${currentLang==='de' ? '' : 'locked'}" onclick="${currentLang==='de' ? 'startChem()' : ''}" style="${currentLang==='de' ? '' : 'opacity:.45; cursor:default;'}">
+        <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><path d="M19 6H29M21 6V20L9 40C8 42 9 44 11 44H37C39 44 40 42 39 40L27 20V6" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M14 33H34" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="38" r="2" fill="#3de0ff"/><circle cx="29" cy="28" r="2" fill="#c6ff3d"/></svg></div>
+        <h3>Brainchimie</h3>
+        <p>${currentLang==='de' ? 'Kombiniere Elemente, entdecke alles.' : 'Only available in German'}</p>
+      </div>
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="2" y="6" width="44" height="36" rx="6" fill="#2f6bff"/><circle cx="9" cy="14" r="4" fill="#0b1236"/><circle cx="9" cy="24" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#0b1236"/><circle cx="19" cy="14" r="4" fill="#0b1236"/><circle cx="19" cy="24" r="4" fill="#0b1236"/><circle cx="19" cy="34" r="4" fill="#0b1236"/><circle cx="29" cy="14" r="4" fill="#0b1236"/><circle cx="29" cy="24" r="4" fill="#0b1236"/><circle cx="29" cy="34" r="4" fill="#0b1236"/><circle cx="39" cy="14" r="4" fill="#0b1236"/><circle cx="39" cy="24" r="4" fill="#0b1236"/><circle cx="39" cy="34" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="7" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="34" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="29" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="27" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="39" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="37" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="24" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="21.5" r="2" fill="#fff" opacity=".6"/></svg></div>
         <h3>Fourups</h3>
@@ -15526,5 +15531,6 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
 </script>
 
 <script src="/vocab.js"></script>
+<script src="/chem.js"></script>
 </body>
 </html>
