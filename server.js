@@ -3692,6 +3692,12 @@ async function saveUserStats(token, stats, lang) {
       hoodLevel: Math.max(1, cur.hoodLevel || 1, n(f.hoodLevel, 9999)),
       fruitPts: Math.max(cur.fruitPts || 0, n(f.fruitPts, 1e9)),
       fruitSlot: Math.max(cur.fruitSlot || 0, n(f.fruitSlot, 1)),
+      fruitKings: (cur.fruitKings || 0) | n(f.fruitKings, 63),
+      fruitKing: n(f.fruitKing, 5),
+      fruitBg: n(f.fruitBg, 3),
+      fruitKL: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.fruitKL) ? cur.fruitKL[i] | 0 : 0), Array.isArray(f.fruitKL) ? n(f.fruitKL[i], 5) : 0)),
+      fruitKX: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.fruitKX) ? cur.fruitKX[i] | 0 : 0), Array.isArray(f.fruitKX) ? n(f.fruitKX[i], 100000) : 0)),
+      fruitSt: (() => { const a = typeof cur.fruitSt === "string" ? cur.fruitSt : "", b = typeof f.fruitSt === "string" && /^[0-3]{0,3000}$/.test(f.fruitSt) ? f.fruitSt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
       hammer: n(f.hammer, 999), broom: n(f.broom, 999), shuffle: n(f.shuffle, 999), moves: n(f.moves, 999)
     };
   }
@@ -3792,6 +3798,7 @@ function accountDisconnect(ws) {
   if (set.size === 0) {
     onlineAccounts.delete(ws.accountUsername);
     const user = findUserByName(ws.accountUsername);
+    if (user) user.lastSeenAt = Date.now();
     if (user) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOffline", username: user.username }));
   }
 }
@@ -3800,7 +3807,10 @@ function achievementCount(user) {
   return unlocked ? Object.keys(unlocked).length : 0;
 }
 function friendSummary(user) {
-  return { username: user.username, avatar: user.avatar || null, online: accountIsOnline(user.username), achievements: achievementCount(user) };
+  const st = user.stats || {}, fr = st.fruit || st;
+  return { username: user.username, avatar: user.avatar || null, online: accountIsOnline(user.username), achievements: achievementCount(user),
+    lastSeen: user.lastSeenAt || 0,
+    st: { klasse: st.klasse | 0, score: st.bestScore | 0, wins: st.wins | 0, rounds: st.roundsPlayed | 0, fruitLevel: (st.fruitLevel | 0) || 1, hoodLevel: (st.hoodLevel | 0) || 1 } };
 }
 function areFriends(a, b) {
   return (a.friends || []).some(f => f.toLowerCase() === b.username.toLowerCase());
@@ -4280,6 +4290,39 @@ async function saveConversations() {
     fs.renameSync(tmp, CONVERSATIONS_FILE);
     return true;
   } catch (e) { console.error("Konnte Chatverlauf nicht speichern:", e.message); return false; }
+}
+// ---- Oeffentlicher Chat (ueber das ganze Spiel), liegt in conversations["__public__"] ----
+const PUB_KEY = "__public__", PUB_MAX = 200, PUB_LEN = 200;
+const pubLast = new Map(); // username -> [timestamps]
+async function chatPublicList(since) {
+  if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
+  const all = conversations[PUB_KEY] || [];
+  const sn = parseInt(since, 10) || 0;
+  const msgs = sn ? all.filter(m => m.id > sn) : all.slice(-60);
+  return { ok: true, messages: msgs, online: onlineAccounts.size, lastId: all.length ? all[all.length - 1].id : 0 };
+}
+async function chatPublicSend(token, text, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const me = findUserByToken(token);
+  if (!me) return errObj("notLoggedIn", lang);
+  if (typeof isRestricted === "function" && isRestricted(me)) return { ok: false, error: "Du kannst gerade nicht schreiben." };
+  let t = (typeof text === "string" ? text : "").replace(/[\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, PUB_LEN);
+  if (!t) return { ok: false, error: "Leer." };
+  if (/(https?:\/\/|www\.|\.(com|de|net|org|io|ru|xyz)\b)/i.test(t)) return { ok: false, error: "Links sind im Chat nicht erlaubt." };
+  const now = Date.now(), key = me.username.toLowerCase();
+  const arr = (pubLast.get(key) || []).filter(x => now - x < 20000);
+  if (arr.length && now - arr[arr.length - 1] < 1500) return { ok: false, error: "Nicht so schnell." };
+  if (arr.length >= 5) return { ok: false, error: "Zu viele Nachrichten, warte kurz." };
+  arr.push(now); pubLast.set(key, arr);
+  if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
+  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
+  const last = list.length ? list[list.length - 1] : null;
+  if (last && last.u === me.username && last.t === t) return { ok: false, error: "Doppelt." };
+  const msg = { id: (last ? last.id : 0) + 1, u: me.username, a: me.avatar || null, t, ts: now };
+  list.push(msg);
+  if (list.length > PUB_MAX) list.splice(0, list.length - PUB_MAX);
+  saveConversations();
+  return { ok: true, message: msg };
 }
 const CHAT_MAX_LEN = 500;
 const CHAT_MAX_HISTORY = 300; // je Unterhaltung - aeltere Nachrichten werden verworfen
@@ -5674,6 +5717,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
         else if (req.url === "/api/audio-tracks") result = listAudioTracks();
+        else if (req.url === "/api/chat-public-list") result = await chatPublicList(payload.since);
+        else if (req.url === "/api/chat-public-send") result = await chatPublicSend(payload.token, payload.text, lang);
         else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
