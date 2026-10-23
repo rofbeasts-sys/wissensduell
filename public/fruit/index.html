@@ -262,7 +262,7 @@ function showMap(){
   while(from<=maxL){ zones.push(mapZone(from,to,zoneType(from))); from=to+1; to=from+19; }
   var h='<div class="mhd"><span class="pill" id="mclose" style="cursor:pointer">←</span><b>🗺️ '+tx("Karte","Map")+'</b><span class="pill">'+T.level+' '+best+'</span></div><div class="mapw">'+zones.join("")+'</div>';
   $("mapscr").innerHTML=h; $("mapscr").classList.add("show");
-  $("mclose").onclick=function(){ $("mapscr").classList.remove("show"); };
+  $("mclose").onclick=function(){ $("mapscr").classList.remove("show"); if(over){ level=Math.min(level,best); start(); } };
   Array.prototype.forEach.call($("mapscr").querySelectorAll(".mn"),function(e){ e.onclick=function(){ var L=+e.dataset.l||+e.getAttribute("data-L"); if(L>best) return; $("mapscr").classList.remove("show"); $("kings").classList.remove("show"); level=L; start(); }; });
   var cn=$("mapscr").querySelectorAll('.mn[data-L="'+best+'"]')[0]; if(cn){ var r=cn.getBoundingClientRect(); $("mapscr").scrollTop+=r.top-window.innerHeight/2; }
 }
@@ -373,8 +373,13 @@ function collectCherries(){
   if(got){ snd('ding'); hud(); } return got;
 }
 async function gravity(){
-  for(var c=0;c<COLS;c++){ var w=ROWS-1; for(var r=ROWS-1;r>=0;r--){ if(grid[r][c]){ var t=grid[r][c]; grid[r][c]=null; grid[w][c]=t; w--; } }
-    for(var r2=w;r2>=0;r2--){ var n=mk(randType()); grid[r2][c]=n; n.c=c; n.r=r2-ROWS; draw(n); } }
+  var moved=true, guard=0, r, c, t;
+  while(moved&&guard++<80){ moved=false;
+    for(r=ROWS-2;r>=0;r--) for(c=0;c<COLS;c++){ t=grid[r][c]; if(t&&!locked(t)&&!grid[r+1][c]){ grid[r+1][c]=t; grid[r][c]=null; t.r=r+1; moved=true; } }
+    for(r=ROWS-1;r>=1;r--) for(c=0;c<COLS;c++){ if(grid[r][c]) continue; var up=grid[r-1][c]; if(!(up&&locked(up))) continue;
+      var sides=[c-1,c+1]; for(var k=0;k<2;k++){ var cc=sides[k]; if(cc<0||cc>=COLS) continue; var sd=grid[r-1][cc]; if(sd&&!locked(sd)){ grid[r][c]=sd; grid[r-1][cc]=null; sd.r=r; sd.c=c; moved=true; break; } } }
+    for(c=0;c<COLS;c++){ if(!grid[0][c]){ var n=mk(randType()); n.c=c; n.r=-1; draw(n); n.r=0; grid[0][c]=n; moved=true; } }
+  }
   await sleep(20); sync(); await sleep(280);
   if(collectCherries()){ await sleep(240); await gravity(); }
 }
@@ -469,7 +474,7 @@ function finish(win){
   if(win){
     if(level>=best){ xpMsg+=waveReward(level); best=level+1; try{ localStorage.setItem("bp_fruit_best",String(best)); }catch(e){} if(P){ try{ P.fruitSet({fruitLevel:best}); }catch(e){} } }
     var rw=""; if(level%5===0&&P){ try{ var got=P.fruitGrant(2); rw="  "+BON.reward+" "+got.map(function(g){ return BO.filter(function(b){return b.id===g})[0].ic; }).join(" "); }catch(e){} }
-    $("ot").textContent="🎉 "+T.won; $("op").textContent="⭐ +"+score.toLocaleString()+" "+T.pts+(bonus?" ("+bonus.toLocaleString()+" Bonus)":"")+xpMsg+"  "+T.wonp+rw; $("o1").textContent=T.next; $("o1").onclick=function(){ level++; start(); }; failCount[level]=0; $("o3").style.display="none";
+    $("ot").textContent="🎉 "+T.won; $("op").textContent="⭐ +"+score.toLocaleString()+" "+T.pts+(bonus?" ("+bonus.toLocaleString()+" Bonus)":"")+xpMsg+"  "+T.wonp+rw; $("o1").textContent="🗺️ "+tx("Zur Karte","To the map"); $("o1").onclick=function(){ level++; $("ov").classList.remove("show"); showMap(); }; failCount[level]=0; $("o3").style.display="none";
   } else { $("ot").textContent=(kind==="time"?"⏱ "+T.tiUp:"💔 "+T.lost); $("op").textContent=T.lostp+level+" · "+T.best+best+" · "+T.lostPts; $("o1").textContent=T.retry; $("o1").onclick=function(){ start(); };
     failCount[level]=(failCount[level]||0)+1; var o3=$("o3");
     if(P&&P.fruitPay&&failCount[level]>=2&&!contUsed){ var coins=0; try{ coins=P.fruitCoins(); }catch(e){}
@@ -589,6 +594,6 @@ $("bgbtn").onclick=function(){ showBgPicker(); };
 $("title").textContent="🍓 "+T.title; document.title=T.title;
 window.addEventListener("resize",function(){ if(!busy){ size(); sync(); } });
 if(window.__noKings){ start(); } else { applyTheme(); showKings(true); }
-window.__fruit={setP:function(x){P=x},showMap:showMap,kLvl:kLvl,kv:kv,kXp:kXp,starsStr:starsStr,showKings:showKings,waveOf:waveOf,themeSvg:themeSvg,curK:function(){return curK},setK:function(i){curK=i},start:start,sync:sync,hud:hud,bar:function(){return {barPts:barPts,barNeed:barNeed,rdy:rdy.slice(),total0:total0}},addBar:addBar,powerHit:powerHit,finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
+window.__fruit={gravity:gravity,setP:function(x){P=x},showMap:showMap,kLvl:kLvl,kv:kv,kXp:kXp,starsStr:starsStr,showKings:showKings,waveOf:waveOf,themeSvg:themeSvg,curK:function(){return curK},setK:function(i){curK=i},start:start,sync:sync,hud:hud,bar:function(){return {barPts:barPts,barNeed:barNeed,rdy:rdy.slice(),total0:total0}},addBar:addBar,powerHit:powerHit,finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
 })();
 </script></body></html>
