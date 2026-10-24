@@ -750,7 +750,11 @@ function tttHandleDuelAnswer(room, symbol, selectedIndex) {
   if (allAnswered) tttResolveDuelQuestion(room);
 }
 
+// Zufallsgegner fuer Tic Tac Toe: je Modus eine Warteschlange
+const tttQueues = { classic: [], quizmix: [], quantum: [] };
+function tttQueueRemove(ws) { for (const k of Object.keys(tttQueues)) tttQueues[k] = tttQueues[k].filter(q => q.ws !== ws); }
 function tttHandleDisconnect(ws) {
+  tttQueueRemove(ws);
   const code = ws.tttRoomCode;
   if (!code) return;
   const room = tttRooms.get(code);
@@ -3419,6 +3423,74 @@ async function setLoginName(token, password, loginName, lang) {
   await saveUsers();
   return { ok: true, hasLoginName: true };
 }
+// Passwort pruefen (mit Sperre nach Fehlversuchen). Gibt null zurueck wenn ok, sonst ein Fehlerobjekt.
+async function verifyOwnPassword(u, password, tag, lang) {
+  if (typeof password !== "string" || !password || password.length > 200) return errObj("loginFailed", lang);
+  const k = tag + "|" + u.username.toLowerCase();
+  if (rlWait(k)) return errObj("tooManyAttempts", lang, "", "");
+  if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
+  hashInFlight++;
+  let h; try { h = await hashPassword(password, u.salt); } finally { hashInFlight--; }
+  const x = Buffer.from(h, "hex"), y = Buffer.from(u.passwordHash, "hex");
+  if (x.length !== y.length || !crypto.timingSafeEqual(x, y)) { rlHit(k, 5, 10 * 60 * 1000, 10 * 60 * 1000); return errObj("loginFailed", lang); }
+  return null;
+}
+async function changePassword(token, oldPw, newPw, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const sess = findSession(token);
+  if (!sess) return errObj("notLoggedIn", lang);
+  const u = sess.user;
+  if (typeof newPw !== "string" || newPw.length < 6 || newPw.length > 200) return errObj("passwordLength", lang);
+  const bad = await verifyOwnPassword(u, oldPw, "cpw", lang);
+  if (bad) return bad;
+  const salt = crypto.randomBytes(16).toString("hex");
+  hashInFlight++;
+  let hash; try { hash = await hashPassword(newPw, salt); } finally { hashInFlight--; }
+  u.salt = salt; u.passwordHash = hash;
+  u.tokens = (u.tokens || []).filter(t => t.token === token); // andere Geraete abmelden
+  await saveUsers();
+  return { ok: true };
+}
+const NAME_CHANGE_COOLDOWN_MS = 7 * 24 * 3600 * 1000;
+async function changeUsername(token, password, newName, lang) {
+  const en = lang === "en";
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const sess = findSession(token);
+  if (!sess) return errObj("notLoggedIn", lang);
+  const u = sess.user;
+  if (typeof newName !== "string") return errObj("invalidInput", lang);
+  newName = newName.trim();
+  if (newName.length < 3 || newName.length > 20 || !/^[a-zA-Z0-9_äöüÄÖÜß]+$/.test(newName)) return errObj("usernameLength", lang);
+  const other = findUserByName(newName);
+  if (other && other !== u) return errObj("usernameTaken", lang);
+  if (newName === u.username) return { ok: false, error: en ? "That is already your name." : "Das ist schon dein Name." };
+  const left = (u.nameChangedAt || 0) + NAME_CHANGE_COOLDOWN_MS - Date.now();
+  if (left > 0) { const d = Math.ceil(left / 86400000); return { ok: false, error: en ? "You can change your name again in " + d + " day(s)." : "Du kannst deinen Namen in " + d + " Tag(en) wieder ändern." }; }
+  if (u.loginName && newName.toLowerCase() === u.loginName.toLowerCase()) return errObj("loginNameSame", lang);
+  const bad = await verifyOwnPassword(u, password, "cun", lang);
+  if (bad) return bad;
+  if (!(await ensureConversationsLoaded())) return serviceDownMsg(lang);
+  if (findUserByName(newName) && findUserByName(newName) !== u) return errObj("usernameTaken", lang);
+  const old = u.username, oldL = old.toLowerCase();
+  const mapList = arr => Array.isArray(arr) ? arr.map(n => (typeof n === "string" && n.toLowerCase() === oldL) ? newName : n) : arr;
+  for (const x of users) { x.friends = mapList(x.friends); x.incomingRequests = mapList(x.incomingRequests); x.outgoingRequests = mapList(x.outgoingRequests); if (Array.isArray(x.blocked)) x.blocked = mapList(x.blocked); }
+  u.username = newName; u.nameChangedAt = Date.now();
+  // Chat-Verlaeufe: Schluessel "a|b" und Absender umbenennen
+  for (const key of Object.keys(conversations)) {
+    if (key === PUB_KEY) { conversations[key].forEach(m => { if (m.u && m.u.toLowerCase() === oldL) m.u = newName; }); continue; }
+    const parts = key.split("|");
+    if (!parts.includes(oldL)) continue;
+    const list = conversations[key]; delete conversations[key];
+    list.forEach(m => { if (m.from && m.from.toLowerCase() === oldL) m.from = newName; });
+    conversations[conversationKey(parts.map(n => n === oldL ? newName : n)[0], parts.map(n => n === oldL ? newName : n)[1])] = list;
+  }
+  // Online-Verbindungen umhaengen
+  const set = onlineAccounts.get(oldL);
+  if (set) { onlineAccounts.delete(oldL); onlineAccounts.set(newName.toLowerCase(), set); set.forEach(ws => { ws.accountUsername = newName.toLowerCase(); }); }
+  const ok1 = await saveUsers(); await saveConversations();
+  if (!ok1) return serviceDownMsg(lang);
+  return { ok: true, username: newName };
+}
 async function registerUser(username, password, ip, lang, loginName) {
   if (typeof username !== "string" || typeof password !== "string") {
     return errObj("invalidInput", lang);
@@ -5148,21 +5220,57 @@ function chessOnlineNewCode() {
   }
   return null;
 }
+// Elo (Start 1000, K=32). Zaehlt nur bei echten Online-Partien (nie gegen den Bot, damit niemand Punkte "erspielt").
+const CHESS_ELO_START = 1000, CHESS_ELO_K = 32, CHESS_PAIR_DAILY_MAX = 5;
+const chessPairCount = new Map(); // "a|b|Tag" -> Anzahl gewerteter Partien
+function chessEloOf(u) { return (u && u.stats && Number.isFinite(u.stats.chessElo)) ? u.stats.chessElo : CHESS_ELO_START; }
+function chessEloApply(g, winner) {
+  if (g.rated || !g.w || !g.b || g.w === g.b) return;
+  const uw = findUserByName(g.w), ub = findUserByName(g.b);
+  if (!uw || !ub) return;
+  if ((g.log || []).length < 4) return; // ganz kurze Partien (Aufgabe nach 1-2 Zuegen) zaehlen nicht
+  const day = new Date().toISOString().slice(0, 10), pk = [g.w.toLowerCase(), g.b.toLowerCase()].sort().join("|") + "|" + day;
+  const n = chessPairCount.get(pk) || 0;
+  if (n >= CHESS_PAIR_DAILY_MAX) { g.rated = false; g.eloNote = "limit"; return; }
+  chessPairCount.set(pk, n + 1);
+  if (chessPairCount.size > 5000) chessPairCount.clear();
+  const rw = chessEloOf(uw), rb = chessEloOf(ub);
+  const ew = 1 / (1 + Math.pow(10, (rb - rw) / 400)), sw = winner === "draw" ? 0.5 : (winner === "w" ? 1 : 0);
+  const dw = Math.round(CHESS_ELO_K * (sw - ew)), db = -dw;
+  uw.stats.chessElo = Math.max(100, rw + dw); ub.stats.chessElo = Math.max(100, rb + db);
+  for (const [u, won, lost] of [[uw, sw === 1, sw === 0], [ub, sw === 0, sw === 1]]) {
+    u.stats.chessGames = (u.stats.chessGames || 0) + 1;
+    if (won) u.stats.chessWins = (u.stats.chessWins || 0) + 1; else if (lost) u.stats.chessLosses = (u.stats.chessLosses || 0) + 1;
+  }
+  g.rated = true; g.eloDelta = { w: dw, b: db }; g.eloAfter = { w: uw.stats.chessElo, b: ub.stats.chessElo };
+  saveUsers().catch(() => {});
+}
 function chessOnlineFinish(g, winner, why) {
   g.status = "over"; g.winner = winner; g.why = why; g.rev++; g.updated = Date.now();
+  try { chessEloApply(g, winner); } catch (e) { console.error("Elo:", e.message); }
 }
+const CHESS_CLOCK_MS = 10 * 60 * 1000, CHESS_CLOCK_INC_MS = 5000; // Mit Zeit: je Spieler 10 Minuten + 5 Sekunden pro Zug
 function chessOnlineCheckTimeout(g) {
-  if (g.status === "playing" && Date.now() - g.moveAt > CHESS_ONLINE_MOVE_MS) chessOnlineFinish(g, g.turn === "w" ? "b" : "w", "time");
+  if (g.status !== "playing") return;
+  if (g.timed) {
+    if (g.clock[g.turn] - (Date.now() - g.moveAt) <= 0) { g.clock[g.turn] = 0; chessOnlineFinish(g, g.turn === "w" ? "b" : "w", "time"); }
+    return;
+  }
+  if (Date.now() - g.moveAt > CHESS_ONLINE_MOVE_MS) chessOnlineFinish(g, g.turn === "w" ? "b" : "w", "time");
 }
 function chessOnlineView(g, me) {
   chessOnlineCheckTimeout(g);
   const E = getChessEngine();
   const color = g.w === me ? "w" : g.b === me ? "b" : null;
   return {
-    ok: true, code: g.code, rev: g.rev, w: g.w, b: g.b, color, status: g.status, winner: g.winner || null, why: g.why || null,
+    ok: true, code: g.code, rev: g.rev, w: g.w, b: g.b, color, status: g.status, random: !!g.random,
+    eloW: chessEloOf(findUserByName(g.w || "")), eloB: chessEloOf(findUserByName(g.b || "")), rated: !!g.rated, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
     board: g.board, turn: g.turn, last: g.last, log: g.log, capW: g.capW, capB: g.capB,
     check: g.status === "playing" && E.isInCheck(g.board, g.turn),
-    moveSecondsLeft: g.status === "playing" ? Math.max(0, Math.round((CHESS_ONLINE_MOVE_MS - (Date.now() - g.moveAt)) / 1000)) : null
+    timed: !!g.timed,
+    clockW: g.timed ? Math.max(0, g.clock.w - (g.status === "playing" && g.turn === "w" ? Date.now() - g.moveAt : 0)) : null,
+    clockB: g.timed ? Math.max(0, g.clock.b - (g.status === "playing" && g.turn === "b" ? Date.now() - g.moveAt : 0)) : null,
+    moveSecondsLeft: (g.status === "playing" && !g.timed) ? Math.max(0, Math.round((CHESS_ONLINE_MOVE_MS - (Date.now() - g.moveAt)) / 1000)) : null
   };
 }
 function chessOnlineGet(payload, lang) {
@@ -5195,11 +5303,39 @@ async function chessOnlineApi(action, payload, lang) {
     if (!newCode) return msg("Gerade keine freie Partie möglich.", "No free game right now.");
     const E = getChessEngine();
     const first = Math.random() < 0.5 ? "w" : "b";
-    const game = { code: newCode, w: first === "w" ? me : null, b: first === "b" ? me : null, invited, status: "waiting", rev: 1,
+    const timed = payload.timed === true;
+    const game = { code: newCode, w: first === "w" ? me : null, b: first === "b" ? me : null, invited, status: "waiting", rev: 1, timed, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS },
       board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
     game.seen[chessPosKey(game)] = 1;
     chessOnlineGames.set(newCode, game);
     return chessOnlineView(game, me);
+  }
+  if (action === "queue") { // Zufallsgegner: eine wartende Zufalls-Partie uebernehmen, sonst selbst eine eroeffnen
+    for (const x of chessOnlineGames.values()) if ((x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
+      if (x.status === "waiting" && x.w === me && x.random) { x.updated = Date.now(); return chessOnlineView(x, me); }
+      if (x.status === "waiting" && x.w === me) { chessOnlineGames.delete(x.code); } else return { ...msg("Du hast schon eine laufende Partie.", "You already have a running game."), code: x.code };
+    }
+    let best = null;
+    for (const x of chessOnlineGames.values()) {
+      if (x.random && x.status === "waiting" && x.w && x.w !== me && Date.now() - x.updated < 15000) {
+        if (!best || Math.abs(chessEloOf(findUserByName(x.w)) - chessEloOf(user)) < Math.abs(chessEloOf(findUserByName(best.w)) - chessEloOf(user))) best = x;
+      }
+    }
+    if (best) { best.b = me; best.status = "playing"; best.rev++; best.moveAt = Date.now(); best.updated = Date.now(); return chessOnlineView(best, me); }
+    const newCode = chessOnlineNewCode();
+    if (!newCode) return msg("Gerade keine freie Partie möglich.", "No free game right now.");
+    const E = getChessEngine();
+    const game = { code: newCode, w: me, b: null, invited: null, random: true, timed: true, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS }, status: "waiting", rev: 1,
+      board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
+    game.seen[chessPosKey(game)] = 1;
+    chessOnlineGames.set(newCode, game);
+    return chessOnlineView(game, me);
+  }
+  if (action === "ranking") {
+    const list = users.filter(u => (u.stats && u.stats.chessGames > 0)).sort((a, b) => chessEloOf(b) - chessEloOf(a));
+    const pos = list.findIndex(u => u === user);
+    return { ok: true, elo: chessEloOf(user), games: user.stats.chessGames || 0, wins: user.stats.chessWins || 0, losses: user.stats.chessLosses || 0, pos: pos >= 0 ? pos + 1 : null,
+      top: list.slice(0, 10).map((u, i) => ({ pos: i + 1, name: u.username, elo: chessEloOf(u), games: u.stats.chessGames || 0 })) };
   }
   if (action === "inbox") {
     const list = [];
@@ -5220,7 +5356,7 @@ async function chessOnlineApi(action, payload, lang) {
     return { ok: true };
   }
   if (g.w !== me && g.b !== me) return msg("Du bist nicht in dieser Partie.", "You are not in this game.");
-  if (action === "state") return chessOnlineView(g, me);
+  if (action === "state") { if (g.status === "waiting") g.updated = Date.now(); return chessOnlineView(g, me); }
   if (action === "leave") {
     if (g.status === "waiting") chessOnlineGames.delete(code);
     else if (g.status === "playing") chessOnlineFinish(g, g.w === me ? "b" : "w", "resign");
@@ -5235,6 +5371,10 @@ async function chessOnlineApi(action, payload, lang) {
     if (g.status !== "playing") return { ...msg("Die Partie läuft nicht.", "The game is not running."), ...chessOnlineView(g, me), ok: false };
     const color = g.w === me ? "w" : "b";
     if (g.turn !== color) return msg("Du bist nicht dran.", "It is not your turn.");
+    if (g.timed) { // verbrauchte Zeit abziehen; wer bei 0 ist, verliert
+      g.clock[color] -= Date.now() - g.moveAt;
+      if (g.clock[color] <= 0) { g.clock[color] = 0; chessOnlineFinish(g, color === "w" ? "b" : "w", "time"); return chessOnlineView(g, me); }
+    }
     const E = getChessEngine();
     const n = (v) => Number.isInteger(v) && v >= 0 && v < 8;
     if (![payload.fr, payload.fc, payload.tr, payload.tc].every(n)) return msg("Ungültiger Zug.", "Invalid move.");
@@ -5263,6 +5403,7 @@ async function chessOnlineApi(action, payload, lang) {
     else if (g.half >= 100) { g.log.push(note); chessOnlineFinish(g, "draw", "fifty"); }
     else if (g.seen[k] >= 3) { g.log.push(note); chessOnlineFinish(g, "draw", "threefold"); }
     else { g.log.push(note + (E.isInCheck(g.board, g.turn) ? "+" : "")); g.rev++; }
+    if (g.timed && g.status === "playing") g.clock[color] += CHESS_CLOCK_INC_MS;
     g.moveAt = Date.now(); g.updated = Date.now();
     return chessOnlineView(g, me);
   }
@@ -5526,7 +5667,7 @@ function publicStats() {
   return { ok: true, online: c.online >= PUBLIC_ONLINE_MIN ? c.online : null, today: seenToday.day === d ? seenToday.set.size : 0, feed: feed.filter(e => e.t > cutoff).slice(0, 8) };
 }
 const LOCKED_FEATURES = new Set(
-  (process.env.LOCKED_FEATURES === undefined ? "arena,chess_online,ordering,blitz,chess_fantasy,ttt_quantum,fourups_abilities,brain_royale" : process.env.LOCKED_FEATURES)
+  (process.env.LOCKED_FEATURES === undefined ? "arena,ordering,blitz,chess_fantasy,ttt_quantum,fourups_abilities,brain_royale" : process.env.LOCKED_FEATURES)
     .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
 );
 function featureLocked(name) { return LOCKED_FEATURES.has(name); }
@@ -5905,6 +6046,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
         else if (req.url === "/api/public-stats") result = publicStats();
+        else if (req.url === "/api/change-password") result = await changePassword(payload.token, payload.oldPassword, payload.newPassword, lang);
+        else if (req.url === "/api/change-username") result = await changeUsername(payload.token, payload.password, payload.newName, lang);
         else if (req.url === "/api/set-login-name") result = await setLoginName(payload.token, payload.password, payload.loginName, lang);
         else if (req.url === "/api/feed-optin") result = await setFeedOptIn(payload.token, payload.enabled, lang);
         else if (req.url === "/api/streamer-mode") result = await setStreamerMode(payload.token, payload.enabled, lang);
@@ -6080,6 +6223,30 @@ wss.on("connection", (ws, req) => {
       send(ws, { type: "tttJoined", roomCode: code, symbol: hostSymbol, mode: room.mode });
       return;
     }
+    if (msg.action === "tttQueue") {
+      const mode = (msg.mode === "quizmix" || msg.mode === "quantum") ? msg.mode : "classic";
+      if (mode === "quantum" && featureLocked("ttt_quantum") && !adminOk(msg.adminKey, ws.ip)) return send(ws, { type: "tttError", message: "Coming soon." });
+      if (ws.tttRoomCode) tttHandleDisconnect(ws);
+      tttQueueRemove(ws);
+      const me = { ws, name: cleanStr(msg.name, 20) || "Spieler" };
+      const other = tttQueues[mode].find(q => q.ws !== ws && q.ws.readyState === 1);
+      if (!other) { tttQueues[mode].push(me); send(ws, { type: "tttQueued", mode }); return; }
+      tttQueues[mode] = tttQueues[mode].filter(q => q !== other);
+      const code = tttMakeRoomCode();
+      const firstSym = Math.random() < 0.5 ? "X" : "O", secondSym = firstSym === "X" ? "O" : "X";
+      const room = {
+        code, players: [{ ws: other.ws, name: other.name, symbol: firstSym, connected: true }, { ws, name: me.name, symbol: secondSym, connected: true }],
+        board: Array(9).fill(null), turnSymbol: "X", gameOver: false, winner: null, mode, duel: null,
+        counters: tttFreshCounters(), xPieces: [], oPieces: []
+      };
+      tttRooms.set(code, room);
+      other.ws.tttRoomCode = code; ws.tttRoomCode = code;
+      send(other.ws, { type: "tttJoined", roomCode: code, symbol: firstSym, mode });
+      send(ws, { type: "tttJoined", roomCode: code, symbol: secondSym, mode });
+      tttBroadcastState(room);
+      return;
+    }
+    if (msg.action === "tttQueueCancel") { tttQueueRemove(ws); return; }
     if (msg.action === "tttJoinRoom") {
       if (rlWait("j|" + ws.ip)) return send(ws, { type: "tttError", message: "Zu viele falsche Codes. Bitte kurz warten." });
       const room = tttRooms.get(cleanCode(msg.code));
