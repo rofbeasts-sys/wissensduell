@@ -4308,11 +4308,15 @@ function openAdminReset(){
 let bpSid=''; try{ bpSid=sessionStorage.getItem('bp_sid')||''; if(!bpSid){ bpSid=(crypto.randomUUID?crypto.randomUUID():String(Math.random()).slice(2)+Date.now()).replace(/-/g,''); sessionStorage.setItem('bp_sid',bpSid); } }catch(e){ bpSid=String(Math.random()).slice(2)+Date.now(); }
 /* Oeffentliche, ECHTE Live-Anzeige (Online-Zaehler + Aktivitaets-Feed) */
 let liveStats=null;
+// Defense meldet Wellen-Meilensteine ueber window.parent.feedEvent
+window.feedEvent = function(kind, n){ try{ if(account && account.token) apiCall('/api/feed-event', { token: account.token, kind, n }); }catch(e){} };
 function liveEventText(e){
   const who=e.name?esc(e.name):L('Ein Spieler','A player');
   if(e.kind==='klasse') return who+' '+L('hat Klasse '+e.n+' erreicht','reached Class '+e.n);
   if(e.kind==='belt'){ const r=TTT_RANKS[Math.min(e.n,TTT_RANKS.length-1)]; return who+' '+L('hat den '+r.name+' erreicht (Tic Tac Toe)','earned the '+r.name+' (Tic Tac Toe)'); }
   if(e.kind==='legend') return who+' '+L('hat in Chess Fantasy eine Legende gezogen','pulled a legend in Chess Fantasy');
+  if(e.kind==='wave') return who+' '+L('hat Welle '+e.n+' bei Brain Defense erreicht','reached wave '+e.n+' in Brain Defense');
+  if(e.kind==='achv'){ let ti=''; try{ ti=Achv.getTitle(e.x, currentLang); }catch(err){} return ti ? who+' '+L('hat den Erfolg „'+esc(ti)+'“ freigeschaltet','unlocked the achievement “'+esc(ti)+'”') : ''; }
   return '';
 }
 function liveAgo(t){ const m=Math.max(0,Math.round((Date.now()-t)/60000)); if(m<1) return L('gerade eben','just now'); if(m<60) return L('vor '+m+' Min','' +m+' min ago'); const h=Math.round(m/60); return L('vor '+h+' Std',h+' h ago'); }
@@ -4320,7 +4324,7 @@ function liveStripHtml(){
   const d=liveStats; if(!d) return '';
   const parts=[];
   if(d.online) parts.push('🟢 <b>'+d.online+'</b> '+L('online','online'));
-  if(d.today>=5) parts.push('👥 <b>'+d.today+'</b> '+L('Spieler heute','players today'));
+  if(d.today>=3) parts.push('👥 <b>'+d.today+'</b> '+L('Spieler heute','players today'));
   const feed=(d.feed||[]).slice(0,3).map(e=>'<div class="live-ev">✨ '+liveEventText(e)+' <span style="opacity:.55">· '+liveAgo(e.t)+'</span></div>').join('');
   if(!parts.length && !feed) return '';
   return (parts.length?'<div class="live-top">'+parts.join(' &nbsp;·&nbsp; ')+'</div>':'')+feed;
@@ -4392,7 +4396,7 @@ function openAdminConsole(){
   d = document.createElement('div'); d.id = 'adminCon';
   d.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#05081af2;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px;font-family:system-ui,sans-serif;color:#fff';
   document.body.appendChild(d);
-  admConSearch();
+  admConSearch(); admReportsLoad();
 }
 function admConClose(){ const d = document.getElementById('adminCon'); if(d) d.remove(); }
 async function admConSearch(){
@@ -4401,6 +4405,25 @@ async function admConSearch(){
   else { admCon.list = r.users; admCon.info = {total:r.total, all:r.totalUsers, online:r.online}; if(admCon.msg === 'Fehler') admCon.msg = ''; }
   admConPaint();
 }
+const ADM_SRC = {'save-stats':'Spiel / Profil','shop-buy-slot':'Shop','shop-buy':'Shop','admin-user-action':'Admin','daily-claim':'Tagesbonus','arena-buy-heart':'Arena-Herz','brain-claim':'Brain-Preis','braintest-finish':'Brain Test','social-claim':'Social-Bonus','daily-solve':'Tages-Rätsel','daily-hint':'Rätsel-Hinweis','?':'unbekannt'};
+function admCoinLogHtml(c){
+  const fmt = t => new Date(t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const rows = (list, col) => list.length ? list.map(e => '<div style="display:flex;gap:6px;font-size:12px;padding:2px 0"><span style="opacity:.6;width:92px">'+fmt(e.t)+'</span><b style="color:'+col+';width:60px">'+(e.d>0?'+':'')+e.d+'</b><span style="flex:1;opacity:.85">'+esc(ADM_SRC[e.s]||e.s)+'</span><span style="opacity:.6">'+e.b+'</span></div>').join('') : '<div style="font-size:12px;opacity:.6">Noch nichts aufgezeichnet.</div>';
+  return '<div style="background:#0b1020;border-radius:10px;padding:8px"><div style="font-size:12px;opacity:.7">Kontostand: '+c.balance+' (Verlauf zählt ab der Aktualisierung)</div>'
+    + '<div style="font-weight:800;margin-top:6px;color:#c6ff3d">Einnahmen</div>'+rows(c.income,'#c6ff3d')
+    + '<div style="font-weight:800;margin-top:8px;color:#ff8a9a">Ausgaben</div>'+rows(c.spend,'#ff8a9a')+'</div>';
+}
+function admReportsHtml(){
+  const r = admCon.reports; if(!r) return '';
+  const cn = {bug:'Fehler',player:'Spieler',message:'Nachricht',game:'Spiel',other:'Sonstiges'};
+  return '<div style="margin-top:12px;font-weight:800">Meldungen ('+r.open+' offen)</div>' + (r.reports.length ? r.reports.map(x =>
+    '<div style="background:#12182b;border:1px solid '+(x.done?'#ffffff22':'#ffb84d88')+';border-radius:14px;padding:10px;margin-top:8px;opacity:'+(x.done?.55:1)+'">'
+    + '<div style="font-size:12px;opacity:.75">'+esc(cn[x.cat]||x.cat)+' · '+new Date(x.t).toLocaleString('de-DE')+(x.who?' · von '+esc(x.who):' · anonym')+(x.target?' · betrifft '+esc(x.target):'')+'</div>'
+    + '<div style="margin-top:4px;font-size:14px;white-space:pre-wrap;word-break:break-word">'+esc(x.text)+'</div>'
+    + (x.email ? '<div style="margin-top:4px;font-size:13px">✉ <a style="color:#38bdf8" href="mailto:'+esc(x.email)+'">'+esc(x.email)+'</a></div>' : '')
+    + '<div style="display:flex;gap:6px;margin-top:6px"><button data-adm-rep="'+esc(x.id)+'" style="padding:6px 10px;border-radius:9px;border:1px solid #38bdf866;background:#0f1f3a;color:#fff;font-size:12px;cursor:pointer">'+(x.done?'Wieder öffnen':'✓ Erledigt')+'</button><button data-adm-repdel="'+esc(x.id)+'" style="padding:6px 10px;border-radius:9px;border:1px solid #ff5d8f;background:#3a0f1f;color:#fff;font-size:12px;cursor:pointer">Löschen</button></div></div>').join('') : '<div style="opacity:.6;font-size:13px">Keine Meldungen.</div>');
+}
+async function admReportsLoad(id, del){ const r = await adminCall('/api/admin-reports', id ? {id, del:!!del} : {}); if(r && r.ok){ admCon.reports = r; admConPaint(); } }
 function admConPaint(){
   const d = document.getElementById('adminCon'); if(!d) return;
   const on = adminViewOn(), btn = 'padding:9px 12px;border-radius:10px;border:1px solid #38bdf866;background:#0f1f3a;color:#fff;font-weight:700;font-size:13px;cursor:pointer';
@@ -4417,6 +4440,8 @@ function admConPaint(){
         + '<div style="display:flex;gap:6px"><input id="admMin" type="number" inputmode="numeric" placeholder="Minuten" value="60" style="'+inp+';width:90px"><button data-adm-do="timeout" style="'+btn+'">⏳ Timeout</button><button data-adm-do="mute" style="'+btn+'">🔇 Stumm</button></div>'
         + '<div style="display:flex;gap:6px"><input id="admWhy" placeholder="Grund (optional)" style="'+inp+';flex:1"><button data-adm-do="ban" style="'+btn+';border-color:#ff5d8f;background:#3a0f1f">🚫 Bann</button></div>'
         + '<div style="display:flex;gap:6px;flex-wrap:wrap"><button data-adm-do="unban" style="'+btn+'">Entbannen</button><button data-adm-do="unmute" style="'+btn+'">Stumm aus</button><button data-adm-do="'+(u.restricted?'unrestrict':'restrict')+'" style="'+btn+'">'+(u.restricted?'Einschr. aus':'Einschränken')+'</button><button data-adm-do="kick" style="'+btn+'">Abmelden</button></div>'
+        + '<button data-adm-do="coinlog" style="'+btn+'">📜 Münz-Verlauf (letzte 100 Einnahmen / Ausgaben)</button>'
+        + (admCon.coinlog && admCon.coinlog.u === u.username ? admCoinLogHtml(admCon.coinlog) : '')
         + (u.log && u.log.length ? '<div style="font-size:11px;opacity:.65">Zuletzt: '+u.log.map(x => esc(x.n)+' ('+admAgo(x.t)+')').join(' · ')+'</div>' : '')
         + (u.lastCheat ? '<div style="font-size:11px;opacity:.65">Schummel-Hinweis: '+esc(u.lastCheat.what)+'</div>' : '')
         + '</div>' : '')
@@ -4431,14 +4456,18 @@ function admConPaint(){
     + '<label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px"><input type="checkbox" id="admOn" '+(admCon.onlyOn?'checked':'')+' style="width:18px;height:18px"> Nur Spieler, die gerade online sind</label>'
     + '<div style="font-size:12px;opacity:.7;margin-top:6px">'+(admCon.info ? admCon.info.total+' Treffer · '+admCon.info.online+' online · '+admCon.info.all+' Konten' : '')+'</div>'
     + '<div id="admMsg" style="min-height:18px;margin-top:4px;font-size:13px;color:#c6ff3d">'+esc(admCon.msg||'')+'</div>'
+    + admReportsHtml()
     + admCon.list.map(row).join('') + (admCon.list.length ? '' : '<div style="opacity:.6;margin-top:12px;font-size:13px">Keine Spieler gefunden.</div>') + '</div>';
   const q = d.querySelector('#admQ'); q.onkeydown = e => { if(e.key === 'Enter') d.querySelector('#admGo').click(); };
   d.querySelector('#admGo').onclick = () => { admCon.q = q.value.trim(); admCon.onlyOn = d.querySelector('#admOn').checked; admCon.open = null; admConSearch(); };
   d.querySelector('#admOn').onchange = () => d.querySelector('#admGo').click();
   d.querySelectorAll('[data-adm-row]').forEach(el => el.onclick = () => { const nm = el.getAttribute('data-adm-row').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'); admCon.open = admCon.open === nm ? null : nm; admConPaint(); });
+  d.querySelectorAll('[data-adm-rep]').forEach(b => b.onclick = () => admReportsLoad(b.getAttribute('data-adm-rep'), false));
+  d.querySelectorAll('[data-adm-repdel]').forEach(b => b.onclick = () => { if(confirm('Meldung löschen?')) admReportsLoad(b.getAttribute('data-adm-repdel'), true); });
   d.querySelectorAll('[data-adm-do]').forEach(b => b.onclick = async () => {
     const act = b.getAttribute('data-adm-do'), u = admCon.open; if(!u) return;
     const amt = +(d.querySelector('#admAmt')||{}).value, mins = +(d.querySelector('#admMin')||{}).value, why = ((d.querySelector('#admWhy')||{}).value||'').trim();
+    if(act === 'coinlog'){ const cr = await adminCall('/api/admin-user-coins', {username:u}); if(cr && cr.ok){ admCon.coinlog = Object.assign({u}, cr); } else { admCon.msg = (cr && cr.error) || 'Fehler'; } admConPaint(); return; }
     if(act === 'coins' && !amt){ admCon.msg = 'Bitte einen Betrag eingeben.'; admConPaint(); return; }
     if(act === 'ban' && !confirm(u + ' dauerhaft bannen?')){ return; }
     const r = await adminCall('/api/admin-user-action', {username:u, action:act, amount:amt, minutes:mins, reason:why});
@@ -4564,7 +4593,7 @@ function toggleProfileMenu(ev){
     <button onclick="closeProfileMenu();renderAvatarPicker('account:'+account.profile.username, renderMainMenu)">${L('Profil ändern','Edit profile')}</button>
     <button onclick="closeProfileMenu();startFriendsFlow()">${L('Freunde','Friends')}</button>
     <button onclick="closeProfileMenu();openRecoveryKey()">${L('Schlüssel','Key')}</button>
-    <button onclick="closeProfileMenu();renderSettingsModal()">${L('Einstellungen','Settings')}</button>
+    <button onclick="closeProfileMenu();openReportModal()">🚩 ${L('Melden','Report')}</button>
     <button style="color:#ff7a8a" onclick="closeProfileMenu();logoutAccount()">${L('Abmelden','Log out')}</button>`;
   m.onclick = e => e.stopPropagation();
   (document.getElementById("app")||document.body).appendChild(m);
@@ -5844,11 +5873,35 @@ function renderSettingsModal(){
         <button class="btn ${account.profile.feedOptIn ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleFeedOptIn()">${account.profile.feedOptIn ? '✨ ' + L('Name wird gezeigt','Name shown') : '✨ ' + L('Anonym','Anonymous')}</button>
         <div class="settings-track" style="margin-top:8px;">${L('Wenn an, erscheint dein Name im öffentlichen Live-Feed (z. B. „Mia hat Klasse 2 erreicht“). Sonst steht dort „Ein Spieler“.','If on, your name appears in the public live feed (e.g. “Mia reached Class 2”). Otherwise it says “A player”.')}</div>
       </div>` : ``}
-      <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="openReportModal()">🚩 ${L('Melden (Fehler, Spieler, Nachricht)','Report (bug, player, message)')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
     </div>
   `;
   overlay.classList.remove("hidden");
   overlay.onclick = closeSettings; // Klick auf den abgedunkelten Hintergrund schließt
+}
+// ---- Melden: Fehler, Spieler/Name, Nachricht, Spiel oder Sonstiges an den Admin
+function openReportModal(prefTarget){
+  const overlay = document.getElementById("settingsOverlay"); if(!overlay) return;
+  const cats = [['bug',L('Fehler / Bug','Bug')],['player',L('Spieler / Name','Player / name')],['message',L('Nachricht (Chat)','Message (chat)')],['game',L('Spiel','Game')],['other',L('Sonstiges','Other')]];
+  overlay.innerHTML = `<div class="settings-panel" onclick="event.stopPropagation()">
+    <div class="settings-title">🚩 ${L('Melden','Report')}</div>
+    <div class="settings-track" style="margin-bottom:8px;">${L('Was möchtest du melden?','What do you want to report?')}</div>
+    <select id="rpCat" style="width:100%;margin-bottom:8px;padding:10px;border-radius:10px;background:#0b1020;color:#fff;border:1px solid #38bdf855;">${cats.map(c => `<option value="${c[0]}"${prefTarget && c[0]==='player' ? ' selected' : ''}>${c[1]}</option>`).join('')}</select>
+    <input id="rpTarget" type="text" maxlength="40" value="${esc(prefTarget||'')}" placeholder="${L('Name des Spielers (optional)','Player name (optional)')}" style="width:100%;margin-bottom:8px;">
+    <textarea id="rpText" maxlength="1000" rows="5" placeholder="${L('Erkläre kurz, was los ist (Grund, wo, wann).','Briefly explain what happened (reason, where, when).')}" style="width:100%;margin-bottom:8px;padding:10px;border-radius:10px;background:#0b1020;color:#fff;border:1px solid #38bdf855;box-sizing:border-box;font-family:inherit;"></textarea>
+    <input id="rpMail" type="email" maxlength="100" autocomplete="email" placeholder="${L('E-Mail für Rückfragen (optional)','Email for follow-up (optional)')}" style="width:100%;margin-bottom:8px;">
+    <div id="rpMsg" class="settings-track" style="min-height:18px;"></div>
+    <button class="btn btn-primary btn-block" onclick="sendReport()">${L('Absenden','Send')}</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeSettings()">${L('Abbrechen','Cancel')}</button>
+  </div>`;
+  overlay.classList.remove("hidden");
+}
+async function sendReport(){
+  const g = id => (document.getElementById(id)||{}).value || '', msg = document.getElementById('rpMsg');
+  const r = await apiCall('/api/report', { token: account ? account.token : null, cat: g('rpCat'), target: g('rpTarget'), text: g('rpText'), email: g('rpMail') });
+  if(r && r.ok){ if(msg){ msg.style.color='#c6ff3d'; msg.textContent = L('✓ Danke! Deine Meldung ist angekommen.','✓ Thanks! Your report was received.'); } setTimeout(closeSettings, 1400); }
+  else if(msg){ msg.style.color='#ff8a9a'; msg.textContent = (r && r.error) || L('Senden fehlgeschlagen.','Could not send.'); }
 }
 function closeSettings(){
   const overlay = document.getElementById("settingsOverlay");
@@ -15436,7 +15489,7 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     const list = document.getElementById('chatList'); if(!list) return;
     const m = me();
     const near = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-    list.innerHTML = msgs.length ? msgs.map(x => { const mine = m && x.u === m; return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:#c6ff3d">' + esc(x.u) + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>';
+    list.innerHTML = msgs.length ? msgs.map(x => { if(x.sys){ const tx = liveEventText({kind:x.k,name:x.nm,n:x.n,x:x.x}); return tx ? '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#2a2450;border:1px solid #8f7bff55;border-radius:99px;padding:5px 12px;font-size:12px;color:#d9d2ff">✨ ' + tx + '</span></div>' : ''; } const mine = m && x.u === m; return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:#c6ff3d">' + esc(x.u) + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>';
     if(stick || near) list.scrollTop = list.scrollHeight;
   }
   function foot(){
