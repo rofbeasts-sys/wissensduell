@@ -11,7 +11,7 @@ const TOTAL = ORDERED.length;
 const ING = new Set(); D.r.forEach(x => { ING.add(x[0]); ING.add(x[1]); });
 const USES = {}; D.r.forEach(x => { [x[0], x[1]].forEach(i => { (USES[i] = USES[i] || new Set()).add(x[2]); }); });
 function isDone(n){ const u = USES[n]; if(!u) return true; for(const r of u){ if(!have.includes(r)) return false; } return true; }
-const ENDS_AT = 100, PIN_AT = 50;
+const ENDS_AT = 100, PIN_AT = 50, HELP_COST = 50;
 const E = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function ukey(){ try{ return 'bp_chem_' + ((typeof account !== 'undefined' && account && account.profile && account.profile.username) || 'guest'); }catch(e){ return 'bp_chem_guest'; } }
 function load(){ try{ const v = JSON.parse(localStorage.getItem(ukey())); if(Array.isArray(v) && v.length) return BASE.filter(b => !v.includes(b)).concat(v); }catch(e){} return BASE.slice(); }
@@ -40,6 +40,7 @@ function draw(){
     <div class="ch-bar"><i style="width:${Math.round(have.length / TOTAL * 100)}%"></i></div>
     <div class="ch-row" style="align-items:flex-start"><div style="text-align:center"><div class="ch-slot" id="chA" onclick="chClear('A')" style="${pinA ? 'border-style:solid;border-color:#c6ff3d' : ''}">${slot(slotA)}</div><button class="btn ${pinA ? 'btn-primary' : 'btn-ghost'}" style="margin-top:6px;padding:5px 12px;font-size:12px" onclick="chPin()">${have.length < PIN_AT ? '&#128274; ab ' + PIN_AT : (pinA ? 'Fixiert' : 'Fixieren')}</button></div><span class="ch-plus" style="margin-top:34px">+</span><div class="ch-slot" id="chB" onclick="chClear('B')">${slot(slotB)}</div></div>
     <button class="btn btn-primary btn-block" onclick="chCombine()" ${slotA && slotB ? '' : 'style="opacity:.5"'}>KOMBINIEREN</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;font-size:13px;border-color:#ffc446" onclick="chHelp()">Hilfe · ${HELP_COST} Münzen</button>
     <div class="ch-msg" id="chMsg"></div>
     <button class="btn btn-ghost btn-block" style="margin-bottom:10px" onclick="chList()">SAMMLUNG · ALLE ELEMENTE</button>
     <input type="text" id="chSearch" placeholder="Suchen …" value="${E(filter)}" oninput="chFilter(this.value)" style="margin-top:6px;width:100%;background:#0b1022;color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:10px;font-size:14px;font-family:inherit">
@@ -72,6 +73,28 @@ function pick(n){
   else if(!slotA) slotA = n; else if(!slotB) slotB = n; else { slotA = n; slotB = null; }
   draw();
 }
+function helpPair(){
+  const c = D.r.filter(x => !have.includes(x[2]) && have.includes(x[0]) && have.includes(x[1]));
+  return c.length ? c[Math.floor(Math.random() * c.length)] : null;
+}
+window.chHelp = function(){
+  let coins = 0, ok = false;
+  try{ if(typeof fruitCoins === 'function'){ coins = fruitCoins(); ok = typeof account !== 'undefined' && !!account; } }catch(e){}
+  const p = document.createElement('div'); p.className = 'ch-pop'; p.id = 'chPop';
+  const close = "document.getElementById('chPop').remove()";
+  if(!ok){ p.innerHTML = `<div class="ch-card" style="border-color:rgba(255,255,255,.3)"><div style="font-size:20px;font-weight:900">Hilfe</div><div style="margin-top:10px;color:var(--text-dim)">Melde dich an, um Hilfe mit Münzen zu kaufen.</div><button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="${close}">OK</button></div>`; }
+  else if(!helpPair()){ p.innerHTML = `<div class="ch-card" style="border-color:rgba(255,255,255,.3)"><div style="font-size:20px;font-weight:900">Hilfe</div><div style="margin-top:10px;color:var(--text-dim)">Mit deinen Elementen gibt es gerade nichts Neues zu finden. Du zahlst nichts.</div><button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="${close}">OK</button></div>`; }
+  else { p.innerHTML = `<div class="ch-card" style="border-color:#ffc446"><div style="font-size:20px;font-weight:900">Hilfe</div><div style="margin-top:10px">Du bekommst zwei Elemente, die zusammen etwas Neues ergeben.</div><div style="margin-top:8px;color:#ffc446;font-weight:800">${HELP_COST} Münzen · du hast ${coins}</div><button class="btn btn-primary btn-block" style="margin-top:14px;${coins < HELP_COST ? 'opacity:.5' : ''}" onclick="chBuyHelp()">Kaufen</button><button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="${close}">Abbrechen</button></div>`; }
+  p.onclick = e => { if(e.target === p) p.remove(); };
+  document.body.appendChild(p);
+};
+window.chBuyHelp = function(){
+  const pr = helpPair(), pop = document.getElementById('chPop'); if(!pr){ if(pop) pop.remove(); return; }
+  let r = null; try{ r = fruitPay(HELP_COST); }catch(e){}
+  if(!r || !r.ok){ if(typeof toastMsg === 'function') toastMsg('Nicht genug Münzen.'); return; }
+  if(pop) pop.remove();
+  slotA = pr[0]; slotB = pr[1]; pinA = false; draw(); msg('Probiere diese zwei.', '#ffc446');
+};
 window.chPin = function(){ if(have.length < PIN_AT){ msg('Fixieren ab ' + PIN_AT + ' Elementen (' + have.length + '/' + PIN_AT + ').', '#9aa4c4'); return; } if(!slotA){ msg('Wähle erst ein Element.', '#9aa4c4'); return; } pinA = !pinA; draw(); };
 window.chClear = function(w){ if(w === 'A'){ slotA = null; pinA = false; } else slotB = null; draw(); };
 window.chFilter = function(v){ filter = v; const b = document.getElementById('chEls'); if(b){ b.innerHTML = els(); bind(); } };
