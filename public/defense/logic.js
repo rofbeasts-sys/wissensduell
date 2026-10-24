@@ -35,7 +35,7 @@ var HOUSES=[
  {id:7,k:"bolt",de:"Blitz-Haus",en:"Bolt House",fxde:"Schüsse springen auf mehr Gegner",fxen:"Shots jump to more enemies",v:BOLT,col:"#ffe27a"},
  {id:8,k:"fire",de:"Feuer-Haus",en:"Fire House",fxde:"Extra Schaden, Stufe 5 Flächenbrand",fxen:"Extra damage, level 5 fire area",v:FIRE,col:"#ff8a2b"}
 ];
-var HCOST=[50,100,300,3000,5000], HRAD=110, HMAX=3;
+var UPG=[500,1000,1500,2000], HB=90, HRAD=110, COINMUL=4.5, HGLOB={coco:1,gold:1};
 function houseVal(S,kind,x,y){ for(var i=0;i<S.houses.length;i++){ var h=S.houses[i]; if(HOUSES[h.kind].k!==kind) continue; if(x==null||Math.hypot(h.x-x,h.y-y)<=HRAD){ return HOUSES[h.kind].v[h.lv-1]; } } return 0; }
 /* ---- Fallen und Faehigkeiten ---- */
 var TRAPS=[
@@ -86,7 +86,7 @@ var BOSSES=[
  {de:"Zuckerguss-Monster",en:"Frosting Monster",hpm:1.1},{de:"Kraken",en:"Kraken",hpm:1.25},
  {de:"Eis-Yeti",en:"Ice Yeti",hpm:1.2},{de:"Das böse Gehirn",en:"The Evil Brain",hpm:1.6}
 ];
-function hpMul(L){ return 1+0.1*(L-1)+0.0028*(L-1)*(L-1); }
+function hpMul(L){ return (1+0.1*(L-1)+0.0028*(L-1)*(L-1))*(1+2.2*Math.max(0,(30-L)/30)); }
 
 /* ---- Welten: 10 Gebiete mit je 10 Leveln ---- */
 var ZONES=[
@@ -154,13 +154,13 @@ function waveDef(L,w){ // gibt Liste {t,type} zurueck
   ev.sort(function(a,b){ return a.t-b.t; });
   return ev;
 }
-function startCoins(L){ return Math.min(1100,150+L*11); }
+function startCoins(L){ return Math.min(1100,150+L*11)+100; }
 
 /* ---- Spielzustand ---- */
 function create(L){
   var lay=layout(L);
-  return { L:L, lay:lay, lives:10, maxLives:10, coins:startCoins(L), wave:0, status:"build", time:0, speed:1,
-    towers:[], houses:[], traps:[], mines:[], coco:0, goal:goalWaves(L), goalDone:false, enemies:[], shots:[], fx:[], queue:[], qt:0, uid:0, killed:0, lost:0, mul:hpMul(L), nextIn:0, auto:true,
+  return { L:L, lay:lay, lives:10, maxLives:10, freeT:2, coins:Math.max(0,L-4)*40, cmul:COINMUL+L*.1, wave:0, status:"build", time:0, speed:1,
+    towers:[], houses:[], traps:[], mines:[], coco:startCoins(L), goal:goalWaves(L), goalDone:false, enemies:[], shots:[], fx:[], queue:[], qt:0, uid:0, killed:0, lost:0, mul:hpMul(L), nextIn:0, auto:true,
     wroute:0, freeTrap:1, turbo:0, shieldN:0, pend:[], ab:ABIL.map(function(a){ return {id:a.id,cd:0}; }) };
 }
 function nextRoute(S){ var n=S.lay.paths.length; return n>1?(S.wave%n):0; }
@@ -171,24 +171,24 @@ function effStat(S,tw){ var T=TOWERS[tw.tp], st=towerStat(tw.tp,tw.lv), r=0,d=0,
   for(i=0;i<S.towers.length;i++){ var b=S.towers[i]; if(b===tw||TOWERS[b.tp].kind!=="buff") continue; if(Math.hypot(b.x-tw.x,b.y-tw.y)<=TOWERS[b.tp].range*RNG[b.lv-1]){ r+=BUFF[b.lv-1]; d+=BUFF[b.lv-1]*.8; } }
   var rm=1+r; if(S.turbo>0) rm*=2; if(tw.gum>0) rm*=.5;
   return {dmg:st.dmg*(1+d)*(1+.05*((S.tg&&S.tg[tw.tp])||0)),range:st.range*(1+rg)*(tw.blind>0?.6:1),rate:st.rate*rm,bonus:{rate:r,dmg:d,range:rg},hf:hf,hp:hp,hb:hb}; }
-function buildHouse(S,x,y,kind){ if(S.status==="won"||S.status==="lost"||S.status==="goal") return false; if(!canPlace(S,x,y)) return false; if(S.houses.length>=HMAX||S.coco<HCOST[0]) return false; for(var i=0;i<S.houses.length;i++) if(S.houses[i].kind===kind) return false; S.coco-=HCOST[0]; S.houses.push({id:++S.uid,kind:kind,lv:1,paid:HCOST[0],x:x,y:y,pt:0}); return true; }
-function houseUpCost(h){ return h.lv>=5?0:HCOST[h.lv]; }
-function upgradeHouse(S,id){ for(var i=0;i<S.houses.length;i++){ var h=S.houses[i]; if(h.id===id){ if(h.lv>=5) return false; var c=HCOST[h.lv]; if(S.coco<c) return false; S.coco-=c; h.paid+=c; h.lv++; return true; } } return false; }
-function sellHouse(S,id){ for(var i=0;i<S.houses.length;i++) if(S.houses[i].id===id){ S.coco+=Math.floor(S.houses[i].paid*.7); S.houses.splice(i,1); return true; } return false; }
-function build(S,x,y,tp){ var t=TOWERS[tp]; if(S.status==="won"||S.status==="lost"||S.coins<t.cost||!canPlace(S,x,y)) return false; S.coins-=t.cost; S.towers.push({id:++S.uid,tp:tp,lv:1,x:x,y:y,cd:.3,paid:t.cost,ang:0,flash:0,stun:0,blind:0,gum:0,mines:0}); return true; }
-function upCost(tw){ return tw.lv>=5?0:Math.round(TOWERS[tw.tp].cost*UPC[tw.lv]); }
-function upgrade(S,id){ var tw=S.towers.filter(function(x){return x.id===id})[0]; if(!tw||tw.lv>=5) return false; var c=upCost(tw); if(S.coins<c) return false; S.coins-=c; tw.paid+=c; tw.lv++; tw.flash=1; return true; }
-function sell(S,id){ for(var i=0;i<S.towers.length;i++) if(S.towers[i].id===id){ S.coins+=Math.floor(S.towers[i].paid*.7); S.mines=S.mines.filter(function(m){ return m.tw!==id; }); S.towers.splice(i,1); return true; } return false; }
-function placeTrap(S,type,x,y){ var T=TRAPS[type]; if(!T||S.status==="won"||S.status==="lost"||S.traps.length>=10) return false; var np=nearestPath(S.lay,x,y); if(np.d>28) return false; var free=S.freeTrap>0, cost=free?0:T.cost; if(S.coins<cost) return false; S.coins-=cost; if(free) S.freeTrap--; S.traps.push({id:++S.uid,type:type,x:np.x,y:np.y,life:T.life,uses:T.uses||1,hit:{},t:0}); return true; }
+function buildHouse(S,x,y,kind){ if(S.status==="won"||S.status==="lost"||S.status==="goal") return false; if(!canPlace(S,x,y)) return false; if(S.coco<HB) return false; if(HGLOB[HOUSES[kind].k]) for(var i=0;i<S.houses.length;i++) if(S.houses[i].kind===kind) return false; S.coco-=HB; S.houses.push({id:++S.uid,kind:kind,lv:1,paid:HB,paidC:0,x:x,y:y,pt:0}); return true; }
+function houseUpCost(h){ return h.lv>=5?0:UPG[h.lv-1]; }
+function upgradeHouse(S,id){ for(var i=0;i<S.houses.length;i++){ var h=S.houses[i]; if(h.id===id){ if(h.lv>=5) return false; var c=UPG[h.lv-1]; if(S.coins<c) return false; S.coins-=c; h.paidC=(h.paidC||0)+c; h.lv++; return true; } } return false; }
+function sellHouse(S,id){ for(var i=0;i<S.houses.length;i++) if(S.houses[i].id===id){ S.coco+=Math.floor(S.houses[i].paid*.7); S.coins+=Math.floor((S.houses[i].paidC||0)*.5); S.houses.splice(i,1); return true; } return false; }
+function build(S,x,y,tp){ var t=TOWERS[tp]; if(S.status==="won"||S.status==="lost"||(S.freeT<=0&&S.coco<t.cost)||!canPlace(S,x,y)) return false; var fr=S.freeT>0; if(fr) S.freeT--; else S.coco-=t.cost; S.towers.push({id:++S.uid,tp:tp,lv:1,x:x,y:y,cd:.3,paid:fr?0:t.cost,paidC:0,ang:0,flash:0,stun:0,blind:0,gum:0,mines:0}); return true; }
+function upCost(tw){ return tw.lv>=5?0:UPG[tw.lv-1]; }
+function upgrade(S,id){ var tw=S.towers.filter(function(x){return x.id===id})[0]; if(!tw||tw.lv>=5) return false; var c=upCost(tw); if(S.coins<c) return false; S.coins-=c; tw.paidC=(tw.paidC||0)+c; tw.lv++; tw.flash=1; return true; }
+function sell(S,id){ for(var i=0;i<S.towers.length;i++) if(S.towers[i].id===id){ S.coco+=Math.floor(S.towers[i].paid*.7); S.coins+=Math.floor((S.towers[i].paidC||0)*.5); S.mines=S.mines.filter(function(m){ return m.tw!==id; }); S.towers.splice(i,1); return true; } return false; }
+function placeTrap(S,type,x,y){ var T=TRAPS[type]; if(!T||S.status==="won"||S.status==="lost"||S.traps.length>=10) return false; var np=nearestPath(S.lay,x,y); if(np.d>28) return false; var free=S.freeTrap>0, cost=free?0:T.cost; if(S.coco<cost) return false; S.coco-=cost; if(free) S.freeTrap--; S.traps.push({id:++S.uid,type:type,x:np.x,y:np.y,life:T.life,uses:T.uses||1,hit:{},t:0}); return true; }
 function useAbility(S,i,x,y){ var a=ABIL[i], st=S.ab[i]; if(!a||!st||st.cd>0||S.status==="won"||S.status==="lost") return false;
   if(a.k==="meteor"){ if(x==null) return false; var rr=64; S.fx.push({k:"meteor",x:x,y:y,t:0,r:rr}); S.enemies.forEach(function(o){ if(!o.dead&&Math.hypot(o.x-x,o.y-y)<=rr+o.r*.4) dmgEnemy(S,o,150*S.mul); }); }
   else if(a.k==="freeze"){ S.enemies.forEach(function(o){ freezeE(o,3); }); S.fx.push({k:"wave",x:W/2,y:H/2,t:0,col:"#7dd3ff"}); }
-  else if(a.k==="coins"){ S.coins+=Math.round(40*(1+S.L*.05)); S.fx.push({k:"wave",x:W/2,y:60,t:0,col:"#ffc83d"}); }
+  else if(a.k==="coins"){ S.coins+=Math.round(250*(1+S.L*.04)); S.fx.push({k:"wave",x:W/2,y:60,t:0,col:"#ffc83d"}); }
   else if(a.k==="heal"){ S.lives=Math.min(S.maxLives,S.lives+2); }
   else if(a.k==="turbo"){ S.turbo=10; }
   else if(a.k==="shield"){ S.shieldN=5; }
   st.cd=a.cd; return true; }
-function startWave(S){ if(S.status!=="build") return false; S.queue=waveDef(S.L,S.wave).map(function(e){return {t:e.t,type:e.type,bk:e.bk}}); S.qt=0; S.wroute=nextRoute(S); S.wave++; S.status="run"; S.coins+=Math.round(8+S.wave*2); S.freeTrap=1; return true; }
+function startWave(S){ if(S.status!=="build") return false; S.queue=waveDef(S.L,S.wave).map(function(e){return {t:e.t,type:e.type,bk:e.bk}}); S.qt=0; S.wroute=nextRoute(S); S.wave++; S.status="run"; S.coco+=Math.round(8+S.wave*2); S.freeTrap=1; return true; }
 function spawn(S,type,route,bk,d0){ var d=ENEMIES[type], hp=d.hp*S.mul*(1+.035*(S.wave-1)); if(type==="boss"){ hp*=BOSSES[bk].hpm*(1+S.L*.02+Math.max(0,S.wave-S.goal)*.15); }
   var path=S.lay.paths[route]||S.lay.paths[0], sp0=posAt(path,d0||0);
   var e={id:++S.uid,type:type,hp:hp,max:hp,d:d0||0,spd:d.spd,r:d.r,x:sp0.x,y:sp0.y,slow:0,slowT:0,frz:0,pois:0,poisT:0,burn:0,burnT:0,dead:false,rew:d.rew*(1+S.L*.05),life:d.life,wob:Math.random()*6,route:route,fly:!!d.fly,ghost:!!d.ghost,imI:!!d.imI,imB:!!d.imB,imP:!!d.imP,imF:!!d.imF,armor:d.armor||0,sh:d.shield?hp*d.shield:0,age:0,jt:3,wt:3,ht:1};
@@ -204,7 +204,7 @@ function dmgEnemy(S,e,dm){ if(e.dead||dm<=0) return; if(e.armor) dm*=e.armor; if
   e.hp-=dm;
   if(e.type==="boss"&&e.bk===4&&e.hp>0&&e.hp<e.nextRush*e.max){ e.rush=2; e.nextRush-=.2; }
   if(e.hp<=0){ if(ENEMIES[e.type].revive&&!e.revived){ e.revived=1; e.hp=e.max*.5; S.fx.push({k:"spark",x:e.x,y:e.y,t:0,col:"#8ab86a"}); return; }
-    e.dead=true; var cn=Math.round(e.rew*(1+houseVal(S,"gold"))), cm=houseVal(S,"coco")||1, cg=Math.round(B_COCO(e.type)*cm); S.coins+=cn; S.coco+=cg; S.killed++; S.fx.push({k:"die",x:e.x,y:e.y,t:0,type:e.type,coins:cn,coco:cg});
+    e.dead=true; var cn=Math.round(e.rew*S.cmul*(1+houseVal(S,"gold"))), cm=houseVal(S,"coco")||1, cg=Math.round(e.rew*cm); S.coins+=cn; S.coco+=cg; S.killed++; S.fx.push({k:"die",x:e.x,y:e.y,t:0,type:e.type,coins:cn,coco:cg});
     if(e.type==="boss"&&e.bk===0){ for(var q=0;q<3;q++) S.pend.push({type:"bug",route:e.route,d:Math.max(0,e.d-q*8)}); } } }
 function splashAt(S,x,y,r,dm,air){ S.enemies.forEach(function(o){ if(!o.dead&&(air||!o.fly)&&Math.hypot(o.x-x,o.y-y)<=r+o.r*.4) dmgEnemy(S,o,dm); }); }
 function houseFx(S,e,st,dm){ if(e.dead&&!(st.hf||st.hp)) return; var k;
@@ -292,6 +292,6 @@ function step(S,dt){
   while(S.pend.length){ var pe=S.pend.shift(); spawn(S,pe.type,pe.route,0,pe.d); }
   for(i=S.fx.length-1;i>=0;i--){ S.fx[i].t+=dt; if(S.fx[i].t>(S.fx[i].k==="meteor"?.7:.5)) S.fx.splice(i,1); }
 }
-var api={CW:CW,COLS:COLS,ROWS:ROWS,W:W,H:H,TOWERS:TOWERS,ENEMIES:ENEMIES,BOSSES:BOSSES,ZONES:ZONES,TRAPS:TRAPS,ABIL:ABIL,FIRE:FIRE,POIS:POIS,BOLT:BOLT,PULL:PULL,BUFF:BUFF,zoneOf:zoneOf,layout:layout,mapType:mapType,nearestPath:nearestPath,suggestSpots:suggestSpots,posAt:posAt,canPlace:canPlace,nextRoute:nextRoute,placeTrap:placeTrap,useAbility:useAbility,goalWaves:goalWaves,waveDef:waveDef,create:create,build:build,upgrade:upgrade,upCost:upCost,sell:sell,startWave:startWave,step:step,towerStat:towerStat,effStat:effStat,HOUSES:HOUSES,HCOST:HCOST,HRAD:HRAD,HMAX:HMAX,buildHouse:buildHouse,upgradeHouse:upgradeHouse,houseUpCost:houseUpCost,sellHouse:sellHouse,houseVal:houseVal,hpMul:hpMul,rng:rng,startCoins:startCoins,DMG:DMG};
+var api={CW:CW,COLS:COLS,ROWS:ROWS,W:W,H:H,TOWERS:TOWERS,ENEMIES:ENEMIES,BOSSES:BOSSES,ZONES:ZONES,TRAPS:TRAPS,ABIL:ABIL,FIRE:FIRE,POIS:POIS,BOLT:BOLT,PULL:PULL,BUFF:BUFF,zoneOf:zoneOf,layout:layout,mapType:mapType,nearestPath:nearestPath,suggestSpots:suggestSpots,posAt:posAt,canPlace:canPlace,nextRoute:nextRoute,placeTrap:placeTrap,useAbility:useAbility,goalWaves:goalWaves,waveDef:waveDef,create:create,build:build,upgrade:upgrade,upCost:upCost,sell:sell,startWave:startWave,step:step,towerStat:towerStat,effStat:effStat,HOUSES:HOUSES,HB:HB,UPG:UPG,COINMUL:COINMUL,HRAD:HRAD,buildHouse:buildHouse,upgradeHouse:upgradeHouse,houseUpCost:houseUpCost,sellHouse:sellHouse,houseVal:houseVal,hpMul:hpMul,rng:rng,startCoins:startCoins,DMG:DMG};
 if(typeof module!=="undefined"&&module.exports) module.exports=api; else root.BDL=api;
 })(typeof window!=="undefined"?window:globalThis);

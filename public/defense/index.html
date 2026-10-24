@@ -70,7 +70,7 @@ canvas{border-radius:16px;box-shadow:0 0 0 1px #ffffff22,0 8px 30px #000a;touch-
 .gp{position:fixed;left:0;right:0;bottom:0;max-width:460px;margin:0 auto;background:#0d1226;border-top:2px solid #3de0ff;border-radius:18px 18px 0 0;padding:10px 14px 14px;z-index:36}.gp h3{margin:0 0 3px;font-size:15px}.gp p{margin:0 0 8px;font-size:12px;color:#b7c0dc}
 </style></head><body>
 <div id="game">
- <div class="hud"><button class="hb" id="bBack">←</button><h1 id="ttl"></h1><div class="pl" id="plLife"></div><div class="pl" id="plCoin"></div><div class="pl" id="plCoco"></div></div>
+ <div class="hud"><button class="hb" id="bBack">←</button><button class="hb" id="bHelp">?</button><h1 id="ttl"></h1><div class="pl" id="plLife"></div><div class="pl" id="plCoin"></div><div class="pl" id="plCoco"></div></div>
  <div id="cvwrap"><canvas id="cv"></canvas>
   <div class="abr" id="abr"></div><div class="rhint" id="rhint"></div>
   <div class="sheet" id="sheet"></div>
@@ -80,6 +80,7 @@ canvas{border-radius:16px;box-shadow:0 0 0 1px #ffffff22,0 8px 30px #000a;touch-
  <div class="bar"><button class="bb" id="bMap">Karte</button><button class="bb pri" id="bWave"></button><button class="bb" id="bSpd">x1</button><button class="bb" id="bPause">II</button></div>
 </div>
 <div id="mapscr"></div>
+<div id="help" class="ov" style="z-index:50"><div class="box" style="text-align:left;max-width:360px"><h2 style="font-size:20px">?</h2><div id="helpt" style="font-size:13px;line-height:1.5;color:#dfe5ff"></div><div style="text-align:center;margin-top:12px"><button class="btn pri" id="helpx">OK</button></div></div></div>
 <div id="gard"></div>
 <div id="dorf"></div>
 <script src="logic.js"></script>
@@ -331,13 +332,13 @@ function buildTray(){ var t=$("tray"), tabs=[["t",tx("Türme","Towers")],["h",tx
   if(trayTab==="t") ownedTowers().forEach(function(T){ h+='<button class="ti" data-k="t" data-i="'+T.id+'" style="--c:'+T.col+'"><svg viewBox="0 0 120 150" width="32" height="40">'+KSVG[T.id]+'</svg><b>'+shortName(T)+'</b><em>'+T.cost+'</em></button>'; });
   else if(trayTab==="h") B.HOUSES.filter(function(q){return gU("h",q.id)}).forEach(function(Hh){ h+='<button class="ti" data-k="h" data-i="'+Hh.id+'" style="--c:'+Hh.col+'">'+houseSvgStr(Hh.id,0,110,120).replace('width="110" height="120"','width="38" height="42"')+'<b>'+shortName(Hh)+'</b><em><svg viewBox="0 0 16 16" width="11" height="11" style="vertical-align:-1px">'+cocoIcon(8,8,1.2)+'</svg>'+B.HB+'</em></button>'; });
   else B.TRAPS.filter(function(q){return gU("f",q.id)}).forEach(function(Tr){ h+='<button class="ti" data-k="f" data-i="'+Tr.id+'" style="--c:'+Tr.col+'">'+trapSvg(Tr.id)+'<b>'+shortName(Tr)+'</b><em>'+Tr.cost+'</em></button>'; });
-  if(trayTab!=="t"&&h.indexOf('class="ti"')<0) h+='<div style="padding:14px 6px;font-size:12px;color:#9aa4c4">'+tx("Noch nichts freigeschaltet. Im Garten kaufen.","Nothing unlocked yet. Buy it in the garden.")+'</div>';
+  if(trayTab!=="t"&&h.indexOf('class="ti"')<0) h+='<div style="padding:14px 6px;font-size:12px;color:#9aa4c4">'+tx("Noch nichts freigeschaltet. Kaufe es im Dorf-Shop (Karte, Dorf, Shop).","Nothing unlocked yet. Buy it in the village shop (Map, Village, Shop).")+'</div>';
   h+='</div>'; t.innerHTML=h;
   Array.prototype.forEach.call(t.querySelectorAll(".tt button"),function(b){ b.onclick=function(){ trayTab=b.dataset.tab; arm=null; ghost=null; buildTray(); hudUpd(); }; });
   uiUpd(); }
 function uiUpd(){ if(!S) return;
   Array.prototype.forEach.call($("tray").querySelectorAll(".ti"),function(b){ var k=b.dataset.k, i=+b.dataset.i, ok;
-    if(k==="t") ok=S.coco>=TOW[i].cost; else if(k==="h") ok=S.coco>=B.HB&&!(HG[B.HOUSES[i].k]&&S.houses.some(function(x){return x.kind===i})); else { ok=S.freeTrap>0||S.coco>=B.TRAPS[i].cost; var em=b.querySelector("em"), tv=String(S.freeTrap>0?tx("gratis","free"):B.TRAPS[i].cost); if(em.textContent!==tv) em.textContent=tv; }
+    if(k==="t"){ ok=S.freeT>0||S.coco>=TOW[i].cost; var em0=b.querySelector("em"), tv0=S.freeT>0?tx("gratis","free"):String(TOW[i].cost); if(em0.textContent!==tv0) em0.textContent=tv0; } else if(k==="h") ok=S.coco>=B.HB&&!(HG[B.HOUSES[i].k]&&S.houses.some(function(x){return x.kind===i})); else { ok=S.freeTrap>0||S.coco>=B.TRAPS[i].cost; var em=b.querySelector("em"), tv=String(S.freeTrap>0?tx("gratis","free"):B.TRAPS[i].cost); if(em.textContent!==tv) em.textContent=tv; }
     b.classList.toggle("no",!ok); b.classList.toggle("arm",!!arm&&arm.k===k&&arm.i===i); });
   Array.prototype.forEach.call($("abr").querySelectorAll(".ab"),function(b){ var i=+b.dataset.i, cd=S.ab[i].cd, el=b.querySelector("i"); b.classList.toggle("cd",cd>0); b.classList.toggle("on",abilArm===i); var v=cd>0?String(Math.ceil(cd)):""; if(el.textContent!==v){ el.textContent=v; el.style.display=v?"block":"none"; } }); }
 var ABI={meteor:'<circle cx="38" cy="40" r="11" fill="#ff8a4d"/><path d="M38 40L14 14M30 34L8 26M34 46L16 56" stroke="#ffb03a" stroke-width="5" stroke-linecap="round"/><circle cx="35" cy="37" r="4" fill="#ffe27a"/>',
@@ -352,11 +353,11 @@ function buildAbil(){ var h=""; B.ABIL.forEach(function(a){ if(!gU("a",a.id)) re
 function cvPos(ev){ var r=cv.getBoundingClientRect(); return {x:(ev.clientX-r.left)/r.width*W, y:(ev.clientY-r.top)/r.height*H, in:ev.clientX>=r.left&&ev.clientX<=r.right&&ev.clientY>=r.top&&ev.clientY<=r.bottom, sc:r.height/H}; }
 function armCheck(p){ var o={x:p.x,y:p.y,ok:false};
   if(arm.k==="f"){ var np=B.nearestPath(S.lay,p.x,p.y); o.ok=np.d<=30; if(o.ok){ o.x=np.x; o.y=np.y; } o.ok=o.ok&&S.traps.length<10&&(S.freeTrap>0||S.coco>=B.TRAPS[arm.i].cost); }
-  else { o.ok=B.canPlace(S,p.x,p.y); if(arm.k==="t") o.ok=o.ok&&S.coco>=TOW[arm.i].cost; else o.ok=o.ok&&S.coco>=B.HB&&!(HG[B.HOUSES[arm.i].k]&&S.houses.some(function(h){return h.kind===arm.i})); }
+  else { o.ok=B.canPlace(S,p.x,p.y); if(arm.k==="t") o.ok=o.ok&&(S.freeT>0||S.coco>=TOW[arm.i].cost); else o.ok=o.ok&&S.coco>=B.HB&&!(HG[B.HOUSES[arm.i].k]&&S.houses.some(function(h){return h.kind===arm.i})); }
   return o; }
 function tryPlace(x,y){ if(!arm) return false; var ok=false, col;
   if(arm.k==="t"){ ok=B.build(S,x,y,arm.i); col=TOW[arm.i].col; } else if(arm.k==="h"){ ok=B.buildHouse(S,x,y,arm.i); col=B.HOUSES[arm.i].col; } else { ok=B.placeTrap(S,arm.i,x,y); col=B.TRAPS[arm.i].col; }
-  if(ok){ snd("place"); S.fx.push({k:"spark",x:x,y:y,t:0,col:col}); if(arm.k!=="t"||S.coco<TOW[arm.i].cost) arm=null; ghost=null; buildTray(); }
+  if(ok){ snd("place"); S.fx.push({k:"spark",x:x,y:y,t:0,col:col}); if(arm.k!=="t"||(S.freeT<=0&&S.coco<TOW[arm.i].cost)) arm=null; ghost=null; buildTray(); }
   else { snd("bad"); floaters.push({x:x,y:y,t:0,txt:"×"}); }
   hudUpd(); return ok; }
 $("tray").addEventListener("pointerdown",function(ev){ var b=ev.target.closest?ev.target.closest(".ti"):null; if(!b||!S) return; press={k:b.dataset.k,i:+b.dataset.i,x:ev.clientX,y:ev.clientY,drag:false,touch:ev.pointerType==="touch"}; });
@@ -404,6 +405,10 @@ $("bPause").onclick=function(){ paused=!paused; $("bPause").textContent=paused?"
 $("bMap").onclick=function(){ recordBest(); showMap(); };
 function quit(){ if(window.parent!==window) parent.postMessage({bpDefenseBack:true},location.origin); else location.href="/"; }
 $("bBack").onclick=quit;
+$("bHelp").onclick=function(){ paused=true; $("helpt").innerHTML=tx(
+ '<b>🥥 Kokosnüsse</b> (oben rechts): damit <b>setzt</b> du Türme, Häuser und Fallen. Die ersten 2 Türme jeder Runde sind gratis. Kokosnüsse bekommst du von besiegten Gegnern.<br><br><b>Münzen</b> (gelb): damit machst du Türme und Häuser <b>stärker</b>. Tippe auf ein Gebäude und dann auf Verbessern.<br><br><b>Türme</b> ziehst du aus der Leiste unten auf die Wiese, nicht auf den Weg. <b>Häuser</b> machen Türme in ihrer Nähe besser (sie müssen im Dorf-Shop gekauft sein). <b>Fallen</b> legst du auf den Weg.<br><br><b>Fähigkeiten</b> (rechts am Rand) haben eine Wartezeit. Der Meteor braucht ein Ziel: erst auf das Symbol, dann aufs Feld tippen.',
+ '<b>🥥 Coconuts</b> (top right): used to <b>place</b> towers, houses and traps. The first 2 towers each round are free. Defeated enemies drop coconuts.<br><br><b>Coins</b> (yellow): make towers and houses <b>stronger</b>. Tap a building, then Upgrade.<br><br>Drag <b>towers</b> from the bar onto the grass, not the path. <b>Houses</b> boost nearby towers (buy them in the village shop). Put <b>traps</b> on the path.<br><br><b>Skills</b> (right edge) have a cooldown. Meteor needs a target: tap its icon, then the field.'); $("help").classList.add("show"); };
+$("helpx").onclick=function(){ $("help").classList.remove("show"); paused=false; };
 
 function frame(ts){ requestAnimationFrame(frame); if(!S) return; var dt=last?Math.min(.05,(ts-last)/1000):0; last=ts; tm+=dt;
   if(!paused&&S.status!=="won"&&S.status!=="lost"&&S.status!=="goal"){ var k=Math.max(1,Math.ceil(dt*S.speed/.04)), l0=S.lives, kl=S.killed, i; for(i=0;i<k;i++) B.step(S,dt/k);
