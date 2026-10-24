@@ -4581,7 +4581,7 @@ function accountIndicatorHtml(){
     const av = (account.profile.betaPhase|0) ? framedAvatarHtml(account.profile.avatar, 22, account.profile.betaPhase) : (account.profile.avatar ? avatarHtml(account.profile.avatar, 22) : "👤");
     return `<div class="top-row"><button class="top-btn top-prof" onclick="toggleProfileMenu(event)">${av}<span>${L('Profil','Profile')} ▾</span></button>${stat}</div>`;
   }
-  return `<div class="top-row"><button class="top-btn top-login" onclick="renderAccountAuth('login')">${L('Anmelden','Log in')}</button>${stat}</div>`;
+  return `<div class="top-row"><button class="top-btn top-login" onclick="renderAccountAuth('login')">${L('Anmelden','Log in')}</button>${stat}<button class="top-btn" aria-label="${L('Einstellungen','Settings')}" onclick="renderSettingsModal()">⚙️</button></div>`;
 }
 function closeProfileMenu(){ const m=document.getElementById("profMenu"); if(m) m.remove(); document.removeEventListener("click", closeProfileMenu); }
 function toggleProfileMenu(ev){
@@ -4593,6 +4593,7 @@ function toggleProfileMenu(ev){
     <button onclick="closeProfileMenu();renderAvatarPicker('account:'+account.profile.username, renderMainMenu)">${L('Profil ändern','Edit profile')}</button>
     <button onclick="closeProfileMenu();startFriendsFlow()">${L('Freunde','Friends')}</button>
     <button onclick="closeProfileMenu();openRecoveryKey()">${L('Schlüssel','Key')}</button>
+    <button onclick="closeProfileMenu();renderSettingsModal()">⚙️ ${L('Einstellungen','Settings')}</button>
     <button onclick="closeProfileMenu();openReportModal()">🚩 ${L('Melden','Report')}</button>
     <button style="color:#ff7a8a" onclick="closeProfileMenu();logoutAccount()">${L('Abmelden','Log out')}</button>`;
   m.onclick = e => e.stopPropagation();
@@ -6971,7 +6972,6 @@ function renderMainMenu(){
       </div>
       <div class="row">
         <button class="btn btn-ghost" onclick="openGuide()">${L('Anleitung','Guide')}</button>
-        <button class="btn btn-ghost" onclick="renderSettingsModal()">${L('Einstellungen','Settings')}</button>
       </div>
     </div>
     ${legalLinksHtml()}
