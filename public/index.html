@@ -4366,15 +4366,85 @@ async function openAdminBeta(){
   };
   paint(await adminBetaCall({}));
 }
+
+/* ===== ADMIN-KONSOLE (Fenster beim Tippen auf das A) ===== */
+async function adminCall(url, extra){
+  try{ const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(Object.assign({key:adminKeyStored()}, extra||{}))}); return await r.json(); }
+  catch(e){ return {ok:false, error:'Verbindung fehlgeschlagen.'}; }
+}
+let admCon = { q:'', onlyOn:true, open:null, list:[], info:null, msg:'' };
+function admFmtUntil(t){ const m = Math.max(1, Math.ceil((t - Date.now())/60000)); return m >= 1440 ? Math.round(m/1440)+' T' : m >= 60 ? Math.round(m/60)+' Std' : m+' Min'; }
+function admAgo(t){ if(!t) return '–'; const m = Math.max(0, Math.round((Date.now()-t)/60000)); return m < 1 ? 'gerade' : m < 60 ? m+' Min' : m < 1440 ? Math.round(m/60)+' Std' : Math.round(m/1440)+' T'; }
+function openAdminConsole(){
+  let d = document.getElementById('adminCon'); if(d) d.remove();
+  if(!adminKeyStored()) return;
+  d = document.createElement('div'); d.id = 'adminCon';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100001;background:#05081af2;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px;font-family:system-ui,sans-serif;color:#fff';
+  document.body.appendChild(d);
+  admConSearch();
+}
+function admConClose(){ const d = document.getElementById('adminCon'); if(d) d.remove(); }
+async function admConSearch(){
+  const r = await adminCall('/api/admin-users', {query:admCon.q, onlineOnly:admCon.onlyOn});
+  if(!r || !r.ok){ admCon.list = []; admCon.info = null; admCon.msg = (r && r.error) || 'Fehler'; }
+  else { admCon.list = r.users; admCon.info = {total:r.total, all:r.totalUsers, online:r.online}; if(admCon.msg === 'Fehler') admCon.msg = ''; }
+  admConPaint();
+}
+function admConPaint(){
+  const d = document.getElementById('adminCon'); if(!d) return;
+  const on = adminViewOn(), btn = 'padding:9px 12px;border-radius:10px;border:1px solid #38bdf866;background:#0f1f3a;color:#fff;font-weight:700;font-size:13px;cursor:pointer';
+  const inp = 'padding:9px;border-radius:9px;border:1px solid #38bdf855;background:#0b1020;color:#fff;font-size:14px;min-width:0;box-sizing:border-box';
+  const row = u => {
+    const tags = (u.banned ? '<span class="adt" style="background:#7a1020">BANN</span>' : '') + (u.bannedUntil ? '<span class="adt" style="background:#7a4a10">TIMEOUT '+admFmtUntil(u.bannedUntil)+'</span>' : '') + (u.mutedUntil ? '<span class="adt" style="background:#5a3a8a">STUMM '+admFmtUntil(u.mutedUntil)+'</span>' : '') + (u.restricted ? '<span class="adt" style="background:#7a6010">EINGESCHR.</span>' : '') + (u.flags ? '<span class="adt" style="background:#444">⚠ '+u.flags+'</span>' : '');
+    const op = admCon.open === u.username;
+    const n = esc(u.username), q = n.replace(/'/g,'&#39;');
+    return '<div style="background:#12182b;border:1px solid '+(op?'#38bdf8':'#ffffff22')+';border-radius:14px;padding:10px;margin-top:8px">'
+      + '<div data-adm-row="'+q+'" style="display:flex;align-items:center;gap:8px;cursor:pointer"><span style="font-size:26px">'+esc(u.avatar||'🙂')+'</span><div style="flex:1;min-width:0"><div style="font-weight:800;word-break:break-word">'+(u.online?'🟢':'⚪')+' '+n+'</div><div style="font-size:11px;opacity:.7">🪙 '+u.coins+' · Klasse '+(u.klasse+1)+' · '+(u.online?'online':'zuletzt '+admAgo(u.lastSeen))+'</div></div><span style="opacity:.6">'+(op?'▲':'▼')+'</span></div>'
+      + (tags ? '<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">'+tags+'</div>' : '')
+      + (op ? '<div style="margin-top:10px;display:grid;gap:8px">'
+        + '<div style="display:flex;gap:6px"><input id="admAmt" type="number" inputmode="numeric" placeholder="Münzen (z.B. 500 oder -100)" style="'+inp+';flex:1"><button data-adm-do="coins" style="'+btn+'">Geben</button></div>'
+        + '<div style="display:flex;gap:6px"><input id="admMin" type="number" inputmode="numeric" placeholder="Minuten" value="60" style="'+inp+';width:90px"><button data-adm-do="timeout" style="'+btn+'">⏳ Timeout</button><button data-adm-do="mute" style="'+btn+'">🔇 Stumm</button></div>'
+        + '<div style="display:flex;gap:6px"><input id="admWhy" placeholder="Grund (optional)" style="'+inp+';flex:1"><button data-adm-do="ban" style="'+btn+';border-color:#ff5d8f;background:#3a0f1f">🚫 Bann</button></div>'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap"><button data-adm-do="unban" style="'+btn+'">Entbannen</button><button data-adm-do="unmute" style="'+btn+'">Stumm aus</button><button data-adm-do="'+(u.restricted?'unrestrict':'restrict')+'" style="'+btn+'">'+(u.restricted?'Einschr. aus':'Einschränken')+'</button><button data-adm-do="kick" style="'+btn+'">Abmelden</button></div>'
+        + (u.log && u.log.length ? '<div style="font-size:11px;opacity:.65">Zuletzt: '+u.log.map(x => esc(x.n)+' ('+admAgo(x.t)+')').join(' · ')+'</div>' : '')
+        + (u.lastCheat ? '<div style="font-size:11px;opacity:.65">Schummel-Hinweis: '+esc(u.lastCheat.what)+'</div>' : '')
+        + '</div>' : '')
+      + '</div>';
+  };
+  d.innerHTML = '<style>.adt{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px}</style><div style="max-width:520px;margin:0 auto;padding-bottom:40px">'
+    + '<div style="display:flex;align-items:center;gap:8px"><div style="font-size:20px;font-weight:900;flex:1">Admin</div><button onclick="admConClose()" style="'+btn+'">✕ Schließen</button></div>'
+    + '<div style="margin-top:10px;background:#12182b;border:1px solid #38bdf855;border-radius:14px;padding:10px"><div style="font-size:13px" id="admOnl">'+adminOnlineHtml()+'</div>'
+    + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button onclick="toggleAdminView().then(()=>admConPaint())" style="'+btn+'">'+(on?'👑 Admin-Ansicht':'👥 Öffentliche Ansicht')+' ⇄</button><button onclick="openAdminInbox()" style="'+btn+'">📬 Posteingang</button><button onclick="openAdminBeta()" style="'+btn+'">🏅 Beta</button><button onclick="openAdminReset()" style="'+btn+'">🧨 Reset</button><button onclick="admConClose();adminLogout()" style="'+btn+';opacity:.7">Abmelden</button></div></div>'
+    + '<div style="margin-top:12px;font-weight:800">Spieler</div>'
+    + '<div style="display:flex;gap:6px;margin-top:6px"><input id="admQ" value="'+esc(admCon.q)+'" placeholder="Name suchen" style="'+inp+';flex:1" autocomplete="off"><button id="admGo" style="'+btn+'">Suchen</button></div>'
+    + '<label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px"><input type="checkbox" id="admOn" '+(admCon.onlyOn?'checked':'')+' style="width:18px;height:18px"> Nur Spieler, die gerade online sind</label>'
+    + '<div style="font-size:12px;opacity:.7;margin-top:6px">'+(admCon.info ? admCon.info.total+' Treffer · '+admCon.info.online+' online · '+admCon.info.all+' Konten' : '')+'</div>'
+    + '<div id="admMsg" style="min-height:18px;margin-top:4px;font-size:13px;color:#c6ff3d">'+esc(admCon.msg||'')+'</div>'
+    + admCon.list.map(row).join('') + (admCon.list.length ? '' : '<div style="opacity:.6;margin-top:12px;font-size:13px">Keine Spieler gefunden.</div>') + '</div>';
+  const q = d.querySelector('#admQ'); q.onkeydown = e => { if(e.key === 'Enter') d.querySelector('#admGo').click(); };
+  d.querySelector('#admGo').onclick = () => { admCon.q = q.value.trim(); admCon.onlyOn = d.querySelector('#admOn').checked; admCon.open = null; admConSearch(); };
+  d.querySelector('#admOn').onchange = () => d.querySelector('#admGo').click();
+  d.querySelectorAll('[data-adm-row]').forEach(el => el.onclick = () => { const nm = el.getAttribute('data-adm-row').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'); admCon.open = admCon.open === nm ? null : nm; admConPaint(); });
+  d.querySelectorAll('[data-adm-do]').forEach(b => b.onclick = async () => {
+    const act = b.getAttribute('data-adm-do'), u = admCon.open; if(!u) return;
+    const amt = +(d.querySelector('#admAmt')||{}).value, mins = +(d.querySelector('#admMin')||{}).value, why = ((d.querySelector('#admWhy')||{}).value||'').trim();
+    if(act === 'coins' && !amt){ admCon.msg = 'Bitte einen Betrag eingeben.'; admConPaint(); return; }
+    if(act === 'ban' && !confirm(u + ' dauerhaft bannen?')){ return; }
+    const r = await adminCall('/api/admin-user-action', {username:u, action:act, amount:amt, minutes:mins, reason:why});
+    admCon.msg = r && r.ok ? '✓ ' + u + ': ' + r.note : '✗ ' + ((r && r.error) || 'Fehler');
+    if(r && r.ok){ const i = admCon.list.findIndex(x => x.username === u); if(i >= 0) admCon.list[i] = r.user; }
+    admConPaint();
+  });
+}
 function renderAdminPill(){
   let p = document.getElementById('adminPill');
   if(!adminKeyStored()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
-  const open = adminPanelOpen();
+  const open = false;
   const col = on ? '#ff5d8f' : '#38bdf8';
   const pos = adminPillPos(); p.style.cssText = 'position:fixed;left:' + pos.l + 'px;top:' + pos.t + 'px;z-index:99999;display:flex;gap:6px;align-items:center;padding:' + (open ? '4px 8px 4px 4px' : '0') + ';border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + col + ';color:#fff;box-shadow:0 4px 18px #0008';
-  const aBtn = '<span data-adm-a="1" title="Admin-Leiste (ziehen zum Verschieben)" style="cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center;width:' + (open ? '30px' : '38px') + ';height:' + (open ? '30px' : '38px') + ';border-radius:50%;background:' + col + ';color:#0a0d16;font:900 16px system-ui,sans-serif;flex:0 0 auto">A</span>';
+  const aBtn = '<span data-adm-a="1" title="Admin-Leiste (ziehen zum Verschieben)" style="cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center;width:' + (open ? '30px' : '48px') + ';height:' + (open ? '30px' : '48px') + ';border-radius:50%;background:' + col + ';color:#0a0d16;font:900 22px system-ui,sans-serif;flex:0 0 auto">A</span>';
   p.innerHTML = aBtn + (open ? '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminBeta()" title="Beta-Phasen" style="cursor:pointer;padding:2px 6px">🏅</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>' : '');
   adminPillDrag(p);
 }
@@ -4385,7 +4455,7 @@ function adminPillDrag(p){ const a=p.querySelector('[data-adm-a]'); if(!a) retur
   a.onpointerup=e=>{ if(!down) return; down=false; try{ a.releasePointerCapture(e.pointerId); }catch(x){} if(moved){ const r=p.getBoundingClientRect(); try{ localStorage.setItem('bp_admin_pos',JSON.stringify({l:Math.round(r.left),t:Math.round(r.top)})); }catch(x){} } else { toggleAdminPanel(); } };
   a.onpointercancel=()=>{ down=false; }; }
 function adminPanelOpen(){ try{ return localStorage.getItem('bp_admin_open') === '1'; }catch(e){ return false; } }
-function toggleAdminPanel(){ try{ localStorage.setItem('bp_admin_open', adminPanelOpen() ? '0' : '1'); }catch(e){} renderAdminPill(); }
+function toggleAdminPanel(){ openAdminConsole(); }
 async function toggleAdminView(){
   try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
   await loadFeatureFlags();
@@ -7214,7 +7284,7 @@ function renderShopScreen(){
   const msAfford = (profile.coins||0) >= MILESTONE_HEART_COST;
   const arenaFull = !!(shopArenaInfo && shopArenaInfo.hearts>=shopArenaInfo.maxHearts);
   const arenaAfford = (profile.coins||0)>=ARENA_HEART_COST_CLIENT;
-  const fantasyOn = !featureLocked('chess_fantasy');
+  const fantasyOn = false; /* Coming soon, bis Echtgeld/Kisten freigegeben sind */
   renderApp(`
     <div class="panel">
      <div class="bs-wrap">
@@ -7228,7 +7298,7 @@ function renderShopScreen(){
         <div style="--c:#bb55ff"><small>ARENA</small><b>${shopArenaInfo ? '❤️ ' + shopArenaInfo.hearts + '/' + shopArenaInfo.maxHearts : '–'}</b></div>
       </div>
       <button class="bs-link" ${fantasyOn ? 'onclick="openChessWorldShop()"' : 'disabled'}>♞ ${L('ZUM CHESS-SHOP','TO THE CHESS SHOP')}${fantasyOn ? '' : ' · Coming soon'}</button>
-      <button class="bs-link" onclick="fuaChests('shop')">✨ ${L('FOURUPS-KISTEN','FOURUPS CHESTS')}</button>
+      <button class="bs-link" disabled>✨ ${L('FOURUPS-KISTEN','FOURUPS CHESTS')} · Coming soon</button>
 
       <p style="color:var(--text-dim); font-size:12px; text-align:center; margin-top:-6px;">${L(`Münzen verdienst du durch neu freigeschaltete Erfolge (+${ACHV_COIN_REWARD}) und bestandene Haupttests (+${HAUPTTEST_COIN_REWARD}).`,`You earn coins from newly unlocked achievements (+${ACHV_COIN_REWARD}) and passed main tests (+${HAUPTTEST_COIN_REWARD}).`)}</p>
 
@@ -7237,23 +7307,7 @@ function renderShopScreen(){
       ${noticeToShow === "cancel" ? `<div class="rank-up-banner" style="opacity:.8;">Kauf abgebrochen, es wurde nichts abgebucht.</div>` : ``}
 
       <div class="bs-sec">${L('Münzen kaufen','Buy coins')}</div>
-      ${profile.isAccount ? `
-        ${shopPackages.length ? `
-          <div class="bs-packs">
-            ${shopPackages.map(pkg => `
-              <button class="bs-pack" onclick="shopBuyCoins('${pkg.id}')">
-                <span class="c">🪙 ${pkg.coins}</span>
-                <span class="p">${(pkg.priceCents/100).toFixed(2).replace('.',',')} €</span>
-              </button>
-            `).join("")}
-          </div>
-          <p style="color:var(--text-dim); font-size:11px; text-align:center; margin-top:-4px;">${L('Zahlung läuft über Stripe. Du wirst dafür kurz weitergeleitet.','Payment is handled by Stripe. You will be redirected briefly.')}</p>
-          <label style="display:flex; gap:10px; align-items:flex-start; font-size:12px; line-height:1.45; color:var(--text-dim); background:#1a0f3a; border:1px solid #3a2a6a; border-radius:12px; padding:10px 12px; cursor:pointer;">
-            <input type="checkbox" id="shopConsent" style="margin-top:3px; width:18px; height:18px; flex-shrink:0;">
-            <span>${L('Ich möchte, dass die Münzen sofort bereitgestellt werden, und weiß, dass ich dadurch mein <b>Widerrufsrecht verliere</b>. Ich habe die <a href="/legal.html#agb" target="_blank" rel="noopener" style="color:var(--accent-2)">AGB</a> gelesen. (Unter 18: nur mit Erlaubnis der Eltern.)','I want the coins delivered immediately and understand that I <b>lose my right of withdrawal</b>. I have read the <a href="/legal.html#agb" target="_blank" rel="noopener" style="color:var(--accent-2)">terms</a>. (Under 18: only with a parent’s permission.)')}</span>
-          </label>
-        ` : `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Münzen-Kauf ist gerade nicht verfügbar.','Coin purchases are currently unavailable.')}</p>`}
-      ` : `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto (Anmelden im Hauptmenü).','You need an account for this (log in on the main menu).')}</p>`}
+      <p style="color:var(--text-dim); font-size:13px; text-align:center;">🪙 ${L('Coming soon','Coming soon')}</p>
 
       <div class="bs-sec">${L('Herzen','Hearts')}</div>
       <div class="bs-card" style="--c:#7be0ff">
@@ -7307,6 +7361,7 @@ function shopBuyMilestoneHeart(){
   renderShopScreen(); shopFeedback(msg, !ok);
 }
 async function shopBuyCoins(packageId){
+  return; /* Coming soon: Echtgeld-Kauf vorerst gesperrt */
   const cb = document.getElementById('shopConsent');
   if(!cb || !cb.checked){
     const fb = document.getElementById('shopFeedback');
@@ -10817,7 +10872,7 @@ function fuaMenuRender(){
       <div class="picker-sub" style="margin-top:10px">${L('Wähle bis zu 4 Fähigkeiten ('+sel.length+'/4). Höhere Stufe = erscheint öfter. Seltene erscheinen insgesamt seltener.','Pick up to 4 abilities ('+sel.length+'/4). Higher level = shows up more often. Rarer ones appear less often overall.')}</div>
       <div class="fua-grid">${cards}</div>
       <div class="fua-load" style="margin:6px 0 10px">${path}</div>
-      <div class="actions-row" style="margin-bottom:10px;"><button class="btn" onclick="fuaChests('menu')">🎁 ${L('Kisten öffnen','Open chests')}</button><button class="btn btn-ghost" onclick="fuTable()">📋 ${L('Freischalt-Tabelle','Unlock table')}</button></div>
+      <div class="actions-row" style="margin-bottom:10px;"><button class="btn" disabled style="opacity:.55">🎁 ${L('Kisten öffnen','Open chests')} · Coming soon</button><button class="btn btn-ghost" onclick="fuTable()">📋 ${L('Freischalt-Tabelle','Unlock table')}</button></div>
       ${S.admin?`<div class="menu-grid" style="grid-template-columns:1fr 1fr 1fr;">
         <div class="mode-card" onclick="fuaStart('bot',1)"><div class="icon">🙂</div><h3>${L('Leicht','Easy')}</h3></div>
         <div class="mode-card" onclick="fuaStart('bot',2)"><div class="icon">😐</div><h3>${L('Mittel','Medium')}</h3></div>
