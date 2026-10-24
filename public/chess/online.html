@@ -39,6 +39,9 @@
   .btn{ flex:1; border:1.5px solid var(--line); background:var(--bg-alt); color:var(--text); border-radius:14px; padding:12px 8px; font-size:14px; font-weight:800; cursor:pointer; }
   .btn.primary{ background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#08110c; border:none; }
   .btn:disabled{ opacity:.4; }
+  .clk{ font-variant-numeric:tabular-nums; font-weight:900; font-size:22px; text-align:center; padding:4px 0; border-radius:12px; margin:4px 0; background:var(--bg-alt); border:1.5px solid var(--line); display:flex; justify-content:space-between; padding:6px 14px; }
+  .clk.run{ border-color:var(--accent); } .clk.low{ color:var(--bad); }
+  .clk small{ font-size:12px; font-weight:700; color:var(--text-dim); align-self:center; }
   .cap{ min-height:26px; font-size:18px; letter-spacing:1px; color:var(--text-dim); margin:6px 2px; display:flex; flex-wrap:wrap; gap:0; }
   .cap span{ display:inline-block; }
   .log{ background:var(--panel); border:1.5px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:12px; font-size:13px; color:var(--text-dim); max-height:120px; overflow:auto; line-height:1.7; }
@@ -70,21 +73,27 @@
     <div class="sub" id="sub"></div>
     <div class="msg err" id="loginMsg" style="display:none"></div>
     <div id="lobbyBody">
+      <div class="h2" id="hElo"></div><div class="item" id="eloBox"></div>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="rndBtn"></button></div>
       <div class="h2" id="hInv"></div><div class="list" id="invites"></div>
       <div class="h2" id="hFr"></div><div class="list" id="friends"></div>
       <div class="h2" id="hCode"></div>
+      <div class="chips" id="timeChips" style="margin:2px 0 8px"><button class="chip" id="tmOn"></button><button class="chip" id="tmOff"></button></div>
       <div class="row" style="margin-top:6px"><button class="btn primary" id="mkCode"></button></div>
       <div class="row"><input class="code" id="codeIn" maxlength="5" placeholder="CODE" autocomplete="off"><button class="btn" id="joinBtn"></button></div>
       <div class="msg err" id="lobbyErr"></div>
+      <div class="h2" id="hTop"></div><div class="list" id="topList"></div>
     </div>
   </div>
 
   <div id="game" style="display:none">
     <div class="chips" id="moveMode"></div>
     <div id="status"></div>
+    <div class="clk" id="clkTop"></div>
     <div class="cap" id="capTop"></div>
     <div class="boardwrap"><div id="board"></div></div>
     <div class="cap" id="capBot"></div>
+    <div class="clk" id="clkBot"></div>
     <div id="waitBox" style="display:none">
       <div class="msg" id="waitTxt"></div><div class="big" id="waitCode"></div>
       <div class="row"><button class="btn" id="copyBtn"></button><button class="btn" id="cancelBtn"></button></div>
@@ -101,24 +110,25 @@
 <script src="analysis.js"></script>
 <script src="/chess/pieces.js"></script>
 <script src="/chess/drag.js"></script>
+<script src="/chess/arrows.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
 const T = {
-  de:{ title:"Chess Online", sub:"Spiele live gegen einen Freund. Lade ihn ein oder schick ihm den Code.", hInv:"Einladungen", hFr:"Freunde einladen", hCode:"Per Code spielen",
+  de:{ title:"Chess Online", sub:"Spiele live gegen einen Freund oder einen zufälligen Gegner. Siege und Niederlagen ändern deine Elo-Punkte.", hInv:"Einladungen", hFr:"Freunde einladen", hCode:"Per Code spielen",
     noInv:"Keine Einladungen.", noFr:"Du hast noch keine Freunde. Füge welche im Hauptmenü unter Freunde hinzu.", invite:"Einladen", accept:"Annehmen", decline:"Ablehnen",
     mkCode:"Raum mit Code erstellen", join:"Beitreten", needLogin:"Bitte melde dich in Brain Pulse an, um online zu spielen.",
     waiting:"Warte auf deinen Freund … Code:", copy:"Code kopieren", copied:"Kopiert!", cancel:"Abbrechen", resign:"Aufgeben", confirmResign:"Wirklich aufgeben?",
     yourTurn:"Du bist dran", theirTurn:"%s ist dran", check:"Schach!", you:"Du", youAre:"Du spielst %s", white:"Weiß", black:"Schwarz", secs:"s",
     win:"Gewonnen!", loss:"Verloren", draw:"Remis", mate:"Schachmatt", stalemate:"Patt", insufficient:"Zu wenig Material", fifty:"50-Züge-Regel", threefold:"Dreifache Stellungswiederholung",
-    resign_:"Aufgegeben", time:"Zeit abgelaufen", toLobby:"Zur Lobby", close:"Schließen", promo:"Umwandeln in", invited:"%s hat dich eingeladen", err:"Das hat nicht geklappt." },
-  en:{ title:"Chess Online", sub:"Play live against a friend. Invite them or send them the code.", hInv:"Invitations", hFr:"Invite a friend", hCode:"Play with a code",
+    resign_:"Aufgegeben", time:"Zeit abgelaufen", toLobby:"Zur Lobby", close:"Schließen", promo:"Umwandeln in", invited:"%s hat dich eingeladen", err:"Das hat nicht geklappt.", hElo:"Dein Elo", random:"🌐 Zufälliger Gegner (Elo, mit Zeit)", searching:"Suche einen Gegner …", hTop:"Beste Spieler (Elo)", withTime:"⏱ Mit Zeit (10 Min + 5 s)", noTime:"∞ Ohne Zeit", timeLbl:"Mit Zeit", noTimeLbl:"Ohne Zeit", games:"Partien", rank:"Platz", noTop:"Noch keine gewerteten Partien.", eloChange:"Elo", unrated:"Nicht gewertet (zu kurz oder zu oft gegen denselben Gegner)." },
+  en:{ title:"Chess Online", sub:"Play live against a friend or a random opponent. Wins and losses change your Elo points.", hInv:"Invitations", hFr:"Invite a friend", hCode:"Play with a code",
     noInv:"No invitations.", noFr:"You have no friends yet. Add some in the main menu under Friends.", invite:"Invite", accept:"Accept", decline:"Decline",
     mkCode:"Create room with code", join:"Join", needLogin:"Please log in to Brain Pulse to play online.",
     waiting:"Waiting for your friend … Code:", copy:"Copy code", copied:"Copied!", cancel:"Cancel", resign:"Resign", confirmResign:"Really resign?",
     yourTurn:"Your move", theirTurn:"%s to move", check:"Check!", you:"You", youAre:"You play %s", white:"White", black:"Black", secs:"s",
     win:"You won!", loss:"You lost", draw:"Draw", mate:"Checkmate", stalemate:"Stalemate", insufficient:"Insufficient material", fifty:"50-move rule", threefold:"Threefold repetition",
-    resign_:"Resigned", time:"Out of time", toLobby:"Back to lobby", close:"Close", promo:"Promote to", invited:"%s invited you", err:"That did not work." }
+    resign_:"Resigned", time:"Out of time", toLobby:"Back to lobby", close:"Close", promo:"Promote to", invited:"%s invited you", err:"That did not work.", hElo:"Your Elo", random:"🌐 Random opponent (Elo, timed)", searching:"Looking for an opponent …", hTop:"Top players (Elo)", withTime:"⏱ Timed (10 min + 5 s)", noTime:"∞ No clock", timeLbl:"Timed", noTimeLbl:"No clock", games:"games", rank:"Rank", noTop:"No rated games yet.", eloChange:"Elo", unrated:"Not rated (too short or too many games against the same opponent)." }
 }[LANG];
 document.documentElement.lang = LANG;
 const SYM = { K:"♚︎", Q:"♛︎", R:"♜︎", B:"♝︎", N:"♞︎", P:"♟︎" };
@@ -143,6 +153,8 @@ $("backLink").onclick = (e) => { if(window.parent !== window){ e.preventDefault(
 function texts(){
   $("title").textContent = T.title; $("sub").textContent = T.sub;
   $("hInv").textContent = T.hInv; $("hFr").textContent = T.hFr; $("hCode").textContent = T.hCode;
+  $("hElo").textContent = T.hElo; $("hTop").textContent = T.hTop; $("rndBtn").textContent = T.random;
+  $("tmOn").textContent = T.withTime; $("tmOff").textContent = T.noTime; paintTime();
   $("mkCode").textContent = T.mkCode; $("joinBtn").textContent = T.join;
   $("copyBtn").textContent = T.copy; $("cancelBtn").textContent = T.cancel; $("resignBtn").textContent = T.resign;
   $("endAna").textContent = "🔎"; $("endLobby").textContent = T.toLobby; $("endClose").textContent = T.close;
@@ -150,7 +162,12 @@ function texts(){
 async function refreshLobby(){
   if(!token()){ $("loginMsg").style.display = "block"; $("loginMsg").textContent = T.needLogin; $("lobbyBody").style.display = "none"; return; }
   $("loginMsg").style.display = "none"; $("lobbyBody").style.display = "block";
-  const [inv, fr] = await Promise.all([ api("inbox"), apiRoot("/api/friends-list") ]);
+  const [inv, fr, rk] = await Promise.all([ api("inbox"), apiRoot("/api/friends-list"), api("ranking") ]);
+  if(rk && rk.ok){
+    $("eloBox").innerHTML = `<span class="nm">${rk.elo}</span><span style="color:var(--text-dim);font-size:13px">${rk.games} ${T.games}${rk.pos ? " · " + T.rank + " " + rk.pos : ""} · ${rk.wins}-${rk.losses}</span>`;
+    const tl = $("topList"); tl.innerHTML = rk.top.length ? "" : `<div class="msg">${T.noTop}</div>`;
+    rk.top.forEach(x => { const d = document.createElement("div"); d.className = "item"; d.innerHTML = `<span class="nm">${x.pos}. ${esc(x.name)}</span><span style="font-weight:800">${x.elo}</span>`; tl.appendChild(d); });
+  }
   const il = $("invites"); il.innerHTML = "";
   const list = (inv && inv.invites) || [];
   if(!list.length) il.innerHTML = `<div class="msg">${T.noInv}</div>`;
@@ -172,9 +189,13 @@ async function refreshLobby(){
   });
 }
 function lobbyErr(r){ $("lobbyErr").textContent = (r && r.error) || ""; }
+let useClock = (function(){ try{ return localStorage.getItem("bp_chess_clock") !== "0"; }catch(e){ return true; } })();
+function paintTime(){ $("tmOn").classList.toggle("active", useClock); $("tmOff").classList.toggle("active", !useClock); }
+$("tmOn").onclick = () => { useClock = true; try{ localStorage.setItem("bp_chess_clock","1"); }catch(e){} paintTime(); };
+$("tmOff").onclick = () => { useClock = false; try{ localStorage.setItem("bp_chess_clock","0"); }catch(e){} paintTime(); };
 async function createGame(invite){
   lobbyErr(); code = null;
-  const r = await api("create", invite ? { invite } : {});
+  const r = await api("create", Object.assign({ timed: useClock }, invite ? { invite } : {}));
   if(!r.ok){ if(r.code){ code = r.code; enterGame(); return; } lobbyErr(r); return; }
   code = r.code; enterGame();
 }
@@ -185,6 +206,13 @@ async function joinCode(c){
   if(!r.ok){ code = null; lobbyErr(r); return; }
   enterGame();
 }
+async function queueRandom(){
+  lobbyErr(); code = null;
+  const r = await api("queue");
+  if(!r.ok){ if(r.code){ code = r.code; enterGame(); return; } lobbyErr(r); return; }
+  code = r.code; enterGame();
+}
+$("rndBtn").onclick = queueRandom;
 $("mkCode").onclick = () => createGame();
 $("joinBtn").onclick = () => joinCode($("codeIn").value);
 $("codeIn").addEventListener("keydown", (e) => { if(e.key === "Enter") joinCode($("codeIn").value); });
@@ -205,13 +233,29 @@ async function poll(){
   if(!code || busy) return;
   const r = await api("state");
   if(!r.ok){ if(r.error){ leaveToLobby(); lobbyErr(r); } return; }
-  S = r; draw();
+  S = r; S._t = Date.now(); draw();
 }
+function fmtClock(ms){ ms = Math.max(0, ms); const t = Math.ceil(ms / 1000), m = Math.floor(t / 60), s = t % 60; return m + ":" + String(s).padStart(2, "0"); }
+function paintClocks(){
+  if(!S) return;
+  const top = $("clkTop"), bot = $("clkBot");
+  if(!S.timed){ const lbl = `<small>${T.noTimeLbl}</small>`; top.style.display = "none"; bot.style.display = "none"; return; }
+  top.style.display = ""; bot.style.display = "";
+  const el = S.status === "playing" ? Date.now() - (S._t || Date.now()) : 0;
+  const mineC = S.color === "b" ? "B" : "W", theirC = mineC === "W" ? "B" : "W";
+  const val = (c) => Math.max(0, S["clock" + c] - (S.status === "playing" && S.turn === c.toLowerCase() ? el : 0));
+  const paint = (node, c, who) => { const v = val(c); node.className = "clk" + (S.status === "playing" && S.turn === c.toLowerCase() ? " run" : "") + (v < 30000 ? " low" : ""); node.innerHTML = `<small>${who}</small><span>${fmtClock(v)}</span>`; };
+  paint(top, theirC, (S.color === "w" ? S.b : S.w) || ""); paint(bot, mineC, T.you);
+}
+setInterval(paintClocks, 250);
 function legalFor(r, c){
   // Zuglisten kommen aus der gleichen Engine wie beim Server (engine.js)
   return getLegalMoves(S.board, r, c, S.last);
 }
+var __lm = null, __cnt = null;
+function bpSound(){ try{ if(!S || !S.board) return; let n = 0; S.board.forEach(r => r.forEach(x => { if(x) n++; })); const sig = S.last ? [S.last.fr, S.last.fc, S.last.tr, S.last.tc].join() : ''; if(__lm !== null && sig && sig !== __lm) parent.sfx(n < __cnt ? 'capture' : 'move'); __lm = sig; __cnt = n; }catch(e){} }
 function draw(){
+  bpSound();
   const b = $("board"), flip = S.color === "b";
   b.innerHTML = "";
   const kingSq = S.check ? findKing(S.board, S.turn) : null;
@@ -238,10 +282,11 @@ function draw(){
   for(let i=0;i<S.log.length;i+=2) pairs.push(`<b>${i/2+1}.</b> ${S.log[i]}${S.log[i+1] ? "  " + S.log[i+1] : ""}`);
   lg.innerHTML = pairs.join(" &nbsp; "); lg.scrollTop = lg.scrollHeight;
 
+  paintClocks();
   const waiting = S.status === "waiting";
   $("waitBox").style.display = waiting ? "block" : "none";
   $("gameBtns").style.display = waiting ? "none" : "flex";
-  if(waiting){ $("waitTxt").textContent = T.waiting; $("waitCode").textContent = STREAMER ? "******" : S.code; }
+  if(waiting){ $("waitTxt").textContent = S.random ? T.searching : T.waiting; $("waitCode").textContent = S.random ? "" : (STREAMER ? "******" : S.code); $("copyBtn").style.display = S.random ? "none" : ""; }
   const st = $("status");
   if(waiting){ st.textContent = T.youAre.replace("%s", S.color === "w" ? T.white : T.black); st.style.color = "var(--accent-2)"; }
   else if(S.status === "over"){ st.textContent = ""; showEnd(); }
@@ -250,15 +295,20 @@ function draw(){
     let t = myTurn ? T.yourTurn : T.theirTurn.replace("%s", other || "");
     if(S.check) t += " · " + T.check;
     if(S.moveSecondsLeft != null) t += " · " + S.moveSecondsLeft + T.secs;
+    t += " · " + (S.timed ? T.timeLbl : T.noTimeLbl);
     st.textContent = t; st.style.color = S.check && myTurn ? "var(--bad)" : "var(--accent)";
   }
 }
 function showEnd(){
   if(shownEnd) return; shownEnd = true; rememberCode(null);
   const res = S.winner === "draw" ? "draw" : S.winner === S.color ? "win" : "loss";
+  try{ parent.sfxResult(res === 'win', res === 'draw'); }catch(e){}
   const whyMap = { mate:T.mate, stalemate:T.stalemate, insufficient:T.insufficient, fifty:T.fifty, threefold:T.threefold, resign:T.resign_, time:T.time };
   $("endTitle").textContent = (res === "win" ? "🏆 " : res === "loss" ? "💀 " : "🤝 ") + (res === "win" ? T.win : res === "loss" ? T.loss : T.draw);
-  $("endText").textContent = whyMap[S.why] || "";
+  let extra = "";
+  if(S.rated && S.eloDelta){ const me = S.color, d = S.eloDelta[me], after = S.eloAfter[me]; extra = "  ·  " + T.eloChange + " " + after + " (" + (d >= 0 ? "+" : "") + d + ")"; }
+  else if(S.rated === false && S.w && S.b) extra = "  ·  " + T.unrated;
+  $("endText").textContent = (whyMap[S.why] || "") + extra;
   $("endOv").classList.add("show");
   clearInterval(timer);
   try{ const k = "bp_chess_online_stats"; const s = JSON.parse(localStorage.getItem(k) || "null") || { games:0, wins:0, losses:0, draws:0 }; s.games++; if(res === "win") s.wins++; else if(res === "loss") s.losses++; else s.draws++; localStorage.setItem(k, JSON.stringify(s)); }catch(e){}
@@ -273,7 +323,7 @@ $("board").addEventListener("click", (e) => {
   if(p && p.col === S.color){ sel = { r, c }; moves = legalFor(r, c); } else { sel = null; moves = []; }
   draw();
 });
-bpMoveUI($("moveMode"));
+bpMoveUI($("moveMode")); if(window.bpArrows) bpArrows($("board"));
 bpDragInit({ board: $("board"),
   canPick: (r, c) => S && S.status === "playing" && S.turn === S.color && !busy && S.board[r][c] && S.board[r][c].col === S.color,
   pick: (r, c) => { sel = { r, c }; moves = legalFor(r, c); draw(); },
@@ -293,7 +343,7 @@ async function sendMove(mv, promTo){
   const pre = { board:S.board, last:S.last, col:S.color, move:Object.assign({}, mv, promTo ? { promTo } : {}) };
   const r = await api("move", { fr:mv.fr, fc:mv.fc, tr:mv.tr, tc:mv.tc, promTo });
   busy = false; sel = null; moves = [];
-  if(r.ok){ REC.push(pre); S = r; draw(); } else { poll(); }
+  if(r.ok){ REC.push(pre); S = r; S._t = Date.now(); draw(); } else { poll(); }
 }
 $("resignBtn").onclick = async () => { if(!S || S.status !== "playing" || !confirm(T.confirmResign)) return; const r = await api("resign"); if(r.ok){ S = r; draw(); } };
 $("cancelBtn").onclick = async () => { await api("leave"); leaveToLobby(); };
@@ -308,6 +358,7 @@ if(STREAMER) $("codeIn").type = "password";
   let saved = null; try{ saved = sessionStorage.getItem(CODE_KEY); }catch(e){}
   const qp = new URLSearchParams(location.search).get("code");
   if(qp && token()){ joinCode(qp); return; }
+  if(new URLSearchParams(location.search).get("mode") === "random" && token() && !saved){ queueRandom(); return; }
   if(saved && token()){ code = saved; enterGame(); return; }
   refreshLobby(); lobbyTimer = setInterval(refreshLobby, 4000);
 })();

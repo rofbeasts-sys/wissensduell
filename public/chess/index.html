@@ -57,6 +57,7 @@
 <div class="wrap">
   <div class="top"><a class="back" href="/" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}">←</a><h1 id="title">Chess Original</h1></div>
   <div class="sub" id="sub"></div>
+  <div class="row" id="onlineRow" style="margin:0 0 10px"><button class="btn" id="rndBtn"></button><button class="btn" id="frBtn"></button></div>
   <div class="chips" id="levels"></div>
   <div class="chips" id="moveMode"></div>
   <div id="status"></div>
@@ -80,16 +81,17 @@
 <script src="analysis.js"></script>
 <script src="/chess/pieces.js"></script>
 <script src="/chess/drag.js"></script>
+<script src="/chess/arrows.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
 const T = {
-  de:{ title:"Chess Original", sub:"Klassisches Schach gegen den Bot. Du spielst Weiß.", level:"Stärke", l1:"Anfänger", l2:"Leicht", l3:"Mittel", l4:"Meister",
+  de:{ title:"Chess Original", sub:"Klassisches Schach gegen den Bot. Du spielst Weiß.", level:"Stärke", l1:"Anfänger", l2:"Leicht", l3:"Mittel", l4:"Schwer",
     yourTurn:"Du bist dran", thinking:"Bot denkt …", check:"Schach!", newGame:"Neu", undo:"Zurück", resign:"Aufgeben",
     win:"Gewonnen!", loss:"Verloren", draw:"Remis", mate:"Schachmatt", stalemate:"Patt", insufficient:"Zu wenig Material", fifty:"50-Züge-Regel", threefold:"Dreifache Stellungswiederholung",
     youWin:"Du hast den Bot besiegt.", youLose:"Der Bot war diesmal besser.", youDraw:"Unentschieden.", resigned:"Du hast aufgegeben.", again:"Nochmal", close:"Schließen",
     promo:"Umwandeln in", stats:(s)=>`Bilanz: ${s.games} Partien · ${s.wins} Siege · ${s.draws} Remis · ${s.losses} Niederlagen`, confirmResign:"Wirklich aufgeben?" },
-  en:{ title:"Chess Original", sub:"Classic chess against the bot. You play White.", level:"Strength", l1:"Beginner", l2:"Easy", l3:"Medium", l4:"Master",
+  en:{ title:"Chess Original", sub:"Classic chess against the bot. You play White.", level:"Strength", l1:"Beginner", l2:"Easy", l3:"Medium", l4:"Hard",
     yourTurn:"Your move", thinking:"Bot is thinking …", check:"Check!", newGame:"New", undo:"Undo", resign:"Resign",
     win:"You won!", loss:"You lost", draw:"Draw", mate:"Checkmate", stalemate:"Stalemate", insufficient:"Insufficient material", fifty:"50-move rule", threefold:"Threefold repetition",
     youWin:"You beat the bot.", youLose:"The bot was better this time.", youDraw:"It's a draw.", resigned:"You resigned.", again:"Play again", close:"Close",
@@ -177,7 +179,7 @@ $("board").addEventListener("click", (e) => {
   render();
 });
 
-bpMoveUI($("moveMode"));
+bpMoveUI($("moveMode")); if(window.bpArrows) bpArrows($("board"));
 bpDragInit({ board: $("board"),
   canPick: (r, c) => !G.over && !G.busy && G.turn === "w" && G.board[r][c] && G.board[r][c].col === "w",
   pick: (r, c) => { G.selected = { r, c }; G.moves = getLegalMoves(G.board, r, c, G.last); render(); },
@@ -208,6 +210,7 @@ function doMove(mv, byPlayer){
   const sym = SYM[mover.t];
   let note = mv.castle ? (mv.castle === "k" ? "O-O" : "O-O-O") : `${sym}${sqName(mv.fr,mv.fc)}${captured ? "×" : "–"}${sqName(mv.tr,mv.tc)}${mv.promTo ? "=" + SYM[mv.promTo] : ""}`;
   G.board = applyMove(G.board, mv);
+  try{ parent.sfx(captured ? 'capture' : 'move'); }catch(e){}
   if(captured){ (mover.col === "w" ? G.capW : G.capB).push(captured); }
   G.half = (mover.t === "P" || captured) ? 0 : G.half + 1;
   G.last = mv; G.turn = mover.col === "w" ? "b" : "w"; G.selected = null; G.moves = [];
@@ -250,6 +253,7 @@ function botMove(){
 
 function finish(res){
   G.over = true; G.busy = false;
+  try{ parent.sfxResult(res.result === 'win', res.result === 'draw'); }catch(e){}
   render();
   const title = res.result === "win" ? T.win : res.result === "loss" ? T.loss : T.draw;
   const text = (res.why ? res.why + ", " : "") + (res.result === "win" ? T.youWin : res.result === "loss" ? T.youLose : T.youDraw);
@@ -287,6 +291,15 @@ $("endAna").onclick = () => { $("endOv").classList.remove("show"); bpAnalysis.sh
 $("endClose").onclick = () => { $("endOv").classList.remove("show"); };
 
 buildUi(); newGame();
+
+// Online spielen: Zufallsgegner (mit Elo-Punkten) oder Freunde. Die Hauptseite oeffnet die Online-Lobby.
+(function(){
+  const de = LANG === "de";
+  $("rndBtn").textContent = de ? "🌐 Zufälliger Gegner" : "🌐 Random opponent";
+  $("frBtn").textContent = de ? "👥 Gegen Freunde" : "👥 Against friends";
+  const go = (mode) => { if(window.parent !== window) parent.postMessage({ bpChessOnline: mode }, location.origin); else location.href = "/chess/online.html?mode=" + mode; };
+  $("rndBtn").onclick = () => go("random"); $("frBtn").onclick = () => go("friends");
+})();
 </script>
 </body>
 </html>
