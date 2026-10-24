@@ -4223,7 +4223,7 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 
 // Feature-Schalter (Coming soon): sicherer Standard = gesperrt, bis der Server
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
-let lockedFeatures = ['shop','arena','chess_online','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
+let lockedFeatures = ['arena','chess_online','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
@@ -6729,10 +6729,12 @@ function fruitGrant(n){ // Belohnung: n zufaellige Booster
 }
 async function shopBuySlot(){
   const r = fruitBuySlot();
+  if(r.ok) achvRecord({ t:'shop', kind:'slot' });
   renderShopScreen(); shopFeedback(r.ok ? L('✓ Zusatz-Speicher gekauft!','✓ Extra storage bought!') : (r.why === 'coins' ? L('Nicht genug Münzen.','Not enough coins.') : L('Dafür brauchst du ein Profil.','You need a profile for this.')), !r.ok);
 }
 async function shopBuyFruit(id){
   const r = fruitBuy(id);
+  if(r.ok) achvRecord({ t:'shop', kind:'booster' });
   renderShopScreen(); shopFeedback(r.ok ? L('✓ Booster gekauft!','✓ Booster bought!') : (r.why === 'coins' ? L('Nicht genug Münzen.','Not enough coins.') : L('Dafür brauchst du ein Profil.','You need a profile for this.')), !r.ok);
 }
 function brainSubmit(game, level, pts){ if(account) apiCall('/api/braining/submit', { token: account.token, game, level, pts }).catch(()=>{}); }
@@ -7367,6 +7369,7 @@ function shopFeedback(msg, isError){
 }
 function shopBuyMilestoneHeart(){
   const ok = speedMathBuyHeart(shopProfile);
+  if(ok) achvRecord({ t:'shop', kind:'heart' });
   const msg = ok ? L("✓ Herz aufgefüllt!","✓ Heart refilled!") : (shopProfile.speedMathHearts>=SPEEDMATH_DAILY_HEARTS ? L("Bereits volle Herzen.","Hearts are already full.") : L("Nicht genug Münzen.","Not enough coins."));
   renderShopScreen(); shopFeedback(msg, !ok);
 }
@@ -7393,6 +7396,7 @@ async function shopBuyArenaHeart(){
     shopProfile.coins = result.coins;
     account.profile.coins = result.coins;
   }
+  if(result.ok) achvRecord({ t:'shop', kind:'heart' });
   renderShopScreen();
   shopFeedback(result.ok ? L("✓ Herz aufgefüllt!","✓ Heart refilled!") : (result.error || L("Kauf fehlgeschlagen.","Purchase failed.")), !result.ok);
 }
@@ -8987,7 +8991,30 @@ function orderOfSpeedRuleText(rule){
   if(rule === "even") return L("Tippe NUR die GERADEN Zahlen (aufsteigend)","Tap ONLY the EVEN numbers (ascending)");
   return L("Tippe NUR die UNGERADEN Zahlen (aufsteigend)","Tap ONLY the ODD numbers (ascending)");
 }
+// Level 1-50: sanfter Einstieg in 7er-Zyklen. Pro Zyklus waechst die Zahlenmenge
+// von 4 auf 10, dann faengt der naechste Zyklus wieder bei 4 an, aber mit hoeheren
+// Zahlen (1.., 15.., 29.. bis ca. 100). Anfangs nur aufsteigend, spaeter mehr Regeln.
+function orderOfSpeedEasyRound(level){
+  const idx = level - 1, cycle = Math.floor(idx / 7), count = 4 + (idx % 7);
+  const base = 1 + cycle * 14, win = level <= 20 ? count + 2 : count * 2;
+  const rules = level <= 10 ? ["asc"] : level <= 20 ? ["asc", "desc"] : ORDEROFSPEED_RULES;
+  const rule = rules[Math.floor(Math.random()*rules.length)];
+  const all = []; for(let i = 0; i < win; i++) all.push(base + i);
+  let numbers, sequence;
+  if(rule === "even" || rule === "odd"){
+    const wantPool = orderOfSpeedShuffle(all.filter(n => (n % 2 === 0) === (rule === "even")));
+    const otherPool = orderOfSpeedShuffle(all.filter(n => (n % 2 === 0) !== (rule === "even")));
+    const wantCount = Math.min(count-1, wantPool.length, 2 + Math.floor(Math.random()*3));
+    const want = wantPool.slice(0, wantCount), other = otherPool.slice(0, count - wantCount);
+    numbers = want.concat(other); sequence = want.slice().sort((x,y)=>x-y);
+  } else {
+    numbers = orderOfSpeedShuffle(all).slice(0, count);
+    sequence = numbers.slice().sort((x,y) => rule === "asc" ? x-y : y-x);
+  }
+  return { rule, display: orderOfSpeedShuffle(numbers), sequence, nextIndex:0, done:[], hidden:false };
+}
 function orderOfSpeedGenerateRound(level){
+  if(level <= 50) return orderOfSpeedEasyRound(level);
   const count = orderOfSpeedCountForLevel(level);
   const max = orderOfSpeedMaxForLevel(level);
   const rule = ORDEROFSPEED_RULES[Math.floor(Math.random()*ORDEROFSPEED_RULES.length)];
