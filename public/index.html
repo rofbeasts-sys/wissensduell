@@ -4236,7 +4236,7 @@ async function loadFeatureFlags(){
 }
 
 /* ---- Gesamt-Reset: lokale Staende loeschen + Neustart-Hinweis ---- */
-const RESET_KEEP_KEYS = ['wq_lang','wq_music','wq_volume2','wq_streamer','wq_account_token','bp_admin_key','bp_admin_view','bp_admin_open','bp_reset_seen','bp_reset_notice'];
+const RESET_KEEP_KEYS = ['wq_lang','wq_music','wq_volume2','wq_streamer','wq_account_token','bp_admin_key','bp_admin_view','bp_admin_open','bp_admin_pos','bp_reset_seen','bp_reset_notice'];
 function checkServerReset(epoch){
   try{
     if(!epoch) return;
@@ -4373,10 +4373,17 @@ function renderAdminPill(){
   const on = adminViewOn();
   const open = adminPanelOpen();
   const col = on ? '#ff5d8f' : '#38bdf8';
-  p.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;display:flex;gap:6px;align-items:center;padding:' + (open ? '4px 8px 4px 4px' : '0') + ';border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + col + ';color:#fff;box-shadow:0 4px 18px #0008';
-  const aBtn = '<span onclick="toggleAdminPanel()" title="Admin-Leiste" style="cursor:pointer;display:flex;align-items:center;justify-content:center;width:' + (open ? '30px' : '38px') + ';height:' + (open ? '30px' : '38px') + ';border-radius:50%;background:' + col + ';color:#0a0d16;font:900 16px system-ui,sans-serif;flex:0 0 auto">A</span>';
+  const pos = adminPillPos(); p.style.cssText = 'position:fixed;left:' + pos.l + 'px;top:' + pos.t + 'px;z-index:99999;display:flex;gap:6px;align-items:center;padding:' + (open ? '4px 8px 4px 4px' : '0') + ';border-radius:999px;font:700 12px system-ui,sans-serif;background:' + (on ? '#3a0f1f' : '#0f1f3a') + ';border:1.5px solid ' + col + ';color:#fff;box-shadow:0 4px 18px #0008';
+  const aBtn = '<span data-adm-a="1" title="Admin-Leiste (ziehen zum Verschieben)" style="cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center;width:' + (open ? '30px' : '38px') + ';height:' + (open ? '30px' : '38px') + ';border-radius:50%;background:' + col + ';color:#0a0d16;font:900 16px system-ui,sans-serif;flex:0 0 auto">A</span>';
   p.innerHTML = aBtn + (open ? '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminBeta()" title="Beta-Phasen" style="cursor:pointer;padding:2px 6px">🏅</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>' : '');
+  adminPillDrag(p);
 }
+function adminPillPos(){ let o=null; try{ o=JSON.parse(localStorage.getItem('bp_admin_pos')||'null'); }catch(e){} const w=window.innerWidth, h=window.innerHeight; let l=o&&typeof o.l==='number'?o.l:10, t=o&&typeof o.t==='number'?o.t:h-56; l=Math.max(4,Math.min(w-48,l)); t=Math.max(4,Math.min(h-48,t)); return {l,t}; }
+function adminPillDrag(p){ const a=p.querySelector('[data-adm-a]'); if(!a) return; let sx=0,sy=0,ol=0,ot=0,moved=false,down=false;
+  a.onpointerdown=e=>{ down=true; moved=false; sx=e.clientX; sy=e.clientY; const r=p.getBoundingClientRect(); ol=r.left; ot=r.top; try{ a.setPointerCapture(e.pointerId); }catch(x){} };
+  a.onpointermove=e=>{ if(!down) return; const dx=e.clientX-sx, dy=e.clientY-sy; if(!moved&&Math.hypot(dx,dy)<8) return; moved=true; const r=p.getBoundingClientRect(); const l=Math.max(4,Math.min(window.innerWidth-r.width-4,ol+dx)), t=Math.max(4,Math.min(window.innerHeight-r.height-4,ot+dy)); p.style.left=l+'px'; p.style.top=t+'px'; };
+  a.onpointerup=e=>{ if(!down) return; down=false; try{ a.releasePointerCapture(e.pointerId); }catch(x){} if(moved){ const r=p.getBoundingClientRect(); try{ localStorage.setItem('bp_admin_pos',JSON.stringify({l:Math.round(r.left),t:Math.round(r.top)})); }catch(x){} } else { toggleAdminPanel(); } };
+  a.onpointercancel=()=>{ down=false; }; }
 function adminPanelOpen(){ try{ return localStorage.getItem('bp_admin_open') === '1'; }catch(e){ return false; } }
 function toggleAdminPanel(){ try{ localStorage.setItem('bp_admin_open', adminPanelOpen() ? '0' : '1'); }catch(e){} renderAdminPill(); }
 async function toggleAdminView(){
@@ -6783,7 +6790,7 @@ function renderMainMenu(){
       <div class="mode-card" onclick="startVocab()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="6" y="8" width="36" height="28" rx="6" fill="none" stroke="#ffc446" stroke-width="3.5"/><path d="M16 36L14 43L24 36" fill="none" stroke="#ffc446" stroke-width="3.5" stroke-linejoin="round"/><path d="M15 27L20 16L25 27M17 23.5H23" fill="none" stroke="#ffc446" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M29 20H35M32 20V27" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Vocab</h3>
-        <p>${L('Englisch-Vokabeln, Klasse 5 bis 10.','English vocabulary, grades 5 to 10.')}</p>
+        <p>${L('Englisch-Vokabeln: Schule, Reisen und Business.','English vocabulary: school, travel and business.')}</p>
       </div>
     </div>
 
