@@ -40,6 +40,20 @@ const CSS = `<style>
 .vz-bar{height:8px;background:rgba(255,255,255,.1);border-radius:9px;margin:8px 0}.vz-bar i{display:block;height:100%;background:linear-gradient(90deg,#c6ff3d,#3de0ff);border-radius:9px;transition:width .3s}
 .vz-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:2px solid rgba(255,255,255,.14);border-radius:14px;padding:11px 12px;margin-top:8px;color:#fff;font-family:inherit;width:100%;text-align:left;cursor:pointer}
 .vz-row .n{flex:1;font-weight:800;font-size:15px}.vz-row small{color:var(--text-dim);font-size:11px;display:block;font-weight:600}
+.vz-th{display:block;width:100%;text-align:left;background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:2px solid rgba(255,255,255,.12);border-radius:18px;padding:12px;margin-top:10px;color:#fff;font-family:inherit;cursor:pointer;box-sizing:border-box}
+.vz-th.all{border-color:#2f7a45;background:linear-gradient(135deg,#16331f,rgba(255,255,255,.03))}
+.vz-th-top{display:flex;align-items:center;gap:12px}.vz-th-em{font-size:34px;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:rgba(255,255,255,.08);flex:0 0 44px}
+.vz-th-n{flex:1;min-width:0;font-weight:900;font-size:16px;line-height:1.2}.vz-th-n small{display:block;font-size:12px;font-weight:600;color:var(--text-dim);margin-top:2px}.vz-th-st{font-size:13px;white-space:nowrap}
+.vz-th-pills{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.vz-th-pills .vz-pill{text-align:center;padding:7px 2px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vz-pill.next{box-shadow:0 0 0 2px #3de0ff inset}
+.vz-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.vz-tile{position:relative;border-radius:18px;padding:14px 8px 12px;text-align:center;cursor:pointer;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 24%,#151b2b),#151b2b 75%);border:1.5px solid color-mix(in srgb,var(--c) 45%,#151b2b);overflow:hidden;transition:transform .12s}
+.vz-tile:active{transform:scale(.96)}.vz-tile.done{border-color:var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 35%,transparent)}
+.vz-ring{width:74px;height:74px;margin:0 auto 6px;position:relative}.vz-ring svg{position:absolute;inset:0}
+.vz-ring .ic{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:30px;filter:drop-shadow(0 0 8px var(--c))}
+.vz-tile b{font-size:13px;display:block;line-height:1.2}.vz-tile span.s{font-size:11px;color:var(--text-dim);display:block;margin-top:3px}
+.vz-star{position:absolute;top:8px;right:8px;font-size:15px}
+.vz-dots{display:flex;gap:5px;justify-content:center;margin-top:8px}.vz-dots i{width:22px;height:5px;border-radius:4px;background:#2c3556}.vz-dots i.on{background:var(--c);box-shadow:0 0 6px var(--c)}
 .vz-pill{font-size:11px;font-weight:800;padding:4px 8px;border-radius:99px;background:rgba(255,255,255,.1);color:var(--text-dim)}
 .vz-pill.done{background:#16331f;color:#7cff8c}.vz-pill.next{background:#12304a;color:#3de0ff}
 .vz-step{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;margin-top:8px;border:2px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05)}
@@ -80,10 +94,12 @@ window.startVocab = function(){
 window.vocabAbt = function(id){
   done(); const a = ABT.find(x => x.id === id);
   let nextShown = false;
-  const rows = a.t.map(tid => { const t = themeById(tid), p = PT(tid), st = stepOf(tid), isNext = !nextShown && st < 3; if(isNext) nextShown = true;
-    const pill = (l, on, nx) => `<span class="vz-pill ${on ? 'done' : nx ? 'next' : ''}">${l}</span>`;
-    return `<button class="vz-row" onclick="vocabTheme('${tid}')"><span style="font-size:24px">${t.em}</span><span class="n">${E(LG(t.de, t.en))}<small>${t.w.length} ${LG('Wörter','words')}${stars(tid) ? ' · ' + '⭐'.repeat(stars(tid)) : ''}</small></span>${pill(LG('Lernen','Learn'), p.l, isNext && st === 0)}${pill(LG('Übung','Test'), p.t, isNext && st === 1)}${pill(LG('Gespräch','Talk'), p.gd, isNext && st === 2)}</button>`; }).join('');
-  renderApp(`<div class="panel">${CSS}<div class="picker-title">${a.em} ${LG(a.de, a.en)}</div><div class="picker-sub">${a.t.filter(t => PT(t).gd).length} / ${a.t.length} ${LG('Themen geschafft','topics done')}</div>${rows}
+  const PAL = ['#ff8fd0', '#3de0ff', '#ffb443', '#c084fc', '#ff5d6c', '#a3e635', '#ffd45a', '#7be0ff', '#fb7185', '#4ade80', '#f0abfc', '#67e8f9'];
+  const ring = (p, c) => { const r = 33, C = 2 * Math.PI * r; return `<svg width="74" height="74"><circle cx="37" cy="37" r="${r}" fill="none" stroke="#262e46" stroke-width="6"/><circle cx="37" cy="37" r="${r}" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C * p} ${C}" transform="rotate(-90 37 37)"/></svg>`; };
+  const rows = a.t.map((tid, i) => { const t = themeById(tid), p = PT(tid), st = stepOf(tid), c = PAL[i % PAL.length], names = [LG('Lernen','Learn'), LG('Übung','Test'), LG('Gespräch','Talk')];
+    const sub = st >= 3 ? LG('Alles geschafft','All done') : LG('Weiter: ','Next: ') + names[st];
+    return `<div class="vz-tile ${st >= 3 ? 'done' : ''}" style="--c:${c}" onclick="vocabTheme('${tid}')">${stars(tid) >= 3 ? '<div class="vz-star">⭐</div>' : ''}<div class="vz-ring">${ring(Math.min(st, 3) / 3, c)}<div class="ic">${t.em}</div></div><b>${E(LG(t.de, t.en))}</b><span class="s">${t.w.length} ${LG('Wörter','words')} · ${sub}</span><div class="vz-dots"><i class="${p.l ? 'on' : ''}"></i><i class="${p.t ? 'on' : ''}"></i><i class="${p.gd ? 'on' : ''}"></i></div></div>`; }).join('');
+  renderApp(`<div class="panel">${CSS}<div class="picker-title">${a.em} ${LG(a.de, a.en)}</div><div class="picker-sub">${a.t.filter(t => PT(t).gd).length} / ${a.t.length} ${LG('Themen geschafft','topics done')}</div><div class="vz-grid">${rows}</div>
   <button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="startVocab()">${LG('Zurück','Back')}</button></div>`);
 };
 window.vocabTheme = function(id){
