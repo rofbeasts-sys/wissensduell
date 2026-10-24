@@ -410,7 +410,8 @@ $("bHelp").onclick=function(){ paused=true; $("helpt").innerHTML=tx(
  '<b>🥥 Coconuts</b> (top right): used to <b>place</b> towers, houses and traps. The first 2 towers each round are free. Defeated enemies drop coconuts.<br><br><b>Coins</b> (yellow): make towers and houses <b>stronger</b>. Tap a building, then Upgrade.<br><br>Drag <b>towers</b> from the bar onto the grass, not the path. <b>Houses</b> boost nearby towers (buy them in the village shop). Put <b>traps</b> on the path.<br><br><b>Skills</b> (right edge) have a cooldown. Meteor needs a target: tap its icon, then the field.'); $("help").classList.add("show"); };
 $("helpx").onclick=function(){ $("help").classList.remove("show"); paused=false; };
 
-function frame(ts){ requestAnimationFrame(frame); if(!S) return; var dt=last?Math.min(.05,(ts-last)/1000):0; last=ts; tm+=dt;
+function frame(ts){ requestAnimationFrame(frame); if(!S) return;
+  if(S.status==="build"&&S.wave>=10&&S.wave%10===0&&S.feedW!==S.wave){ S.feedW=S.wave; try{ if(P&&P.feedEvent) P.feedEvent("wave",S.wave); }catch(e){} } var dt=last?Math.min(.05,(ts-last)/1000):0; last=ts; tm+=dt;
   if(!paused&&S.status!=="won"&&S.status!=="lost"&&S.status!=="goal"){ var k=Math.max(1,Math.ceil(dt*S.speed/.04)), l0=S.lives, kl=S.killed, i; for(i=0;i<k;i++) B.step(S,dt/k);
     if(S.lives<l0){ shake=.35; lvLeak=.4; snd("bad"); } if(S.killed>kl&&Math.random()<.5) snd("pop"); }
   if(shake>0) shake-=dt; if(lvLeak>0) lvLeak-=dt;
@@ -509,13 +510,13 @@ function treeSvg(id,sz,grow){
   return '<svg viewBox="0 0 100 100" width="'+sz+'" height="'+sz+'">'+o+'</svg>'; }
 var gSelT=null;
 function showGarden(){
-  var g=gGet(), roy=gRoyalOk(), h='<div class="mhd"><button class="hb" id="gclose">←</button><b>'+tx("Mein Garten","My garden")+'</b><span class="pl">🥥 '+g.n.toLocaleString("de-DE")+'</span></div><div class="mnote">'+tx("Kaufe einen Baum für den Turm, dann lass ihn wachsen: jede Stufe gibt dem Turm +5 % Schaden. Nüsse bekommst du für geschaffte Level.","Buy a tree for its tower, then grow it: each stage gives the tower +5% damage. Earn nuts by clearing levels.")+'</div>'+gTabs()+'<div class="gg">';
+  var g=gGet(), roy=gRoyalOk(), h='<div class="mhd"><button class="hb" id="gclose">←</button><b>'+tx("Mein Garten","My garden")+'</b><button class="hb" id="ghelp">?</button><span class="pl">🥥 '+g.n.toLocaleString("de-DE")+'</span></div><div class="mnote">'+tx("Kaufe einen Baum für den Turm, dann lass ihn wachsen: jede Stufe gibt dem Turm +5 % Schaden. Nüsse bekommst du für geschaffte Level.","Buy a tree for its tower, then grow it: each stage gives the tower +5% damage. Earn nuts by clearing levels.")+'</div>'+gTabs()+'<div class="gg">';
   if(gTab!=="t") h+=gRows(); else TOW.forEach(function(T){ var id=T.id, st=g.t[id], own=st!=null, locked=!own&&G_ROY.indexOf(id)>=0&&!roy, nm=tx(TREES[id][0],TREES[id][1]), tag;
     if(own) tag=st>=3?'<i class="ok">'+tx("Voll gewachsen","Fully grown")+'</i>':'<i class="ok">'+tx("Stufe ","Stage ")+st+'/3</i>'; else if(locked) tag='<i class="lock">🔒 '+tx("Level ","Level ")+G_ROYL+'</i>'; else tag='<i class="cost">'+tx("Kaufen 🥥 ","Buy 🥥 ")+gBuyCost(g)+'</i>';
     h+='<div class="gc'+(gSelT===id?" sel":"")+'" data-i="'+id+'"><div class="gi" style="'+(locked?"filter:grayscale(1) brightness(.5)":"")+'">'+treeSvg(id,own?92:80,own?"":"seed")+(own&&st>0?'<div class="gs">'+"★".repeat(st)+'</div>':"")+'</div><b>'+nm+'</b><span>'+tx("Turm: ","Tower: ")+tx(T.de,T.en)+'</span>'+tag+'</div>'; });
   h+='</div><div style="height:130px"></div>';
   var m=$("gard"); m.innerHTML=h+'<div class="gp" id="gp"></div>'; m.classList.add("show");
-  $("gclose").onclick=function(){ m.classList.remove("show"); showDorf(); };
+  $("ghelp").onclick=villageHelp; $("gclose").onclick=function(){ m.classList.remove("show"); showDorf(); };
   Array.prototype.forEach.call(m.querySelectorAll(".gc"),function(e){ e.onclick=function(){ gSelT=+e.dataset.i; Array.prototype.forEach.call(m.querySelectorAll(".gc"),function(x){ x.classList.toggle("sel",x===e); }); gPanel(); snd("tap"); }; });
   Array.prototype.forEach.call(m.querySelectorAll(".gt button"),function(b){ b.onclick=function(){ gTab=b.dataset.t; gSelT=null; showGarden(); }; });
   Array.prototype.forEach.call(m.querySelectorAll(".gr button"),function(b){ b.onclick=function(){ var k=b.dataset.k, id=+b.dataset.i, pr=+b.dataset.p, g2=gGet(); if(g2[k][id]||g2.n<pr){ snd("bad"); return; } g2.n-=pr; g2[k][id]=1; gSet(g2); snd("ding"); showGarden(); }; });
@@ -550,10 +551,13 @@ function dBg(){ if(dv.bgr) return dv.bgr; var c2=document.createElement("canvas"
   c.fillStyle="#a8743a"; for(var fx=10;fx<DW;fx+=22){ c.fillRect(fx,2,6,16); c.fillRect(fx,DH-18,6,16); } for(var fy=20;fy<DH-18;fy+=22){ c.fillRect(2,fy,6,16); c.fillRect(DW-8,fy,6,16); }
   dv.bgr=c2; return c2; }
 function dTreeScale(st){ return .82+st*.12; }
+function villageHelp(){ $("helpt").innerHTML=tx(
+ '<b>🥥 Nüsse</b> bekommst du, wenn du Level schaffst (mehr bei 3 Sternen und bei Endgegnern).<br><br><b>Bäume:</b> Jeder Baum schaltet seinen Turm für das Spiel frei. Neue Bäume kaufst du im <b>Shop</b>. Den ersten gekauften Baum bezahlst du mit 500 Nüssen, jeden weiteren mit 1000. Die Königs-Bäume gibt es ab Level 30.<br><br><b>Gießen:</b> Tippe einen Baum an und dann auf Gießen. Jede Stufe (bis 3) gibt dem Turm +5 % Schaden.<br><br><b>Verschieben:</b> Baum mit dem Finger an einen anderen Platz ziehen.<br><br>Im Shop schaltest du auch <b>Häuser, Fallen und Fähigkeiten</b> frei.',
+ '<b>🥥 Nuts</b> come from clearing levels (more for 3 stars and bosses).<br><br><b>Trees:</b> each tree unlocks its tower. Buy new trees in the <b>Shop</b>: the first costs 500 nuts, every further one 1000. Royal trees unlock at level 30.<br><br><b>Grow:</b> tap a tree, then Grow. Each stage (up to 3) gives the tower +5% damage.<br><br><b>Move:</b> drag a tree to another spot.<br><br>The shop also unlocks <b>houses, traps and skills</b>.'); $("help").classList.add("show"); }
 function showDorf(){ var g=gGet(), m=$("dorf"); m.classList.add("show"); $("gard").classList.remove("show"); $("mapscr").classList.remove("show");
   Object.keys(g.t).forEach(function(k){ dPos(g,+k); }); gSet(g);
-  m.innerHTML='<div class="mhd"><button class="hb" id="dback">←</button><b>'+tx("Mein Dorf","My village")+'</b><span class="pl" id="dnuts">🥥 '+g.n.toLocaleString("de-DE")+'</span></div><div id="dwrap"><canvas id="dcv" width="'+DW*2+'" height="'+DH*2+'"></canvas><div id="dpanel"></div></div><div class="dbar"><button class="bb" id="dshop">🛒 '+tx("Shop","Shop")+'</button><button class="bb pri" id="dplay">'+tx("Spielen","Play")+'</button></div>';
-  $("dback").onclick=$("dplay").onclick=function(){ dv.on=false; m.classList.remove("show"); showMap(); };
+  m.innerHTML='<div class="mhd"><button class="hb" id="dback">←</button><b>'+tx("Mein Dorf","My village")+'</b><button class="hb" id="dhelp">?</button><span class="pl" id="dnuts">🥥 '+g.n.toLocaleString("de-DE")+'</span></div><div id="dwrap"><canvas id="dcv" width="'+DW*2+'" height="'+DH*2+'"></canvas><div id="dpanel"></div></div><div class="dbar"><button class="bb" id="dshop">🛒 '+tx("Shop","Shop")+'</button><button class="bb pri" id="dplay">'+tx("Spielen","Play")+'</button></div>';
+  $("dhelp").onclick=villageHelp; $("dback").onclick=$("dplay").onclick=function(){ dv.on=false; m.classList.remove("show"); showMap(); };
   $("dshop").onclick=function(){ dv.on=false; m.classList.remove("show"); showGarden(); };
   dv.sel=null; dFit(); dPanel(); dv.on=true; dv.last=0; requestAnimationFrame(dFrame);
   var cvd=$("dcv"); cvd.onpointerdown=function(ev){ var p=dPt(ev), hit=dHit(p); if(hit!=null){ dv.sel=hit; var q=gGet().p[hit]; dv.drag={id:hit,sx:p.x,sy:p.y,moved:false,ox:q.x-p.x,oy:q.y-p.y}; try{ cvd.setPointerCapture(ev.pointerId); }catch(e){} snd("tap"); } else { dv.sel=null; } dPanel(); };
