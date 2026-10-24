@@ -1,0 +1,2282 @@
+[
+{
+"de": {
+"q": "Was ist die Hauptstadt von Frankreich?",
+"a": [
+"Paris",
+"Lyon",
+"Marseille",
+"Nizza"
+]
+},
+"en": {
+"q": "What is the capital of France?",
+"a": [
+"Paris",
+"Lyon",
+"Marseille",
+"Nice"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Italien?",
+"a": [
+"Rom",
+"Mailand",
+"Venedig",
+"Neapel"
+]
+},
+"en": {
+"q": "What is the capital of Italy?",
+"a": [
+"Rome",
+"Milan",
+"Venice",
+"Naples"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Spanien?",
+"a": [
+"Madrid",
+"Barcelona",
+"Sevilla",
+"Valencia"
+]
+},
+"en": {
+"q": "What is the capital of Spain?",
+"a": [
+"Madrid",
+"Barcelona",
+"Seville",
+"Valencia"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Deutschland?",
+"a": [
+"Berlin",
+"München",
+"Hamburg",
+"Köln"
+]
+},
+"en": {
+"q": "What is the capital of Germany?",
+"a": [
+"Berlin",
+"Munich",
+"Hamburg",
+"Cologne"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Japan?",
+"a": [
+"Tokio",
+"Kyoto",
+"Osaka",
+"Seoul"
+]
+},
+"en": {
+"q": "What is the capital of Japan?",
+"a": [
+"Tokyo",
+"Kyoto",
+"Osaka",
+"Seoul"
+]
+}
+},
+{
+"de": {
+"q": "Welcher ist der größte Ozean der Erde?",
+"a": [
+"Pazifik",
+"Atlantik",
+"Indischer Ozean",
+"Arktischer Ozean"
+]
+},
+"en": {
+"q": "Which is the largest ocean on Earth?",
+"a": [
+"Pacific",
+"Atlantic",
+"Indian Ocean",
+"Arctic Ocean"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Fluss ist der längste Europas?",
+"a": [
+"Wolga",
+"Donau",
+"Rhein",
+"Elbe"
+]
+},
+"en": {
+"q": "Which is the longest river in Europe?",
+"a": [
+"Volga",
+"Danube",
+"Rhine",
+"Elbe"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Kontinente gibt es?",
+"a": [
+"7",
+"5",
+"6",
+"8"
+]
+},
+"en": {
+"q": "How many continents are there?",
+"a": [
+"7",
+"5",
+"6",
+"8"
+]
+}
+},
+{
+"de": {
+"q": "Welches Land ist das größte der Erde (nach Fläche)?",
+"a": [
+"Russland",
+"Kanada",
+"China",
+"USA"
+]
+},
+"en": {
+"q": "Which is the largest country in the world (by area)?",
+"a": [
+"Russia",
+"Canada",
+"China",
+"USA"
+]
+}
+},
+{
+"de": {
+"q": "Auf welchem Kontinent liegt Ägypten?",
+"a": [
+"Afrika",
+"Asien",
+"Europa",
+"Südamerika"
+]
+},
+"en": {
+"q": "On which continent is Egypt?",
+"a": [
+"Africa",
+"Asia",
+"Europe",
+"South America"
+]
+}
+},
+{
+"de": {
+"q": "Wie heißt der höchste Berg der Erde?",
+"a": [
+"Mount Everest",
+"K2",
+"Mont Blanc",
+"Kilimandscharo"
+]
+},
+"en": {
+"q": "What is the highest mountain on Earth?",
+"a": [
+"Mount Everest",
+"K2",
+"Mont Blanc",
+"Kilimanjaro"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Österreich?",
+"a": [
+"Wien",
+"Salzburg",
+"Graz",
+"Innsbruck"
+]
+},
+"en": {
+"q": "What is the capital of Austria?",
+"a": [
+"Vienna",
+"Salzburg",
+"Graz",
+"Innsbruck"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Kanada?",
+"a": [
+"Ottawa",
+"Toronto",
+"Vancouver",
+"Montreal"
+]
+},
+"en": {
+"q": "What is the capital of Canada?",
+"a": [
+"Ottawa",
+"Toronto",
+"Vancouver",
+"Montreal"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Australien?",
+"a": [
+"Canberra",
+"Sydney",
+"Melbourne",
+"Perth"
+]
+},
+"en": {
+"q": "What is the capital of Australia?",
+"a": [
+"Canberra",
+"Sydney",
+"Melbourne",
+"Perth"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Brasilien?",
+"a": [
+"Brasília",
+"Rio de Janeiro",
+"São Paulo",
+"Salvador"
+]
+},
+"en": {
+"q": "What is the capital of Brazil?",
+"a": [
+"Brasília",
+"Rio de Janeiro",
+"São Paulo",
+"Salvador"
+]
+}
+},
+{
+"de": {
+"q": "Welches Land hat die Form eines Stiefels?",
+"a": [
+"Italien",
+"Spanien",
+"Griechenland",
+"Portugal"
+]
+},
+"en": {
+"q": "Which country is shaped like a boot?",
+"a": [
+"Italy",
+"Spain",
+"Greece",
+"Portugal"
+]
+}
+},
+{
+"de": {
+"q": "Auf welchem Kontinent liegt Brasilien?",
+"a": [
+"Südamerika",
+"Afrika",
+"Asien",
+"Europa"
+]
+},
+"en": {
+"q": "On which continent is Brazil?",
+"a": [
+"South America",
+"Africa",
+"Asia",
+"Europe"
+]
+}
+},
+{
+"de": {
+"q": "Welche Stadt wird „Big Apple“ genannt?",
+"a": [
+"New York",
+"Los Angeles",
+"Chicago",
+"Boston"
+]
+},
+"en": {
+"q": "Which city is called the “Big Apple”?",
+"a": [
+"New York",
+"Los Angeles",
+"Chicago",
+"Boston"
+]
+}
+},
+{
+"de": {
+"q": "Welches Meer liegt zwischen Europa und Afrika?",
+"a": [
+"Mittelmeer",
+"Nordsee",
+"Ostsee",
+"Schwarzes Meer"
+]
+},
+"en": {
+"q": "Which sea lies between Europe and Africa?",
+"a": [
+"Mediterranean Sea",
+"North Sea",
+"Baltic Sea",
+"Black Sea"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt der Schweiz?",
+"a": [
+"Bern",
+"Zürich",
+"Genf",
+"Basel"
+]
+},
+"en": {
+"q": "What is the capital of Switzerland?",
+"a": [
+"Bern",
+"Zurich",
+"Geneva",
+"Basel"
+]
+}
+},
+{
+"de": {
+"q": "Wie heißt die große Wüste in Nordafrika?",
+"a": [
+"Sahara",
+"Gobi",
+"Kalahari",
+"Namib"
+]
+},
+"en": {
+"q": "What is the big desert in North Africa called?",
+"a": [
+"Sahara",
+"Gobi",
+"Kalahari",
+"Namib"
+]
+}
+},
+{
+"de": {
+"q": "Welches ist das kleinste Land der Welt?",
+"a": [
+"Vatikanstadt",
+"Monaco",
+"Malta",
+"Liechtenstein"
+]
+},
+"en": {
+"q": "Which is the smallest country in the world?",
+"a": [
+"Vatican City",
+"Monaco",
+"Malta",
+"Liechtenstein"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt von Griechenland?",
+"a": [
+"Athen",
+"Sparta",
+"Thessaloniki",
+"Korinth"
+]
+},
+"en": {
+"q": "What is the capital of Greece?",
+"a": [
+"Athens",
+"Sparta",
+"Thessaloniki",
+"Corinth"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Fluss fließt durch Paris?",
+"a": [
+"Seine",
+"Loire",
+"Rhône",
+"Themse"
+]
+},
+"en": {
+"q": "Which river flows through Paris?",
+"a": [
+"Seine",
+"Loire",
+"Rhône",
+"Thames"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Fluss fließt durch London?",
+"a": [
+"Themse",
+"Seine",
+"Tiber",
+"Donau"
+]
+},
+"en": {
+"q": "Which river flows through London?",
+"a": [
+"Thames",
+"Seine",
+"Tiber",
+"Danube"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Beine hat eine Spinne?",
+"a": [
+"8",
+"6",
+"10",
+"4"
+]
+},
+"en": {
+"q": "How many legs does a spider have?",
+"a": [
+"8",
+"6",
+"10",
+"4"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Beine hat ein Insekt?",
+"a": [
+"6",
+"8",
+"4",
+"10"
+]
+},
+"en": {
+"q": "How many legs does an insect have?",
+"a": [
+"6",
+"8",
+"4",
+"10"
+]
+}
+},
+{
+"de": {
+"q": "Welches ist das größte Landtier?",
+"a": [
+"Elefant",
+"Giraffe",
+"Nashorn",
+"Nilpferd"
+]
+},
+"en": {
+"q": "Which is the largest land animal?",
+"a": [
+"Elephant",
+"Giraffe",
+"Rhino",
+"Hippo"
+]
+}
+},
+{
+"de": {
+"q": "Welches ist das schnellste Landtier?",
+"a": [
+"Gepard",
+"Löwe",
+"Pferd",
+"Antilope"
+]
+},
+"en": {
+"q": "Which is the fastest land animal?",
+"a": [
+"Cheetah",
+"Lion",
+"Horse",
+"Antelope"
+]
+}
+},
+{
+"de": {
+"q": "Welches Lebensmittel stellen Bienen her?",
+"a": [
+"Honig",
+"Käse",
+"Brot",
+"Butter"
+]
+},
+"en": {
+"q": "Which food do bees make?",
+"a": [
+"Honey",
+"Cheese",
+"Bread",
+"Butter"
+]
+}
+},
+{
+"de": {
+"q": "Welches Tier ist ein Säugetier?",
+"a": [
+"Delfin",
+"Hai",
+"Forelle",
+"Thunfisch"
+]
+},
+"en": {
+"q": "Which animal is a mammal?",
+"a": [
+"Dolphin",
+"Shark",
+"Trout",
+"Tuna"
+]
+}
+},
+{
+"de": {
+"q": "Wie nennt man ein junges Pferd?",
+"a": [
+"Fohlen",
+"Kalb",
+"Lamm",
+"Ferkel"
+]
+},
+"en": {
+"q": "What do you call a young horse?",
+"a": [
+"Foal",
+"Calf",
+"Lamb",
+"Piglet"
+]
+}
+},
+{
+"de": {
+"q": "Wie nennt man ein junges Schaf?",
+"a": [
+"Lamm",
+"Fohlen",
+"Kitz",
+"Küken"
+]
+},
+"en": {
+"q": "What do you call a young sheep?",
+"a": [
+"Lamb",
+"Foal",
+"Kid",
+"Chick"
+]
+}
+},
+{
+"de": {
+"q": "Welches Tier legt Eier?",
+"a": [
+"Huhn",
+"Kuh",
+"Hund",
+"Katze"
+]
+},
+"en": {
+"q": "Which animal lays eggs?",
+"a": [
+"Chicken",
+"Cow",
+"Dog",
+"Cat"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Vogel kann nicht fliegen?",
+"a": [
+"Pinguin",
+"Adler",
+"Eule",
+"Taube"
+]
+},
+"en": {
+"q": "Which bird cannot fly?",
+"a": [
+"Penguin",
+"Eagle",
+"Owl",
+"Pigeon"
+]
+}
+},
+{
+"de": {
+"q": "Welches Tier ist das größte der Welt?",
+"a": [
+"Blauwal",
+"Elefant",
+"Hai",
+"Giraffe"
+]
+},
+"en": {
+"q": "Which is the largest animal in the world?",
+"a": [
+"Blue whale",
+"Elephant",
+"Shark",
+"Giraffe"
+]
+}
+},
+{
+"de": {
+"q": "Wovon ernährt sich ein Panda hauptsächlich?",
+"a": [
+"Bambus",
+"Fisch",
+"Gras",
+"Beeren"
+]
+},
+"en": {
+"q": "What does a panda mainly eat?",
+"a": [
+"Bamboo",
+"Fish",
+"Grass",
+"Berries"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Herzen hat ein Oktopus?",
+"a": [
+"3",
+"1",
+"2",
+"4"
+]
+},
+"en": {
+"q": "How many hearts does an octopus have?",
+"a": [
+"3",
+"1",
+"2",
+"4"
+]
+}
+},
+{
+"de": {
+"q": "Welches Tier hat einen Rüssel?",
+"a": [
+"Elefant",
+"Nashorn",
+"Giraffe",
+"Zebra"
+]
+},
+"en": {
+"q": "Which animal has a trunk?",
+"a": [
+"Elephant",
+"Rhino",
+"Giraffe",
+"Zebra"
+]
+}
+},
+{
+"de": {
+"q": "Welche Farbe hat ein Flamingo?",
+"a": [
+"Rosa",
+"Blau",
+"Grün",
+"Gelb"
+]
+},
+"en": {
+"q": "What color is a flamingo?",
+"a": [
+"Pink",
+"Blue",
+"Green",
+"Yellow"
+]
+}
+},
+{
+"de": {
+"q": "Welches Tier kann seine Farbe wechseln?",
+"a": [
+"Chamäleon",
+"Frosch",
+"Schlange",
+"Hase"
+]
+},
+"en": {
+"q": "Which animal can change its color?",
+"a": [
+"Chameleon",
+"Frog",
+"Snake",
+"Rabbit"
+]
+}
+},
+{
+"de": {
+"q": "Welches Säugetier kann fliegen?",
+"a": [
+"Fledermaus",
+"Eichhörnchen",
+"Igel",
+"Hase"
+]
+},
+"en": {
+"q": "Which mammal can fly?",
+"a": [
+"Bat",
+"Squirrel",
+"Hedgehog",
+"Rabbit"
+]
+}
+},
+{
+"de": {
+"q": "Wie nennt man ein Tier, das nur Pflanzen frisst?",
+"a": [
+"Pflanzenfresser",
+"Fleischfresser",
+"Allesfresser",
+"Insektenfresser"
+]
+},
+"en": {
+"q": "What do you call an animal that only eats plants?",
+"a": [
+"Herbivore",
+"Carnivore",
+"Omnivore",
+"Insectivore"
+]
+}
+},
+{
+"de": {
+"q": "Wo leben Eisbären?",
+"a": [
+"Arktis",
+"Antarktis",
+"Afrika",
+"Australien"
+]
+},
+"en": {
+"q": "Where do polar bears live?",
+"a": [
+"Arctic",
+"Antarctica",
+"Africa",
+"Australia"
+]
+}
+},
+{
+"de": {
+"q": "Wo leben die meisten Pinguine?",
+"a": [
+"Antarktis",
+"Arktis",
+"Sahara",
+"Dschungel"
+]
+},
+"en": {
+"q": "Where do most penguins live?",
+"a": [
+"Antarctica",
+"Arctic",
+"Sahara",
+"Jungle"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Planet ist der Sonne am nächsten?",
+"a": [
+"Merkur",
+"Venus",
+"Erde",
+"Mars"
+]
+},
+"en": {
+"q": "Which planet is closest to the Sun?",
+"a": [
+"Mercury",
+"Venus",
+"Earth",
+"Mars"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Planet wird der Rote Planet genannt?",
+"a": [
+"Mars",
+"Jupiter",
+"Venus",
+"Saturn"
+]
+},
+"en": {
+"q": "Which planet is called the Red Planet?",
+"a": [
+"Mars",
+"Jupiter",
+"Venus",
+"Saturn"
+]
+}
+},
+{
+"de": {
+"q": "Welcher ist der größte Planet unseres Sonnensystems?",
+"a": [
+"Jupiter",
+"Saturn",
+"Erde",
+"Neptun"
+]
+},
+"en": {
+"q": "Which is the largest planet in our solar system?",
+"a": [
+"Jupiter",
+"Saturn",
+"Earth",
+"Neptune"
+]
+}
+},
+{
+"de": {
+"q": "Welches Gas atmen wir zum Leben ein?",
+"a": [
+"Sauerstoff",
+"Stickstoff",
+"Wasserstoff",
+"Helium"
+]
+},
+"en": {
+"q": "Which gas do we breathe in to live?",
+"a": [
+"Oxygen",
+"Nitrogen",
+"Hydrogen",
+"Helium"
+]
+}
+},
+{
+"de": {
+"q": "Bei wie viel Grad Celsius gefriert Wasser?",
+"a": [
+"0",
+"10",
+"-10",
+"100"
+]
+},
+"en": {
+"q": "At what temperature (°C) does water freeze?",
+"a": [
+"0",
+"10",
+"-10",
+"100"
+]
+}
+},
+{
+"de": {
+"q": "Bei wie viel Grad Celsius kocht Wasser (normaler Druck)?",
+"a": [
+"100",
+"90",
+"120",
+"80"
+]
+},
+"en": {
+"q": "At what temperature (°C) does water boil (normal pressure)?",
+"a": [
+"100",
+"90",
+"120",
+"80"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Planeten hat unser Sonnensystem?",
+"a": [
+"8",
+"9",
+"7",
+"10"
+]
+},
+"en": {
+"q": "How many planets does our solar system have?",
+"a": [
+"8",
+"9",
+"7",
+"10"
+]
+}
+},
+{
+"de": {
+"q": "Was umkreist die Erde?",
+"a": [
+"Mond",
+"Sonne",
+"Mars",
+"Venus"
+]
+},
+"en": {
+"q": "What orbits the Earth?",
+"a": [
+"Moon",
+"Sun",
+"Mars",
+"Venus"
+]
+}
+},
+{
+"de": {
+"q": "Wie nennt man gefrorenes Wasser?",
+"a": [
+"Eis",
+"Dampf",
+"Nebel",
+"Tau"
+]
+},
+"en": {
+"q": "What do you call frozen water?",
+"a": [
+"Ice",
+"Steam",
+"Fog",
+"Dew"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Knochen hat ein Erwachsener ungefähr?",
+"a": [
+"206",
+"106",
+"306",
+"406"
+]
+},
+"en": {
+"q": "About how many bones does an adult have?",
+"a": [
+"206",
+"106",
+"306",
+"406"
+]
+}
+},
+{
+"de": {
+"q": "Welches Organ pumpt das Blut durch den Körper?",
+"a": [
+"Herz",
+"Lunge",
+"Leber",
+"Niere"
+]
+},
+"en": {
+"q": "Which organ pumps blood through the body?",
+"a": [
+"Heart",
+"Lungs",
+"Liver",
+"Kidney"
+]
+}
+},
+{
+"de": {
+"q": "Womit atmen wir?",
+"a": [
+"Lunge",
+"Herz",
+"Magen",
+"Leber"
+]
+},
+"en": {
+"q": "What do we breathe with?",
+"a": [
+"Lungs",
+"Heart",
+"Stomach",
+"Liver"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Stoff ist ein Metall?",
+"a": [
+"Eisen",
+"Glas",
+"Holz",
+"Plastik"
+]
+},
+"en": {
+"q": "Which material is a metal?",
+"a": [
+"Iron",
+"Glass",
+"Wood",
+"Plastic"
+]
+}
+},
+{
+"de": {
+"q": "Wie nennt man Wasser in gasförmigem Zustand?",
+"a": [
+"Wasserdampf",
+"Eis",
+"Tau",
+"Regen"
+]
+},
+"en": {
+"q": "What is water called in its gaseous state?",
+"a": [
+"Water vapor",
+"Ice",
+"Dew",
+"Rain"
+]
+}
+},
+{
+"de": {
+"q": "Was braucht eine Pflanze zum Wachsen?",
+"a": [
+"Licht und Wasser",
+"Nur Sand",
+"Plastik",
+"Dunkelheit und Salz"
+]
+},
+"en": {
+"q": "What does a plant need to grow?",
+"a": [
+"Light and water",
+"Only sand",
+"Plastic",
+"Darkness and salt"
+]
+}
+},
+{
+"de": {
+"q": "Welche Farbe entsteht aus Blau und Gelb?",
+"a": [
+"Grün",
+"Orange",
+"Violett",
+"Braun"
+]
+},
+"en": {
+"q": "Which color do you get from blue and yellow?",
+"a": [
+"Green",
+"Orange",
+"Purple",
+"Brown"
+]
+}
+},
+{
+"de": {
+"q": "Welche Farbe entsteht aus Rot und Gelb?",
+"a": [
+"Orange",
+"Grün",
+"Violett",
+"Blau"
+]
+},
+"en": {
+"q": "Which color do you get from red and yellow?",
+"a": [
+"Orange",
+"Green",
+"Purple",
+"Blue"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Farben hat ein Regenbogen?",
+"a": [
+"7",
+"5",
+"6",
+"8"
+]
+},
+"en": {
+"q": "How many colors does a rainbow have?",
+"a": [
+"7",
+"5",
+"6",
+"8"
+]
+}
+},
+{
+"de": {
+"q": "Wie heißt der Stern in der Mitte unseres Sonnensystems?",
+"a": [
+"Sonne",
+"Sirius",
+"Polarstern",
+"Mars"
+]
+},
+"en": {
+"q": "What is the star at the center of our solar system called?",
+"a": [
+"Sun",
+"Sirius",
+"North Star",
+"Mars"
+]
+}
+},
+{
+"de": {
+"q": "Was misst ein Thermometer?",
+"a": [
+"Temperatur",
+"Gewicht",
+"Zeit",
+"Länge"
+]
+},
+"en": {
+"q": "What does a thermometer measure?",
+"a": [
+"Temperature",
+"Weight",
+"Time",
+"Length"
+]
+}
+},
+{
+"de": {
+"q": "Was misst eine Waage?",
+"a": [
+"Gewicht",
+"Temperatur",
+"Länge",
+"Zeit"
+]
+},
+"en": {
+"q": "What does a scale measure?",
+"a": [
+"Weight",
+"Temperature",
+"Length",
+"Time"
+]
+}
+},
+{
+"de": {
+"q": "Welches ist das härteste Material?",
+"a": [
+"Diamant",
+"Gold",
+"Eisen",
+"Glas"
+]
+},
+"en": {
+"q": "Which is the hardest material?",
+"a": [
+"Diamond",
+"Gold",
+"Iron",
+"Glass"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Planet hat berühmte Ringe?",
+"a": [
+"Saturn",
+"Mars",
+"Erde",
+"Merkur"
+]
+},
+"en": {
+"q": "Which planet has famous rings?",
+"a": [
+"Saturn",
+"Mars",
+"Earth",
+"Mercury"
+]
+}
+},
+{
+"de": {
+"q": "Wer entdeckte 1492 Amerika?",
+"a": [
+"Christoph Kolumbus",
+"Marco Polo",
+"James Cook",
+"Vasco da Gama"
+]
+},
+"en": {
+"q": "Who reached America in 1492?",
+"a": [
+"Christopher Columbus",
+"Marco Polo",
+"James Cook",
+"Vasco da Gama"
+]
+}
+},
+{
+"de": {
+"q": "In welchem Land stehen die Pyramiden von Gizeh?",
+"a": [
+"Ägypten",
+"Mexiko",
+"Indien",
+"Peru"
+]
+},
+"en": {
+"q": "In which country are the Pyramids of Giza?",
+"a": [
+"Egypt",
+"Mexico",
+"India",
+"Peru"
+]
+}
+},
+{
+"de": {
+"q": "Wer malte die Mona Lisa?",
+"a": [
+"Leonardo da Vinci",
+"Michelangelo",
+"Picasso",
+"Van Gogh"
+]
+},
+"en": {
+"q": "Who painted the Mona Lisa?",
+"a": [
+"Leonardo da Vinci",
+"Michelangelo",
+"Picasso",
+"Van Gogh"
+]
+}
+},
+{
+"de": {
+"q": "Wer schrieb „Romeo und Julia“?",
+"a": [
+"William Shakespeare",
+"Goethe",
+"Schiller",
+"Charles Dickens"
+]
+},
+"en": {
+"q": "Who wrote “Romeo and Juliet”?",
+"a": [
+"William Shakespeare",
+"Goethe",
+"Schiller",
+"Charles Dickens"
+]
+}
+},
+{
+"de": {
+"q": "In welchem Jahr fiel die Berliner Mauer?",
+"a": [
+"1989",
+"1961",
+"1945",
+"1990"
+]
+},
+"en": {
+"q": "In which year did the Berlin Wall fall?",
+"a": [
+"1989",
+"1961",
+"1945",
+"1990"
+]
+}
+},
+{
+"de": {
+"q": "Welches Land schenkte den USA die Freiheitsstatue?",
+"a": [
+"Frankreich",
+"England",
+"Spanien",
+"Italien"
+]
+},
+"en": {
+"q": "Which country gave the Statue of Liberty to the USA?",
+"a": [
+"France",
+"England",
+"Spain",
+"Italy"
+]
+}
+},
+{
+"de": {
+"q": "Welche Sprache spricht man in Brasilien?",
+"a": [
+"Portugiesisch",
+"Spanisch",
+"Englisch",
+"Französisch"
+]
+},
+"en": {
+"q": "Which language is spoken in Brazil?",
+"a": [
+"Portuguese",
+"Spanish",
+"English",
+"French"
+]
+}
+},
+{
+"de": {
+"q": "Welche Sprache spricht man in Österreich?",
+"a": [
+"Deutsch",
+"Niederländisch",
+"Ungarisch",
+"Italienisch"
+]
+},
+"en": {
+"q": "Which language is spoken in Austria?",
+"a": [
+"German",
+"Dutch",
+"Hungarian",
+"Italian"
+]
+}
+},
+{
+"de": {
+"q": "Wie heißt die Währung in Japan?",
+"a": [
+"Yen",
+"Dollar",
+"Euro",
+"Won"
+]
+},
+"en": {
+"q": "What is the currency of Japan?",
+"a": [
+"Yen",
+"Dollar",
+"Euro",
+"Won"
+]
+}
+},
+{
+"de": {
+"q": "Welche Währung hat Großbritannien?",
+"a": [
+"Pfund",
+"Euro",
+"Dollar",
+"Franken"
+]
+},
+"en": {
+"q": "What is the currency of the United Kingdom?",
+"a": [
+"Pound",
+"Euro",
+"Dollar",
+"Franc"
+]
+}
+},
+{
+"de": {
+"q": "Wer war der erste Mensch auf dem Mond?",
+"a": [
+"Neil Armstrong",
+"Buzz Aldrin",
+"Juri Gagarin",
+"John Glenn"
+]
+},
+"en": {
+"q": "Who was the first person on the Moon?",
+"a": [
+"Neil Armstrong",
+"Buzz Aldrin",
+"Yuri Gagarin",
+"John Glenn"
+]
+}
+},
+{
+"de": {
+"q": "Wer war der erste Mensch im Weltall?",
+"a": [
+"Juri Gagarin",
+"Neil Armstrong",
+"Alan Shepard",
+"John Glenn"
+]
+},
+"en": {
+"q": "Who was the first person in space?",
+"a": [
+"Yuri Gagarin",
+"Neil Armstrong",
+"Alan Shepard",
+"John Glenn"
+]
+}
+},
+{
+"de": {
+"q": "Wie heißt das berühmte Eisenbauwerk in Paris?",
+"a": [
+"Eiffelturm",
+"Big Ben",
+"Kolosseum",
+"Brandenburger Tor"
+]
+},
+"en": {
+"q": "What is the famous iron tower in Paris called?",
+"a": [
+"Eiffel Tower",
+"Big Ben",
+"Colosseum",
+"Brandenburg Gate"
+]
+}
+},
+{
+"de": {
+"q": "In welcher Stadt steht der Big Ben?",
+"a": [
+"London",
+"Paris",
+"Berlin",
+"Rom"
+]
+},
+"en": {
+"q": "In which city is Big Ben?",
+"a": [
+"London",
+"Paris",
+"Berlin",
+"Rome"
+]
+}
+},
+{
+"de": {
+"q": "In welcher Stadt steht das Kolosseum?",
+"a": [
+"Rom",
+"Athen",
+"Madrid",
+"Wien"
+]
+},
+"en": {
+"q": "In which city is the Colosseum?",
+"a": [
+"Rome",
+"Athens",
+"Madrid",
+"Vienna"
+]
+}
+},
+{
+"de": {
+"q": "Welches Land ist bekannt für Pizza?",
+"a": [
+"Italien",
+"Spanien",
+"Mexiko",
+"Japan"
+]
+},
+"en": {
+"q": "Which country is famous for pizza?",
+"a": [
+"Italy",
+"Spain",
+"Mexico",
+"Japan"
+]
+}
+},
+{
+"de": {
+"q": "Welches Land ist bekannt für Sushi?",
+"a": [
+"Japan",
+"China",
+"Thailand",
+"Indien"
+]
+},
+"en": {
+"q": "Which country is famous for sushi?",
+"a": [
+"Japan",
+"China",
+"Thailand",
+"India"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Spieler hat eine Fußballmannschaft auf dem Feld?",
+"a": [
+"11",
+"9",
+"10",
+"12"
+]
+},
+"en": {
+"q": "How many players does a football team have on the pitch?",
+"a": [
+"11",
+"9",
+"10",
+"12"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Ringe hat das olympische Symbol?",
+"a": [
+"5",
+"4",
+"6",
+"7"
+]
+},
+"en": {
+"q": "How many rings does the Olympic symbol have?",
+"a": [
+"5",
+"4",
+"6",
+"7"
+]
+}
+},
+{
+"de": {
+"q": "Alle wie viele Jahre finden die Olympischen Sommerspiele statt?",
+"a": [
+"4",
+"2",
+"3",
+"5"
+]
+},
+"en": {
+"q": "How often (in years) are the Summer Olympics held?",
+"a": [
+"4",
+"2",
+"3",
+"5"
+]
+}
+},
+{
+"de": {
+"q": "In welcher Sportart gibt es einen Elfmeter?",
+"a": [
+"Fußball",
+"Tennis",
+"Golf",
+"Schwimmen"
+]
+},
+"en": {
+"q": "In which sport is there a penalty kick?",
+"a": [
+"Football (soccer)",
+"Tennis",
+"Golf",
+"Swimming"
+]
+}
+},
+{
+"de": {
+"q": "Welche Sportart spielt man mit einem Korb?",
+"a": [
+"Basketball",
+"Fußball",
+"Tennis",
+"Rugby"
+]
+},
+"en": {
+"q": "Which sport is played with a basket?",
+"a": [
+"Basketball",
+"Soccer",
+"Tennis",
+"Rugby"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Minuten dauert ein Fußballspiel regulär?",
+"a": [
+"90",
+"60",
+"80",
+"100"
+]
+},
+"en": {
+"q": "How many minutes does a football match normally last?",
+"a": [
+"90",
+"60",
+"80",
+"100"
+]
+}
+},
+{
+"de": {
+"q": "Welcher Märchenfigur wächst bei Lügen die Nase?",
+"a": [
+"Pinocchio",
+"Peter Pan",
+"Aladdin",
+"Rumpelstilzchen"
+]
+},
+"en": {
+"q": "Which fairy-tale character's nose grows when he lies?",
+"a": [
+"Pinocchio",
+"Peter Pan",
+"Aladdin",
+"Rumpelstiltskin"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Zwerge leben bei Schneewittchen?",
+"a": [
+"7",
+"5",
+"9",
+"12"
+]
+},
+"en": {
+"q": "How many dwarfs live with Snow White?",
+"a": [
+"7",
+"5",
+"9",
+"12"
+]
+}
+},
+{
+"de": {
+"q": "Woraus wird Brot hauptsächlich gebacken?",
+"a": [
+"Mehl",
+"Zucker",
+"Salz",
+"Reis"
+]
+},
+"en": {
+"q": "What is bread mainly baked from?",
+"a": [
+"Flour",
+"Sugar",
+"Salt",
+"Rice"
+]
+}
+},
+{
+"de": {
+"q": "Aus welcher Frucht wird Wein gemacht?",
+"a": [
+"Trauben",
+"Äpfel",
+"Birnen",
+"Orangen"
+]
+},
+"en": {
+"q": "Which fruit is wine made from?",
+"a": [
+"Grapes",
+"Apples",
+"Pears",
+"Oranges"
+]
+}
+},
+{
+"de": {
+"q": "Welche Farbe hat eine reife Banane?",
+"a": [
+"Gelb",
+"Rot",
+"Blau",
+"Lila"
+]
+},
+"en": {
+"q": "What color is a ripe banana?",
+"a": [
+"Yellow",
+"Red",
+"Blue",
+"Purple"
+]
+}
+},
+{
+"de": {
+"q": "Welches Gemüse ist orange?",
+"a": [
+"Karotte",
+"Gurke",
+"Brokkoli",
+"Spinat"
+]
+},
+"en": {
+"q": "Which vegetable is orange?",
+"a": [
+"Carrot",
+"Cucumber",
+"Broccoli",
+"Spinach"
+]
+}
+},
+{
+"de": {
+"q": "Woraus wird Schokolade gemacht?",
+"a": [
+"Kakao",
+"Kaffee",
+"Tee",
+"Vanille"
+]
+},
+"en": {
+"q": "What is chocolate made from?",
+"a": [
+"Cocoa",
+"Coffee",
+"Tea",
+"Vanilla"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Minuten hat eine Stunde?",
+"a": [
+"60",
+"100",
+"30",
+"90"
+]
+},
+"en": {
+"q": "How many minutes are in an hour?",
+"a": [
+"60",
+"100",
+"30",
+"90"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Tage hat eine Woche?",
+"a": [
+"7",
+"5",
+"6",
+"8"
+]
+},
+"en": {
+"q": "How many days are in a week?",
+"a": [
+"7",
+"5",
+"6",
+"8"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Monate hat ein Jahr?",
+"a": [
+"12",
+"10",
+"11",
+"13"
+]
+},
+"en": {
+"q": "How many months are in a year?",
+"a": [
+"12",
+"10",
+"11",
+"13"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Sekunden hat eine Minute?",
+"a": [
+"60",
+"100",
+"30",
+"120"
+]
+},
+"en": {
+"q": "How many seconds are in a minute?",
+"a": [
+"60",
+"100",
+"30",
+"120"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Ecken hat ein Dreieck?",
+"a": [
+"3",
+"4",
+"5",
+"6"
+]
+},
+"en": {
+"q": "How many corners does a triangle have?",
+"a": [
+"3",
+"4",
+"5",
+"6"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Seiten hat ein Sechseck?",
+"a": [
+"6",
+"5",
+"8",
+"7"
+]
+},
+"en": {
+"q": "How many sides does a hexagon have?",
+"a": [
+"6",
+"5",
+"8",
+"7"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Tage hat ein Schaltjahr?",
+"a": [
+"366",
+"365",
+"364",
+"360"
+]
+},
+"en": {
+"q": "How many days does a leap year have?",
+"a": [
+"366",
+"365",
+"364",
+"360"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hälfte von 50?",
+"a": [
+"25",
+"20",
+"30",
+"15"
+]
+},
+"en": {
+"q": "What is half of 50?",
+"a": [
+"25",
+"20",
+"30",
+"15"
+]
+}
+},
+{
+"de": {
+"q": "Welche Zahl ist eine Primzahl?",
+"a": [
+"7",
+"9",
+"15",
+"21"
+]
+},
+"en": {
+"q": "Which number is a prime number?",
+"a": [
+"7",
+"9",
+"15",
+"21"
+]
+}
+},
+{
+"de": {
+"q": "Wie viel Grad hat ein rechter Winkel?",
+"a": [
+"90",
+"45",
+"180",
+"60"
+]
+},
+"en": {
+"q": "How many degrees is a right angle?",
+"a": [
+"90",
+"45",
+"180",
+"60"
+]
+}
+},
+{
+"de": {
+"q": "Welches Tier ist das Wappentier von Berlin?",
+"a": [
+"Bär",
+"Löwe",
+"Adler",
+"Wolf"
+]
+},
+"en": {
+"q": "Which animal is on the coat of arms of Berlin?",
+"a": [
+"Bear",
+"Lion",
+"Eagle",
+"Wolf"
+]
+}
+},
+{
+"de": {
+"q": "Auf welchem Kontinent leben Kängurus?",
+"a": [
+"Australien",
+"Afrika",
+"Asien",
+"Südamerika"
+]
+},
+"en": {
+"q": "On which continent do kangaroos live?",
+"a": [
+"Australia",
+"Africa",
+"Asia",
+"South America"
+]
+}
+},
+{
+"de": {
+"q": "Was ist die Hauptstadt der USA?",
+"a": [
+"Washington, D.C.",
+"New York",
+"Los Angeles",
+"Chicago"
+]
+},
+"en": {
+"q": "What is the capital of the USA?",
+"a": [
+"Washington, D.C.",
+"New York",
+"Los Angeles",
+"Chicago"
+]
+}
+},
+{
+"de": {
+"q": "Wie viele Bits hat ein Byte?",
+"a": [
+"8",
+"4",
+"16",
+"10"
+]
+},
+"en": {
+"q": "How many bits are in a byte?",
+"a": [
+"8",
+"4",
+"16",
+"10"
+]
+}
+},
+{
+"de": {
+"q": "In welcher Jahreszeit fallen die Blätter von den Bäumen?",
+"a": [
+"Herbst",
+"Frühling",
+"Sommer",
+"Winter"
+]
+},
+"en": {
+"q": "In which season do leaves fall from the trees?",
+"a": [
+"Autumn",
+"Spring",
+"Summer",
+"Winter"
+]
+}
+},
+{
+"de": {
+"q": "Welche Jahreszeit folgt auf den Winter?",
+"a": [
+"Frühling",
+"Sommer",
+"Herbst",
+"Winter"
+]
+},
+"en": {
+"q": "Which season comes after winter?",
+"a": [
+"Spring",
+"Summer",
+"Autumn",
+"Winter"
+]
+}
+}
+]
