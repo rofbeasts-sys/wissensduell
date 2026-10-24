@@ -35,6 +35,9 @@
     { id: "mill",      title: "Mühle", icon: "⚪" },
     { id: "dame",      title: "Dame", icon: "♛" },
     { id: "daily",     title: "Daily Puzzles", icon: "🧩" },
+    { id: "chem",      title: "Brainchimie", icon: "⚗️" },
+    { id: "vocab",     title: "Vokabeln", icon: "📚" },
+    { id: "shop",      title: "Shop", icon: "🛒" },
     { id: "general",   title: "Allgemein", icon: "🌟" }
   ];
   // Englische Kategorie-Titel (fuer die Anzeige UND fuer die automatisch
@@ -42,9 +45,11 @@
   const CATEGORY_TITLES_EN = {
     braintest: "Brain Test", ordering: "Drag and Drop", mow: "Higher or Lower", blitz: "Quick-Fire",
     slf: "Scattergories", biology: "Biology", ttt: "Tic Tac Toe", general: "General",
+    chem: "Brain Chemistry", vocab: "Vocabulary", shop: "Shop",
     chess: "Chess", four: "Connect Four", mill: "Nine Men's Morris", dame: "Checkers", daily: "Daily Puzzles"
   };
 
+  const CHEM_TOTAL = 258, VOC_TOTAL = 35;
   const sum = (arr) => arr.reduce((a, b) => a + (b ? 1 : 0), 0);
   const P = (fn, target) => (s) => [Math.min(fn(s), target), target]; // Fortschritt gedeckelt auf das Ziel
 
@@ -136,6 +141,31 @@
     { id: "daily_sudoku", cat: "daily", icon: "🔢", title: "Sudoku-Löser", desc: "Löse ein Daily-Sudoku.", progress: P(s => s.daily.sudoku, 1) },
     { id: "daily_cw",     cat: "daily", icon: "✏️", title: "Kreuzworträtsler", desc: "Löse ein Daily-Kreuzworträtsel.", progress: P(s => s.daily.cw, 1) },
     { id: "daily_all_types", cat: "daily", icon: "🎯", title: "Allrounder", desc: "Löse jede Rätselart (Sudoku, Kreuzworträtsel, Wortsuche, Wortnetz) mindestens einmal.", progress: P(s => (s.daily.sudoku > 0) + (s.daily.cw > 0) + (s.daily.ws > 0) + (s.daily.wv > 0), 4) },
+    { id: "chem_first", cat: "chem", icon: "🧪", title: "Erste Mischung", desc: "Kombiniere zwei Elemente zu etwas Neuem.", progress: P(s => s.chem.found - 3, 1) },
+    { id: "chem_25",  cat: "chem", icon: "⚗️", title: "Kleines Labor", desc: "Entdecke 25 Elemente.", progress: P(s => s.chem.found, 25) },
+    { id: "chem_50",  cat: "chem", icon: "🔬", title: "Hobby-Chemiker", desc: "Entdecke 50 Elemente.", progress: P(s => s.chem.found, 50) },
+    { id: "chem_100", cat: "chem", icon: "🧬", title: "Forscher", desc: "Entdecke 100 Elemente.", progress: P(s => s.chem.found, 100) },
+    { id: "chem_200", cat: "chem", icon: "🌋", title: "Alchemist", desc: "Entdecke 200 Elemente.", progress: P(s => s.chem.found, 200) },
+    { id: "chem_all", cat: "chem", icon: "👑", title: "Meister der Elemente", desc: "Entdecke alle Elemente.", progress: P(s => s.chem.found, CHEM_TOTAL) },
+    { id: "chem_help", cat: "chem", icon: "💡", title: "Hilfe geholt", desc: "Kaufe in Brainchimie einen Tipp.", progress: P(s => s.chem.helps, 1) },
+    { id: "voc_learn_1",  cat: "vocab", icon: "📖", title: "Erstes Thema", desc: "Lerne ein Vokabel-Thema.", progress: P(s => s.vocab.learned, 1) },
+    { id: "voc_learn_10", cat: "vocab", icon: "📚", title: "Wortsammler", desc: "Lerne 10 Vokabel-Themen.", progress: P(s => s.vocab.learned, 10) },
+    { id: "voc_learn_all", cat: "vocab", icon: "🎓", title: "Alles gelernt", desc: "Lerne alle Vokabel-Themen.", progress: P(s => s.vocab.learned, VOC_TOTAL) },
+    { id: "voc_exam_1",  cat: "vocab", icon: "✅", title: "Test bestanden", desc: "Schaffe einen Übungstest mit 100 Prozent.", progress: P(s => s.vocab.exam, 1) },
+    { id: "voc_exam_10", cat: "vocab", icon: "💯", title: "Testprofi", desc: "Schaffe 10 Übungstests mit 100 Prozent.", progress: P(s => s.vocab.exam, 10) },
+    { id: "voc_talk_1",  cat: "vocab", icon: "🎩", title: "Gespräch mit dem Professor", desc: "Schließe ein Gespräch mit dem Professor ab.", progress: P(s => s.vocab.talk, 1) },
+    { id: "voc_star_1",  cat: "vocab", icon: "⭐", title: "Drei Sterne", desc: "Hole in einem Thema alle 3 Sterne.", progress: P(s => s.vocab.stars3, 1) },
+    { id: "voc_star_10", cat: "vocab", icon: "🌟", title: "Sternesammler", desc: "Hole in 10 Themen alle 3 Sterne.", progress: P(s => s.vocab.stars3, 10) },
+    { id: "voc_star_all", cat: "vocab", icon: "👑", title: "Vokabel-Meister", desc: "Hole in allen Themen alle 3 Sterne.", progress: P(s => s.vocab.stars3, VOC_TOTAL) },
+    { id: "voc_blitz_100", cat: "vocab", icon: "⚡", title: "Match-Blitz 100", desc: "Erreiche im Match-Blitz 100 Punkte.", progress: P(s => s.vocab.blitzBest, 100) },
+    { id: "voc_blitz_300", cat: "vocab", icon: "🚀", title: "Match-Blitz 300", desc: "Erreiche im Match-Blitz 300 Punkte.", progress: P(s => s.vocab.blitzBest, 300) },
+    { id: "shop_1",  cat: "shop", icon: "🛍️", title: "Erster Einkauf", desc: "Kaufe etwas im Shop.", progress: P(s => s.shop.buys, 1) },
+    { id: "shop_5",  cat: "shop", icon: "🧺", title: "Stammkunde", desc: "Kaufe 5-mal im Shop ein.", progress: P(s => s.shop.buys, 5) },
+    { id: "shop_25", cat: "shop", icon: "💰", title: "Großeinkauf", desc: "Kaufe 25-mal im Shop ein.", progress: P(s => s.shop.buys, 25) },
+    { id: "shop_slot", cat: "shop", icon: "🎒", title: "Mehr Platz", desc: "Kaufe Zusatz-Speicher.", progress: P(s => s.shop.slots, 1) },
+    { id: "shop_boost", cat: "shop", icon: "🍎", title: "Booster-Fan", desc: "Kaufe einen Booster.", progress: P(s => s.shop.boosters, 1) },
+    { id: "shop_heart", cat: "shop", icon: "❤️", title: "Herzenssache", desc: "Fülle ein Herz im Shop auf.", progress: P(s => s.shop.hearts, 1) },
+    { id: "shop_all", cat: "shop", icon: "🏅", title: "Alles probiert", desc: "Kaufe Speicher, Booster und ein Herz.", progress: P(s => (s.shop.slots > 0) + (s.shop.boosters > 0) + (s.shop.hearts > 0), 3) },
     { id: "daily_streak_7", cat: "daily", icon: "🔥", title: "7 Rätseltage in Folge", desc: "Löse an 7 Kalendertagen in Folge ein Daily Puzzle.", progress: P(s => s.daily.longest, 7) }
   ];
   // Kategorie-Abschluss: einmal je Kategorie, zaehlt nur die "richtigen" Erfolge dieser
@@ -250,6 +280,31 @@
     daily_cw: { title: "Crossword solver", desc: "Solve a Daily Crossword." },
     daily_all_types: { title: "All-rounder", desc: "Solve every puzzle type (Sudoku, Crossword, Word Search, Word Web) at least once." },
     daily_streak_7: { title: "7 puzzle days in a row", desc: "Solve a Daily Puzzle on 7 calendar days in a row." },
+    chem_first: { title: "First mix", desc: "Combine two elements into something new." },
+    chem_25: { title: "Little lab", desc: "Discover 25 elements." },
+    chem_50: { title: "Hobby chemist", desc: "Discover 50 elements." },
+    chem_100: { title: "Researcher", desc: "Discover 100 elements." },
+    chem_200: { title: "Alchemist", desc: "Discover 200 elements." },
+    chem_all: { title: "Master of elements", desc: "Discover every element." },
+    chem_help: { title: "Got a hint", desc: "Buy a hint in Brain Chemistry." },
+    voc_learn_1: { title: "First topic", desc: "Learn a vocabulary topic." },
+    voc_learn_10: { title: "Word collector", desc: "Learn 10 vocabulary topics." },
+    voc_learn_all: { title: "Learned it all", desc: "Learn every vocabulary topic." },
+    voc_exam_1: { title: "Test passed", desc: "Pass a practice test with 100 percent." },
+    voc_exam_10: { title: "Test pro", desc: "Pass 10 practice tests with 100 percent." },
+    voc_talk_1: { title: "Talk with the Professor", desc: "Finish a talk with the Professor." },
+    voc_star_1: { title: "Three stars", desc: "Earn all 3 stars in a topic." },
+    voc_star_10: { title: "Star collector", desc: "Earn all 3 stars in 10 topics." },
+    voc_star_all: { title: "Vocabulary master", desc: "Earn all 3 stars in every topic." },
+    voc_blitz_100: { title: "Match Blitz 100", desc: "Reach 100 points in Match Blitz." },
+    voc_blitz_300: { title: "Match Blitz 300", desc: "Reach 300 points in Match Blitz." },
+    shop_1: { title: "First purchase", desc: "Buy something in the shop." },
+    shop_5: { title: "Regular", desc: "Shop 5 times." },
+    shop_25: { title: "Big spender", desc: "Shop 25 times." },
+    shop_slot: { title: "More room", desc: "Buy extra storage." },
+    shop_boost: { title: "Booster fan", desc: "Buy a booster." },
+    shop_heart: { title: "Matter of the heart", desc: "Refill a heart in the shop." },
+    shop_all: { title: "Tried it all", desc: "Buy storage, a booster and a heart." },
     collector_5: { title: "Collector", desc: "Unlock 5 achievements." },
     collector_15: { title: "Well-rounded", desc: "Unlock 15 achievements." },
     collector_all: { title: "Complete", desc: "Unlock every other achievement." }
@@ -287,12 +342,15 @@
       party: { played: 0, wins: 0 },
       music: { played: 0, correct: 0 },
       daily: { solved: 0, sudoku: 0, cw: 0, ws: 0, wv: 0, current: 0, longest: 0, lastDate: null },
+      chem: { found: 3, helps: 0 },
+      vocab: { learned: 0, exam: 0, talk: 0, stars3: 0, blitzBest: 0 },
+      shop: { buys: 0, slots: 0, boosters: 0, hearts: 0 },
       unlocked: {}
     };
   }
   const CAPS = { perfectRuns: 1e6, completed: 1e7, flawless: 1e7, best: 1000, total: 1e7, allFilled: 1e7, firstFull: 1e7, unique: 1e7,
     maxRank: 6, win3: 1e7, quantumWins: 1e7, quizmixWins: 1e7, quizmix3: 1e7, quizmix3Perfect: 1e7, meisterDraws: 1e6, correct: 1e9, level: 100, current: 1e5, longest: 1e5,
-    topicsDone: 18, perfectCount: 18,
+    topicsDone: 18, perfectCount: 18, found: 400, helps: 1e6, learned: 100, exam: 100, talk: 100, stars3: 100, blitzBest: 100000, buys: 1e7, slots: 1e7, boosters: 1e7, hearts: 1e7,
     wins: 1e7, masterWins: 1e7, fast: 1e7, flawless: 1e7, games: 1e7, hardWins: 1e7, quick: 1e7, diag: 1e7, online: 1e7, mills: 1e7, solved: 1e7, sudoku: 1e7, cw: 1e7, ws: 1e7, wv: 1e7, played: 1e7, correct: 1e9 };
   const num = (v, cap) => { v = Number(v); return Number.isFinite(v) && v > 0 ? Math.min(Math.floor(v), cap) : 0; };
   const flags = (a) => Array.from({ length: KLASSEN }, (_, i) => (Array.isArray(a) && a[i] ? 1 : 0));
@@ -309,9 +367,10 @@
     s.blitz.best = g(raw.blitz, "best", CAPS.best); s.blitz.total = g(raw.blitz, "total", CAPS.total);
     s.slf.allFilled = g(raw.slf, "allFilled", CAPS.allFilled); s.slf.firstFull = g(raw.slf, "firstFull", CAPS.firstFull); s.slf.unique = g(raw.slf, "unique", CAPS.unique);
     for (const k of ["maxRank", "win3", "quantumWins", "quizmixWins", "quizmix3", "quizmix3Perfect", "meisterDraws"]) s.ttt[k] = g(raw.ttt, k, CAPS[k]);
-    for (const [grp, keys] of [["chess", ["wins", "masterWins", "fast", "flawless", "games"]], ["four", ["wins", "hardWins", "quick", "diag", "online"]], ["mill", ["wins", "hardWins", "mills", "online"]], ["dame", ["wins", "hardWins", "online"]], ["daily", ["solved", "sudoku", "cw", "ws", "wv", "current", "longest"]], ["party", ["played", "wins"]], ["music", ["played", "correct"]]])
+    for (const [grp, keys] of [["chess", ["wins", "masterWins", "fast", "flawless", "games"]], ["four", ["wins", "hardWins", "quick", "diag", "online"]], ["mill", ["wins", "hardWins", "mills", "online"]], ["dame", ["wins", "hardWins", "online"]], ["daily", ["solved", "sudoku", "cw", "ws", "wv", "current", "longest"]], ["party", ["played", "wins"]], ["music", ["played", "correct"]], ["chem", ["found", "helps"]], ["vocab", ["learned", "exam", "talk", "stars3", "blitzBest"]], ["shop", ["buys", "slots", "boosters", "hearts"]]])
       for (const k of keys) s[grp][k] = g(raw[grp], k, CAPS[k]);
     if (raw.daily && typeof raw.daily.lastDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.daily.lastDate)) s.daily.lastDate = raw.daily.lastDate;
+    s.chem.found = Math.max(3, s.chem.found);
     s.gen.correct = g(raw.gen, "correct", CAPS.correct);
     s.sm.level = g(raw.sm, "level", CAPS.level);
     s.bio.topicsDone = g(raw.bio, "topicsDone", CAPS.topicsDone);
@@ -479,6 +538,21 @@
         if (evt.sexualkundeUnlocked) state.bio.sexualkundeUnlocked = 1;
         break;
       }
+      case "chem": { // found = Gesamtzahl entdeckter Elemente (Max), help = Tipp gekauft
+        if (evt.found != null) state.chem.found = Math.max(state.chem.found, num(evt.found, CAPS.found));
+        if (evt.help) state.chem.helps = Math.min(CAPS.helps, state.chem.helps + 1);
+        break;
+      }
+      case "vocab": { // Gesamtzaehler aus dem Lernstand (Max) + Blitz-Bestwert
+        const o = state.vocab;
+        for (const k of ["learned", "exam", "talk", "stars3", "blitzBest"]) if (evt[k] != null) o[k] = Math.max(o[k], num(evt[k], CAPS[k]));
+        break;
+      }
+      case "shop": { // kind: slot | booster | heart | other
+        const o = state.shop; o.buys = Math.min(CAPS.buys, o.buys + 1);
+        if (evt.kind === "slot") o.slots++; else if (evt.kind === "booster") o.boosters++; else if (evt.kind === "heart") o.hearts++;
+        break;
+      }
       default: return [];
     }
     return evaluate(state, now);
@@ -493,7 +567,7 @@
     mx(out.bt, a.bt, b.bt); mx(out.ord, a.ord, b.ord); mx(out.mow, a.mow, b.mow); mx(out.blitz, a.blitz, b.blitz);
     mx(out.slf, a.slf, b.slf); mx(out.ttt, a.ttt, b.ttt); mx(out.gen, a.gen, b.gen);
     mx(out.sm, a.sm, b.sm);
-    for (const grp of ["chess", "four", "mill", "dame", "party", "music"]) mx(out[grp], a[grp], b[grp]);
+    for (const grp of ["chess", "four", "mill", "dame", "party", "music", "chem", "vocab", "shop"]) mx(out[grp], a[grp], b[grp]);
     mx(out.daily, a.daily, b.daily);
     { const n2 = (!a.daily.lastDate || (b.daily.lastDate && b.daily.lastDate >= a.daily.lastDate)) ? b.daily : a.daily; out.daily.current = n2.current; out.daily.lastDate = n2.lastDate; }
     out.bio.topicsDone = Math.max(a.bio.topicsDone, b.bio.topicsDone);

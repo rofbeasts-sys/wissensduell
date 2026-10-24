@@ -370,6 +370,7 @@ window.chBuyHelp = function(){
   const pr = helpPair(), pop = document.getElementById('chPop'); if(!pr){ if(pop) pop.remove(); return; }
   let r = null; try{ r = fruitPay(HELP_COST); }catch(e){}
   if(!r || !r.ok){ if(typeof toastMsg === 'function') toastMsg('Nicht genug Münzen.'); return; }
+  try{ if(typeof achvRecord === 'function') achvRecord({ t: 'chem', help: 1 }); }catch(e){}
   if(pop) pop.remove();
   slotA = pr[0]; slotB = pr[1]; pinA = false; draw(); msg('Probiere diese zwei.', '#ffc446');
 };
@@ -384,6 +385,7 @@ window.chCombine = function(){
   const a = slotA, b = slotB; if(!pinA) slotA = null; slotB = null;
   if(have.includes(res)){ if(typeof sfx === 'function') sfx('tap'); draw(); msg(res + ' hast du schon.', '#9aa4c4'); return; }
   have.push(res); save();
+  try{ if(typeof achvRecord === 'function') achvRecord({ t: 'chem', found: have.length }); }catch(e){}
   let coin = 0;
   try{ if(typeof fruitPay === 'function'){ const r = fruitPay(-2); if(r && r.ok) coin = 2; } }catch(e){}
   if(typeof sfx === 'function') sfx('ding');

@@ -7,8 +7,8 @@
 html,body{margin:0;height:100%;background:#0a0d16;color:#eef;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;touch-action:none;user-select:none}
 .top{display:flex;align-items:center;gap:10px;padding:12px 14px}
 .back{color:#eef;text-decoration:none;font-size:22px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#ffffff12}
-h1{font-size:17px;margin:0;flex:1}
-.pill{background:#ffffff14;border-radius:99px;padding:6px 12px;font-size:13px;font-weight:800;white-space:nowrap}
+h1{font-size:15px;margin:0;flex:1;white-space:nowrap}
+.pill{background:#ffffff14;border-radius:99px;padding:6px 9px;font-size:13px;font-weight:800;white-space:nowrap}
 .stage{position:absolute;left:0;right:0;top:64px;bottom:120px;display:flex;align-items:center;justify-content:center;perspective:1100px;touch-action:none}
 .cube{position:relative;transform-style:preserve-3d;transform:rotateX(-28deg) rotateY(-38deg)}
 .face{position:absolute;left:0;top:0;display:grid;gap:5px;padding:7px;background:#18213a;border:2px solid;border-radius:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
@@ -28,7 +28,7 @@ h1{font-size:17px;margin:0;flex:1}
 .box h2{margin:0 0 8px;font-size:28px}.box p{color:#b7c0dc;margin:0 0 16px}
 .pri{background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#08110c}
 </style></head><body>
-<div class="top"><a class="back" href="/" id="back">←</a><h1 id="title"></h1><span class="pill" id="lvl"></span><span class="pill" id="hp"></span></div>
+<div class="top"><a class="back" href="/" id="back">←</a><h1 id="title"></h1><span class="pill" id="lvl"></span><span class="pill" id="tm">⏱ 0:00</span><span class="pill" id="hp"></span></div>
 <div class="stage" id="stage"><div class="cube" id="cube"></div></div>
 <div class="bar"><div class="info" id="info"></div>
 <div class="btns"><button class="btn" id="bl">⟲</button><button class="btn" id="bu">⟰</button><button class="btn" id="bd">⟱</button><button class="btn" id="br">⟳</button></div></div>
@@ -36,8 +36,8 @@ h1{font-size:17px;margin:0;flex:1}
 <script>
 (function(){
 var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
-var T = lang==="en" ? {title:"Brain Hood",level:"Level",left:n=>n+" arrows left",hint:"Drag to rotate · tap an arrow to push it out. It needs a free path to the edge of the next face.",won:"Level cleared!",wonp:"Next cube is bigger and trickier.",next:"Next level",lost:"Out of hearts",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level "}
- : {title:"Brain Hood",level:"Level",left:n=>"Noch "+n+" Pfeile",hint:"Würfel ziehen zum Drehen · Pfeil antippen = er schiebt sich raus. Sein Weg bis zur Kante der nächsten Seite muss frei sein.",won:"Level geschafft!",wonp:"Der nächste Würfel ist größer und kniffliger.",next:"Nächstes Level",lost:"Keine Herzen mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level "};
+var T = lang==="en" ? {title:"Brain Hood",level:"Level",left:n=>n+" arrows left",hint:"Drag to rotate · tap an arrow to push it out. It needs a free path to the edge of the next face.",won:"Level cleared!",wonp:"Next cube is bigger and trickier.",next:"Next level",lost:"Out of hearts",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level ",tm:"Time ",bt:"Best time ",stars:"until",hintC:"Curved arrows follow their shape. The whole path must be free."}
+ : {title:"Brain Hood",level:"Level",left:n=>"Noch "+n+" Pfeile",hint:"Würfel ziehen zum Drehen · Pfeil antippen = er schiebt sich raus. Sein Weg bis zur Kante der nächsten Seite muss frei sein.",won:"Level geschafft!",wonp:"Der nächste Würfel ist größer und kniffliger.",next:"Nächstes Level",lost:"Keine Herzen mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level ",tm:"Zeit ",bt:"Bestzeit ",stars:"bis",hintC:"Gebogene Pfeile fahren ihre Form ab. Der ganze Weg muss frei sein."};
 var $=function(i){return document.getElementById(i)};
 var FACES=[ // n = Normale, u = rechts, v = runter (Weltkoordinaten, y nach unten) + CSS-Transform
  {n:[0,0,1],u:[1,0,0],v:[0,1,0],css:"rotateY(0deg)",col:"#c6ff3d"},
@@ -66,16 +66,42 @@ function step(c,n,d){
   }
   return {c:nc,n:n,d:d,wrap:false};
 }
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function turn(n,d,sg){var r=cross(n,d); return [r[0]*sg+0,r[1]*sg+0,r[2]*sg+0]}
 function pathOf(cell){
-  var out=[], c=cell.c, n=cell.n, d=cell.d, after=false, cnt=0, guard=0;
+  var out=[], c=cell.c, n=cell.n, d=cell.d, after=false, cnt=0, guard=0, ti=0, since=0, tt=cell.t||[];
   while(guard++<4*N+4){
-    var s=step(c,n,d); c=s.c; n=s.n; d=s.d;
+    var s=step(c,n,d); c=s.c; n=s.n; d=s.d; since++;
     if(s.wrap) after=true;
     out.push(key(c));
+    if(ti<tt.length&&since>=tt[ti][0]){ d=turn(n,d,tt[ti][1]); ti++; since=0; }
     if(after){ cnt++; if(cnt>=N) break; }
   }
   return out;
 }
+function shapeFor(){
+  if(level<12) return null;
+  if(Math.random()>=Math.min(.5,.15+(level-12)*.015)) return null;
+  var a=1+rnd(2), b=1+rnd(2), sg=Math.random()<.5?1:-1, pool=[[[a,sg]]];
+  if(level>=25){ pool.push([[a,sg],[b,-sg]]); pool.push([[a,sg],[1,sg]]); }
+  if(level>=40) pool.push([[a,sg],[1,-sg],[1,sg]]);
+  return pool[rnd(pool.length)];
+}
+function shapeCol(t){ if(t.length===1) return t[0][1]>0?"#3de0ff":"#c6ff3d"; if(t.length===2) return t[0][1]===t[1][1]?"#ffc446":"#ff5d8f"; return "#b98cff"; }
+function curveSvg(cell,f,col){
+  var d=cell.d, pts=[[0,0]], dirs2=[[dot(d,f.u),dot(d,f.v)]], tt=cell.t, k;
+  for(k=0;k<tt.length;k++){ d=turn(f.n,d,tt[k][1]); dirs2.push([dot(d,f.u),dot(d,f.v)]); }
+  for(k=0;k<dirs2.length;k++){ var q=pts[pts.length-1]; pts.push([q[0]+dirs2[k][0]*.34,q[1]+dirs2[k][1]*.34]); }
+  var xs=pts.map(function(q){return q[0]}), ys=pts.map(function(q){return q[1]});
+  var x0=Math.min.apply(null,xs), x1=Math.max.apply(null,xs), y0=Math.min.apply(null,ys), y1=Math.max.apply(null,ys);
+  var sc=62/Math.max(x1-x0,y1-y0,.3), cx=(x0+x1)/2, cy=(y0+y1)/2;
+  var P=pts.map(function(q){return [50+(q[0]-cx)*sc,50+(q[1]-cy)*sc]});
+  var e=P[P.length-1], pr=P[P.length-2], dx=e[0]-pr[0], dy=e[1]-pr[1], l=Math.sqrt(dx*dx+dy*dy)||1; dx/=l; dy/=l;
+  var hx=e[0]+dx*10, hy=e[1]+dy*10, nx=-dy*13, ny=dx*13;
+  var path="M"+P.map(function(q){return q[0].toFixed(1)+" "+q[1].toFixed(1)}).join(" L");
+  return '<svg viewBox="0 0 100 100" style="width:100%;height:100%;overflow:visible"><path d="'+path+'" fill="none" stroke="'+col+'" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><path d="M'+hx.toFixed(1)+" "+hy.toFixed(1)+" L"+(e[0]+nx).toFixed(1)+" "+(e[1]+ny).toFixed(1)+" L"+(e[0]-nx).toFixed(1)+" "+(e[1]-ny).toFixed(1)+' Z" fill="'+col+'"/></svg>';
+}
+function rnd(n){return Math.floor(Math.random()*n)}
 function build(){
   cells={}; order=[];
   var h=N/2, all=[];
@@ -88,29 +114,32 @@ function build(){
   var density=Math.min(0.9,0.5+level*0.02), want=Math.round(all.length*density);
   var pool=all.slice().sort(function(){return Math.random()-.5}), placed=0;
   var dirs=function(cell){return [cell.u,cell.v,neg(cell.u),neg(cell.v)].sort(function(){return Math.random()-.5})};
+  function freeP(cell){ return pathOf(cell).every(function(kk){return !cells[kk]||!cells[kk].d}); }
   for(var i=0;i<pool.length&&placed<want;i++){
     var cell=pool[i], ds=dirs(cell);
     for(var k=0;k<ds.length;k++){
-      cell.d=ds[k];
-      var free=pathOf(cell).every(function(kk){return !cells[kk]||!cells[kk].d});
-      if(free){ placed++; cell.placedOrder=placed; break; } else cell.d=null;
+      cell.d=ds[k]; cell.t=shapeFor();
+      var free=freeP(cell);
+      if(!free&&cell.t){ cell.t=null; free=freeP(cell); }
+      if(free){ placed++; cell.placedOrder=placed; break; } else { cell.d=null; cell.t=null; }
     }
   }
 }
 function render(){
   var cube=$("cube"); cube.innerHTML="";
-  var size=Math.min(window.innerWidth*0.52, (window.innerHeight-260)*0.62, 300);
+  var size=Math.min(window.innerWidth*(N>=7?0.6:0.52), (window.innerHeight-260)*(N>=7?0.7:0.62), N>=7?340:300);
   var cs=size/N; cube.style.width=cube.style.height=size+"px";
   FACES.forEach(function(f,fi){
     var fe=document.createElement("div"); fe.className="face"; fe.style.width=fe.style.height=size+"px";
-    fe.style.gridTemplateColumns="repeat("+N+",1fr)"; fe.style.borderColor=f.col+"66";
+    fe.style.gridTemplateColumns="repeat("+N+",1fr)"; fe.style.gridTemplateRows="repeat("+N+",1fr)"; fe.style.borderColor=f.col+"66";
     fe.style.transform=f.css+" translateZ("+(size/2)+"px)";
     for(var r=0;r<N;r++) for(var c=0;c<N;c++){
       var pos=add(add(add([0,0,0],f.u,c-(N-1)/2),f.v,r-(N-1)/2),f.n,N/2), cell=cells[key(pos)];
       var el=document.createElement("div"); el.className="cell"+(cell.d?" has":""); el.style.fontSize=(cs*0.6)+"px";
       if(cell.d){
         var dl=[dot(cell.d,f.u),dot(cell.d,f.v)], ang=Math.atan2(dl[1],dl[0])*180/Math.PI;
-        el.innerHTML='<span class="g" style="color:'+f.col+';transform:rotate('+ang+'deg)">➜</span>';
+        if(cell.t) el.innerHTML='<span class="g" style="width:86%;height:86%">'+curveSvg(cell,f,shapeCol(cell.t))+'</span>';
+        else el.innerHTML='<span class="g" style="color:'+f.col+';transform:rotate('+ang+'deg)">➜</span>';
         el.dataset.k=key(pos);
       }
       cell.el=el; fe.appendChild(el);
@@ -120,33 +149,48 @@ function render(){
   updateHud();
 }
 function count(){var n=0;for(var k in cells) if(cells[k].d) n++;return n}
+function fmtT(t){ t=Math.max(0,Math.floor(t)); return Math.floor(t/60)+":"+("0"+(t%60)).slice(-2); }
+var t0=0, clock=null, elapsed=0, tot=1;
+function lim3(){ return Math.round(tot*1.2+10); } function lim2(){ return Math.round(tot*2.5+20); }
+function starsFor(t){ return t<=lim3()?3:t<=lim2()?2:1; }
+function tick(){ elapsed=(Date.now()-t0)/1000; $("tm").textContent="⏱ "+fmtT(elapsed); updateHud(); }
+function startClock(){ if(clock||over) return; t0=Date.now(); clock=setInterval(tick,500); }
+function stopClock(){ if(clock){ elapsed=(Date.now()-t0)/1000; clearInterval(clock); clock=null; } }
 function updateHud(){
   $("lvl").textContent=T.level+" "+level; $("hp").textContent=new Array(hearts+1).join("❤️")||"💔";
-  $("info").textContent=count()?T.left(count()):T.hint;
+  var st=starsFor(elapsed), lim=st===3?lim3():st===2?lim2():0;
+  var hasC=false; for(var k in cells) if(cells[k].d&&cells[k].t){ hasC=true; break; }
+  $("info").textContent=count()?(T.left(count())+"  ·  "+"⭐".repeat(st)+(lim?" "+T.stars+" "+fmtT(lim):"")):T.hint;
 }
 function tap(el){
   if(busy||over||!el||!el.dataset.k) return;
+  startClock();
   var cell=cells[el.dataset.k]; if(!cell||!cell.d) return;
   var p=pathOf(cell), block=null;
   for(var i=0;i<p.length;i++){ if(cells[p[i]]&&cells[p[i]].d){ block=cells[p[i]]; break; } }
   if(block){
+    try{ PP&&PP.sfx&&PP.sfx('bad'); }catch(e){}
     el.classList.add("bad"); if(block.el) block.el.classList.add("blk");
     hearts--; updateHud(); busy=true;
     setTimeout(function(){ el.classList.remove("bad"); if(block.el) block.el.classList.remove("blk"); busy=false; if(hearts<=0) end(false); },500);
     return;
   }
   // frei: rausschieben
+  try{ PP&&PP.sfx&&PP.sfx('whoosh'); }catch(e){}
   var f=FACES[cell.f], dl=[dot(cell.d,f.u),dot(cell.d,f.v)];
   el.style.transform="translate("+(dl[0]*160)+"%,"+(dl[1]*160)+"%) scale(.6)"; el.classList.add("fly");
   cell.d=null; el.classList.remove("has"); delete el.dataset.k; updateHud();
-  if(!count()){ busy=true; setTimeout(function(){ end(true); },450); }
+  if(!count()){ busy=true; stopClock(); setTimeout(function(){ end(true); },450); }
 }
 function end(win){
-  over=true; var ov=$("ov"); ov.classList.add("show");
+  over=true;
+  try{ PP&&PP.sfxResult&&PP.sfxResult(!!win,false); }catch(e){} var ov=$("ov"); ov.classList.add("show");
   if(win){
     if(PP){ try{ PP.brainSubmit("hood",level); }catch(e){} }
     if(level>=best){ best=level+1; try{ localStorage.setItem("bp_arrow_best",String(best)); }catch(e){} if(PP){ try{ PP.fruitSet({hoodLevel:best}); }catch(e){} } }
-    $("ot").textContent="🎉 "+T.won; $("op").textContent=T.wonp; $("o1").textContent=T.next;
+    var sr=starsFor(elapsed), tm=null, bestT=Math.round(elapsed), bestS=sr;
+    try{ tm=JSON.parse(localStorage.getItem("bp_arrow_times")||"{}"); var o=tm[level]; if(o){ bestT=Math.min(o.t,bestT); bestS=Math.max(o.s,bestS); } tm[level]={s:bestS,t:bestT}; localStorage.setItem("bp_arrow_times",JSON.stringify(tm)); }catch(e){}
+    $("ot").textContent="🎉 "+T.won; $("op").innerHTML='<div style="font-size:34px;margin:2px 0 6px">'+"⭐".repeat(sr)+'<span style="filter:grayscale(1) opacity(.3)">'+"⭐".repeat(3-sr)+'</span></div>'+T.tm+fmtT(elapsed)+'<br><span style="font-size:13px">'+T.bt+fmtT(bestT)+'</span><br><span style="font-size:13px;color:#8d97b5">'+T.wonp+'</span>'; $("o1").textContent=T.next;
     $("o1").onclick=function(){ level++; start(); };
   } else {
     $("ot").textContent="💔 "+T.lost; $("op").textContent=T.lostp+level+" · "+T.best+best; $("o1").textContent=T.retry;
@@ -156,8 +200,13 @@ function end(win){
 }
 function quit(){ if(window.parent!==window) parent.postMessage({bpArrowBack:true},location.origin); else location.href="/"; }
 function start(){
-  N=Math.min(6,3+Math.floor((level-1)/3)); hearts=3; over=false; busy=false;
-  $("ov").classList.remove("show"); build(); render();
+  N=level>=40?8:level>=25?7:Math.min(6,3+Math.floor((level-1)/3)); hearts=level>=60?1:level>=30?2:3; over=false; busy=false;
+  stopClock(); elapsed=0; $("tm").textContent="⏱ 0:00";
+  $("ov").classList.remove("show");
+  var bestSnap=null, bestN=-1;
+  for(var at=0;at<6;at++){ build(); var cn=count(); if(cn>bestN){ bestN=cn; bestSnap={}; for(var kk in cells) bestSnap[kk]={d:cells[kk].d,t:cells[kk].t,po:cells[kk].placedOrder}; } }
+  for(var k2 in bestSnap){ cells[k2].d=bestSnap[k2].d; cells[k2].t=bestSnap[k2].t; cells[k2].placedOrder=bestSnap[k2].po; }
+  tot=count(); render();
 }
 // Drehen: Ziehen auf der Buehne, Tippen auf ein Feld
 var rx=-28, ry=-38, drag=null;

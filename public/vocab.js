@@ -23,7 +23,12 @@ function same(inp, ans, word){ const a = norm(inp, word), b = norm(ans, word); i
 const KEY = 'bp_vocab2';
 function P(){ return load(KEY, {}); }
 function PT(id){ const p = P()[id] || {}; return { l: !!p.l, t: !!p.t, g: p.g || [0, 0, 0], s: p.s || 0, gd: !!p.gd }; }
-function setPT(id, f){ const all = P(), cur = Object.assign({}, all[id] || {}); f(cur); all[id] = cur; save(KEY, all); }
+function setPT(id, f){ const all = P(), cur = Object.assign({}, all[id] || {}); f(cur); all[id] = cur; save(KEY, all); achvSync(); }
+function achvSync(blitz){
+  try{ if(typeof achvRecord !== 'function') return; const all = P(); let learned = 0, exam = 0, talk = 0, st3 = 0;
+    THEMES.forEach(t => { const p = all[t.id] || {}; if(p.l) learned++; if(p.t) exam++; if(p.gd) talk++; if(p.l && p.t && p.gd && p.s >= 1) st3++; });
+    const e = { t: 'vocab', learned, exam, talk, stars3: st3 }; if(blitz) e.blitzBest = blitz; achvRecord(e); }catch(e){}
+}
 function themeById(id){ return THEMES.find(t => t.id === id); }
 function abtOf(id){ return ABT.find(a => a.t.includes(id)); }
 function stepOf(id){ const p = PT(id); return !p.l ? 0 : !p.t ? 1 : !p.gd ? 2 : 3; }
@@ -233,7 +238,7 @@ window.blitzTap = function(b){
 };
 function blitzMiss(){ if(!q || q.kind !== 'blitz') return; q.lives--; q.cur = null; if(typeof sfx === 'function') sfx('wrong'); if(q.lives <= 0) blitzEnd(); else { q.round = Math.max(0, q.round); blitzRound(); } }
 function blitzEnd(){
-  const best = load('bp_vocab_blitz', 0), nb = q.score > best; if(nb) save('bp_vocab_blitz', q.score);
+  const best = load('bp_vocab_blitz', 0), nb = q.score > best; if(nb) save('bp_vocab_blitz', q.score); achvSync(q.score);
   const dayK = 'bp_vocab_blitzday', today = new Date().toISOString().slice(0, 10), first = load(dayK, '') !== today && q.round >= 2;
   let c = 0; if(first){ save(dayK, today); c = pay(Math.min(10, q.round * 2)); }
   renderApp(`<div class="panel">${CSS}<div class="vz-em">⚡</div><div class="vz-big">${q.score}</div><div class="vz-hint">${q.round} ${LG('Runden geschafft','rounds cleared')}${nb ? ' · ' + LG('Neuer Bestwert!','New best!') : ' · ' + LG('Bestwert','Best') + ' ' + best}${c ? ' · +' + c + ' ' + LG('Münzen (heute)','coins (today)') : ''}</div>

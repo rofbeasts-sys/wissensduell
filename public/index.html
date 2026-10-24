@@ -4223,7 +4223,7 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 
 // Feature-Schalter (Coming soon): sicherer Standard = gesperrt, bis der Server
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
-let lockedFeatures = ['arena','chess_online','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
+let lockedFeatures = ['arena','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
@@ -4336,7 +4336,7 @@ setInterval(()=>{ if(!document.hidden) liveRefresh(); },30000); setTimeout(liveR
 async function saveLoginName(){
   const ln=(document.getElementById('lnNew')||{}).value||'', pw=(document.getElementById('lnPw')||{}).value||'', m=document.getElementById('lnMsg');
   const r=await apiCall('/api/set-login-name',{token:account.token,password:pw,loginName:ln.trim()});
-  if(r&&r.ok){ account.profile.hasLoginName=true; renderSettingsModal(); }
+  if(r&&r.ok){ account.profile.hasLoginName=true; openLoginNameModal(); }
   else if(m){ m.style.color='#ff8aa0'; m.textContent=(r&&r.error)||L('Fehlgeschlagen.','Failed.'); }
 }
 async function toggleFeedOptIn(){
@@ -5548,6 +5548,7 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
     if(e.data.bpOpenShop === true){ startShopFlow(); return; }
     if(e.data.bpArrowBack === true || e.data.bpFruitBack === true){ startBrainingHub(); return; }
     if(e.data.bpDefenseBack === true){ if(typeof brDuelHub==='function') brDuelHub(); else renderMainMenu(); return; }
+    if(e.data.bpChessOnline === 'random' || e.data.bpChessOnline === 'friends'){ openChessOnline(null, e.data.bpChessOnline); return; }
     if(e.data.bpChessBack !== true) return;
     renderChessHub();
   }catch(err){}
@@ -5555,11 +5556,29 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
 function openChessWorld(){ if(featureLocked('chess_fantasy')){ renderChessHub(); return; } renderChessFrame('/chess-world/index.html'); }
 function openChessOriginal(){ renderChessFrame('/chess/index.html'); }
 // Chess Online: Freunde einladen oder per Raumcode (Konto noetig).
-function openChessOnline(code){
+function openChessOnline(code, mode){
   if(featureLocked('chess_online')){ renderChessHub(); return; }
-  if(!account){ postLoginRedirect = () => openChessOnline(code); renderAccountAuth('login'); return; }
-  renderChessFrame('/chess/online.html' + (code ? '?code=' + encodeURIComponent(code) : ''));
+  if(!account){ postLoginRedirect = () => openChessOnline(code, mode); renderAccountAuth('login'); return; }
+  renderChessFrame('/chess/online.html' + (code ? '?code=' + encodeURIComponent(code) : (mode ? '?mode=' + mode : '')));
 }
+// Einladungs-Fenster: wenn ein Freund zu einer Schach-Partie einlaedt, geht hier ein Fenster auf (Annehmen / Ablehnen)
+let chessInviteShown = {};
+async function chessInvitePoll(){
+  try{
+    if(!account || featureLocked('chess_online') || document.hidden || document.getElementById('chessFrame') || document.getElementById('chessInvPop')) return;
+    const r = await apiCall('/api/chess-online/inbox', { token: localStorage.getItem(ACCOUNT_TOKEN_KEY) });
+    if(!r || !r.ok || !r.invites || !r.invites.length) return;
+    const i = r.invites.find(x => !chessInviteShown[x.code]); if(!i) return;
+    chessInviteShown[i.code] = 1;
+    const d = document.createElement('div'); d.id = 'chessInvPop';
+    d.style.cssText = 'position:fixed;inset:0;z-index:100002;background:rgba(5,8,26,.78);display:flex;align-items:center;justify-content:center;padding:20px';
+    d.innerHTML = `<div class="settings-panel" style="max-width:320px;text-align:center"><div style="font-size:40px">♟️</div><div class="settings-title">${L('Schach-Einladung','Chess invitation')}</div><div class="settings-track" style="margin:8px 0 14px">${esc(i.from)} ${L('möchte gegen dich Schach spielen.','wants to play chess against you.')}</div><button class="btn btn-primary btn-block" id="cipYes">${L('Annehmen','Accept')}</button><button class="btn btn-ghost btn-block" style="margin-top:8px" id="cipNo">${L('Ablehnen','Decline')}</button></div>`;
+    document.body.appendChild(d);
+    d.querySelector('#cipYes').onclick = () => { d.remove(); openChessOnline(i.code); };
+    d.querySelector('#cipNo').onclick = async () => { d.remove(); await apiCall('/api/chess-online/decline', { token: localStorage.getItem(ACCOUNT_TOKEN_KEY), code: i.code }); };
+  }catch(e){}
+}
+setInterval(chessInvitePoll, 10000);
 async function chessHubCheckInvites(){
   if(!account || featureLocked('chess_online')) return;
   const r = await apiCall('/api/chess-online/inbox', { token: localStorage.getItem(ACCOUNT_TOKEN_KEY) });
@@ -5582,7 +5601,7 @@ function renderChessHub(){
         <div class="mode-card" onclick="openChessOriginal()">
           <div class="icon">♟</div>
           <h3>Chess Original</h3>
-          <p>${L('Klassisches Schach, 4 Stärken.','Classic chess, 4 levels.')}${o ? ' · ' + o.wins + '/' + o.games : ''}</p>
+          <p>${L('Klassisches Schach: Bot (4 Stufen), Freunde oder zufälliger Gegner.','Classic chess: bot (4 levels), friends or a random opponent.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
         </div>
         <div class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">🐉</div>
@@ -5598,15 +5617,6 @@ function renderChessHub(){
           <h3>${L('Dame','Checkers')}</h3>
           <p>Coming soon</p>
         </div>`}
-        ${MINI_ONLINE ? featureLocked('chess_online') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
-          <div class="icon">🌐</div>
-          <h3>Chess Online</h3>
-          <p>Coming soon</p>
-        </div>` : `<div class="mode-card" onclick="openChessOnline()">
-          <div class="icon">🌐</div>
-          <h3>Chess Online</h3>
-          <p>${L('Live gegen Freunde: einladen oder Code teilen.','Live against friends: invite or share a code.')}</p>
-        </div>` : ''}
       </div>
       <div id="chessInviteBox"></div>
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -5837,49 +5847,80 @@ function syncStreamerFromAccount(){
 function renderSettingsModal(){
   const overlay = document.getElementById("settingsOverlay");
   if(!overlay) return;
+  const card = (title, body) => `<div style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:14px;margin-top:12px;"><div class="settings-label" style="margin-bottom:10px;">${title}</div>${body}</div>`;
+  const st = window.sfxState ? window.sfxState() : {music:false,sfx:false,vMusic:0,vSfx:0};
+  const sound = `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+      <button class="btn ${st.music?'btn-primary':'btn-ghost'}" style="flex:0 0 140px;white-space:nowrap;padding:12px 6px" onclick="sfxToggle('music');renderSettingsModal()">🎵 ${L('Musik','Music')} ${st.music?L('an','on'):L('aus','off')}</button>
+      <input type="range" min="0" max="100" value="${st.vMusic}" style="flex:1" oninput="sfxVol('music',this.value)"></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn ${st.sfx?'btn-primary':'btn-ghost'}" style="flex:0 0 140px;white-space:nowrap;padding:12px 6px" onclick="sfxToggle('sfx');renderSettingsModal()">🔔 ${L('Töne','Sounds')} ${st.sfx?L('an','on'):L('aus','off')}</button>
+      <input type="range" min="0" max="100" value="${st.vSfx}" style="flex:1" oninput="sfxVol('sfx',this.value)" onchange="sfx('ding')"></div>`;
+  const streamer = `<button class="btn ${streamerMode ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleStreamerMode()">${streamerMode ? '🎥 ' + L('An','On') : '🎥 ' + L('Aus','Off')}</button>
+    <div class="settings-track" style="margin-top:8px;">${L('Raum-Codes werden als Sternchen angezeigt und du bekommst keine Freundschaftsanfragen. Hat dir jemand vorher eine geschickt und du schickst ihm eine, seid ihr direkt Freunde.','Room codes are shown as stars and you will not receive friend requests. If someone sent you one earlier and you send them one, you become friends right away.')}</div>`;
+  const feedCard = account ? card('✨ ' + L('Live-Feed','Live feed'), `<button class="btn ${account.profile.feedOptIn ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleFeedOptIn()">${account.profile.feedOptIn ? L('Name wird gezeigt','Name shown') : L('Anonym','Anonymous')}</button>
+    <div class="settings-track" style="margin-top:8px;">${L('Wenn an, erscheint dein Name bei Live-Meldungen im Chat und im Hauptmenü (z. B. „Mia hat Klasse 2 erreicht“). Sonst steht dort „Ein Spieler“.','If on, your name appears in live notices in the chat and main menu (e.g. “Mia reached Class 2”). Otherwise it says “A player”.')}</div>`) : '';
   overlay.innerHTML = `
     <div class="settings-panel" onclick="event.stopPropagation()">
       <div class="settings-title">⚙️ ${L('Einstellungen','Settings')}</div>
-      <div class="settings-section">
-        <div class="settings-label">${L('Ton','Sound')}</div>
-        ${(function(){ const st = window.sfxState ? window.sfxState() : {music:false,sfx:false,vMusic:0,vSfx:0};
-          return `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-            <button class="btn ${st.music?'btn-primary':'btn-ghost'}" style="flex:0 0 108px" onclick="sfxToggle('music');renderSettingsModal()">${L('Musik','Music')} ${st.music?L('an','on'):L('aus','off')}</button>
-            <input type="range" min="0" max="100" value="${st.vMusic}" style="flex:1" oninput="sfxVol('music',this.value)"></div>
-            <div style="display:flex;gap:8px;align-items:center;">
-            <button class="btn ${st.sfx?'btn-primary':'btn-ghost'}" style="flex:0 0 108px" onclick="sfxToggle('sfx');renderSettingsModal()">${L('Töne','Sounds')} ${st.sfx?L('an','on'):L('aus','off')}</button>
-            <input type="range" min="0" max="100" value="${st.vSfx}" style="flex:1" oninput="sfxVol('sfx',this.value)" onchange="sfx('ding')"></div>`; })()}
-      </div>
-      <div class="settings-section">
-        <div class="settings-label">${L('Sprache','Language')}</div>
-        ${langSwitcherHtml()}
-      </div>
-      <div class="settings-section">
-        <div class="settings-label">${L('Streamer-Modus','Streamer mode')}</div>
-        <button class="btn ${streamerMode ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleStreamerMode()">${streamerMode ? '🎥 ' + L('An','On') : '🎥 ' + L('Aus','Off')}</button>
-        <div class="settings-track" style="margin-top:8px;">${L('Raum-Codes werden als Sternchen angezeigt und du bekommst keine Freundschaftsanfragen. Hat dir jemand vorher eine geschickt und du schickst ihm eine, seid ihr direkt Freunde.','Room codes are shown as stars and you will not receive friend requests. If someone already sent you one and you send them one, you become friends right away.')}</div>
-      </div>
-      ${account ? `<div class="settings-section">
-        <div class="settings-label">🔐 ${L('Anmeldename','Login name')}</div>
-        ${account.profile.hasLoginName
-          ? `<div class="settings-track">✅ ${L('Dein privater Anmeldename ist gesetzt. Dein Spielname ('+esc(account.profile.username)+') ist nur noch zum Anzeigen da und kein Login mehr.','Your private login name is set. Your game name ('+esc(account.profile.username)+') is display-only and no longer works as a login.')}</div>`
-          : `<div class="settings-track" style="margin-bottom:8px;">⚠️ ${L('Dein Spielname ist noch gleichzeitig dein Login, jeder kann ihn sehen. Setze einen geheimen Anmeldenamen:','Your game name is still also your login, everyone can see it. Set a secret login name:')}</div>
-             <input id="lnNew" type="text" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="${L('Neuer Anmeldename (privat)','New login name (private)')}" style="width:100%;margin-bottom:6px;">
-             <input id="lnPw" type="password" maxlength="60" autocomplete="current-password" placeholder="${L('Passwort bestätigen','Confirm password')}" style="width:100%;margin-bottom:6px;">
-             <div id="lnMsg" class="settings-track"></div>
-             <button class="btn btn-primary btn-block" onclick="saveLoginName()">${L('Anmeldename speichern','Save login name')}</button>`}
-      </div>` : ``}
-      ${account ? `<div class="settings-section">
-        <div class="settings-label">${L('Live-Feed','Live feed')}</div>
-        <button class="btn ${account.profile.feedOptIn ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleFeedOptIn()">${account.profile.feedOptIn ? '✨ ' + L('Name wird gezeigt','Name shown') : '✨ ' + L('Anonym','Anonymous')}</button>
-        <div class="settings-track" style="margin-top:8px;">${L('Wenn an, erscheint dein Name im öffentlichen Live-Feed (z. B. „Mia hat Klasse 2 erreicht“). Sonst steht dort „Ein Spieler“.','If on, your name appears in the public live feed (e.g. “Mia reached Class 2”). Otherwise it says “A player”.')}</div>
-      </div>` : ``}
-      <button class="btn btn-ghost btn-block" style="margin-top:18px;" onclick="openReportModal()">🚩 ${L('Melden (Fehler, Spieler, Nachricht)','Report (bug, player, message)')}</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
+      ${card('🌍 ' + L('Sprache','Language'), `<div style="display:flex;justify-content:center;">${langSwitcherHtml()}</div>`)}
+      ${card('🔊 ' + L('Ton','Sound'), sound)}
+      ${card('🎥 ' + L('Streamer-Modus','Streamer mode'), streamer)}
+      ${feedCard}
+      <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
     </div>
   `;
   overlay.classList.remove("hidden");
   overlay.onclick = closeSettings; // Klick auf den abgedunkelten Hintergrund schließt
+}
+// ---- Profil ändern: Profilname, Passwort, Anmeldename (kleine Fenster)
+function profPopup(title, bodyHtml){
+  const overlay = document.getElementById("settingsOverlay"); if(!overlay) return;
+  overlay.innerHTML = `<div class="settings-panel" onclick="event.stopPropagation()"><div class="settings-title">${title}</div>${bodyHtml}<div id="ppMsg" class="settings-track" style="min-height:18px;margin-top:6px;"></div></div>`;
+  overlay.classList.remove("hidden"); overlay.onclick = closeSettings;
+}
+function ppMsg(t, ok){ const m = document.getElementById('ppMsg'); if(m){ m.style.color = ok ? '#c6ff3d' : '#ff8a9a'; m.textContent = t; } }
+const ppIn = 'style="width:100%;margin-bottom:8px;"';
+function openNameModal(){
+  if(!account) return;
+  profPopup('✏️ ' + L('Profilname ändern','Change profile name'), `
+    <div class="settings-track" style="margin-bottom:8px;">${L('Dein neuer Name ist für alle sichtbar. Du kannst ihn nur alle 7 Tage ändern.','Your new name is visible to everyone. You can change it only once every 7 days.')}${account.profile.hasLoginName ? '' : ' ' + L('Achtung: Ohne eigenen Anmeldenamen ändert sich damit auch dein Login.','Note: without a private login name, your login changes too.')}</div>
+    <input id="ppName" type="text" maxlength="20" autocomplete="off" value="${esc(account.profile.username)}" ${ppIn}>
+    <input id="ppPw" type="password" maxlength="60" autocomplete="current-password" placeholder="${L('Passwort bestätigen','Confirm password')}" ${ppIn}>
+    <button class="btn btn-primary btn-block" onclick="saveNameChange()">${L('Speichern','Save')}</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="closeSettings()">${L('Abbrechen','Cancel')}</button>`);
+}
+async function saveNameChange(){
+  const nm = (document.getElementById('ppName')||{}).value||'', pw = (document.getElementById('ppPw')||{}).value||'';
+  const r = await apiCall('/api/change-username', { token: account.token, password: pw, newName: nm.trim() });
+  if(r && r.ok){ account.profile.username = r.username; ppMsg(L('✓ Name geändert.','✓ Name changed.'), true); setTimeout(() => { closeSettings(); try{ renderMainMenu(); }catch(e){} }, 900); }
+  else ppMsg((r && r.error) || L('Fehlgeschlagen.','Failed.'), false);
+}
+function openPwModal(){
+  if(!account) return;
+  profPopup('🔑 ' + L('Passwort ändern','Change password'), `
+    <input id="ppOld" type="password" maxlength="60" autocomplete="current-password" placeholder="${L('Altes Passwort','Current password')}" ${ppIn}>
+    <input id="ppNew" type="password" maxlength="60" autocomplete="new-password" placeholder="${L('Neues Passwort (min. 6 Zeichen)','New password (min. 6 characters)')}" ${ppIn}>
+    <input id="ppNew2" type="password" maxlength="60" autocomplete="new-password" placeholder="${L('Neues Passwort wiederholen','Repeat new password')}" ${ppIn}>
+    <button class="btn btn-primary btn-block" onclick="savePwChange()">${L('Speichern','Save')}</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="closeSettings()">${L('Abbrechen','Cancel')}</button>`);
+}
+async function savePwChange(){
+  const g = id => (document.getElementById(id)||{}).value||'';
+  if(g('ppNew') !== g('ppNew2')){ ppMsg(L('Die neuen Passwörter sind nicht gleich.','The new passwords do not match.'), false); return; }
+  const r = await apiCall('/api/change-password', { token: account.token, oldPassword: g('ppOld'), newPassword: g('ppNew') });
+  if(r && r.ok){ ppMsg(L('✓ Passwort geändert.','✓ Password changed.'), true); setTimeout(closeSettings, 1000); }
+  else ppMsg((r && r.error) || L('Fehlgeschlagen.','Failed.'), false);
+}
+function openLoginNameModal(){
+  if(!account) return;
+  profPopup('🔐 ' + L('Anmeldename','Login name'), account.profile.hasLoginName
+    ? `<div class="settings-track">✅ ${L('Dein privater Anmeldename ist gesetzt. Dein Spielname ('+esc(account.profile.username)+') ist nur noch zum Anzeigen da.','Your private login name is set. Your game name ('+esc(account.profile.username)+') is display-only.')}</div><button class="btn btn-ghost btn-block" style="margin-top:12px;" onclick="closeSettings()">${L('Schließen','Close')}</button>`
+    : `<div class="settings-track" style="margin-bottom:8px;">${L('Dein Spielname ist noch gleichzeitig dein Login und für alle sichtbar. Lege einen geheimen Anmeldenamen fest, nur du kennst ihn.','Your game name is still also your login and visible to everyone. Set a secret login name that only you know.')}</div>
+       <input id="lnNew" type="text" maxlength="20" autocomplete="off" autocapitalize="none" placeholder="${L('Neuer Anmeldename (privat)','New login name (private)')}" ${ppIn}>
+       <input id="lnPw" type="password" maxlength="60" autocomplete="current-password" placeholder="${L('Passwort bestätigen','Confirm password')}" ${ppIn}>
+       <div id="lnMsg" class="settings-track"></div>
+       <button class="btn btn-primary btn-block" onclick="saveLoginName()">${L('Anmeldename speichern','Save login name')}</button>
+       <button class="btn btn-ghost btn-block" style="margin-top:8px;" onclick="closeSettings()">${L('Abbrechen','Cancel')}</button>`);
 }
 // ---- Melden: Fehler, Spieler/Name, Nachricht, Spiel oder Sonstiges an den Admin
 function openReportModal(prefTarget){
@@ -7125,6 +7166,10 @@ function renderAvatarPicker(profileId, backFn){
     <div class="panel">
       <div class="picker-title">${L('Profilbild wählen','Choose profile picture')}</div>
       <div class="picker-sub">${esc(profile.name)}, ${L('tippe auf ein Bild','tap a picture')}</div>
+      ${isAccountProfile ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:flex-end;">
+        <button class="btn btn-ghost" style="flex:1;min-width:130px;" onclick="openNameModal()">✏️ ${L('Profilname ändern','Change name')}</button>
+        <button class="btn btn-ghost" style="flex:1;min-width:130px;" onclick="openPwModal()">🔑 ${L('Passwort ändern','Change password')}</button>
+        <button class="btn btn-ghost" style="flex:1;min-width:130px;" onclick="openLoginNameModal()">🔐 ${L('Anmeldename','Login name')}</button></div>` : ''}
       <div style="height:96px; display:flex; align-items:center; justify-content:center; font-size:72px; line-height:1; margin:16px 0;">${(isAccountProfile && account && (account.profile.betaPhase|0)) ? framedAvatarHtml(profile.avatar, 84, account.profile.betaPhase) : avatarHtml(profile.avatar || "🙂", 96)}</div>
       <div class="picker-sub" style="margin-top:6px;">${L('Figuren','Characters')}</div>
       <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-top:8px;">
@@ -11232,32 +11277,88 @@ function fuaRender(){
 
 function startTicTacToeFlow(){
   setAudioZone("ttt"); // eigener Titel nur hier, solange man im Tic-Tac-Toe-Bereich ist
+  tttMpFixedMode = false;
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE</div>
-      <div class="picker-sub">${L('Wähle, wie du spielen möchtest.','Choose how you want to play.')}</div>
+      <div class="picker-sub">${L('Wähle, was du spielen möchtest.','Choose what you want to play.')}</div>
       <div class="menu-grid" style="grid-template-columns:1fr 1fr; margin-top:6px;">
-        <div class="mode-card" onclick="tttSoloEntry()">
+        <div class="mode-card" onclick="tttOppSelect('classic')">
           <div class="icon" style="filter:drop-shadow(0 0 8px rgba(255,77,90,.6))"><svg viewBox="0 0 40 40" width="38" height="38"><path d="M5 5L19 19M19 5L5 19" stroke="#ff4d5a" stroke-width="4" stroke-linecap="round"/><circle cx="29" cy="29" r="7" fill="none" stroke="#ff4d5a" stroke-width="4"/></svg></div>
           <h3>Original</h3>
-          <p>${L('Gegen den Bot, vom weißen bis zum Meister-Gürtel.','Against the bot, from white to master belt.')}</p>
+          <p>${L('Klassisch, vom weißen bis zum Meister-Gürtel.','Classic, from white to master belt.')}</p>
         </div>
-        ${MINI_ONLINE ? `<div class="mode-card" onclick="tttMultiplayerEntry()">
-          <div class="icon">🌐</div>
-          <h3>${L('Online-Modus','Online mode')}</h3>
-          <p>${L('Raum erstellen oder einem Raum beitreten.','Create a room or join one.')}</p>
-        </div>` : ''}
         ${muAllowed() ? `<div class="mode-card" onclick="muIntro()" style="${featureLocked('muehle') ? 'border-color:var(--warn);' : ''}">
           <div class="icon"><svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg></div>
           <h3>${L('Mühle','Morris')} ${featureLocked('muehle') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
           <p>${L('Klassische Mühle, Bot, Freunde, Zufallsgegner.','Classic mills, bot, friends, random opponent.')}</p>
         </div>` : ''}
+        ${featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+          <div class="icon">⚡</div><h3>Quantum</h3><p>Coming soon</p></div>` : `<div class="mode-card" onclick="tttOppSelect('quantum')">
+          <div class="icon">⚡</div><h3>Quantum</h3>
+          <p>${L('Höchstens 3 Symbole, das älteste verschwindet.','At most 3 symbols, the oldest vanishes.')}</p></div>`}
+        <div class="mode-card" onclick="tttOppSelect('quizmix')">
+          <div class="icon">🧠</div><h3>QuizMix</h3>
+          <p>${L('Jedes Feld wird per Quiz-Duell erkämpft.','Every square is won in a quiz duel.')}</p>
+        </div>
       </div>
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button>
       </div>
     </div>
   `);
+}
+// Gegner waehlen: Bot, Freunde (Raum) oder Online (Zufallsgegner)
+let tttMpFixedMode = false;
+function tttProfileThen(fn){
+  if(account){ fn(accountAsProfile()); return; }
+  if(profiles.length > 0){
+    const lastId = localStorage.getItem(LAST_PROFILE_KEY);
+    fn(profiles.find(p => p.id === lastId) || profiles[0]);
+    return;
+  }
+  renderProfilePicker(L("WER SPIELT?","WHO IS PLAYING?"), L("Wie heißt du?","What's your name?"), [], fn, "startTicTacToeFlow");
+}
+function tttOppSelect(mode){
+  tttMpFixedMode = false;
+  const names = { classic:'Original', quizmix:'QuizMix', quantum:'Quantum' };
+  const botFn = mode === 'quizmix' ? 'tttQuizmixBotEntry' : (mode === 'quantum' ? 'tttQuantumEntry' : 'renderTttRankOverview');
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE · ${names[mode]}</div>
+      <div class="picker-sub">${L('Gegen wen möchtest du spielen?','Who do you want to play against?')}</div>
+      <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="tttProfileThen(${botFn})">🤖 ${L('Gegen Bot','Against the bot')}</button>
+      ${MINI_ONLINE ? `<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttMpSelectedMode='${mode}';tttMpFixedMode=true;tttProfileThen(tttStartMultiplayer)">👥 ${L('Mit Freunden (Raum-Code)','With friends (room code)')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttProfileThen(p => tttMpQueue(p,'${mode}'))">🌐 ${L('Online (zufälliger Gegner)','Online (random opponent)')}</button>` : ''}
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
+      </div>
+    </div>
+  `);
+}
+// Online-Zufallsgegner: Warteschlange auf dem Server
+let tttQueueMode = 'classic';
+function tttMpQueue(profile, mode){
+  tttOverviewProfile = profile; tttQueueMode = mode;
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">TIC TAC TOE · ${mode==='quizmix'?'QuizMix':(mode==='quantum'?'Quantum':'Original')}</div>
+      <div class="explanation" style="margin-top:14px;text-align:center;">🌐 ${L('Suche einen Gegner …','Looking for an opponent …')}<br><span style="opacity:.7;font-size:13px;">${L('Sobald jemand dasselbe sucht, geht es los.','As soon as someone looks for the same, it starts.')}</span></div>
+      <div id="tttMpEntryError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
+      <div class="actions-row" style="margin-top:18px;">
+        <button class="btn btn-ghost" onclick="tttMpQueueCancel()">${L('Abbrechen','Cancel')}</button>
+      </div>
+    </div>
+  `);
+  tttMpConnect(() => {
+    tttMp.isHost = false;
+    tttMp.ws.send(JSON.stringify({action:"tttQueue", name: profile.name, mode, adminKey: (typeof adminViewOn==='function' && adminViewOn()) ? adminKeyStored() : undefined}));
+  });
+}
+function tttMpQueueCancel(){
+  try{ if(tttMp && tttMp.ws){ tttMp.ws.send(JSON.stringify({action:"tttQueueCancel"})); tttMp.ws.close(); } }catch(e){}
+  tttMp = null;
+  tttOppSelect(tttQueueMode);
 }
 function tttSoloEntry(){
   if(account){ renderTttRankOverview(accountAsProfile()); return; }
@@ -11314,10 +11415,8 @@ function renderTttRankOverview(profile){
           </div>`; }).join('')}
       </div>
       <button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="startTttGame(tttOverviewProfile)">${L('GEGEN BOT SPIELEN','PLAY AGAINST THE BOT')}</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttQuizmixBotEntry(tttOverviewProfile)">🧠 ${L('QUIZMIX GEGEN BOT','QUIZMIX VS BOT')}</button>
-      ${featureLocked('ttt_quantum') ? `<button class="btn btn-ghost btn-block" style="margin-top:10px; opacity:.45; cursor:default;" disabled>⚡ QUANTUM · Coming soon</button>` : `<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttQuantumEntry(tttOverviewProfile)">⚡ ${L('QUANTUM-MODUS','QUANTUM MODE')}</button>`}
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttResetRank()">↺ ${L('RANG ZURÜCKSETZEN','RESET RANK')}</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttOppSelect('classic')">${t('btn_back')}</button>
     </div>
   `);
 }
@@ -11341,8 +11440,8 @@ function tttStartMultiplayer(profile){
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE, ${L('ONLINE-MODUS','ONLINE MODE')}</div>
-      <div class="picker-sub">${L('Modus für einen neuen Raum:','Mode for a new room:')}</div>
-      <div class="menu-grid" style="grid-template-columns:1fr 1fr 1fr; margin-top:6px;">
+      ${tttMpFixedMode ? `<div class="picker-sub">${L('Spiel mit Freunden','Game with friends')}: <b>${tttMpSelectedMode==='quizmix'?'QuizMix':(tttMpSelectedMode==='quantum'?'Quantum':'Original')}</b></div>` : `<div class="picker-sub">${L('Modus für einen neuen Raum:','Mode for a new room:')}</div>`}
+      <div class="menu-grid" style="grid-template-columns:1fr 1fr 1fr; margin-top:6px;${tttMpFixedMode ? 'display:none;' : ''}">
         <div class="mode-card" style="${tttMpSelectedMode==='classic'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='classic'; tttStartMultiplayer(tttOverviewProfile);">
           <div class="icon">⭕</div>
           <h3>${L('Klassisch','Classic')}</h3>
@@ -11373,7 +11472,7 @@ function tttStartMultiplayer(profile){
       </div>
       <div id="tttMpEntryError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
       <div class="actions-row" style="margin-top:18px;">
-        <button class="btn btn-ghost" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
+        <button class="btn btn-ghost" onclick="${tttMpFixedMode ? `tttOppSelect(tttMpSelectedMode)` : `startTicTacToeFlow()`}">${t('btn_back')}</button>
       </div>
     </div>
   `);
