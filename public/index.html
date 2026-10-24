@@ -24,13 +24,24 @@
   html,body{height:100%;}
   body{
     margin:0;
-    background:
-      radial-gradient(1200px 600px at 15% -10%, #1a2140 0%, transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, #14243a 0%, transparent 55%),
-      var(--bg);
+    background:#060914;
     color:var(--text); font-family: system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     -webkit-font-smoothing:antialiased; min-height:100%;
   }
+  /* Hintergrund: feste, langsam wandernde Farbwolken + feines Punktraster (keine Nahtstellen beim Scrollen) */
+  body::before{ content:""; position:fixed; left:-25%; top:-25%; width:150%; height:150%; z-index:-2; pointer-events:none;
+    background:
+      radial-gradient(520px 520px at 18% 22%, rgba(198,255,61,.17), transparent 70%),
+      radial-gradient(620px 620px at 82% 16%, rgba(37,244,238,.15), transparent 70%),
+      radial-gradient(640px 640px at 70% 78%, rgba(168,85,247,.17), transparent 70%),
+      radial-gradient(520px 520px at 14% 84%, rgba(255,93,143,.12), transparent 70%),
+      linear-gradient(180deg,#0a0f22 0%,#060914 100%);
+    animation:bgDrift 36s ease-in-out infinite alternate; }
+  body::after{ content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background-image:radial-gradient(rgba(255,255,255,.14) 1px, transparent 1.6px); background-size:26px 26px;
+    -webkit-mask-image:radial-gradient(ellipse at 50% 35%, #000 0%, transparent 78%); mask-image:radial-gradient(ellipse at 50% 35%, #000 0%, transparent 78%); opacity:.55; }
+  @keyframes bgDrift{ 0%{ transform:translate3d(0,0,0) scale(1); } 50%{ transform:translate3d(-4%,3%,0) scale(1.06); } 100%{ transform:translate3d(3%,-3%,0) scale(1.02); } }
+  @media (prefers-reduced-motion:reduce){ body::before{ animation:none; } }
   #app{ max-width:960px; margin:0 auto; padding:20px 16px 60px; }
   .hidden{ display:none !important; }
 
@@ -5856,7 +5867,7 @@ const I18N = {
   menu_solo_title: {de:"BRAIN TEST", en:"BRAIN TEST", ja:"BRAIN TEST", zh:"BRAIN TEST", fr:"BRAIN TEST", it:"BRAIN TEST", es:"BRAIN TEST"},
   menu_solo_desc: {de:"Allein spielen, Rang steigern.", en:"Play solo and rank up.", ja:"一人でプレイして、自分のスコアとランクを上げよう。", zh:"独自游戏，提升你自己的分数和段位。", fr:"Joue seul et améliore ton propre score et ton rang.", it:"Gioca da solo e migliora il tuo punteggio e il tuo grado.", es:"Juega solo y mejora tu propia puntuación y rango."},
   menu_party_title: {de:"PARTY RAUM", en:"PARTY ROOM", ja:"パーティールーム", zh:"聚会房间", fr:"SALLE DE SOIRÉE", it:"STANZA PARTY", es:"SALA DE FIESTA"},
-  menu_party_desc: {de:"Bis zu 6 Spieler, Teams, viele Modi.", en:"Up to 6 players, teams, many modes.", ja:"同じネットワーク上で最大6人がそれぞれの端末で参加。チームと複数のゲームモード。", zh:"最多6名玩家在同一网络下用各自设备游玩，支持组队和多种模式。", fr:"Jusqu'à 6 joueurs sur leurs propres appareils sur le même réseau, avec équipes et plusieurs modes de jeu.", it:"Fino a 6 giocatori sui propri dispositivi nella stessa rete, con squadre e più modalità di gioco.", es:"Hasta 6 jugadores en sus propios dispositivos en la misma red, con equipos y varios modos de juego."},
+  menu_party_desc: {de:"Spiele mit bis zu 6 Freunden, in Teams und vielen Modi.", en:"Play with up to 6 friends, in teams and many modes.", ja:"同じネットワーク上で最大6人がそれぞれの端末で参加。チームと複数のゲームモード。", zh:"最多6名玩家在同一网络下用各自设备游玩，支持组队和多种模式。", fr:"Jusqu'à 6 joueurs sur leurs propres appareils sur le même réseau, avec équipes et plusieurs modes de jeu.", it:"Fino a 6 giocatori sui propri dispositivi nella stessa rete, con squadre e più modalità di gioco.", es:"Hasta 6 jugadores en sus propios dispositivos en la misma red, con equipos y varios modos de juego."},
   menu_ranking: {de:"RANKING", en:"RANKING", ja:"ランキング", zh:"排行榜", fr:"CLASSEMENT", it:"CLASSIFICA", es:"CLASIFICACIÓN"},
   menu_stats: {de:"STATISTIK", en:"STATISTICS", ja:"統計", zh:"统计", fr:"STATISTIQUES", it:"STATISTICHE", es:"ESTADÍSTICAS"},
   menu_footer: {de:"Alle Daten werden lokal in deinem Browser gespeichert.", en:"All data is stored locally in your browser.", ja:"すべてのデータはブラウザにローカル保存されます。", zh:"所有数据均存储在你的浏览器本地。", fr:"Toutes les données sont stockées localement dans ton navigateur.", it:"Tutti i dati sono salvati localmente nel tuo browser.", es:"Todos los datos se guardan localmente en tu navegador."},
@@ -6819,7 +6830,7 @@ function renderMainMenu(){
       <div class="mode-card" onclick="startDailyFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="6" y="9" width="36" height="33" rx="6" fill="none" stroke="#3de0ff" stroke-width="3.5"/><path d="M6 19H42M15 5V12M33 5V12" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><path d="M17 31L22 36L32 26" stroke="#c6ff3d" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h3>${L('Tagesrätsel','Daily puzzles')}</h3>
-        <p>${L('Sudoku & Kreuzworträtsel, Münzen verdienen.','Sudoku & crossword, earn coins.')}</p>
+        <p>${L('Jeden Tag neue Rätsel. Löse sie und sammle Münzen.','New puzzles every day. Solve them and collect coins.')}</p>
       </div>
     </div>
 
@@ -6837,7 +6848,7 @@ function renderMainMenu(){
       ${featureLocked('arena') ? `` : `<div class="mode-card" onclick="startArenaFlow()">
         <div class="icon">🏆</div>
         <h3>Arena</h3>
-        <p>${L('Spiele um die Bestenliste','Play for the leaderboard')}</p>
+        <p>${L('Kämpfe um die Bestenliste und steige in der Liga auf.','Fight for the leaderboard and climb the league.')}</p>
       </div>`}
     </div>
 
@@ -6855,12 +6866,12 @@ function renderMainMenu(){
       </div>` : `<div class="mode-card" onclick="startBiologyFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M14 6C14 18 34 18 34 30C34 38 24 42 24 42M34 6C34 18 14 18 14 30C14 38 24 42 24 42" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linecap="round"/><path d="M17 12H31M17 24H31M20 36H28" stroke="#3de0ff" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Biology</h3>
-        <p>${L('Körper entdecken, inkl. Sexualkunde.','Explore the body, incl. sex ed.')}</p>
+        <p>${L('Entdecke, wie dein Körper funktioniert.','Discover how your body works.')}</p>
       </div>`}
       <div class="mode-card" onclick="startVocab()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="6" y="8" width="36" height="28" rx="6" fill="none" stroke="#ffc446" stroke-width="3.5"/><path d="M16 36L14 43L24 36" fill="none" stroke="#ffc446" stroke-width="3.5" stroke-linejoin="round"/><path d="M15 27L20 16L25 27M17 23.5H23" fill="none" stroke="#ffc446" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M29 20H35M32 20V27" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Vocab</h3>
-        <p>${L('Englisch-Vokabeln: Schule, Reisen und Business.','English vocabulary: school, travel and business.')}</p>
+        <p>${L('Englisch lernen: Schule, Reisen und Business.','Learn English: school, travel and business.')}</p>
       </div>
     </div>
 
@@ -6869,17 +6880,16 @@ function renderMainMenu(){
       <div class="mode-card" onclick="startBrainingHub()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><circle cx="33" cy="33" r="6" fill="#ff5d8f"/><path d="M33 27C33 24 35 23 37 23" stroke="#7cff8c" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
         <h3>Braining</h3>
-        <p>${L('Denkspiele ohne Ende.','Endless puzzles.')}</p>
+        <p>${L('Freizeit-Spiele: einfach mal zwischendurch zocken.','Leisure games: just play for fun, no thinking required.')}</p>
       </div>
       <div class="mode-card" onclick="renderChessHub()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 5V13M20 9H28" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M16 38C16 30 20 26 20 20H28C28 26 32 30 32 38Z" fill="#fff"/><rect x="12" y="38" width="24" height="5" rx="2.5" fill="#fff"/><rect x="18" y="15" width="12" height="6" rx="3" fill="#fff"/></svg></div>
         <h3>Chess</h3>
-        <p>${L('Original oder Fantasy, gegen den Bot','Original or Fantasy, against the bot')}</p>
       </div>
       <div class="mode-card" onclick="startTicTacToeFlow()">
         <div class="icon"><svg viewBox="0 0 40 40" width="38" height="38"><path d="M5 5L19 19M19 5L5 19" stroke="#ff4d5a" stroke-width="4" stroke-linecap="round"/><circle cx="29" cy="29" r="7" fill="none" stroke="#ff4d5a" stroke-width="4"/></svg></div>
         <h3>Tic Tac Toe</h3>
-        <p>${L('Gegen den Bot, vom weißen bis zum Meister-Gürtel','Against the bot, from white to master belt')}</p>
+        <p>${L('Vom weißen bis zum Meister-Gürtel.','From white to master belt.')}</p>
       </div>
       ${brAllowed() ? `<div class="mode-card" onclick="brDuelHub()" style="border-color:var(--warn);">
         <div class="icon">⚔️</div>
@@ -6889,12 +6899,12 @@ function renderMainMenu(){
       <div class="mode-card ${currentLang==='de' ? '' : 'locked'}" onclick="${currentLang==='de' ? 'startChem()' : ''}" style="${currentLang==='de' ? '' : 'opacity:.45; cursor:default;'}">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><path d="M19 6H29M21 6V20L9 40C8 42 9 44 11 44H37C39 44 40 42 39 40L27 20V6" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M14 33H34" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="38" r="2" fill="#3de0ff"/><circle cx="29" cy="28" r="2" fill="#c6ff3d"/></svg></div>
         <h3>Brainchimie</h3>
-        <p>${currentLang==='de' ? 'Kombiniere Elemente, entdecke alles.' : 'Only available in German'}</p>
+        <p>${currentLang==='de' ? 'Kombiniere Elemente.' : 'Only available in German'}</p>
       </div>
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="2" y="6" width="44" height="36" rx="6" fill="#2f6bff"/><circle cx="9" cy="14" r="4" fill="#0b1236"/><circle cx="9" cy="24" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#0b1236"/><circle cx="19" cy="14" r="4" fill="#0b1236"/><circle cx="19" cy="24" r="4" fill="#0b1236"/><circle cx="19" cy="34" r="4" fill="#0b1236"/><circle cx="29" cy="14" r="4" fill="#0b1236"/><circle cx="29" cy="24" r="4" fill="#0b1236"/><circle cx="29" cy="34" r="4" fill="#0b1236"/><circle cx="39" cy="14" r="4" fill="#0b1236"/><circle cx="39" cy="24" r="4" fill="#0b1236"/><circle cx="39" cy="34" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="7" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="34" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="29" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="27" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="39" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="37" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="24" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="21.5" r="2" fill="#fff" opacity=".6"/></svg></div>
         <h3>Fourups</h3>
-        <p>${L('4 gewinnt, gegen den Bot oder zu zweit','Connect 4, vs the bot or two players')}</p>
+        <p>${L('4 gewinnt, allein oder zu zweit.','Connect 4, solo or with two players.')}</p>
       </div>
     </div>
 
