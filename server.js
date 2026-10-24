@@ -3260,7 +3260,27 @@ function busyMsg(lang) { return { ok: false, error: et("serverBusy", lang) }; }
 const SERVICE_DOWN = { ok: false, unavailable: true, error: "Der Kontodienst ist gerade nicht erreichbar. Bitte gleich nochmal versuchen." };
 
 // Gibt true zurueck, wenn wirklich gespeichert wurde.
+// Muenz-Verlauf: bei jedem Speichern wird der Kontostand mit dem zuletzt gesehenen verglichen.
+// Jede Aenderung landet (mit der gerade laufenden Anfrage als Quelle) im Verlauf des Kontos.
+let coinSrc = "";
+function coinLedgerScan() {
+  const now = Date.now();
+  for (const u of users) {
+    const c = u && u.stats && u.stats.coins;
+    if (typeof c !== "number" || !Number.isFinite(c)) continue;
+    if (typeof u.coinSnap !== "number") { u.coinSnap = c; continue; }
+    if (c === u.coinSnap) continue;
+    if (!Array.isArray(u.coinLog)) u.coinLog = [];
+    u.coinLog.push({ t: now, d: c - u.coinSnap, b: c, s: coinSrc || "?" });
+    u.coinSnap = c;
+    if (u.coinLog.length > 300) { // je Richtung die letzten 100 behalten (Platz sparen)
+      const inc = u.coinLog.filter(e => e.d > 0).slice(-100), out = u.coinLog.filter(e => e.d <= 0).slice(-100);
+      u.coinLog = inc.concat(out).sort((a, b) => a.t - b.t);
+    }
+  }
+}
 async function saveUsers() {
+  try { coinLedgerScan(); } catch (e) { console.error("Muenz-Verlauf:", e.message); }
   if (!usersLoaded) { console.error("Speichern verweigert: Kontenliste wurde nicht sicher geladen."); return false; }
   if (USE_UPSTASH) {
     try {
@@ -3784,7 +3804,13 @@ async function saveUserStats(token, stats, lang) {
   // Erfolge: Staende zusammenfuehren (Zaehler nie rueckwaerts, "freigeschaltet"
   // nur aus den Zaehlern berechnet - direktes Setzen von unlocked wirkt nicht)
   if (stats.achv && typeof stats.achv === "object") {
+    const before = Object.assign({}, (user.stats.achv && user.stats.achv.unlocked) || {});
     user.stats.achv = Achv.merge(user.stats.achv, stats.achv, Date.now());
+    if (!isRestricted(user)) { // nur Kategorie-Abschluesse und Sammel-Erfolge sind meldenswert (nicht jeder Einzelne)
+      for (const id of Object.keys(user.stats.achv.unlocked || {})) {
+        if (!before[id] && (id.startsWith("cat_") || id.startsWith("collector_"))) feedPush(user, "achv", 0, id);
+      }
+    }
   }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
@@ -5282,6 +5308,61 @@ async function adminRestrict(key, ip, username, action) {
 }
 
 // ===== ADMIN-KONSOLE: Spieler suchen, Muenzen geben, bannen, Timeout, stumm schalten =====
+/* ---- Meldungen (Bug, Spieler, Nachricht, Spiel ...) ---- */
+const REPORTS_FILE = USERS_FILE + ".reports.json";
+const REPORT_CATS = ["bug", "player", "message", "game", "other"];
+let reportsData = null;
+async function loadReports() {
+  if (reportsData) return reportsData;
+  let list = [];
+  try {
+    if (USE_UPSTASH) {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_reports`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+      const d = await res.json(); if (d && d.result) list = JSON.parse(d.result);
+    } else if (fs.existsSync(REPORTS_FILE)) list = JSON.parse(fs.readFileSync(REPORTS_FILE, "utf8"));
+  } catch (e) { console.error("Meldungen nicht lesbar:", e.message); }
+  reportsData = Array.isArray(list) ? list : [];
+  return reportsData;
+}
+async function saveReports() {
+  const body = JSON.stringify(reportsData || []);
+  if (USE_UPSTASH) {
+    try { const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}_reports`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body }); return res.ok; } catch (e) { return false; }
+  }
+  try { fs.mkdirSync(path.dirname(REPORTS_FILE), { recursive: true }); fs.writeFileSync(REPORTS_FILE, body, "utf8"); return true; } catch (e) { console.error(e.message); return false; }
+}
+async function submitReport(token, p, ip, lang) {
+  const en = lang === "en";
+  if (rlHit("rep|" + ip, 6, 3600000, 3600000).lockedUntil > Date.now()) return { ok: false, error: en ? "Too many reports. Please try again later." : "Zu viele Meldungen. Bitte später nochmal." };
+  const text = typeof p.text === "string" ? p.text.trim().slice(0, 1000) : "";
+  if (text.length < 5) return { ok: false, error: en ? "Please describe the problem (at least 5 characters)." : "Bitte beschreibe es kurz (mindestens 5 Zeichen)." };
+  const cat = REPORT_CATS.includes(p.cat) ? p.cat : "other";
+  let email = typeof p.email === "string" ? p.email.trim().slice(0, 100) : "";
+  if (email && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) return { ok: false, error: en ? "That email address does not look right." : "Die E-Mail-Adresse sieht nicht richtig aus." };
+  const sess = token ? findSession(token) : null;
+  const list = await loadReports();
+  list.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: Date.now(), cat, text, email, who: sess ? sess.user.username : "", target: typeof p.target === "string" ? p.target.trim().slice(0, 40) : "", done: false });
+  if (list.length > 500) list.splice(0, list.length - 500);
+  if (!(await saveReports())) { list.pop(); return { ok: false, error: en ? "Could not save right now." : "Konnte gerade nicht speichern." }; }
+  return { ok: true };
+}
+async function adminReports(key, ip, payload) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const list = await loadReports();
+  if (payload && typeof payload.id === "string") {
+    const i = list.findIndex(r => r.id === payload.id);
+    if (i >= 0) { if (payload.del) list.splice(i, 1); else list[i].done = !list[i].done; await saveReports(); }
+  }
+  return { ok: true, open: list.filter(r => !r.done).length, reports: list.slice().reverse().slice(0, 100) };
+}
+function adminUserCoins(key, ip, username) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const u = findUserByName(typeof username === "string" ? username : "");
+  if (!u) return { ok: false, error: "Konto nicht gefunden." };
+  const log = Array.isArray(u.coinLog) ? u.coinLog : [];
+  return { ok: true, balance: (u.stats && u.stats.coins) || 0,
+    income: log.filter(e => e.d > 0).slice(-100).reverse(), spend: log.filter(e => e.d <= 0).slice(-100).reverse() };
+}
 function adminUserRow(u) {
   const st = u.stats || {};
   return { username: u.username, avatar: u.avatar || st.avatar || null, online: accountIsOnline(u.username), coins: st.coins || 0,
@@ -5400,7 +5481,7 @@ let presencePeakDay = "", presencePeakVal = 0;
 function presencePeak(n) { const d = new Date().toISOString().slice(0, 10); if (d !== presencePeakDay) { presencePeakDay = d; presencePeakVal = 0; } if (n > presencePeakVal) presencePeakVal = n; return presencePeakVal; }
 // Oeffentlicher Live-Bereich: echte Zahlen + echter Aktivitaets-Feed (nur echte Ereignisse am Server).
 // Namen erscheinen nur, wenn der Spieler es in den Einstellungen erlaubt hat (feedOptIn) - sonst "ein Spieler".
-const PUBLIC_ONLINE_MIN = Math.max(1, parseInt(process.env.PUBLIC_ONLINE_MIN || "3", 10) || 3);
+const PUBLIC_ONLINE_MIN = Math.max(1, parseInt(process.env.PUBLIC_ONLINE_MIN || "2", 10) || 2);
 const feed = []; // { t, kind, name|null, n }
 const seenToday = { day: "", set: new Set() };
 function seenTodayAdd(sid) {
@@ -5408,9 +5489,35 @@ function seenTodayAdd(sid) {
   if (seenToday.day !== d) { seenToday.day = d; seenToday.set = new Set(); }
   if (seenToday.set.size < 50000) seenToday.set.add(sid);
 }
-function feedPush(user, kind, n) {
-  feed.unshift({ t: Date.now(), kind, name: user && user.feedOptIn ? user.username : null, n: n | 0 });
+function feedPush(user, kind, n, x) {
+  const name = user && user.feedOptIn ? user.username : null;
+  feed.unshift({ t: Date.now(), kind, name, n: n | 0, x: x ? String(x).slice(0, 40) : undefined });
   if (feed.length > 30) feed.length = 30;
+  chatSystemPost(kind, name, n | 0, x).catch(() => {}); // dieselbe Meldung erscheint auch im oeffentlichen Chat
+}
+// Live-Meldung als Systemzeile im oeffentlichen Chat (ohne Absender; Name nur wenn erlaubt).
+async function chatSystemPost(kind, name, n, x) {
+  if (!(await ensureConversationsLoaded())) return;
+  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
+  const last = list.length ? list[list.length - 1] : null;
+  list.push({ id: (last ? last.id : 0) + 1, sys: 1, k: kind, nm: name || "", n: n | 0, x: x ? String(x).slice(0, 40) : "", u: "", t: "", ts: Date.now() });
+  if (list.length > PUB_MAX) list.splice(0, list.length - PUB_MAX);
+  saveConversations();
+}
+// Client meldet einen Meilenstein (aktuell: Brain-Defense-Welle). Nur Vielfache von 10, nur nach oben, je Konto.
+async function feedEvent(token, kind, n, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const me = findUserByToken(token);
+  if (!me) return errObj("notLoggedIn", lang);
+  if (isRestricted(me) || isMuted(me)) return { ok: true, skipped: true };
+  if (kind !== "wave") return { ok: false, error: "?" };
+  n = Math.floor(Number(n));
+  if (!(n >= 10 && n <= 500 && n % 10 === 0)) return { ok: true, skipped: true };
+  if (rlHit("fev|" + me.username.toLowerCase(), 20, 3600000, 3600000).lockedUntil > Date.now()) return { ok: true, skipped: true };
+  if ((me.stats.feedWaveMax || 0) >= n) return { ok: true, skipped: true };
+  me.stats.feedWaveMax = n; await saveUsers();
+  feedPush(me, "wave", n);
+  return { ok: true };
 }
 function publicStats() {
   const c = presenceCounts();
@@ -5419,7 +5526,7 @@ function publicStats() {
   return { ok: true, online: c.online >= PUBLIC_ONLINE_MIN ? c.online : null, today: seenToday.day === d ? seenToday.set.size : 0, feed: feed.filter(e => e.t > cutoff).slice(0, 8) };
 }
 const LOCKED_FEATURES = new Set(
-  (process.env.LOCKED_FEATURES === undefined ? "shop,arena,chess_online,ordering,blitz,chess_fantasy,ttt_quantum,fourups_abilities,brain_royale" : process.env.LOCKED_FEATURES)
+  (process.env.LOCKED_FEATURES === undefined ? "arena,chess_online,ordering,blitz,chess_fantasy,ttt_quantum,fourups_abilities,brain_royale" : process.env.LOCKED_FEATURES)
     .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
 );
 function featureLocked(name) { return LOCKED_FEATURES.has(name); }
@@ -5741,6 +5848,7 @@ const server = http.createServer((req, res) => {
         // Client schickt sein aktuelles "lang" mit jedem Aufruf mit (siehe
         // apiCall() im Client) - unbekannt/fehlend faellt auf Deutsch zurueck.
         lang = payload.lang === "en" ? "en" : "de";
+        coinSrc = String(req.url || "").replace(/^\/api\//, "").slice(0, 40);
         if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
         else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
@@ -5770,6 +5878,10 @@ const server = http.createServer((req, res) => {
         else if (req.url.startsWith("/api/fourups/")) { payload.__ip = ip; result = await fourupsApi(req.url.slice(13), payload, lang); }
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
         else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
+        else if (req.url === "/api/feed-event") result = await feedEvent(payload.token, payload.kind, payload.n, lang);
+        else if (req.url === "/api/report") result = await submitReport(payload.token, payload, ip, lang);
+        else if (req.url === "/api/admin-reports") result = await adminReports(payload.key, ip, payload);
+        else if (req.url === "/api/admin-user-coins") result = adminUserCoins(payload.key, ip, payload.username);
         else if (req.url === "/api/admin-users") result = adminUsers(payload.key, ip, payload.query, !!payload.onlineOnly);
         else if (req.url === "/api/admin-user-action") result = await adminUserAction(payload.key, ip, payload.username, payload.action, payload.amount, payload.minutes, payload.reason);
         else if (req.url === "/api/social-claim") result = await socialClaim(payload, lang);
