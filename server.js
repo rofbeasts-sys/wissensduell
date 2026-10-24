@@ -3322,9 +3322,17 @@ function findSession(token) {
   const now = Date.now();
   for (const u of users) {
     const entry = (u.tokens || []).find(t => t.token === token);
-    if (entry) return (now - (entry.createdAt || 0) <= TOKEN_MAX_AGE_MS) ? { user: u, entry } : null;
+    if (entry) { if (isBanned(u)) return null; return (now - (entry.createdAt || 0) <= TOKEN_MAX_AGE_MS) ? { user: u, entry } : null; }
   }
   return null;
+}
+// Bann (dauerhaft) oder Timeout (bis bannedUntil): Sitzungen sind ungueltig, Anmelden geht nicht.
+function isBanned(u) { return !!(u && (u.banned === true || (u.bannedUntil && u.bannedUntil > Date.now()))); }
+function isMuted(u) { return !!(u && u.mutedUntil && u.mutedUntil > Date.now()); }
+function banText(u, lang) {
+  if (u.banned) return lang === "en" ? "Your account is banned." + (u.banReason ? " Reason: " + u.banReason : "") : "Dein Konto ist gesperrt." + (u.banReason ? " Grund: " + u.banReason : "");
+  const min = Math.max(1, Math.ceil((u.bannedUntil - Date.now()) / 60000));
+  return lang === "en" ? "You are in timeout for " + min + " more minutes." : "Du bist noch " + min + " Minuten im Timeout.";
 }
 function findUserByToken(token) {
   const s = findSession(token);
@@ -3469,6 +3477,7 @@ async function loginUser(username, password, ip, lang) {
   const b = Buffer.from(user.passwordHash, "hex");
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return failed();
   rlReset(kPair);
+  if (isBanned(user)) return { ok: false, error: banText(user, lang), banned: true };
   const token = crypto.randomBytes(24).toString("hex");
   user.tokens = user.tokens || [];
   user.tokens.push({ token, createdAt: Date.now() });
@@ -3488,7 +3497,7 @@ async function loginUser(username, password, ip, lang) {
 const BRAIN_GAMES = ["fruit", "hood"];
 const BRAIN_RANK_LEVELS = [1, 50, 150, 400, 700, 1000, 1500, 2200, 3000, 4000];
 const BRAIN_REWARDS = [ { coins: 100, hammer: 3 }, { coins: 70, hammer: 2 }, { coins: 50, hammer: 1 }, { coins: 30, hammer: 0 }, { coins: 20, hammer: 0 } ];
-const BRAIN_MIN_GAP_MS = 5000;
+const BRAIN_MIN_GAP_MS = 8000;
 function brainRankOf(level) { let r = 1; for (let i = 0; i < BRAIN_RANK_LEVELS.length; i++) if (level >= BRAIN_RANK_LEVELS[i]) r = i + 1; return r; }
 function berlinFakeNow() { // "Berlin-Wanduhr" als UTC-Millisekunden
   const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date());
@@ -3519,13 +3528,14 @@ async function brainSubmit(token, game, level, lang, pts) {
   const saved = game === "fruit" ? (f.fruitLevel || 1) : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
   const maxOk = Math.max(b.best[game], saved) + 1;
   if (level > maxOk) return { ok: false, error: "level" };
-  const now = Date.now(); if (now - (b.last[game] || 0) < BRAIN_MIN_GAP_MS) return { ok: false, error: "tooFast" };
+  const now = Date.now(); const sinceLast = now - (b.last[game] || 0);
+  if (sinceLast < BRAIN_MIN_GAP_MS) { if (sinceLast < 2000) flagCheat(user, "Brain " + game + " Spam"); return { ok: false, error: "tooFast" }; }
   b.last[game] = now;
   b.best[game] = Math.max(b.best[game], level);
   const w = brainWeekInfo().id; if (!b.weeks[w]) b.weeks[w] = { fruit: 0, hood: 0 };
   // Brain Fruit zaehlt Spielpunkte (mit plausibler Obergrenze pro Runde), alles andere das Level
   let gain = level;
-  if (game === "fruit" && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(Number(pts))));
+  if (game === "fruit" && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(200 * Math.min(180, sinceLast / 1000)), Math.round(Number(pts))));
   b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + gain);
   await saveUsers();
   return { ok: true, points: b.weeks[w][game], rank: brainRankOf(b.best[game]) };
@@ -3569,6 +3579,7 @@ function sessionUser(token) {
   if (!usersLoaded) { loadUsers(); return { ok: false, unavailable: true }; }
   const sess = findSession(token);
   if (!sess) return { ok: false };
+  sess.user.lastSeen = Date.now();
   // Rollierend erneuern (max. 1x am Tag), damit aktive Spielende nie ausgeloggt werden
   if (Date.now() - sess.entry.createdAt > TOKEN_REFRESH_AFTER_MS) {
     sess.entry.createdAt = Date.now();
@@ -4306,6 +4317,7 @@ async function chatPublicSend(token, text, lang) {
   const me = findUserByToken(token);
   if (!me) return errObj("notLoggedIn", lang);
   if (typeof isRestricted === "function" && isRestricted(me)) return { ok: false, error: "Du kannst gerade nicht schreiben." };
+  if (isMuted(me)) return { ok: false, error: "Du bist stumm geschaltet (noch " + Math.max(1, Math.ceil((me.mutedUntil - Date.now()) / 60000)) + " Min.)." };
   let t = (typeof text === "string" ? text : "").replace(/[\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, PUB_LEN);
   if (!t) return { ok: false, error: "Leer." };
   if (/(https?:\/\/|www\.|\.(com|de|net|org|io|ru|xyz)\b)/i.test(t)) return { ok: false, error: "Links sind im Chat nicht erlaubt." };
@@ -4340,6 +4352,7 @@ async function chatHistory(token, withUsername, lang) {
 async function sendChatMessage(fromUser, toUsername, text, lang) {
   const to = findUserByName(toUsername);
   if (!to || !areFriends(fromUser, to)) return errObj("notFriendsAnymore", lang);
+  if (isMuted(fromUser)) return { ok: false, error: "Du bist stumm geschaltet." };
   const clean = cleanStr(text, CHAT_MAX_LEN);
   if (!clean) return errObj("emptyMessage", lang);
   if (!(await ensureConversationsLoaded())) return serviceDownMsg(lang);
@@ -5237,9 +5250,12 @@ async function chessOnlineApi(action, payload, lang) {
 function adminAuth(key, ip) {
   const adminKey = process.env.ADMIN_KEY;
   if (!adminKey || adminKey.length < 12) return false;
-  if (rlHit("adm|" + ip, 6, 10 * 60 * 1000, 10 * 60 * 1000).lockedUntil > Date.now()) return false;
+  const lk = "adm|" + ip, e = rlStore.get(lk);
+  if (e && e.lockedUntil > Date.now()) return false;
   const a = Buffer.from(String(key || "")), b = Buffer.from(adminKey);
-  return a.length === b.length && require("crypto").timingSafeEqual(a, b);
+  const ok = a.length === b.length && require("crypto").timingSafeEqual(a, b);
+  if (!ok) rlHit(lk, 8, 10 * 60 * 1000, 10 * 60 * 1000); else rlReset(lk); // nur FEHLVERSUCHE zaehlen
+  return ok;
 }
 // Admin-Sicht: prueft den Key, zaehlt nur FEHLVERSUCHE (Erfolg verbraucht kein Limit).
 function adminOk(key, ip) {
@@ -5263,6 +5279,55 @@ async function adminRestrict(key, ip, username, action) {
   else return { ok: false, error: "Aktion unbekannt." };
   await saveUsers();
   return { ok: true, username: u.username, restricted: isRestricted(u) };
+}
+
+// ===== ADMIN-KONSOLE: Spieler suchen, Muenzen geben, bannen, Timeout, stumm schalten =====
+function adminUserRow(u) {
+  const st = u.stats || {};
+  return { username: u.username, avatar: u.avatar || st.avatar || null, online: accountIsOnline(u.username), coins: st.coins || 0,
+    klasse: st.klasse || 0, rounds: st.roundsPlayed || 0, arenaPoints: st.arenaPoints || 0, flags: st.cheatFlags || 0, lastCheat: st.lastCheat || null,
+    restricted: isRestricted(u), banned: u.banned === true, banReason: u.banReason || "", bannedUntil: u.bannedUntil && u.bannedUntil > Date.now() ? u.bannedUntil : 0,
+    mutedUntil: u.mutedUntil && u.mutedUntil > Date.now() ? u.mutedUntil : 0, createdAt: u.createdAt || 0, lastSeen: u.lastSeen || 0, log: (u.adminLog || []).slice(-5) };
+}
+function adminUsers(key, ip, query, onlineOnly) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const q = (typeof query === "string" ? query : "").trim().toLowerCase().slice(0, 40);
+  let list = users.filter(u => (!q || u.username.toLowerCase().includes(q) || (u.loginName || "").toLowerCase() === q) && (!onlineOnly || accountIsOnline(u.username)));
+  list.sort((a, b) => (accountIsOnline(b.username) - accountIsOnline(a.username)) || ((b.lastSeen || 0) - (a.lastSeen || 0)) || a.username.localeCompare(b.username));
+  return { ok: true, total: list.length, totalUsers: users.length, online: users.filter(u => accountIsOnline(u.username)).length, users: list.slice(0, 40).map(adminUserRow) };
+}
+function kickUser(u) {
+  u.tokens = [];
+  const set = onlineAccounts.get(u.username.toLowerCase());
+  if (set) Array.from(set).forEach(ws => { try { ws.close(); } catch (e) {} });
+}
+async function adminUserAction(key, ip, username, action, amount, minutes, reason) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const u = findUserByName(typeof username === "string" ? username : "");
+  if (!u) return { ok: false, error: "Konto nicht gefunden." };
+  if (!u.stats) u.stats = defaultStats();
+  const mins = Math.min(60 * 24 * 365, Math.max(1, Math.round(Number(minutes) || 0)));
+  const why = typeof reason === "string" ? reason.replace(/[\u0000-\u001f]+/g, " ").trim().slice(0, 80) : "";
+  let note = "";
+  switch (action) {
+    case "coins": {
+      const n = Math.round(Number(amount));
+      if (!Number.isFinite(n) || n === 0 || Math.abs(n) > 1000000) return { ok: false, error: "Betrag ungültig (max. 1.000.000)." };
+      u.stats.coins = Math.max(0, (u.stats.coins || 0) + n); note = "Münzen " + (n > 0 ? "+" : "") + n; break; }
+    case "ban": u.banned = true; u.banReason = why; kickUser(u); note = "Bann" + (why ? ": " + why : ""); break;
+    case "unban": u.banned = false; u.banReason = ""; u.bannedUntil = 0; note = "Entbannt"; break;
+    case "timeout": if (!Number(minutes)) return { ok: false, error: "Minuten fehlen." }; u.bannedUntil = Date.now() + mins * 60000; kickUser(u); note = "Timeout " + mins + " Min."; break;
+    case "mute": if (!Number(minutes)) return { ok: false, error: "Minuten fehlen." }; u.mutedUntil = Date.now() + mins * 60000; note = "Stumm " + mins + " Min."; break;
+    case "unmute": u.mutedUntil = 0; note = "Stumm aufgehoben"; break;
+    case "restrict": u.restricted = true; note = "Eingeschränkt"; break;
+    case "unrestrict": u.restricted = false; u.stats.cheatFlags = 0; note = "Einschränkung aufgehoben"; break;
+    case "kick": kickUser(u); note = "Abgemeldet"; break;
+    default: return { ok: false, error: "Aktion unbekannt." };
+  }
+  u.adminLog = (u.adminLog || []).concat([{ t: Date.now(), n: note }]).slice(-20);
+  console.log("[Admin] " + u.username + ": " + note);
+  await saveUsers();
+  return { ok: true, note, user: adminUserRow(u) };
 }
 function adminCheaters(key, ip) {
   const adminKey = process.env.ADMIN_KEY;
@@ -5393,6 +5458,7 @@ function stripeApiRequest(apiPath, formParams) {
 // eigene Basis-URL (z.B. "https://dein-spiel.onrender.com"), damit Stripe
 // nach der Zahlung dorthin zurueckleiten kann.
 async function shopCreateCheckout(token, packageId, origin, lang) {
+  if (process.env.REAL_MONEY_ENABLED !== "1") return { ok: false, error: lang === "en" ? "Coming soon." : "Kommt bald." }; // Echtgeld erst mit REAL_MONEY_ENABLED=1
   if (!stripeConfigured()) return errObj("shopNotConfigured", lang);
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
@@ -5521,7 +5587,10 @@ async function arenaFinishMatch(token, pointsEarned, matchId, lang) {
   }
   user.arenaActiveMatch = null; // Match-ID ist nur einmal gueltig
   const rawPts = Number(pointsEarned);
-  const gained = Number.isFinite(rawPts) ? Math.min(ARENA_MAX_POINTS_PER_MATCH, Math.max(0, Math.round(rawPts))) : 0;
+  const elapsedS = (Date.now() - am.startedAt) / 1000;
+  const timeCap = Math.max(1, Math.floor(elapsedS / 2)); // ein Punkt braucht mindestens ~2 Sekunden
+  let gained = Number.isFinite(rawPts) ? Math.min(ARENA_MAX_POINTS_PER_MATCH, Math.max(0, Math.round(rawPts))) : 0;
+  if (gained > timeCap) { if (gained > timeCap + 3) flagCheat(user, "Arena " + gained + " Pkt in " + Math.round(elapsedS) + " s"); gained = timeCap; }
   user.stats.arenaPoints = (user.stats.arenaPoints || 0) + gained;
   user.stats.arenaMatchesPlayed = (user.stats.arenaMatchesPlayed || 0) + 1;
 
@@ -5618,9 +5687,8 @@ function listAudioTracks() {
 // das ginge ohne Umbau + Browsertest kaputt. Diese Direktiven sind unkritisch.
 const SECURITY_HEADERS = {
   "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "SAMEORIGIN",
   "Referrer-Policy": "no-referrer",
-  "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'"
+  "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://itch.io https://*.itch.io https://*.itch.zone https://*.hwcdn.net; form-action 'self'"
 };
 const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
 
@@ -5702,6 +5770,8 @@ const server = http.createServer((req, res) => {
         else if (req.url.startsWith("/api/fourups/")) { payload.__ip = ip; result = await fourupsApi(req.url.slice(13), payload, lang); }
         else if (req.url === "/api/admin-restrict") result = await adminRestrict(payload.key, ip, payload.username, payload.action);
         else if (req.url === "/api/admin-cheaters") result = adminCheaters(payload.key, ip);
+        else if (req.url === "/api/admin-users") result = adminUsers(payload.key, ip, payload.query, !!payload.onlineOnly);
+        else if (req.url === "/api/admin-user-action") result = await adminUserAction(payload.key, ip, payload.username, payload.action, payload.amount, payload.minutes, payload.reason);
         else if (req.url === "/api/social-claim") result = await socialClaim(payload, lang);
         else if (req.url === "/api/admin-beta") result = await adminBeta(payload.key, ip, payload, lang);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
@@ -5712,7 +5782,7 @@ const server = http.createServer((req, res) => {
           const origin = proto + "://" + req.headers.host;
           result = await shopCreateCheckout(payload.token, payload.packageId, origin, lang);
         }
-        else if (req.url === "/api/shop-packages") result = { ok: true, packages: COIN_PACKAGES };
+        else if (req.url === "/api/shop-packages") result = { ok: true, packages: process.env.REAL_MONEY_ENABLED === "1" ? COIN_PACKAGES : [] };
         else if (req.url === "/api/arena-finish-match") result = await arenaFinishMatch(payload.token, payload.pointsEarned, payload.matchId, lang);
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
@@ -5831,7 +5901,7 @@ wss.on("connection", (ws, req) => {
     if (msg.action === "accountConnect") {
       const user = findUserByToken(typeof msg.token === "string" ? msg.token : "");
       if (!user) { send(ws, { type: "accountConnectResult", ok: false }); return; }
-      ws.accountUsername = user.username.toLowerCase();
+      ws.accountUsername = user.username.toLowerCase(); user.lastSeen = Date.now();
       let set = onlineAccounts.get(ws.accountUsername);
       if (!set) { set = new Set(); onlineAccounts.set(ws.accountUsername, set); }
       const wasOffline = set.size === 0;
