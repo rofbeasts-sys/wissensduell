@@ -5918,6 +5918,7 @@ const GAME_DEFS = [
   { id: "braining_fruit", name: "Brain Fruit", group: "Minigames", icon: "🍓", sub: "braining" },
   { id: "braining_hood", name: "Brain Hood", group: "Minigames", icon: "🧊", sub: "braining" },
   { id: "chess", name: "Chess", group: "Minigames", icon: "♟️" },
+  { id: "mania", name: "Brainmania", group: "Minigames", icon: "🪨" },
   { id: "chess_online", name: "Chess online", group: "Minigames", icon: "🌐", sub: "chess" },
   { id: "chess_fantasy", name: "Fantasy-Schach", group: "Minigames", icon: "🧙", sub: "chess" },
   { id: "dame", name: "Dame", group: "Minigames", icon: "♛", sub: "chess" },
@@ -5949,7 +5950,7 @@ async function loadGameCfg() {
       const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_games`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
       const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result);
     } else if (fs.existsSync(GAMES_FILE)) raw = JSON.parse(fs.readFileSync(GAMES_FILE, "utf8"));
-    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined };
+    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined };
   } catch (e) { console.error("Spiele-Einstellungen nicht lesbar:", e.message); }
 }
 // ---- NEWS (steht mit in den Spiele-Einstellungen, bleibt also mit gespeichert) ----
@@ -5985,6 +5986,44 @@ async function adminNews(key, ip, payload) {
   if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
   return newsPublic();
 }
+// ---- BRAINMANIA (Admin-Spiel, Bestenliste liegt mit in den Spiele-Einstellungen) ----
+const MANIA_TIERS = ["Stein", "Bronze", "Silber", "Gold", "Diamant"];
+function maniaDraw(ms) { // geheim: je schneller, desto bessere Chancen. Die Grenzen sieht kein Client.
+  const h = ms / 3600000;
+  const w = h < 20 ? [5, 15, 30, 30, 20] : h < 60 ? [20, 30, 25, 18, 7] : h < 200 ? [45, 30, 15, 8, 2] : [70, 22, 6, 2, 0];
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return i; }
+  return 0;
+}
+function maniaRows() {
+  const p = (gameCfg.mania && gameCfg.mania.p) || {};
+  return Object.values(p).sort((a, b) => (b.km - a.km) || (a.best - b.best) || (a.ts - b.ts));
+}
+function maniaView(name) {
+  const rows = maniaRows(), k = String(name || "").toLowerCase();
+  const i = rows.findIndex(r => r.name.toLowerCase() === k);
+  return { ok: true, board: rows.slice(0, 20).map(r => ({ name: r.name, km: r.km, best: r.best, tier: r.tier })), of: rows.length, me: i >= 0 ? { rank: i + 1, km: rows[i].km, best: rows[i].best, tier: rows[i].tier } : null };
+}
+async function maniaApiCall(payload) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const u = payload.token ? findUserByToken(payload.token) : null;
+  const name = u ? String(u.username || "").slice(0, 20) : "";
+  if (payload.action === "submit") {
+    if (!u || !name) return { ok: false, error: "Bitte anmelden." };
+    const ms = Math.round(Number(payload.ms)); if (!(ms > 0) || ms > 1e11) return { ok: false, error: "Zeit ungültig." };
+    if (!gameCfg.mania) gameCfg.mania = { p: {} }; if (!gameCfg.mania.p) gameCfg.mania.p = {};
+    const k = name.toLowerCase(), rid = String(payload.rid || "").slice(0, 40);
+    let r = gameCfg.mania.p[k];
+    if (!r) r = gameCfg.mania.p[k] = { name, km: 0, best: 0, tier: 0, ts: Date.now(), rids: [] };
+    if (rid && r.rids.includes(rid)) { const v = maniaView(name); v.awarded = r.lastAward | 0; v.dup = true; return v; }
+    const aw = maniaDraw(ms);
+    r.km += 1; r.best = r.best ? Math.min(r.best, ms) : ms; r.tier = Math.max(r.tier | 0, aw); r.lastAward = aw; r.ts = Date.now(); r.name = name;
+    if (rid) r.rids = r.rids.concat(rid).slice(-8);
+    if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
+    const v = maniaView(name); v.awarded = aw; return v;
+  }
+  const v = maniaView(name); v.account = !!u; v.name = name; return v;
+}
 async function saveGameCfg() {
   if (USE_UPSTASH) {
     try { const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}_games`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(gameCfg) }); return res.ok; } catch (e) { return false; }
@@ -5992,7 +6031,7 @@ async function saveGameCfg() {
   try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 // Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
-const DEFAULT_LOCKED_NEW = new Set(["shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
+const DEFAULT_LOCKED_NEW = new Set(["mania", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : ((LOCKED_FEATURES.has(id) || DEFAULT_LOCKED_NEW.has(id)) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
@@ -6401,6 +6440,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/news") result = newsPublic(payload.token);
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
         else if (req.url === "/api/admin-news") result = await adminNews(payload.key, ip, payload);
+        else if (req.url === "/api/mania" && !gateOk("mania", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/mania") result = await maniaApiCall(payload);
         else if (req.url === "/api/admin-game-set") result = await adminGameSet(payload.key, ip, payload);
         else if (req.url === "/api/tester-mode") result = await testerMode(payload, lang);
         else if (req.url === "/api/totp-status") result = await totpApi("status", payload, lang);
