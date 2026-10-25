@@ -6103,7 +6103,7 @@ function hardApiCall(payload) {
   } else if (name && t[name.toLowerCase()]) mine = t[name.toLowerCase()].best;
   const rows = Object.values(t).sort((a, b) => (b.best - a.best) || (a.ts - b.ts));
   const i = name ? rows.findIndex(r => r.name.toLowerCase() === name.toLowerCase()) : -1;
-  return { ok: true, board: rows.slice(0, 10).map(r => ({ name: r.name, best: r.best })), mine, rank: i >= 0 ? i + 1 : 0 };
+  return { ok: true, board: rows.slice(0, 5).map(r => ({ name: r.name, best: r.best })), mine, rank: i >= 0 ? i + 1 : 0 };
 }
 async function saveGameCfg() {
   if (USE_UPSTASH) {
