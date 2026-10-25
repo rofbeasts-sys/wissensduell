@@ -3491,6 +3491,7 @@ async function changeUsername(token, password, newName, lang) {
   if (!ok1) return serviceDownMsg(lang);
   return { ok: true, username: newName };
 }
+const SIGNUP_BONUS = 500;
 async function registerUser(username, password, ip, lang, loginName) {
   if (typeof username !== "string" || typeof password !== "string") {
     return errObj("invalidInput", lang);
@@ -3532,13 +3533,17 @@ async function registerUser(username, password, ip, lang, loginName) {
     friends: [], incomingRequests: [], outgoingRequests: []
   };
   { const bm = await loadBetaMeta(); if (bm.phase > 0) user.betaPhase = bm.phase; }
+  // Anmeldebonus: einmalig bei der Registrierung (serverseitig, steht im Muenz-Verlauf)
+  user.stats.coins = (user.stats.coins || 0) + SIGNUP_BONUS;
+  user.coinSnap = user.stats.coins;
+  user.coinLog = [{ t: Date.now(), d: SIGNUP_BONUS, b: user.stats.coins, s: "anmeldebonus" }];
   users.push(user);
   if (!(await saveUsers())) {
     // Nicht gespeichert -> Konto zurueckrollen statt so zu tun, als waere alles gut
     users = users.filter(u => u !== user);
     return serviceDownMsg(lang);
   }
-  return { ok: true, token, profile: publicProfile(user) };
+  return { ok: true, token, profile: publicProfile(user), bonus: SIGNUP_BONUS };
 }
 
 async function loginUser(username, password, ip, lang) {
