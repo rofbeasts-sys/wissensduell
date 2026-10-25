@@ -6086,7 +6086,7 @@ async function maniaApiCall(payload) {
   const v = maniaView(name); v.account = !!u; v.name = name; return v;
 }
 // ---- DAS SCHWERSTE SPIEL DER WELT (Bestenlisten je Spiel, liegen mit in den Spiele-Einstellungen) ----
-const HARD_GAMES = ["balken", "turm", "gedaechtnis", "linie", "gegenteil", "olympiade"];
+const HARD_GAMES = ["balken", "turm", "gedaechtnis", "linie", "gegenteil", "flug", "olympiade"];
 function hardApiCall(payload) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const game = String(payload.game || ""); if (!HARD_GAMES.includes(game)) return { ok: false, error: "Unbekannt." };
