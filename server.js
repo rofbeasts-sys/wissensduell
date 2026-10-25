@@ -3967,8 +3967,11 @@ async function saveUserStats(token, stats, lang) {
 // Benutzername (klein) -> Set der offenen WebSocket-Verbindungen (mehrere
 // Geraete/Tabs moeglich).
 const onlineAccounts = new Map();
+let cloakInit = false;
+const cloakedNames = new Set(); // Namen (klein) von Konten mit eingeschalteter Admin-Ansicht
 function accountIsOnline(username) {
-  { const cu = findUserByName(username); if (cu && cu.adminCloak) return false; } // Admin-Ansicht: unsichtbar
+  if (!cloakInit && usersLoaded) { cloakInit = true; users.forEach(u => { if (u.adminCloak) cloakedNames.add(u.username.toLowerCase()); }); }
+  if (cloakedNames.has(String(username).toLowerCase())) return false; // Admin-Ansicht: unsichtbar
   const set = onlineAccounts.get(username.toLowerCase());
   return !!set && set.size > 0;
 }
@@ -4181,6 +4184,7 @@ async function adminCloak(payload, ip, lang) {
   const on = !!payload.on;
   if (!!user.adminCloak === on) return { ok: true, on };
   user.adminCloak = on;
+  if (on) cloakedNames.add(user.username.toLowerCase()); else cloakedNames.delete(user.username.toLowerCase());
   if (on) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOffline", username: user.username }));
   else if (accountIsOnline(user.username)) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOnline", username: user.username }));
   if (!(await saveUsers())) { user.adminCloak = !on; return serviceDownMsg(lang); }
@@ -5731,9 +5735,13 @@ const PRESENCE_TTL = 150000;
 function presenceTouch(sid, logged, where, token) {
   if (typeof sid !== "string" || sid.length < 8 || sid.length > 40) return;
   if (presence.size > 20000 && !presence.has(sid)) return;
-  let name = null;
-  if (logged && typeof token === "string") { const u = findUserByToken(token); if (u && !u.adminCloak) name = u.username; }
-  presence.set(sid, { t: Date.now(), logged: !!logged, where: typeof where === "string" ? where.slice(0, 40) : "", name });
+  let name = null, tk = null, tkAt = 0;
+  const prev = presence.get(sid);
+  if (logged && typeof token === "string") {
+    if (prev && prev.tk === token && Date.now() - prev.tkAt < 300000) { name = prev.name; tk = prev.tk; tkAt = prev.tkAt; }
+    else { const u = findUserByToken(token); if (u && !u.adminCloak) name = u.username; tk = token; tkAt = Date.now(); }
+  }
+  presence.set(sid, { t: Date.now(), logged: !!logged, where: typeof where === "string" ? where.slice(0, 40) : "", name, tk, tkAt });
   seenTodayAdd(sid);
 }
 function adminLive(key, ip) {
@@ -6092,6 +6100,8 @@ const SECURITY_HEADERS = {
 };
 const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
 
+const zlib = require("zlib");
+const gzCache = new Map();
 const server = http.createServer((req, res) => {
   // Stripe-Webhook: braucht den UNVERAENDERTEN Rohkoerper fuer die
   // Signaturpruefung (siehe verifyStripeSignature) - deshalb ein eigener
@@ -6243,7 +6253,19 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(fullPath);
     // HTML/JS immer neu pruefen lassen (kein "altes Spiel aus dem Browser-Cache" nach Updates)
     const cache = (ext === ".html" || ext === ".js") ? "no-cache" : "public, max-age=3600";
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": cache, ...SECURITY_HEADERS });
+    const hdr = { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": cache, ...SECURITY_HEADERS };
+    // Komprimieren (index.html ist ~1,9 MB): deutlich schnelleres Laden, Ergebnis wird zwischengespeichert
+    if (/\bgzip\b/.test(String(req.headers["accept-encoding"] || "")) && [".html", ".js", ".json", ".css", ".svg"].includes(ext) && data.length > 1024) {
+      const ck = fullPath, hit = gzCache.get(ck); let mt = 0; try { mt = fs.statSync(fullPath).mtimeMs; } catch (e2) {}
+      const send = gz => { res.writeHead(200, { ...hdr, "Content-Encoding": "gzip", "Vary": "Accept-Encoding", "Content-Length": gz.length }); res.end(gz); };
+      if (hit && hit.len === data.length && hit.mt === mt) return send(hit.gz);
+      return zlib.gzip(data, { level: 6 }, (e, gz) => {
+        if (e) { res.writeHead(200, hdr); return res.end(data); }
+        gzCache.set(ck, { len: data.length, mt, gz });
+        send(gz);
+      });
+    }
+    res.writeHead(200, hdr);
     res.end(data);
   });
 });
