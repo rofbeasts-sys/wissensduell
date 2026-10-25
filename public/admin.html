@@ -173,7 +173,7 @@ async function tick(){
   if(!r || !r.ok){ dot.className = ''; st.textContent = r ? 'Key ungültig' : 'keine Verbindung'; if(r && ++failed > 1){ logout(); } return; }
   failed = 0; dot.className = 'on'; st.textContent = 'live';
   const c = r.counts;
-  $('counts').innerHTML = `<div class="pill">Online <b>${c.online}</b></div><div class="pill">Angemeldet <b>${c.loggedIn}</b></div><div class="pill">Gäste <b>${c.guests}</b></div><div class="pill">Höchstwert heute <b>${c.peakToday}</b></div>`;
+  $('counts').innerHTML = `<div class="pill">Online <b>${c.online}</b></div><div class="pill">Angemeldet <b>${c.loggedIn}</b></div><div class="pill">Gäste <b>${c.guests}</b></div><div class="pill">Höchstwert heute <b>${c.peakToday}</b></div><div class="pill">Besucher heute <b>${c.today||0}</b></div>`;
   $('top').innerHTML = r.top.length ? r.top.map(x => `<div class="pl"><span>${esc(x.where)}</span><b style="color:var(--acc)">${x.n}</b></div>`).join('') : 'Niemand online.';
   $('players').innerHTML = r.players.length ? r.players.map(p => `<div class="pl"><span>${p.name ? '<b>' + esc(p.name) + '</b>' : '<span class="dim">Gast</span>'}</span><span class="dim">${esc(p.where)} · ${ago(p.ago)}</span></div>`).join('') : '<span class="dim">Niemand online.</span>';
   const box = $('chat'), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
