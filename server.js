@@ -3390,7 +3390,7 @@ function freshModeStats() {
 function publicProfile(user) {
   // Interne Anticheat-Daten gehoeren nicht zum Client
 
-  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, betaPhase: user.betaPhase | 0, socialClaimed: Object.keys(user.social || {}), socialHandles: user.socialHandles || {}, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, totpOn: !!user.totpOn, betaPhase: user.betaPhase | 0, socialClaimed: Object.keys(user.social || {}), socialHandles: user.socialHandles || {}, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
 }
 
 function checkLoginName(loginName, gameName, selfUser, lang) {
@@ -3546,7 +3546,70 @@ async function registerUser(username, password, ip, lang, loginName) {
   return { ok: true, token, profile: publicProfile(user), bonus: SIGNUP_BONUS };
 }
 
-async function loginUser(username, password, ip, lang) {
+/* ---- Authenticator (TOTP, RFC 6238), freiwillig ---- */
+const B32 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+function b32enc(buf) { let bits = "", out = ""; for (const x of buf) bits += x.toString(2).padStart(8, "0"); for (let i = 0; i < bits.length; i += 5) out += B32[parseInt(bits.slice(i, i + 5).padEnd(5, "0"), 2)]; return out; }
+function b32dec(str) { let bits = ""; for (const c of String(str).toUpperCase().replace(/[^A-Z2-7]/g, "")) bits += B32.indexOf(c).toString(2).padStart(5, "0"); const out = []; for (let i = 0; i + 8 <= bits.length; i += 8) out.push(parseInt(bits.slice(i, i + 8), 2)); return Buffer.from(out); }
+function totpAt(secret, step) {
+  const msg = Buffer.alloc(8); msg.writeUInt32BE(Math.floor(step / 4294967296), 0); msg.writeUInt32BE(step >>> 0, 4);
+  const h = crypto.createHmac("sha1", b32dec(secret)).update(msg).digest();
+  const o = h[h.length - 1] & 15;
+  const n = ((h[o] & 127) << 24 | h[o + 1] << 16 | h[o + 2] << 8 | h[o + 3]) % 1000000;
+  return String(n).padStart(6, "0");
+}
+// prueft Code (+-30 s), jeder Zeitschritt nur einmal einloesbar
+function totpCheck(user, secret, code, consume) {
+  const c = String(code || "").replace(/\s/g, "");
+  if (!secret || !/^\d{6}$/.test(c)) return false;
+  const now = Math.floor(Date.now() / 30000);
+  for (let d = -1; d <= 1; d++) {
+    const st = now + d;
+    if (st <= (user.totpLastStep || 0)) continue;
+    const exp = Buffer.from(totpAt(secret, st)), got = Buffer.from(c);
+    if (exp.length === got.length && crypto.timingSafeEqual(exp, got)) { if (consume) user.totpLastStep = st; return true; }
+  }
+  return false;
+}
+function totpActive(user) { return !!(user && user.totpOn && user.totpSecret); }
+async function totpApi(action, payload, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const user = findUserByToken(payload && payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const en = lang === "en";
+  if (action === "status") return { ok: true, on: totpActive(user) };
+  if (rlHit("totp|" + user.username.toLowerCase(), 12, 60 * 60 * 1000, 30 * 60 * 1000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
+  const pwOk = async () => {
+    if (typeof payload.password !== "string" || payload.password.length > 200) return false;
+    if (hashInFlight >= MAX_HASH_IN_FLIGHT) return false;
+    hashInFlight++; let h; try { h = await hashPassword(payload.password, user.salt); } finally { hashInFlight--; }
+    const a = Buffer.from(h, "hex"), b = Buffer.from(user.passwordHash, "hex");
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  };
+  if (action === "setup") {
+    if (totpActive(user)) return { ok: false, error: en ? "Already enabled." : "Schon eingeschaltet." };
+    if (!(await pwOk())) return { ok: false, error: en ? "Wrong password." : "Passwort falsch." };
+    user.totpPending = b32enc(crypto.randomBytes(20));
+    await saveUsers();
+    const label = encodeURIComponent("Brain Pulse:" + user.username);
+    return { ok: true, secret: user.totpPending, uri: "otpauth://totp/" + label + "?secret=" + user.totpPending + "&issuer=Brain%20Pulse&digits=6&period=30" };
+  }
+  if (action === "enable") {
+    if (!user.totpPending || !totpCheck(user, user.totpPending, payload.code, true)) return { ok: false, error: en ? "Wrong code." : "Code falsch." };
+    user.totpSecret = user.totpPending; delete user.totpPending; user.totpOn = true; user.tokens = (user.tokens || []).filter(t => t.token === payload.token);
+    await saveUsers();
+    return { ok: true, on: true };
+  }
+  if (action === "disable") {
+    if (!totpActive(user)) return { ok: true, on: false };
+    if (!(await pwOk())) return { ok: false, error: en ? "Wrong password." : "Passwort falsch." };
+    if (!totpCheck(user, user.totpSecret, payload.code, true)) return { ok: false, error: en ? "Wrong code." : "Code falsch." };
+    user.totpOn = false; delete user.totpSecret; delete user.totpPending;
+    await saveUsers();
+    return { ok: true, on: false };
+  }
+  return errObj("invalidInput", lang);
+}
+async function loginUser(username, password, ip, lang, code) {
   if (typeof username !== "string" || typeof password !== "string" || password.length > 200) {
     return errObj("loginFailed", lang);
   }
@@ -3575,6 +3638,10 @@ async function loginUser(username, password, ip, lang) {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return failed();
   rlReset(kPair);
   if (isBanned(user)) return { ok: false, error: banText(user, lang), banned: true };
+  if (totpActive(user)) {
+    if (!code) return { ok: false, needTotp: true, error: lang === "en" ? "Enter the code from your authenticator app." : "Gib den Code aus deiner Authenticator-App ein." };
+    if (!totpCheck(user, user.totpSecret, code, true)) return failed();
+  }
   const token = crypto.randomBytes(24).toString("hex");
   user.tokens = user.tokens || [];
   user.tokens.push({ token, createdAt: Date.now() });
@@ -4236,7 +4303,7 @@ async function forgotRequest(username, key, note, ip, lang, contact, handles) {
   if (!u) return generic;
   if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
   hashInFlight++;
-  let keyOk = false; try { keyOk = key ? await recoveryKeyMatches(u, key) : false; } finally { hashInFlight--; }
+  let keyOk = false; try { keyOk = key ? (/^\s*\d{3}\s?\d{3}\s*$/.test(String(key)) ? totpCheck(u, u.totpSecret, key, false) : await recoveryKeyMatches(u, key)) : false; } finally { hashInFlight--; }
   const prev = u.resetRequest;
   if (prev && prev.status === "approved" && keyOk) return { ok: true, status: "approved" };
   if (prev && prev.status === "approved") return generic; // Freigabe nie durch fremde Anfragen zuruecksetzen
@@ -4255,7 +4322,7 @@ async function forgotComplete(username, key, newPassword, ip, lang) {
   if (typeof newPassword !== "string" || newPassword.length < 6 || newPassword.length > 200) return errObj("passwordLength", lang);
   if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
   hashInFlight++;
-  let ok = false; try { ok = key ? await recoveryKeyMatches(u, key) : false; } finally { hashInFlight--; }
+  let ok = false; try { ok = key ? (/^\s*\d{3}\s?\d{3}\s*$/.test(String(key)) ? (totpActive(u) && totpCheck(u, u.totpSecret, key, true)) : await recoveryKeyMatches(u, key)) : false; } finally { hashInFlight--; }
   if (!ok && u.resetRequest.adminOverride && Date.now() - (u.resetRequest.approvedAt || 0) < 48 * 3600 * 1000) ok = true;
   if (!ok) return bad();
   u.salt = crypto.randomBytes(16).toString("hex");
@@ -4439,15 +4506,29 @@ async function saveConversations() {
   } catch (e) { console.error("Konnte Chatverlauf nicht speichern:", e.message); return false; }
 }
 // ---- Oeffentlicher Chat (ueber das ganze Spiel), liegt in conversations["__public__"] ----
-const PUB_KEY = "__public__", PUB_MAX = 200, PUB_LEN = 200;
+const PUB_KEY = "__public__", PUB_MAX = 100, PUB_LEN = 200;
 const pubLast = new Map(); // username -> [timestamps]
 async function chatPublicList(since) {
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
   const all = conversations[PUB_KEY] || [];
   const sn = parseInt(since, 10) || 0;
   const msgs = sn ? all.filter(m => m.id > sn) : all.slice(-60);
-  return { ok: true, messages: msgs, online: onlineAccounts.size, lastId: all.length ? all[all.length - 1].id : 0 };
+  return { ok: true, ver: pubVer, messages: msgs, online: onlineAccounts.size, lastId: all.length ? all[all.length - 1].id : 0 };
 }
+// Chat-Filter: Rassismus, Beleidigungen, 18+ (nach Normalisierung: Gross/Klein, Akzente, Leetspeak, Trennzeichen)
+const CHAT_BAD = ["neger","nigger","nigga","kanake","kanacke","zigeuner","untermensch","heilhitler","siegheil","judensau","schwuchtel","hurensohn","fotze","wichser","arschloch","porno","onlyfans","blowjob","ficken","pussy","schlampe","vergewalt","killyourself","behindert","faggot","retard"]; // lange Begriffe: auch ueber Wortgrenzen
+const CHAT_BAD_WORD = ["niga","kys","fick","porn","nackt","nudes","nutte","spast","fagot","nazi","hure","nigr"]; // kurze Begriffe: nur als Wortanfang
+function chatNorm(t) {
+  return String(t).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "ss")
+    .replace(/[@4]/g, "a").replace(/[3]/g, "e").replace(/[1!|]/g, "i").replace(/[0]/g, "o").replace(/[$5]/g, "s").replace(/[^a-z]/g, "");
+}
+function chatBlocked(t) {
+  const n = chatNorm(t); const hit = CHAT_BAD.find(w => n.includes(w)); if (hit) return hit;
+  const toks = String(t).split(/\s+/).map(chatNorm).filter(Boolean);
+  return CHAT_BAD_WORD.find(w => toks.some(k => k === w || (k.startsWith(w) && w.length >= 4 && k.length <= w.length + 3))) || null;
+}
+let pubVer = 0;
+const chatBlockedLog = []; // nur im Speicher, fuer die Admin-Seite
 async function chatPublicSend(token, text, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
@@ -4456,7 +4537,8 @@ async function chatPublicSend(token, text, lang) {
   if (isMuted(me)) return { ok: false, error: "Du bist stumm geschaltet (noch " + Math.max(1, Math.ceil((me.mutedUntil - Date.now()) / 60000)) + " Min.)." };
   let t = (typeof text === "string" ? text : "").replace(/[\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, PUB_LEN);
   if (!t) return { ok: false, error: "Leer." };
-  if (/(https?:\/\/|www\.|\.(com|de|net|org|io|ru|xyz)\b)/i.test(t)) return { ok: false, error: "Links sind im Chat nicht erlaubt." };
+  if (/(https?:\/\/|www\.|\.(com|de|net|org|io|ru|xyz|tv|me|ly|gg|to|co)\b)/i.test(t)) { chatBlockedLog.push({ ts: Date.now(), u: me.username, t, why: "link" }); if (chatBlockedLog.length > 40) chatBlockedLog.shift(); return { ok: false, error: "Links sind im Chat nicht erlaubt." }; }
+  if (!me.adminCloak && chatBlocked(t)) { me.chatStrikes = (me.chatStrikes || 0) + 1; chatBlockedLog.push({ ts: Date.now(), u: me.username, t, why: "wort" }); if (chatBlockedLog.length > 40) chatBlockedLog.shift(); return { ok: false, error: "Diese Nachricht ist nicht erlaubt (Beleidigung, Rassismus oder 18+)." }; }
   const now = Date.now(), key = me.username.toLowerCase();
   const arr = (pubLast.get(key) || []).filter(x => now - x < 20000);
   if (arr.length && now - arr[arr.length - 1] < 1500) return { ok: false, error: "Nicht so schnell." };
@@ -5646,11 +5728,42 @@ const COIN_PACKAGES = [
 // Anwesenheit: Clients melden sich alle 60 s (zufaellige Sitzungs-ID, keine personenbezogenen Daten).
 const presence = new Map(); // sid -> { t, logged }
 const PRESENCE_TTL = 150000;
-function presenceTouch(sid, logged) {
+function presenceTouch(sid, logged, where, token) {
   if (typeof sid !== "string" || sid.length < 8 || sid.length > 40) return;
   if (presence.size > 20000 && !presence.has(sid)) return;
-  presence.set(sid, { t: Date.now(), logged: !!logged });
+  let name = null;
+  if (logged && typeof token === "string") { const u = findUserByToken(token); if (u && !u.adminCloak) name = u.username; }
+  presence.set(sid, { t: Date.now(), logged: !!logged, where: typeof where === "string" ? where.slice(0, 40) : "", name });
   seenTodayAdd(sid);
+}
+function adminLive(key, ip) {
+  if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const now = Date.now(), players = [], games = {};
+  for (const [k, v] of presence) {
+    if (now - v.t > PRESENCE_TTL) continue;
+    const w = v.where || "?"; games[w] = (games[w] || 0) + 1;
+    players.push({ name: v.name, where: w, ago: Math.round((now - v.t) / 1000) });
+  }
+  players.sort((a, b) => (b.name ? 1 : 0) - (a.name ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
+  const top = Object.entries(games).sort((a, b) => b[1] - a[1]).map(([where, n]) => ({ where, n }));
+  const chat = (conversations[PUB_KEY] || []).slice(-100);
+  return { ok: true, counts: presenceCounts(), players, top, chat, blocked: chatBlockedLog.slice(-15).reverse() };
+}
+async function adminChat(action, payload, ip, lang) {
+  if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
+  if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
+  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
+  if (action === "delete") { const id = parseInt(payload.id, 10); const i = list.findIndex(m => m.id === id); if (i >= 0) list.splice(i, 1); pubVer++; }
+  else if (action === "clear") { pubVer++; const last = list.length ? list[list.length - 1].id : 0; list.length = 0; list.push({ id: last + 1, sys: true, k: "adminclear", ts: Date.now() }); }
+  else if (action === "send") {
+    const t = String(payload.text || "").replace(/[\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, PUB_LEN);
+    if (!t) return { ok: false, error: "Leer." };
+    const last = list.length ? list[list.length - 1] : null;
+    list.push({ id: (last ? last.id : 0) + 1, u: "Admin", a: "👑", t, ts: Date.now(), adm: true });
+    if (list.length > PUB_MAX) list.splice(0, list.length - PUB_MAX);
+  } else return { ok: false, error: "Aktion unbekannt." };
+  saveConversations();
+  return { ok: true };
 }
 function presenceCounts() {
   const now = Date.now(); let total = 0, logged = 0;
@@ -6030,14 +6143,14 @@ const server = http.createServer((req, res) => {
         lang = payload.lang === "en" ? "en" : "de";
         coinSrc = String(req.url || "").replace(/^\/api\//, "").slice(0, 40);
         if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
-        else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang);
+        else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang, payload.code);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/braining/claim") result = await brainClaim(payload.token, lang);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
-        else if (req.url === "/api/presence") { presenceTouch(payload.sid, payload.logged); result = { ok: true }; }
+        else if (req.url === "/api/presence") { presenceTouch(payload.sid, payload.logged, payload.where, payload.token); result = { ok: true }; }
         else if (req.url === "/api/admin-online") { result = adminOk(payload.adminKey, ip) ? { ok: true, ...presenceCounts() } : { ok: false }; }
         else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES), resetEpoch: rm.epoch }; }
         else if (req.url === "/api/recovery-status") result = await recoveryKeyStatus(payload.token);
@@ -6065,6 +6178,14 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-users") result = adminUsers(payload.key, ip, payload.query, !!payload.onlineOnly);
         else if (req.url === "/api/admin-user-action") result = await adminUserAction(payload.key, ip, payload.username, payload.action, payload.amount, payload.minutes, payload.reason);
         else if (req.url === "/api/social-claim") result = await socialClaim(payload, lang);
+        else if (req.url === "/api/admin-live") result = adminLive(payload.adminKey, ip);
+        else if (req.url === "/api/admin-chat-delete") result = await adminChat("delete", payload, ip, lang);
+        else if (req.url === "/api/admin-chat-clear") result = await adminChat("clear", payload, ip, lang);
+        else if (req.url === "/api/admin-chat-send") result = await adminChat("send", payload, ip, lang);
+        else if (req.url === "/api/totp-status") result = await totpApi("status", payload, lang);
+        else if (req.url === "/api/totp-setup") result = await totpApi("setup", payload, lang);
+        else if (req.url === "/api/totp-enable") result = await totpApi("enable", payload, lang);
+        else if (req.url === "/api/totp-disable") result = await totpApi("disable", payload, lang);
         else if (req.url === "/api/admin-cloak") result = await adminCloak(payload, ip, lang);
         else if (req.url === "/api/social-handle") result = await socialHandle(payload, lang);
         else if (req.url === "/api/admin-beta") result = await adminBeta(payload.key, ip, payload, lang);
