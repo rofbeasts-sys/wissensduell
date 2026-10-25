@@ -5289,6 +5289,7 @@ setInterval(function(){
   if(Object.keys(gameCountdown).some(k => gameCountdown[k] <= now)){ gameCountdown = {}; try{ loadFeatureFlags().then(() => { try{ if(document.querySelector('.menu-hero')) renderMainMenu(); }catch(e){} }); }catch(e){} }
 }, 20000);
 function applyGameGates(){
+  document.querySelectorAll('#app [data-gid]').forEach(e => { if(hiddenFeatures.indexOf(e.dataset.gid) !== -1) e.remove(); });
   document.querySelectorAll('#app .mode-card[onclick]').forEach(c => {
     const oc = c.getAttribute('onclick') || '';
     for(const fn in GATE_MAP){
@@ -5703,6 +5704,7 @@ function startPartyHub(){
   setAudioZone("menu");
   const card = (gm) => {
     const m = DEDICATED_MODES[gm];
+    if(hiddenFeatures.indexOf(gm) !== -1) return '';
     if(featureLocked(gm)) return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p data-gate="${gm}">${gateText(gm)}</p></div>`;
     return `<div class="mode-card" onclick="startDedicatedMenu('${gm}')"><div class="icon">${m.icon}</div><h3>${m.title}</h3></div>`;
   };
@@ -5838,7 +5840,7 @@ function renderChessHub(){
           <h3>Chess Original</h3>
           <p>${L('Klassisches Schach: Bot (4 Stufen), Freunde oder zufälliger Gegner.','Classic chess: bot (4 levels), friends or a random opponent.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
         </div>
-        <div class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
+        <div data-gid="chess_fantasy" class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">🐉</div>
           <h3>Chess Fantasy</h3>
           <p>${fantasyComing ? 'Coming soon' : fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : L('Schach-RPG mit Truhen, Fähigkeiten und Rängen.','Chess RPG with chests, abilities and ranks.')}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
@@ -5847,7 +5849,7 @@ function renderChessHub(){
           <div class="icon">⛀</div>
           <h3>${L('Dame','Checkers')}</h3>${admTag('dame')}
           <p>${L('Klassisches Dame, Bot, Freunde, Zufallsgegner.','Classic checkers, bot, friends, random opponent.')}</p>
-        </div>` : `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+        </div>` : `<div data-gid="dame" class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⛀</div>
           <h3>${L('Dame','Checkers')}</h3>
           <p data-gate="dame">${gateText('dame')}</p>
@@ -7322,7 +7324,7 @@ function renderMainMenu(){
 
     <div class="menu-section-title">${L('Online-Modus','Online mode')}</div>
     <div class="menu-grid">
-      ${featureLocked('party') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+      ${hiddenFeatures.indexOf('party') !== -1 ? '' : featureLocked('party') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="16" cy="18" r="6" fill="#3de0ff"/><circle cx="32" cy="18" r="6" fill="#c6ff3d"/><circle cx="24" cy="30" r="6" fill="#ffc446"/><path d="M6 42C6 34 26 34 26 42M22 42C22 36 42 36 42 42" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/></svg></div>
         <h3>${t('menu_party_title')}</h3>
         <p data-gate="party">${gateText('party')}</p>
@@ -7345,7 +7347,7 @@ function renderMainMenu(){
         <h3>Speed Math</h3>
         <p>${L('Schnell kopfrechnen.','Quick mental math.')}</p>
       </div>
-      ${featureLocked('biology') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+      ${hiddenFeatures.indexOf('biology') !== -1 ? '' : featureLocked('biology') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M14 6C14 18 34 18 34 30C34 38 24 42 24 42M34 6C34 18 14 18 14 30C14 38 24 42 24 42" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linecap="round"/><path d="M17 12H31M17 24H31M20 36H28" stroke="#3de0ff" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Biology</h3>
         <p data-gate="biology">${gateText('biology')}</p>
@@ -11014,7 +11016,7 @@ function startFourupsFlow(){
           <h3>Original</h3>
           <p>${L('Klassisches 4 gewinnt, gegen den Bot oder zu zweit.','Classic Connect 4, vs the bot or two players.')}</p>
         </div>
-        ${featureLocked('fourups_abilities') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div><h3>${L('Fähigkeiten','Abilities')}</h3><p data-gate="fourups_abilities">${gateText('fourups_abilities')}</p></div>` : `<div class="mode-card" onclick="fuaMenu()">
+        ${hiddenFeatures.indexOf('fourups_abilities') !== -1 ? '' : featureLocked('fourups_abilities') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div><h3>${L('Fähigkeiten','Abilities')}</h3><p data-gate="fourups_abilities">${gateText('fourups_abilities')}</p></div>` : `<div class="mode-card" onclick="fuaMenu()">
           <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div>
           <h3>${L('Fähigkeiten','Abilities')}</h3>
           <p>${L('Steine mit Spezialkräften, Bomben, Joker, Doppelzug …','Stones with special powers, bombs, jokers, double move …')}</p>
@@ -11728,7 +11730,7 @@ function startTicTacToeFlow(){
           <h3>${L('Mühle','Morris')}</h3>${admTag('muehle')}
           <p>${L('Klassische Mühle, Bot, Freunde, Zufallsgegner.','Classic mills, bot, friends, random opponent.')}</p>
         </div>` : ''}
-        ${featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+        ${hiddenFeatures.indexOf('ttt_quantum') !== -1 ? '' : featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⚡</div><h3>Quantum</h3><p data-gate="ttt_quantum">${gateText('ttt_quantum')}</p></div>` : `<div class="mode-card" onclick="tttOppSelect('quantum')">
           <div class="icon">⚡</div><h3>Quantum</h3>
           <p>${L('Höchstens 3 Symbole, das älteste verschwindet.','At most 3 symbols, the oldest vanishes.')}</p></div>`}
@@ -11887,7 +11889,7 @@ function tttStartMultiplayer(profile){
           <h3>QuizMix</h3>
           <p>${L('Jedes Feld wird per 5-Fragen-Duell erkämpft.','Every square is won in a 5-question duel.')}</p>
         </div>
-        ${featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
+        ${hiddenFeatures.indexOf('ttt_quantum') !== -1 ? '' : featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⚡</div>
           <h3>Quantum</h3>
           <p data-gate="ttt_quantum">${gateText('ttt_quantum')}</p>
