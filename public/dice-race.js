@@ -682,7 +682,7 @@ function boardDraw(){
   const e = $('bmBoard'); if(!e) return;
   if(!board || !board.board || !board.board.length){ e.innerHTML = '<div style="opacity:.6;text-align:center">' + L('Noch niemand durch. Schaffe die erste Million.', 'Nobody has finished yet. Be the first to reach a million.') + '</div>'; return; }
   e.innerHTML = board.board.map((r, i) => { const t = MT[r.tier] || MT[0];
-    return '<div class="bmrow"><b>' + (i + 1) + '</b><span class="bmdot" style="background:' + t.c[1] + ';box-shadow:0 0 6px ' + t.f + '"></span><span class="bmnm">' + esc(r.name) + '</span><span class="bmdt">' + L('Stufe ', 'Level ') + r.km + ' · ' + dur(r.best) + '</span></div>'; }).join('');
+    return '<div class="bmrow"><b>' + (i + 1) + '</b><span class="bmdot" style="background:' + t.c[1] + ';box-shadow:0 0 6px ' + t.f + '"></span><span class="bmnm">' + esc(r.name) + (r.km > 0 ? ' <span class="bmbadge" style="border-color:' + t.f + '">' + r.km + '</span>' : '') + '</span><span class="bmdt">' + fmt(r.total) + '</span></div>'; }).join('');
 }
 async function loadBoard(){
   const r = await apiCall('/api/mania', { token: account && account.token, action: 'board' });
@@ -699,6 +699,12 @@ async function submit(){
   big(MT[aw].n + '!'); next = M.n + 40; hold = true;
   msg(L('Eine Million geschafft. ', 'A million done. ') + (aw > old ? L('Dein neuer Stein: ', 'Your new rock: ') : L('Dein Stein dieses Mal: ', 'Your rock this time: ')) + MT[aw].n + '. ' + rk);
 }
+let lastSent = 0;
+async function progress(force){
+  if(!account || !who) return; const now = Date.now(); if(!force && now - lastSent < 5000) return; lastSent = now;
+  const r = await apiCall('/api/mania', { token: account.token, action: 'progress', n: M.n });
+  if(r && r.ok && !M.pend){ board = r; boardDraw(); render(); }
+}
 function add(k){
   const now = Date.now(); if(M.last && M.n > 0) M.ms += Math.min(now - M.last, 60000); M.last = now;
   const a = M.n; M.n += k;
@@ -706,13 +712,13 @@ function add(k){
   if(M.n >= KM){
     M.pend = { ms: Math.max(1, M.ms), rid: Math.random().toString(36).slice(2) + Date.now().toString(36) };
     M.km++; M.n = 0; M.ms = 0; M.last = 0; next = 0;
-    msg(account ? L('Ein Kilometer geschafft. Alles auf Anfang. Eine Million Tipps, wie gehabt.', 'One kilometer done. Back to the start. One million taps, as before.') : L('Geschafft! Melde dich an, damit du in die Bestenliste kommst.', 'Done! Log in to get on the leaderboard.'));
+    msg(account ? L('Ein Kilometer geschafft.', 'One kilometer done.') : L('Geschafft! Melde dich an, damit du in die Bestenliste kommst.', 'Done! Log in to get on the leaderboard.'));
     const w = $('bmStone'); w.style.transition = 'none'; render(); void w.offsetWidth; w.style.transition = '';
     save(); submit(); return;
   } else if(M.n >= next){
     pick; msg(pick(Math.random() < 0.3 ? TEASE : GOOD)); next = M.n + 15 + Math.floor(Math.random() * 60);
   }
-  render(); save();
+  render(); save(); progress();
 }
 window.bmReset = function(){ if(!confirm(L('Deine Runde auf 0 zurücksetzen? (Bestenliste bleibt)', 'Reset your round to 0? (Leaderboard stays)'))) return; M.n = 0; M.ms = 0; M.last = 0; next = 0; msg(L('Tippe auf den Stein.', 'Tap the rock.')); render(); save(); };
 window.startManiaFlow = function(){
@@ -739,6 +745,7 @@ window.startManiaFlow = function(){
     #bmName{display:none;margin:10px auto 0;padding:6px 14px;border-radius:12px;border:3px solid #7a5a3a;font-weight:800;font-size:14px}
     .bmrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;text-align:left}
     .bmrow b{width:26px;text-align:center}.bmnm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bmdt{opacity:.65;font-size:12px}
+    .bmbadge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border:2px solid;border-radius:8px;font-size:11px;font-weight:800;text-align:center;line-height:16px}
     .bmdot{width:14px;height:14px;border-radius:50%;flex:none}
   </style>
   <div class="panel" id="bmApp">
@@ -754,13 +761,15 @@ window.startManiaFlow = function(){
     ${account ? '' : `<div class="explanation" style="margin:10px 0">${L('Melde dich an, damit du in die Bestenliste kommst.','Log in to get on the leaderboard.')}</div>`}
     <div class="settings-label" style="margin-top:14px">${L('BESTENLISTE','LEADERBOARD')}</div>
     <div id="bmBoard">…</div>
-    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn" onclick="bmReset()">${L('Meine Runde zurücksetzen','Reset my round')}</button><button class="btn btn-ghost" onclick="brDuelHub()">${L('Zurück','Back')}</button></div>
+    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn" onclick="bmReset()">${L('Meine Runde zurücksetzen','Reset my round')}</button><button class="btn btn-ghost" onclick="bmLeave()">${L('Zurück','Back')}</button></div>
   </div>`);
   const w = $('bmStone');
   w.addEventListener('pointerdown', () => { w.classList.add('press'); add(1); });
   w.addEventListener('pointerup', () => w.classList.remove('press'));
   w.addEventListener('pointerleave', () => w.classList.remove('press'));
   render(); loadBoard();
+  const iv = setInterval(() => { if(!$('bmCnt')){ clearInterval(iv); return; } progress(true); }, 8000);
 };
+window.bmLeave = function(){ try{ progress(true); }catch(e){} brDuelHub(); };
 window.__bmAdd = add; window.__bmMs = ms => { M.ms = ms; };
 })();
