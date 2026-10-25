@@ -4607,6 +4607,7 @@ function renderAccountAuth(mode){
     <div class="panel">
       <div class="picker-title">${mode==='login' ? L('ANMELDEN','LOG IN') : L('KONTO ERSTELLEN','CREATE ACCOUNT')}</div>
       <div class="picker-sub">${mode==='login' ? L('Melde dich mit deinem Anmeldenamen an.','Log in with your login name.') : L('Wähle einen Spielnamen (sehen alle), einen privaten Anmeldenamen (kennst nur du) und ein Passwort (mind. 6 Zeichen).','Choose a game name (everyone sees it), a private login name (only you know it) and a password (min. 6 characters).')}</div>
+      ${mode==='register' ? `<div style="margin:10px 0 0;padding:10px 12px;border-radius:14px;background:rgba(255,196,70,.12);border:1px solid #ffc446;color:#ffc446;font-weight:800;text-align:center">🎁 ${L('Anmeldebonus: 500 Münzen für dein neues Konto!','Sign-up bonus: 500 coins for your new account!')}</div>` : ''}
       <div class="picker-form" style="flex-direction:column; gap:10px;">
         <input id="authUsername" type="text" placeholder="${mode==='login' ? L('Anmeldename','Login name') : L('Spielname (öffentlich)','Game name (public)')}" maxlength="20" autocomplete="username">
         ${mode==='register' ? `<input id="authLogin" type="text" placeholder="${L('Anmeldename (privat, nicht der Spielname!)','Login name (private, not your game name!)')}" maxlength="20" autocomplete="off" autocapitalize="none">` : ''}
@@ -4761,6 +4762,20 @@ async function submitAccountAuth(mode){
   if(mode === 'register' && guestMigrate) await guestMigrateRun(); else guestMigrate = null;
   if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
   else renderMainMenu();
+  if(mode === 'register' && result.bonus) showSignupBonus(result.bonus);
+}
+function showSignupBonus(n){
+  const o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:20px';
+  o.innerHTML = `<div style="max-width:340px;width:100%;text-align:center;padding:26px 20px;border-radius:22px;background:#12162b;border:2px solid #ffc446;box-shadow:0 0 40px rgba(255,196,70,.35)">
+    <div style="font-size:54px">🎁</div>
+    <div style="font-size:24px;font-weight:900;color:#ffc446;margin:6px 0">${L('Anmeldebonus!','Sign-up bonus!')}</div>
+    <div style="font-size:40px;font-weight:900;color:#fff">+${n}</div>
+    <div style="font-weight:800;color:#ffc446;margin-bottom:6px">${L('Münzen','coins')}</div>
+    <div style="opacity:.8;font-size:14px;margin-bottom:16px">${L('Willkommen bei Brain Pulse! Das Geschenk gibt es einmalig für dein neues Konto.','Welcome to Brain Pulse! This gift is a one-time reward for your new account.')}</div>
+    <button style="padding:12px 26px;border:0;border-radius:14px;background:#ffc446;color:#1a1a1a;font-weight:900;font-size:16px;cursor:pointer">${L('Super!','Awesome!')}</button></div>`;
+  o.querySelector('button').onclick = () => o.remove();
+  document.body.appendChild(o);
 }
 
 async function logoutAccount(){
@@ -6164,34 +6179,124 @@ function guideToggle(id){
     const br = document.querySelector('.gd-bar i'); if(br) br.style.width = Math.round(n/tot*100) + '%';
   }
 }
-const INTRO_CARDS = [
-  {ic:'🎯', c:'#c6ff3d', t:['Beweise dein Wissen','Prove your knowledge'], p:['Beweise dein Wissen und zeig, wie hoch du kommst. Steig Klasse für Klasse im Rang auf.','Prove your knowledge and show how high you can go. Climb the ranks class by class.']},
-  {ic:'🌐', c:'#3de0ff', t:['Spiel mit Freunden','Play with friends'], p:['Party-Raum, Schach, Tic Tac Toe, Fourups und Speed Math, allein, mit Freunden oder online gegen andere.','Party room, chess, tic tac toe, fourups and speed math, alone, with friends or online against others.']},
-  {ic:'🏅', c:'#ffd45a', t:['Sammle & steig auf','Collect & level up'], p:['Münzen, Erfolge und Statistik zeigen, wie weit du bist. Mit einem Konto geht nichts verloren.','Coins, achievements and stats show how far you are. With an account nothing gets lost.']}
+const INTRO_STEPS = [
+  {ic:'👋', c:'#c6ff3d', t:['Hallo, ich bin Professor Schein!','Hello, I am Professor Schein!'], p:['Ich zeige dir kurz, was dich hier erwartet. Tippe einfach auf Weiter, wenn du bereit bist.','Let me quickly show you what awaits you here. Just tap Next when you are ready.'],
+    j:['Manche verwechseln mich mit einem gewissen Professor Stein. Aber hey, der sieht nicht so hübsch aus wie ich!','Some people mix me up with a certain Professor Stein. But hey, he is not nearly as handsome as me!']},
+  {ic:'🎯', c:'#ff6b6b', t:['Brain Test','Brain Test'], p:['Im Brain Test beweist du dein Wissen. Erst machst du einen Übungstest, dann den Haupttest gegen die Uhr. Schaffst du ihn, steigst du eine Klasse auf.','In the Brain Test you prove your knowledge. First a practice test, then the main test against the clock. Pass it and you move up a class.'],
+    j:['Keine Sorge, wenn du durchfällst. Ich bin im Kindergarten auch zweimal sitzengeblieben!','Do not worry if you fail. I failed kindergarten twice, and look at me now!']},
+  {ic:'📅', c:'#3de0ff', t:['Tägliche Rätsel','Daily puzzles'], p:['Jeden Tag warten neue Rätsel auf dich, zum Beispiel Sudoku und Kreuzworträtsel. Löse sie und sammle Münzen.','New puzzles wait for you every day, like sudoku and crosswords. Solve them and collect coins.'],
+    j:['Meine Haare sind so wild, weil ich zu lange über einem Sudoku gegrübelt habe.','My hair is this wild because I thought too long about a sudoku.']},
+  {ic:'👥', c:'#ffd45a', t:['Spiel mit Freunden','Play with friends'], p:['Im Party-Raum spielst du mit bis zu sechs Freunden, auch in Teams und mit vielen verschiedenen Modi.','In the party room you play with up to six friends, even in teams and with many different modes.'],
+    j:['Allein lache ich nämlich nur über meine eigenen Witze, und das ist peinlich.','When I am alone I only laugh at my own jokes, and that is embarrassing.']},
+  {ic:'♟️', c:'#b18cff', t:['Schach und mehr','Chess and more'], p:['Spiel Schach, Dame, Tic Tac Toe oder Fourups, gegen den Bot, gegen Freunde oder online gegen andere.','Play chess, checkers, tic tac toe or fourups, against the bot, against friends or online against others.'],
+    j:['Ich spiele auch Schach, aber ich verliere immer gegen meine Katze. Sie schummelt!','I play chess too, but I always lose to my cat. She cheats!']},
+  {ic:'🧠', c:'#7cff8c', t:['Training für den Kopf','Brain training'], p:['Bei Speed Math trainierst du Kopfrechnen, in Biologie lernst du deinen Körper kennen, und bei Brainchimie kombinierst du Elemente. Dazu gibt es viele kleine Minispiele.','In Speed Math you train mental maths, in Biology you learn about your body, and in Brainchimie you combine elements. There are also lots of small mini games.'],
+    j:['Dein Gehirn ist ein Muskel. Meins hat Muskelkater!','Your brain is a muscle. Mine has sore muscles!']},
+  {ic:'🏅', c:'#ffb020', t:['Sammle und steig auf','Collect and level up'], p:['Münzen, Erfolge und Statistiken zeigen dir, wie weit du schon bist. Mit einem Konto geht nichts verloren.','Coins, achievements and stats show how far you have come. With an account nothing gets lost.'],
+    j:['Ich sammle auch Münzen, leider nur hinter dem Sofa.','I collect coins too, mostly from behind the sofa.']},
+  {ic:'🎉', c:'#c6ff3d', t:['Viel Spaß!','Have fun!'], p:['Das war es schon. Viel Spaß beim Spielen!','That is it. Have fun playing!'],
+    j:['Und wenn dir ein Witz nicht gefallen hat: Das war der Praktikant!','And if you did not like a joke, blame the intern!']}
 ];
+let introStep = 0, introTimers = [];
+function introVoiceOn(){ try{ return localStorage.getItem('bp_intro_voice') !== '0'; }catch(e){ return true; } }
+function introVoicePick(){
+  const lg = currentLang === 'de' ? 'de' : 'en';
+  const v = ((typeof speechSynthesis !== 'undefined' && speechSynthesis.getVoices()) || []).filter(x => (x.lang || '').toLowerCase().startsWith(lg));
+  return v.find(x => /male|stefan|conrad|killian|daniel|george|google/i.test(x.name) && !/female|katja|amala|hedda/i.test(x.name)) || v[0] || null;
+}
+function introCanSpeak(){ return typeof speechSynthesis !== 'undefined' && typeof SpeechSynthesisUtterance !== 'undefined' && introVoiceOn(); }
+function introSay(text, opts, onend){
+  try{
+    const u = new SpeechSynthesisUtterance(text), lg = currentLang === 'de' ? 'de' : 'en';
+    u.lang = lg === 'de' ? 'de-DE' : 'en-GB'; u.rate = (opts && opts.rate) || 0.98; u.pitch = (opts && opts.pitch) || 0.85;
+    const v = introVoicePick(); if(v) u.voice = v;
+    if(onend){ u.onend = onend; u.onerror = onend; }
+    speechSynthesis.speak(u);
+  }catch(e){ if(onend) onend(); }
+}
+function introStopSpeak(){ introTimers.forEach(clearTimeout); introTimers = []; try{ if(typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); }catch(e){} const im = document.getElementById('introProf'); if(im) im.classList.remove('talk', 'laugh'); const h = document.getElementById('introHo'); if(h) h.classList.remove('on'); }
+function introText(i){ const x = INTRO_STEPS[i]; return L(x.t[0], x.t[1]) + '. ' + L(x.p[0], x.p[1]) + ' ' + L(x.j[0], x.j[1]); }
+function introLaugh(i){
+  if(i !== introStep) return;
+  const im = document.getElementById('introProf'), h = document.getElementById('introHo'); if(!im) return;
+  im.classList.remove('talk'); im.classList.add('laugh'); if(h){ h.classList.remove('on'); void h.offsetWidth; h.classList.add('on'); }
+  if(introCanSpeak()) introSay(L('Ho, ho, ho, ho!','Ho, ho, ho, ho!'), { rate: 1.15, pitch: 0.6 });
+  introTimers.push(setTimeout(() => { const e = document.getElementById('introProf'); if(e) e.classList.remove('laugh'); const hh = document.getElementById('introHo'); if(hh) hh.classList.remove('on'); }, 2200));
+}
+function introPlay(i){
+  introStopSpeak();
+  const im = document.getElementById('introProf'); if(!im) return;
+  const text = introText(i); let done = false;
+  const fin = () => { if(done) return; done = true; introLaugh(i); };
+  im.classList.add('talk');
+  if(introCanSpeak()){
+    introSay(text, null, fin);
+    introTimers.push(setTimeout(fin, Math.min(30000, 4000 + text.length * 90)));
+  } else {
+    introTimers.push(setTimeout(fin, Math.min(9000, 1800 + text.length * 45)));
+  }
+}
 function showIntro(force){
   if(document.getElementById('introOv')) return;
   if(!force){ try{ if(localStorage.getItem('bp_intro_seen')) return; }catch(e){ return; } }
   const g = document.getElementById('guideOv'); if(g) g.remove();
+  introStep = 0;
   const o = document.createElement('div'); o.id = 'introOv'; o.className = 'gd-ov'; o.style.alignItems = 'stretch';
-  o.innerHTML = `<div style="width:100%;max-width:520px;display:flex;flex-direction:column;padding:16px;box-sizing:border-box;min-height:100%">
-    <div style="text-align:right"><button class="btn btn-ghost" style="padding:6px 12px" onclick="closeIntro()">${L('Überspringen','Skip')}</button></div>
-    <div class="intro-track" id="introTrack">${INTRO_CARDS.map(x => `<div class="intro-card" style="--c:${x.c}"><div class="big">${x.ic}</div><h2>${L(x.t[0],x.t[1])}</h2><p>${L(x.p[0],x.p[1])}</p></div>`).join('')}</div>
-    <div class="intro-dots" id="introDots">${INTRO_CARDS.map((_,i) => `<i class="${i?'':'on'}"></i>`).join('')}</div>
-    <button class="btn btn-primary btn-block" id="introNext" onclick="introNext()">${L('WEITER','NEXT')}</button>
+  o.innerHTML = `<style>
+    @keyframes introPop{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:none}}
+    @keyframes introTalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    #introProf{width:150px;height:150px;border-radius:50%;object-fit:cover;border:3px solid var(--c,#c6ff3d);box-shadow:0 0 34px color-mix(in srgb,var(--c,#c6ff3d) 55%,transparent);background:#101936}
+    #introProf.talk{animation:introTalk .5s ease-in-out infinite}
+    @keyframes introLaugh{0%,100%{transform:translateY(0) rotate(0) scale(1)}20%{transform:translateY(-16px) rotate(-5deg) scale(1.04)}40%{transform:translateY(2px) rotate(4deg) scale(.98)}60%{transform:translateY(-14px) rotate(-4deg) scale(1.04)}80%{transform:translateY(2px) rotate(3deg) scale(.98)}}
+    #introProf.laugh{animation:introLaugh .55s ease-in-out 4}
+    #introHo{position:absolute;left:50%;top:-6px;transform:translateX(-50%);font-weight:900;font-size:22px;letter-spacing:.06em;color:var(--c,#c6ff3d);opacity:0;pointer-events:none;white-space:nowrap;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+    #introHo.on{animation:introHo 2.1s ease forwards}
+    @keyframes introHo{0%{opacity:0;transform:translate(-50%,10px) scale(.7)}15%{opacity:1;transform:translate(-50%,-6px) scale(1.1)}80%{opacity:1;transform:translate(-50%,-10px) scale(1)}100%{opacity:0;transform:translate(-50%,-22px) scale(1)}}
+    .intro-bub .joke{margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.25);font-size:15px;font-style:italic;color:var(--c,#c6ff3d)}
+    .intro-bub{position:relative;margin-top:18px;padding:18px 18px 16px;border-radius:20px;background:rgba(255,255,255,.07);border:2px solid var(--c,#c6ff3d);animation:introPop .3s ease;text-align:left}
+    .intro-bub .big{font-size:42px;line-height:1}.intro-bub h2{margin:8px 0 6px;font-size:22px}.intro-bub p{margin:0;font-size:16px;line-height:1.5;color:var(--text,#fff)}
+  </style>
+  <div style="width:100%;max-width:520px;display:flex;flex-direction:column;padding:16px;box-sizing:border-box;min-height:100%">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button class="btn btn-ghost" id="introVoiceBtn" style="padding:6px 12px" onclick="introToggleVoice()"></button>
+      <button class="btn btn-ghost" style="padding:6px 12px" onclick="closeIntro()">${L('Überspringen','Skip')}</button>
+    </div>
+    <div style="text-align:center;margin-top:10px;position:relative"><div id="introHo">HO, HO, HO!</div><img id="introProf" src="/avatars/prof.webp" alt="" onclick="introReplay()" onerror="this.outerHTML='<div style=&quot;font-size:90px&quot;>🧑‍🏫</div>'"></div>
+    <div class="intro-bub" id="introBub"></div>
+    <div style="flex:1"></div>
+    <div class="intro-dots" id="introDots">${INTRO_STEPS.map((_,i) => `<i class="${i?'':'on'}"></i>`).join('')}</div>
+    <button class="btn btn-primary btn-block" id="introNext" onclick="introNext()"></button>
     <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="closeIntro(true)">📖 ${L('Ganze Anleitung ansehen','See the full guide')}</button>
   </div>`;
   document.body.appendChild(o);
-  const tr = document.getElementById('introTrack');
-  tr.addEventListener('scroll', () => { const i = Math.round(tr.scrollLeft / tr.clientWidth); document.querySelectorAll('#introDots i').forEach((d,k) => d.classList.toggle('on', k === i)); const nx = document.getElementById('introNext'); if(nx) nx.textContent = (i >= INTRO_CARDS.length-1) ? L("LOS GEHT'S","LET'S GO") : L('WEITER','NEXT'); });
+  introRender(false);
+  introTimers.push(setTimeout(() => introLaugh(0), 1800));
+}
+function introRender(speak){
+  const x = INTRO_STEPS[introStep], o = document.getElementById('introOv'); if(!o) return;
+  o.style.setProperty('--c', x.c);
+  const b = document.getElementById('introBub'); b.style.setProperty('--c', x.c); b.style.animation = 'none'; void b.offsetWidth; b.style.animation = '';
+  b.innerHTML = `<div class="big">${x.ic}</div><h2>${L(x.t[0], x.t[1])}</h2><p>${L(x.p[0], x.p[1])}</p><div class="joke">😄 ${L(x.j[0], x.j[1])}</div>`;
+  document.getElementById('introProf').style.setProperty('--c', x.c);
+  document.querySelectorAll('#introDots i').forEach((d,k) => d.classList.toggle('on', k === introStep));
+  const last = introStep >= INTRO_STEPS.length - 1;
+  document.getElementById('introNext').textContent = last ? L('LOS GEHT\'S','LET\'S GO') : L('WEITER','NEXT');
+  const vb = document.getElementById('introVoiceBtn'); if(vb) vb.textContent = introVoiceOn() ? '🔊 ' + L('Ton an','Sound on') : '🔇 ' + L('Ton aus','Sound off');
+  if(speak) introPlay(introStep);
+}
+function introReplay(){ introPlay(introStep); }
+function introToggleVoice(){
+  try{ localStorage.setItem('bp_intro_voice', introVoiceOn() ? '0' : '1'); }catch(e){}
+  introStopSpeak();
+  const vb = document.getElementById('introVoiceBtn'); if(vb) vb.textContent = introVoiceOn() ? '🔊 ' + L('Ton an','Sound on') : '🔇 ' + L('Ton aus','Sound off');
+  if(introVoiceOn()) introPlay(introStep);
 }
 function introNext(){
-  const tr = document.getElementById('introTrack'); if(!tr) return;
-  const i = Math.round(tr.scrollLeft / tr.clientWidth);
-  if(i >= INTRO_CARDS.length - 1){ closeIntro(); return; }
-  tr.scrollTo({ left: (i + 1) * tr.clientWidth, behavior: 'smooth' });
+  if(introStep >= INTRO_STEPS.length - 1){ closeIntro(); return; }
+  introStep++; introRender(true);
 }
 function closeIntro(openFull){
+  introStopSpeak();
   try{ localStorage.setItem('bp_intro_seen', '1'); }catch(e){}
   const o = document.getElementById('introOv'); if(o) o.remove();
   if(openFull === true) openGuide(); else setTimeout(showWelcomeIfNeeded, 150);
@@ -6246,6 +6351,7 @@ async function guestMigrateRun(){
     const prof = accountAsProfile();
     keep.forEach(k => { if(g[k] !== undefined && g[k] !== null) prof[k] = g[k]; });
     if(!prof.biologyBest && g.biologyDone) prof.biologyBest = g.biologyDone;
+    prof.coins = (account.profile.coins || 0) + Math.min(300, Math.max(0, g.coins || 0));
     if(g.achv && account.profile){ account.profile.achv = Achv.merge(account.profile.achv, g.achv); }
     await syncAccountStats(prof);
   }catch(e){}
@@ -6299,7 +6405,7 @@ const FOLLOW_GOAL = 100;
 const FOLLOW_NOW = null; // optional: aktuelle Followerzahl von Hand eintragen (z.B. 37) -> zeigt einen Fortschrittsbalken
 function profBubbleHtml(){
   const pct = (typeof FOLLOW_NOW==='number') ? Math.max(0,Math.min(100,Math.round(FOLLOW_NOW/FOLLOW_GOAL*100))) : null;
-  return `<div class="prof-bub"><div class="prof-av"><img src="/avatars/prof.webp" alt="" onerror="this.style.display='none'"></div><div class="prof-tx"><b>${L('Der Professor sagt:','The Professor says:')}</b> ${L('Folge uns auf TikTok, damit du nichts verpasst! Bei '+FOLLOW_GOAL+' Followern geht Brain Pulse zum ersten Mal online, für eine Testphase. Sei von Anfang an dabei!','Follow us on TikTok so you never miss a thing! At '+FOLLOW_GOAL+' followers Brain Pulse goes online for the first time, as a test phase. Be there from the start!')}${pct!==null?`<div class="prof-bar"><i style="width:${pct}%"></i></div><small>${FOLLOW_NOW} / ${FOLLOW_GOAL} Follower</small>`:''}</div></div>`;
+  return `<div class="prof-bub"><div class="prof-av"><img src="/avatars/prof.webp" alt="" onerror="this.style.display='none'"></div><div class="prof-tx"><b>${L('Professor Schein sagt:','Professor Schein says:')}</b> ${L('Folge uns auf TikTok, damit du nichts verpasst! Bei '+FOLLOW_GOAL+' Followern geht Brain Pulse zum ersten Mal online, für eine Testphase. Sei von Anfang an dabei!','Follow us on TikTok so you never miss a thing! At '+FOLLOW_GOAL+' followers Brain Pulse goes online for the first time, as a test phase. Be there from the start!')}${pct!==null?`<div class="prof-bar"><i style="width:${pct}%"></i></div><small>${FOLLOW_NOW} / ${FOLLOW_GOAL} Follower</small>`:''}</div></div>`;
 }
 (function(){ const st=document.createElement('style'); st.textContent=`.prof-bub{display:flex;gap:10px;align-items:flex-start;margin:14px auto 0;max-width:520px;padding:10px 12px;border-radius:16px;background:rgba(255,212,90,.08);border:2px solid rgba(255,212,90,.45);text-align:left;font-size:13px;line-height:1.4}.prof-av{flex:0 0 52px;width:52px;height:52px;border-radius:50%;overflow:hidden;background:#222;border:2px solid #ffd45a}.prof-av img{width:100%;height:100%;object-fit:cover;display:block}.prof-tx b{color:#ffd45a}.prof-bar{height:8px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:6px}.prof-bar i{display:block;height:100%;background:linear-gradient(90deg,#c6ff3d,#25f4ee)}.prof-tx small{color:var(--text-dim)}`; document.head.appendChild(st); })();
 function socialBarHtml(){
@@ -7051,10 +7157,10 @@ ${currentLang === 'de' ? `
         <h3>Brain Duel ${featureLocked('brain_royale') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
         <p>${featureLocked('brain_royale') ? L('Brain Royale + Brain Mana, Test, nur für dich sichtbar','Brain Royale + Brain Mana, test, only visible to you') : L('Brain Royale + Brain Mana','Brain Royale + Brain Mana')}</p>
       </div>` : ''}
-      <div class="mode-card ${currentLang==='de' ? '' : 'locked'}" onclick="${currentLang==='de' ? 'startChem()' : ''}" style="${currentLang==='de' ? '' : 'opacity:.45; cursor:default;'}">
+      <div class="mode-card ${(currentLang==='de'||currentLang==='en') ? '' : 'locked'}" onclick="${(currentLang==='de'||currentLang==='en') ? 'startChem()' : ''}" style="${(currentLang==='de'||currentLang==='en') ? '' : 'opacity:.45; cursor:default;'}">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><path d="M19 6H29M21 6V20L9 40C8 42 9 44 11 44H37C39 44 40 42 39 40L27 20V6" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M14 33H34" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="38" r="2" fill="#3de0ff"/><circle cx="29" cy="28" r="2" fill="#c6ff3d"/></svg></div>
         <h3>Brainchimie</h3>
-        <p>${currentLang==='de' ? 'Kombiniere Elemente.' : 'Only available in German'}</p>
+        <p>${currentLang==='de' ? 'Kombiniere Elemente.' : (currentLang==='en' ? 'Combine elements.' : 'Only available in German')}</p>
       </div>
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="2" y="6" width="44" height="36" rx="6" fill="#2f6bff"/><circle cx="9" cy="14" r="4" fill="#0b1236"/><circle cx="9" cy="24" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#0b1236"/><circle cx="19" cy="14" r="4" fill="#0b1236"/><circle cx="19" cy="24" r="4" fill="#0b1236"/><circle cx="19" cy="34" r="4" fill="#0b1236"/><circle cx="29" cy="14" r="4" fill="#0b1236"/><circle cx="29" cy="24" r="4" fill="#0b1236"/><circle cx="29" cy="34" r="4" fill="#0b1236"/><circle cx="39" cy="14" r="4" fill="#0b1236"/><circle cx="39" cy="24" r="4" fill="#0b1236"/><circle cx="39" cy="34" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="7" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="34" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="29" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="27" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="39" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="37" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="24" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="21.5" r="2" fill="#fff" opacity=".6"/></svg></div>
