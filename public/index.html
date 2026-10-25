@@ -7174,7 +7174,7 @@ function brainBoardHtml(game, title, ic, r){
 let brainData = { hood:null, fruit:null }, brainTabSel = 'hood', brainOpen = false;
 function brainCardsHtml(){
   const f = fruitData();
-  const card = (game, title, sub, ic, lvl, r) => `<div class="mode-card" onclick="renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')">
+  const card = (game, title, sub, ic, lvl, r) => featureLocked('braining_' + game) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="braining_${game}">${gateText('braining_' + game)}</p></div>` : `<div class="mode-card" onclick="renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')">
       <div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${lvl}</span><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--warn);">${r && r.ok && r.mine ? r.mine.pts.toLocaleString() : 0} ${L('Pkt','pts')}</span></div></div>`;
   const hoodIc = `<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
