@@ -631,6 +631,7 @@ window.brDuelHub = function(){
     <div class="actions-row" style="flex-direction:column;gap:10px;margin-top:10px">
       <div class="mode-card" onclick="brIntro()" style="border-color:var(--warn);cursor:pointer"><div class="icon">⚔️</div><h3>Brain Royale</h3><p>${L('Figuren-Duell mit Quiz','Piece duel with quiz')}</p></div>
       <div class="mode-card" onclick="drIntro()" style="border-color:#ffc446;cursor:pointer"><div class="icon">🎲</div><h3>Brain Mana</h3><p>${L('Würfeln, Fallen & Fähigkeiten','Dice, traps & abilities')}</p></div>
+      ${(typeof featureLocked==='function' && (!featureLocked('hard') || (typeof adminViewOn==='function' && adminViewOn()))) ? `<div class="mode-card" onclick="startHardFlow()" style="border-color:#ff4d6a;cursor:pointer"><div class="icon">💀</div><h3>${L('Das schwerste Spiel der Welt','The hardest game in the world')}</h3><p>${L('5 Spiele, Solo oder gegen Bot, plus Olympiade','5 games, solo or vs bot, plus Olympics')}</p></div>` : ''}
       ${(typeof featureLocked==='function' && (!featureLocked('mania') || (typeof adminViewOn==='function' && adminViewOn()))) ? `<div class="mode-card" onclick="startManiaFlow()" style="border-color:#7ee8ff;cursor:pointer"><div class="icon">🪨</div><h3>Brainmania</h3><p>${L('Das sinnloseste Spiel der Welt','The most pointless game in the world')}</p></div>` : ''}
       ${(typeof adminViewOn==='function' && adminViewOn()) ? `<div class="mode-card" onclick="renderChessFrame('/defense/index.html')" style="border-color:var(--warn);cursor:pointer"><div class="icon">🛡️</div><h3>Brain Defense</h3><p>${L('Tower Defense mit Fruchtkönigen, 100 Level','Tower defense with fruit kings, 100 levels')}</p></div>` : ''}
       <button class="btn btn-ghost" onclick="renderMainMenu()">${L('Zurück zum Menü','Back to menu')}</button></div></div>`);
@@ -834,3 +835,9 @@ window.startManiaFlow = function(){
 async function loadBoardQuiet(){ const r = await apiCall('/api/mania', { token: account && account.token, action: 'board' }); if(r && r.ok && !M.pend && $('bmBoard')){ board = r; boardDraw(); render(); } }
 window.__bmAdd = add; window.__bmMs = ms => { M.ms = ms; };
 })();
+
+/* Lader fuer "Das schwerste Spiel der Welt" (hardest.js wird erst beim ersten Oeffnen geladen) */
+window.startHardFlow = function(){
+  if(window.__hdG){ return; }
+  const sc = document.createElement('script'); sc.src = '/hardest.js?v=1'; sc.onload = () => { try{ window.startHardFlow(); }catch(e){} }; sc.onerror = () => { try{ renderMainMenu(); }catch(e){} }; document.head.appendChild(sc);
+};
