@@ -648,10 +648,11 @@ const MT = [
   { n:'Gold-Stein',    c:['#fff1a0','#f0c230','#b8860b'], f:'#ffd24a' },
   { n:'Diamant-Stein', c:['#e9fdff','#7ee8ff','#3aa9d9'], f:'#59e1ff' }
 ];
+const RX = ['👍','👎','💪','🔥','👏'];
 const GOOD = [['Super, weiter so!','Super, keep going!'],['Du hast es bald geschafft!','Almost there!'],['Hey, hör jetzt nicht auf!',"Hey, don't stop now!"],['Das machst du richtig gut.','You are doing great.'],['Der Stein ist stolz auf dich.','The rock is proud of you.'],['Nicht nachlassen, du bist auf einem guten Weg.',"Don't let up, you are on a good path."],['Wow, was für ein Tempo.','Wow, what a pace.'],['Das hast du gut gemacht!','Well done!'],['Noch ein bisschen, dann ist es geschafft.','Just a little more.'],['Du bist ein Naturtalent.','You are a natural.']];
 const TEASE = [['Nee, mach das nicht.',"Nah, don't do that."],['Gar nicht. Hör lieber auf.','Not at all. Better stop.'],['Das bringt doch nichts.','This gets you nowhere.'],['Wirklich? Schon wieder?','Really? Again?'],['Der Stein hat nichts gemerkt.','The rock did not notice.'],['Fast. Nein, doch nicht.','Almost. No, not really.'],['Du hast doch bestimmt etwas Besseres zu tun.','Surely you have better things to do.'],['Nein, nicht tippen. Oh, du tippst trotzdem.',"No, don't tap. Oh, you tap anyway."],['Das war jetzt auch nicht besser.','That was not better either.']];
 const MILE = { 100:[['klack','click'],['Mehr nicht.','That is all.']], 1000:[['*wackel*','*wobble*'],['Der Stein hat sich bewegt.','The rock moved.']], 10000:[['Drehung','Spin'],['Einmal im Kreis. Warum auch nicht.','Once around. Why not.']], 100000:[['KLACK','CLACK'],['Der Stein ist umgekippt.','The rock tipped over.']] };
-let M = { n:0, km:0, ms:0, last:0, tier:0, pend:null }, board = null, who = '', next = 0, hold = false;
+let M = { n:0, km:0, ms:0, last:0, tier:0, pend:null }, board = null, who = '', next = 0, watchTimer = null;
 const $ = id => document.getElementById(id);
 const key = () => 'bp_mania_' + (who || 'gast');
 const pick = a => { const x = a[Math.floor(Math.random() * a.length)]; return L(x[0], x[1]); };
@@ -659,30 +660,55 @@ function save(){ try{ localStorage.setItem(key(), JSON.stringify(M)); }catch(e){
 function load(){ try{ const x = JSON.parse(localStorage.getItem(key()) || 'null'); if(x && typeof x.n === 'number') M = Object.assign({ n:0, km:0, ms:0, last:0, tier:0, pend:null }, x); }catch(e){} }
 const fmt = x => x.toLocaleString(L('de-DE', 'en-US'));
 function dur(ms){ const t = Math.floor(ms / 1000), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60; return h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'); }
-const esc = x => String(x).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function msg(t){ const e = $('bmMsg'); if(e) e.textContent = t; }
 function big(t){ const e = $('bmBig'); if(!e) return; e.textContent = t; e.classList.remove('show'); void e.offsetWidth; e.classList.add('show'); }
 function anim(name, ms){ const w = $('bmStone'); if(!w) return; w.style.animation = 'none'; void w.offsetWidth; w.style.animation = name + ' ' + ms + 'ms ease-in-out'; }
+function paintStone(tier){ ['bm0','bm1','bm2'].forEach((id, i) => { const e = $(id); if(e) e.setAttribute('stop-color', MT[tier].c[i]); }); const w = $('bmStone'); if(w) w.style.filter = tier === 4 ? 'drop-shadow(0 0 14px #59e1ff)' : tier === 3 ? 'drop-shadow(0 0 10px rgba(255,210,74,.55))' : ''; }
+const STONE_SVG = '<svg viewBox="0 0 150 110"><defs><linearGradient id="bmg" x1="0" y1="0" x2="1" y2="1"><stop id="bm0" offset="0" stop-color="#9a7b5a"/><stop id="bm1" offset=".55" stop-color="#74583c"/><stop id="bm2" offset="1" stop-color="#4a3826"/></linearGradient></defs><path d="M8 100 C2 70 14 40 44 24 C70 10 108 14 128 40 C146 62 148 86 140 100 Z" fill="url(#bmg)"/><path d="M40 34 C60 20 92 22 110 38" stroke="#fff" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="75" cy="102" rx="64" ry="5" fill="#000" opacity=".35"/></svg>';
+const CSS = `<style>
+    #bmApp{text-align:center}
+    #bmCnt{font-size:60px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:6px}
+    #bmStage{position:relative;height:300px;margin-top:6px;overflow:hidden}
+    #bmGround{position:absolute;left:0;right:0;bottom:56px;height:2px;background:#222b40}
+    #bmStone{position:absolute;bottom:58px;left:50%;width:150px;margin-left:-75px;transform-origin:50% 100%;transition:transform .08s;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
+    #bmStone.press{transform:scale(.97,.95)!important}
+    #bmStone svg{display:block;width:150px;height:auto}
+    #bmBig{position:absolute;left:0;right:0;top:8px;font-weight:900;font-size:36px;color:#c8ff3d;opacity:0;pointer-events:none;text-shadow:0 0 22px rgba(200,255,61,.45)}
+    #bmBig.show{animation:bmBig 2s ease-out}
+    @keyframes bmBig{0%{opacity:0;transform:scale(.7)}12%{opacity:1;transform:scale(1.08)}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+    @keyframes bmWob{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+    @keyframes bmSpin{to{transform:rotate(360deg)}}
+    @keyframes bmFly{0%{opacity:0;transform:translateY(0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translateY(-190px) scale(1.5)}}
+    .bmfly{position:absolute;bottom:40px;font-size:30px;pointer-events:none;animation:bmFly 1.6s ease-out forwards}
+    #bmMsg{min-height:44px;font-size:16px;font-weight:700;margin-top:6px;padding:0 10px}
+    #bmName{display:none;margin:10px auto 0;padding:6px 14px;border-radius:12px;border:3px solid #7a5a3a;font-weight:800;font-size:14px}
+    .bmrow{display:flex;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;text-align:left;cursor:pointer}
+    .bmrow b{width:26px;text-align:center}.bmnm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bmdt{opacity:.7;font-size:12px;text-align:right}.bmlk{font-size:12px;opacity:.9;white-space:nowrap}
+    .bmbadge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border:2px solid;border-radius:8px;font-size:11px;font-weight:800;text-align:center;line-height:16px}
+    .bmdot{width:14px;height:14px;border-radius:50%;flex:none}
+    .bmrx{display:flex;gap:6px;justify-content:center;margin-top:10px}
+    .bmrx button{flex:1;padding:8px 0;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:inherit;font-size:22px;cursor:pointer;line-height:1.1}
+    .bmrx button small{display:block;font-size:11px;opacity:.75;margin-top:2px}
+    .bmrx button:active{transform:scale(.92)}
+  </style>`;
 function render(){
   if(!$('bmCnt')) return;
-  $('bmCnt').textContent = fmt(M.n); $('bmTime').textContent = dur(M.ms);
-  $('bmBi').style.width = Math.min(100, M.n / (KM / 100)) + '%';
+  $('bmCnt').textContent = fmt(KM - M.n); $('bmTime').textContent = dur(M.ms);
   const nm = $('bmName'), me = board && board.me, t = MT[(me && me.tier) || M.tier] || MT[0];
   if(M.km > 0 && who){ // erst nach der ersten Million sichtbar
     nm.style.display = 'inline-block'; nm.style.borderColor = t.f; nm.style.boxShadow = M.tier >= 3 ? '0 0 12px ' + t.f : '';
     nm.textContent = who + (me ? ' · ' + L('Platz ', 'Rank ') + me.rank + L(' von ', ' of ') + board.of : '') + ' · ' + L('Stufe ', 'Level ') + M.km;
-    $('bmSub').textContent = '';
-  } else { nm.style.display = 'none'; $('bmSub').textContent = L('bis zum nächsten Kilometer: ', 'to the next kilometer: ') + fmt(KM - M.n); }
+  } else nm.style.display = 'none';
   const w = $('bmStone'); w.style.marginLeft = (-75 + Math.min(M.n / 150, 60)) + 'px';
   w.style.transform = M.n >= 100000 ? 'rotate(90deg)' : '';
-  ['bm0','bm1','bm2'].forEach((id, i) => $(id).setAttribute('stop-color', MT[M.tier].c[i]));
-  w.style.filter = M.tier === 4 ? 'drop-shadow(0 0 14px #59e1ff)' : M.tier === 3 ? 'drop-shadow(0 0 10px rgba(255,210,74,.55))' : '';
+  paintStone(M.tier);
 }
 function boardDraw(){
   const e = $('bmBoard'); if(!e) return;
-  if(!board || !board.board || !board.board.length){ e.innerHTML = '<div style="opacity:.6;text-align:center">' + L('Noch niemand durch. Schaffe die erste Million.', 'Nobody has finished yet. Be the first to reach a million.') + '</div>'; return; }
+  if(!board || !board.board || !board.board.length){ e.innerHTML = '<div style="opacity:.6;text-align:center">' + L('Noch niemand dabei. Tippe los.', 'Nobody yet. Start tapping.') + '</div>'; return; }
   e.innerHTML = board.board.map((r, i) => { const t = MT[r.tier] || MT[0];
-    return '<div class="bmrow"><b>' + (i + 1) + '</b><span class="bmdot" style="background:' + t.c[1] + ';box-shadow:0 0 6px ' + t.f + '"></span><span class="bmnm">' + esc(r.name) + (r.km > 0 ? ' <span class="bmbadge" style="border-color:' + t.f + '">' + r.km + '</span>' : '') + '</span><span class="bmdt">' + fmt(r.total) + '</span></div>'; }).join('');
+    return '<div class="bmrow" onclick="bmWatch(\'' + encodeURIComponent(r.name) + '\')"><b>' + (i + 1) + '</b><span class="bmdot" style="background:' + t.c[1] + ';box-shadow:0 0 6px ' + t.f + '"></span><span class="bmnm">' + esc(r.name) + (r.km > 0 ? ' <span class="bmbadge" style="border-color:' + t.f + '">' + r.km + '</span>' : '') + '</span><span class="bmlk">👍 ' + fmt(r.likes | 0) + '</span><span class="bmdt">' + fmt(r.total) + '</span></div>'; }).join('');
 }
 async function loadBoard(){
   const r = await apiCall('/api/mania', { token: account && account.token, action: 'board' });
@@ -696,14 +722,14 @@ async function submit(){
   if(!r || !r.ok) return;
   board = r; const aw = r.awarded | 0, old = M.tier; M.pend = null; if(aw > M.tier) M.tier = aw; save(); boardDraw(); render();
   const me = r.me, rk = me ? (me.rank === 1 ? L('Du bist Erster von ' + r.of + '.', 'You are first of ' + r.of + '.') : L('Du bist Platz ' + me.rank + ' von ' + r.of + '.', 'You are rank ' + me.rank + ' of ' + r.of + '.')) : '';
-  big(MT[aw].n + '!'); next = M.n + 40; hold = true;
+  big(MT[aw].n + '!'); next = M.n + 40;
   msg(L('Eine Million geschafft. ', 'A million done. ') + (aw > old ? L('Dein neuer Stein: ', 'Your new rock: ') : L('Dein Stein dieses Mal: ', 'Your rock this time: ')) + MT[aw].n + '. ' + rk);
 }
 let lastSent = 0;
 async function progress(force){
   if(!account || !who) return; const now = Date.now(); if(!force && now - lastSent < 5000) return; lastSent = now;
   const r = await apiCall('/api/mania', { token: account.token, action: 'progress', n: M.n });
-  if(r && r.ok && !M.pend){ board = r; boardDraw(); render(); }
+  if(r && r.ok && !M.pend && $('bmBoard')){ board = r; boardDraw(); render(); }
 }
 let bmAudio = null;
 function bmMusic(){
@@ -711,8 +737,8 @@ function bmMusic(){
   try{ bmAudio = new Audio('/audio/Final_Showdown.mp3'); bmAudio.loop = true; bmAudio.volume = 0.5; bmAudio.play().catch(() => { bmAudio = null; }); }catch(e){ bmAudio = null; }
 }
 function bmMusicStop(){ if(bmAudio){ try{ bmAudio.pause(); }catch(e){} bmAudio = null; } }
-document.addEventListener('visibilitychange', () => { if(bmAudio){ if(document.hidden) bmAudio.pause(); else if($('bmCnt')) bmAudio.play().catch(() => {}); } });
-setInterval(() => { if(bmAudio && !$('bmCnt')) bmMusicStop(); }, 800);
+document.addEventListener('visibilitychange', () => { if(bmAudio){ if(document.hidden) bmAudio.pause(); else if($('bmCnt') || $('bmWCnt')) bmAudio.play().catch(() => {}); } });
+setInterval(() => { if(bmAudio && !$('bmCnt') && !$('bmWCnt')) bmMusicStop(); if(watchTimer && !$('bmWCnt')){ clearInterval(watchTimer); watchTimer = null; } }, 800);
 function add(k){
   bmMusic();
   const now = Date.now(); if(M.last && M.n > 0) M.ms += Math.min(now - M.last, 60000); M.last = now;
@@ -721,64 +747,90 @@ function add(k){
   if(M.n >= KM){
     M.pend = { ms: Math.max(1, M.ms), rid: Math.random().toString(36).slice(2) + Date.now().toString(36) };
     M.km++; M.n = 0; M.ms = 0; M.last = 0; next = 0;
-    msg(account ? L('Ein Kilometer geschafft.', 'One kilometer done.') : L('Geschafft! Melde dich an, damit du in die Bestenliste kommst.', 'Done! Log in to get on the leaderboard.'));
+    if(!account) msg(L('Geschafft! Melde dich an, damit du in die Bestenliste kommst.', 'Done! Log in to get on the leaderboard.'));
     const w = $('bmStone'); w.style.transition = 'none'; render(); void w.offsetWidth; w.style.transition = '';
     save(); submit(); return;
   } else if(M.n >= next){
-    pick; msg(pick(Math.random() < 0.3 ? TEASE : GOOD)); next = M.n + 15 + Math.floor(Math.random() * 60);
+    msg(pick(Math.random() < 0.3 ? TEASE : GOOD)); next = M.n + 15 + Math.floor(Math.random() * 60);
   }
   render(); save(); progress();
 }
 window.bmReset = function(){ if(!confirm(L('Deine Runde auf 0 zurücksetzen? (Bestenliste bleibt)', 'Reset your round to 0? (Leaderboard stays)'))) return; M.n = 0; M.ms = 0; M.last = 0; next = 0; msg(L('Tippe auf den Stein.', 'Tap the rock.')); render(); save(); };
+window.bmLeave = function(){ try{ progress(true); }catch(e){} bmMusicStop(); brDuelHub(); };
+/* ---- Zuschauen: einem anderen Stein live beim Tippen zusehen, Reaktionen schicken ---- */
+window.bmWatch = function(enc){
+  if(!account){ msg(L('Melde dich an, um anderen zuzuschauen und zu reagieren.', 'Log in to watch others and react.')); return; }
+  const target = decodeURIComponent(enc); if(watchTimer){ clearInterval(watchTimer); watchTimer = null; }
+  try{ progress(true); }catch(e){}
+  let st = null, dispRem = KM, lastN = null, lastT = 0, rate = 0, lastRx = {}, tapT = 0;
+  renderApp(CSS + `<div class="panel" id="bmApp">
+    <div class="picker-title" style="margin:0">👀 ${esc(target)}</div>
+    <div class="picker-sub" id="bmWSub">…</div>
+    <div id="bmWCnt" style="font-size:60px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:6px">…</div>
+    <div id="bmStage"><div id="bmGround"></div><div id="bmStone">${STONE_SVG}</div></div>
+    <div class="bmrx" id="bmRx">${RX.map(e => `<button data-e="${e}">${e}<small id="bmRc_${RX.indexOf(e)}">0</small></button>`).join('')}</div>
+    <div id="bmWMsg" style="min-height:22px;font-size:13px;opacity:.7;margin-top:8px"></div>
+    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn btn-ghost" onclick="startManiaFlow()">${L('Zurück zur Liste','Back to list')}</button></div>
+  </div>`);
+  const stage = $('bmStage'), stone = $('bmStone');
+  function fly(e){ const f = document.createElement('span'); f.className = 'bmfly'; f.textContent = e; f.style.left = (20 + Math.random() * 60) + '%'; stage.appendChild(f); setTimeout(() => f.remove(), 1700); }
+  function draw(){
+    if(!st) return; const rem = Math.max(0, Math.round(dispRem));
+    $('bmWCnt').textContent = fmt(rem);
+    stone.style.marginLeft = (-75 + Math.min((KM - rem) / 150, 60)) + 'px'; stone.style.transform = (KM - rem) >= 100000 ? 'rotate(90deg)' : '';
+    paintStone(st.tier);
+  }
+  async function poll(){
+    const r = await apiCall('/api/mania', { token: account && account.token, action: 'watch', target });
+    if(!$('bmWCnt')) return; if(!r || !r.ok){ $('bmWSub').textContent = L('Nicht mehr in der Liste.', 'No longer on the list.'); return; }
+    const now = Date.now(); if(lastN !== null && now > lastT){ const d = (lastN - (KM - r.n)) / ((now - lastT) / 1000); rate = d > 0 ? d : 0; if(r.bot && r.rate) rate = r.rate; }
+    lastN = KM - r.n; lastT = now; st = r; dispRem = Math.min(dispRem, KM) ; if(Math.abs(dispRem - (KM - r.n)) > Math.max(30, rate * 4)) dispRem = KM - r.n;
+    $('bmWSub').textContent = L('Platz ', 'Rank ') + r.rank + L(' von ', ' of ') + r.of + (r.km > 0 ? ' · ' + L('Stufe ', 'Level ') + r.km : '') + (r.bot ? ' · Bot' : '') + ' · ' + MT[r.tier].n;
+    RX.forEach((e, i) => { const c = (r.rx && r.rx[e]) | 0, el = $('bmRc_' + i); if(el) el.textContent = fmt(c); const old = lastRx[e] | 0; if(lastRx.__init && c > old){ for(let k = 0; k < Math.min(4, c - old); k++) setTimeout(() => fly(e), k * 200); } lastRx[e] = c; }); lastRx.__init = true;
+    draw();
+  }
+  // glatte Anzeige: Zahl zählt zwischen den Abfragen mit der geschätzten Geschwindigkeit herunter, Stein "tippt"
+  let tick = 0;
+  const anim2 = setInterval(() => {
+    if(!$('bmWCnt')) { clearInterval(anim2); return; }
+    if(st && rate > 0.3){ dispRem = Math.max(0, dispRem - rate * 0.1); tick++; if(tick % Math.max(1, Math.round(6 / Math.min(rate, 12))) === 0){ stone.classList.add('press'); setTimeout(() => stone.classList.remove('press'), 70); } draw(); }
+  }, 100);
+  watchTimer = setInterval(poll, 1500); poll();
+  $('bmRx').querySelectorAll('button').forEach(b => b.onclick = async () => {
+    if(!account){ $('bmWMsg').textContent = L('Melde dich an, um zu reagieren.', 'Log in to react.'); return; }
+    fly(b.dataset.e);
+    const r = await apiCall('/api/mania', { token: account.token, action: 'react', target, emoji: b.dataset.e });
+    if(r && r.ok){ RX.forEach((e, i) => { const el = $('bmRc_' + i); if(el) el.textContent = fmt((r.rx && r.rx[e]) | 0); lastRx[e] = (r.rx && r.rx[e]) | 0; }); }
+  });
+};
 window.startManiaFlow = function(){
   if(typeof brClearTimers === 'function') brClearTimers();
+  if(watchTimer){ clearInterval(watchTimer); watchTimer = null; }
   if(typeof featureLocked === 'function' && featureLocked('mania') && !(typeof adminViewOn === 'function' && adminViewOn())){ renderMainMenu(); return; }
   who = ''; board = null; M = { n:0, km:0, ms:0, last:0, tier:0, pend:null }; next = 0; load();
-  renderApp(`<style>
-    #bmApp{text-align:center}
-    #bmCnt{font-size:56px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin-top:4px}
-    #bmSub{font-size:13px;opacity:.7;margin-top:2px;min-height:16px}
-    #bmBar{height:6px;background:#1a2133;border-radius:3px;margin:12px 0 0;overflow:hidden}
-    #bmBi{display:block;height:100%;width:0;background:linear-gradient(90deg,#c8ff3d,#3de0ff)}
-    #bmStage{position:relative;height:300px;margin-top:6px;overflow:hidden}
-    #bmGround{position:absolute;left:0;right:0;bottom:56px;height:2px;background:#222b40}
-    #bmStone{position:absolute;bottom:58px;left:50%;width:150px;margin-left:-75px;transform-origin:50% 100%;transition:transform .08s;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent;user-select:none}
-    #bmStone.press{transform:scale(.97,.95)!important}
-    #bmStone svg{display:block;width:150px;height:auto}
-    #bmBig{position:absolute;left:0;right:0;top:8px;font-weight:900;font-size:36px;color:#c8ff3d;opacity:0;pointer-events:none;text-shadow:0 0 22px rgba(200,255,61,.45)}
-    #bmBig.show{animation:bmBig 2s ease-out}
-    @keyframes bmBig{0%{opacity:0;transform:scale(.7)}12%{opacity:1;transform:scale(1.08)}20%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
-    @keyframes bmWob{0%,100%{transform:rotate(0)}25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
-    @keyframes bmSpin{to{transform:rotate(360deg)}}
-    #bmMsg{min-height:44px;font-size:16px;font-weight:700;margin-top:6px;padding:0 10px}
-    #bmName{display:none;margin:10px auto 0;padding:6px 14px;border-radius:12px;border:3px solid #7a5a3a;font-weight:800;font-size:14px}
-    .bmrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;text-align:left}
-    .bmrow b{width:26px;text-align:center}.bmnm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bmdt{opacity:.65;font-size:12px}
-    .bmbadge{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border:2px solid;border-radius:8px;font-size:11px;font-weight:800;text-align:center;line-height:16px}
-    .bmdot{width:14px;height:14px;border-radius:50%;flex:none}
-  </style>
+  const isAdm = typeof adminViewOn === 'function' && adminViewOn();
+  renderApp(CSS + `
   <div class="panel" id="bmApp">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span id="bmTime" title="${L('Zeit dieser Runde','Time of this round')}" style="font-variant-numeric:tabular-nums;font-size:15px;font-weight:800;opacity:.85">0:00:00</span><div class="picker-title" style="margin:0">🪨 BRAINMANIA</div></div>
-    <div class="picker-sub">${L('Das sinnloseste Spiel der Welt. Tippe auf den Stein.','The most pointless game in the world. Tap the rock.')}</div>
+    <div class="picker-sub">${L('Das sinnloseste Spiel der Welt. Tippe auf den Stein und schau, was passiert.','The most pointless game in the world. Tap the rock and see what happens.')}</div>
     <div id="bmName"></div>
-    <div id="bmCnt">0</div><div id="bmSub"></div>
-    <div id="bmBar"><i id="bmBi"></i></div>
+    <div id="bmCnt">1.000.000</div>
     <div id="bmStage"><div id="bmGround"></div><div id="bmBig"></div>
-      <div id="bmStone"><svg viewBox="0 0 150 110"><defs><linearGradient id="bmg" x1="0" y1="0" x2="1" y2="1"><stop id="bm0" offset="0" stop-color="#9a7b5a"/><stop id="bm1" offset=".55" stop-color="#74583c"/><stop id="bm2" offset="1" stop-color="#4a3826"/></linearGradient></defs><path d="M8 100 C2 70 14 40 44 24 C70 10 108 14 128 40 C146 62 148 86 140 100 Z" fill="url(#bmg)"/><path d="M40 34 C60 20 92 22 110 38" stroke="#fff" stroke-opacity=".35" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="75" cy="102" rx="64" ry="5" fill="#000" opacity=".35"/></svg></div>
+      <div id="bmStone">${STONE_SVG}</div>
     </div>
-    <div id="bmMsg">${L('Tippe auf den Stein.','Tap the rock.')}</div>
+    <div id="bmMsg">&nbsp;</div>
     ${account ? '' : `<div class="explanation" style="margin:10px 0">${L('Melde dich an, damit du in die Bestenliste kommst.','Log in to get on the leaderboard.')}</div>`}
-    <div class="settings-label" style="margin-top:14px">${L('BESTENLISTE','LEADERBOARD')}</div>
+    <div class="settings-label" style="margin-top:14px">${L('BESTENLISTE (Tippe auf einen Namen zum Zuschauen)','LEADERBOARD (tap a name to watch)')}</div>
     <div id="bmBoard">…</div>
-    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn" onclick="bmReset()">${L('Meine Runde zurücksetzen','Reset my round')}</button><button class="btn btn-ghost" onclick="bmLeave()">${L('Zurück','Back')}</button></div>
+    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px">${isAdm ? `<button class="btn" onclick="bmReset()">${L('Meine Runde zurücksetzen (nur Admin)','Reset my round (admin only)')}</button>` : ''}<button class="btn btn-ghost" onclick="bmLeave()">${L('Zurück','Back')}</button></div>
   </div>`);
   const w = $('bmStone');
   w.addEventListener('pointerdown', () => { w.classList.add('press'); add(1); });
   w.addEventListener('pointerup', () => w.classList.remove('press'));
   w.addEventListener('pointerleave', () => w.classList.remove('press'));
   render(); loadBoard();
-  const iv = setInterval(() => { if(!$('bmCnt')){ clearInterval(iv); return; } progress(true); }, 8000);
+  const iv = setInterval(() => { if(!$('bmCnt')){ clearInterval(iv); return; } progress(true); loadBoardQuiet(); }, 8000);
 };
-window.bmLeave = function(){ try{ progress(true); }catch(e){} bmMusicStop(); brDuelHub(); };
+async function loadBoardQuiet(){ const r = await apiCall('/api/mania', { token: account && account.token, action: 'board' }); if(r && r.ok && !M.pend && $('bmBoard')){ board = r; boardDraw(); render(); } }
 window.__bmAdd = add; window.__bmMs = ms => { M.ms = ms; };
 })();
