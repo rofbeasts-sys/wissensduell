@@ -5995,19 +5995,29 @@ function maniaDraw(ms) { // geheim: je schneller, desto bessere Chancen. Die Gre
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return i; }
   return 0;
 }
+function maniaTotal(r) { return (r.km | 0) * 1000000 + (r.n | 0); }
 function maniaRows() {
   const p = (gameCfg.mania && gameCfg.mania.p) || {};
-  return Object.values(p).sort((a, b) => (b.km - a.km) || (a.best - b.best) || (a.ts - b.ts));
+  return Object.values(p).filter(r => maniaTotal(r) > 0).sort((a, b) => (maniaTotal(b) - maniaTotal(a)) || ((a.ts | 0) - (b.ts | 0)));
 }
 function maniaView(name) {
   const rows = maniaRows(), k = String(name || "").toLowerCase();
   const i = rows.findIndex(r => r.name.toLowerCase() === k);
-  return { ok: true, board: rows.slice(0, 20).map(r => ({ name: r.name, km: r.km, best: r.best, tier: r.tier })), of: rows.length, me: i >= 0 ? { rank: i + 1, km: rows[i].km, best: rows[i].best, tier: rows[i].tier } : null };
+  return { ok: true, board: rows.slice(0, 20).map(r => ({ name: r.name, km: r.km | 0, total: maniaTotal(r), tier: r.tier | 0 })), of: rows.length, me: i >= 0 ? { rank: i + 1, km: rows[i].km | 0, total: maniaTotal(rows[i]), tier: rows[i].tier | 0 } : null };
 }
 async function maniaApiCall(payload) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const u = payload.token ? findUserByToken(payload.token) : null;
   const name = u ? String(u.username || "").slice(0, 20) : "";
+  if (payload.action === "progress") {
+    if (!u || !name) return { ok: false, error: "Bitte anmelden." };
+    const n = Math.max(0, Math.min(999999, Math.floor(Number(payload.n) || 0)));
+    if (!gameCfg.mania) gameCfg.mania = { p: {} }; if (!gameCfg.mania.p) gameCfg.mania.p = {};
+    const k = name.toLowerCase(); let r = gameCfg.mania.p[k];
+    if (!r) r = gameCfg.mania.p[k] = { name, km: 0, best: 0, tier: 0, ts: Date.now(), rids: [], n: 0 };
+    if (n !== (r.n | 0)) { r.n = n; r.name = name; if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." }; }
+    return maniaView(name);
+  }
   if (payload.action === "submit") {
     if (!u || !name) return { ok: false, error: "Bitte anmelden." };
     const ms = Math.round(Number(payload.ms)); if (!(ms > 0) || ms > 1e11) return { ok: false, error: "Zeit ungültig." };
@@ -6017,7 +6027,7 @@ async function maniaApiCall(payload) {
     if (!r) r = gameCfg.mania.p[k] = { name, km: 0, best: 0, tier: 0, ts: Date.now(), rids: [] };
     if (rid && r.rids.includes(rid)) { const v = maniaView(name); v.awarded = r.lastAward | 0; v.dup = true; return v; }
     const aw = maniaDraw(ms);
-    r.km += 1; r.best = r.best ? Math.min(r.best, ms) : ms; r.tier = Math.max(r.tier | 0, aw); r.lastAward = aw; r.ts = Date.now(); r.name = name;
+    r.km += 1; r.n = 0; r.best = r.best ? Math.min(r.best, ms) : ms; r.tier = Math.max(r.tier | 0, aw); r.lastAward = aw; r.ts = Date.now(); r.name = name;
     if (rid) r.rids = r.rids.concat(rid).slice(-8);
     if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
     const v = maniaView(name); v.awarded = aw; return v;
