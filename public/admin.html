@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Brain Pulse Admin</title>
+<link rel="manifest" href="/admin-manifest.json">
+<meta name="theme-color" content="#0b1020">
+<link rel="apple-touch-icon" href="/icons/admin-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BP Admin">
+<style>
+:root{--bg:#0b1020;--card:#12182b;--line:#2c4a6e;--acc:#3de0ff;--gold:#ffd45a;--ok:#8dff9d;--bad:#ff8aa0;--tx:#e8eefc;--dim:#8892b0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,sans-serif;font-size:14px;padding:12px 16px 40px;max-width:760px;margin-inline:auto}
+h1{font-size:18px;margin:6px 0 12px}
+h2{font-size:14px;margin:0 0 8px;color:var(--acc);letter-spacing:.5px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{background:#0b1424;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-weight:800}
+.pill b{color:var(--acc)}
+input,button{font:inherit}
+input{flex:1;min-width:0;background:#08121f;border:1px solid var(--acc);color:#fff;border-radius:10px;padding:10px}
+button{background:var(--acc);color:#08110c;border:0;border-radius:10px;padding:9px 13px;font-weight:900;cursor:pointer}
+button.ghost{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+button.mini{padding:4px 8px;font-size:12px}
+.dim{color:var(--dim)}
+.list{max-height:260px;overflow:auto}
+.pl{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #1b2240}
+#chat{max-height:50vh;overflow:auto}
+.msg{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #1b2240;align-items:flex-start}
+.msg .t{flex:1;word-break:break-word}
+.msg .u{font-weight:800;color:#c6ff3d}
+.msg.adm .u{color:var(--gold)}
+.hidden{display:none}
+.tabs{display:flex;gap:6px;margin-bottom:12px;position:sticky;top:0;background:var(--bg);padding:6px 0;z-index:5;overflow-x:auto}
+.tabs button{background:#0f1f3a;color:#fff;border:1px solid var(--line);flex:1;white-space:nowrap}
+.tabs button.on{background:var(--acc);color:#08110c}
+.tabs button .n{background:var(--bad);color:#08110c;border-radius:99px;padding:0 6px;margin-left:4px;font-size:11px}
+.tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;margin-right:4px}
+.acts{display:grid;gap:8px;margin-top:10px}
+.btn2{background:#0f1f3a;color:#fff;border:1px solid #38bdf866}
+.btn2.red{background:#3a0f1f;border-color:#ff5d8f}
+.u{background:var(--card);border:1px solid #ffffff22;border-radius:14px;padding:10px;margin-top:8px}
+.u.open{border-color:var(--acc)}
+#dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-right:6px}
+#dot.on{background:var(--ok)}
+</style>
+</head>
+<body>
+<h1>👑 Brain Pulse Admin <span class="dim" style="font-size:12px"><span id="dot"></span><span id="st">…</span></span></h1>
+
+<div id="login" class="card hidden">
+  <h2>ANMELDEN</h2>
+  <div class="row"><input id="key" type="password" placeholder="Admin-Key" autocomplete="current-password"><button onclick="doLogin()">OK</button></div>
+  <div id="lerr" class="dim" style="margin-top:6px"></div>
+</div>
+
+<div id="main" class="hidden">
+  <div class="tabs" id="tabs">
+    <button data-t="live" class="on">Live</button>
+    <button data-t="players">Spieler</button>
+    <button data-t="req">Anfragen<span class="n hidden" id="nReq"></span></button>
+    <button data-t="rep">Meldungen<span class="n hidden" id="nRep"></span></button>
+  </div>
+  <div id="tab_live">
+  <div class="card">
+    <h2>LIVE</h2>
+    <div class="row" id="counts"></div>
+  </div>
+  <div class="card">
+    <h2>WAS WIRD GERADE GESPIELT</h2>
+    <div id="top" class="dim">…</div>
+  </div>
+  <div class="card">
+    <h2>SPIELER ONLINE</h2>
+    <div id="players" class="list"></div>
+  </div>
+  <div class="card">
+    <h2>ÖFFENTLICHER CHAT (max. 100)</h2>
+    <div id="chat"></div>
+    <div class="row" style="margin-top:8px"><input id="say" maxlength="200" placeholder="Als Admin schreiben …" onkeydown="if(event.key==='Enter')say()"><button onclick="say()">Senden</button></div>
+    <div class="row" style="margin-top:8px"><button class="ghost" onclick="clearChat()">Ganzen Chat leeren</button></div>
+  </div>
+  <div class="card">
+    <h2>ZULETZT GEFILTERT</h2>
+    <div class="dim" style="font-size:12px;margin-bottom:6px">Nachrichten, die der Filter abgelehnt hat (Links, Beleidigung, Rassismus, 18+). Sie waren nie im Chat zu sehen.</div>
+    <div id="blocked" class="list"></div>
+  </div>
+  </div>
+
+  <div id="tab_players" class="hidden">
+    <div class="card">
+      <h2>SPIELER</h2>
+      <div class="row"><input id="pq" placeholder="Name suchen" autocomplete="off" onkeydown="if(event.key==='Enter')loadPlayers()"><button onclick="loadPlayers()">Suchen</button></div>
+      <label class="row" style="margin-top:8px;font-size:13px"><input type="checkbox" id="ponl" style="flex:none;width:18px;height:18px" onchange="loadPlayers()"> Nur online</label>
+      <div id="pinfo" class="dim" style="font-size:12px;margin-top:6px"></div>
+      <div id="pmsg" style="min-height:16px;color:var(--ok);font-size:13px"></div>
+      <div id="plist"></div>
+    </div>
+    <div class="card"><h2>VERDACHT AUF SCHUMMELN</h2><div id="cheat" class="list dim">…</div></div>
+  </div>
+
+  <div id="tab_req" class="hidden">
+    <div class="card"><h2>PASSWORT-ANFRAGEN</h2><div id="reqs">…</div></div>
+  </div>
+
+  <div id="tab_rep" class="hidden">
+    <div class="card"><h2>MELDUNGEN</h2><div id="reps">…</div></div>
+  </div>
+
+  <div class="row" style="margin-top:6px"><button class="ghost" onclick="logout()">Abmelden</button></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let KEY = ''; try{ KEY = localStorage.getItem('bp_admin_key') || ''; }catch(e){}
+let timer = null, failed = 0;
+async function api(path, extra){
+  const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(Object.assign({ adminKey: KEY, key: KEY }, extra || {})) });
+  return r.json();
+}
+function show(login){ $('login').classList.toggle('hidden', !login); $('main').classList.toggle('hidden', login); }
+async function doLogin(){
+  const k = $('key').value.trim(); if(!k) return;
+  $('lerr').textContent = '…';
+  const r = await fetch('/api/admin-verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key:k }) }).then(x => x.json()).catch(() => null);
+  if(r && r.ok){ KEY = k; try{ localStorage.setItem('bp_admin_key', k); }catch(e){} $('key').value = ''; $('lerr').textContent = ''; start(); }
+  else $('lerr').textContent = (r && r.error) || 'Nicht erreichbar.';
+}
+function logout(){ try{ localStorage.removeItem('bp_admin_key'); }catch(e){} KEY = ''; clearInterval(timer); show(true); }
+function ago(s){ return s < 90 ? s + ' s' : Math.round(s/60) + ' min'; }
+function time(ts){ return new Date(ts).toLocaleTimeString('de-DE', { hour:'2-digit', minute:'2-digit' }); }
+async function tick(){
+  let r = null; try{ r = await api('/api/admin-live'); }catch(e){}
+  const dot = $('dot'), st = $('st');
+  if(!r || !r.ok){ dot.className = ''; st.textContent = r ? 'Key ungültig' : 'keine Verbindung'; if(r && ++failed > 1){ logout(); } return; }
+  failed = 0; dot.className = 'on'; st.textContent = 'live';
+  const c = r.counts;
+  $('counts').innerHTML = `<div class="pill">Online <b>${c.online}</b></div><div class="pill">Angemeldet <b>${c.loggedIn}</b></div><div class="pill">Gäste <b>${c.guests}</b></div><div class="pill">Höchstwert heute <b>${c.peakToday}</b></div>`;
+  $('top').innerHTML = r.top.length ? r.top.map(x => `<div class="pl"><span>${esc(x.where)}</span><b style="color:var(--acc)">${x.n}</b></div>`).join('') : 'Niemand online.';
+  $('players').innerHTML = r.players.length ? r.players.map(p => `<div class="pl"><span>${p.name ? '<b>' + esc(p.name) + '</b>' : '<span class="dim">Gast</span>'}</span><span class="dim">${esc(p.where)} · ${ago(p.ago)}</span></div>`).join('') : '<span class="dim">Niemand online.</span>';
+  const box = $('chat'), atEnd = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+  const msgs = r.chat.filter(m => !m.sys);
+  box.innerHTML = msgs.length ? msgs.map(m => `<div class="msg ${m.adm ? 'adm' : ''}"><div class="t"><span class="u">${m.adm ? '👑 ' : ''}${esc(m.u)}</span> <span class="dim" style="font-size:11px">${time(m.ts)}</span><br>${esc(m.t)}</div><button class="ghost mini" onclick="delMsg(${m.id})">Löschen</button></div>`).join('') : '<span class="dim">Noch keine Nachrichten.</span>';
+  if(atEnd) box.scrollTop = box.scrollHeight;
+  $('blocked').innerHTML = r.blocked.length ? r.blocked.map(b => `<div class="pl"><span><b>${esc(b.u)}</b> <span class="dim">${esc(b.why)}</span><br>${esc(b.t)}</span><span class="dim">${time(b.ts)}</span></div>`).join('') : '<span class="dim">Noch nichts gefiltert.</span>';
+}
+async function delMsg(id){ await api('/api/admin-chat-delete', { id }); tick(); }
+async function clearChat(){ if(!confirm('Wirklich den ganzen öffentlichen Chat löschen?')) return; await api('/api/admin-chat-clear'); tick(); }
+async function say(){ const i = $('say'), t = i.value.trim(); if(!t) return; i.value = ''; await api('/api/admin-chat-send', { text: t }); tick(); }
+
+let TAB = 'live', openU = null, coinlog = null;
+function setTab(t){
+  TAB = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  ['live','players','req','rep'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'players'){ loadPlayers(); loadCheat(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps();
+}
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
+const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
+const until = ts => new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+let PL = [];
+async function loadPlayers(){
+  const r = await api('/api/admin-users', { query: $('pq').value.trim(), onlineOnly: $('ponl').checked });
+  if(!r || !r.ok){ $('pinfo').textContent = (r && r.error) || 'Fehler'; return; }
+  PL = r.users; $('pinfo').textContent = r.total + ' Treffer · ' + r.online + ' online · ' + r.totalUsers + ' Konten';
+  paintPlayers();
+}
+function paintPlayers(){
+  $('plist').innerHTML = PL.length ? PL.map(u => {
+    const tags = (u.banned ? '<span class="tag" style="background:#7a1020">BANN</span>' : '') + (u.bannedUntil ? '<span class="tag" style="background:#7a4a10">TIMEOUT ' + until(u.bannedUntil) + '</span>' : '') + (u.mutedUntil ? '<span class="tag" style="background:#4a3a7a">STUMM ' + until(u.mutedUntil) + '</span>' : '') + (u.restricted ? '<span class="tag" style="background:#5a4a10">EINGESCHRÄNKT</span>' : '') + (u.flags ? '<span class="tag" style="background:#7a3a10">⚠ ' + u.flags + '</span>' : '');
+    const op = openU === u.username, n = esc(u.username);
+    return `<div class="u ${op ? 'open' : ''}"><div data-row="${n}" style="display:flex;gap:8px;align-items:center;cursor:pointer"><span style="font-size:24px">${esc(u.avatar || '🙂')}</span><div style="flex:1;min-width:0"><b>${u.online ? '🟢 ' : ''}${n}</b><div class="dim" style="font-size:12px">🪙 ${u.coins} · Klasse ${u.klasse} · ${u.rounds} Runden · zuletzt ${fd(u.lastSeen)}</div></div></div>${tags ? '<div style="margin-top:6px">' + tags + '</div>' : ''}
+    ${op ? `<div class="acts" data-u="${n}">
+      <div class="row"><input id="aAmt" type="number" inputmode="numeric" placeholder="Münzen (z. B. 500 oder -100)"><button class="btn2" data-a="coins">Geben</button></div>
+      <div class="row"><input id="aMin" type="number" inputmode="numeric" value="60" style="max-width:90px"><button class="btn2" data-a="timeout">⏳ Timeout</button><button class="btn2" data-a="mute">🔇 Stumm</button></div>
+      <div class="row"><input id="aWhy" placeholder="Grund (optional)"><button class="btn2 red" data-a="ban">🚫 Bann</button></div>
+      <div class="row"><button class="btn2" data-a="unban">Entbannen</button><button class="btn2" data-a="unmute">Stumm aus</button><button class="btn2" data-a="${u.restricted ? 'unrestrict' : 'restrict'}">${u.restricted ? 'Einschränkung weg' : 'Einschränken'}</button><button class="btn2" data-a="kick">Abmelden</button></div>
+      <button class="btn2" data-a="coinlog">📜 Münz-Verlauf</button>
+      ${coinlog && coinlog.u === u.username ? coinlogHtml(coinlog) : ''}
+      ${u.lastCheat ? '<div class="dim" style="font-size:12px">Schummel-Hinweis: ' + esc(u.lastCheat.what) + '</div>' : ''}
+      ${u.log && u.log.length ? '<div class="dim" style="font-size:11px">Zuletzt: ' + u.log.map(x => esc(x.n)).join(' · ') + '</div>' : ''}
+    </div>` : ''}</div>`;
+  }).join('') : '<div class="dim" style="margin-top:10px">Keine Spieler gefunden.</div>';
+  document.querySelectorAll('[data-row]').forEach(el => el.onclick = () => { const nm = el.getAttribute('data-row').replace(/&#39;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"'); openU = openU === nm ? null : nm; coinlog = null; paintPlayers(); });
+  document.querySelectorAll('[data-a]').forEach(b => b.onclick = () => doAct(b.dataset.a));
+}
+function coinlogHtml(c){
+  const rows = (l, col) => l.length ? l.map(e => `<div style="display:flex;gap:6px;font-size:12px;padding:2px 0"><span class="dim" style="width:92px">${fd(e.t)}</span><b style="color:${col};width:60px">${e.d > 0 ? '+' : ''}${e.d}</b><span style="flex:1;opacity:.8">${esc(e.s || '')}</span></div>`).join('') : '<div class="dim" style="font-size:12px">–</div>';
+  return `<div style="background:#0b1020;border-radius:10px;padding:8px"><div class="dim" style="font-size:12px">Kontostand: ${c.balance}</div><div style="font-weight:800;margin-top:6px;color:#c6ff3d">Einnahmen</div>${rows(c.income, '#c6ff3d')}<div style="font-weight:800;margin-top:8px;color:#ff8a9a">Ausgaben</div>${rows(c.spend, '#ff8a9a')}</div>`;
+}
+async function doAct(act){
+  const u = openU; if(!u) return;
+  const amt = +($('aAmt') || {}).value, mins = +($('aMin') || {}).value, why = (($('aWhy') || {}).value || '').trim();
+  if(act === 'coinlog'){ const r = await api('/api/admin-user-coins', { username: u }); if(r && r.ok) coinlog = Object.assign({ u }, r); else $('pmsg').textContent = (r && r.error) || 'Fehler'; paintPlayers(); return; }
+  if(act === 'coins' && !amt){ $('pmsg').textContent = 'Bitte einen Betrag eingeben.'; return; }
+  if(act === 'ban' && !confirm(u + ' dauerhaft bannen?')) return;
+  const r = await api('/api/admin-user-action', { username: u, action: act, amount: amt, minutes: mins, reason: why });
+  $('pmsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
+  $('pmsg').textContent = r && r.ok ? '✓ ' + u + ': ' + r.note : '✗ ' + ((r && r.error) || 'Fehler');
+  if(r && r.ok && r.user){ const i = PL.findIndex(x => x.username === u); if(i >= 0) PL[i] = r.user; }
+  paintPlayers();
+}
+async function loadCheat(){
+  const r = await api('/api/admin-cheaters');
+  const box = $('cheat');
+  if(!r || !r.ok){ box.textContent = (r && r.error) || 'Fehler'; return; }
+  const list = r.list || r.cheaters || r.users || [];
+  box.innerHTML = list.length ? list.map(c => `<div class="pl"><span><b>${esc(c.username || c.name)}</b><br><span class="dim" style="font-size:12px">${esc((c.last && (c.last.what || c.last)) || c.what || '')}</span></span><span class="dim">${c.flags != null ? '⚠ ' + c.flags : ''}</span></div>`).join('') : '<span class="dim">Keine Auffälligkeiten.</span>';
+}
+async function loadReqs(){
+  const r = await api('/api/admin-reset-list');
+  const box = $('reqs');
+  if(!r || !r.ok){ box.textContent = (r && r.error) || 'Fehler'; return; }
+  const open = r.list.filter(q => q.status !== 'approved').length; setBadge('nReq', open);
+  box.innerHTML = r.list.length ? r.list.map(q => {
+    const badge = q.keyOk ? '<span style="color:var(--ok);font-weight:800">✅ Schlüssel/Code stimmt</span>' : (q.hadKey ? '<span style="color:var(--bad);font-weight:800">❌ Schlüssel falsch/fehlt</span>' : '<span style="color:var(--gold);font-weight:800">⚠️ Konto hat keinen Schlüssel</span>');
+    const acc = q.accHandles && Object.keys(q.accHandles).length ? '<div style="color:var(--ok);margin-top:4px">🔗 ' + Object.entries(q.accHandles).map(([k, v]) => esc(k) + ': @' + esc(v)).join(' · ') + '</div>' : '';
+    return `<div class="u"><div><b style="font-size:15px">${esc(q.username)}</b> <span class="dim" style="font-size:11px">${fd(q.at)}</span></div>
+      <div style="margin:4px 0">${badge} · ${q.status === 'approved' ? '🟢 freigegeben' : '🟡 offen'}</div>
+      <div class="dim">Klasse ${q.klasse} · Rang ${q.tier} · ${q.score} Pkt · ${q.rounds} Runden · ${q.wins || 0} S / ${q.losses || 0} N · 🏆 ${q.achvCount || 0} · 🪙 ${q.coins}${q.chessElo ? ' · ♟ ' + q.chessElo : ''}</div>
+      <div class="dim" style="font-size:12px">Erstellt ${fd(q.createdAt)} · zuletzt online ${fd(q.lastSeen)}${q.social && q.social.length ? ' · Boni: ' + esc(q.social.join(', ')) : ''}</div>
+      ${q.contact ? '<div style="margin-top:4px;font-weight:800;color:var(--acc);user-select:all">✉ ' + esc(q.contact) + '</div>' : ''}
+      ${q.handles ? '<div style="margin-top:4px">📱 ' + esc(q.handles) + '</div>' : ''}${acc}
+      ${q.note ? '<div style="margin-top:4px;font-style:italic">„' + esc(q.note) + '“</div>' : ''}
+      <div class="row" style="margin-top:8px">${q.status === 'approved' ? '' : `<button data-rq="approve" data-u="${esc(q.username)}" style="flex:1">Freigeben</button>`}<button class="ghost" data-rq="deny" data-u="${esc(q.username)}" style="flex:1">Ablehnen / Löschen</button></div></div>`;
+  }).join('') : '<span class="dim">Keine offenen Anfragen.</span>';
+  box.querySelectorAll('[data-rq]').forEach(b => b.onclick = async () => { b.disabled = true; await api('/api/admin-reset-decide', { username: b.dataset.u, action: b.dataset.rq }); loadReqs(); });
+}
+async function loadReps(){
+  const r = await api('/api/admin-reports');
+  const box = $('reps');
+  if(!r || !r.ok){ box.textContent = (r && r.error) || 'Fehler'; return; }
+  setBadge('nRep', r.open);
+  const cn = { bug:'Fehler', player:'Spieler', message:'Nachricht', game:'Spiel', other:'Sonstiges' };
+  box.innerHTML = r.reports.length ? r.reports.map(x => `<div class="u" style="opacity:${x.done ? .55 : 1}"><div class="dim" style="font-size:12px">${esc(cn[x.cat] || x.cat)} · ${fd(x.t)}${x.who ? ' · von ' + esc(x.who) : ' · anonym'}${x.target ? ' · betrifft ' + esc(x.target) : ''}</div><div style="margin-top:4px;white-space:pre-wrap;word-break:break-word">${esc(x.text)}</div>${x.email ? '<div style="margin-top:4px">✉ <a style="color:var(--acc)" href="mailto:' + esc(x.email) + '">' + esc(x.email) + '</a></div>' : ''}<div class="row" style="margin-top:6px"><button class="btn2 mini" data-rp="${esc(x.id)}">${x.done ? 'Wieder öffnen' : '✓ Erledigt'}</button><button class="ghost mini" data-rd="${esc(x.id)}">Löschen</button></div></div>`).join('') : '<span class="dim">Keine Meldungen.</span>';
+  box.querySelectorAll('[data-rp]').forEach(b => b.onclick = async () => { await api('/api/admin-reports', { id: b.dataset.rp }); loadReps(); });
+  box.querySelectorAll('[data-rd]').forEach(b => b.onclick = async () => { if(confirm('Meldung löschen?')){ await api('/api/admin-reports', { id: b.dataset.rd, del: true }); loadReps(); } });
+}
+function setBadge(id, n){ const e = $(id); e.textContent = n; e.classList.toggle('hidden', !n); }
+async function badges(){ const a = await api('/api/admin-reset-list'); if(a && a.ok) setBadge('nReq', a.list.filter(q => q.status !== 'approved').length); const b = await api('/api/admin-reports'); if(b && b.ok) setBadge('nRep', b.open); }
+function start(){ show(false); clearInterval(timer); tick(); badges(); timer = setInterval(() => { if(!document.hidden){ if(TAB === 'live') tick(); else if(TAB === 'req') loadReqs(); } }, 3000); setInterval(() => { if(!document.hidden && KEY) badges(); }, 30000); }
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => {});
+if(KEY) start(); else show(true);
+</script>
+</body>
+</html>

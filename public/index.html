@@ -4345,7 +4345,8 @@ async function toggleFeedOptIn(){
   const r=await apiCall('/api/feed-optin',{token:account.token,enabled:on});
   if(r&&r.ok){ account.profile.feedOptIn=!!r.feedOptIn; renderSettingsModal(); }
 }
-function bpPing(){ if(document.hidden) return; fetch('/api/presence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:bpSid,logged:!!account})}).catch(()=>{}); }
+function bpWhere(){ try{ const e = document.querySelector('#app .picker-title, #app .screen-title, #app h1, #app h2, #app .game-title, #app .title'); let t = (e ? e.textContent : '').replace(/\s+/g,' ').trim(); if(!t) t = (document.querySelector('#app')||{textContent:''}).textContent.replace(/\s+/g,' ').trim().slice(0,25); return t.slice(0,32) || 'Menü'; }catch(e){ return '?'; } }
+function bpPing(){ if(document.hidden) return; fetch('/api/presence',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:bpSid,logged:!!account,token:(account&&!adminViewOn())?account.token:undefined,where:bpWhere()})}).catch(()=>{}); }
 setInterval(bpPing,60000); setTimeout(bpPing,2500);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) bpPing(); });
 let adminOnline=null;
@@ -4601,6 +4602,7 @@ function toggleProfileMenu(ev){
     <button onclick="closeProfileMenu();startFriendsFlow()">${L('Freunde','Friends')}</button>
     <button onclick="closeProfileMenu();openAccountsModal()">${L('Konten','Accounts')}</button>
     <button onclick="closeProfileMenu();openRecoveryKey()">${L('Schlüssel','Key')}</button>
+    <button onclick="closeProfileMenu();openTotpModal()">🔐 ${L('Authenticator','Authenticator')}</button>
     <button onclick="closeProfileMenu();renderSettingsModal()">⚙️ ${L('Einstellungen','Settings')}</button>
     <button onclick="closeProfileMenu();openReportModal()">🚩 ${L('Melden','Report')}</button>
     <button style="color:#ff7a8a" onclick="closeProfileMenu();logoutAccount()">${L('Abmelden','Log out')}</button>`;
@@ -4618,6 +4620,7 @@ function renderAccountAuth(mode){
       <div class="picker-form" style="flex-direction:column; gap:10px;">
         <input id="authUsername" type="text" placeholder="${mode==='login' ? L('Anmeldename','Login name') : L('Spielname (öffentlich)','Game name (public)')}" maxlength="20" autocomplete="username">
         ${mode==='register' ? `<input id="authLogin" type="text" placeholder="${L('Anmeldename (privat, nicht der Spielname!)','Login name (private, not your game name!)')}" maxlength="20" autocomplete="off" autocapitalize="none">` : ''}
+        ${mode==='login' ? `<input id="authCode" type="text" inputmode="numeric" maxlength="7" placeholder="${L('Code aus der Authenticator-App','Authenticator app code')}" autocomplete="one-time-code" style="display:none" onkeydown="if(event.key==='Enter')submitAccountAuth('login')">` : ''}
         <input id="authPassword" type="password" placeholder="${L('Passwort','Password')}" maxlength="60" autocomplete="${mode==='login'?'current-password':'new-password'}" onkeydown="if(event.key==='Enter')submitAccountAuth('${mode}')">
       </div>
       <div id="authError" class="explanation hidden" style="border-color:var(--danger); margin-top:10px;"></div>
@@ -4640,7 +4643,7 @@ function renderForgotPassword(){
       <div class="picker-sub">${L('Gib deinen Namen ein, und deinen persönlichen Schlüssel, falls du einen hast (unter „🔑 Schlüssel“ in deinem Konto). Ohne Schlüssel hinterlass deine E-Mail, der Admin meldet sich persönlich bei dir (meist innerhalb eines Tages). Der Admin bekommt deine Anfrage, prüft sie und gibt sie frei. Danach setzt du hier selbst dein neues Passwort.','Enter your name and your personal key if you have one ("🔑 Key" in your account). Without a key, leave your e-mail and the admin will contact you personally (usually within a day). The admin receives your request, checks it and approves it. Then you set your new password here yourself.')}</div>
       <div class="picker-form" style="flex-direction:column; gap:10px; margin-top:12px;">
         <input id="fpUser" type="text" placeholder="${L('Dein Benutzername','Your username')}" maxlength="40" autocomplete="off">
-        <input id="fpKey" type="text" placeholder="${L('Dein Schlüssel (XXXX-XXXX-XXXX)','Your key (XXXX-XXXX-XXXX)')}" maxlength="20" autocomplete="off" style="text-transform:uppercase">
+        <input id="fpKey" type="text" placeholder="${L('Dein Schlüssel (XXXX-XXXX-XXXX) oder 6-stelliger Authenticator-Code','Your key (XXXX-XXXX-XXXX) or 6-digit authenticator code')}" maxlength="20" autocomplete="off" style="text-transform:uppercase">
         <input id="fpContact" type="text" placeholder="${L('Deine E-Mail (damit der Admin dich erreicht)','Your e-mail (so the admin can reach you)')}" maxlength="100" autocomplete="off">
         <input id="fpHandles" type="text" placeholder="${L('Dein TikTok / Instagram Name (optional)','Your TikTok / Instagram name (optional)')}" maxlength="100" autocomplete="off">
         <input id="fpNote" type="text" placeholder="${L('Nachricht an den Admin (optional)','Message to the admin (optional)')}" maxlength="150" autocomplete="off">
@@ -4680,6 +4683,54 @@ async function submitForgotComplete(){
 }
 
 /* ---- Wiederherstellungs-Schlüssel (im Konto) ---- */
+async function openTotpModal(){
+  if(!account || document.getElementById('totpBox')) return;
+  const st = await apiCall('/api/totp-status', { token: account.token });
+  const d = document.createElement('div'); d.id = 'totpBox';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100003;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px';
+  const inp = 'width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1px solid #3de0ff;background:#08121f;color:#fff;font-size:16px;margin-top:8px';
+  const render = (on) => {
+    d.innerHTML = `<div style="background:#101a2b;border:2px solid #3de0ff;border-radius:16px;padding:18px;max-width:380px;width:100%;max-height:90vh;overflow:auto;color:#fff;font-family:system-ui,sans-serif">
+      <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:900;font-size:17px">🔐 ${L('AUTHENTICATOR','AUTHENTICATOR')}</div><button id="tX" style="border:0;background:transparent;color:#fff;font-size:20px">✕</button></div>
+      <div style="font-size:12px;line-height:1.5;color:#cfe;margin:8px 0">${L('Freiwillig: Beim Anmelden brauchst du zusätzlich einen 6-stelligen Code aus einer App (z. B. Google Authenticator). Dein Schlüssel bleibt zusätzlich gültig.','Optional: when logging in you also need a 6-digit code from an app (e.g. Google Authenticator). Your key stays valid as well.')}</div>
+      <div style="font-weight:800;margin-bottom:6px">${on ? '✅ ' + L('Eingeschaltet','Enabled') : L('Ausgeschaltet','Disabled')}</div>
+      <div id="tBody"></div><div id="tMsg" style="font-size:12px;min-height:14px;margin-top:8px;color:#ffd45a"></div></div>`;
+    d.querySelector('#tX').onclick = () => d.remove();
+    const body = d.querySelector('#tBody'), msg = d.querySelector('#tMsg');
+    if(!on){
+      body.innerHTML = `<input id="tPw" type="password" placeholder="${L('Passwort zur Bestätigung','Confirm with password')}" style="${inp}" autocomplete="current-password"><button id="tGo" class="btn btn-primary" style="width:100%;margin-top:10px">${L('Einrichten','Set up')}</button>`;
+      body.querySelector('#tGo').onclick = async () => {
+        msg.textContent = '…';
+        const r = await apiCall('/api/totp-setup', { token: account.token, password: body.querySelector('#tPw').value });
+        if(!r || !r.ok){ msg.textContent = (r && r.error) || L('Fehler','Error'); return; }
+        msg.textContent = '';
+        body.innerHTML = `<div style="font-size:13px;line-height:1.5">${L('1. Tippe auf den Knopf, damit sich deine Authenticator-App öffnet. Oder gib den Schlüssel unten in der App von Hand ein (Typ: zeitbasiert).','1. Tap the button to open your authenticator app, or enter the key below by hand (type: time-based).')}</div>
+          <a href="${esc(r.uri)}" class="btn btn-primary" style="display:block;text-align:center;margin:8px 0;text-decoration:none">${L('In App öffnen','Open in app')}</a>
+          <div style="text-align:center;font-size:18px;font-weight:900;letter-spacing:2px;background:#08121f;border:1px dashed #3de0ff;border-radius:10px;padding:10px;user-select:all;word-break:break-all">${esc(r.secret)}</div>
+          <div style="font-size:13px;margin-top:10px">${L('2. Gib den 6-stelligen Code aus der App ein:','2. Enter the 6-digit code from the app:')}</div>
+          <input id="tCode" type="text" inputmode="numeric" maxlength="7" style="${inp}" autocomplete="one-time-code"><button id="tOn" class="btn btn-primary" style="width:100%;margin-top:10px">${L('Einschalten','Enable')}</button>`;
+        body.querySelector('#tOn').onclick = async () => {
+          msg.textContent = '…';
+          const e = await apiCall('/api/totp-enable', { token: account.token, code: body.querySelector('#tCode').value });
+          if(e && e.ok){ account.profile.totpOn = true; render(true); d.querySelector('#tMsg').style.color = '#8dff9d'; d.querySelector('#tMsg').textContent = L('Authenticator ist jetzt aktiv.','Authenticator is now active.'); }
+          else msg.textContent = (e && e.error) || L('Fehler','Error');
+        };
+      };
+    } else {
+      body.innerHTML = `<div style="font-size:12px;margin-bottom:4px">${L('Zum Ausschalten Passwort und aktuellen Code eingeben:','To disable, enter your password and current code:')}</div>
+        <input id="tPw" type="password" placeholder="${L('Passwort','Password')}" style="${inp}" autocomplete="current-password">
+        <input id="tCode" type="text" inputmode="numeric" maxlength="7" placeholder="${L('Code','Code')}" style="${inp}" autocomplete="one-time-code">
+        <button id="tOff" class="btn btn-ghost" style="width:100%;margin-top:10px">${L('Ausschalten','Disable')}</button>`;
+      body.querySelector('#tOff').onclick = async () => {
+        msg.textContent = '…';
+        const r = await apiCall('/api/totp-disable', { token: account.token, password: body.querySelector('#tPw').value, code: body.querySelector('#tCode').value });
+        if(r && r.ok){ account.profile.totpOn = false; render(false); } else msg.textContent = (r && r.error) || L('Fehler','Error');
+      };
+    }
+  };
+  render(!!(st && st.on));
+  document.body.appendChild(d);
+}
 function openAccountsModal(){
   if(!account || document.getElementById('accBox')) return;
   const nets = [['tiktok','TikTok','#25f4ee'],['instagram','Instagram','#e1306c'],['clapper','Clapper','#ffb020']];
@@ -4785,7 +4836,11 @@ async function submitAccountAuth(mode){
   btn.textContent = "…";
   const loginName = mode==='register' ? ((document.getElementById("authLogin")||{}).value || "").trim() : undefined;
   if(mode==='register' && !loginName){ errBox.textContent = L("Bitte einen privaten Anmeldenamen wählen.","Please choose a private login name."); errBox.classList.remove("hidden"); btn.disabled = false; btn.textContent = 'KONTO ERSTELLEN'; return; }
-  const result = await apiCall(mode==='login' ? "/api/login" : "/api/register", mode==='login' ? { username, password } : { username, password, loginName });
+  const result = await apiCall(mode==='login' ? "/api/login" : "/api/register", mode==='login' ? { username, password, code: ((document.getElementById('authCode')||{}).value||'').trim() } : { username, password, loginName });
+  if(!result.ok && result.needTotp){
+    const c = document.getElementById('authCode'); if(c){ c.style.display = ''; c.focus(); }
+    errBox.textContent = result.error; errBox.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'ANMELDEN'; return;
+  }
   if(!result.ok){
     errBox.textContent = result.error || L("Etwas ist schiefgelaufen.","Something went wrong.");
     errBox.classList.remove("hidden");
@@ -15810,6 +15865,8 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
   async function poll(initial){
     const r = await apiCall('/api/chat-public-list', initial ? {} : { since: lastId });
     if(!r || !r.ok) return;
+    if(!initial && typeof r.ver === 'number' && typeof window._pubVer === 'number' && r.ver !== window._pubVer){ window._pubVer = r.ver; return poll(true); }
+    window._pubVer = r.ver;
     if(initial) msgs = r.messages; else if(r.messages.length) msgs = msgs.concat(r.messages).slice(-200);
     if(r.messages.length) lastId = Math.max(lastId, r.messages[r.messages.length - 1].id);
     const on = document.getElementById('chatOnline'); if(on) on.textContent = r.online + ' online';
