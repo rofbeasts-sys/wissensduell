@@ -4178,7 +4178,7 @@ const SOCIAL_MIN_WAIT_MS = 8000, SOCIAL_OPEN_MAX_MS = 24 * 3600 * 1000;
 // Admin-Ansicht: Konto wird fuer andere unsichtbar, Chat-Name "Admin". Nur mit gueltigem Admin-Key.
 function adminGames(key, ip) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
-  return { ok: true, games: GAME_DEFS.map(g => ({ ...g, mode: gameModeRaw(g.id), effective: gameMode(g.id), start: (gameCfg.modes[g.id] && gameCfg.modes[g.id].start) || 0, pending: gameStart(g.id), classOff: g.classes ? classOffList(g.id) : undefined })) };
+  return { ok: true, games: GAME_DEFS.map(g => ({ ...g, mode: gameModeRaw(g.id), effective: gameMode(g.id), start: (gameCfg.modes[g.id] && gameCfg.modes[g.id].start) || 0, hide: gameHide(g.id), pending: gameStart(g.id), classOff: g.classes ? classOffList(g.id) : undefined })) };
 }
 async function adminGameSet(key, ip, payload) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -4193,7 +4193,7 @@ async function adminGameSet(key, ip, payload) {
   } else {
     if (!GAME_MODES.includes(payload.mode)) return { ok: false, error: "Zustand unbekannt." };
     const start = (payload.mode === "test" || payload.mode === "open") ? Math.max(0, Math.round(Number(payload.start) || 0)) : 0;
-    gameCfg.modes[g.id] = { mode: payload.mode, start };
+    gameCfg.modes[g.id] = { mode: payload.mode, start, hide: payload.mode !== "open" && !!payload.hide };
   }
   if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
   console.log("[Spiele] " + g.id + ": " + JSON.stringify(payload.cls !== undefined ? { cls: payload.cls, on: payload.on } : gameCfg.modes[g.id]));
@@ -5599,6 +5599,17 @@ async function testerMode(payload, lang) {
   testerKeys.set(key, { un, role });
   return { ok: true, on: true, key, role };
 }
+// Mod-Sitzung fuer die Admin-App: Anmeldung mit dem eigenen Konto (Rolle "mod"), danach ein zufaelliger Schluessel nur im Speicher.
+// Der Schluessel darf NUR die unten aufgelisteten Moderations-Endpunkte benutzen - keine Rechte, Spiele, Muenzen, Bann, Passwoerter.
+// Mod-Schluessel (aus dem Mod-Modus im Spiel, siehe testerMode): darf NUR die Moderations-Endpunkte unten benutzen -
+// keine Rechte, Spiele, Muenzen, Bann, Passwoerter. Die Admin-App selbst ist nur fuer den Admin.
+const MOD_URLS = new Set(["/api/admin-live", "/api/admin-chat-delete", "/api/admin-chat-send", "/api/admin-reports", "/api/admin-users", "/api/admin-user-action"]);
+const MOD_ACTIONS = new Set(["timeout", "mute", "unmute", "kick"]);
+function modKeyUser(key) {
+  if (typeof key !== "string" || key.length < 20) return null;
+  const e = testerKeys.get(key); if (!e || testerKeyOk(key) !== "mod") return null;
+  return findUserByName(e.un) || null;
+}
 function adminOk(key, ip) {
   if (testerKeyOk(key)) return false; // Tester-Schluessel ist kein Admin-Schluessel, zaehlt aber nicht als Fehlversuch
   const ak = process.env.ADMIN_KEY;
@@ -5821,7 +5832,7 @@ async function adminChat(action, payload, ip, lang) {
     const t = String(payload.text || "").replace(/[\u0000-\u001f]+/g, " ").replace(/\s+/g, " ").trim().slice(0, PUB_LEN);
     if (!t) return { ok: false, error: "Leer." };
     const last = list.length ? list[list.length - 1] : null;
-    list.push({ id: (last ? last.id : 0) + 1, u: "Admin", a: "👑", t, ts: Date.now(), adm: true });
+    list.push({ id: (last ? last.id : 0) + 1, u: payload._mod ? "Mod" : "Admin", a: payload._mod ? "🛡️" : "👑", t, ts: Date.now(), adm: true });
     if (list.length > PUB_MAX) list.splice(0, list.length - PUB_MAX);
   } else return { ok: false, error: "Aktion unbekannt." };
   saveConversations();
@@ -5935,6 +5946,8 @@ async function saveGameCfg() {
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : (LOCKED_FEATURES.has(id) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
+// "Versteckt": Spieler sehen das Spiel gar nicht (nur Admin/Mod/Tester mit Zugriff), statt "Coming soon"
+function gameHide(id) { const c = gameCfg.modes[id]; return !!(c && c.hide); }
 function gameMode(id) { const m = gameModeRaw(id); return gameStart(id) ? "locked" : m; }
 function featureLocked(name) { return gameMode(name) !== "open"; }
 // Darf jemand mit diesem Schluessel das Spiel nutzen? Admin: immer. Mod: alles ausser "Offline". Tester: nur im Test.
@@ -5942,24 +5955,23 @@ function gateOk(name, key, ip) {
   const m = gameMode(name);
   if (m === "open") return true;
   const role = testerKeyOk(key);
-  if (role === "mod") return m !== "offline";
-  if (role === "tester") return m === "test";
+  if (role === "mod" || role === "tester") return m === "test"; // Mod = wie Tester: nur Spiele im Test
   return adminOk(key, ip);
 }
 function classOffList(id) { return Array.isArray(gameCfg.classOff[id]) ? gameCfg.classOff[id] : []; }
 function gameStatusFor(key, ip) {
   const admin = !testerKeyOk(key) && adminOk(key, ip), role = testerKeyOk(key);
-  const locked = [], maint = [], countdown = {};
+  const locked = [], maint = [], hidden = [], countdown = {};
   for (const g of GAME_DEFS) {
     const m = gameMode(g.id);
     const st = gameStart(g.id);
-    if (st && (gameModeRaw(g.id) === "open" || admin || role)) countdown[g.id] = st;
-    const ok = m === "open" || admin || (role === "mod" && m !== "offline") || (role === "tester" && m === "test");
-    if (!ok) { locked.push(g.id); if (m === "offline") maint.push(g.id); }
+    const ok = m === "open" || admin || ((role === "mod" || role === "tester") && m === "test");
+    if (st && (admin || role || !gameHide(g.id))) countdown[g.id] = st;
+    if (!ok) { locked.push(g.id); if (m === "offline") maint.push(g.id); if (gameHide(g.id)) hidden.push(g.id); }
   }
   for (const n of LOCKED_FEATURES) if (!GAME_DEFS.some(g => g.id === n) && !admin && !role) locked.push(n);
   const canAll = admin || role === "mod";
-  return { admin: admin || !!role, locked, maint, countdown, now: Date.now(), braintestOff: canAll ? [] : classOffList("braintest"), arenaOff: canAll ? [] : classOffList("arena") };
+  return { admin: admin || !!role, locked, maint, hidden, countdown, now: Date.now(), braintestOff: canAll ? [] : classOffList("braintest"), arenaOff: canAll ? [] : classOffList("arena") };
 }
 const FEATURE_LOCKED_RESULT = { ok: false, locked: true, error: "Coming soon." };
 
@@ -6284,7 +6296,16 @@ const server = http.createServer((req, res) => {
         // apiCall() im Client) - unbekannt/fehlend faellt auf Deutsch zurueck.
         lang = payload.lang === "en" ? "en" : "de";
         coinSrc = String(req.url || "").replace(/^\/api\//, "").slice(0, 40);
-        if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
+        // Mod-Schluessel: nur Moderations-Endpunkte; dort wird intern der Admin-Schluessel eingesetzt (Rechte bleiben beim Admin)
+        const modU = String(req.url || "").startsWith("/api/admin") ? (modKeyUser(payload.key) || modKeyUser(payload.adminKey)) : null;
+        let modBlocked = false;
+        if (modU) {
+          if (req.url === "/api/admin-verify") { result = { ok: true, role: "mod", name: modU.username }; modBlocked = true; }
+          else if (!MOD_URLS.has(req.url) || (req.url === "/api/admin-reports" && payload.del) || (req.url === "/api/admin-user-action" && (!MOD_ACTIONS.has(payload.action) || ((findUserByName(String(payload.username || "")) || {}).role === "mod")))) { result = { ok: false, error: "Das darf nur der Admin." }; modBlocked = true; }
+          else { console.log("[Mod] " + modU.username + " " + req.url + (payload.action ? " " + payload.action + " " + payload.username : "")); payload.key = payload.adminKey = process.env.ADMIN_KEY; payload._mod = modU.username; }
+        }
+        if (modBlocked) { /* Ergebnis steht schon */ }
+        else if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
         else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang, payload.code);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
@@ -6294,7 +6315,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
         else if (req.url === "/api/presence") { presenceTouch(payload.sid, payload.logged, payload.where, payload.token); result = { ok: true }; }
         else if (req.url === "/api/admin-online") { result = adminOk(payload.adminKey, ip) ? { ok: true, ...presenceCounts() } : { ok: false }; }
-        else if (req.url === "/api/features") { const st = gameStatusFor(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: st.admin, locked: st.locked, maint: st.maint, countdown: st.countdown, now: st.now, braintestOff: st.braintestOff, arenaOff: st.arenaOff, resetEpoch: rm.epoch }; }
+        else if (req.url === "/api/features") { const st = gameStatusFor(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: st.admin, locked: st.locked, maint: st.maint, hidden: st.hidden, countdown: st.countdown, now: st.now, braintestOff: st.braintestOff, arenaOff: st.arenaOff, resetEpoch: rm.epoch }; }
         else if (req.url === "/api/recovery-status") result = await recoveryKeyStatus(payload.token);
         else if (req.url === "/api/recovery-key") result = await recoveryKeyCreate(payload.token, payload.password, lang);
         else if (req.url === "/api/forgot-request") result = await forgotRequest(payload.username, payload.key, payload.note, ip, lang, payload.contact, payload.handles);
@@ -6303,7 +6324,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-reset-decide") result = await adminResetDecide(payload.adminKey, ip, payload.username, payload.action, payload.newPassword, lang);
         else if (req.url === "/api/admin-set-password") { result = adminOk(payload.adminKey, ip) ? await adminSetPassword(payload.username, payload.newPassword, lang) : { ok: false, error: lang === "en" ? "Wrong admin key." : "Admin-Key falsch." }; }
         else if (req.url === "/api/admin-reset-all") { result = adminOk(payload.adminKey, ip) ? await adminResetAll(payload.confirm, lang) : errObj("invalidInput", lang); }
-        else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
+        else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true, role: "admin" } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
         else if (req.url.startsWith("/api/chess-online/") && !gateOk("chess_online", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && !gateOk("arena", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && !gateOk("shop", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
@@ -6365,6 +6386,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/friends-remove") result = await friendsRemove(payload.token, payload.username, lang);
         else if (req.url === "/api/chat-history") result = await chatHistory(payload.token, payload.username, lang);
         else result = errObj("unknownEndpoint", lang);
+        if (modU && req.url === "/api/admin-reports" && result && Array.isArray(result.reports)) result = { ...result, reports: result.reports.map(r => ({ ...r, email: undefined })) }; // Kontakt-Mails sieht nur der Admin
       } catch (e) {
         console.error("[API-Fehler]", req.url, e && e.stack || e);
         result = errObj("internalErrorRetry", lang);
