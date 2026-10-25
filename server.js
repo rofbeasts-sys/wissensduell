@@ -3150,6 +3150,16 @@ const USERS_FILE = process.env.USERS_FILE || path.join(__dirname, "data", "users
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const USE_UPSTASH = !!(UPSTASH_URL && UPSTASH_TOKEN);
+// Schutz: Haengt Upstash (kein Fehler, nur keine Antwort), darf das den Server
+// nie blockieren. Alle Upstash-Aufrufe bekommen ein Zeitlimit.
+if (USE_UPSTASH && typeof AbortSignal !== "undefined" && AbortSignal.timeout) {
+  const _origFetch = globalThis.fetch;
+  globalThis.fetch = (u, o) => {
+    o = o || {};
+    if (!o.signal && String(u).startsWith(UPSTASH_URL)) o = Object.assign({}, o, { signal: AbortSignal.timeout(10000) });
+    return _origFetch(u, o);
+  };
+}
 const UPSTASH_USERS_KEY = "brainpulse_users";
 
 let users = [];
@@ -7284,8 +7294,12 @@ wss.on("connection", (ws, req) => {
 /* Start                                                                     */
 /* ------------------------------------------------------------------------ */
 (async () => {
-  await loadUsers();
-  await loadConversations();
+  // Nicht ewig auf den Speicher warten: Nach 12 s startet der Server trotzdem
+  // (Speichern bleibt gesperrt, bis das Laden klappt; Laden wird bei Bedarf wiederholt).
+  await Promise.race([
+    Promise.all([loadUsers(), loadConversations()]),
+    new Promise(r => setTimeout(r, 12000))
+  ]);
   server.listen(PORT, () => {
     const nets = os.networkInterfaces();
     const addresses = [];
