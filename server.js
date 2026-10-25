@@ -6455,7 +6455,11 @@ const server = http.createServer((req, res) => {
     const ext = path.extname(fullPath);
     // HTML/JS immer neu pruefen lassen (kein "altes Spiel aus dem Browser-Cache" nach Updates)
     const cache = (ext === ".html" || ext === ".js") ? "no-cache" : "public, max-age=3600";
-    const hdr = { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": cache, ...SECURITY_HEADERS };
+    let mtE = 0; try { mtE = fs.statSync(fullPath).mtimeMs; } catch (e2) {}
+    const etag = 'W/"' + data.length + "-" + Math.round(mtE) + '"';
+    const hdr = { "Content-Type": MIME[ext] || "application/octet-stream", "Cache-Control": cache, "ETag": etag, ...SECURITY_HEADERS };
+    // Unveraenderte Datei: nur "304" zurueck statt 600+ KB noch einmal zu senden (schnellerer 2. Besuch)
+    if (req.headers["if-none-match"] === etag) { res.writeHead(304, { "ETag": etag, "Cache-Control": cache, ...SECURITY_HEADERS }); return res.end(); }
     // Komprimieren (index.html ist ~1,9 MB): deutlich schnelleres Laden, Ergebnis wird zwischengespeichert
     if (/\bgzip\b/.test(String(req.headers["accept-encoding"] || "")) && [".html", ".js", ".json", ".css", ".svg"].includes(ext) && data.length > 1024) {
       const ck = fullPath, hit = gzCache.get(ck); let mt = 0; try { mt = fs.statSync(fullPath).mtimeMs; } catch (e2) {}
