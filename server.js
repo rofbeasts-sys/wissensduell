@@ -4196,7 +4196,7 @@ async function recoveryKeyCreate(token, password, lang) {
   return { ok: true, key };
 }
 // Spieler: Anfrage an den Admin. Antwort ist immer gleich (verraet nicht, ob es den Namen gibt).
-async function forgotRequest(username, key, note, ip, lang) {
+async function forgotRequest(username, key, note, ip, lang, contact, handles) {
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const generic = { ok: true };
   if (rlHit("fr|" + ip, 6, 60 * 60 * 1000, 60 * 60 * 1000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
@@ -4208,7 +4208,7 @@ async function forgotRequest(username, key, note, ip, lang) {
   const prev = u.resetRequest;
   if (prev && prev.status === "approved" && keyOk) return { ok: true, status: "approved" };
   if (prev && prev.status === "approved") return generic; // Freigabe nie durch fremde Anfragen zuruecksetzen
-  u.resetRequest = { at: Date.now(), note: String(note || "").slice(0, 200), keyOk: keyOk || !!(prev && prev.keyOk), hadKey: !!u.recoveryHash, status: "pending" };
+  u.resetRequest = { at: Date.now(), note: String(note || "").slice(0, 200), contact: String(contact || "").slice(0, 120), handles: String(handles || "").slice(0, 120), keyOk: keyOk || !!(prev && prev.keyOk), hadKey: !!u.recoveryHash, status: "pending" };
   await saveUsers();
   return generic;
 }
@@ -4223,7 +4223,8 @@ async function forgotComplete(username, key, newPassword, ip, lang) {
   if (typeof newPassword !== "string" || newPassword.length < 6 || newPassword.length > 200) return errObj("passwordLength", lang);
   if (hashInFlight >= MAX_HASH_IN_FLIGHT) return busyMsg(lang);
   hashInFlight++;
-  let ok = false; try { ok = await recoveryKeyMatches(u, key); } finally { hashInFlight--; }
+  let ok = false; try { ok = key ? await recoveryKeyMatches(u, key) : false; } finally { hashInFlight--; }
+  if (!ok && u.resetRequest.adminOverride && Date.now() - (u.resetRequest.approvedAt || 0) < 48 * 3600 * 1000) ok = true;
   if (!ok) return bad();
   u.salt = crypto.randomBytes(16).toString("hex");
   u.passwordHash = await hashPassword(newPassword, u.salt);
@@ -4239,7 +4240,7 @@ function adminResetList(key, ip) {
   const list = users.filter(u => u.resetRequest).map(u => {
     const s = u.stats || {};
     const ch = s.chess || {};
-    return { username: u.username, at: u.resetRequest.at, note: u.resetRequest.note || "", keyOk: !!u.resetRequest.keyOk, hadKey: !!u.resetRequest.hadKey, status: u.resetRequest.status,
+    return { username: u.username, at: u.resetRequest.at, note: u.resetRequest.note || "", contact: u.resetRequest.contact || "", handles: u.resetRequest.handles || "", lastSeen: u.lastSeenAt || u.lastSeen || 0, wins: s.wins || 0, losses: s.losses || 0, achvCount: Object.keys((s.achv && s.achv.unlocked) || {}).length, social: Object.keys(u.social || {}), lastCoin: ((u.coinLog || []).slice(-1)[0]) || null, keyOk: !!u.resetRequest.keyOk, hadKey: !!u.resetRequest.hadKey, status: u.resetRequest.status,
       klasse: s.klasse || 0, tier: s.tier || 0, score: s.score || 0, rounds: s.roundsPlayed || 0, coins: s.coins || 0,
       chessElo: ch.elo || ch.rating || null, createdAt: u.createdAt || null };
   }).sort((a, b) => b.at - a.at);
@@ -4250,7 +4251,7 @@ async function adminResetDecide(key, ip, username, action, newPassword, lang) {
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const u = findUserByName(username);
   if (!u || !u.resetRequest) return { ok: false, error: "Anfrage nicht gefunden." };
-  if (action === "approve") { u.resetRequest.status = "approved"; u.resetRequest.approvedAt = Date.now(); }
+  if (action === "approve") { u.resetRequest.status = "approved"; u.resetRequest.approvedAt = Date.now(); if (!u.resetRequest.keyOk) u.resetRequest.adminOverride = true; /* Admin buergt fuer die Person, auch ohne Schluessel (48 Std. gueltig) */ }
   else if (action === "deny" || action === "delete") delete u.resetRequest;
   else return { ok: false, error: "Aktion unbekannt." };
   await saveUsers();
@@ -6008,7 +6009,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES), resetEpoch: rm.epoch }; }
         else if (req.url === "/api/recovery-status") result = await recoveryKeyStatus(payload.token);
         else if (req.url === "/api/recovery-key") result = await recoveryKeyCreate(payload.token, payload.password, lang);
-        else if (req.url === "/api/forgot-request") result = await forgotRequest(payload.username, payload.key, payload.note, ip, lang);
+        else if (req.url === "/api/forgot-request") result = await forgotRequest(payload.username, payload.key, payload.note, ip, lang, payload.contact, payload.handles);
         else if (req.url === "/api/forgot-complete") result = await forgotComplete(payload.username, payload.key, payload.newPassword, ip, lang);
         else if (req.url === "/api/admin-reset-list") result = adminResetList(payload.adminKey, ip);
         else if (req.url === "/api/admin-reset-decide") result = await adminResetDecide(payload.adminKey, ip, payload.username, payload.action, payload.newPassword, lang);
