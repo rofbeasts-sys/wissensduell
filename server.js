@@ -3390,7 +3390,7 @@ function freshModeStats() {
 function publicProfile(user) {
   // Interne Anticheat-Daten gehoeren nicht zum Client
 
-  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, betaPhase: user.betaPhase | 0, socialClaimed: Object.keys(user.social || {}), cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, betaPhase: user.betaPhase | 0, socialClaimed: Object.keys(user.social || {}), socialHandles: user.socialHandles || {}, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
 }
 
 function checkLoginName(loginName, gameName, selfUser, lang) {
@@ -3901,6 +3901,7 @@ async function saveUserStats(token, stats, lang) {
 // Geraete/Tabs moeglich).
 const onlineAccounts = new Map();
 function accountIsOnline(username) {
+  { const cu = findUserByName(username); if (cu && cu.adminCloak) return false; } // Admin-Ansicht: unsichtbar
   const set = onlineAccounts.get(username.toLowerCase());
   return !!set && set.size > 0;
 }
@@ -3946,7 +3947,7 @@ async function friendsSearch(token, query, lang) {
   const q = (typeof query === "string" ? query : "").trim().toLowerCase();
   if (q.length < 2) return { ok: true, results: [] };
   const results = users
-    .filter(u => u !== me && u.username.toLowerCase().includes(q))
+    .filter(u => u !== me && !u.adminCloak && u.username.toLowerCase().includes(q))
     .slice(0, 20)
     .map(u => ({
       username: u.username, avatar: u.avatar || null,
@@ -4103,6 +4104,37 @@ async function adminBeta(key, ip, payload, lang) {
 /* ---- Folgen-Bonus: einmalig Muenzen je Netzwerk (Ehrensystem - ob wirklich gefolgt wird, laesst sich nicht pruefen) ---- */
 const SOCIAL_BONUS = { tiktok: 50, instagram: 50, clapper: 50 };
 const SOCIAL_MIN_WAIT_MS = 8000, SOCIAL_OPEN_MAX_MS = 24 * 3600 * 1000;
+// Konten verbinden: Nutzer traegt seinen Namen je Netzwerk ein (Ehrensystem, der Admin kann ihn pruefen)
+// Admin-Ansicht: Konto wird fuer andere unsichtbar, Chat-Name "Admin". Nur mit gueltigem Admin-Key.
+async function adminCloak(payload, ip, lang) {
+  if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const user = findUserByToken(payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const on = !!payload.on;
+  if (!!user.adminCloak === on) return { ok: true, on };
+  user.adminCloak = on;
+  if (on) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOffline", username: user.username }));
+  else if (accountIsOnline(user.username)) (user.friends || []).forEach(name => notifyAccount(name, { type: "friendOnline", username: user.username }));
+  if (!(await saveUsers())) { user.adminCloak = !on; return serviceDownMsg(lang); }
+  return { ok: true, on };
+}
+async function socialHandle(payload, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const user = findUserByToken(payload && payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const net = String((payload && payload.network) || "");
+  if (!Object.prototype.hasOwnProperty.call(SOCIAL_BONUS, net)) return errObj("invalidInput", lang);
+  let h = String((payload && payload.handle) || "").trim().replace(/^@+/, "");
+  user.socialHandles = Object.assign({}, user.socialHandles);
+  if (!h) { delete user.socialHandles[net]; }
+  else {
+    if (!/^[A-Za-z0-9._]{2,40}$/.test(h)) return { ok: false, error: lang === "en" ? "Only letters, numbers, dot and underscore (2-40)." : "Nur Buchstaben, Zahlen, Punkt und Unterstrich (2-40)." };
+    user.socialHandles[net] = h;
+  }
+  if (!(await saveUsers())) return serviceDownMsg(lang);
+  return { ok: true, handles: user.socialHandles };
+}
 async function socialClaim(payload, lang) {
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const user = findUserByToken(payload && payload.token);
@@ -4240,7 +4272,7 @@ function adminResetList(key, ip) {
   const list = users.filter(u => u.resetRequest).map(u => {
     const s = u.stats || {};
     const ch = s.chess || {};
-    return { username: u.username, at: u.resetRequest.at, note: u.resetRequest.note || "", contact: u.resetRequest.contact || "", handles: u.resetRequest.handles || "", lastSeen: u.lastSeenAt || u.lastSeen || 0, wins: s.wins || 0, losses: s.losses || 0, achvCount: Object.keys((s.achv && s.achv.unlocked) || {}).length, social: Object.keys(u.social || {}), lastCoin: ((u.coinLog || []).slice(-1)[0]) || null, keyOk: !!u.resetRequest.keyOk, hadKey: !!u.resetRequest.hadKey, status: u.resetRequest.status,
+    return { username: u.username, at: u.resetRequest.at, note: u.resetRequest.note || "", contact: u.resetRequest.contact || "", handles: u.resetRequest.handles || "", lastSeen: u.lastSeenAt || u.lastSeen || 0, wins: s.wins || 0, losses: s.losses || 0, achvCount: Object.keys((s.achv && s.achv.unlocked) || {}).length, social: Object.keys(u.social || {}), accHandles: u.socialHandles || {}, lastCoin: ((u.coinLog || []).slice(-1)[0]) || null, keyOk: !!u.resetRequest.keyOk, hadKey: !!u.resetRequest.hadKey, status: u.resetRequest.status,
       klasse: s.klasse || 0, tier: s.tier || 0, score: s.score || 0, rounds: s.roundsPlayed || 0, coins: s.coins || 0,
       chessElo: ch.elo || ch.rating || null, createdAt: u.createdAt || null };
   }).sort((a, b) => b.at - a.at);
@@ -4433,8 +4465,9 @@ async function chatPublicSend(token, text, lang) {
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
   const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
   const last = list.length ? list[list.length - 1] : null;
-  if (last && last.u === me.username && last.t === t) return { ok: false, error: "Doppelt." };
-  const msg = { id: (last ? last.id : 0) + 1, u: me.username, a: me.avatar || null, t, ts: now };
+  if (last && last.u === (me.adminCloak ? "Admin" : me.username) && last.t === t) return { ok: false, error: "Doppelt." };
+  const msg = { id: (last ? last.id : 0) + 1, u: me.adminCloak ? "Admin" : me.username, a: me.adminCloak ? "👑" : (me.avatar || null), t, ts: now };
+  if (me.adminCloak) msg.adm = true;
   list.push(msg);
   if (list.length > PUB_MAX) list.splice(0, list.length - PUB_MAX);
   saveConversations();
@@ -6032,6 +6065,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-users") result = adminUsers(payload.key, ip, payload.query, !!payload.onlineOnly);
         else if (req.url === "/api/admin-user-action") result = await adminUserAction(payload.key, ip, payload.username, payload.action, payload.amount, payload.minutes, payload.reason);
         else if (req.url === "/api/social-claim") result = await socialClaim(payload, lang);
+        else if (req.url === "/api/admin-cloak") result = await adminCloak(payload, ip, lang);
+        else if (req.url === "/api/social-handle") result = await socialHandle(payload, lang);
         else if (req.url === "/api/admin-beta") result = await adminBeta(payload.key, ip, payload, lang);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
         else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token, lang);
