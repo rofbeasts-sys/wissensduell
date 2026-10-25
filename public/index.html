@@ -5278,7 +5278,7 @@ async function syncAccountStats(profile){
 /* ------------------------------ 6. RENDER-HELFER ---------------------------- */
 function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
-const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups' };
+const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', startManiaFlow:'mania' };
 function fmtCountdown(ms){
   const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
   if(ms <= 0) return L('gleich','soon');
