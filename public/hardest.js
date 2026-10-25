@@ -5,7 +5,13 @@ const esc = x => String(x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const fmt = x => (x | 0).toLocaleString(L('de-DE', 'en-US'));
 const sl = ms => new Promise(r => setTimeout(r, ms));
 let stopFn = null, alive = 0;
-function killGame(){ if(stopFn){ try{ stopFn(); }catch(e){} stopFn = null; } alive++; }
+function detachLayer(){ const l = $('hdLayer'); if(l) l.remove(); }
+function attachLayer(){ detachLayer(); const l = document.createElement('div'); l.id = 'hdLayer'; l.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:50;touch-action:none;background:transparent;-webkit-tap-highlight-color:transparent;user-select:none';
+  l.onpointerdown = e => { const h = $('hdHost'); if(h && h.onpointerdown) h.onpointerdown(e); }; l.onpointerup = e => { const h = $('hdHost'); if(h && h.onpointerup) h.onpointerup(e); }; document.body.appendChild(l); }
+function killGame(){ detachLayer(); if(stopFn){ try{ stopFn(); }catch(e){} stopFn = null; } alive++; }
+function st(game){ try{ return JSON.parse(localStorage.getItem('hd_' + game) || 'null') || { last: 0, best: 0 }; }catch(e){ return { last: 0, best: 0 }; } }
+function stSet(game, score){ const o = st(game); o.last = score; if(score > o.best) o.best = score; try{ localStorage.setItem('hd_' + game, JSON.stringify(o)); }catch(e){} return o; }
+function statLine(game){ const o = st(game); return L('Letzte: ', 'Last: ') + fmt(o.last) + ' · ' + L('Beste: ', 'Best: ') + fmt(o.best); }
 /* ---------- gemeinsames Rahmen-Layout ---------- */
 const CSS = `<style>
  #hdApp{text-align:center}
@@ -17,7 +23,7 @@ const CSS = `<style>
  .hdcard button{padding:8px 12px;border-radius:12px;border:0;font-weight:800;cursor:pointer}
  .hdb1{background:#c8ff3d;color:#0b0f1a}.hdb2{background:#ffb24d;color:#0b0f1a}
  .hdrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;text-align:left}.hdrow b{width:24px;text-align:center}.hdrow span{flex:1}
- .hdpad{height:120px;border-radius:20px;opacity:.38;transition:opacity .1s,transform .1s}.hdpad.on{opacity:1;transform:scale(.97);box-shadow:0 0 34px currentColor}
+ .hdpad{height:20vh;border-radius:20px;opacity:.38;transition:opacity .1s,transform .1s}.hdpad.on{opacity:1;transform:scale(.97);box-shadow:0 0 34px currentColor}
  .hdlvl{display:flex;gap:6px;margin-top:8px}.hdlvl button{flex:1;padding:8px 0;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit;font-weight:800}.hdlvl button.on{background:#ffb24d;color:#0b0f1a;border-color:#ffb24d}
 </style>`;
 const hud = { score(n){ const e = $('hdSc'); if(e) e.textContent = fmt(n); }, msg(t){ const e = $('hdMsg'); if(e) e.textContent = t || ' '; } };
@@ -95,6 +101,12 @@ function botTicker(target, pace, label){ let n = 0, stop = false; const iv = set
 async function submit(game, score){ if(!account || !(score > 0)) return null; return await apiCall('/api/hard', { token: account.token, action: 'submit', game, score }); }
 async function board(game){ return await apiCall('/api/hard', { token: account && account.token, action: 'board', game }); }
 function boardHtml(b){ if(!b || !b.ok || !b.board || !b.board.length) return '<div style="opacity:.6;text-align:center;padding:8px">' + L('Noch keine Einträge.', 'No entries yet.') + '</div>'; return b.board.map((r, i) => '<div class="hdrow"><b>' + (i + 1) + '</b><span>' + esc(r.name) + '</span><span style="flex:none;font-weight:800">' + fmt(r.best) + '</span></div>').join(''); }
+function rankBox(b){
+  if(!b || !b.ok) return '';
+  const me = b.rank ? `<div style="font-size:16px;font-weight:800;margin-top:14px">${L('Dein Platz: ', 'Your rank: ')}${b.rank}${b.board && b.board.length ? L(' von ', ' of ') + '…' : ''}</div>` : (account ? '' : `<div class="explanation" style="margin-top:12px">${L('Melde dich an, um in die Bestenliste zu kommen.', 'Log in to get on the leaderboard.')}</div>`);
+  const top = (b.board || []).slice(0, 5).map((r, i) => '<div class="hdrow"><b>' + (i + 1) + '</b><span>' + esc(r.name) + '</span><span style="flex:none;font-weight:800">' + fmt(r.best) + '</span></div>').join('') || '<div style="opacity:.6;text-align:center;padding:8px">' + L('Noch keine Einträge.', 'No entries yet.') + '</div>';
+  return me.replace(/ von …| of …/, '') + '<div class="settings-label" style="margin-top:12px">' + L('TOP 5', 'TOP 5') + '</div>' + top;
+}
 /* ---------- Bildschirme ---------- */
 let diff = 1;
 window.startHardFlow = function(){
@@ -110,20 +122,22 @@ window.startHardFlow = function(){
    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn btn-ghost" onclick="brDuelHub()">${L('Zurück', 'Back')}</button></div></div>`);
 };
 window.hdDiff = function(d){ diff = d; startHardFlow(); };
-function shell(title, sub, withBot){ renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title" style="margin:0">${title}</div><div class="picker-sub">${sub}</div><div class="hdbig" id="hdSc">0</div><div id="hdBot">${withBot ? '&nbsp;' : ''}</div><div id="hdMsg">&nbsp;</div><div id="hdHost" style="touch-action:none;user-select:none;min-height:250px"></div><div class="actions-row" style="flex-direction:column;gap:8px;margin-top:10px"><button class="btn btn-ghost" onclick="startHardFlow()">${L('Abbrechen', 'Cancel')}</button></div></div>`); }
+function shell(title, sub, withBot, game){ renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title" style="margin:0">${title}</div><div style="font-size:13px;font-weight:800;opacity:.85;margin-top:4px">${game ? statLine(game) : ''}</div><div class="picker-sub">${sub}</div><div class="hdbig" id="hdSc">0</div><div id="hdBot">${withBot ? '&nbsp;' : ''}</div><div id="hdMsg">&nbsp;</div><div id="hdHost" style="touch-action:none;user-select:none;min-height:60vh"></div></div>`); }
 window.hdPlay = function(game, mode){
   killGame(); const my = alive, g = G[game];
-  shell(g.icon + ' ' + g.name.toUpperCase(), L(g.hint[0], g.hint[1]), mode === 1);
+  shell(g.icon + ' ' + g.name.toUpperCase(), L(g.hint[0], g.hint[1]), mode === 1, game);
   const tgt = mode === 1 ? botTarget(game, diff) : 0, tk = mode === 1 ? botTicker(tgt, g.pace, 'Bot') : null;
-  stopFn = g.run($('hdHost'), hud, async score => { if(my !== alive) return; if(tk) tk.finish(); stopFn = null; const sub = await submit(game, score); const b = await board(game);
+  stopFn = g.run($('hdHost'), hud, async score => { if(my !== alive) return; if(tk) tk.finish(); stopFn = null; detachLayer(); stSet(game, score); const sub = await submit(game, score); const b = await board(game);
    const win = mode === 1 ? (score > tgt ? 1 : score === tgt ? 0 : -1) : 0;
    renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">${g.icon} ${g.name.toUpperCase()}</div>
     <div class="hdbig">${fmt(score)}</div>
     <div style="font-size:15px;font-weight:700;margin-top:4px">${mode === 1 ? (win > 0 ? L('Du hast den Bot geschlagen!', 'You beat the bot!') + ' (Bot: ' + tgt + ')' : win === 0 ? L('Unentschieden gegen den Bot.', 'Draw with the bot.') + ' (Bot: ' + tgt + ')' : L('Der Bot war besser.', 'The bot was better.') + ' (Bot: ' + tgt + ')') : (score >= 12 ? L('Stark.', 'Strong.') : L('Die meisten hören hier auf.', 'Most people stop here.'))}</div>
     ${sub && sub.ok ? `<div style="opacity:.75;font-size:13px;margin-top:4px">${L('Dein Rekord: ', 'Your best: ')}${fmt(sub.mine || score)}${sub.rank ? ' · ' + L('Platz ', 'Rank ') + sub.rank : ''}</div>` : (!account ? `<div class="explanation" style="margin-top:8px">${L('Melde dich an, um in die Bestenliste zu kommen.', 'Log in to get on the leaderboard.')}</div>` : '')}
-    <div class="settings-label" style="margin-top:14px">${L('BESTENLISTE', 'LEADERBOARD')}</div>${boardHtml(b)}
-    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn" onclick="hdPlay('${game}',${mode})">${L('Nochmal', 'Again')}</button><button class="btn btn-ghost" onclick="startHardFlow()">${L('Zurück', 'Back')}</button></div></div>`);
+    <div style="font-size:13px;font-weight:800;opacity:.85;margin-top:6px">${statLine(game)}</div>
+    <div class="actions-row" style="flex-direction:row;gap:10px;margin-top:14px"><button class="btn" style="flex:1" onclick="hdPlay('${game}',${mode})">${L('Nochmal', 'Again')}</button><button class="btn btn-ghost" style="flex:1" onclick="startHardFlow()">${L('Raus', 'Exit')}</button></div>
+    ${rankBox(b)}</div>`);
   });
+  if(game !== 'gedaechtnis') attachLayer();
 };
 window.hdOlymp = async function(mode){
   killGame(); const my = alive; const order = ORDER.slice().sort(() => Math.random() - .5); const res = []; let total = 0, botTotal = 0; const targets = order.map(k => botTarget(k, diff));
@@ -131,16 +145,17 @@ window.hdOlymp = async function(mode){
     if(my !== alive) return; const k = order[i], g = G[k];
     renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">🏅 ${L('OLYMPIADE', 'OLYMPICS')} ${i + 1}/${order.length}</div><div class="hdbig" style="font-size:80px">${g.icon}</div><div class="picker-title" style="margin-top:6px">${g.name}</div><div class="picker-sub">${L(g.hint[0], g.hint[1])}</div><div style="margin-top:14px;font-weight:800">${L('Gesamt bisher: ', 'Total so far: ')}${fmt(total)}${mode ? ' · Bot ' + fmt(botTotal) : ''}</div></div>`);
     await sl(2200); if(my !== alive) return;
-    const score = await new Promise(resolve => { shell('🏅 ' + g.name.toUpperCase() + ' (' + (i + 1) + '/' + order.length + ')', L('Gesamt bisher: ', 'Total so far: ') + fmt(total), mode === 1); const tk = mode === 1 ? botTicker(targets[i], g.pace, 'Bot') : null; stopFn = g.run($('hdHost'), hud, s => { if(tk) tk.finish(); stopFn = null; resolve(s); }); });
+    const score = await new Promise(resolve => { shell('🏅 ' + g.name.toUpperCase() + ' (' + (i + 1) + '/' + order.length + ')', L('Gesamt bisher: ', 'Total so far: ') + fmt(total), mode === 1, 'olympiade'); const tk = mode === 1 ? botTicker(targets[i], g.pace, 'Bot') : null; stopFn = g.run($('hdHost'), hud, s => { if(tk) tk.finish(); stopFn = null; detachLayer(); resolve(s); }); if(k !== 'gedaechtnis') attachLayer(); });
     if(my !== alive) return; res.push([k, score]); total += score; botTotal += targets[i];
   }
-  const sub = await submit('olympiade', total); const b = await board('olympiade'); if(my !== alive) return;
+  stSet('olympiade', total); const sub = await submit('olympiade', total); const b = await board('olympiade'); if(my !== alive) return;
   renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">🏅 ${L('OLYMPIADE GESCHAFFT', 'OLYMPICS DONE')}</div><div class="hdbig">${fmt(total)}</div>
    ${mode ? `<div style="font-size:15px;font-weight:700">${total > botTotal ? L('Du hast den Bot geschlagen!', 'You beat the bot!') : total === botTotal ? L('Unentschieden.', 'Draw.') : L('Der Bot war besser.', 'The bot was better.')} (Bot: ${fmt(botTotal)})</div>` : ''}
    <div style="margin-top:10px;text-align:left">${res.map(([k, s], i) => `<div class="hdrow"><span>${G[k].icon} ${G[k].name}</span><span style="flex:none;font-weight:800">${fmt(s)}${mode ? ' <small style="opacity:.6">(Bot ' + targets[ORDER.indexOf(k) >= 0 ? order.indexOf(k) : 0] + ')</small>' : ''}</span></div>`).join('')}</div>
    ${sub && sub.ok ? `<div style="opacity:.75;font-size:13px;margin-top:6px">${L('Dein Rekord: ', 'Your best: ')}${fmt(sub.mine || total)}${sub.rank ? ' · ' + L('Platz ', 'Rank ') + sub.rank : ''}</div>` : (!account ? `<div class="explanation" style="margin-top:8px">${L('Melde dich an, um in die Bestenliste zu kommen.', 'Log in to get on the leaderboard.')}</div>` : '')}
-   <div class="settings-label" style="margin-top:14px">${L('BESTENLISTE OLYMPIADE', 'OLYMPICS LEADERBOARD')}</div>${boardHtml(b)}
-   <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn" onclick="hdOlymp(${mode})">${L('Nochmal', 'Again')}</button><button class="btn btn-ghost" onclick="startHardFlow()">${L('Zurück', 'Back')}</button></div></div>`);
+   <div style="font-size:13px;font-weight:800;opacity:.85;margin-top:6px">${statLine('olympiade')}</div>
+   <div class="actions-row" style="flex-direction:row;gap:10px;margin-top:14px"><button class="btn" style="flex:1" onclick="hdOlymp(${mode})">${L('Nochmal', 'Again')}</button><button class="btn btn-ghost" style="flex:1" onclick="startHardFlow()">${L('Raus', 'Exit')}</button></div>
+   ${rankBox(b)}</div>`);
 };
 window.__hdG = G;
 })();
