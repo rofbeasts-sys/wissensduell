@@ -4581,7 +4581,8 @@ function accountIndicatorHtml(){
     const av = (account.profile.betaPhase|0) ? framedAvatarHtml(account.profile.avatar, 22, account.profile.betaPhase) : (account.profile.avatar ? avatarHtml(account.profile.avatar, 22) : "👤");
     return `<div class="top-row"><button class="top-btn top-prof" onclick="toggleProfileMenu(event)">${av}<span>${L('Profil','Profile')} ▾</span></button>${stat}</div>`;
   }
-  return `<div class="top-row"><button class="top-btn top-login" onclick="renderAccountAuth('login')">${L('Anmelden','Log in')}</button>${stat}<button class="top-btn" aria-label="${L('Einstellungen','Settings')}" onclick="renderSettingsModal()">⚙️</button></div>`;
+  const guestSave = profiles.length > 0;
+  return `<div class="top-row"><button class="top-btn top-login" onclick="${guestSave ? 'saveDataFlow()' : `renderAccountAuth('login')`}">${guestSave ? '💾 ' + L('Daten speichern','Save data') : L('Anmelden','Log in')}</button>${stat}<button class="top-btn" aria-label="${L('Einstellungen','Settings')}" onclick="renderSettingsModal()">⚙️</button></div>`;
 }
 function closeProfileMenu(){ const m=document.getElementById("profMenu"); if(m) m.remove(); document.removeEventListener("click", closeProfileMenu); }
 function toggleProfileMenu(ev){
@@ -4757,6 +4758,7 @@ async function submitAccountAuth(mode){
   try{ localStorage.setItem(ACCOUNT_TOKEN_KEY, result.token); }catch(e){}
   syncStreamerFromAccount();
   connectFriendsWs();
+  if(mode === 'register' && guestMigrate) await guestMigrateRun(); else guestMigrate = null;
   if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
   else renderMainMenu();
 }
@@ -5956,7 +5958,7 @@ function toggleMusicSetting(){
 
 const I18N = {
   app_title: {de:"BRAIN PULSE", en:"BRAIN PULSE", ja:"BRAIN PULSE", zh:"BRAIN PULSE", fr:"BRAIN PULSE", it:"BRAIN PULSE", es:"BRAIN PULSE"},
-  app_tagline: {de:"Beweise dein Wissen. 5 Fragen. Immer schwieriger. Immer schneller.", en:"Prove your knowledge. 5 questions. Ever harder. Ever faster.", ja:"あなたの知識を証明しよう。5問。どんどん難しく、どんどん速く。", zh:"证明你的知识。5道题。越来越难，越来越快。", fr:"Prouve tes connaissances. 5 questions. Toujours plus difficile. Toujours plus rapide.", it:"Dimostra la tua cultura. 5 domande. Sempre più difficile. Sempre più veloce.", es:"Demuestra tus conocimientos. 5 preguntas. Cada vez más difícil. Cada vez más rápido."},
+  app_tagline: {de:"Beweise dein Wissen und zeig, wie hoch du kommst.", en:"Prove your knowledge and show how high you can go.", ja:"あなたの知識を証明しよう。5問。どんどん難しく、どんどん速く。", zh:"证明你的知识。5道题。越来越难，越来越快。", fr:"Prouve tes connaissances. 5 questions. Toujours plus difficile. Toujours plus rapide.", it:"Dimostra la tua cultura. 5 domande. Sempre più difficile. Sempre più veloce.", es:"Demuestra tus conocimientos. 5 preguntas. Cada vez más difícil. Cada vez más rápido."},
   lang_picker_label: {de:"Sprache", en:"Language", ja:"言語", zh:"语言", fr:"Langue", it:"Lingua", es:"Idioma"},
 
   menu_solo_title: {de:"BRAIN TEST", en:"BRAIN TEST", ja:"BRAIN TEST", zh:"BRAIN TEST", fr:"BRAIN TEST", it:"BRAIN TEST", es:"BRAIN TEST"},
@@ -5970,7 +5972,7 @@ const I18N = {
   solo_menu_title: {de:"SOLO", en:"SOLO", ja:"ソロ", zh:"单人", fr:"SOLO", it:"SOLO", es:"SOLO"},
   solo_menu_sub: {de:"Wie möchtest du allein spielen?", en:"How do you want to play alone?", ja:"どのように一人でプレイしますか？", zh:"你想如何单人游玩？", fr:"Comment veux-tu jouer seul ?", it:"Come vuoi giocare da solo?", es:"¿Cómo quieres jugar solo?"},
   solo_quiz_title: {de:"WISSENSTEST", en:"QUIZ", ja:"クイズ", zh:"知识问答", fr:"QUIZ", it:"QUIZ", es:"CUESTIONARIO"},
-  solo_quiz_desc: {de:"Der klassische Solo-Wissenstest: 5 Fragen, dein persönlicher Punktestand und Rang.", en:"The classic solo quiz: 5 questions, your personal score and rank.", ja:"定番のソロクイズ：5問、あなた自身のスコアとランク。", zh:"经典单人问答：5道题，你的个人分数与段位。", fr:"Le quiz solo classique : 5 questions, ton score et ton rang personnels.", it:"Il classico quiz in solitaria: 5 domande, il tuo punteggio e grado personali.", es:"El clásico cuestionario en solitario: 5 preguntas, tu puntuación y rango personales."},
+  solo_quiz_desc: {de:"Der klassische Solo-Wissenstest: dein persönlicher Punktestand und Rang.", en:"The classic solo quiz: your personal score and rank.", ja:"定番のソロクイズ：5問、あなた自身のスコアとランク。", zh:"经典单人问答：5道题，你的个人分数与段位。", fr:"Le quiz solo classique : 5 questions, ton score et ton rang personnels.", it:"Il classico quiz in solitaria: 5 domande, il tuo punteggio e grado personali.", es:"El clásico cuestionario en solitario: 5 preguntas, tu puntuación y rango personales."},
   braintest_title: {de:"BRAIN TEST", en:"BRAIN TEST", ja:"ブレインテスト", zh:"脑力测试", fr:"BRAIN TEST", it:"BRAIN TEST", es:"BRAIN TEST"},
   braintest_overview_sub: {de:"alle Klassen im Überblick.", en:"all classes at a glance.", ja:"全クラスの概要。", zh:"所有班级一览。", fr:"toutes les classes en un coup d'œil.", it:"tutte le classi in un colpo d'occhio.", es:"todas las clases de un vistazo."},
   braintest_passed: {de:"Bestanden", en:"Passed", ja:"合格", zh:"已通过", fr:"Réussi", it:"Superato", es:"Aprobado"},
@@ -6093,7 +6095,7 @@ function L(de, en){ return currentLang === "de" ? de : en; }
 /* ---- Anleitung (Button im Hauptmenü) + Intro beim ersten Start ---- */
 const GUIDE_SECTIONS = [
  {id:'braintest', ic:'🎯', c:'#c6ff3d', t:['Brain Test','Brain Test'], b:[
-  ['Du spielst allein und beantwortest Fragen. Jede Runde hat 5 Fragen, sie werden immer schwieriger und die Zeit wird knapper.','You play alone and answer questions. Each round has 5 questions, they get harder and the time gets shorter.'],
+  ['Du spielst allein und beantwortest Fragen. Sie werden immer schwieriger und die Zeit wird knapper.','You play alone and answer questions. They get harder and the time gets shorter.'],
   ['Du steigst durch Klassen und Ränge auf. Ein bestandener Haupttest bringt dich weiter und gibt dir Münzen.','You climb through classes and ranks. Passing a main test moves you up and earns coins.'],
   ['Mit einem Konto zählt dein Fortschritt auf allen Geräten.','With an account your progress counts on all devices.']]},
  {id:'party', ic:'🌐', c:'#3de0ff', t:['Party-Raum','Party room'], b:[
@@ -6163,8 +6165,8 @@ function guideToggle(id){
   }
 }
 const INTRO_CARDS = [
-  {ic:'🎯', c:'#c6ff3d', t:['Beweise dein Wissen','Prove your knowledge'], p:['5 Fragen, immer schwieriger, immer schneller. Steig Klasse für Klasse im Rang auf.','5 questions, ever harder, ever faster. Climb the ranks class by class.']},
-  {ic:'🌐', c:'#3de0ff', t:['Spiel mit Freunden','Play with friends'], p:['Party-Raum, Arena, Schach, Tic Tac Toe und Speed Math, allein oder gegen andere.','Party room, arena, chess, tic tac toe and speed math, alone or against others.']},
+  {ic:'🎯', c:'#c6ff3d', t:['Beweise dein Wissen','Prove your knowledge'], p:['Beweise dein Wissen und zeig, wie hoch du kommst. Steig Klasse für Klasse im Rang auf.','Prove your knowledge and show how high you can go. Climb the ranks class by class.']},
+  {ic:'🌐', c:'#3de0ff', t:['Spiel mit Freunden','Play with friends'], p:['Party-Raum, Schach, Tic Tac Toe, Fourups und Speed Math, allein, mit Freunden oder online gegen andere.','Party room, chess, tic tac toe, fourups and speed math, alone, with friends or online against others.']},
   {ic:'🏅', c:'#ffd45a', t:['Sammle & steig auf','Collect & level up'], p:['Münzen, Erfolge und Statistik zeigen, wie weit du bist. Mit einem Konto geht nichts verloren.','Coins, achievements and stats show how far you are. With an account nothing gets lost.']}
 ];
 function showIntro(force){
@@ -6192,9 +6194,63 @@ function introNext(){
 function closeIntro(openFull){
   try{ localStorage.setItem('bp_intro_seen', '1'); }catch(e){}
   const o = document.getElementById('introOv'); if(o) o.remove();
-  if(openFull === true) openGuide();
+  if(openFull === true) openGuide(); else setTimeout(showWelcomeIfNeeded, 150);
 }
-window.addEventListener('load', () => setTimeout(() => { try{ if(!document.getElementById('resetNoticeBox') && !new URLSearchParams(location.search).get('br') && !new URLSearchParams(location.search).get('dm') && !new URLSearchParams(location.search).get('mu')) showIntro(false); }catch(e){} }, 1200));
+/* ---- Willkommen: direkt nach dem Intro Namen eingeben oder anmelden ---- */
+function showWelcomeIfNeeded(){
+  try{
+    if(document.getElementById('welcomeOv') || document.getElementById('introOv')) return;
+    if(account || localStorage.getItem('bp_welcome_done') || localStorage.getItem(ACCOUNT_TOKEN_KEY)) return;
+    if(profiles.length > 0){ localStorage.setItem('bp_welcome_done', '1'); return; }
+    if(!localStorage.getItem('bp_intro_seen')) return;
+  }catch(e){ return; }
+  const o = document.createElement('div'); o.id = 'welcomeOv'; o.className = 'gd-ov'; o.style.alignItems = 'center';
+  o.innerHTML = `<div style="width:100%;max-width:420px;padding:22px;box-sizing:border-box;text-align:center">
+    <div style="font-size:54px">👋</div>
+    <h2 style="margin:8px 0 6px;font-size:26px">${L('Willkommen bei Brain Pulse','Welcome to Brain Pulse')}</h2>
+    <p style="color:var(--text-dim);margin:0 0 18px;line-height:1.4">${L('Wie heißt du? Dann kannst du sofort loslegen, ganz ohne Anmeldung.','What is your name? Then you can start right away, no sign-up needed.')}</p>
+    <input id="welcomeName" type="text" maxlength="20" autocomplete="off" placeholder="${L('Dein Name','Your name')}" onkeydown="if(event.key==='Enter')welcomeStart()" style="width:100%;box-sizing:border-box;background:#0b1022;color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:14px;padding:14px;font-size:17px;font-family:inherit;text-align:center">
+    <div id="welcomeErr" style="color:#ff7a8a;font-size:13px;min-height:18px;margin-top:6px"></div>
+    <button class="btn btn-primary btn-block" style="margin-top:8px" onclick="welcomeStart()">${L('LOS GEHT\'S','LET\'S GO')}</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="welcomeLogin()">${L('Ich habe schon ein Konto','I already have an account')}</button>
+    <p style="color:var(--text-dim);font-size:12.5px;margin:16px 0 0;line-height:1.45">${L('Gefällt es dir, kannst du später mit „Daten speichern“ ein Konto mit Passwort anlegen, dann geht nichts verloren und du kannst auf jedem Gerät spielen.','If you like it, you can later tap “Save data” to create an account with a password, so nothing gets lost and you can play on any device.')}</p>
+    <a href="javascript:void(0)" onclick="welcomeSkip()" style="display:inline-block;margin-top:12px;color:var(--text-dim);font-size:13px">${L('Erstmal nur ansehen','Just look around first')}</a>
+  </div>`;
+  document.body.appendChild(o);
+  setTimeout(() => { const i = document.getElementById('welcomeName'); if(i) i.focus(); }, 200);
+}
+function welcomeClose(){ try{ localStorage.setItem('bp_welcome_done', '1'); }catch(e){} const o = document.getElementById('welcomeOv'); if(o) o.remove(); }
+function welcomeStart(){
+  const i = document.getElementById('welcomeName'), err = document.getElementById('welcomeErr');
+  const name = ((i && i.value) || '').trim();
+  if(name.length < 2){ if(err) err.textContent = L('Bitte gib einen Namen mit mindestens 2 Zeichen ein.','Please enter a name with at least 2 characters.'); if(i) i.focus(); return; }
+  const p = createProfile(name);
+  try{ localStorage.setItem(LAST_PROFILE_KEY, p.id); }catch(e){}
+  welcomeClose(); renderMainMenu();
+}
+function welcomeLogin(){ welcomeClose(); renderAccountAuth('login'); }
+function welcomeSkip(){ welcomeClose(); }
+/* Gast mit Namen: Konto erstellen und den bisherigen Fortschritt mitnehmen */
+let guestMigrate = null;
+function saveDataFlow(){
+  const id = (()=>{ try{ return localStorage.getItem(LAST_PROFILE_KEY); }catch(e){ return null; } })();
+  guestMigrate = profiles.find(p => p.id === id) || profiles[0] || null;
+  renderAccountAuth('register');
+  const u = document.getElementById('authUsername'); if(u && guestMigrate) u.value = guestMigrate.name;
+}
+async function guestMigrateRun(){
+  const g = guestMigrate; guestMigrate = null;
+  if(!g || !account) return;
+  try{
+    const keep = ['score','tier','klasse','consecutiveFails','roundsPlayed','wins','losses','correctAnswers','wrongAnswers','bestScore','tttRank','tttWinsAtRank','haupttestUnlockedForKlasse','braintestScores','braintestGate','braintestDaily','braintestPrestige','braintestExtraAttemptUsed','speedMathLevel','speedMathHearts','speedMathHeartsDate','biologyBest','biologyPerfect','oosLast','oosBest','avatar','coins','modeStats'];
+    const prof = accountAsProfile();
+    keep.forEach(k => { if(g[k] !== undefined && g[k] !== null) prof[k] = g[k]; });
+    if(!prof.biologyBest && g.biologyDone) prof.biologyBest = g.biologyDone;
+    if(g.achv && account.profile){ account.profile.achv = Achv.merge(account.profile.achv, g.achv); }
+    await syncAccountStats(prof);
+  }catch(e){}
+}
+window.addEventListener('load', () => setTimeout(() => { try{ if(!document.getElementById('resetNoticeBox') && !new URLSearchParams(location.search).get('br') && !new URLSearchParams(location.search).get('dm') && !new URLSearchParams(location.search).get('mu')) showIntro(false); showWelcomeIfNeeded(); }catch(e){} }, 1200));
 
 const SOCIAL_LINKS = [
   { name:'TikTok', c:'#25f4ee', url:'https://www.tiktok.com/@pinkypuls', svg:'<svg viewBox="0 0 24 24"><path d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.2-1.5z"/></svg>' },
@@ -6965,11 +7021,13 @@ function renderMainMenu(){
         <h3>Biology</h3>
         <p>${L('Entdecke, wie dein Körper funktioniert.','Discover how your body works.')}</p>
       </div>`}
+${currentLang === 'de' ? `
       <div class="mode-card" onclick="startVocab()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="6" y="8" width="36" height="28" rx="6" fill="none" stroke="#ffc446" stroke-width="3.5"/><path d="M16 36L14 43L24 36" fill="none" stroke="#ffc446" stroke-width="3.5" stroke-linejoin="round"/><path d="M15 27L20 16L25 27M17 23.5H23" fill="none" stroke="#ffc446" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M29 20H35M32 20V27" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Vocab</h3>
         <p>${L('Englisch lernen: Schule, Reisen und Business.','Learn English: school, travel and business.')}</p>
       </div>
+`: ''}
     </div>
 
     <div class="menu-section-title">Mini Games</div>
