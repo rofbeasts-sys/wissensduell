@@ -5990,38 +5990,88 @@ async function adminNews(key, ip, payload) {
 const MANIA_TIERS = ["Stein", "Bronze", "Silber", "Gold", "Diamant"];
 function maniaDraw(ms) { // geheim: je schneller, desto bessere Chancen. Die Grenzen sieht kein Client.
   const h = ms / 3600000;
-  const w = h < 20 ? [5, 15, 30, 30, 20] : h < 60 ? [20, 30, 25, 18, 7] : h < 200 ? [45, 30, 15, 8, 2] : [70, 22, 6, 2, 0];
+  const w = h < 30 ? [5, 15, 30, 30, 20] : h < 60 ? [20, 30, 25, 18, 7] : h < 150 ? [45, 30, 15, 8, 2] : [70, 22, 6, 2, 0];
   let r = Math.random() * w.reduce((a, b) => a + b, 0);
   for (let i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return i; }
   return 0;
 }
+const MANIA_RX = ["👍", "👎", "💪", "🔥", "👏"];
+const maniaRxLast = new Map();
+let maniaSaveTimer = null;
+function maniaSaveSoon() { if (maniaSaveTimer) return; maniaSaveTimer = setTimeout(() => { maniaSaveTimer = null; saveGameCfg().catch(() => {}); }, 10000); }
+function maniaStore() { if (!gameCfg.mania) gameCfg.mania = {}; if (!gameCfg.mania.p) gameCfg.mania.p = {}; if (!gameCfg.mania.cfg) gameCfg.mania.cfg = { botOn: false, botRate: 6, botName: "Bot" }; return gameCfg.mania; }
 function maniaTotal(r) { return (r.km | 0) * 1000000 + (r.n | 0); }
-function maniaRows() {
-  const p = (gameCfg.mania && gameCfg.mania.p) || {};
-  return Object.values(p).filter(r => maniaTotal(r) > 0).sort((a, b) => (maniaTotal(b) - maniaTotal(a)) || ((a.ts | 0) - (b.ts | 0)));
+function maniaBotTick() { // Test-Bot: tippt serverseitig mit festem Tempo, wird beim Abfragen nachgerechnet
+  const st = maniaStore(), c = st.cfg, r = st.p.__bot; const now = Date.now();
+  if (!r) return; if (!c.botOn) { r.bt = 0; return; }
+  r.name = String(c.botName || "Bot").slice(0, 20); r.bot = true;
+  if (!r.bt) { r.bt = now; return; }
+  const dt = Math.min(now - r.bt, 6 * 3600 * 1000); r.bt = now;
+  r.frac = (r.frac || 0) + dt * Math.max(0.1, Math.min(200, Number(c.botRate) || 6)) / 1000;
+  const add = Math.floor(r.frac); r.frac -= add; r.n = (r.n | 0) + add; r.runMs = (r.runMs || 0) + dt;
+  let crossed = false;
+  while (r.n >= 1000000) { r.n -= 1000000; r.km = (r.km | 0) + 1; r.tier = Math.max(r.tier | 0, maniaDraw(r.runMs)); r.runMs = 0; crossed = true; }
+  if (crossed) maniaSaveSoon();
 }
+function maniaRows() {
+  maniaBotTick();
+  const p = maniaStore().p, c = maniaStore().cfg;
+  return Object.values(p).filter(r => maniaTotal(r) > 0 && (!r.bot || c.botOn)).sort((a, b) => (maniaTotal(b) - maniaTotal(a)) || ((a.ts | 0) - (b.ts | 0)));
+}
+function maniaLikes(r) { return (r.rx && r.rx["👍"]) | 0; }
 function maniaView(name) {
   const rows = maniaRows(), k = String(name || "").toLowerCase();
   const i = rows.findIndex(r => r.name.toLowerCase() === k);
-  return { ok: true, board: rows.slice(0, 20).map(r => ({ name: r.name, km: r.km | 0, total: maniaTotal(r), tier: r.tier | 0 })), of: rows.length, me: i >= 0 ? { rank: i + 1, km: rows[i].km | 0, total: maniaTotal(rows[i]), tier: rows[i].tier | 0 } : null };
+  return { ok: true, board: rows.slice(0, 20).map(r => ({ name: r.name, km: r.km | 0, total: maniaTotal(r), tier: r.tier | 0, likes: maniaLikes(r), bot: !!r.bot })), of: rows.length, me: i >= 0 ? { rank: i + 1, km: rows[i].km | 0, total: maniaTotal(rows[i]), tier: rows[i].tier | 0 } : null };
+}
+function maniaWatch(target) {
+  const rows = maniaRows(), k = String(target || "").toLowerCase(); const r = rows.find(x => x.name.toLowerCase() === k);
+  if (!r) return { ok: false, error: "Nicht gefunden." };
+  const c = maniaStore().cfg;
+  return { ok: true, name: r.name, n: r.n | 0, km: r.km | 0, tier: r.tier | 0, rx: r.rx || {}, bot: !!r.bot, rate: r.bot ? Number(c.botRate) || 6 : 0, rank: rows.indexOf(r) + 1, of: rows.length, t: Date.now() };
+}
+function adminManiaCall(key, ip, payload) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const st = maniaStore(), c = st.cfg;
+  if (payload.action === "get") return Promise.resolve({ ok: true, cfg: c, players: Object.keys(st.p).filter(k => k !== "__bot").length, bot: st.p.__bot ? (maniaBotTick(), { n: st.p.__bot.n | 0, km: st.p.__bot.km | 0 }) : null });
+  if (payload.action === "set") {
+    if (payload.botOn !== undefined) { const on = !!payload.botOn; if (on && !st.p.__bot) st.p.__bot = { name: String(c.botName || "Bot"), km: 0, n: 0, best: 0, tier: 0, ts: Date.now(), rids: [], bot: true }; if (on && !c.botOn && st.p.__bot) st.p.__bot.bt = Date.now(); c.botOn = on; }
+    if (payload.botRate !== undefined) c.botRate = Math.max(0.1, Math.min(200, Number(payload.botRate) || 6));
+    if (payload.botName !== undefined) c.botName = String(payload.botName).replace(/[\u0000-\u001f<>]+/g, " ").trim().slice(0, 20) || "Bot";
+  } else if (payload.action === "reset-bot") { delete st.p.__bot; c.botOn = false; }
+  else if (payload.action === "clear-board") { for (const k of Object.keys(st.p)) { if (k !== "__bot") delete st.p[k]; } }
+  else if (payload.action === "clear-reactions") { for (const k of Object.keys(st.p)) delete st.p[k].rx; }
+  return saveGameCfg().then(ok => ok ? { ok: true, cfg: c, players: Object.keys(st.p).filter(k => k !== "__bot").length, bot: st.p.__bot ? { n: st.p.__bot.n | 0, km: st.p.__bot.km | 0 } : null } : { ok: false, error: "Speichern fehlgeschlagen." }).catch(() => ({ ok: false, error: "Speichern fehlgeschlagen." }));
 }
 async function maniaApiCall(payload) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const u = payload.token ? findUserByToken(payload.token) : null;
   const name = u ? String(u.username || "").slice(0, 20) : "";
+  if (payload.action === "watch") { if (!u || !name) return { ok: false, login: true, error: "Bitte anmelden." }; return maniaWatch(payload.target); }
+  if (payload.action === "react") {
+    if (!u || !name) return { ok: false, error: "Bitte anmelden." };
+    const emo = String(payload.emoji || ""); if (!MANIA_RX.includes(emo)) return { ok: false, error: "Unbekannt." };
+    maniaRows(); const k = String(payload.target || "").toLowerCase(); const r = Object.values(maniaStore().p).find(x => String(x.name).toLowerCase() === k && (!x.bot || maniaStore().cfg.botOn));
+    if (!r) return { ok: false, error: "Nicht gefunden." };
+    const lk = name.toLowerCase() + ">" + k, now = Date.now();
+    if (now - (maniaRxLast.get(lk) || 0) < 350) return maniaWatch(payload.target);
+    maniaRxLast.set(lk, now); if (maniaRxLast.size > 5000) maniaRxLast.clear();
+    if (!r.rx) r.rx = {}; r.rx[emo] = (r.rx[emo] | 0) + 1; maniaSaveSoon();
+    return maniaWatch(payload.target);
+  }
   if (payload.action === "progress") {
     if (!u || !name) return { ok: false, error: "Bitte anmelden." };
     const n = Math.max(0, Math.min(999999, Math.floor(Number(payload.n) || 0)));
-    if (!gameCfg.mania) gameCfg.mania = { p: {} }; if (!gameCfg.mania.p) gameCfg.mania.p = {};
-    const k = name.toLowerCase(); let r = gameCfg.mania.p[k];
-    if (!r) r = gameCfg.mania.p[k] = { name, km: 0, best: 0, tier: 0, ts: Date.now(), rids: [], n: 0 };
-    if (n !== (r.n | 0)) { r.n = n; r.name = name; if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." }; }
+    const st = maniaStore();
+    const k = name.toLowerCase(); let r = st.p[k];
+    if (!r) r = st.p[k] = { name, km: 0, best: 0, tier: 0, ts: Date.now(), rids: [], n: 0 };
+    if (n !== (r.n | 0)) { r.n = n; r.name = name; maniaSaveSoon(); }
     return maniaView(name);
   }
   if (payload.action === "submit") {
     if (!u || !name) return { ok: false, error: "Bitte anmelden." };
     const ms = Math.round(Number(payload.ms)); if (!(ms > 0) || ms > 1e11) return { ok: false, error: "Zeit ungültig." };
-    if (!gameCfg.mania) gameCfg.mania = { p: {} }; if (!gameCfg.mania.p) gameCfg.mania.p = {};
+    maniaStore();
     const k = name.toLowerCase(), rid = String(payload.rid || "").slice(0, 40);
     let r = gameCfg.mania.p[k];
     if (!r) r = gameCfg.mania.p[k] = { name, km: 0, best: 0, tier: 0, ts: Date.now(), rids: [] };
@@ -6450,6 +6500,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/news") result = newsPublic(payload.token);
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
         else if (req.url === "/api/admin-news") result = await adminNews(payload.key, ip, payload);
+        else if (req.url === "/api/admin-mania") result = await adminManiaCall(payload.key, ip, payload);
         else if (req.url === "/api/mania" && !gateOk("mania", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/mania") result = await maniaApiCall(payload);
         else if (req.url === "/api/admin-game-set") result = await adminGameSet(payload.key, ip, payload);
