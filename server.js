@@ -2810,7 +2810,7 @@ const BR_QUESTIONS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/brQ
 const BR_GRACE_MS = 60000; // so lange wird der Platz nach einem Verbindungsabbruch freigehalten (Neuladen/Handy-Sperre)
 const brRooms = new Map();
 let brQueue = []; // wartende Spieler { ws, name, lang }
-function brAllowed(adminKey, ip) { return !featureLocked("brain_royale") || adminOk(adminKey, ip); }
+function brAllowed(adminKey, ip) { return gateOk("brain_royale", adminKey, ip); }
 function brMakeCode() { let c; do { c = randomRoomCode(); } while (brRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
 function brLang(v) { return v === "de" ? "de" : "en"; }
 // Frage in BEIDEN Sprachen mit gleicher Antwortreihenfolge - jeder sieht sie in seiner Sprache
@@ -2905,7 +2905,7 @@ const DAME_SKINS = [{ id: "wood", wins: 0 }, { id: "neon", wins: 3 }, { id: "gla
 const dmRooms = new Map();
 let dmQueue = [];
 const dmPairDay = new Map(); // "tag|a|b" -> gezaehlte Siege
-function dameAllowed(adminKey, ip) { return !featureLocked("dame") || adminOk(adminKey, ip); }
+function dameAllowed(adminKey, ip) { return gateOk("dame", adminKey, ip); }
 function dmMakeCode() { let c; do { c = randomRoomCode(); } while (dmRooms.has(c) || brRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
 function dmFreshState() { return { board: Dame.initialBoard(), turn: "w", plies: 0, quiet: 0, over: false, winner: null, why: null, last: null }; }
 function dmView(room, p) {
@@ -2980,7 +2980,7 @@ const Mill = require("./public/muehle-engine.js");
 const MU_GRACE_MS = 60000, MU_MOVE_MS = 120000, MU_QUIET_LIMIT = 50;
 const muRooms = new Map();
 let muQueue = [];
-function muehleAllowed(adminKey, ip) { return !featureLocked("muehle") || adminOk(adminKey, ip); }
+function muehleAllowed(adminKey, ip) { return gateOk("muehle", adminKey, ip); }
 function muMakeCode() { let c; do { c = randomRoomCode(); } while (muRooms.has(c) || brRooms.has(c) || dmRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
 function muFreshState() { return { ...Mill.initial(), plies: 0, over: false, winner: null, why: null, last: null }; }
 function muView(room, p) {
@@ -3390,7 +3390,7 @@ function freshModeStats() {
 function publicProfile(user) {
   // Interne Anticheat-Daten gehoeren nicht zum Client
 
-  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, totpOn: !!user.totpOn, betaPhase: user.betaPhase | 0, socialClaimed: Object.keys(user.social || {}), socialHandles: user.socialHandles || {}, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
+  return { username: user.username, avatar: user.avatar || null, ...user.stats, streamerMode: !!user.streamerMode, feedOptIn: !!user.feedOptIn, hasLoginName: !!user.loginName, totpOn: !!user.totpOn, canTest: !!userRole(user), role: userRole(user), betaPhase: user.betaPhase | 0, socialClaimed: Object.keys(user.social || {}), socialHandles: user.socialHandles || {}, cheatFlags: undefined, lastCheat: undefined, restricted: undefined, chess: undefined, fourups: undefined, daily: undefined, clientCoinsDay: undefined };
 }
 
 function checkLoginName(loginName, gameName, selfUser, lang) {
@@ -4176,6 +4176,29 @@ const SOCIAL_BONUS = { tiktok: 50, instagram: 50, clapper: 50 };
 const SOCIAL_MIN_WAIT_MS = 8000, SOCIAL_OPEN_MAX_MS = 24 * 3600 * 1000;
 // Konten verbinden: Nutzer traegt seinen Namen je Netzwerk ein (Ehrensystem, der Admin kann ihn pruefen)
 // Admin-Ansicht: Konto wird fuer andere unsichtbar, Chat-Name "Admin". Nur mit gueltigem Admin-Key.
+function adminGames(key, ip) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  return { ok: true, games: GAME_DEFS.map(g => ({ ...g, mode: gameModeRaw(g.id), effective: gameMode(g.id), start: (gameCfg.modes[g.id] && gameCfg.modes[g.id].start) || 0, pending: gameStart(g.id), classOff: g.classes ? classOffList(g.id) : undefined })) };
+}
+async function adminGameSet(key, ip, payload) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const g = GAME_DEFS.find(x => x.id === payload.id);
+  if (!g) return { ok: false, error: "Spiel unbekannt." };
+  if (payload.cls !== undefined) {
+    const n = parseInt(payload.cls, 10);
+    if (!g.classes || !(n >= 0 && n < g.classes)) return { ok: false, error: "Stufe unbekannt." };
+    let list = classOffList(g.id).filter(x => x !== n);
+    if (!payload.on) list.push(n);
+    gameCfg.classOff[g.id] = list.sort((a, b) => a - b);
+  } else {
+    if (!GAME_MODES.includes(payload.mode)) return { ok: false, error: "Zustand unbekannt." };
+    const start = (payload.mode === "test" || payload.mode === "open") ? Math.max(0, Math.round(Number(payload.start) || 0)) : 0;
+    gameCfg.modes[g.id] = { mode: payload.mode, start };
+  }
+  if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
+  console.log("[Spiele] " + g.id + ": " + JSON.stringify(payload.cls !== undefined ? { cls: payload.cls, on: payload.on } : gameCfg.modes[g.id]));
+  return adminGames(key, ip);
+}
 async function adminCloak(payload, ip, lang) {
   if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
@@ -4831,7 +4854,7 @@ async function fourupsApi(action, payload, lang) {
   const c = chessState(user);
   const { f, got } = fourupsState(user);
   if (action === "state") { if (got.length) await saveUsers(); return { ok: true, ...fourupsPublic(user, got) }; }
-  if (featureLocked("fourups_abilities") && (action === "upgrade" || action === "open" || action === "result") && !adminOk(payload.adminKey, payload.__ip)) return FEATURE_LOCKED_RESULT;
+  if ((action === "upgrade" || action === "open" || action === "result") && !gateOk("fourups_abilities", payload.adminKey, payload.__ip)) return FEATURE_LOCKED_RESULT;
   if (action === "upgrade") {
     const id = String(payload.id || "");
     const lvl = f.abilities[id];
@@ -5540,6 +5563,7 @@ async function chessOnlineApi(action, payload, lang) {
 // ADMIN_KEY (Umgebungsvariable auf Render); ohne gesetzten Key ist der
 // Endpunkt aus. Ratenbegrenzt gegen Raten des Keys.
 function adminAuth(key, ip) {
+  if (testerKeyOk(key)) return false; // Tester-Schluessel: kein Admin, aber kein Fehlversuch
   const adminKey = process.env.ADMIN_KEY;
   if (!adminKey || adminKey.length < 12) return false;
   const lk = "adm|" + ip, e = rlStore.get(lk);
@@ -5550,7 +5574,33 @@ function adminAuth(key, ip) {
   return ok;
 }
 // Admin-Sicht: prueft den Key, zaehlt nur FEHLVERSUCHE (Erfolg verbraucht kein Limit).
+// Tester: Konten mit Tester-Recht sehen die gesperrten ("geheimen") Spiele, sonst nichts.
+// Beim Einschalten bekommt der Tester einen zufaelligen Schluessel (nur im Speicher), der nur die Feature-Sperren aufhebt.
+const testerKeys = new Map(); // key -> { un, role }
+function userRole(u) { return u && (u.role === "mod" || u.role === "tester") ? u.role : (u && u.tester ? "mod" : null); }
+function testerKeyOk(key) { // liefert die Rolle ("mod"/"tester") oder null
+  if (typeof key !== "string" || key.length < 20) return null;
+  const e = testerKeys.get(key); if (!e) return null;
+  const u = findUserByName(e.un);
+  const r = userRole(u);
+  if (!u || !r || isBanned(u)) { testerKeys.delete(key); return null; }
+  return r;
+}
+async function testerMode(payload, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const user = findUserByToken(payload && payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const un = user.username.toLowerCase();
+  for (const [k, v] of testerKeys) if (v.un === un) testerKeys.delete(k);
+  const role = userRole(user);
+  if (!role) return { ok: false, error: lang === "en" ? "Not available." : "Nicht verfügbar." };
+  if (!payload.on) return { ok: true, on: false };
+  const key = crypto.randomBytes(18).toString("hex");
+  testerKeys.set(key, { un, role });
+  return { ok: true, on: true, key, role };
+}
 function adminOk(key, ip) {
+  if (testerKeyOk(key)) return false; // Tester-Schluessel ist kein Admin-Schluessel, zaehlt aber nicht als Fehlversuch
   const ak = process.env.ADMIN_KEY;
   if (!ak || ak.length < 12 || typeof key !== "string" || !key) return false;
   const lk = "admv|" + ip;
@@ -5634,7 +5684,7 @@ function adminUserRow(u) {
   return { username: u.username, avatar: u.avatar || st.avatar || null, online: accountIsOnline(u.username), coins: st.coins || 0,
     klasse: st.klasse || 0, rounds: st.roundsPlayed || 0, arenaPoints: st.arenaPoints || 0, flags: st.cheatFlags || 0, lastCheat: st.lastCheat || null,
     restricted: isRestricted(u), banned: u.banned === true, banReason: u.banReason || "", bannedUntil: u.bannedUntil && u.bannedUntil > Date.now() ? u.bannedUntil : 0,
-    mutedUntil: u.mutedUntil && u.mutedUntil > Date.now() ? u.mutedUntil : 0, createdAt: u.createdAt || 0, lastSeen: u.lastSeen || 0, log: (u.adminLog || []).slice(-5) };
+    mutedUntil: u.mutedUntil && u.mutedUntil > Date.now() ? u.mutedUntil : 0, tester: !!u.tester, role: userRole(u), createdAt: u.createdAt || 0, lastSeen: u.lastSeen || 0, log: (u.adminLog || []).slice(-5) };
 }
 function adminUsers(key, ip, query, onlineOnly) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -5669,6 +5719,10 @@ async function adminUserAction(key, ip, username, action, amount, minutes, reaso
     case "restrict": u.restricted = true; note = "Eingeschränkt"; break;
     case "unrestrict": u.restricted = false; u.stats.cheatFlags = 0; note = "Einschränkung aufgehoben"; break;
     case "kick": kickUser(u); note = "Abgemeldet"; break;
+    case "role_mod": u.role = "mod"; u.tester = false; note = "Mod-Recht gegeben"; break;
+    case "role_tester": u.role = "tester"; u.tester = false; note = "Tester-Recht gegeben"; break;
+    case "role_none": case "untester": u.role = null; u.tester = false; note = "Rolle entzogen"; for (const [k, v] of testerKeys) if (v.un === u.username.toLowerCase()) testerKeys.delete(k); break;
+    case "tester": u.role = "mod"; note = "Mod-Recht gegeben"; break;
     default: return { ok: false, error: "Aktion unbekannt." };
   }
   u.adminLog = (u.adminLog || []).concat([{ t: Date.now(), n: note }]).slice(-20);
@@ -5830,7 +5884,81 @@ const LOCKED_FEATURES = new Set(
   (process.env.LOCKED_FEATURES === undefined ? "arena,ordering,blitz,chess_fantasy,ttt_quantum,fourups_abilities,brain_royale" : process.env.LOCKED_FEATURES)
     .split(",").map(x => x.trim().toLowerCase()).filter(x => x && x !== "none")
 );
-function featureLocked(name) { return LOCKED_FEATURES.has(name); }
+/* ---- Spiele-Schalter: Offline (Wartung) / Gesperrt / Test / Offen, einstellbar in der Admin-App ---- */
+const GAME_DEFS = [
+  { id: "braintest", name: "Brain Test", group: "Hauptmenü", icon: "🎯", classes: 10 },
+  { id: "daily", name: "Tagesrätsel", group: "Hauptmenü", icon: "📅" },
+  { id: "party", name: "Party (Online)", group: "Online-Modus", icon: "🎉" },
+  { id: "arena", name: "Arena", group: "Online-Modus", icon: "🏆", classes: 2, classNames: ["Schüler-Liga", "Lehrer-Liga"] },
+  { id: "speedmath", name: "Speed Math", group: "Modi", icon: "➕" },
+  { id: "biology", name: "Biology", group: "Modi", icon: "🧬" },
+  { id: "vocab", name: "Vocab", group: "Modi", icon: "💬" },
+  { id: "braining", name: "Braining", group: "Minigames", icon: "🧠" },
+  { id: "chess", name: "Chess", group: "Minigames", icon: "♟️" },
+  { id: "chess_online", name: "Chess online", group: "Minigames", icon: "🌐", sub: "chess" },
+  { id: "chess_fantasy", name: "Fantasy-Schach", group: "Minigames", icon: "🧙", sub: "chess" },
+  { id: "dame", name: "Dame", group: "Minigames", icon: "♛", sub: "chess" },
+  { id: "muehle", name: "Mühle", group: "Minigames", icon: "⚪", sub: "chess" },
+  { id: "ttt", name: "Tic Tac Toe", group: "Minigames", icon: "❌" },
+  { id: "ttt_quantum", name: "Quanten-Tic-Tac-Toe", group: "Minigames", icon: "⚛️", sub: "ttt" },
+  { id: "brain_royale", name: "Brain Duel (Royale + Mana)", group: "Minigames", icon: "⚔️" },
+  { id: "chem", name: "Brainchimie", group: "Minigames", icon: "⚗️" },
+  { id: "fourups", name: "Fourups", group: "Minigames", icon: "🔴" },
+  { id: "fourups_abilities", name: "Fourups Fähigkeiten", group: "Minigames", icon: "✨", sub: "fourups" },
+  { id: "ordering", name: "Ordering", group: "Minigames", icon: "🔢" },
+  { id: "blitz", name: "Blitz", group: "Minigames", icon: "⚡" },
+  { id: "achievements", name: "Erfolge", group: "Menüleiste", icon: "🏅" },
+  { id: "shop", name: "Shop", group: "Menüleiste", icon: "🛒" }
+];
+const GAME_MODES = ["offline", "locked", "test", "open"];
+let gameCfg = { modes: {}, classOff: {} };
+const GAMES_FILE = USERS_FILE + ".games.json";
+async function loadGameCfg() {
+  try {
+    let raw = null;
+    if (USE_UPSTASH) {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_games`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+      const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result);
+    } else if (fs.existsSync(GAMES_FILE)) raw = JSON.parse(fs.readFileSync(GAMES_FILE, "utf8"));
+    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {} };
+  } catch (e) { console.error("Spiele-Einstellungen nicht lesbar:", e.message); }
+}
+async function saveGameCfg() {
+  if (USE_UPSTASH) {
+    try { const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}_games`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(gameCfg) }); return res.ok; } catch (e) { return false; }
+  }
+  try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
+}
+// Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
+function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : (LOCKED_FEATURES.has(id) ? "locked" : "open"); }
+// Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
+function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
+function gameMode(id) { const m = gameModeRaw(id); return gameStart(id) ? "locked" : m; }
+function featureLocked(name) { return gameMode(name) !== "open"; }
+// Darf jemand mit diesem Schluessel das Spiel nutzen? Admin: immer. Mod: alles ausser "Offline". Tester: nur im Test.
+function gateOk(name, key, ip) {
+  const m = gameMode(name);
+  if (m === "open") return true;
+  const role = testerKeyOk(key);
+  if (role === "mod") return m !== "offline";
+  if (role === "tester") return m === "test";
+  return adminOk(key, ip);
+}
+function classOffList(id) { return Array.isArray(gameCfg.classOff[id]) ? gameCfg.classOff[id] : []; }
+function gameStatusFor(key, ip) {
+  const admin = !testerKeyOk(key) && adminOk(key, ip), role = testerKeyOk(key);
+  const locked = [], maint = [], countdown = {};
+  for (const g of GAME_DEFS) {
+    const m = gameMode(g.id);
+    const st = gameStart(g.id);
+    if (st && (gameModeRaw(g.id) === "open" || admin || role)) countdown[g.id] = st;
+    const ok = m === "open" || admin || (role === "mod" && m !== "offline") || (role === "tester" && m === "test");
+    if (!ok) { locked.push(g.id); if (m === "offline") maint.push(g.id); }
+  }
+  for (const n of LOCKED_FEATURES) if (!GAME_DEFS.some(g => g.id === n) && !admin && !role) locked.push(n);
+  const canAll = admin || role === "mod";
+  return { admin: admin || !!role, locked, maint, countdown, now: Date.now(), braintestOff: canAll ? [] : classOffList("braintest"), arenaOff: canAll ? [] : classOffList("arena") };
+}
 const FEATURE_LOCKED_RESULT = { ok: false, locked: true, error: "Coming soon." };
 
 function stripeConfigured() {
@@ -5962,11 +6090,12 @@ async function handleStripeWebhook(rawBody, sigHeader) {
   return { status: 200, body: "ok" };
 }
 
-async function arenaStartMatch(token, lang) {
+async function arenaStartMatch(token, lang, adminKeyForCheck) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token);
   if (!user) return errObj("notLoggedIn", lang);
   refreshArenaHearts(user);
+  if (classOffList("arena").includes(arenaLeagueInfo(user).index) && !testerKeyOk(adminKeyForCheck) && !adminKeyForCheck) return { ok: false, locked: true, maint: true, error: lang === "en" ? "This league is under maintenance." : "Diese Liga ist gerade in Wartung." };
   if (user.stats.arenaHearts <= 0) {
     return errObj("noHeartsLeft", lang);
   }
@@ -6100,6 +6229,7 @@ const SECURITY_HEADERS = {
 };
 const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
 
+loadGameCfg();
 const zlib = require("zlib");
 const gzCache = new Map();
 const server = http.createServer((req, res) => {
@@ -6162,7 +6292,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
         else if (req.url === "/api/presence") { presenceTouch(payload.sid, payload.logged, payload.where, payload.token); result = { ok: true }; }
         else if (req.url === "/api/admin-online") { result = adminOk(payload.adminKey, ip) ? { ok: true, ...presenceCounts() } : { ok: false }; }
-        else if (req.url === "/api/features") { const adm = adminOk(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: adm, locked: adm ? [] : Array.from(LOCKED_FEATURES), resetEpoch: rm.epoch }; }
+        else if (req.url === "/api/features") { const st = gameStatusFor(payload.adminKey, ip); const rm = await loadResetMeta(); result = { ok: true, admin: st.admin, locked: st.locked, maint: st.maint, countdown: st.countdown, now: st.now, braintestOff: st.braintestOff, arenaOff: st.arenaOff, resetEpoch: rm.epoch }; }
         else if (req.url === "/api/recovery-status") result = await recoveryKeyStatus(payload.token);
         else if (req.url === "/api/recovery-key") result = await recoveryKeyCreate(payload.token, payload.password, lang);
         else if (req.url === "/api/forgot-request") result = await forgotRequest(payload.username, payload.key, payload.note, ip, lang, payload.contact, payload.handles);
@@ -6172,9 +6302,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-set-password") { result = adminOk(payload.adminKey, ip) ? await adminSetPassword(payload.username, payload.newPassword, lang) : { ok: false, error: lang === "en" ? "Wrong admin key." : "Admin-Key falsch." }; }
         else if (req.url === "/api/admin-reset-all") { result = adminOk(payload.adminKey, ip) ? await adminResetAll(payload.confirm, lang) : errObj("invalidInput", lang); }
         else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
-        else if (req.url.startsWith("/api/chess-online/") && featureLocked("chess_online") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
-        else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && featureLocked("arena") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
-        else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && featureLocked("shop") && !adminOk(payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url.startsWith("/api/chess-online/") && !gateOk("chess_online", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && !gateOk("arena", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && !gateOk("shop", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url.startsWith("/api/chess-online/")) result = await chessOnlineApi(req.url.slice(18), payload, lang);
         else if (req.url.startsWith("/api/chess/")) result = await chessApi(req.url.slice(11), payload, lang);
         else if (req.url.startsWith("/api/daily/")) { payload.__ip = ip; result = await dailyApi(req.url.slice(11), payload, lang); }
@@ -6192,6 +6322,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-chat-delete") result = await adminChat("delete", payload, ip, lang);
         else if (req.url === "/api/admin-chat-clear") result = await adminChat("clear", payload, ip, lang);
         else if (req.url === "/api/admin-chat-send") result = await adminChat("send", payload, ip, lang);
+        else if (req.url === "/api/admin-games") result = adminGames(payload.key, ip);
+        else if (req.url === "/api/admin-game-set") result = await adminGameSet(payload.key, ip, payload);
+        else if (req.url === "/api/tester-mode") result = await testerMode(payload, lang);
         else if (req.url === "/api/totp-status") result = await totpApi("status", payload, lang);
         else if (req.url === "/api/totp-setup") result = await totpApi("setup", payload, lang);
         else if (req.url === "/api/totp-enable") result = await totpApi("enable", payload, lang);
@@ -6200,7 +6333,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/social-handle") result = await socialHandle(payload, lang);
         else if (req.url === "/api/admin-beta") result = await adminBeta(payload.key, ip, payload, lang);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
-        else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token, lang);
+        else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token, lang, gateOk("arena", payload.adminKey, ip) && (testerKeyOk(payload.adminKey) === "mod" || (payload.adminKey && !testerKeyOk(payload.adminKey) && adminOk(payload.adminKey, ip))) ? "x" : "");
         else if (req.url === "/api/arena-buy-heart") result = await arenaBuyHeart(payload.token, lang);
         else if (req.url === "/api/shop-create-checkout") {
           const proto = req.headers["x-forwarded-proto"] || (req.socket.encrypted ? "https" : "http");
@@ -6409,7 +6542,7 @@ wss.on("connection", (ws, req) => {
     }
     if (msg.action === "tttQueue") {
       const mode = (msg.mode === "quizmix" || msg.mode === "quantum") ? msg.mode : "classic";
-      if (mode === "quantum" && featureLocked("ttt_quantum") && !adminOk(msg.adminKey, ws.ip)) return send(ws, { type: "tttError", message: "Coming soon." });
+      if (mode === "quantum" && !gateOk("ttt_quantum", msg.adminKey, ws.ip)) return send(ws, { type: "tttError", message: "Coming soon." });
       if (ws.tttRoomCode) tttHandleDisconnect(ws);
       tttQueueRemove(ws);
       const me = { ws, name: cleanStr(msg.name, 20) || "Spieler" };
