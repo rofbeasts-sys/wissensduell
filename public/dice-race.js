@@ -705,7 +705,16 @@ async function progress(force){
   const r = await apiCall('/api/mania', { token: account.token, action: 'progress', n: M.n });
   if(r && r.ok && !M.pend){ board = r; boardDraw(); render(); }
 }
+let bmAudio = null;
+function bmMusic(){
+  if(bmAudio){ if(bmAudio.paused) bmAudio.play().catch(() => {}); return; }
+  try{ bmAudio = new Audio('/audio/Final_Showdown.mp3'); bmAudio.loop = true; bmAudio.volume = 0.5; bmAudio.play().catch(() => { bmAudio = null; }); }catch(e){ bmAudio = null; }
+}
+function bmMusicStop(){ if(bmAudio){ try{ bmAudio.pause(); }catch(e){} bmAudio = null; } }
+document.addEventListener('visibilitychange', () => { if(bmAudio){ if(document.hidden) bmAudio.pause(); else if($('bmCnt')) bmAudio.play().catch(() => {}); } });
+setInterval(() => { if(bmAudio && !$('bmCnt')) bmMusicStop(); }, 800);
 function add(k){
+  bmMusic();
   const now = Date.now(); if(M.last && M.n > 0) M.ms += Math.min(now - M.last, 60000); M.last = now;
   const a = M.n; M.n += k;
   for(const m in MILE){ if(a < +m && M.n >= +m){ big(L(MILE[m][0][0], MILE[m][0][1])); msg(L(MILE[m][1][0], MILE[m][1][1])); next = M.n + 25; if(m == 1000) anim('bmWob', 700); if(m == 10000) anim('bmSpin', 1200); } }
@@ -770,6 +779,6 @@ window.startManiaFlow = function(){
   render(); loadBoard();
   const iv = setInterval(() => { if(!$('bmCnt')){ clearInterval(iv); return; } progress(true); }, 8000);
 };
-window.bmLeave = function(){ try{ progress(true); }catch(e){} brDuelHub(); };
+window.bmLeave = function(){ try{ progress(true); }catch(e){} bmMusicStop(); brDuelHub(); };
 window.__bmAdd = add; window.__bmMs = ms => { M.ms = ms; };
 })();
