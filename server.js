@@ -5695,7 +5695,7 @@ function adminUserRow(u) {
   return { username: u.username, avatar: u.avatar || st.avatar || null, online: accountIsOnline(u.username), coins: st.coins || 0,
     klasse: st.klasse || 0, rounds: st.roundsPlayed || 0, arenaPoints: st.arenaPoints || 0, flags: st.cheatFlags || 0, lastCheat: st.lastCheat || null,
     restricted: isRestricted(u), banned: u.banned === true, banReason: u.banReason || "", bannedUntil: u.bannedUntil && u.bannedUntil > Date.now() ? u.bannedUntil : 0,
-    mutedUntil: u.mutedUntil && u.mutedUntil > Date.now() ? u.mutedUntil : 0, tester: !!u.tester, role: userRole(u), createdAt: u.createdAt || 0, lastSeen: u.lastSeen || 0, log: (u.adminLog || []).slice(-5) };
+    mutedUntil: u.mutedUntil && u.mutedUntil > Date.now() ? u.mutedUntil : 0, beta: u.betaPhase | 0, tester: !!u.tester, role: userRole(u), createdAt: u.createdAt || 0, lastSeen: u.lastSeen || 0, log: (u.adminLog || []).slice(-5) };
 }
 function adminUsers(key, ip, query, onlineOnly) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -5945,7 +5945,19 @@ async function loadGameCfg() {
 // ---- NEWS (steht mit in den Spiele-Einstellungen, bleibt also mit gespeichert) ----
 const NEWS_WELCOME = { id: 1, ts: Date.UTC(2026, 9, 25), de: { title: "Herzlich willkommen bei Brain Pulse!", text: "Schön, dass du da bist! Hier findest du ab jetzt alle Neuigkeiten: neue Spiele, neue Funktionen und Aktionen.\n\nViel Spaß beim Ausprobieren und viel Spaß beim Spielen!" }, en: { title: "Welcome to Brain Pulse!", text: "Great to have you here! This is where you'll find all the news from now on: new games, new features and events.\n\nHave fun trying things out and enjoy playing!" } };
 function newsAll() { return Array.isArray(gameCfg.news) && gameCfg.news.length ? gameCfg.news : [NEWS_WELCOME]; }
-function newsPublic() { const all = newsAll(); return { ok: true, news: all.slice(-30).reverse(), lastId: all.reduce((m, n) => Math.max(m, n.id), 0) }; }
+function newsPublic(token) {
+  const all = newsAll(), out = { ok: true, news: all.slice(-30).reverse(), lastId: all.reduce((m, n) => Math.max(m, n.id), 0) };
+  if (token && usersLoaded) { const u = findUserByToken(token); if (u) { out.account = true; out.seen = u.newsSeen | 0; } }
+  return out;
+}
+async function newsMarkSeen(token, id) {
+  if (!usersLoaded) return { ok: false };
+  const u = findUserByToken(token); if (!u) return { ok: false };
+  const last = newsAll().reduce((m, n) => Math.max(m, n.id), 0);
+  const n = Math.min(last, Math.max(0, parseInt(id, 10) || 0));
+  if (n > (u.newsSeen | 0)) { u.newsSeen = n; await saveUsers(); }
+  return { ok: true, seen: u.newsSeen | 0 };
+}
 async function adminNews(key, ip, payload) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   const clean = (x, n) => String(x == null ? "" : x).replace(/[\u0000-\u0008\u000b-\u001f]+/g, " ").trim().slice(0, n);
@@ -6376,7 +6388,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-chat-clear") result = await adminChat("clear", payload, ip, lang);
         else if (req.url === "/api/admin-chat-send") result = await adminChat("send", payload, ip, lang);
         else if (req.url === "/api/admin-games") result = adminGames(payload.key, ip);
-        else if (req.url === "/api/news") result = newsPublic();
+        else if (req.url === "/api/news") result = newsPublic(payload.token);
+        else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
         else if (req.url === "/api/admin-news") result = await adminNews(payload.key, ip, payload);
         else if (req.url === "/api/admin-game-set") result = await adminGameSet(payload.key, ip, payload);
         else if (req.url === "/api/tester-mode") result = await testerMode(payload, lang);
