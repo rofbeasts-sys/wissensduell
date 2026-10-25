@@ -12,23 +12,40 @@ function killGame(){ detachLayer(); if(stopFn){ try{ stopFn(); }catch(e){} stopF
 function st(game){ try{ return JSON.parse(localStorage.getItem('hd_' + game) || 'null') || { last: 0, best: 0 }; }catch(e){ return { last: 0, best: 0 }; } }
 function stSet(game, score){ const o = st(game); o.last = score; if(score > o.best) o.best = score; try{ localStorage.setItem('hd_' + game, JSON.stringify(o)); }catch(e){} return o; }
 function statLine(game){ const o = st(game); return L('Letzte: ', 'Last: ') + fmt(o.last) + ' · ' + L('Beste: ', 'Best: ') + fmt(o.best); }
+function STARS(n, seed, size){ let x = seed * 9301 % 233280, o = []; const rnd = () => { x = (x * 9301 + 49297) % 233280; return x / 233280; };
+  for(let k = 0; k < n; k++){ const px = (rnd() * 100).toFixed(1), py = (rnd() * 100).toFixed(1), sz = (size * (.6 + rnd() * .9)).toFixed(1), c = rnd() < .22 ? '#ffd9ff' : rnd() < .5 ? '#cfe6ff' : '#ffffff'; o.push('radial-gradient(' + sz + 'px ' + sz + 'px at ' + px + '% ' + py + '%,' + c + ',transparent)'); }
+  return o.join(','); }
 /* ---------- gemeinsames Rahmen-Layout ---------- */
 const CSS = `<style>
- #hdApp{text-align:center;position:relative;overflow:hidden;border-radius:30px;border:1px solid rgba(255,255,255,.18);background:radial-gradient(circle at 18% 4%,#3a1466 0,transparent 46%),radial-gradient(circle at 96% 38%,#0b3b66 0,transparent 52%),radial-gradient(circle at 28% 100%,#5a0f4a 0,transparent 46%),#070a1c}
- #hdApp:before{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(120,160,255,.13) 0 1px,transparent 1px 26px),linear-gradient(180deg,transparent,rgba(180,40,160,.18));opacity:.8}
+ #hdApp{text-align:center;position:relative;overflow:hidden;border-radius:30px;border:1px solid rgba(160,140,255,.35);background:radial-gradient(ellipse at 15% 0%,#4a1f9c 0,transparent 48%),radial-gradient(ellipse at 100% 30%,#173fa8 0,transparent 52%),radial-gradient(ellipse at 20% 75%,#5e2090 0,transparent 46%),radial-gradient(ellipse at 90% 100%,#1e2080 0,transparent 50%),#070626;box-shadow:0 0 40px rgba(106,44,214,.35)}
+ #hdApp:before,#hdApp:after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none}
+ #hdApp:before{background-image:${STARS(46, 7, 2)};opacity:.9}
+ #hdApp:after{background-image:${STARS(34, 31, 1.6)};animation:hdTw 3.2s ease-in-out infinite alternate}
+ @keyframes hdTw{from{opacity:.15}to{opacity:1}}
+ #hdApp .hdsh{position:absolute;left:-20%;top:12%;width:90px;height:2px;background:linear-gradient(90deg,transparent,#fff);transform:rotate(22deg);opacity:0;animation:hdShoot 7s linear infinite;pointer-events:none}
+ @keyframes hdShoot{0%{opacity:0;transform:translate(0,0) rotate(22deg)}4%{opacity:1}14%{opacity:0;transform:translate(520px,210px) rotate(22deg)}100%{opacity:0}}
  #hdApp>*{position:relative}
  #hdApp .picker-title{color:#9fe8ff;letter-spacing:4px;font-weight:900;text-shadow:0 0 14px #3db0ff}
  #hdApp .picker-sub{opacity:.75}
  .hdbig{font-size:88px;line-height:1;font-weight:900;font-variant-numeric:tabular-nums;margin-top:6px;background:linear-gradient(#fff,#9fe8ff);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 20px rgba(61,176,255,.8))}
  #hdMsg{min-height:34px;font-size:16px;font-weight:800;margin-top:4px;color:#c8ff3d;text-shadow:0 0 14px #c8ff3d;letter-spacing:1px}
  #hdBot{font-size:13px;font-weight:800;opacity:.9;min-height:18px;margin-top:2px;color:#ffb24d}
- .hdcard{display:flex;gap:10px;align-items:center;padding:12px;border-radius:16px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);margin-top:10px;text-align:left}
- .hdcard .ic{font-size:28px}.hdcard .tx{flex:1}.hdcard h3{margin:0;font-size:17px}.hdcard p{margin:2px 0 0;font-size:12px;opacity:.7}
- .hdcard button{padding:8px 12px;border-radius:12px;border:0;font-weight:800;cursor:pointer}
- .hdb1{background:#c8ff3d;color:#0b0f1a}.hdb2{background:#ffb24d;color:#0b0f1a}
+ .hdcard{margin-top:12px;border-radius:24px;padding:14px;text-align:left;border:2px solid var(--c,#9fe8ff);background:linear-gradient(135deg,color-mix(in srgb,var(--c,#9fe8ff) 22%,transparent),rgba(255,255,255,.04));box-shadow:0 0 22px color-mix(in srgb,var(--c,#9fe8ff) 38%,transparent),inset 0 0 24px rgba(255,255,255,.04)}
+ .hdcT{display:flex;gap:12px;align-items:center}
+ .hdcard .ic{flex:none;width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:30px;background:rgba(0,0,0,.28);border:2px solid var(--c,#9fe8ff);box-shadow:0 0 18px var(--c,#9fe8ff)}
+ .hdcard .tx{flex:1;min-width:0}.hdcard h3{margin:0;font-size:18px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;text-shadow:0 0 12px var(--c,#9fe8ff)}.hdcard p{margin:3px 0 0;font-size:12.5px;opacity:.78;line-height:1.3}
+ .hdbest{flex:none;text-align:center;font-size:10px;font-weight:900;letter-spacing:1.5px;opacity:.9}.hdbest b{display:block;font-size:24px;letter-spacing:0;color:var(--c,#9fe8ff);text-shadow:0 0 12px var(--c,#9fe8ff)}
+ .hdcB{display:flex;gap:10px;margin-top:12px}
+ .hdcard button{flex:1;padding:13px 6px;border-radius:16px;border:0;font-weight:900;font-size:15px;letter-spacing:.5px;cursor:pointer}
+ .hdb1{background:#c8ff3d;color:#0b0f1a;box-shadow:0 0 18px rgba(200,255,61,.55)}.hdb2{background:linear-gradient(135deg,#ff8a4d,#ff4d9a);color:#fff;box-shadow:0 0 18px rgba(255,77,154,.5)}
  .hdrow{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;text-align:left}.hdrow b{width:24px;text-align:center}.hdrow span{flex:1}
  .hdpad{height:20vh;border-radius:30px;transition:all .1s;box-shadow:0 0 14px currentColor}.hdpad.on{filter:brightness(2.4) saturate(1.2);transform:scale(.97);box-shadow:0 0 56px currentColor,inset 0 0 34px rgba(255,255,255,.45);border-color:#fff!important}
- .hdlvl{display:flex;gap:6px;margin-top:8px}.hdlvl button{flex:1;padding:8px 0;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit;font-weight:800}.hdlvl button.on{background:#ffb24d;color:#0b0f1a;border-color:#ffb24d}
+ .hdlvl{display:flex;gap:6px;margin-top:8px}.hdlvl button{flex:1;padding:8px 0;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit;font-weight:800}.hdlvl button.on{background:linear-gradient(135deg,#ff8a4d,#ff4d9a);color:#fff;border-color:transparent;box-shadow:0 0 16px rgba(255,77,154,.55)}
+ .hdcard{border:1px solid rgba(255,255,255,.14);border-left:4px solid var(--c);background:rgba(255,255,255,.06);box-shadow:none;border-radius:20px}
+ .hdcard .ic{border:0;box-shadow:none;background:color-mix(in srgb,var(--c) 22%,transparent);color:var(--c)}
+ .hdcard h3{text-shadow:none;letter-spacing:1px;font-size:17px}.hdbest b{text-shadow:none}
+ .hdb1{background:#d7f27a;box-shadow:none}.hdb2{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.28)!important;box-shadow:none;color:#fff}
+ .hdlvl button.on{background:rgba(255,255,255,.2);box-shadow:none;color:#fff;border:1px solid rgba(255,255,255,.5)}
 </style>`;
 const hud = { score(n){ const e = $('hdSc'); if(e) e.textContent = fmt(n); }, msg(t){ const e = $('hdMsg'); if(e) e.textContent = t || ' '; } };
 /* ---------- die fünf Spiele: run(host, hud, end) -> stop() ; end(score) genau einmal bei Fehler ---------- */
@@ -117,7 +134,7 @@ G.gegenteil = { name: 'Das Gegenteil', icon: '🔄', hint: ['Roter Pfeil: gegen 
  } };
 G.flug = { name: 'Der Farbflug', icon: '🚀', hint: ['Fliege durch die Farbe, die oben steht. Links oder rechts tippen.', 'Fly through the color shown on top. Tap left or right.'], pace: 1.6, rng: [5, 16],
  run(host, hud, end){
-  host.innerHTML = '<canvas id="hdC" width="360" height="540" style="display:block;margin:0 auto;max-width:100%;height:auto"></canvas>'; const c = $('hdC'), x = c.getContext('2d');
+  host.innerHTML = '<div id="hdTgt" style="height:44px;margin:0 auto 6px"></div><canvas id="hdC" width="360" height="540" style="display:block;margin:0 auto;max-width:100%;height:auto"></canvas>'; const c = $('hdC'), x = c.getContext('2d'); let lastTg = '';
   const CL = { R: '#ff4d6a', G: '#3dff7a', B: '#3db0ff', Y: '#ffc83d' }, WC = document.createElement('canvas'), NM = { R: L('ROT', 'RED'), G: L('GRÜN', 'GREEN'), B: L('BLAU', 'BLUE'), Y: L('GELB', 'YELLOW') }, K = Object.keys(CL), LX = [105, 255], BY = 380, GAP = 240;
   let bx = 105, dest = 0, lvl = 0, over = false, gates = [], trail = [], raf = 0, last = performance.now(), sl = 0;
   const addG = y => { const a = K[Math.floor(Math.random() * 4)]; let b; do { b = K[Math.floor(Math.random() * 4)]; } while(b === a); gates.push({ y, cols: [a, b], t: Math.random() < .5 ? 0 : 1, done: false }); };
@@ -130,7 +147,7 @@ G.flug = { name: 'Der Farbflug', icon: '🚀', hint: ['Fliege durch die Farbe, d
    WC.width = 70; WC.height = 540; const wx = WC.getContext('2d'); [0, 1].forEach(l => { const col = g ? CL[g.cols[l]] : '#556'; wx.globalCompositeOperation = 'source-over'; wx.clearRect(0, 0, 70, 540); const gr = wx.createLinearGradient(l ? 70 : 0, 0, l ? 0 : 70, 0); gr.addColorStop(0, col); gr.addColorStop(1, 'rgba(0,0,0,0)'); wx.fillStyle = gr; wx.fillRect(0, 0, 70, 540); wx.globalCompositeOperation = 'destination-in'; const vg = wx.createLinearGradient(0, 0, 0, 540); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(.12, 'rgba(0,0,0,1)'); vg.addColorStop(.72, 'rgba(0,0,0,1)'); vg.addColorStop(.82, 'rgba(0,0,0,0)'); wx.fillStyle = vg; wx.fillRect(0, 0, 70, 540); x.globalAlpha = .5; x.drawImage(WC, l ? 290 : 0, 0); x.globalAlpha = 1; });
    // Tempo-Linien
    sl = (sl + spd() * dt) % 60; x.fillStyle = 'rgba(255,255,255,.07)'; for(let k = -1; k < 8; k++){ x.fillRect(178, k * 60 + sl, 4, 26); }
-   if(g){ const tc = CL[g.cols[g.t]], tx = L('DURCH: ', 'THROUGH: ') + NM[g.cols[g.t]]; x.font = '900 24px system-ui'; x.textAlign = 'center'; const w = x.measureText(tx).width + 40; x.fillStyle = tc; x.shadowColor = tc; x.shadowBlur = 18; rr(180 - w / 2, 8, w, 42, 21); x.fill(); x.shadowBlur = 0; x.fillStyle = '#0a0e1a'; x.fillText(tx, 180, 38); }
+   if(g){ const tc = CL[g.cols[g.t]], tx = L('DURCH: ', 'THROUGH: ') + NM[g.cols[g.t]]; if(tx !== lastTg){ lastTg = tx; const e = $('hdTgt'); if(e) e.innerHTML = '<span style="display:inline-block;padding:7px 26px;border-radius:24px;background:' + tc + ';color:#0a0e1a;font-weight:900;font-size:22px;letter-spacing:1px;box-shadow:0 0 18px ' + tc + '">' + tx + '</span>'; } }
    if(!over){ gates.forEach(q => q.y += spd() * dt); bx += (LX[dest] - bx) * Math.min(1, dt * 7); trail.unshift({ x: bx, y: BY }); trail.forEach(p => p.y += spd() * dt * .9); trail = trail.filter(p => p.y < BY + 140).slice(0, 18);
     if(g && g.y >= BY - 10 && g.y <= BY + 44 && !g.done){ g.done = true; const lane = Math.abs(bx - LX[0]) < Math.abs(bx - LX[1]) ? 0 : 1; if(lane === g.t){ lvl++; hud.score(lvl); } else { over = true; hud.msg(L('Falsche Farbe.', 'Wrong color.')); setTimeout(() => end(lvl), 900); } }
     gates = gates.filter(q => q.y < 620); if(gates.length < 5) addG(Math.min.apply(null, gates.map(q => q.y)) - GAP); }
@@ -147,6 +164,18 @@ G.flug = { name: 'Der Farbflug', icon: '🚀', hint: ['Fliege durch die Farbe, d
   host.onpointerdown = e => { const r = (document.documentElement.clientWidth || window.innerWidth) / 2; go(e.clientX < r ? 0 : 1); };
   return () => { over = true; cancelAnimationFrame(raf); host.onpointerdown = null; };
  } };
+
+const SV = p => '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.14em">' + p + '</svg>';
+const ICO = {
+ balken: SV('<rect x="2" y="9" width="20" height="6" rx="3"/><rect x="4.5" y="10.8" width="7" height="2.4" rx="1.2" fill="currentColor" stroke="none" opacity=".55"/><circle cx="16" cy="12" r="2" fill="currentColor"/>'),
+ turm: SV('<rect x="5" y="17" width="14" height="4" rx="1.2"/><rect x="7" y="11" width="10" height="4" rx="1.2"/><rect x="9" y="5" width="6" height="4" rx="1.2" fill="currentColor" opacity=".7"/>'),
+ gedaechtnis: SV('<rect x="3" y="3" width="8" height="8" rx="2.5" fill="currentColor" opacity=".7"/><rect x="13" y="3" width="8" height="8" rx="2.5"/><rect x="3" y="13" width="8" height="8" rx="2.5"/><rect x="13" y="13" width="8" height="8" rx="2.5"/>'),
+ linie: SV('<circle cx="12" cy="12" r="9"/><path d="M17.5 5.5A9 9 0 0 1 21 12" stroke-width="3.6" opacity=".65"/><path d="M12 12L17 8"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/>'),
+ gegenteil: SV('<path d="M7 20V5M3 9l4-4 4 4"/><path d="M17 4v15M13 15l4 4 4-4"/>'),
+ flug: SV('<path d="M12 2c4 4 5 9 3 15H9C7 11 8 6 12 2Z"/><path d="M9 17l-3 4M15 17l3 4"/><circle cx="12" cy="9.5" r="1.8" fill="currentColor"/>'),
+ olymp: SV('<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v4M8 21h8M9.5 18h5"/>')
+};
+Object.keys(ICO).forEach(k => { if(G[k]) G[k].icon = ICO[k]; });
 const ORDER = ['balken', 'turm', 'gedaechtnis', 'linie', 'gegenteil', 'flug'];
 /* ---------- Bot-Gegner: Zielwert + Anzeige, die mitzählt ---------- */
 function botTarget(game, diff){ const r = G[game].rng, f = diff === 0 ? .65 : diff === 2 ? 1.35 : 1; return Math.max(1, Math.round((r[0] + Math.random() * (r[1] - r[0])) * f)); }
@@ -157,7 +186,7 @@ async function board(game){ return await apiCall('/api/hard', { token: account &
 function boardHtml(b){ if(!b || !b.ok || !b.board || !b.board.length) return '<div style="opacity:.6;text-align:center;padding:8px">' + L('Noch keine Einträge.', 'No entries yet.') + '</div>'; return b.board.map((r, i) => '<div class="hdrow"><b>' + (i + 1) + '</b><span>' + esc(r.name) + '</span><span style="flex:none;font-weight:800">' + fmt(r.best) + '</span></div>').join(''); }
 function rankBox(b){
   if(!b || !b.ok) return '';
-  const me = b.rank ? `<div style="font-size:16px;font-weight:800;margin-top:14px">${L('Dein Platz: ', 'Your rank: ')}${b.rank}${b.board && b.board.length ? L(' von ', ' of ') + '…' : ''}</div>` : (account ? '' : `<div class="explanation" style="margin-top:12px">${L('Melde dich an, um in die Bestenliste zu kommen.', 'Log in to get on the leaderboard.')}</div>`);
+  const me = b.rank ? `<div style="font-size:16px;font-weight:800;margin-top:14px">${L('Dein Platz: ', 'Your rank: ')}${b.rank}${b.board && b.board.length ? L(' von ', ' of ') + '…' : ''}</div>` : '';
   const top = (b.board || []).slice(0, 5).map((r, i) => '<div class="hdrow"><b>' + (i + 1) + '</b><span>' + esc(r.name) + '</span><span style="flex:none;font-weight:800">' + fmt(r.best) + '</span></div>').join('') || '<div style="opacity:.6;text-align:center;padding:8px">' + L('Noch keine Einträge.', 'No entries yet.') + '</div>';
   return me.replace(/ von …| of …/, '') + '<div class="settings-label" style="margin-top:12px">' + L('TOP 5', 'TOP 5') + '</div>' + top;
 }
@@ -187,17 +216,18 @@ setInterval(() => { if(HM && !$('hdApp')) hdMusicStop(); }, 800);
 window.startHardFlow = function(){
   killGame(); hdMusic();
   if(typeof featureLocked === 'function' && featureLocked('hard') && !(typeof adminViewOn === 'function' && adminViewOn())){ renderMainMenu(); return; }
-  const cards = ORDER.map(k => `<div class="hdcard"><div class="ic">${G[k].icon}</div><div class="tx"><h3>${G[k].name}</h3><p>${L(G[k].hint[0], G[k].hint[1])}</p></div><button class="hdb1" onclick="hdPlay('${k}',0)">Solo</button><button class="hdb2" onclick="hdPlay('${k}',1)">${L('Gegen Bot', 'vs Bot')}</button></div>`).join('');
-  renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">💀 ${L('DAS SCHWERSTE SPIEL DER WELT', 'THE HARDEST GAME IN THE WORLD')}</div>
+  const ACC = {balken:'#c8ff3d',turm:'#3db0ff',gedaechtnis:'#ff4d6a',linie:'#ffc83d',gegenteil:'#b36bff',flug:'#3dffe0'};
+  const cards = ORDER.map(k => `<div class="hdcard" style="--c:${ACC[k]}"><div class="hdcT"><div class="ic">${G[k].icon}</div><div class="tx"><h3>${G[k].name}</h3><p>${L(G[k].hint[0], G[k].hint[1])}</p></div><div class="hdbest">${L('BESTE', 'BEST')}<b>${fmt(st(k).best)}</b></div></div><div class="hdcB"><button class="hdb1" onclick="hdPlay('${k}',0)">Solo</button><button class="hdb2" onclick="hdPlay('${k}',1)">${L('Gegen Bot', 'vs Bot')}</button></div></div>`).join('');
+  renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title" style="font-size:20px;line-height:1.25">💀 ${L('DAS SCHWERSTE SPIEL<br>DER WELT', 'THE HARDEST GAME<br>IN THE WORLD')}</div>
    <div class="picker-sub">${L('Ein Fehler und es ist vorbei. Wie weit kommst du?', 'One mistake and it is over. How far can you get?')}</div>
    <div class="settings-label" style="margin-top:12px">${L('Schwierigkeit des Bots', 'Bot difficulty')}</div>
    <div class="hdlvl">${[[0, 'Leicht', 'Easy'], [1, 'Normal', 'Normal'], [2, 'Schwer', 'Hard']].map(d => `<button class="${diff === d[0] ? 'on' : ''}" onclick="hdDiff(${d[0]})">${L(d[1], d[2])}</button>`).join('')}</div>
-   <div class="hdcard" style="border-color:#ffb24d"><div class="ic">🏅</div><div class="tx"><h3>${L('Olympiade', 'Olympics')}</h3><p>${L('Alle fünf Spiele durcheinander, jedes mit einem Leben. Die Punkte zählen zusammen.', 'All five games shuffled, one life each. Points add up.')}</p></div><button class="hdb1" onclick="hdOlymp(0)">Solo</button><button class="hdb2" onclick="hdOlymp(1)">${L('Gegen Bot', 'vs Bot')}</button></div>
+   <div class="hdcard" style="--c:#ffd23d"><div class="hdcT"><div class="ic">${ICO.olymp}</div><div class="tx"><h3>${L('Olympiade', 'Olympics')}</h3><p>${L('Alle Spiele durcheinander, jedes mit einem Leben. Die Punkte zählen zusammen.', 'All games shuffled, one life each. Points add up.')}</p></div><div class="hdbest">${L('BESTE', 'BEST')}<b>${fmt(st('olympiade').best)}</b></div></div><div class="hdcB"><button class="hdb1" onclick="hdOlymp(0)">Solo</button><button class="hdb2" onclick="hdOlymp(1)">${L('Gegen Bot', 'vs Bot')}</button></div></div>
    ${cards}
    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn btn-ghost" id="hdMuteBtn" onclick="hdMute()">${hdMuted() ? L('🔇 Musik: aus', '🔇 Music: off') : L('🔊 Musik: an', '🔊 Music: on')}</button><button class="btn btn-ghost" onclick="brDuelHub()">${L('Zurück', 'Back')}</button></div></div>`);
 };
 window.hdDiff = function(d){ diff = d; startHardFlow(); };
-function shell(title, sub, withBot, game){ renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title" style="margin:0">${title}</div><div style="font-size:13px;font-weight:800;opacity:.85;margin-top:4px">${game ? statLine(game) : ''}</div><div class="picker-sub">${sub}</div><div class="hdbig" id="hdSc">0</div><div id="hdBot">${withBot ? '&nbsp;' : ''}</div><div id="hdMsg">&nbsp;</div><div id="hdHost" style="touch-action:none;user-select:none;min-height:60vh"></div></div>`); }
+function shell(title, sub, withBot, game){ renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title" style="margin:0">${title}</div><div style="font-size:13px;font-weight:800;opacity:.85;margin-top:4px">${game ? statLine(game) : ''}</div><div class="picker-sub">${sub}</div><div class="hdbig" id="hdSc">0</div><div id="hdBot">${withBot ? '&nbsp;' : ''}</div><div id="hdMsg">&nbsp;</div><div id="hdHost" style="touch-action:none;user-select:none;min-height:60vh"></div></div>`); }
 const INTRO = {
  balken: ['Eine Kugel fliegt hin und her.', 'Tippe auf den Bildschirm, wenn die Kugel im Feld ist.', 'A ball flies back and forth.', 'Tap the screen when the ball is in the field.', '<div style="height:18px;border-radius:9px;background:#161d30;position:relative;margin:14px auto;max-width:260px"><div style="position:absolute;left:30%;width:36%;top:0;bottom:0;background:#c8ff3d;border-radius:9px"></div><div style="position:absolute;left:44%;top:-4px;width:26px;height:26px;border-radius:50%;background:#fff"></div></div>'],
  turm: ['Ein Block fährt hin und her.', 'Tippe, um ihn fallen zu lassen. Was überhängt, fällt ab.', 'A block slides back and forth.', 'Tap to drop it. Overhang falls off.', '<div style="margin:14px auto;max-width:200px"><div style="height:16px;background:#3de0ff;margin:0 auto;width:110px;border-radius:3px"></div><div style="height:16px;background:#ff4d6a;margin:2px auto 0;width:150px;border-radius:3px"></div></div>'],
@@ -208,13 +238,13 @@ const INTRO = {
 };
 window.hdPlay = function(game, mode, go){
   if(!go && INTRO[game]){ killGame(); const g = G[game], I = INTRO[game];
-    renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">${g.icon} ${g.name.toUpperCase()}</div><div style="font-size:16px;font-weight:700;margin-top:10px">${L(I[0], I[2])}</div><div style="font-size:15px;opacity:.9;margin-top:6px">${L(I[1], I[3])}</div>${I[4]}<div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn" onclick="hdPlay('${game}',${mode},1)">START</button><button class="btn btn-ghost" onclick="startHardFlow()">${L('Zurück', 'Back')}</button></div></div>`); return; }
+    renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title">${g.icon} ${g.name.toUpperCase()}</div><div style="font-size:16px;font-weight:700;margin-top:10px">${L(I[0], I[2])}</div><div style="font-size:15px;opacity:.9;margin-top:6px">${L(I[1], I[3])}</div>${I[4]}<div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn" onclick="hdPlay('${game}',${mode},1)">START</button><button class="btn btn-ghost" onclick="startHardFlow()">${L('Zurück', 'Back')}</button></div></div>`); return; }
   killGame(); const my = alive, g = G[game];
   shell(g.icon + ' ' + g.name.toUpperCase(), L(g.hint[0], g.hint[1]), mode === 1, game);
   const tgt = mode === 1 ? botTarget(game, diff) : 0, tk = mode === 1 ? botTicker(tgt, g.pace, 'Bot') : null;
   stopFn = g.run($('hdHost'), hud, async score => { if(my !== alive) return; if(tk) tk.finish(); stopFn = null; detachLayer(); stSet(game, score); const sub = await submit(game, score); const b = await board(game);
    const win = mode === 1 ? (score > tgt ? 1 : score === tgt ? 0 : -1) : 0;
-   renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">${g.icon} ${g.name.toUpperCase()}</div>
+   renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title">${g.icon} ${g.name.toUpperCase()}</div>
     <div class="hdbig">${fmt(score)}</div>
     <div style="font-size:15px;font-weight:700;margin-top:4px">${mode === 1 ? (win > 0 ? L('Du hast den Bot geschlagen!', 'You beat the bot!') + ' (Bot: ' + tgt + ')' : win === 0 ? L('Unentschieden gegen den Bot.', 'Draw with the bot.') + ' (Bot: ' + tgt + ')' : L('Der Bot war besser.', 'The bot was better.') + ' (Bot: ' + tgt + ')') : (score >= 12 ? L('Stark.', 'Strong.') : L('Die meisten hören hier auf.', 'Most people stop here.'))}</div>
     ${sub && sub.ok ? `<div style="opacity:.75;font-size:13px;margin-top:4px">${L('Dein Rekord: ', 'Your best: ')}${fmt(sub.mine || score)}${sub.rank ? ' · ' + L('Platz ', 'Rank ') + sub.rank : ''}</div>` : (!account ? `<div class="explanation" style="margin-top:8px">${L('Melde dich an, um in die Bestenliste zu kommen.', 'Log in to get on the leaderboard.')}</div>` : '')}
@@ -228,13 +258,13 @@ window.hdOlymp = async function(mode){
   killGame(); const my = alive; const order = ORDER.slice().sort(() => Math.random() - .5); const res = []; let total = 0, botTotal = 0; const targets = order.map(k => botTarget(k, diff));
   for(let i = 0; i < order.length; i++){
     if(my !== alive) return; const k = order[i], g = G[k];
-    renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">🏅 ${L('OLYMPIADE', 'OLYMPICS')} ${i + 1}/${order.length}</div><div class="hdbig" style="font-size:80px">${g.icon}</div><div class="picker-title" style="margin-top:6px">${g.name}</div><div class="picker-sub">${L(g.hint[0], g.hint[1])}</div><div style="margin-top:14px;font-weight:800">${L('Gesamt bisher: ', 'Total so far: ')}${fmt(total)}${mode ? ' · Bot ' + fmt(botTotal) : ''}</div></div>`);
+    renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title">${ICO.olymp} ${L('OLYMPIADE', 'OLYMPICS')} ${i + 1}/${order.length}</div><div class="hdbig" style="font-size:80px">${g.icon}</div><div class="picker-title" style="margin-top:6px">${g.name}</div><div class="picker-sub">${L(g.hint[0], g.hint[1])}</div><div style="margin-top:14px;font-weight:800">${L('Gesamt bisher: ', 'Total so far: ')}${fmt(total)}${mode ? ' · Bot ' + fmt(botTotal) : ''}</div></div>`);
     await sl(2200); if(my !== alive) return;
-    const score = await new Promise(resolve => { shell('🏅 ' + g.name.toUpperCase() + ' (' + (i + 1) + '/' + order.length + ')', L('Gesamt bisher: ', 'Total so far: ') + fmt(total), mode === 1, 'olympiade'); const tk = mode === 1 ? botTicker(targets[i], g.pace, 'Bot') : null; stopFn = g.run($('hdHost'), hud, s => { if(tk) tk.finish(); stopFn = null; detachLayer(); resolve(s); }); if(k !== 'gedaechtnis') attachLayer(); });
+    const score = await new Promise(resolve => { shell(ICO.olymp + ' ' + g.name.toUpperCase() + ' (' + (i + 1) + '/' + order.length + ')', L('Gesamt bisher: ', 'Total so far: ') + fmt(total), mode === 1, 'olympiade'); const tk = mode === 1 ? botTicker(targets[i], g.pace, 'Bot') : null; stopFn = g.run($('hdHost'), hud, s => { if(tk) tk.finish(); stopFn = null; detachLayer(); resolve(s); }); if(k !== 'gedaechtnis') attachLayer(); });
     if(my !== alive) return; res.push([k, score]); total += score; botTotal += targets[i];
   }
   stSet('olympiade', total); const sub = await submit('olympiade', total); const b = await board('olympiade'); if(my !== alive) return;
-  renderApp(CSS + `<div class="panel" id="hdApp"><div class="picker-title">🏅 ${L('OLYMPIADE GESCHAFFT', 'OLYMPICS DONE')}</div><div class="hdbig">${fmt(total)}</div>
+  renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title">${ICO.olymp} ${L('OLYMPIADE GESCHAFFT', 'OLYMPICS DONE')}</div><div class="hdbig">${fmt(total)}</div>
    ${mode ? `<div style="font-size:15px;font-weight:700">${total > botTotal ? L('Du hast den Bot geschlagen!', 'You beat the bot!') : total === botTotal ? L('Unentschieden.', 'Draw.') : L('Der Bot war besser.', 'The bot was better.')} (Bot: ${fmt(botTotal)})</div>` : ''}
    <div style="margin-top:10px;text-align:left">${res.map(([k, s], i) => `<div class="hdrow"><span>${G[k].icon} ${G[k].name}</span><span style="flex:none;font-weight:800">${fmt(s)}${mode ? ' <small style="opacity:.6">(Bot ' + targets[ORDER.indexOf(k) >= 0 ? order.indexOf(k) : 0] + ')</small>' : ''}</span></div>`).join('')}</div>
    ${sub && sub.ok ? `<div style="opacity:.75;font-size:13px;margin-top:6px">${L('Dein Rekord: ', 'Your best: ')}${fmt(sub.mine || total)}${sub.rank ? ' · ' + L('Platz ', 'Rank ') + sub.rank : ''}</div>` : (!account ? `<div class="explanation" style="margin-top:8px">${L('Melde dich an, um in die Bestenliste zu kommen.', 'Log in to get on the leaderboard.')}</div>` : '')}
