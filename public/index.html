@@ -4225,7 +4225,34 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
 let lockedFeatures = ['arena','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
+let maintFeatures = [], braintestOff = [], arenaOff = [], gameCountdown = {}, serverClockOff = 0;
+function featureMaint(name){ return maintFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
+/* ---- Tester-Modus: Konten mit Tester-Recht (vom Admin vergeben) sehen die gesperrten Spiele, sonst nichts ---- */
+function isTesterMode(){ try{ return localStorage.getItem('bp_tester') === '1'; }catch(e){ return false; } }
+function testerClear(){ try{ if(localStorage.getItem('bp_tester') === '1'){ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); localStorage.removeItem('bp_tester'); } }catch(e){} }
+async function testerRefresh(){
+  if(!isTesterMode() || !account) return;
+  const r = await apiCall('/api/tester-mode', { token: account.token, on: true });
+  if(r && r.ok && r.key){ try{ localStorage.setItem('bp_admin_key', r.key); localStorage.setItem('bp_admin_view', '1'); }catch(e){} }
+  else { testerClear(); }
+  try{ await loadFeatureFlags(); }catch(e){}
+}
+async function toggleTesterMode(){
+  if(!account) return;
+  if(isTesterMode()){
+    await apiCall('/api/tester-mode', { token: account.token, on: false });
+    testerClear();
+  } else {
+    if(adminKeyStored()) return; // echter Admin-Schluessel auf diesem Geraet: nichts ueberschreiben
+    const r = await apiCall('/api/tester-mode', { token: account.token, on: true });
+    if(!(r && r.ok && r.key)) return;
+    try{ localStorage.setItem('bp_admin_key', r.key); localStorage.setItem('bp_admin_view', '1'); localStorage.setItem('bp_tester', '1'); }catch(e){}
+  }
+  await loadFeatureFlags();
+  renderSettingsModal();
+  try{ renderMainMenu(); }catch(e){}
+}
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
 function adminViewOn(){ try{ return !!adminKeyStored() && localStorage.getItem('bp_admin_view') === '1'; }catch(e){ return false; } }
 let adminOkFlag = false;
@@ -4236,8 +4263,8 @@ async function loadFeatureFlags(){
     const j = await r.json();
     if(j && j.ok) checkServerReset(j.resetEpoch);
     if(j && j.ok && Array.isArray(j.locked)){
-      const changed = j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join();
-      lockedFeatures = j.locked;
+      const changed = (j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join()) || ((j.braintestOff || []).join() !== braintestOff.join());
+      lockedFeatures = j.locked; maintFeatures = Array.isArray(j.maint) ? j.maint : []; gameCountdown = j.countdown || {}; if(j.now) serverClockOff = j.now - Date.now(); braintestOff = Array.isArray(j.braintestOff) ? j.braintestOff : []; arenaOff = Array.isArray(j.arenaOff) ? j.arenaOff : [];
       adminOkFlag = !!j.admin;
       if(useKey && !j.admin){ try{ localStorage.setItem('bp_admin_view','0'); }catch(e){} }
       renderAdminPill();
@@ -4479,7 +4506,7 @@ function admConPaint(){
 }
 function renderAdminPill(){
   let p = document.getElementById('adminPill');
-  if(!adminKeyStored()){ if(p) p.remove(); return; }
+  if(!adminKeyStored() || isTesterMode()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
   const open = false;
@@ -4498,7 +4525,7 @@ function adminPillDrag(p){ const a=p.querySelector('[data-adm-a]'); if(!a) retur
 function adminPanelOpen(){ try{ return localStorage.getItem('bp_admin_open') === '1'; }catch(e){ return false; } }
 function toggleAdminPanel(){ openAdminConsole(); }
 async function syncAdminCloak(){
-  if(!account || !adminKeyStored()) return;
+  if(!account || !adminKeyStored() || isTesterMode()) return;
   try{ await apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: adminViewOn() }); }catch(e){}
 }
 async function toggleAdminView(){
@@ -4508,7 +4535,7 @@ async function toggleAdminView(){
   renderMainMenu();
 }
 function adminLogout(){
-  try{ if(account && adminKeyStored()) apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: false }); }catch(e){}
+  try{ if(account && adminKeyStored() && !isTesterMode()) apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: false }); }catch(e){}
   try{ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); }catch(e){}
   renderAdminPill(); loadFeatureFlags().then(() => renderMainMenu());
 }
@@ -4538,7 +4565,7 @@ function openAdminLogin(){
 let _admTaps = [];
 function titleTap(){
   const n = Date.now(); _admTaps = _admTaps.filter(x => n - x < 2500); _admTaps.push(n);
-  if(_admTaps.length >= 5){ _admTaps = []; if(adminKeyStored()) toggleAdminView(); else openAdminLogin(); }
+  if(_admTaps.length >= 5){ _admTaps = []; if(isTesterMode()) return; if(adminKeyStored()) toggleAdminView(); else openAdminLogin(); }
 }
 async function apiCall(endpoint, body){
   try{
@@ -4555,7 +4582,7 @@ async function restoreAccountSession(){
   const token = localStorage.getItem(ACCOUNT_TOKEN_KEY);
   if(!token) return;
   const result = await apiCall("/api/session", { token });
-  if(result.ok){ account = { token, profile: result.profile }; syncStreamerFromAccount(); connectFriendsWs(); syncAdminCloak(); }
+  if(result.ok){ account = { token, profile: result.profile }; syncStreamerFromAccount(); connectFriendsWs(); syncAdminCloak(); testerRefresh(); }
   // Token nur loeschen, wenn der Server eindeutig "ungueltig" meldet - NICHT bei
   // Netzproblemen oder wenn der Kontodienst gerade nicht erreichbar ist
   // (sonst wuerde man bei jeder kurzen Stoerung ausgeloggt).
@@ -4853,6 +4880,7 @@ async function submitAccountAuth(mode){
   syncStreamerFromAccount();
   connectFriendsWs();
   syncAdminCloak();
+  if(isTesterMode()) testerClear(); // anderes Konto: Tester-Zugang beenden
   if(mode === 'register' && guestMigrate) await guestMigrateRun(); else guestMigrate = null;
   if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
   else renderMainMenu();
@@ -4874,6 +4902,7 @@ function showSignupBonus(n){
 
 async function logoutAccount(){
   if(account) await apiCall("/api/logout", { token: account.token });
+  testerClear();
   account = null;
   try{ localStorage.removeItem(ACCOUNT_TOKEN_KEY); }catch(e){}
   disconnectFriendsWs();
@@ -5177,7 +5206,40 @@ async function syncAccountStats(profile){
 }
 
 /* ------------------------------ 6. RENDER-HELFER ---------------------------- */
-function renderApp(html){ document.getElementById("app").innerHTML = html; }
+function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} }
+/* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
+const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups' };
+function fmtCountdown(ms){
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
+  if(ms <= 0) return L('gleich','soon');
+  if(d > 0) return d + ' ' + (currentLang === 'de' ? (d === 1 ? 'Tag' : 'Tage') : (d === 1 ? 'day' : 'days')) + ' ' + h + ' ' + (currentLang === 'de' ? 'Std' : 'h');
+  if(h > 0) return h + ' ' + (currentLang === 'de' ? 'Std' : 'h') + ' ' + mi + ' Min';
+  return Math.max(1, mi) + ' Min';
+}
+function gateText(name){
+  if(featureMaint(name)) return L('Wartung – gleich wieder da','Maintenance – back soon');
+  const st = gameCountdown[name];
+  if(st) return L('Startet in ','Starts in ') + fmtCountdown(st - (Date.now() + serverClockOff));
+  return 'Coming soon';
+}
+setInterval(function(){
+  document.querySelectorAll('[data-gate]').forEach(e => { e.textContent = gateText(e.dataset.gate); });
+  const now = Date.now() + serverClockOff;
+  if(Object.keys(gameCountdown).some(k => gameCountdown[k] <= now)){ gameCountdown = {}; try{ loadFeatureFlags().then(() => { try{ if(document.querySelector('.menu-hero')) renderMainMenu(); }catch(e){} }); }catch(e){} }
+}, 20000);
+function applyGameGates(){
+  document.querySelectorAll('#app .mode-card[onclick]').forEach(c => {
+    const oc = c.getAttribute('onclick') || '';
+    for(const fn in GATE_MAP){
+      if(oc.indexOf(fn + '(') === -1) continue;
+      if(!featureLocked(GATE_MAP[fn])) break;
+      c.removeAttribute('onclick'); c.classList.add('locked'); c.style.opacity = '.45'; c.style.cursor = 'default';
+      let p = c.querySelector('p'); if(!p){ p = document.createElement('p'); c.appendChild(p); }
+      p.textContent = gateText(GATE_MAP[fn]); p.dataset.gate = GATE_MAP[fn];
+      break;
+    }
+  });
+}
 function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`; }
 // HTML-Escaping fuer ALLES, was von Nutzern stammt (Namen, Antworten, eigene
 // Kategorien) und per innerHTML angezeigt wird - verhindert eingeschleusten Code.
@@ -5579,7 +5641,7 @@ function startPartyHub(){
   setAudioZone("menu");
   const card = (gm) => {
     const m = DEDICATED_MODES[gm];
-    if(featureLocked(gm)) return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p>Coming soon</p></div>`;
+    if(featureLocked(gm)) return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p data-gate="${gm}">${gateText(gm)}</p></div>`;
     return `<div class="mode-card" onclick="startDedicatedMenu('${gm}')"><div class="icon">${m.icon}</div><h3>${m.title}</h3></div>`;
   };
   renderApp(`
@@ -5726,7 +5788,7 @@ function renderChessHub(){
         </div>` : `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⛀</div>
           <h3>${L('Dame','Checkers')}</h3>
-          <p>Coming soon</p>
+          <p data-gate="dame">${gateText('dame')}</p>
         </div>`}
       </div>
       <div id="chessInviteBox"></div>
@@ -5970,6 +6032,8 @@ function renderSettingsModal(){
     <div class="settings-track" style="margin-top:8px;">${L('Raum-Codes werden als Sternchen angezeigt und du bekommst keine Freundschaftsanfragen. Hat dir jemand vorher eine geschickt und du schickst ihm eine, seid ihr direkt Freunde.','Room codes are shown as stars and you will not receive friend requests. If someone sent you one earlier and you send them one, you become friends right away.')}</div>`;
   const feedCard = account ? card('✨ ' + L('Live-Feed','Live feed'), `<button class="btn ${account.profile.feedOptIn ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleFeedOptIn()">${account.profile.feedOptIn ? L('Name wird gezeigt','Name shown') : L('Anonym','Anonymous')}</button>
     <div class="settings-track" style="margin-top:8px;">${L('Wenn an, erscheint dein Name bei Live-Meldungen im Chat und im Hauptmenü (z. B. „Mia hat Klasse 2 erreicht“). Sonst steht dort „Ein Spieler“.','If on, your name appears in live notices in the chat and main menu (e.g. “Mia reached Class 2”). Otherwise it says “A player”.')}</div>`) : '';
+  const testerCard = (account && account.profile && account.profile.canTest && (isTesterMode() || !adminKeyStored())) ? card('🧪 ' + (account.profile.role === 'mod' ? 'Mod' : L('Tester','Tester')), `<button class="btn ${isTesterMode() ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleTesterMode()">${isTesterMode() ? '🧪 ' + L('Aktiv (zum Beenden tippen)','Active (tap to end)') : '🧪 ' + (account.profile.role === 'mod' ? L('Mod-Modus aktivieren','Activate mod mode') : L('Tester aktivieren','Activate tester'))}</button>
+    <div class="settings-track" style="margin-top:8px;">${account.profile.role === 'mod' ? L('Du hast das Mod-Recht. Aktiviert siehst du alle gesperrten Spiele, die nicht in Wartung sind, und kannst sie ausprobieren.','You have the mod right. When active you can see and try all locked games that are not under maintenance.') : L('Du bist Tester. Aktiviert siehst du die Spiele, die gerade im Test sind, und kannst sie ausprobieren.','You are a tester. When active you can see and try the games that are currently in testing.')}</div>`) : '';
   overlay.innerHTML = `
     <div class="settings-panel" onclick="event.stopPropagation()">
       <div class="settings-title">⚙️ ${L('Einstellungen','Settings')}</div>
@@ -5977,6 +6041,7 @@ function renderSettingsModal(){
       ${card('🔊 ' + L('Ton','Sound'), sound)}
       ${card('🎥 ' + L('Streamer-Modus','Streamer mode'), streamer)}
       ${feedCard}
+      ${testerCard}
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
     </div>
   `;
@@ -6450,6 +6515,12 @@ async function guestMigrateRun(){
     await syncAccountStats(prof);
   }catch(e){}
 }
+window.addEventListener('DOMContentLoaded', function(){
+  Object.keys(GATE_MAP).forEach(fn => { const f = window[fn]; if(typeof f !== 'function') return;
+    window[fn] = function(){ const g = GATE_MAP[fn]; if(featureLocked(g)){ try{ if(typeof showInviteToast === 'function') showInviteToast(gateText(g)); }catch(e){} return; } return f.apply(this, arguments); }; });
+  const bc = window.renderBrainTestClassModal;
+  if(typeof bc === 'function') window.renderBrainTestClassModal = function(i){ if(braintestOff.indexOf(i) !== -1){ try{ if(typeof showInviteToast === 'function') showInviteToast(L('Diese Klasse ist gerade in Wartung.','This class is under maintenance.')); }catch(e){} return; } return bc.apply(this, arguments); };
+});
 window.addEventListener('load', () => setTimeout(() => { try{ if(!document.getElementById('resetNoticeBox') && !new URLSearchParams(location.search).get('br') && !new URLSearchParams(location.search).get('dm') && !new URLSearchParams(location.search).get('mu')) showIntro(false); showWelcomeIfNeeded(); }catch(e){} }, 1200));
 
 const SOCIAL_LINKS = [
@@ -7157,7 +7228,7 @@ function renderMainMenu(){
   const dedicatedCard = (gm) => {
     const m = DEDICATED_MODES[gm];
     if(featureLocked(gm)){
-      return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p>Coming soon</p></div>`;
+      return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p data-gate="${gm}">${gateText(gm)}</p></div>`;
     }
     const locked = m.germanOnly && currentLang!=='de';
     return `
@@ -7192,7 +7263,7 @@ function renderMainMenu(){
       ${featureLocked('party') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="16" cy="18" r="6" fill="#3de0ff"/><circle cx="32" cy="18" r="6" fill="#c6ff3d"/><circle cx="24" cy="30" r="6" fill="#ffc446"/><path d="M6 42C6 34 26 34 26 42M22 42C22 36 42 36 42 42" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/></svg></div>
         <h3>${t('menu_party_title')}</h3>
-        <p>Coming soon</p>
+        <p data-gate="party">${gateText('party')}</p>
       </div>` : `<div class="mode-card" onclick="partyQuickStart()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="16" cy="18" r="6" fill="#3de0ff"/><circle cx="32" cy="18" r="6" fill="#c6ff3d"/><circle cx="24" cy="30" r="6" fill="#ffc446"/><path d="M6 42C6 34 26 34 26 42M22 42C22 36 42 36 42 42" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/></svg></div>
         <h3>${t('menu_party_title')}</h3>
@@ -7215,7 +7286,7 @@ function renderMainMenu(){
       ${featureLocked('biology') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M14 6C14 18 34 18 34 30C34 38 24 42 24 42M34 6C34 18 14 18 14 30C14 38 24 42 24 42" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linecap="round"/><path d="M17 12H31M17 24H31M20 36H28" stroke="#3de0ff" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Biology</h3>
-        <p>Coming soon</p>
+        <p data-gate="biology">${gateText('biology')}</p>
       </div>` : `<div class="mode-card" onclick="startBiologyFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M14 6C14 18 34 18 34 30C34 38 24 42 24 42M34 6C34 18 14 18 14 30C14 38 24 42 24 42" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linecap="round"/><path d="M17 12H31M17 24H31M20 36H28" stroke="#3de0ff" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Biology</h3>
@@ -10837,7 +10908,7 @@ function startFourupsFlow(){
           <h3>Original</h3>
           <p>${L('Klassisches 4 gewinnt, gegen den Bot oder zu zweit.','Classic Connect 4, vs the bot or two players.')}</p>
         </div>
-        ${featureLocked('fourups_abilities') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div><h3>${L('Fähigkeiten','Abilities')}</h3><p>Coming soon</p></div>` : `<div class="mode-card" onclick="fuaMenu()">
+        ${featureLocked('fourups_abilities') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div><h3>${L('Fähigkeiten','Abilities')}</h3><p data-gate="fourups_abilities">${gateText('fourups_abilities')}</p></div>` : `<div class="mode-card" onclick="fuaMenu()">
           <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div>
           <h3>${L('Fähigkeiten','Abilities')}</h3>
           <p>${L('Steine mit Spezialkräften, Bomben, Joker, Doppelzug …','Stones with special powers, bombs, jokers, double move …')}</p>
@@ -11552,7 +11623,7 @@ function startTicTacToeFlow(){
           <p>${L('Klassische Mühle, Bot, Freunde, Zufallsgegner.','Classic mills, bot, friends, random opponent.')}</p>
         </div>` : ''}
         ${featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
-          <div class="icon">⚡</div><h3>Quantum</h3><p>Coming soon</p></div>` : `<div class="mode-card" onclick="tttOppSelect('quantum')">
+          <div class="icon">⚡</div><h3>Quantum</h3><p data-gate="ttt_quantum">${gateText('ttt_quantum')}</p></div>` : `<div class="mode-card" onclick="tttOppSelect('quantum')">
           <div class="icon">⚡</div><h3>Quantum</h3>
           <p>${L('Höchstens 3 Symbole, das älteste verschwindet.','At most 3 symbols, the oldest vanishes.')}</p></div>`}
         <div class="mode-card" onclick="tttOppSelect('quizmix')">
@@ -11713,7 +11784,7 @@ function tttStartMultiplayer(profile){
         ${featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⚡</div>
           <h3>Quantum</h3>
-          <p>Coming soon</p>
+          <p data-gate="ttt_quantum">${gateText('ttt_quantum')}</p>
         </div>` : `<div class="mode-card" style="${tttMpSelectedMode==='quantum'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='quantum'; tttStartMultiplayer(tttOverviewProfile);">
           <div class="icon">⚡</div>
           <h3>Quantum</h3>
