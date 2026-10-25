@@ -5830,7 +5830,7 @@ function adminLive(key, ip) {
   players.sort((a, b) => (b.name ? 1 : 0) - (a.name ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
   const top = Object.entries(games).sort((a, b) => b[1] - a[1]).map(([where, n]) => ({ where, n }));
   const chat = (conversations[PUB_KEY] || []).slice(-100);
-  return { ok: true, counts: presenceCounts(), players, top, chat, blocked: chatBlockedLog.slice(-15).reverse() };
+  return { ok: true, counts: Object.assign(presenceCounts(), { today: (seenToday.day === new Date().toISOString().slice(0, 10)) ? seenToday.set.size : 0 }), players, top, chat, blocked: chatBlockedLog.slice(-15).reverse() };
 }
 async function adminChat(action, payload, ip, lang) {
   if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
