@@ -4670,6 +4670,7 @@ function toastMsg(m){
   t.textContent=m; t.style.display="block"; clearTimeout(t._t); t._t=setTimeout(()=>{t.style.display="none";},2200);
 }
 function accountIndicatorHtml(){
+  if((account ? account.token : '') !== newsTokLoaded){ newsTokLoaded = account ? account.token : ''; setTimeout(loadNews, 0); }
   const stat = `<button class="top-btn" onclick="renderStatistik()">${L('Statistiken','Statistics')}</button>`;
   if(account){
     const av = (account.profile.betaPhase|0) ? framedAvatarHtml(account.profile.avatar, 22, account.profile.betaPhase) : (account.profile.avatar ? avatarHtml(account.profile.avatar, 22) : "👤");
@@ -7782,14 +7783,17 @@ async function renderShop(profile){
 /* ===== NEWS ===== */
 let newsData = { list: [], lastId: 0 };
 (function(){ const st = document.createElement('style'); st.textContent = '.top-btn{position:relative}.news-dot{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:11px;background:#ff3b5c;color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 0 0 2px #0c1430;line-height:1}.news-dot.inl{position:static;display:inline-flex;box-shadow:none;margin-left:6px}'; document.head.appendChild(st); })();
-function newsSeen(){ try{ return parseInt(localStorage.getItem('bp_news_seen') || '0', 10) || 0; }catch(e){ return 0; } }
+let newsAccSeen = null, newsTokLoaded = '';
+function newsSeen(){ if(account && newsAccSeen !== null) return newsAccSeen; try{ return parseInt(localStorage.getItem('bp_news_seen') || '0', 10) || 0; }catch(e){ return 0; } }
 function newsUnread(){ const s = newsSeen(); return newsData.list.filter(n => n.id > s).length; }
 function newsBadgeHtml(inl){ const n = newsUnread(); return n ? '<span class="news-dot' + (inl ? ' inl' : '') + '">' + (n > 9 ? '9+' : n) + '</span>' : ''; }
 async function loadNews(){
   try{
-    const r = await apiCall('/api/news', {});
+    newsTokLoaded = account ? account.token : '';
+    const r = await apiCall('/api/news', account ? { token: account.token } : {});
     if(r && r.ok && Array.isArray(r.news)){
       const before = newsUnread() + ':' + newsData.lastId;
+      newsAccSeen = (account && r.account) ? (r.seen | 0) : null;
       newsData = { list: r.news, lastId: r.lastId || 0 };
       if(newsUnread() + ':' + newsData.lastId !== before && document.querySelector('.menu-hero')) renderMainMenu();
     }
@@ -7798,6 +7802,7 @@ async function loadNews(){
 function openNews(){
   setAudioZone && setAudioZone("menu");
   try{ localStorage.setItem('bp_news_seen', String(newsData.lastId || 0)); }catch(e){}
+  if(account){ newsAccSeen = newsData.lastId || 0; apiCall('/api/news-seen', { token: account.token, id: newsData.lastId || 0 }).catch(() => {}); }
   const seenBefore = newsData.list.length ? newsData.list[0].id : 0;
   const fd = ts => { const d = new Date(ts); return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear(); };
   const lg = currentLang === 'en' ? 'en' : 'de';
