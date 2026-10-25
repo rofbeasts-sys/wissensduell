@@ -45,6 +45,13 @@ button.mini{padding:4px 8px;font-size:12px}
 .btn2.red{background:#3a0f1f;border-color:#ff5d8f}
 .u{background:var(--card);border:1px solid #ffffff22;border-radius:14px;padding:10px;margin-top:8px}
 .u.open{border-color:var(--acc)}
+.card.test{border-color:#10a0c8;box-shadow:0 0 0 1px #10a0c855 inset}
+.g{padding:9px 0;border-bottom:1px solid #1b2240}.g:last-child{border:0}.g.sub{margin-left:14px;border-left:2px solid #1b2240;padding-left:10px}
+.sw{display:flex;gap:4px;margin-top:7px}.sw button{flex:1;padding:7px 2px;font-size:12px;background:#0f1f3a;border:1px solid #2c4a6e;color:#9fb3d6;border-radius:9px}
+.sw .off.on{background:#3a3f4f;border-color:#9aa4bf;color:#fff}.sw .l.on{background:#7a1020;border-color:#ff5d8f;color:#fff}.sw .t.on{background:#10507a;border-color:var(--acc);color:#fff}.sw .o.on{background:#14532d;border-color:var(--ok);color:#fff}
+.gd{margin-top:6px;font-size:12px;color:var(--dim);display:flex;gap:6px;align-items:center;flex-wrap:wrap}.gd input{flex:none;width:auto;padding:5px 8px;font-size:13px}
+.cls{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}.cls button{padding:8px;font-size:12px;border-radius:9px;border:1px solid #2c4a6e;background:#0f1f3a;color:#fff}.cls button.on{background:#14532d;border-color:var(--ok)}.cls button.offc{background:#3a3f4f;border-color:#9aa4bf;color:#ccd}
+.ttag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;background:#10507a}
 #dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-right:6px}
 #dot.on{background:var(--ok)}
 </style>
@@ -62,8 +69,10 @@ button.mini{padding:4px 8px;font-size:12px}
   <div class="tabs" id="tabs">
     <button data-t="live" class="on">Live</button>
     <button data-t="players">Spieler</button>
+    <button data-t="games">Spiele</button>
     <button data-t="req">Anfragen<span class="n hidden" id="nReq"></span></button>
     <button data-t="rep">Meldungen<span class="n hidden" id="nRep"></span></button>
+    <button data-t="news">News</button>
   </div>
   <div id="tab_live">
   <div class="card">
@@ -103,10 +112,29 @@ button.mini{padding:4px 8px;font-size:12px}
     <div class="card"><h2>VERDACHT AUF SCHUMMELN</h2><div id="cheat" class="list dim">…</div></div>
   </div>
 
+  <div id="tab_games" class="hidden">
+    <div class="dim" style="font-size:12px;margin-bottom:8px"><b>Offline</b> = Wartung, nur du. <b>Gesperrt</b> = Coming soon (du und Mods). <b>Test</b> = zusätzlich Tester. <b>Offen</b> = alle. Spielstände bleiben immer gespeichert. Änderungen gelten erst nach <b>Speichern</b>.</div>
+    <div id="gmsg" style="min-height:16px;font-size:13px;color:var(--ok)"></div>
+    <div id="gtest"></div>
+    <div id="glist">…</div>
+  </div>
+
   <div id="tab_req" class="hidden">
     <div class="card"><h2>PASSWORT-ANFRAGEN</h2><div id="reqs">…</div></div>
   </div>
 
+  <div id="tab_news" class="hidden">
+    <div class="card"><h2>NEUE NEWS VERÖFFENTLICHEN</h2>
+      <div class="dim" style="font-size:12px;margin-bottom:6px">Alle Spieler bekommen eine rote 1 am Profil und einen Hinweis im Chat.</div>
+      <div class="row"><input id="nTitle" maxlength="80" placeholder="Titel (z. B. Neues Spiel: Brain Fruit)"></div>
+      <div class="row"><textarea id="nText" maxlength="1500" rows="5" placeholder="Text …" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
+      <div class="row"><input id="nTitleEn" maxlength="80" placeholder="Titel Englisch (optional)"></div>
+      <div class="row"><textarea id="nTextEn" maxlength="1500" rows="3" placeholder="Text Englisch (optional, sonst wird der deutsche gezeigt)" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
+      <div class="row"><button onclick="newsAdd()">📰 Veröffentlichen</button></div>
+      <div id="nMsg" class="dim" style="margin-top:6px"></div>
+    </div>
+    <div class="card"><h2>BISHERIGE NEWS</h2><div id="nList">…</div></div>
+  </div>
   <div id="tab_rep" class="hidden">
     <div class="card"><h2>MELDUNGEN</h2><div id="reps">…</div></div>
   </div>
@@ -157,8 +185,8 @@ let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['live','players','req','rep'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'players'){ loadPlayers(); loadCheat(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps();
+  ['live','players','games','req','rep','news'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'players'){ loadPlayers(); loadCheat(); } if(t === 'games') loadGames(); if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews();
 }
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
@@ -172,14 +200,15 @@ async function loadPlayers(){
 }
 function paintPlayers(){
   $('plist').innerHTML = PL.length ? PL.map(u => {
-    const tags = (u.banned ? '<span class="tag" style="background:#7a1020">BANN</span>' : '') + (u.bannedUntil ? '<span class="tag" style="background:#7a4a10">TIMEOUT ' + until(u.bannedUntil) + '</span>' : '') + (u.mutedUntil ? '<span class="tag" style="background:#4a3a7a">STUMM ' + until(u.mutedUntil) + '</span>' : '') + (u.restricted ? '<span class="tag" style="background:#5a4a10">EINGESCHRÄNKT</span>' : '') + (u.flags ? '<span class="tag" style="background:#7a3a10">⚠ ' + u.flags + '</span>' : '');
+    const tags = (u.banned ? '<span class="tag" style="background:#7a1020">BANN</span>' : '') + (u.bannedUntil ? '<span class="tag" style="background:#7a4a10">TIMEOUT ' + until(u.bannedUntil) + '</span>' : '') + (u.mutedUntil ? '<span class="tag" style="background:#4a3a7a">STUMM ' + until(u.mutedUntil) + '</span>' : '') + (u.restricted ? '<span class="tag" style="background:#5a4a10">EINGESCHRÄNKT</span>' : '') + (u.flags ? '<span class="tag" style="background:#7a3a10">⚠ ' + u.flags + '</span>' : '') + (u.role === 'mod' ? '<span class="tag" style="background:#3a6a10">🛡 MOD</span>' : '') + (u.role === 'tester' ? '<span class="tag" style="background:#10507a">🧪 TESTER</span>' : '');
     const op = openU === u.username, n = esc(u.username);
-    return `<div class="u ${op ? 'open' : ''}"><div data-row="${n}" style="display:flex;gap:8px;align-items:center;cursor:pointer"><span style="font-size:24px">${esc(u.avatar || '🙂')}</span><div style="flex:1;min-width:0"><b>${u.online ? '🟢 ' : ''}${n}</b><div class="dim" style="font-size:12px">🪙 ${u.coins} · Klasse ${u.klasse} · ${u.rounds} Runden · zuletzt ${fd(u.lastSeen)}</div></div></div>${tags ? '<div style="margin-top:6px">' + tags + '</div>' : ''}
+    return `<div class="u ${op ? 'open' : ''}"><div data-row="${n}" style="display:flex;gap:8px;align-items:center;cursor:pointer"><span style="font-size:24px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center">${av(u.avatar)}</span><div style="flex:1;min-width:0"><b>${u.online ? '🟢 ' : ''}${n}</b><div class="dim" style="font-size:12px">🪙 ${u.coins} · Klasse ${u.klasse} · ${u.rounds} Runden · zuletzt ${fd(u.lastSeen)}</div></div></div>${tags ? '<div style="margin-top:6px">' + tags + '</div>' : ''}
     ${op ? `<div class="acts" data-u="${n}">
       <div class="row"><input id="aAmt" type="number" inputmode="numeric" placeholder="Münzen (z. B. 500 oder -100)"><button class="btn2" data-a="coins">Geben</button></div>
       <div class="row"><input id="aMin" type="number" inputmode="numeric" value="60" style="max-width:90px"><button class="btn2" data-a="timeout">⏳ Timeout</button><button class="btn2" data-a="mute">🔇 Stumm</button></div>
       <div class="row"><input id="aWhy" placeholder="Grund (optional)"><button class="btn2 red" data-a="ban">🚫 Bann</button></div>
       <div class="row"><button class="btn2" data-a="unban">Entbannen</button><button class="btn2" data-a="unmute">Stumm aus</button><button class="btn2" data-a="${u.restricted ? 'unrestrict' : 'restrict'}">${u.restricted ? 'Einschränkung weg' : 'Einschränken'}</button><button class="btn2" data-a="kick">Abmelden</button></div>
+      <div class="row"><button class="btn2" data-a="role_mod">🛡 Mod</button><button class="btn2" data-a="role_tester">🧪 Tester</button><button class="btn2" data-a="role_none">Rolle entziehen</button></div>
       <button class="btn2" data-a="coinlog">📜 Münz-Verlauf</button>
       ${coinlog && coinlog.u === u.username ? coinlogHtml(coinlog) : ''}
       ${u.lastCheat ? '<div class="dim" style="font-size:12px">Schummel-Hinweis: ' + esc(u.lastCheat.what) + '</div>' : ''}
@@ -231,6 +260,19 @@ async function loadReqs(){
   }).join('') : '<span class="dim">Keine offenen Anfragen.</span>';
   box.querySelectorAll('[data-rq]').forEach(b => b.onclick = async () => { b.disabled = true; await api('/api/admin-reset-decide', { username: b.dataset.u, action: b.dataset.rq }); loadReqs(); });
 }
+async function loadNews(){
+  const r = await api('/api/admin-news', { action: 'list' });
+  if(!r || !r.ok){ $('nList').textContent = (r && r.error) || 'Fehler'; return; }
+  $('nList').innerHTML = r.news.length ? r.news.map(n => `<div class="u"><div class="dim" style="font-size:12px">${fd(n.ts)} · Nr. ${n.id}</div><b>${esc(n.de.title)}</b><div style="white-space:pre-wrap;margin:4px 0;font-size:13px">${esc(n.de.text)}</div><button class="btn2 red" data-nd="${n.id}">Löschen</button></div>`).join('') : '<span class="dim">Keine News.</span>';
+  document.querySelectorAll('[data-nd]').forEach(b => b.onclick = async () => { if(!confirm('News löschen?')) return; await api('/api/admin-news', { action: 'del', id: +b.dataset.nd }); loadNews(); });
+}
+async function newsAdd(){
+  const body = { action: 'add', title: $('nTitle').value, text: $('nText').value, titleEn: $('nTitleEn').value, textEn: $('nTextEn').value };
+  const r = await api('/api/admin-news', body);
+  $('nMsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
+  $('nMsg').textContent = r && r.ok ? '✓ Veröffentlicht.' : '✗ ' + ((r && r.error) || 'Fehler');
+  if(r && r.ok){ ['nTitle','nText','nTitleEn','nTextEn'].forEach(i => $(i).value = ''); loadNews(); }
+}
 async function loadReps(){
   const r = await api('/api/admin-reports');
   const box = $('reps');
@@ -240,6 +282,57 @@ async function loadReps(){
   box.innerHTML = r.reports.length ? r.reports.map(x => `<div class="u" style="opacity:${x.done ? .55 : 1}"><div class="dim" style="font-size:12px">${esc(cn[x.cat] || x.cat)} · ${fd(x.t)}${x.who ? ' · von ' + esc(x.who) : ' · anonym'}${x.target ? ' · betrifft ' + esc(x.target) : ''}</div><div style="margin-top:4px;white-space:pre-wrap;word-break:break-word">${esc(x.text)}</div>${x.email ? '<div style="margin-top:4px">✉ <a style="color:var(--acc)" href="mailto:' + esc(x.email) + '">' + esc(x.email) + '</a></div>' : ''}<div class="row" style="margin-top:6px"><button class="btn2 mini" data-rp="${esc(x.id)}">${x.done ? 'Wieder öffnen' : '✓ Erledigt'}</button><button class="ghost mini" data-rd="${esc(x.id)}">Löschen</button></div></div>`).join('') : '<span class="dim">Keine Meldungen.</span>';
   box.querySelectorAll('[data-rp]').forEach(b => b.onclick = async () => { await api('/api/admin-reports', { id: b.dataset.rp }); loadReps(); });
   box.querySelectorAll('[data-rd]').forEach(b => b.onclick = async () => { if(confirm('Meldung löschen?')){ await api('/api/admin-reports', { id: b.dataset.rd, del: true }); loadReps(); } });
+}
+let GAMES = [], openG = null, GC = {}, DRAFT = {};
+async function loadGames(){
+  const r = await api('/api/admin-games');
+  if(!r || !r.ok){ $('glist').textContent = (r && r.error) || 'Fehler'; return; }
+  GAMES = r.games; paintGames();
+}
+function av(a){ a = a || '🙂'; return /^img:[a-z0-9]+$/.test(a) ? '<img src="/avatars/' + a.slice(4) + '.webp" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover">' : esc(a); }
+const MODES = [['offline','off','Offline'],['locked','l','Gesperrt'],['test','t','Test'],['open','o','Offen']];
+function toLocal(ts){ if(!ts) return ''; const d = new Date(ts - new Date().getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
+function cd(ms){ const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60; return d > 0 ? d + (d === 1 ? ' Tag ' : ' Tagen ') + h + ' Std' : (h > 0 ? h + ' Std ' + mi + ' Min' : Math.max(1, mi) + ' Min'); }
+function gameRow(g, sub){
+  const dr = DRAFT[g.id], hide = dr ? !!dr.hide : !!g.hide, m = dr ? dr.mode : g.mode, gstart = dr ? dr.start : g.start, gpend = dr ? (dr.start > Date.now() ? dr.start : 0) : g.pending, id = esc(g.id), ex = g.classes && openG === g.id;
+  let h = `<div class="g ${sub ? 'sub' : ''}"><div style="display:flex;justify-content:space-between;align-items:center"><b>${g.icon} ${esc(g.name)}</b>${g.effective !== g.mode ? '<span class="ttag" style="background:#7a4a10">wartet auf Start</span>' : ''}</div>
+    <div class="sw">${MODES.map(([k, c, n]) => `<button class="${c} ${m === k ? 'on' : ''}" data-g="${id}" data-m="${k}">${n}</button>`).join('')}</div>`;
+  const saveBar = dr ? `<div class="gd" style="margin-top:8px"><button data-gsave="${id}" style="padding:7px 16px">💾 Speichern</button><button class="btn2" data-gcancel="${id}" style="padding:7px 12px">Abbrechen</button><span style="color:var(--gold)">noch nicht gespeichert</span></div>` : '';
+  if(m !== 'open') h += `<div class="gd"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" data-gh="${id}" ${hide ? 'checked' : ''}> Für Spieler unsichtbar <span class="dim" style="font-size:11px">(aus = „Coming soon" sichtbar)</span></label></div>`;
+  if(m === 'test' || m === 'open'){
+    const left = gpend ? gpend - Date.now() : 0;
+    h += `<div class="gd">${m === 'open' ? 'Offen ab' : 'Test ab'}:<input type="datetime-local" data-gs="${id}" value="${toLocal(gstart)}">${left > 0 ? '<span class="ttag" style="background:#7a4a10">in ' + cd(left) + '</span><button class="btn2" data-gx="' + id + '" style="padding:4px 9px;font-size:11px">sofort</button>' : '<span>' + (gstart && !dr ? 'läuft seit ' + new Date(gstart).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'leer = sofort') + '</span>'}</div>`;
+  }
+  if(g.classes){
+    const off = g.classOff || [];
+    h += `<div class="gd"><button class="btn2" data-ge="${id}" style="padding:5px 10px;font-size:12px">${ex ? '▲' : '▼'} ${g.id === 'arena' ? 'Ligen' : 'Klassen'} (${g.classes - off.length}/${g.classes} online)</button></div>`;
+    if(ex) h += `<div class="cls">${Array.from({ length: g.classes }, (_, i) => `<button class="${off.includes(i) ? 'offc' : 'on'}" data-gc="${id}" data-i="${i}">${esc(g.classNames ? g.classNames[i] : 'Klasse ' + (i + 1))}: ${off.includes(i) ? 'offline' : 'online'}</button>`).join('')}</div>`;
+  }
+  return h + saveBar + '</div>';
+}
+function paintGames(){
+  const test = GAMES.filter(g => g.mode === 'test');
+  const soon = GAMES.filter(g => g.mode === 'open' && g.pending);
+  $('gtest').innerHTML = `<div class="card test"><h2>🧪 IM TEST (${test.length})</h2>${test.length ? test.map(g => `<div class="g"><div style="display:flex;justify-content:space-between"><b>${g.icon} ${esc(g.name)}</b><span class="ttag">${g.pending ? 'in ' + cd(g.pending - Date.now()) : 'läuft'}</span></div><div class="dim">Sichtbar für: du, Mods, Tester</div></div>`).join('') : '<span class="dim">Gerade nichts im Test.</span>'}</div>` + (soon.length ? `<div class="card"><h2>⏰ GEHT BALD FÜR ALLE ONLINE (${soon.length})</h2>${soon.map(g => `<div class="g"><div style="display:flex;justify-content:space-between"><b>${g.icon} ${esc(g.name)}</b><span class="ttag" style="background:#7a4a10">in ${cd(g.pending - Date.now())}</span></div></div>`).join('')}</div>` : '');
+  const groups = []; GAMES.forEach(g => { if(!groups.includes(g.group)) groups.push(g.group); });
+  $('glist').innerHTML = groups.map(gr => {
+    const items = GAMES.filter(g => g.group === gr && !g.sub);
+    return `<div class="card"><h2>${esc(gr.toUpperCase())}</h2>${items.map(g => gameRow(g, false) + GAMES.filter(x => x.sub === g.id).map(x => gameRow(x, true)).join('')).join('')}</div>`;
+  }).join('');
+  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.g); if(g.mode === b.dataset.m && !DRAFT[g.id]) return; DRAFT[g.id] = { mode: b.dataset.m, start: 0, hide: b.dataset.m === 'open' ? false : (DRAFT[g.id] ? !!DRAFT[g.id].hide : !!g.hide) }; if(g.mode === b.dataset.m && !g.start && !g.pending && DRAFT[g.id].hide === !!g.hide) delete DRAFT[g.id]; paintGames(); });
+  document.querySelectorAll('[data-gs]').forEach(i => i.onchange = () => { const g = GAMES.find(x => x.id === i.dataset.gs); DRAFT[g.id] = { mode: DRAFT[g.id] ? DRAFT[g.id].mode : g.mode, start: i.value ? new Date(i.value).getTime() : 0, hide: DRAFT[g.id] ? !!DRAFT[g.id].hide : !!g.hide }; paintGames(); });
+  document.querySelectorAll('[data-gh]').forEach(i => i.onchange = () => { const g = GAMES.find(x => x.id === i.dataset.gh), d = DRAFT[g.id] || { mode: g.mode, start: g.start || 0 }; d.hide = i.checked; DRAFT[g.id] = d; paintGames(); });
+  document.querySelectorAll('[data-gsave]').forEach(b => b.onclick = async () => { const d = DRAFT[b.dataset.gsave]; if(!d) return; await setGame(b.dataset.gsave, { mode: d.mode, start: d.start, hide: !!d.hide }); });
+  document.querySelectorAll('[data-gcancel]').forEach(b => b.onclick = () => { delete DRAFT[b.dataset.gcancel]; paintGames(); });
+  document.querySelectorAll('[data-gx]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.gx); DRAFT[g.id] = { mode: g.mode, start: 0, hide: !!g.hide }; paintGames(); });
+  document.querySelectorAll('[data-ge]').forEach(b => b.onclick = () => { openG = openG === b.dataset.ge ? null : b.dataset.ge; paintGames(); });
+  document.querySelectorAll('[data-gc]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.gc), i = +b.dataset.i, on = (g.classOff || []).includes(i); setGame(g.id, { cls: i, on }); });
+}
+async function setGame(id, extra){
+  const r = await api('/api/admin-game-set', Object.assign({ id }, extra));
+  $('gmsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
+  $('gmsg').textContent = r && r.ok ? '✓ Gespeichert, gilt sofort.' : '✗ ' + ((r && r.error) || 'Fehler');
+  if(r && r.ok){ delete DRAFT[id]; GAMES = r.games; paintGames(); }
 }
 function setBadge(id, n){ const e = $(id); e.textContent = n; e.classList.toggle('hidden', !n); }
 async function badges(){ const a = await api('/api/admin-reset-list'); if(a && a.ok) setBadge('nReq', a.list.filter(q => q.status !== 'approved').length); const b = await api('/api/admin-reports'); if(b && b.ok) setBadge('nRep', b.open); }

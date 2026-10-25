@@ -4225,7 +4225,34 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
 let lockedFeatures = ['arena','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
+let gameModes = {}, hiddenFeatures = [], maintFeatures = [], braintestOff = [], arenaOff = [], gameCountdown = {}, serverClockOff = 0;
+function featureMaint(name){ return maintFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
+/* ---- Tester-Modus: Konten mit Tester-Recht (vom Admin vergeben) sehen die gesperrten Spiele, sonst nichts ---- */
+function isTesterMode(){ try{ return localStorage.getItem('bp_tester') === '1'; }catch(e){ return false; } }
+function testerClear(){ try{ if(localStorage.getItem('bp_tester') === '1'){ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); localStorage.removeItem('bp_tester'); localStorage.removeItem('bp_trole'); } }catch(e){} }
+async function testerRefresh(){
+  if(!isTesterMode() || !account) return;
+  const r = await apiCall('/api/tester-mode', { token: account.token, on: true });
+  if(r && r.ok && r.key){ try{ localStorage.setItem('bp_admin_key', r.key); localStorage.setItem('bp_admin_view', '1'); }catch(e){} }
+  else { testerClear(); }
+  try{ await loadFeatureFlags(); }catch(e){}
+}
+async function toggleTesterMode(){
+  if(!account) return;
+  if(isTesterMode()){
+    await apiCall('/api/tester-mode', { token: account.token, on: false });
+    testerClear();
+  } else {
+    if(adminKeyStored()) return; // echter Admin-Schluessel auf diesem Geraet: nichts ueberschreiben
+    const r = await apiCall('/api/tester-mode', { token: account.token, on: true });
+    if(!(r && r.ok && r.key)) return;
+    try{ localStorage.setItem('bp_admin_key', r.key); localStorage.setItem('bp_admin_view', '1'); localStorage.setItem('bp_tester', '1'); localStorage.setItem('bp_trole', r.role || ''); }catch(e){}
+  }
+  await loadFeatureFlags();
+  renderSettingsModal();
+  try{ renderMainMenu(); }catch(e){}
+}
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
 function adminViewOn(){ try{ return !!adminKeyStored() && localStorage.getItem('bp_admin_view') === '1'; }catch(e){ return false; } }
 let adminOkFlag = false;
@@ -4236,8 +4263,8 @@ async function loadFeatureFlags(){
     const j = await r.json();
     if(j && j.ok) checkServerReset(j.resetEpoch);
     if(j && j.ok && Array.isArray(j.locked)){
-      const changed = j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join();
-      lockedFeatures = j.locked;
+      const changed = (j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join()) || ((j.braintestOff || []).join() !== braintestOff.join());
+      lockedFeatures = j.locked; maintFeatures = Array.isArray(j.maint) ? j.maint : []; gameCountdown = j.countdown || {}; hiddenFeatures = Array.isArray(j.hidden) ? j.hidden : []; gameModes = j.modes && typeof j.modes === 'object' ? j.modes : {}; if(j.now) serverClockOff = j.now - Date.now(); braintestOff = Array.isArray(j.braintestOff) ? j.braintestOff : []; arenaOff = Array.isArray(j.arenaOff) ? j.arenaOff : [];
       adminOkFlag = !!j.admin;
       if(useKey && !j.admin){ try{ localStorage.setItem('bp_admin_view','0'); }catch(e){} }
       renderAdminPill();
@@ -4479,7 +4506,8 @@ function admConPaint(){
 }
 function renderAdminPill(){
   let p = document.getElementById('adminPill');
-  if(!adminKeyStored()){ if(p) p.remove(); return; }
+  try{ renderModPill(); }catch(e){}
+  if(!adminKeyStored() || isTesterMode()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
   const open = false;
@@ -4488,6 +4516,65 @@ function renderAdminPill(){
   const aBtn = '<span data-adm-a="1" title="Admin-Leiste (ziehen zum Verschieben)" style="cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center;width:' + (open ? '30px' : '48px') + ';height:' + (open ? '30px' : '48px') + ';border-radius:50%;background:' + col + ';color:#0a0d16;font:900 22px system-ui,sans-serif;flex:0 0 auto">A</span>';
   p.innerHTML = aBtn + (open ? '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminBeta()" title="Beta-Phasen" style="cursor:pointer;padding:2px 6px">🏅</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>' : '');
   adminPillDrag(p);
+}
+
+/* ===== Mod-Funktion im Spiel: kleiner Schild-Knopf unten, nur wenn der Mod-Modus aktiv ist. Die Admin-App ist nur fuer den Admin. ===== */
+function modActive(){ try{ return isTesterMode() && localStorage.getItem('bp_trole') === 'mod' && !!adminKeyStored(); }catch(e){ return false; } }
+async function modApi(path, extra){
+  const k = adminKeyStored();
+  const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(Object.assign({ adminKey:k, key:k }, extra || {})) });
+  return r.json();
+}
+function renderModPill(){
+  let b = document.getElementById('modPill');
+  if(!modActive()){ if(b) b.remove(); const pn = document.getElementById('modPanel'); if(pn) pn.remove(); return; }
+  if(b) return;
+  b = document.createElement('div'); b.id = 'modPill'; b.textContent = '🛡️'; b.title = 'Mod';
+  b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99998;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;background:#0b1020;border:2px solid #38bdf8;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)';
+  b.onclick = modPanelToggle; document.body.appendChild(b);
+}
+let modTab = 'chat', modSel = null, modTimer = null;
+function modPanelToggle(){
+  const pill = document.getElementById('modPill'), ex = document.getElementById('modPanel'); if(ex){ ex.remove(); clearInterval(modTimer); if(pill) pill.style.display = 'flex'; return; }
+  if(pill) pill.style.display = 'none';
+  const d = document.createElement('div'); d.id = 'modPanel';
+  d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99997;max-height:72vh;display:flex;flex-direction:column;background:#0f1530;border-top:2px solid #38bdf8;border-radius:16px 16px 0 0;color:#e8ecff;font:14px system-ui,sans-serif;box-shadow:0 -8px 30px rgba(0,0,0,.6)';
+  d.innerHTML = '<div style="display:flex;gap:6px;padding:10px 10px 6px 12px;align-items:center"><b style="margin-right:auto">🛡️ Mod</b><button data-mt="chat">Chat</button><button data-mt="pl">Spieler</button><button data-mt="rep">Meldungen</button><button data-mt="x">✕</button></div><div id="modBody" style="overflow:auto;padding:8px 12px 14px;flex:1"></div>';
+  d.querySelectorAll('button').forEach(x => { x.style.cssText = 'background:#1a2348;color:#e8ecff;border:1px solid #2c3a72;border-radius:10px;padding:6px 10px;font:inherit;cursor:pointer'; x.onclick = () => { if(x.dataset.mt === 'x'){ modPanelToggle(); return; } modTab = x.dataset.mt; modSel = null; modPaint(); }; });
+  document.body.appendChild(d); modPaint(); clearInterval(modTimer); modTimer = setInterval(() => { if(modTab === 'chat' && !document.hidden && document.getElementById('modPanel') && !(document.activeElement && document.activeElement.id === 'modSay')) modPaint(); }, 5000);
+}
+const mbtn = 'background:#1a2348;color:#e8ecff;border:1px solid #2c3a72;border-radius:8px;padding:5px 9px;font:inherit;cursor:pointer;margin:2px';
+function modEsc(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function modPaint(){
+  const body = document.getElementById('modBody'); if(!body) return;
+  document.querySelectorAll('#modPanel [data-mt]').forEach(x => { if(x.dataset.mt !== 'x') x.style.borderColor = x.dataset.mt === modTab ? '#38bdf8' : '#2c3a72'; });
+  if(modTab === 'chat'){
+    const r = await modApi('/api/admin-live'); if(!r || !r.ok){ body.textContent = (r && r.error) || 'Fehler'; return; }
+    const msgs = (r.chat || []).filter(m => !m.sys).slice(-40);
+    body.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:8px"><input id="modSay" placeholder="Als Mod schreiben ..." maxlength="200" style="flex:1;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:8px"><button id="modSend" style="' + mbtn + '">Senden</button></div>' +
+      (msgs.length ? msgs.slice().reverse().map(m => '<div style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #1b2240"><div style="flex:1;min-width:0;word-break:break-word"><b style="color:#7dd3fc">' + modEsc(m.u) + '</b> ' + modEsc(m.t) + '</div><button data-md="' + m.id + '" style="' + mbtn + '">Löschen</button></div>').join('') : '<div style="opacity:.6">Chat ist leer.</div>');
+    body.querySelectorAll('[data-md]').forEach(b => b.onclick = async () => { await modApi('/api/admin-chat-delete', { id: +b.dataset.md }); modPaint(); });
+    const send = async () => { const i = document.getElementById('modSay'), t = i.value.trim(); if(!t) return; i.value = ''; await modApi('/api/admin-chat-send', { text: t }); modPaint(); };
+    document.getElementById('modSend').onclick = send; document.getElementById('modSay').onkeydown = e => { if(e.key === 'Enter') send(); };
+  } else if(modTab === 'pl'){
+    body.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:8px"><input id="modQ" placeholder="Name suchen" style="flex:1;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:8px"><button id="modFind" style="' + mbtn + '">Suchen</button></div><div id="modPl"></div><div id="modMsg" style="margin-top:6px;opacity:.8"></div>';
+    const find = async () => {
+      const r = await modApi('/api/admin-users', { query: document.getElementById('modQ').value.trim(), onlineOnly: false });
+      const box = document.getElementById('modPl'); if(!r || !r.ok){ box.textContent = (r && r.error) || 'Fehler'; return; }
+      box.innerHTML = r.users.slice(0, 20).map(u => '<div style="padding:6px 0;border-bottom:1px solid #1b2240"><div data-ms="' + modEsc(u.username) + '" style="cursor:pointer"><b>' + (u.online ? '🟢 ' : '') + modEsc(u.username) + '</b> <span style="opacity:.6;font-size:12px">· Klasse ' + modEsc(u.klasse) + ' · ' + modEsc(u.rounds) + ' Runden' + (u.mutedUntil ? ' · STUMM' : '') + (u.bannedUntil ? ' · TIMEOUT' : '') + (u.role ? ' · ' + modEsc(u.role) : '') + '</span></div>' + (modSel === u.username ? '<div style="margin-top:6px"><input id="modMin" type="number" value="60" style="width:70px;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:5px"> Min <input id="modWhy" placeholder="Grund" style="width:120px;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:5px"><br><button data-mact="timeout" style="' + mbtn + '">⏳ Timeout</button><button data-mact="mute" style="' + mbtn + '">🔇 Stumm</button><button data-mact="unmute" style="' + mbtn + '">Stumm aus</button><button data-mact="kick" style="' + mbtn + '">Abmelden</button></div>' : '') + '</div>').join('') || '<div style="opacity:.6">Nichts gefunden.</div>';
+      box.querySelectorAll('[data-ms]').forEach(e => e.onclick = () => { modSel = modSel === e.dataset.ms ? null : e.dataset.ms; find(); });
+      box.querySelectorAll('[data-mact]').forEach(b => b.onclick = async () => {
+        const r2 = await modApi('/api/admin-user-action', { username: modSel, action: b.dataset.mact, minutes: +(document.getElementById('modMin') || {}).value || 60, reason: ((document.getElementById('modWhy') || {}).value || '').trim() });
+        const m = document.getElementById('modMsg'); m.style.color = r2 && r2.ok ? '#86efac' : '#fca5a5'; m.textContent = r2 && r2.ok ? '✓ ' + modSel + ': ' + r2.note : '✗ ' + ((r2 && r2.error) || 'Fehler');
+      });
+    };
+    document.getElementById('modFind').onclick = find; document.getElementById('modQ').onkeydown = e => { if(e.key === 'Enter') find(); }; find();
+  } else {
+    const r = await modApi('/api/admin-reports'); if(!r || !r.ok){ body.textContent = (r && r.error) || 'Fehler'; return; }
+    const cn = { bug:'Fehler', player:'Spieler', message:'Nachricht', game:'Spiel', other:'Sonstiges' };
+    body.innerHTML = r.reports.length ? r.reports.map(x => '<div style="padding:8px 0;border-bottom:1px solid #1b2240;opacity:' + (x.done ? .5 : 1) + '"><div style="opacity:.6;font-size:12px">' + modEsc(cn[x.cat] || x.cat) + ' · ' + new Date(x.t).toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + (x.who ? ' · von ' + modEsc(x.who) : ' · anonym') + (x.target ? ' · betrifft ' + modEsc(x.target) : '') + '</div><div style="white-space:pre-wrap;word-break:break-word;margin:4px 0">' + modEsc(x.text) + '</div><button data-mr="' + modEsc(x.id) + '" style="' + mbtn + '">' + (x.done ? 'Wieder öffnen' : '✓ Erledigt') + '</button></div>').join('') : '<div style="opacity:.6">Keine Meldungen.</div>';
+    body.querySelectorAll('[data-mr]').forEach(b => b.onclick = async () => { await modApi('/api/admin-reports', { id: b.dataset.mr }); modPaint(); });
+  }
 }
 function adminPillPos(){ let o=null; try{ o=JSON.parse(localStorage.getItem('bp_admin_pos')||'null'); }catch(e){} const w=window.innerWidth, h=window.innerHeight; let l=o&&typeof o.l==='number'?o.l:10, t=o&&typeof o.t==='number'?o.t:h-56; l=Math.max(4,Math.min(w-48,l)); t=Math.max(4,Math.min(h-48,t)); return {l,t}; }
 function adminPillDrag(p){ const a=p.querySelector('[data-adm-a]'); if(!a) return; let sx=0,sy=0,ol=0,ot=0,moved=false,down=false;
@@ -4498,7 +4585,7 @@ function adminPillDrag(p){ const a=p.querySelector('[data-adm-a]'); if(!a) retur
 function adminPanelOpen(){ try{ return localStorage.getItem('bp_admin_open') === '1'; }catch(e){ return false; } }
 function toggleAdminPanel(){ openAdminConsole(); }
 async function syncAdminCloak(){
-  if(!account || !adminKeyStored()) return;
+  if(!account || !adminKeyStored() || isTesterMode()) return;
   try{ await apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: adminViewOn() }); }catch(e){}
 }
 async function toggleAdminView(){
@@ -4508,7 +4595,7 @@ async function toggleAdminView(){
   renderMainMenu();
 }
 function adminLogout(){
-  try{ if(account && adminKeyStored()) apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: false }); }catch(e){}
+  try{ if(account && adminKeyStored() && !isTesterMode()) apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: false }); }catch(e){}
   try{ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); }catch(e){}
   renderAdminPill(); loadFeatureFlags().then(() => renderMainMenu());
 }
@@ -4538,7 +4625,7 @@ function openAdminLogin(){
 let _admTaps = [];
 function titleTap(){
   const n = Date.now(); _admTaps = _admTaps.filter(x => n - x < 2500); _admTaps.push(n);
-  if(_admTaps.length >= 5){ _admTaps = []; if(adminKeyStored()) toggleAdminView(); else openAdminLogin(); }
+  if(_admTaps.length >= 5){ _admTaps = []; if(isTesterMode()) return; if(adminKeyStored()) toggleAdminView(); else openAdminLogin(); }
 }
 async function apiCall(endpoint, body){
   try{
@@ -4555,7 +4642,7 @@ async function restoreAccountSession(){
   const token = localStorage.getItem(ACCOUNT_TOKEN_KEY);
   if(!token) return;
   const result = await apiCall("/api/session", { token });
-  if(result.ok){ account = { token, profile: result.profile }; syncStreamerFromAccount(); connectFriendsWs(); syncAdminCloak(); }
+  if(result.ok){ account = { token, profile: result.profile }; syncStreamerFromAccount(); connectFriendsWs(); syncAdminCloak(); testerRefresh(); }
   // Token nur loeschen, wenn der Server eindeutig "ungueltig" meldet - NICHT bei
   // Netzproblemen oder wenn der Kontodienst gerade nicht erreichbar ist
   // (sonst wuerde man bei jeder kurzen Stoerung ausgeloggt).
@@ -4586,10 +4673,10 @@ function accountIndicatorHtml(){
   const stat = `<button class="top-btn" onclick="renderStatistik()">${L('Statistiken','Statistics')}</button>`;
   if(account){
     const av = (account.profile.betaPhase|0) ? framedAvatarHtml(account.profile.avatar, 22, account.profile.betaPhase) : (account.profile.avatar ? avatarHtml(account.profile.avatar, 22) : "👤");
-    return `<div class="top-row"><button class="top-btn top-prof" onclick="toggleProfileMenu(event)">${av}<span>${L('Profil','Profile')} ▾</span></button>${stat}</div>`;
+    return `<div class="top-row"><button class="top-btn top-prof" onclick="toggleProfileMenu(event)">${av}<span>${L('Profil','Profile')} ▾</span>${newsBadgeHtml()}</button>${stat}</div>`;
   }
   const guestSave = profiles.length > 0;
-  return `<div class="top-row"><button class="top-btn top-login" onclick="${guestSave ? 'saveDataFlow()' : `renderAccountAuth('login')`}">${guestSave ? '💾 ' + L('Daten speichern','Save data') : L('Anmelden','Log in')}</button>${stat}<button class="top-btn" aria-label="${L('Einstellungen','Settings')}" onclick="renderSettingsModal()">⚙️</button></div>`;
+  return `<div class="top-row"><button class="top-btn top-login" onclick="${guestSave ? 'saveDataFlow()' : `renderAccountAuth('login')`}">${guestSave ? '💾 ' + L('Daten speichern','Save data') : L('Anmelden','Log in')}</button>${stat}${newsUnread() ? '<button class="top-btn" onclick="openNews()">📰' + newsBadgeHtml() + '</button>' : ''}<button class="top-btn" aria-label="${L('Einstellungen','Settings')}" onclick="renderSettingsModal()">⚙️</button></div>`;
 }
 function closeProfileMenu(){ const m=document.getElementById("profMenu"); if(m) m.remove(); document.removeEventListener("click", closeProfileMenu); }
 function toggleProfileMenu(ev){
@@ -4599,6 +4686,7 @@ function toggleProfileMenu(ev){
   const m=document.createElement("div"); m.id="profMenu"; m.className="prof-menu";
   m.innerHTML = `<div class="pm-head">${avatarHtml(account.profile.avatar||"🙂",40)}<div><b>${esc(account.profile.username)}</b>${betaLabelHtml(account.profile.betaPhase)}<div style="font-size:11px;color:var(--text-dim)">${L('Klasse','Class')} ${account.profile.klasse||0}</div></div></div>
     <button onclick="closeProfileMenu();renderAvatarPicker('account:'+account.profile.username, renderMainMenu)">${L('Profil ändern','Edit profile')}</button>
+    <button onclick="closeProfileMenu();openNews()">📰 News${newsBadgeHtml(true)}</button>
     <button onclick="closeProfileMenu();startFriendsFlow()">${L('Freunde','Friends')}</button>
     <button onclick="closeProfileMenu();openAccountsModal()">${L('Konten','Accounts')}</button>
     <button onclick="closeProfileMenu();openRecoveryKey()">${L('Schlüssel','Key')}</button>
@@ -4853,6 +4941,7 @@ async function submitAccountAuth(mode){
   syncStreamerFromAccount();
   connectFriendsWs();
   syncAdminCloak();
+  if(isTesterMode()) testerClear(); // anderes Konto: Tester-Zugang beenden
   if(mode === 'register' && guestMigrate) await guestMigrateRun(); else guestMigrate = null;
   if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
   else renderMainMenu();
@@ -4874,6 +4963,7 @@ function showSignupBonus(n){
 
 async function logoutAccount(){
   if(account) await apiCall("/api/logout", { token: account.token });
+  testerClear();
   account = null;
   try{ localStorage.removeItem(ACCOUNT_TOKEN_KEY); }catch(e){}
   disconnectFriendsWs();
@@ -5177,7 +5267,41 @@ async function syncAccountStats(profile){
 }
 
 /* ------------------------------ 6. RENDER-HELFER ---------------------------- */
-function renderApp(html){ document.getElementById("app").innerHTML = html; }
+function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} }
+/* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
+const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups' };
+function fmtCountdown(ms){
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
+  if(ms <= 0) return L('gleich','soon');
+  if(d > 0) return d + ' ' + (currentLang === 'de' ? (d === 1 ? 'Tag' : 'Tage') : (d === 1 ? 'day' : 'days')) + ' ' + h + ' ' + (currentLang === 'de' ? 'Std' : 'h');
+  if(h > 0) return h + ' ' + (currentLang === 'de' ? 'Std' : 'h') + ' ' + mi + ' Min';
+  return Math.max(1, mi) + ' Min';
+}
+function gateText(name){
+  if(featureMaint(name)) return L('Wartung – gleich wieder da','Maintenance – back soon');
+  const st = gameCountdown[name];
+  if(st) return L('Startet in ','Starts in ') + fmtCountdown(st - (Date.now() + serverClockOff));
+  return 'Coming soon';
+}
+setInterval(function(){
+  document.querySelectorAll('[data-gate]').forEach(e => { e.textContent = gateText(e.dataset.gate); });
+  const now = Date.now() + serverClockOff;
+  if(Object.keys(gameCountdown).some(k => gameCountdown[k] <= now)){ gameCountdown = {}; try{ loadFeatureFlags().then(() => { try{ if(document.querySelector('.menu-hero')) renderMainMenu(); }catch(e){} }); }catch(e){} }
+}, 20000);
+function applyGameGates(){
+  document.querySelectorAll('#app .mode-card[onclick]').forEach(c => {
+    const oc = c.getAttribute('onclick') || '';
+    for(const fn in GATE_MAP){
+      if(oc.indexOf(fn + '(') === -1) continue;
+      if(!featureLocked(GATE_MAP[fn])){ const gm = gameModes[GATE_MAP[fn]]; if(gm){ if(gm !== 'test') c.style.borderColor = 'var(--warn)'; else { const h3 = c.querySelector('h3'); if(h3 && !c.querySelector('.adm-test')) h3.insertAdjacentHTML('afterend', '<div class="adm-test" style="font-size:11px;font-weight:800;color:#3de0ff;letter-spacing:.5px;margin-top:2px">TEST</div>'); } } break; }
+      if(hiddenFeatures.indexOf(GATE_MAP[fn]) !== -1){ c.remove(); break; }
+      c.removeAttribute('onclick'); c.classList.add('locked'); c.style.opacity = '.45'; c.style.cursor = 'default';
+      let p = c.querySelector('p'); if(!p){ p = document.createElement('p'); c.appendChild(p); }
+      p.textContent = gateText(GATE_MAP[fn]); p.dataset.gate = GATE_MAP[fn];
+      break;
+    }
+  });
+}
 function avatarColor(name){ return `hsl(${(name.charCodeAt(0)*37)%360} 55% 40%)`; }
 // HTML-Escaping fuer ALLES, was von Nutzern stammt (Namen, Antworten, eigene
 // Kategorien) und per innerHTML angezeigt wird - verhindert eingeschleusten Code.
@@ -5579,7 +5703,7 @@ function startPartyHub(){
   setAudioZone("menu");
   const card = (gm) => {
     const m = DEDICATED_MODES[gm];
-    if(featureLocked(gm)) return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p>Coming soon</p></div>`;
+    if(featureLocked(gm)) return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p data-gate="${gm}">${gateText(gm)}</p></div>`;
     return `<div class="mode-card" onclick="startDedicatedMenu('${gm}')"><div class="icon">${m.icon}</div><h3>${m.title}</h3></div>`;
   };
   renderApp(`
@@ -5719,14 +5843,14 @@ function renderChessHub(){
           <h3>Chess Fantasy</h3>
           <p>${fantasyComing ? 'Coming soon' : fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : L('Schach-RPG mit Truhen, Fähigkeiten und Rängen.','Chess RPG with chests, abilities and ranks.')}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
         </div>
-        ${dmAllowed() ? `<div class="mode-card" onclick="dmIntro()" style="${featureLocked('dame') ? 'border-color:var(--warn);' : ''}">
+        ${dmAllowed() ? `<div class="mode-card" onclick="dmIntro()" style="${admSty('dame')}">
           <div class="icon">⛀</div>
-          <h3>${L('Dame','Checkers')} ${featureLocked('dame') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
+          <h3>${L('Dame','Checkers')}</h3>${admTag('dame')}
           <p>${L('Klassisches Dame, Bot, Freunde, Zufallsgegner.','Classic checkers, bot, friends, random opponent.')}</p>
         </div>` : `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⛀</div>
           <h3>${L('Dame','Checkers')}</h3>
-          <p>Coming soon</p>
+          <p data-gate="dame">${gateText('dame')}</p>
         </div>`}
       </div>
       <div id="chessInviteBox"></div>
@@ -5970,6 +6094,8 @@ function renderSettingsModal(){
     <div class="settings-track" style="margin-top:8px;">${L('Raum-Codes werden als Sternchen angezeigt und du bekommst keine Freundschaftsanfragen. Hat dir jemand vorher eine geschickt und du schickst ihm eine, seid ihr direkt Freunde.','Room codes are shown as stars and you will not receive friend requests. If someone sent you one earlier and you send them one, you become friends right away.')}</div>`;
   const feedCard = account ? card('✨ ' + L('Live-Feed','Live feed'), `<button class="btn ${account.profile.feedOptIn ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleFeedOptIn()">${account.profile.feedOptIn ? L('Name wird gezeigt','Name shown') : L('Anonym','Anonymous')}</button>
     <div class="settings-track" style="margin-top:8px;">${L('Wenn an, erscheint dein Name bei Live-Meldungen im Chat und im Hauptmenü (z. B. „Mia hat Klasse 2 erreicht“). Sonst steht dort „Ein Spieler“.','If on, your name appears in live notices in the chat and main menu (e.g. “Mia reached Class 2”). Otherwise it says “A player”.')}</div>`) : '';
+  const testerCard = (account && account.profile && account.profile.canTest && (isTesterMode() || !adminKeyStored())) ? card('🧪 ' + (account.profile.role === 'mod' ? 'Mod' : L('Tester','Tester')), `<button class="btn ${isTesterMode() ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleTesterMode()">${isTesterMode() ? '🧪 ' + L('Aktiv (zum Beenden tippen)','Active (tap to end)') : '🧪 ' + (account.profile.role === 'mod' ? L('Mod-Modus aktivieren','Activate mod mode') : L('Tester aktivieren','Activate tester'))}</button>
+    <div class="settings-track" style="margin-top:8px;">${account.profile.role === 'mod' ? L('Du hast das Mod-Recht. Aktiviert siehst du alle gesperrten Spiele, die nicht in Wartung sind, und kannst sie ausprobieren.','You have the mod right. When active you can see and try all locked games that are not under maintenance.') : L('Du bist Tester. Aktiviert siehst du die Spiele, die gerade im Test sind, und kannst sie ausprobieren.','You are a tester. When active you can see and try the games that are currently in testing.')}</div>`) : '';
   overlay.innerHTML = `
     <div class="settings-panel" onclick="event.stopPropagation()">
       <div class="settings-title">⚙️ ${L('Einstellungen','Settings')}</div>
@@ -5977,6 +6103,7 @@ function renderSettingsModal(){
       ${card('🔊 ' + L('Ton','Sound'), sound)}
       ${card('🎥 ' + L('Streamer-Modus','Streamer mode'), streamer)}
       ${feedCard}
+      ${testerCard}
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="closeSettings()">${L('Schließen','Close')}</button>
     </div>
   `;
@@ -6450,6 +6577,12 @@ async function guestMigrateRun(){
     await syncAccountStats(prof);
   }catch(e){}
 }
+window.addEventListener('DOMContentLoaded', function(){
+  Object.keys(GATE_MAP).forEach(fn => { const f = window[fn]; if(typeof f !== 'function') return;
+    window[fn] = function(){ const g = GATE_MAP[fn]; if(featureLocked(g)){ try{ if(typeof showInviteToast === 'function') showInviteToast(gateText(g)); }catch(e){} return; } return f.apply(this, arguments); }; });
+  const bc = window.renderBrainTestClassModal;
+  if(typeof bc === 'function') window.renderBrainTestClassModal = function(i){ if(braintestOff.indexOf(i) !== -1){ try{ if(typeof showInviteToast === 'function') showInviteToast(L('Diese Klasse ist gerade in Wartung.','This class is under maintenance.')); }catch(e){} return; } return bc.apply(this, arguments); };
+});
 window.addEventListener('load', () => setTimeout(() => { try{ if(!document.getElementById('resetNoticeBox') && !new URLSearchParams(location.search).get('br') && !new URLSearchParams(location.search).get('dm') && !new URLSearchParams(location.search).get('mu')) showIntro(false); showWelcomeIfNeeded(); }catch(e){} }, 1200));
 
 const SOCIAL_LINKS = [
@@ -7103,7 +7236,7 @@ function brainBoardHtml(game, title, ic, r){
 let brainData = { hood:null, fruit:null }, brainTabSel = 'hood', brainOpen = false;
 function brainCardsHtml(){
   const f = fruitData();
-  const card = (game, title, sub, ic, lvl, r) => `<div class="mode-card" onclick="renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')">
+  const card = (game, title, sub, ic, lvl, r) => hiddenFeatures.indexOf('braining_' + game) !== -1 ? '' : featureLocked('braining_' + game) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="braining_${game}">${gateText('braining_' + game)}</p></div>` : `<div class="mode-card" onclick="renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')" style="${admSty('braining_' + game)}">
       <div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${lvl}</span><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--warn);">${r && r.ok && r.mine ? r.mine.pts.toLocaleString() : 0} ${L('Pkt','pts')}</span></div></div>`;
   const hoodIc = `<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
@@ -7157,7 +7290,7 @@ function renderMainMenu(){
   const dedicatedCard = (gm) => {
     const m = DEDICATED_MODES[gm];
     if(featureLocked(gm)){
-      return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p>Coming soon</p></div>`;
+      return `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon">${m.icon}</div><h3>${m.title}</h3><p data-gate="${gm}">${gateText(gm)}</p></div>`;
     }
     const locked = m.germanOnly && currentLang!=='de';
     return `
@@ -7192,7 +7325,7 @@ function renderMainMenu(){
       ${featureLocked('party') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="16" cy="18" r="6" fill="#3de0ff"/><circle cx="32" cy="18" r="6" fill="#c6ff3d"/><circle cx="24" cy="30" r="6" fill="#ffc446"/><path d="M6 42C6 34 26 34 26 42M22 42C22 36 42 36 42 42" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/></svg></div>
         <h3>${t('menu_party_title')}</h3>
-        <p>Coming soon</p>
+        <p data-gate="party">${gateText('party')}</p>
       </div>` : `<div class="mode-card" onclick="partyQuickStart()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="16" cy="18" r="6" fill="#3de0ff"/><circle cx="32" cy="18" r="6" fill="#c6ff3d"/><circle cx="24" cy="30" r="6" fill="#ffc446"/><path d="M6 42C6 34 26 34 26 42M22 42C22 36 42 36 42 42" stroke="#fff" stroke-width="3" fill="none" opacity=".7"/></svg></div>
         <h3>${t('menu_party_title')}</h3>
@@ -7215,7 +7348,7 @@ function renderMainMenu(){
       ${featureLocked('biology') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M14 6C14 18 34 18 34 30C34 38 24 42 24 42M34 6C34 18 14 18 14 30C14 38 24 42 24 42" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linecap="round"/><path d="M17 12H31M17 24H31M20 36H28" stroke="#3de0ff" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Biology</h3>
-        <p>Coming soon</p>
+        <p data-gate="biology">${gateText('biology')}</p>
       </div>` : `<div class="mode-card" onclick="startBiologyFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M14 6C14 18 34 18 34 30C34 38 24 42 24 42M34 6C34 18 14 18 14 30C14 38 24 42 24 42" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linecap="round"/><path d="M17 12H31M17 24H31M20 36H28" stroke="#3de0ff" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Biology</h3>
@@ -7246,10 +7379,10 @@ ${currentLang === 'de' ? `
         <h3>Tic Tac Toe</h3>
         <p>${L('Vom weißen bis zum Meister-Gürtel.','From white to master belt.')}</p>
       </div>
-      ${brAllowed() ? `<div class="mode-card" onclick="brDuelHub()" style="border-color:var(--warn);">
+      ${brAllowed() ? `<div class="mode-card" onclick="brDuelHub()" style="${admSty('brain_royale')}">
         <div class="icon">⚔️</div>
-        <h3>Brain Duel ${featureLocked('brain_royale') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
-        <p>${featureLocked('brain_royale') ? L('Brain Royale + Brain Mana, Test, nur für dich sichtbar','Brain Royale + Brain Mana, test, only visible to you') : L('Brain Royale + Brain Mana','Brain Royale + Brain Mana')}</p>
+        <h3>Brain Duel</h3>${admTag('brain_royale')}
+        <p>${L('Brain Royale + Brain Mana','Brain Royale + Brain Mana')}</p>
       </div>` : ''}
       <div class="mode-card ${(currentLang==='de'||currentLang==='en') ? '' : 'locked'}" onclick="${(currentLang==='de'||currentLang==='en') ? 'startChem()' : ''}" style="${(currentLang==='de'||currentLang==='en') ? '' : 'opacity:.45; cursor:default;'}">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><path d="M19 6H29M21 6V20L9 40C8 42 9 44 11 44H37C39 44 40 42 39 40L27 20V6" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M14 33H34" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="38" r="2" fill="#3de0ff"/><circle cx="29" cy="28" r="2" fill="#c6ff3d"/></svg></div>
@@ -7643,6 +7776,45 @@ async function renderShop(profile){
   }
   renderShopScreen();
 }
+/* Admin-/Mod-Sicht: Orange = fuer Spieler noch nicht offen (nur du/Mod sehen es), Blau mit "TEST" = im Test */
+/* ===== NEWS ===== */
+let newsData = { list: [], lastId: 0 };
+(function(){ const st = document.createElement('style'); st.textContent = '.top-btn{position:relative}.news-dot{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;border-radius:11px;background:#ff3b5c;color:#fff;font-size:13px;font-weight:900;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 0 0 2px #0c1430;line-height:1}.news-dot.inl{position:static;display:inline-flex;box-shadow:none;margin-left:6px}'; document.head.appendChild(st); })();
+function newsSeen(){ try{ return parseInt(localStorage.getItem('bp_news_seen') || '0', 10) || 0; }catch(e){ return 0; } }
+function newsUnread(){ const s = newsSeen(); return newsData.list.filter(n => n.id > s).length; }
+function newsBadgeHtml(inl){ const n = newsUnread(); return n ? '<span class="news-dot' + (inl ? ' inl' : '') + '">' + (n > 9 ? '9+' : n) + '</span>' : ''; }
+async function loadNews(){
+  try{
+    const r = await apiCall('/api/news', {});
+    if(r && r.ok && Array.isArray(r.news)){
+      const before = newsUnread() + ':' + newsData.lastId;
+      newsData = { list: r.news, lastId: r.lastId || 0 };
+      if(newsUnread() + ':' + newsData.lastId !== before && document.querySelector('.menu-hero')) renderMainMenu();
+    }
+  }catch(e){}
+}
+function openNews(){
+  setAudioZone && setAudioZone("menu");
+  try{ localStorage.setItem('bp_news_seen', String(newsData.lastId || 0)); }catch(e){}
+  const seenBefore = newsData.list.length ? newsData.list[0].id : 0;
+  const fd = ts => { const d = new Date(ts); return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear(); };
+  const lg = currentLang === 'en' ? 'en' : 'de';
+  renderApp(`
+    <div class="panel">
+      <div class="picker-title">📰 NEWS</div>
+      <div class="picker-sub">${L('Neuigkeiten rund um Brain Pulse','News about Brain Pulse')}</div>
+      <div id="newsBox" style="margin-top:12px">${newsData.list.length ? newsData.list.map((n, i) => { const c = n[lg] || n.de; return `<div style="border:1.5px solid ${i === 0 ? '#3de0ff' : '#2d3d72'};border-radius:16px;padding:14px;background:#0f1a3a;margin-bottom:12px"><div style="font-size:11px;color:#7dd3fc;font-weight:800">${fd(n.ts)}</div><h4 style="margin:4px 0 6px;font-size:17px">${esc(c.title)}</h4><div style="font-size:14px;line-height:1.5;color:#cfd7ff;white-space:pre-wrap">${esc(c.text)}</div></div>`; }).join('') : '<p style="text-align:center;color:var(--text-dim)">' + L('Noch keine News.','No news yet.') + '</p>'}</div>
+      <div class="actions-row" style="margin-top:14px;"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
+    </div>`);
+}
+function admSty(id){ const m = gameModes[id]; return m && m !== 'test' ? 'border-color:var(--warn);' : ''; }
+function admTag(id){ return gameModes[id] === 'test' ? '<div style="font-size:11px;font-weight:800;color:#3de0ff;letter-spacing:.5px;margin-top:2px">TEST</div>' : ''; }
+function arenaShopOn(){ return !featureLocked('arena') && !featureLocked('shop_arena') && hiddenFeatures.indexOf('shop_arena') === -1; }
+function shopGate(id, ic, name, html){
+  if(hiddenFeatures.indexOf(id) !== -1) return '';
+  if(!featureLocked(id)) return html;
+  return `<div class="bs-card" style="--c:#888;opacity:.55"><span class="ic">${ic}</span><div class="info"><div class="nm">${name}</div><div class="ds" data-gate="${id}">${gateText(id)}</div></div></div>`;
+}
 function renderShopScreen(){
   const profile = shopProfile;
   const noticeToShow = shopReturnNotice;
@@ -7652,7 +7824,7 @@ function renderShopScreen(){
   const msAfford = (profile.coins||0) >= MILESTONE_HEART_COST;
   const arenaFull = !!(shopArenaInfo && shopArenaInfo.hearts>=shopArenaInfo.maxHearts);
   const arenaAfford = (profile.coins||0)>=ARENA_HEART_COST_CLIENT;
-  const fantasyOn = false; /* Coming soon, bis Echtgeld/Kisten freigegeben sind */
+  const fantasyOn = !featureLocked('shop_chess') && !featureLocked('chess_fantasy');
   renderApp(`
     <div class="panel">
      <div class="bs-wrap">
@@ -7663,10 +7835,10 @@ function renderShopScreen(){
       <div class="bs-bal">
         <div style="--c:#ffd45a"><small>${L('MÜNZEN','COINS')}</small><b>🪙 ${profile.coins||0}</b></div>
         <div style="--c:#7be0ff"><small>${L('SPEED-MATH','SPEED MATH')}</small><b>❤️ ${msHearts}/${SPEEDMATH_DAILY_HEARTS}</b></div>
-        <div style="--c:#bb55ff"><small>ARENA</small><b>${shopArenaInfo ? '❤️ ' + shopArenaInfo.hearts + '/' + shopArenaInfo.maxHearts : '–'}</b></div>
+        ${arenaShopOn() ? `<div style="--c:#bb55ff"><small>ARENA</small><b>${shopArenaInfo ? '❤️ ' + shopArenaInfo.hearts + '/' + shopArenaInfo.maxHearts : '–'}</b></div>` : ''}
       </div>
-      <button class="bs-link" ${fantasyOn ? 'onclick="openChessWorldShop()"' : 'disabled'}>♞ ${L('ZUM CHESS-SHOP','TO THE CHESS SHOP')}${fantasyOn ? '' : ' · Coming soon'}</button>
-      <button class="bs-link" disabled>✨ ${L('FOURUPS-KISTEN','FOURUPS CHESTS')} · Coming soon</button>
+      ${hiddenFeatures.indexOf('shop_chess') !== -1 ? '' : `<button class="bs-link" ${fantasyOn ? 'onclick="openChessWorldShop()"' : 'disabled'}>♞ ${L('ZUM CHESS-SHOP','TO THE CHESS SHOP')}${fantasyOn ? '' : ' · ' + gateText('shop_chess')}</button>`}
+      ${hiddenFeatures.indexOf('shop_fourups') !== -1 ? '' : `<button class="bs-link" disabled>✨ ${L('FOURUPS-KISTEN','FOURUPS CHESTS')} · ${gateText('shop_fourups')}</button>`}
 
       <p style="color:var(--text-dim); font-size:12px; text-align:center; margin-top:-6px;">${L(`Münzen verdienst du durch neu freigeschaltete Erfolge (+${ACHV_COIN_REWARD}) und bestandene Haupttests (+${HAUPTTEST_COIN_REWARD}).`,`You earn coins from newly unlocked achievements (+${ACHV_COIN_REWARD}) and passed main tests (+${HAUPTTEST_COIN_REWARD}).`)}</p>
 
@@ -7674,21 +7846,25 @@ function renderShopScreen(){
 
       ${noticeToShow === "cancel" ? `<div class="rank-up-banner" style="opacity:.8;">Kauf abgebrochen, es wurde nichts abgebucht.</div>` : ``}
 
-      <div class="bs-sec">${L('Münzen kaufen','Buy coins')}</div>
-      <p style="color:var(--text-dim); font-size:13px; text-align:center;">🪙 ${L('Coming soon','Coming soon')}</p>
+      ${hiddenFeatures.indexOf('shop_coins') !== -1 ? '' : `<div class="bs-sec">${L('Münzen kaufen','Buy coins')}</div>` + (featureLocked('shop_coins') || !shopPackages.length || !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">🪙 ${featureLocked('shop_coins') ? gateText('shop_coins') : (profile.isAccount ? L('Gerade nicht verfügbar.','Currently unavailable.') : L('Zum Kaufen bitte anmelden.','Please log in to buy.'))}</p>` : `<label style="display:flex;gap:8px;font-size:12px;color:var(--text-dim);margin:6px 0"><input type="checkbox" id="shopConsent"> <span>${L('Ich stimme zu, dass die Münzen sofort bereitgestellt werden, und weiß, dass dadurch mein Widerrufsrecht erlischt.','I agree the coins are delivered immediately and understand my right of withdrawal expires.')}</span></label>` + shopPackages.map(k => `<div class="bs-card" style="--c:#ffd45a"><span class="ic">🪙</span><div class="info"><div class="nm">${esc(k.label)}</div><div class="ds">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</div></div><button class="bs-buy" onclick="shopBuyCoins('${esc(k.id)}')">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</button></div>`).join(''))}
 
       <div class="bs-sec">${L('Herzen','Hearts')}</div>
+      ${shopGate('shop_speedmath','🧮',L('Speed-Math-Herz','Speed Math heart'),`
       <div class="bs-card" style="--c:#7be0ff">
         <span class="ic">🧮</span>
         <div class="info"><div class="nm">${L('Speed-Math-Herz','Speed Math heart')}</div><div class="ds">${msHearts} / ${SPEEDMATH_DAILY_HEARTS} ${L('Herzen heute','hearts today')}</div></div>
         <button class="bs-buy" ${msFull||!msAfford?'disabled':''} onclick="shopBuyMilestoneHeart()">${msFull ? '✓ ' + L('Voll','Full') : `🪙 ${MILESTONE_HEART_COST}`}</button>
       </div>
+`)}
+      ${arenaShopOn() ? `
       <div class="bs-card" style="--c:#bb55ff; ${profile.isAccount ? '' : 'opacity:.55'}">
         <span class="ic">🏆</span>
         <div class="info"><div class="nm">${L('Arena-Herz','Arena heart')}</div><div class="ds">${profile.isAccount ? `${shopArenaInfo ? shopArenaInfo.hearts : '…'} / ${shopArenaInfo ? shopArenaInfo.maxHearts : '…'} ${L('Herzen heute','hearts today')}` : L('Dafür brauchst du ein Konto.','You need an account for this.')}</div></div>
         ${profile.isAccount ? `<button class="bs-buy" ${!shopArenaInfo || arenaFull || !arenaAfford ? 'disabled' : ''} onclick="shopBuyArenaHeart()">${arenaFull ? '✓ ' + L('Voll','Full') : `🪙 ${ARENA_HEART_COST_CLIENT}`}</button>` : ''}
       </div>
 
+` : ''}
+      ${shopGate('shop_fruit','🍓',L('Brain Fruit Booster','Brain Fruit boosters'),`
       <div class="bs-sec">${L('Brain Fruit Booster','Brain Fruit boosters')}</div>
       ${FRUIT_BOOSTERS.map(b => { const f = fruitData(), have = f[b.id]||0, ok = (profile.coins||0) >= b.cost; return `
       <div class="bs-card" style="--c:#c6ff3d">
@@ -7703,6 +7879,7 @@ function renderShopScreen(){
         <div class="info"><div class="nm">${L('Zusatz-Speicher','Extra storage')}</div><div class="ds">${L('Brain Fruit: ein zweites Hilfs-Objekt aus der Punkte-Leiste aufbewahren','Brain Fruit: keep a second helper from the points bar')}</div></div>
         <button class="bs-buy" ${have || !ok ? 'disabled' : ''} onclick="shopBuySlot()">${have ? '✓' : '🪙 ' + FRUIT_SLOT_COST}</button>
       </div>`; })()}
+`)}
       <div id="shopFeedback" class="explanation hidden"></div>
       ${legalLinksHtml()}
       <div class="actions-row" style="margin-top:6px;">
@@ -7730,7 +7907,7 @@ function shopBuyMilestoneHeart(){
   renderShopScreen(); shopFeedback(msg, !ok);
 }
 async function shopBuyCoins(packageId){
-  return; /* Coming soon: Echtgeld-Kauf vorerst gesperrt */
+  if(featureLocked('shop_coins')) return; /* Echtgeld nur, wenn der Admin es freigibt */
   const cb = document.getElementById('shopConsent');
   if(!cb || !cb.checked){
     const fb = document.getElementById('shopFeedback');
@@ -9775,7 +9952,7 @@ function brIntro(){
   brClearTimers();
   renderApp(`
     <div class="panel">
-      <div class="picker-title">⚔️ BRAIN ROYALE <span style="font-size:12px;color:var(--warn);">ADMIN TEST</span></div>
+      <div class="picker-title">⚔️ BRAIN ROYALE</div>
       <div class="picker-sub">${L('3 Figuren, 1 Schritt pro Zug. Triffst du eine gegnerische Figur, gibt es ein Duell.','3 pieces, 1 step per turn. Step into an enemy piece and you duel.')}</div>
       <div class="explanation" style="margin:10px 0;text-align:left;">
         ♟ ${L('Bauer: 2 Herzen. Verliert er ein Duell → zurück zum Start, −1 Herz.','Pawn: 2 hearts. Loses a duel → back to start, −1 heart.')}<br>
@@ -10285,7 +10462,7 @@ function dmIntro(msg){
   const sk = DM_SKINS.find(x => x.id === dmSkin()) || DM_SKINS[0], nx = dmNextInfo();
   renderApp(`${DM2_CSS}
     <div class="panel dm2">
-      <div class="hd"><div class="ic">♛</div><div><h1>${L('DAME','CHECKERS')} ${featureLocked('dame') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</h1><div class="sub">${L('Deutsche Dame: Schlagzwang, Damen ziehen beliebig weit.','German draughts: captures are mandatory, kings fly.')}</div></div></div>
+      <div class="hd"><div class="ic">♛</div><div><h1>${L('DAME','CHECKERS')} </h1><div class="sub">${L('Deutsche Dame: Schlagzwang, Damen ziehen beliebig weit.','German draughts: captures are mandatory, kings fly.')}</div></div></div>
       <div style="color:#ff8a8a;font-weight:700;min-height:${msg ? 18 : 0}px;margin-top:8px">${msg ? esc(msg) : ''}</div>
       <button class="big" style="margin-top:16px" onclick="dmSkinScreen()"><div class="e" style="gap:0"><div style="width:20px">${dmStone(sk.id, 'w', false, 100)}</div><div style="width:20px;margin-left:-4px">${dmStone(sk.id, 'b', false, 100)}</div></div><div style="flex:1;min-width:0"><b>${L('Steine','Pieces')}: ${L(sk.de, sk.en)}</b><span>${nx.txt}</span><div class="bar"><i style="width:${nx.pct}%"></i></div></div><div class="ar">›</div></button>
       <div class="lab">${L('GEGEN DEN BOT','VS THE BOT')}</div>
@@ -10568,7 +10745,7 @@ function muIntro(msg){
   muClearTimers();
   renderApp(`
     <div class="panel mu2">
-      <div class="mm-hd"><svg viewBox="0 0 40 40" width="46" height="46"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg><h2>${L('MÜHLE','NINE MEN\'S MORRIS')} ${featureLocked('muehle') ? '<span style="font-size:12px;color:var(--warn);">ADMIN TEST</span>' : ''}</h2>
+      <div class="mm-hd"><svg viewBox="0 0 40 40" width="46" height="46"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg><h2>${L('MÜHLE','NINE MEN\'S MORRIS')} </h2>
         <p>${L('9 Steine setzen, dann ziehen. Drei in einer Reihe = Mühle = gegnerischen Stein entfernen. Mit nur 3 Steinen darfst du springen.','Place 9 pieces, then move. Three in a row = mill = remove an enemy piece. With only 3 pieces you may fly.')}</p></div>
       <div style="color:#ff8a8a;font-weight:700;min-height:18px;text-align:center">${msg ? esc(msg) : ''}</div>
       <div class="mm-cd"><h4>🤖 ${L('Gegen den Bot','Against the bot')}</h4><small>${L('Wähle die Stärke','Choose the level')}</small>
@@ -10837,7 +11014,7 @@ function startFourupsFlow(){
           <h3>Original</h3>
           <p>${L('Klassisches 4 gewinnt, gegen den Bot oder zu zweit.','Classic Connect 4, vs the bot or two players.')}</p>
         </div>
-        ${featureLocked('fourups_abilities') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div><h3>${L('Fähigkeiten','Abilities')}</h3><p>Coming soon</p></div>` : `<div class="mode-card" onclick="fuaMenu()">
+        ${featureLocked('fourups_abilities') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;"><div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div><h3>${L('Fähigkeiten','Abilities')}</h3><p data-gate="fourups_abilities">${gateText('fourups_abilities')}</p></div>` : `<div class="mode-card" onclick="fuaMenu()">
           <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><circle cx="24" cy="26" r="14" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="22" cy="23.5" r="2" fill="#fff" opacity=".6"/><path d="M24 14L27 22L35 22L29 27L31 35L24 30L17 35L19 27L13 22L21 22Z" fill="#fff" opacity=".9"/></svg></div>
           <h3>${L('Fähigkeiten','Abilities')}</h3>
           <p>${L('Steine mit Spezialkräften, Bomben, Joker, Doppelzug …','Stones with special powers, bombs, jokers, double move …')}</p>
@@ -11546,13 +11723,13 @@ function startTicTacToeFlow(){
           <h3>Original</h3>
           <p>${L('Klassisch, vom weißen bis zum Meister-Gürtel.','Classic, from white to master belt.')}</p>
         </div>
-        ${muAllowed() ? `<div class="mode-card" onclick="muIntro()" style="${featureLocked('muehle') ? 'border-color:var(--warn);' : ''}">
+        ${muAllowed() ? `<div class="mode-card" onclick="muIntro()" style="${admSty('muehle')}">
           <div class="icon"><svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg></div>
-          <h3>${L('Mühle','Morris')} ${featureLocked('muehle') ? '<span style="font-size:11px;color:var(--warn);">ADMIN</span>' : ''}</h3>
+          <h3>${L('Mühle','Morris')}</h3>${admTag('muehle')}
           <p>${L('Klassische Mühle, Bot, Freunde, Zufallsgegner.','Classic mills, bot, friends, random opponent.')}</p>
         </div>` : ''}
         ${featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
-          <div class="icon">⚡</div><h3>Quantum</h3><p>Coming soon</p></div>` : `<div class="mode-card" onclick="tttOppSelect('quantum')">
+          <div class="icon">⚡</div><h3>Quantum</h3><p data-gate="ttt_quantum">${gateText('ttt_quantum')}</p></div>` : `<div class="mode-card" onclick="tttOppSelect('quantum')">
           <div class="icon">⚡</div><h3>Quantum</h3>
           <p>${L('Höchstens 3 Symbole, das älteste verschwindet.','At most 3 symbols, the oldest vanishes.')}</p></div>`}
         <div class="mode-card" onclick="tttOppSelect('quizmix')">
@@ -11713,7 +11890,7 @@ function tttStartMultiplayer(profile){
         ${featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⚡</div>
           <h3>Quantum</h3>
-          <p>Coming soon</p>
+          <p data-gate="ttt_quantum">${gateText('ttt_quantum')}</p>
         </div>` : `<div class="mode-card" style="${tttMpSelectedMode==='quantum'?'box-shadow:0 0 0 2px var(--accent);':''}" onclick="tttMpSelectedMode='quantum'; tttStartMultiplayer(tttOverviewProfile);">
           <div class="icon">⚡</div>
           <h3>Quantum</h3>
@@ -15806,7 +15983,7 @@ function renderPartyGameEnd(msg){
 // weiter oben): der allererste Tipp, egal worauf, startet die Musik dann von
 // selbst, ohne dass man extra irgendwo draufdrücken muss.
 renderMainMenu();
-loadFeatureFlags();
+loadFeatureFlags(); loadNews(); setInterval(() => { if(!document.hidden) loadNews(); }, 120000);
 restoreAccountSession().then(() => {
   if(shopReturnNotice && account && !featureLocked('shop')){ startShopFlow(); return; }
   if(account) renderMainMenu();
@@ -15846,7 +16023,8 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     const list = document.getElementById('chatList'); if(!list) return;
     const m = me();
     const near = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-    list.innerHTML = msgs.length ? msgs.map(x => { if(x.sys){ const tx = liveEventText({kind:x.k,name:x.nm,n:x.n,x:x.x}); return tx ? '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#2a2450;border:1px solid #8f7bff55;border-radius:99px;padding:5px 12px;font-size:12px;color:#d9d2ff">✨ ' + tx + '</span></div>' : ''; } const mine = (m && x.u === m) || (x.adm && adminViewOn()); return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:' + (x.adm ? '#ffd45a' : '#c6ff3d') + '">' + (x.adm ? '👑 ' : '') + esc(x.u) + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>';
+    list.innerHTML = (newsUnread() ? '<div id="chatNewsHint" style="margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,59,92,.14);border:1.5px solid #ff3b5c;font-weight:800;font-size:14px;cursor:pointer;text-align:center">📰 ' + L('Neue News! Tippen zum Lesen','New news! Tap to read') + '</div>' : '') + (msgs.length ? msgs.map(x => { if(x.sys){ const tx = liveEventText({kind:x.k,name:x.nm,n:x.n,x:x.x}); return tx ? '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#2a2450;border:1px solid #8f7bff55;border-radius:99px;padding:5px 12px;font-size:12px;color:#d9d2ff">✨ ' + tx + '</span></div>' : ''; } const mine = (m && x.u === m) || (x.adm && adminViewOn()); return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:' + (x.adm ? '#ffd45a' : '#c6ff3d') + '">' + (x.adm ? '👑 ' : '') + esc(x.u) + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>');
+    const nh = document.getElementById('chatNewsHint'); if(nh) nh.onclick = () => { toggle(false); openNews(); };
     if(stick || near) list.scrollTop = list.scrollHeight;
   }
   function foot(){
@@ -15882,7 +16060,7 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     open = typeof force === 'boolean' ? force : !open;
     ov.style.display = open ? 'flex' : 'none';
     clearInterval(timer);
-    if(open){ foot(); render(true); poll(true).then(markSeen); timer = setInterval(() => poll(false), 3000); }
+    if(open){ loadNews().then(() => render(false)); foot(); render(true); poll(true).then(markSeen); timer = setInterval(() => poll(false), 3000); }
     else badge();
   }
   window.chatToggle = toggle;
