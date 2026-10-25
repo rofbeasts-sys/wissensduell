@@ -5894,6 +5894,8 @@ const GAME_DEFS = [
   { id: "biology", name: "Biology", group: "Modi", icon: "🧬" },
   { id: "vocab", name: "Vocab", group: "Modi", icon: "💬" },
   { id: "braining", name: "Braining", group: "Minigames", icon: "🧠" },
+  { id: "braining_fruit", name: "Brain Fruit", group: "Minigames", icon: "🍓", sub: "braining" },
+  { id: "braining_hood", name: "Brain Hood", group: "Minigames", icon: "🧊", sub: "braining" },
   { id: "chess", name: "Chess", group: "Minigames", icon: "♟️" },
   { id: "chess_online", name: "Chess online", group: "Minigames", icon: "🌐", sub: "chess" },
   { id: "chess_fantasy", name: "Fantasy-Schach", group: "Minigames", icon: "🧙", sub: "chess" },
