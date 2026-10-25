@@ -130,15 +130,21 @@ button.mini{padding:4px 8px;font-size:12px}
 
   <div id="tab_news" class="hidden">
     <div class="card"><h2>NEUE NEWS VERÖFFENTLICHEN</h2>
-      <div class="dim" style="font-size:12px;margin-bottom:6px">Alle Spieler bekommen eine rote 1 am Profil und einen Hinweis im Chat.</div>
-      <div class="row"><input id="nTitle" maxlength="80" placeholder="Titel (z. B. Neues Spiel: Brain Fruit)"></div>
-      <div class="row"><textarea id="nText" maxlength="1500" rows="5" placeholder="Text …" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
-      <div class="row"><input id="nTitleEn" maxlength="80" placeholder="Titel Englisch (optional)"></div>
-      <div class="row"><textarea id="nTextEn" maxlength="1500" rows="3" placeholder="Text Englisch (optional, sonst wird der deutsche gezeigt)" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
+      <div class="dim" style="font-size:12px;margin-bottom:6px">Alle Spieler bekommen eine rote 1 am Profil und einen Hinweis im Chat. Spieler sehen den Text in ihrer Sprache.</div>
+      <div class="tabs" style="position:static;padding:0;margin-bottom:8px"><button type="button" id="nlD" class="on" onclick="newsLang('de')">🇩🇪 Deutsch</button><button type="button" id="nlE" onclick="newsLang('en')">🇬🇧 English</button></div>
+      <div id="nfD">
+        <div class="row"><input id="nTitle" maxlength="80" placeholder="Titel Deutsch (z. B. Neues Spiel: Brain Fruit)"></div>
+        <div class="row"><textarea id="nText" maxlength="1500" rows="5" placeholder="Text Deutsch …" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
+      </div>
+      <div id="nfE" class="hidden">
+        <div class="row"><input id="nTitleEn" maxlength="80" placeholder="Title English (e.g. New game: Brain Fruit)"></div>
+        <div class="row"><textarea id="nTextEn" maxlength="1500" rows="5" placeholder="Text English … (leer = Spieler mit Englisch sehen den deutschen Text)" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
+      </div>
+      <div id="nFill" class="dim" style="font-size:12px;margin-top:4px"></div>
       <div class="row"><button onclick="newsAdd()">📰 Veröffentlichen</button></div>
       <div id="nMsg" class="dim" style="margin-top:6px"></div>
     </div>
-    <div class="card"><h2>BISHERIGE NEWS</h2><div id="nList">…</div></div>
+    <div class="card"><h2>BISHERIGE NEWS</h2><div class="dim" style="font-size:12px;margin-bottom:6px">Ansicht folgt dem Reiter oben (Deutsch / English).</div><div id="nList">…</div></div>
   </div>
   <div id="tab_rep" class="hidden">
     <div class="card"><h2>MELDUNGEN</h2><div id="reps">…</div></div>
@@ -275,18 +281,39 @@ async function loadBeta(r){
   $('betaCnt').textContent = 'Vergeben: Beta 1 (Gold) ' + r.counts[1] + ' · Beta 2 (Silber) ' + r.counts[2] + ' · Beta 3 (Bronze) ' + r.counts[3];
   document.querySelectorAll('[data-bp]').forEach(b => b.onclick = async () => { const x = await api('/api/admin-beta', { phase: +b.dataset.bp }); $('betaMsg').style.color = x && x.ok ? 'var(--ok)' : 'var(--bad)'; $('betaMsg').textContent = x && x.ok ? '✓ Gespeichert: neue Konten bekommen ' + BETA_N[x.phase][0] : '✗ ' + ((x && x.error) || 'Fehler'); loadBeta(x); });
 }
+let NLANG = 'de', NLAST = [];
+function newsLang(l){
+  NLANG = l;
+  $('nlD').classList.toggle('on', l === 'de'); $('nlE').classList.toggle('on', l === 'en');
+  $('nfD').classList.toggle('hidden', l !== 'de'); $('nfE').classList.toggle('hidden', l !== 'en');
+  newsFill(); newsRender();
+}
+function newsFill(){
+  const de = !!($('nTitle').value.trim() && $('nText').value.trim()), en = !!($('nTitleEn').value.trim() && $('nTextEn').value.trim());
+  $('nFill').innerHTML = 'Deutsch: ' + (de ? '<b style="color:var(--ok)">✓ ausgefüllt</b>' : '<b style="color:var(--bad)">fehlt (Pflicht)</b>') + ' · English: ' + (en ? '<b style="color:var(--ok)">✓ ausgefüllt</b>' : '<b style="color:#ffc446">leer (dann Deutsch)</b>');
+}
+function newsRender(){
+  const L = NLANG;
+  $('nList').innerHTML = NLAST.length ? NLAST.map(n => {
+    const x = (L === 'en' && n.en) ? n.en : n.de;
+    const same = n.en && n.de && n.en.title === n.de.title && n.en.text === n.de.text;
+    const tag = L === 'en' && same ? ' <span class="dim" style="font-size:11px">(noch nicht übersetzt, zeigt Deutsch)</span>' : '';
+    return `<div class="u"><div class="dim" style="font-size:12px">${fd(n.ts)} · Nr. ${n.id}</div><b>${esc(x.title)}</b>${tag}<div style="white-space:pre-wrap;margin:4px 0;font-size:13px">${esc(x.text)}</div><button class="btn2 red" data-nd="${n.id}">Löschen</button></div>`;
+  }).join('') : '<span class="dim">Keine News.</span>';
+  document.querySelectorAll('[data-nd]').forEach(b => b.onclick = async () => { if(!confirm('News löschen?')) return; await api('/api/admin-news', { action: 'del', id: +b.dataset.nd }); loadNews(); });
+}
 async function loadNews(){
   const r = await api('/api/admin-news', { action: 'list' });
   if(!r || !r.ok){ $('nList').textContent = (r && r.error) || 'Fehler'; return; }
-  $('nList').innerHTML = r.news.length ? r.news.map(n => `<div class="u"><div class="dim" style="font-size:12px">${fd(n.ts)} · Nr. ${n.id}</div><b>${esc(n.de.title)}</b><div style="white-space:pre-wrap;margin:4px 0;font-size:13px">${esc(n.de.text)}</div><button class="btn2 red" data-nd="${n.id}">Löschen</button></div>`).join('') : '<span class="dim">Keine News.</span>';
-  document.querySelectorAll('[data-nd]').forEach(b => b.onclick = async () => { if(!confirm('News löschen?')) return; await api('/api/admin-news', { action: 'del', id: +b.dataset.nd }); loadNews(); });
+  NLAST = r.news; newsFill(); newsRender();
+  ['nTitle','nText','nTitleEn','nTextEn'].forEach(i => { $(i).oninput = newsFill; });
 }
 async function newsAdd(){
   const body = { action: 'add', title: $('nTitle').value, text: $('nText').value, titleEn: $('nTitleEn').value, textEn: $('nTextEn').value };
   const r = await api('/api/admin-news', body);
   $('nMsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
   $('nMsg').textContent = r && r.ok ? '✓ Veröffentlicht.' : '✗ ' + ((r && r.error) || 'Fehler');
-  if(r && r.ok){ ['nTitle','nText','nTitleEn','nTextEn'].forEach(i => $(i).value = ''); loadNews(); }
+  if(r && r.ok){ ['nTitle','nText','nTitleEn','nTextEn'].forEach(i => $(i).value = ''); newsLang('de'); loadNews(); }
 }
 async function loadReps(){
   const r = await api('/api/admin-reports');
