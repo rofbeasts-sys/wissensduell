@@ -4630,10 +4630,12 @@ function renderForgotPassword(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${L('PASSWORT VERGESSEN','FORGOT PASSWORD')}</div>
-      <div class="picker-sub">${L('Gib deinen Namen und deinen persönlichen Schlüssel ein (den du in deinem Konto unter „🔑 Schlüssel“ bekommen hast). Der Admin bekommt deine Anfrage, prüft sie und gibt sie frei. Danach setzt du hier selbst dein neues Passwort.','Enter your name and your personal key (from "🔑 Key" in your account). The admin receives your request, checks it and approves it. Then you set your new password here yourself.')}</div>
+      <div class="picker-sub">${L('Gib deinen Namen ein, und deinen persönlichen Schlüssel, falls du einen hast (unter „🔑 Schlüssel“ in deinem Konto). Ohne Schlüssel hinterlass deine E-Mail, der Admin meldet sich persönlich bei dir (meist innerhalb eines Tages). Der Admin bekommt deine Anfrage, prüft sie und gibt sie frei. Danach setzt du hier selbst dein neues Passwort.','Enter your name and your personal key if you have one ("🔑 Key" in your account). Without a key, leave your e-mail and the admin will contact you personally (usually within a day). The admin receives your request, checks it and approves it. Then you set your new password here yourself.')}</div>
       <div class="picker-form" style="flex-direction:column; gap:10px; margin-top:12px;">
         <input id="fpUser" type="text" placeholder="${L('Dein Benutzername','Your username')}" maxlength="40" autocomplete="off">
         <input id="fpKey" type="text" placeholder="${L('Dein Schlüssel (XXXX-XXXX-XXXX)','Your key (XXXX-XXXX-XXXX)')}" maxlength="20" autocomplete="off" style="text-transform:uppercase">
+        <input id="fpContact" type="text" placeholder="${L('Deine E-Mail (damit der Admin dich erreicht)','Your e-mail (so the admin can reach you)')}" maxlength="100" autocomplete="off">
+        <input id="fpHandles" type="text" placeholder="${L('Dein TikTok / Instagram Name (optional)','Your TikTok / Instagram name (optional)')}" maxlength="100" autocomplete="off">
         <input id="fpNote" type="text" placeholder="${L('Nachricht an den Admin (optional)','Message to the admin (optional)')}" maxlength="150" autocomplete="off">
       </div>
       <div id="fpMsg" class="explanation hidden" style="margin-top:10px;"></div>
@@ -4653,17 +4655,17 @@ function renderForgotPassword(){
 }
 function fpShow(text, ok){ const b = document.getElementById('fpMsg'); b.classList.remove('hidden'); b.style.borderColor = ok ? 'var(--accent)' : 'var(--danger)'; b.textContent = text; }
 async function submitForgotRequest(){
-  const username = document.getElementById('fpUser').value.trim(), key = document.getElementById('fpKey').value.trim(), note = document.getElementById('fpNote').value.trim();
+  const username = document.getElementById('fpUser').value.trim(), key = document.getElementById('fpKey').value.trim(), note = document.getElementById('fpNote').value.trim(), contact = document.getElementById('fpContact').value.trim(), handles = document.getElementById('fpHandles').value.trim();
   if(!username){ fpShow(L('Bitte Benutzernamen eingeben.','Please enter your username.'), false); return; }
   fpShow('…', true);
-  const r = await apiCall('/api/forgot-request', { username, key, note });
+  const r = await apiCall('/api/forgot-request', { username, key, note, contact, handles });
   if(r && r.ok){
     fpShow(r.status === 'approved' ? L('✅ Schon freigegeben! Gib unten dein neues Passwort ein.','✅ Already approved! Enter your new password below.') : L('📨 Anfrage ist beim Admin. Schau später wieder hier vorbei und setze dann unten dein neues Passwort.','📨 Request sent to the admin. Come back later and set your new password below.'), true);
   } else fpShow((r && r.error) || L('Fehlgeschlagen.','Failed.'), false);
 }
 async function submitForgotComplete(){
   const username = document.getElementById('fpUser').value.trim(), key = document.getElementById('fpKey').value.trim(), pw = document.getElementById('fpPass').value;
-  if(!username || !key || !pw){ fpShow(L('Name, Schlüssel und neues Passwort eingeben.','Enter name, key and new password.'), false); return; }
+  if(!username || !pw){ fpShow(L('Name und neues Passwort eingeben (Schlüssel nur, falls du einen hast).','Enter name and new password (key only if you have one).'), false); return; }
   fpShow('…', true);
   const r = await apiCall('/api/forgot-complete', { username, key, newPassword: pw });
   if(r && r.ok) fpShow(L('✅ Neues Passwort gesetzt. Jetzt damit anmelden.','✅ New password set. Log in with it now.'), true);
@@ -4722,6 +4724,9 @@ async function openAdminInbox(){
         <div style="font-weight:900;font-size:15px">${esc(q.username)} <span style="font-weight:400;opacity:.6;font-size:11px">${when}</span></div>
         <div style="margin:4px 0">${badge} · ${q.status === 'approved' ? '🟢 ' + L('freigegeben','approved') : '🟡 ' + L('offen','pending')}</div>
         <div style="opacity:.85">${klasseName(q.klasse)} · ${L('Rang','Rank')} ${q.tier} · ${q.score} ${L('Pkt','pts')} · ${q.rounds} ${L('Runden','rounds')}${q.chessElo ? ' · ♟ Elo ' + q.chessElo : ''} · 🪙 ${q.coins}</div>
+        ${q.contact ? `<div style="margin-top:4px;font-weight:800;color:#3de0ff;user-select:all">✉ ${esc(q.contact)}</div>` : ''}
+        ${q.handles ? `<div style="margin-top:4px">📱 ${esc(q.handles)}</div>` : ''}
+        <div style="opacity:.8;margin-top:4px;font-size:12px">${q.createdAt ? L('Erstellt','Created') + ' ' + new Date(q.createdAt).toLocaleDateString(currentLang==='en'?'en-GB':'de-DE') + ' · ' : ''}${q.lastSeen ? L('Zuletzt online','Last seen') + ' ' + new Date(q.lastSeen).toLocaleDateString(currentLang==='en'?'en-GB':'de-DE') + ' · ' : ''}${q.wins}${L(' Siege',' wins')} / ${q.losses}${L(' Niederl.',' losses')} · 🏆 ${q.achvCount}${q.social && q.social.length ? ' · ' + esc(q.social.join(', ')) : ''}</div>
         ${q.note ? `<div style="margin-top:4px;font-style:italic">„${esc(q.note)}“</div>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px">
           ${q.status === 'approved' ? '' : `<button data-a="approve" data-u="${esc(q.username)}" style="flex:1;padding:8px;border-radius:8px;border:0;background:#3de0ff;color:#08110c;font-weight:900">${L('Freigeben','Approve')}</button>`}
