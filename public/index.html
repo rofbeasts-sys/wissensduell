@@ -4496,12 +4496,18 @@ function adminPillDrag(p){ const a=p.querySelector('[data-adm-a]'); if(!a) retur
   a.onpointercancel=()=>{ down=false; }; }
 function adminPanelOpen(){ try{ return localStorage.getItem('bp_admin_open') === '1'; }catch(e){ return false; } }
 function toggleAdminPanel(){ openAdminConsole(); }
+async function syncAdminCloak(){
+  if(!account || !adminKeyStored()) return;
+  try{ await apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: adminViewOn() }); }catch(e){}
+}
 async function toggleAdminView(){
   try{ localStorage.setItem('bp_admin_view', adminViewOn() ? '0' : '1'); }catch(e){}
+  await syncAdminCloak();
   await loadFeatureFlags();
   renderMainMenu();
 }
 function adminLogout(){
+  try{ if(account && adminKeyStored()) apiCall('/api/admin-cloak', { token: account.token, adminKey: adminKeyStored(), on: false }); }catch(e){}
   try{ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); }catch(e){}
   renderAdminPill(); loadFeatureFlags().then(() => renderMainMenu());
 }
@@ -4548,7 +4554,7 @@ async function restoreAccountSession(){
   const token = localStorage.getItem(ACCOUNT_TOKEN_KEY);
   if(!token) return;
   const result = await apiCall("/api/session", { token });
-  if(result.ok){ account = { token, profile: result.profile }; syncStreamerFromAccount(); connectFriendsWs(); }
+  if(result.ok){ account = { token, profile: result.profile }; syncStreamerFromAccount(); connectFriendsWs(); syncAdminCloak(); }
   // Token nur loeschen, wenn der Server eindeutig "ungueltig" meldet - NICHT bei
   // Netzproblemen oder wenn der Kontodienst gerade nicht erreichbar ist
   // (sonst wuerde man bei jeder kurzen Stoerung ausgeloggt).
@@ -4593,6 +4599,7 @@ function toggleProfileMenu(ev){
   m.innerHTML = `<div class="pm-head">${avatarHtml(account.profile.avatar||"🙂",40)}<div><b>${esc(account.profile.username)}</b>${betaLabelHtml(account.profile.betaPhase)}<div style="font-size:11px;color:var(--text-dim)">${L('Klasse','Class')} ${account.profile.klasse||0}</div></div></div>
     <button onclick="closeProfileMenu();renderAvatarPicker('account:'+account.profile.username, renderMainMenu)">${L('Profil ändern','Edit profile')}</button>
     <button onclick="closeProfileMenu();startFriendsFlow()">${L('Freunde','Friends')}</button>
+    <button onclick="closeProfileMenu();openAccountsModal()">${L('Konten','Accounts')}</button>
     <button onclick="closeProfileMenu();openRecoveryKey()">${L('Schlüssel','Key')}</button>
     <button onclick="closeProfileMenu();renderSettingsModal()">⚙️ ${L('Einstellungen','Settings')}</button>
     <button onclick="closeProfileMenu();openReportModal()">🚩 ${L('Melden','Report')}</button>
@@ -4673,6 +4680,31 @@ async function submitForgotComplete(){
 }
 
 /* ---- Wiederherstellungs-Schlüssel (im Konto) ---- */
+function openAccountsModal(){
+  if(!account || document.getElementById('accBox')) return;
+  const nets = [['tiktok','TikTok','#25f4ee'],['instagram','Instagram','#e1306c'],['clapper','Clapper','#ffb020']];
+  const hs = () => (account.profile.socialHandles || {});
+  const d = document.createElement('div'); d.id = 'accBox';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100003;background:#000c;display:flex;align-items:center;justify-content:center;padding:20px';
+  d.innerHTML = `<div style="background:#101a2b;border:2px solid #3de0ff;border-radius:16px;padding:18px;max-width:380px;width:100%;color:#fff;font-family:system-ui,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-weight:900;font-size:17px">🔗 ${L('KONTEN','ACCOUNTS')}</div><button id="accX" style="border:0;background:transparent;color:#fff;font-size:20px">✕</button></div>
+    <div style="font-size:12px;line-height:1.5;color:#cfe;margin-bottom:12px">${L('Verbinde deine Konten, indem du deinen Namen dort einträgst (ohne Passwort!). So kann der Admin dich erkennen, falls du dein Passwort vergisst.','Connect your accounts by entering your name there (never a password!). This lets the admin recognise you if you forget your password.')}</div>
+    ${nets.map(([k,n,c]) => `<div style="margin-bottom:10px;border:1px solid ${c}55;border-radius:12px;padding:10px">
+      <div style="font-weight:800;color:${c};margin-bottom:6px">${n} <span id="accOk_${k}" style="color:#8dff9d;font-size:12px"></span></div>
+      <div style="display:flex;gap:6px"><input id="accIn_${k}" type="text" maxlength="41" autocomplete="off" placeholder="@${L('dein Name','your name')}" style="flex:1;min-width:0;box-sizing:border-box;padding:9px;border-radius:10px;border:1px solid ${c};background:#08121f;color:#fff;font-size:15px">
+      <button data-k="${k}" class="btn btn-primary" style="padding:8px 12px">${L('Verbinden','Connect')}</button></div></div>`).join('')}
+    <div id="accMsg" style="font-size:12px;min-height:14px;color:#ffd45a;margin-top:4px"></div></div>`;
+  document.body.appendChild(d);
+  const paint = () => nets.forEach(([k]) => { const h = hs()[k]; d.querySelector('#accIn_'+k).value = h ? '@'+h : ''; d.querySelector('#accOk_'+k).textContent = h ? '✓ '+L('verbunden','connected') : ''; });
+  paint();
+  d.querySelector('#accX').onclick = () => d.remove();
+  d.querySelectorAll('button[data-k]').forEach(b => b.onclick = async () => {
+    const k = b.dataset.k, msg = d.querySelector('#accMsg'); msg.textContent = '…';
+    const r = await apiCall('/api/social-handle', { token: account.token, network: k, handle: d.querySelector('#accIn_'+k).value });
+    if(r && r.ok){ account.profile.socialHandles = r.handles; paint(); msg.style.color = '#8dff9d'; msg.textContent = L('Gespeichert.','Saved.'); }
+    else { msg.style.color = '#ff8aa0'; msg.textContent = (r && r.error) || L('Fehler','Error'); }
+  });
+}
 async function openRecoveryKey(){
   if(!account || document.getElementById('rkBox')) return;
   const st = await apiCall('/api/recovery-status', { token: account.token });
@@ -4726,6 +4758,7 @@ async function openAdminInbox(){
         <div style="opacity:.85">${klasseName(q.klasse)} · ${L('Rang','Rank')} ${q.tier} · ${q.score} ${L('Pkt','pts')} · ${q.rounds} ${L('Runden','rounds')}${q.chessElo ? ' · ♟ Elo ' + q.chessElo : ''} · 🪙 ${q.coins}</div>
         ${q.contact ? `<div style="margin-top:4px;font-weight:800;color:#3de0ff;user-select:all">✉ ${esc(q.contact)}</div>` : ''}
         ${q.handles ? `<div style="margin-top:4px">📱 ${esc(q.handles)}</div>` : ''}
+        ${q.accHandles && Object.keys(q.accHandles).length ? `<div style="margin-top:4px;color:#8dff9d">🔗 ${Object.entries(q.accHandles).map(([k,v]) => esc(k)+': @'+esc(v)).join(' · ')}</div>` : ''}
         <div style="opacity:.8;margin-top:4px;font-size:12px">${q.createdAt ? L('Erstellt','Created') + ' ' + new Date(q.createdAt).toLocaleDateString(currentLang==='en'?'en-GB':'de-DE') + ' · ' : ''}${q.lastSeen ? L('Zuletzt online','Last seen') + ' ' + new Date(q.lastSeen).toLocaleDateString(currentLang==='en'?'en-GB':'de-DE') + ' · ' : ''}${q.wins}${L(' Siege',' wins')} / ${q.losses}${L(' Niederl.',' losses')} · 🏆 ${q.achvCount}${q.social && q.social.length ? ' · ' + esc(q.social.join(', ')) : ''}</div>
         ${q.note ? `<div style="margin-top:4px;font-style:italic">„${esc(q.note)}“</div>` : ''}
         <div style="display:flex;gap:6px;margin-top:8px">
@@ -4764,6 +4797,7 @@ async function submitAccountAuth(mode){
   try{ localStorage.setItem(ACCOUNT_TOKEN_KEY, result.token); }catch(e){}
   syncStreamerFromAccount();
   connectFriendsWs();
+  syncAdminCloak();
   if(mode === 'register' && guestMigrate) await guestMigrateRun(); else guestMigrate = null;
   if(postLoginRedirect){ const fn = postLoginRedirect; postLoginRedirect = null; fn(); }
   else renderMainMenu();
@@ -15757,7 +15791,7 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
     const list = document.getElementById('chatList'); if(!list) return;
     const m = me();
     const near = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-    list.innerHTML = msgs.length ? msgs.map(x => { if(x.sys){ const tx = liveEventText({kind:x.k,name:x.nm,n:x.n,x:x.x}); return tx ? '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#2a2450;border:1px solid #8f7bff55;border-radius:99px;padding:5px 12px;font-size:12px;color:#d9d2ff">✨ ' + tx + '</span></div>' : ''; } const mine = m && x.u === m; return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:#c6ff3d">' + esc(x.u) + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>';
+    list.innerHTML = msgs.length ? msgs.map(x => { if(x.sys){ const tx = liveEventText({kind:x.k,name:x.nm,n:x.n,x:x.x}); return tx ? '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#2a2450;border:1px solid #8f7bff55;border-radius:99px;padding:5px 12px;font-size:12px;color:#d9d2ff">✨ ' + tx + '</span></div>' : ''; } const mine = (m && x.u === m) || (x.adm && adminViewOn()); return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:' + (x.adm ? '#ffd45a' : '#c6ff3d') + '">' + (x.adm ? '👑 ' : '') + esc(x.u) + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>';
     if(stick || near) list.scrollTop = list.scrollHeight;
   }
   function foot(){
