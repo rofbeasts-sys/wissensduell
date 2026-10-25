@@ -268,10 +268,11 @@ const MODES = [['offline','off','Offline'],['locked','l','Gesperrt'],['test','t'
 function toLocal(ts){ if(!ts) return ''; const d = new Date(ts - new Date().getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
 function cd(ms){ const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60; return d > 0 ? d + (d === 1 ? ' Tag ' : ' Tagen ') + h + ' Std' : (h > 0 ? h + ' Std ' + mi + ' Min' : Math.max(1, mi) + ' Min'); }
 function gameRow(g, sub){
-  const dr = DRAFT[g.id], m = dr ? dr.mode : g.mode, gstart = dr ? dr.start : g.start, gpend = dr ? (dr.start > Date.now() ? dr.start : 0) : g.pending, id = esc(g.id), ex = g.classes && openG === g.id;
+  const dr = DRAFT[g.id], hide = dr ? !!dr.hide : !!g.hide, m = dr ? dr.mode : g.mode, gstart = dr ? dr.start : g.start, gpend = dr ? (dr.start > Date.now() ? dr.start : 0) : g.pending, id = esc(g.id), ex = g.classes && openG === g.id;
   let h = `<div class="g ${sub ? 'sub' : ''}"><div style="display:flex;justify-content:space-between;align-items:center"><b>${g.icon} ${esc(g.name)}</b>${g.effective !== g.mode ? '<span class="ttag" style="background:#7a4a10">wartet auf Start</span>' : ''}</div>
     <div class="sw">${MODES.map(([k, c, n]) => `<button class="${c} ${m === k ? 'on' : ''}" data-g="${id}" data-m="${k}">${n}</button>`).join('')}</div>`;
   const saveBar = dr ? `<div class="gd" style="margin-top:8px"><button data-gsave="${id}" style="padding:7px 16px">💾 Speichern</button><button class="btn2" data-gcancel="${id}" style="padding:7px 12px">Abbrechen</button><span style="color:var(--gold)">noch nicht gespeichert</span></div>` : '';
+  if(m !== 'open') h += `<div class="gd"><label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" data-gh="${id}" ${hide ? 'checked' : ''}> Für Spieler unsichtbar <span class="dim" style="font-size:11px">(aus = „Coming soon" sichtbar)</span></label></div>`;
   if(m === 'test' || m === 'open'){
     const left = gpend ? gpend - Date.now() : 0;
     h += `<div class="gd">${m === 'open' ? 'Offen ab' : 'Test ab'}:<input type="datetime-local" data-gs="${id}" value="${toLocal(gstart)}">${left > 0 ? '<span class="ttag" style="background:#7a4a10">in ' + cd(left) + '</span><button class="btn2" data-gx="' + id + '" style="padding:4px 9px;font-size:11px">sofort</button>' : '<span>' + (gstart && !dr ? 'läuft seit ' + new Date(gstart).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : 'leer = sofort') + '</span>'}</div>`;
@@ -292,11 +293,12 @@ function paintGames(){
     const items = GAMES.filter(g => g.group === gr && !g.sub);
     return `<div class="card"><h2>${esc(gr.toUpperCase())}</h2>${items.map(g => gameRow(g, false) + GAMES.filter(x => x.sub === g.id).map(x => gameRow(x, true)).join('')).join('')}</div>`;
   }).join('');
-  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.g); if(g.mode === b.dataset.m && !DRAFT[g.id]) return; DRAFT[g.id] = { mode: b.dataset.m, start: 0 }; if(g.mode === b.dataset.m && !g.start && !g.pending) delete DRAFT[g.id]; paintGames(); });
-  document.querySelectorAll('[data-gs]').forEach(i => i.onchange = () => { const g = GAMES.find(x => x.id === i.dataset.gs); DRAFT[g.id] = { mode: DRAFT[g.id] ? DRAFT[g.id].mode : g.mode, start: i.value ? new Date(i.value).getTime() : 0 }; paintGames(); });
-  document.querySelectorAll('[data-gsave]').forEach(b => b.onclick = async () => { const d = DRAFT[b.dataset.gsave]; if(!d) return; await setGame(b.dataset.gsave, { mode: d.mode, start: d.start }); });
+  document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.g); if(g.mode === b.dataset.m && !DRAFT[g.id]) return; DRAFT[g.id] = { mode: b.dataset.m, start: 0, hide: b.dataset.m === 'open' ? false : (DRAFT[g.id] ? !!DRAFT[g.id].hide : !!g.hide) }; if(g.mode === b.dataset.m && !g.start && !g.pending && DRAFT[g.id].hide === !!g.hide) delete DRAFT[g.id]; paintGames(); });
+  document.querySelectorAll('[data-gs]').forEach(i => i.onchange = () => { const g = GAMES.find(x => x.id === i.dataset.gs); DRAFT[g.id] = { mode: DRAFT[g.id] ? DRAFT[g.id].mode : g.mode, start: i.value ? new Date(i.value).getTime() : 0, hide: DRAFT[g.id] ? !!DRAFT[g.id].hide : !!g.hide }; paintGames(); });
+  document.querySelectorAll('[data-gh]').forEach(i => i.onchange = () => { const g = GAMES.find(x => x.id === i.dataset.gh), d = DRAFT[g.id] || { mode: g.mode, start: g.start || 0 }; d.hide = i.checked; DRAFT[g.id] = d; paintGames(); });
+  document.querySelectorAll('[data-gsave]').forEach(b => b.onclick = async () => { const d = DRAFT[b.dataset.gsave]; if(!d) return; await setGame(b.dataset.gsave, { mode: d.mode, start: d.start, hide: !!d.hide }); });
   document.querySelectorAll('[data-gcancel]').forEach(b => b.onclick = () => { delete DRAFT[b.dataset.gcancel]; paintGames(); });
-  document.querySelectorAll('[data-gx]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.gx); DRAFT[g.id] = { mode: g.mode, start: 0 }; paintGames(); });
+  document.querySelectorAll('[data-gx]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.gx); DRAFT[g.id] = { mode: g.mode, start: 0, hide: !!g.hide }; paintGames(); });
   document.querySelectorAll('[data-ge]').forEach(b => b.onclick = () => { openG = openG === b.dataset.ge ? null : b.dataset.ge; paintGames(); });
   document.querySelectorAll('[data-gc]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.gc), i = +b.dataset.i, on = (g.classOff || []).includes(i); setGame(g.id, { cls: i, on }); });
 }

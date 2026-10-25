@@ -4225,12 +4225,12 @@ let postLoginRedirect = null; // optionale Funktion, die statt renderMainMenu() 
 // (LOCKED_FEATURES) etwas anderes meldet - so blitzt nichts Unfertiges auf.
 let lockedFeatures = ['arena','ordering','blitz','chess_fantasy','ttt_quantum','fourups_abilities','brain_royale'];
 function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
-let maintFeatures = [], braintestOff = [], arenaOff = [], gameCountdown = {}, serverClockOff = 0;
+let hiddenFeatures = [], maintFeatures = [], braintestOff = [], arenaOff = [], gameCountdown = {}, serverClockOff = 0;
 function featureMaint(name){ return maintFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
 /* ---- Tester-Modus: Konten mit Tester-Recht (vom Admin vergeben) sehen die gesperrten Spiele, sonst nichts ---- */
 function isTesterMode(){ try{ return localStorage.getItem('bp_tester') === '1'; }catch(e){ return false; } }
-function testerClear(){ try{ if(localStorage.getItem('bp_tester') === '1'){ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); localStorage.removeItem('bp_tester'); } }catch(e){} }
+function testerClear(){ try{ if(localStorage.getItem('bp_tester') === '1'){ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); localStorage.removeItem('bp_tester'); localStorage.removeItem('bp_trole'); } }catch(e){} }
 async function testerRefresh(){
   if(!isTesterMode() || !account) return;
   const r = await apiCall('/api/tester-mode', { token: account.token, on: true });
@@ -4247,7 +4247,7 @@ async function toggleTesterMode(){
     if(adminKeyStored()) return; // echter Admin-Schluessel auf diesem Geraet: nichts ueberschreiben
     const r = await apiCall('/api/tester-mode', { token: account.token, on: true });
     if(!(r && r.ok && r.key)) return;
-    try{ localStorage.setItem('bp_admin_key', r.key); localStorage.setItem('bp_admin_view', '1'); localStorage.setItem('bp_tester', '1'); }catch(e){}
+    try{ localStorage.setItem('bp_admin_key', r.key); localStorage.setItem('bp_admin_view', '1'); localStorage.setItem('bp_tester', '1'); localStorage.setItem('bp_trole', r.role || ''); }catch(e){}
   }
   await loadFeatureFlags();
   renderSettingsModal();
@@ -4264,7 +4264,7 @@ async function loadFeatureFlags(){
     if(j && j.ok) checkServerReset(j.resetEpoch);
     if(j && j.ok && Array.isArray(j.locked)){
       const changed = (j.locked.slice().sort().join() !== lockedFeatures.slice().sort().join()) || ((j.braintestOff || []).join() !== braintestOff.join());
-      lockedFeatures = j.locked; maintFeatures = Array.isArray(j.maint) ? j.maint : []; gameCountdown = j.countdown || {}; if(j.now) serverClockOff = j.now - Date.now(); braintestOff = Array.isArray(j.braintestOff) ? j.braintestOff : []; arenaOff = Array.isArray(j.arenaOff) ? j.arenaOff : [];
+      lockedFeatures = j.locked; maintFeatures = Array.isArray(j.maint) ? j.maint : []; gameCountdown = j.countdown || {}; hiddenFeatures = Array.isArray(j.hidden) ? j.hidden : []; if(j.now) serverClockOff = j.now - Date.now(); braintestOff = Array.isArray(j.braintestOff) ? j.braintestOff : []; arenaOff = Array.isArray(j.arenaOff) ? j.arenaOff : [];
       adminOkFlag = !!j.admin;
       if(useKey && !j.admin){ try{ localStorage.setItem('bp_admin_view','0'); }catch(e){} }
       renderAdminPill();
@@ -4506,6 +4506,7 @@ function admConPaint(){
 }
 function renderAdminPill(){
   let p = document.getElementById('adminPill');
+  try{ renderModPill(); }catch(e){}
   if(!adminKeyStored() || isTesterMode()){ if(p) p.remove(); return; }
   if(!p){ p = document.createElement('div'); p.id='adminPill'; document.body.appendChild(p); }
   const on = adminViewOn();
@@ -4515,6 +4516,65 @@ function renderAdminPill(){
   const aBtn = '<span data-adm-a="1" title="Admin-Leiste (ziehen zum Verschieben)" style="cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center;width:' + (open ? '30px' : '48px') + ';height:' + (open ? '30px' : '48px') + ';border-radius:50%;background:' + col + ';color:#0a0d16;font:900 22px system-ui,sans-serif;flex:0 0 auto">A</span>';
   p.innerHTML = aBtn + (open ? '<span id="adminOnl" onclick="adminOnlineRefresh()" title="Online jetzt (letzte 2,5 Min.)" style="cursor:pointer;padding:2px 6px">'+adminOnlineHtml()+'</span><span onclick="toggleAdminView()" style="cursor:pointer;padding:2px 6px">' + (on ? '👑 ADMIN VIEW' : '👥 PUBLIC VIEW') + ' ⇄</span><span onclick="openAdminInbox()" title="Passwort-Anfragen" style="cursor:pointer;padding:2px 6px">📬</span><span onclick="openAdminBeta()" title="Beta-Phasen" style="cursor:pointer;padding:2px 6px">🏅</span><span onclick="openAdminReset()" title="Reset" style="cursor:pointer;padding:2px 6px">🧨</span><span onclick="adminLogout()" title="Admin abmelden" style="cursor:pointer;opacity:.6;padding:2px 6px">✕</span>' : '');
   adminPillDrag(p);
+}
+
+/* ===== Mod-Funktion im Spiel: kleiner Schild-Knopf unten, nur wenn der Mod-Modus aktiv ist. Die Admin-App ist nur fuer den Admin. ===== */
+function modActive(){ try{ return isTesterMode() && localStorage.getItem('bp_trole') === 'mod' && !!adminKeyStored(); }catch(e){ return false; } }
+async function modApi(path, extra){
+  const k = adminKeyStored();
+  const r = await fetch(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(Object.assign({ adminKey:k, key:k }, extra || {})) });
+  return r.json();
+}
+function renderModPill(){
+  let b = document.getElementById('modPill');
+  if(!modActive()){ if(b) b.remove(); const pn = document.getElementById('modPanel'); if(pn) pn.remove(); return; }
+  if(b) return;
+  b = document.createElement('div'); b.id = 'modPill'; b.textContent = '🛡️'; b.title = 'Mod';
+  b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99998;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;background:#0b1020;border:2px solid #38bdf8;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)';
+  b.onclick = modPanelToggle; document.body.appendChild(b);
+}
+let modTab = 'chat', modSel = null, modTimer = null;
+function modPanelToggle(){
+  const pill = document.getElementById('modPill'), ex = document.getElementById('modPanel'); if(ex){ ex.remove(); clearInterval(modTimer); if(pill) pill.style.display = 'flex'; return; }
+  if(pill) pill.style.display = 'none';
+  const d = document.createElement('div'); d.id = 'modPanel';
+  d.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99997;max-height:72vh;display:flex;flex-direction:column;background:#0f1530;border-top:2px solid #38bdf8;border-radius:16px 16px 0 0;color:#e8ecff;font:14px system-ui,sans-serif;box-shadow:0 -8px 30px rgba(0,0,0,.6)';
+  d.innerHTML = '<div style="display:flex;gap:6px;padding:10px 10px 6px 12px;align-items:center"><b style="margin-right:auto">🛡️ Mod</b><button data-mt="chat">Chat</button><button data-mt="pl">Spieler</button><button data-mt="rep">Meldungen</button><button data-mt="x">✕</button></div><div id="modBody" style="overflow:auto;padding:8px 12px 14px;flex:1"></div>';
+  d.querySelectorAll('button').forEach(x => { x.style.cssText = 'background:#1a2348;color:#e8ecff;border:1px solid #2c3a72;border-radius:10px;padding:6px 10px;font:inherit;cursor:pointer'; x.onclick = () => { if(x.dataset.mt === 'x'){ modPanelToggle(); return; } modTab = x.dataset.mt; modSel = null; modPaint(); }; });
+  document.body.appendChild(d); modPaint(); clearInterval(modTimer); modTimer = setInterval(() => { if(modTab === 'chat' && !document.hidden && document.getElementById('modPanel') && !(document.activeElement && document.activeElement.id === 'modSay')) modPaint(); }, 5000);
+}
+const mbtn = 'background:#1a2348;color:#e8ecff;border:1px solid #2c3a72;border-radius:8px;padding:5px 9px;font:inherit;cursor:pointer;margin:2px';
+function modEsc(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+async function modPaint(){
+  const body = document.getElementById('modBody'); if(!body) return;
+  document.querySelectorAll('#modPanel [data-mt]').forEach(x => { if(x.dataset.mt !== 'x') x.style.borderColor = x.dataset.mt === modTab ? '#38bdf8' : '#2c3a72'; });
+  if(modTab === 'chat'){
+    const r = await modApi('/api/admin-live'); if(!r || !r.ok){ body.textContent = (r && r.error) || 'Fehler'; return; }
+    const msgs = (r.chat || []).filter(m => !m.sys).slice(-40);
+    body.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:8px"><input id="modSay" placeholder="Als Mod schreiben ..." maxlength="200" style="flex:1;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:8px"><button id="modSend" style="' + mbtn + '">Senden</button></div>' +
+      (msgs.length ? msgs.slice().reverse().map(m => '<div style="display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #1b2240"><div style="flex:1;min-width:0;word-break:break-word"><b style="color:#7dd3fc">' + modEsc(m.u) + '</b> ' + modEsc(m.t) + '</div><button data-md="' + m.id + '" style="' + mbtn + '">Löschen</button></div>').join('') : '<div style="opacity:.6">Chat ist leer.</div>');
+    body.querySelectorAll('[data-md]').forEach(b => b.onclick = async () => { await modApi('/api/admin-chat-delete', { id: +b.dataset.md }); modPaint(); });
+    const send = async () => { const i = document.getElementById('modSay'), t = i.value.trim(); if(!t) return; i.value = ''; await modApi('/api/admin-chat-send', { text: t }); modPaint(); };
+    document.getElementById('modSend').onclick = send; document.getElementById('modSay').onkeydown = e => { if(e.key === 'Enter') send(); };
+  } else if(modTab === 'pl'){
+    body.innerHTML = '<div style="display:flex;gap:6px;margin-bottom:8px"><input id="modQ" placeholder="Name suchen" style="flex:1;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:8px"><button id="modFind" style="' + mbtn + '">Suchen</button></div><div id="modPl"></div><div id="modMsg" style="margin-top:6px;opacity:.8"></div>';
+    const find = async () => {
+      const r = await modApi('/api/admin-users', { query: document.getElementById('modQ').value.trim(), onlineOnly: false });
+      const box = document.getElementById('modPl'); if(!r || !r.ok){ box.textContent = (r && r.error) || 'Fehler'; return; }
+      box.innerHTML = r.users.slice(0, 20).map(u => '<div style="padding:6px 0;border-bottom:1px solid #1b2240"><div data-ms="' + modEsc(u.username) + '" style="cursor:pointer"><b>' + (u.online ? '🟢 ' : '') + modEsc(u.username) + '</b> <span style="opacity:.6;font-size:12px">· Klasse ' + modEsc(u.klasse) + ' · ' + modEsc(u.rounds) + ' Runden' + (u.mutedUntil ? ' · STUMM' : '') + (u.bannedUntil ? ' · TIMEOUT' : '') + (u.role ? ' · ' + modEsc(u.role) : '') + '</span></div>' + (modSel === u.username ? '<div style="margin-top:6px"><input id="modMin" type="number" value="60" style="width:70px;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:5px"> Min <input id="modWhy" placeholder="Grund" style="width:120px;background:#0b1020;color:#fff;border:1px solid #2c3a72;border-radius:8px;padding:5px"><br><button data-mact="timeout" style="' + mbtn + '">⏳ Timeout</button><button data-mact="mute" style="' + mbtn + '">🔇 Stumm</button><button data-mact="unmute" style="' + mbtn + '">Stumm aus</button><button data-mact="kick" style="' + mbtn + '">Abmelden</button></div>' : '') + '</div>').join('') || '<div style="opacity:.6">Nichts gefunden.</div>';
+      box.querySelectorAll('[data-ms]').forEach(e => e.onclick = () => { modSel = modSel === e.dataset.ms ? null : e.dataset.ms; find(); });
+      box.querySelectorAll('[data-mact]').forEach(b => b.onclick = async () => {
+        const r2 = await modApi('/api/admin-user-action', { username: modSel, action: b.dataset.mact, minutes: +(document.getElementById('modMin') || {}).value || 60, reason: ((document.getElementById('modWhy') || {}).value || '').trim() });
+        const m = document.getElementById('modMsg'); m.style.color = r2 && r2.ok ? '#86efac' : '#fca5a5'; m.textContent = r2 && r2.ok ? '✓ ' + modSel + ': ' + r2.note : '✗ ' + ((r2 && r2.error) || 'Fehler');
+      });
+    };
+    document.getElementById('modFind').onclick = find; document.getElementById('modQ').onkeydown = e => { if(e.key === 'Enter') find(); }; find();
+  } else {
+    const r = await modApi('/api/admin-reports'); if(!r || !r.ok){ body.textContent = (r && r.error) || 'Fehler'; return; }
+    const cn = { bug:'Fehler', player:'Spieler', message:'Nachricht', game:'Spiel', other:'Sonstiges' };
+    body.innerHTML = r.reports.length ? r.reports.map(x => '<div style="padding:8px 0;border-bottom:1px solid #1b2240;opacity:' + (x.done ? .5 : 1) + '"><div style="opacity:.6;font-size:12px">' + modEsc(cn[x.cat] || x.cat) + ' · ' + new Date(x.t).toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) + (x.who ? ' · von ' + modEsc(x.who) : ' · anonym') + (x.target ? ' · betrifft ' + modEsc(x.target) : '') + '</div><div style="white-space:pre-wrap;word-break:break-word;margin:4px 0">' + modEsc(x.text) + '</div><button data-mr="' + modEsc(x.id) + '" style="' + mbtn + '">' + (x.done ? 'Wieder öffnen' : '✓ Erledigt') + '</button></div>').join('') : '<div style="opacity:.6">Keine Meldungen.</div>';
+    body.querySelectorAll('[data-mr]').forEach(b => b.onclick = async () => { await modApi('/api/admin-reports', { id: b.dataset.mr }); modPaint(); });
+  }
 }
 function adminPillPos(){ let o=null; try{ o=JSON.parse(localStorage.getItem('bp_admin_pos')||'null'); }catch(e){} const w=window.innerWidth, h=window.innerHeight; let l=o&&typeof o.l==='number'?o.l:10, t=o&&typeof o.t==='number'?o.t:h-56; l=Math.max(4,Math.min(w-48,l)); t=Math.max(4,Math.min(h-48,t)); return {l,t}; }
 function adminPillDrag(p){ const a=p.querySelector('[data-adm-a]'); if(!a) return; let sx=0,sy=0,ol=0,ot=0,moved=false,down=false;
@@ -5233,6 +5293,7 @@ function applyGameGates(){
     for(const fn in GATE_MAP){
       if(oc.indexOf(fn + '(') === -1) continue;
       if(!featureLocked(GATE_MAP[fn])) break;
+      if(hiddenFeatures.indexOf(GATE_MAP[fn]) !== -1){ c.remove(); break; }
       c.removeAttribute('onclick'); c.classList.add('locked'); c.style.opacity = '.45'; c.style.cursor = 'default';
       let p = c.querySelector('p'); if(!p){ p = document.createElement('p'); c.appendChild(p); }
       p.textContent = gateText(GATE_MAP[fn]); p.dataset.gate = GATE_MAP[fn];
@@ -7174,7 +7235,7 @@ function brainBoardHtml(game, title, ic, r){
 let brainData = { hood:null, fruit:null }, brainTabSel = 'hood', brainOpen = false;
 function brainCardsHtml(){
   const f = fruitData();
-  const card = (game, title, sub, ic, lvl, r) => featureLocked('braining_' + game) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="braining_${game}">${gateText('braining_' + game)}</p></div>` : `<div class="mode-card" onclick="renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')">
+  const card = (game, title, sub, ic, lvl, r) => hiddenFeatures.indexOf('braining_' + game) !== -1 ? '' : featureLocked('braining_' + game) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="braining_${game}">${gateText('braining_' + game)}</p></div>` : `<div class="mode-card" onclick="renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')">
       <div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${lvl}</span><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--warn);">${r && r.ok && r.mine ? r.mine.pts.toLocaleString() : 0} ${L('Pkt','pts')}</span></div></div>`;
   const hoodIc = `<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
