@@ -6086,7 +6086,7 @@ async function maniaApiCall(payload) {
   const v = maniaView(name); v.account = !!u; v.name = name; return v;
 }
 // ---- DAS SCHWERSTE SPIEL DER WELT (Bestenlisten je Spiel, liegen mit in den Spiele-Einstellungen) ----
-const HARD_GAMES = ["balken", "turm", "gedaechtnis", "linie", "gegenteil", "flug", "olympiade"];
+const HARD_GAMES = ["balken", "turm", "gedaechtnis", "linie", "gegenteil", "flug", "blasen", "puls", "farbe", "tasten", "olympiade"];
 function hardApiCall(payload) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const game = String(payload.game || ""); if (!HARD_GAMES.includes(game)) return { ok: false, error: "Unbekannt." };
@@ -6098,12 +6098,14 @@ function hardApiCall(payload) {
     if (!u || !name) return { ok: false, error: "Bitte anmelden." };
     const sc = Math.floor(Number(payload.score)); if (!(sc > 0) || sc > (game === "olympiade" ? 5000 : 1000)) return { ok: false, error: "Wert ungültig." };
     const k = name.toLowerCase(); const r = t[k] || (t[k] = { name, best: 0, ts: Date.now() });
-    if (sc > r.best) { r.best = sc; r.ts = Date.now(); r.name = name; maniaSaveSoon(); }
+    const pc = Math.max(0, Math.min(100, Math.floor(Number(payload.pct)))); 
+    if (sc > r.best) { r.best = sc; r.ts = Date.now(); r.name = name; if (Number.isFinite(pc) && payload.pct != null) r.pct = pc; else delete r.pct; maniaSaveSoon(); }
     mine = r.best;
   } else if (name && t[name.toLowerCase()]) mine = t[name.toLowerCase()].best;
   const rows = Object.values(t).sort((a, b) => (b.best - a.best) || (a.ts - b.ts));
   const i = name ? rows.findIndex(r => r.name.toLowerCase() === name.toLowerCase()) : -1;
-  return { ok: true, board: rows.slice(0, 5).map(r => ({ name: r.name, best: r.best })), mine, rank: i >= 0 ? i + 1 : 0 };
+  const me = i >= 0 ? { name: rows[i].name, best: rows[i].best, pct: rows[i].pct == null ? null : rows[i].pct } : null;
+  return { ok: true, board: rows.slice(0, 5).map(r => ({ name: r.name, best: r.best, pct: r.pct == null ? null : r.pct })), me, mine, rank: i >= 0 ? i + 1 : 0 };
 }
 async function saveGameCfg() {
   if (USE_UPSTASH) {
