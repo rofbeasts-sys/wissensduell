@@ -540,6 +540,7 @@
 <script src="/muehle-engine.js"></script>
 <script src="/dice-3d.js"></script>
 <script src="/dice-race.js"></script>
+<script src="/zocker.js"></script>
 <script>
 /* =========================================================================
    BRAIN TEST (ehem. WISSENSDUELL), Solo & Lokaler Multiplayer (Pass & Play)
@@ -5064,6 +5065,7 @@ function acceptPartyInvite(){
 
 function handleFriendsWsMessage(msg){
   if(msg.type === "serverReset"){ loadFeatureFlags(); return; }
+  if(msg.type === "zpGain"){ try{ window.zpOnGain && window.zpOnGain(msg); }catch(e){} return; }
   if(msg.type === "friendOnline" || msg.type === "friendOffline"){
     const f = friendsDataCache.friends.find(x => x.username === msg.username);
     if(f) f.online = (msg.type === "friendOnline");
@@ -5847,7 +5849,7 @@ function renderChessHub(){
         <div class="mode-card" onclick="openChessOriginal()">
           <div class="icon">♟</div>
           <h3>Chess Original</h3>
-          <p>${L('Klassisches Schach: Bot (4 Stufen), Freunde oder zufälliger Gegner.','Classic chess: bot (4 levels), friends or a random opponent.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
+          <p>${L('Klassisches Schach: Bot (4 Stufen), Freunde oder zufälliger Gegner. Online gibt es Zocker-Punkte.','Classic chess: bot (4 levels), friends or a random opponent. Online games give player points.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
         </div>
         <div data-gid="chess_fantasy" class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">🐉</div>
@@ -7319,6 +7321,7 @@ function renderMainMenu(){
     </div>
     <div id="liveStrip" class="live-strip">${liveStripHtml()}</div>
     <div class="menu-grid">
+      ${typeof zpCardHtml === 'function' ? zpCardHtml() : ''}
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="24" cy="24" r="18" fill="none" stroke="#ff4d5a" stroke-width="4"/><circle cx="24" cy="24" r="11" fill="none" stroke="#fff" stroke-width="4"/><circle cx="24" cy="24" r="4" fill="#ff4d5a"/><path d="M24 24L40 8" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>${t('menu_solo_title')}</h3>
@@ -10483,6 +10486,7 @@ function dmIntro(msg){
       <div class="lab">${L('GEGEN DEN BOT','VS THE BOT')}</div>
       <div class="bots"><button class="b" onclick="dmStartBot('easy')">🤖 ${L('Leicht','Easy')}<small>★☆☆</small></button><button class="b m" onclick="dmStartBot('normal')">🤖 ${L('Normal','Normal')}<small>★★☆</small></button><button class="b h" onclick="dmStartBot('hard')">🤖 ${L('Schwer','Hard')}<small>★★★</small></button></div>
       <div class="lab">${L('ONLINE SPIELEN','PLAY ONLINE')}</div>
+      <div style="font-size:12px;color:var(--accent);margin:-4px 0 8px">${L('Zocker-Punkte gewinnen: Mitspielen 50, Sieg 100','Win player points: playing 50, win 100')}</div>
       <button class="big" style="margin-top:0" onclick="dmMpQueue()"><div class="e">🎲</div><div><b>${L('Zufallsgegner','Random opponent')}</b><span>${L('Sofort gegen einen echten Spieler','Instantly vs a real player')}</span></div><div class="ar">›</div></button>
       <button class="big" onclick="dmMpCreate()"><div class="e">👥</div><div><b>${L('Gegen Freund','Vs friend')}</b><span>${L('Per Code oder Link einladen','Invite via code or link')}</span></div><div class="ar">›</div></button>
       <div class="code"><input id="dmCodeIn" type="text" maxlength="8" placeholder="CODE"><button onclick="dmJoinScreen(document.getElementById('dmCodeIn').value.trim().toUpperCase())">${L('Beitreten','Join')}</button></div>
@@ -11016,7 +11020,7 @@ function muMpHandle(m){
 window.addEventListener('load', () => setTimeout(() => { try{ const c = new URLSearchParams(location.search).get('mu'); if(c){ history.replaceState(null,'',location.pathname); muJoinScreen(String(c).toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8)); } else { muMpRejoinSaved(); } }catch(e){} }, 1500));
 
 /* Online-Spiel der Mini Games nur noch im Party Raum (true = alte Einzel-Online-Modi wieder zeigen) */
-const MINI_ONLINE = false;
+const MINI_ONLINE = true;
 function startFourupsFlow(){
   fuStyle();
   renderApp(`
@@ -11039,7 +11043,7 @@ function startFourupsFlow(){
         <div class="mode-card" onclick="fuMpMenu()">
           <div class="icon">👥</div>
           <h3>${L('Mit Freunden','With friends')}</h3>
-          <p>${L('Online gegen einen Freund, per Einladung oder Code.','Online vs a friend, by invite or code.')}</p>
+          <p>${L('Online gegen einen Freund, per Einladung oder Code.','Online vs a friend, by invite or code.')}</p><p style="color:var(--accent);font-size:12px;margin-top:4px;">${L('Zocker-Punkte gewinnen: Mitspielen 50, Sieg 100','Win player points: playing 50, win 100')}</p>
         </div>
       </div>` : ''}
       <div class="actions-row" style="margin-top:18px;">
@@ -11779,7 +11783,8 @@ function tttOppSelect(mode){
       <div class="picker-sub">${L('Gegen wen möchtest du spielen?','Who do you want to play against?')}</div>
       <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="tttProfileThen(${botFn})">🤖 ${L('Gegen Bot','Against the bot')}</button>
       ${MINI_ONLINE ? `<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttMpSelectedMode='${mode}';tttMpFixedMode=true;tttProfileThen(tttStartMultiplayer)">👥 ${L('Mit Freunden (Raum-Code)','With friends (room code)')}</button>
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttProfileThen(p => tttMpQueue(p,'${mode}'))">🌐 ${L('Online (zufälliger Gegner)','Online (random opponent)')}</button>` : ''}
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttProfileThen(p => tttMpQueue(p,'${mode}'))">🌐 ${L('Online (zufälliger Gegner)','Online (random opponent)')}</button>
+      <div style="margin-top:8px;font-size:12px;color:var(--accent);text-align:center;">${L('Online: Zocker-Punkte gewinnen (Mitspielen 50, Sieg 100)','Online: win player points (playing 50, win 100)')}</div>` : ''}
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
       </div>

@@ -23,7 +23,7 @@ function same(inp, ans, word){ const a = norm(inp, word), b = norm(ans, word); i
 const KEY = 'bp_vocab2';
 function P(){ return load(KEY, {}); }
 function PT(id){ const p = P()[id] || {}; return { l: !!p.l, t: !!p.t, g: p.g || [0, 0, 0], s: p.s || 0, gd: !!p.gd }; }
-function setPT(id, f){ const all = P(), cur = Object.assign({}, all[id] || {}); f(cur); all[id] = cur; save(KEY, all); achvSync(); }
+function setPT(id, f){ const all = P(), cur = Object.assign({}, all[id] || {}); f(cur); all[id] = cur; save(KEY, all); achvSync(); try{ if(cur.l && cur.t && cur.gd && window.zpVocabPassed) window.zpVocabPassed(id); }catch(e){} }
 function achvSync(blitz){
   try{ if(typeof achvRecord !== 'function') return; const all = P(); let learned = 0, exam = 0, talk = 0, st3 = 0;
     THEMES.forEach(t => { const p = all[t.id] || {}; if(p.l) learned++; if(p.t) exam++; if(p.gd) talk++; if(p.l && p.t && p.gd && p.s >= 1) st3++; });
