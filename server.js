@@ -524,6 +524,12 @@ function tttAchvInfo(room, symbol) {
   return { in3: c.moves[symbol] === 3, allCorrect: true };
 }
 function tttBroadcastState(room) {
+  if (room.gameOver && !room.zpDone && room.players.length === 2) {
+    room.zpDone = true;
+    const [p0, p1] = room.players, mv = room.counters ? (room.counters.moves.X + room.counters.moves.O) : 0;
+    const res = zpDuel("ttt", { username: p0.ws && p0.ws.accountUsername }, { username: p1.ws && p1.ws.accountUsername }, room.winner === "draw" ? "draw" : (room.winner === p0.symbol ? "a" : "b"), mv, 5);
+    if (res) room.zpRes = { [p0.symbol]: res.a, [p1.symbol]: res.b };
+  }
   const playersPublic = room.players.map(p => ({ name: p.name, symbol: p.symbol, connected: p.connected }));
   room.players.forEach(p => {
     send(p.ws, {
@@ -533,11 +539,30 @@ function tttBroadcastState(room) {
       turnSymbol: room.turnSymbol,
       gameOver: room.gameOver,
       winner: room.winner || null,
+      zp: (room.zpRes && room.zpRes[p.symbol]) || null,
       yourSymbol: p.symbol, // personalisiert - wichtig nach einem Rematch, bei dem Symbole tauschen
       mode: room.mode,
       players: playersPublic
     });
   });
+}
+
+
+// Zocker-Punkte fuer ein Duell zwischen zwei ECHTEN Konten: Mitspielen 50, Sieg 100 (Remis: beide 50).
+// Schutz: zwei verschiedene Konten, Mindestzuege, je Paar und Tag nur wenige Partien mit Punkten.
+const zpPairDay = new Map(), ZP_PAIR_PER_DAY = 4;
+function zpDuel(game, a, b, result /* "a" | "b" | "draw" */, moves, minMoves) {
+  try {
+    if (!a || !b || !a.username || !b.username) return null;
+    if (a.username.toLowerCase() === b.username.toLowerCase()) return null;
+    if ((moves || 0) < (minMoves || 5)) return null;
+    const ua = findUserByName(a.username), ub = findUserByName(b.username); if (!ua || !ub) return null;
+    const pk = [a.username.toLowerCase(), b.username.toLowerCase()].sort().join("|") + "|" + todayDateString();
+    if ((zpPairDay.get(pk) || 0) >= ZP_PAIR_PER_DAY) return null;
+    zpPairDay.set(pk, (zpPairDay.get(pk) || 0) + 1); if (zpPairDay.size > 5000) zpPairDay.clear();
+    const key = game === "dame" ? "chess" : game;
+    return { a: zpAdd(ua, result === "a" ? 100 : 50, game, key), b: zpAdd(ub, result === "b" ? 100 : 50, game, key) };
+  } catch (e) { console.error("zpDuel", e); return null; }
 }
 
 /* ---- QuizMix: Variante mit Wissensduell-Feldern statt direktem Setzen -- */
@@ -2788,11 +2813,16 @@ function fourupsWinCells(b, r, c) {
 const fuRooms = new Map();
 function fuMakeCode() { let c; do { c = randomRoomCode(); } while (fuRooms.has(c) || tttRooms.has(c)); return c; }
 function fuBroadcast(room) {
+  if (room.over && !room.zpDone && room.players.length === 2) {
+    room.zpDone = true;
+    const p1 = room.players.find(p => p.num === 1), p2 = room.players.find(p => p.num === 2), mv = room.board.reduce((n, row) => n + row.filter(v => v).length, 0);
+    if (p1 && p2) { const res = zpDuel("fourups", { username: p1.ws && p1.ws.accountUsername }, { username: p2.ws && p2.ws.accountUsername }, room.winner === "draw" ? "draw" : (room.winner === 1 ? "a" : "b"), mv, 6); if (res) room.zpRes = { 1: res.a, 2: res.b }; }
+  }
   const names = room.players.map(p => p.num === 1 ? p.name : null), n2 = room.players.find(p => p.num === 2);
   const n1 = room.players.find(p => p.num === 1);
   room.players.forEach(p => {
     if (!p.connected) return;
-    send(p.ws, { type: "fuState", roomCode: room.code, you: p.num, board: room.board, turn: room.turn, over: room.over, winner: room.winner, winCells: room.winCells, last: room.last,
+    send(p.ws, { type: "fuState", roomCode: room.code, you: p.num, board: room.board, turn: room.turn, over: room.over, winner: room.winner, winCells: room.winCells, last: room.last, zp: (room.zpRes && room.zpRes[p.num]) || null,
       names: [n1 ? n1.name : "", n2 ? n2.name : ""], scores: room.scores, full: room.players.length === 2 });
   });
 }
@@ -2913,7 +2943,7 @@ function dmView(room, p) {
   const wins = p.username && findUserByName(p.username) ? (findUserByName(p.username).stats.dameWins || 0) : null;
   return { type: "dmState", roomCode: room.code, you: p.color, board: room.st.board, turn: room.st.turn, over: room.st.over, winner: room.st.winner, why: room.st.why,
     plies: room.st.plies, last: room.st.last, names: [p.name, opp ? opp.name : ""], full: room.players.length === 2, remaining: room.deadline ? Math.max(0, room.deadline - Date.now()) : null,
-    credited: p.credited ? { wins } : null, dameWins: wins };
+    credited: p.credited ? { wins } : null, dameWins: wins, zp: (room.zpRes && room.zpRes[p.color]) || null };
 }
 function dmBroadcast(room) { room.players.forEach(p => { if (p.connected) send(p.ws, dmView(room, p)); }); }
 function dmArm(room) {
@@ -2933,6 +2963,11 @@ function dmEnd(room, winnerColor, why) {
 function dmCredit(room) {
   try {
     const st = room.st;
+    if (!room.zpDone && room.players.length === 2) {
+      room.zpDone = true;
+      const [d0, d1] = room.players, res = zpDuel("dame", d0, d1, st.winner === "draw" || !st.winner ? "draw" : (st.winner === d0.color ? "a" : "b"), st.plies || 0, DM_MIN_PLIES_FOR_CREDIT);
+      if (res) room.zpRes = { [d0.color]: res.a, [d1.color]: res.b };
+    }
     if (!st.winner || st.winner === "draw" || room.players.length !== 2 || st.plies < DM_MIN_PLIES_FOR_CREDIT) return;
     const win = room.players.find(p => p.color === st.winner), lose = room.players.find(p => p !== win);
     if (!win.username || !lose.username || win.username.toLowerCase() === lose.username.toLowerCase()) return;
@@ -3662,6 +3697,104 @@ async function loginUser(username, password, ip, lang, code) {
 
 
 /* ============================================================================
+   ZOCKER-PUNKTE (alle Spiele): Punkte gesamt / Tag / Woche / Monat, Belohnungen, Bestenlisten
+   ============================================================================ */
+const ZP_DAY_CAP = 1000;
+const ZP_DAY_TIERS = [{ p: 100, c: 20 }, { p: 250, c: 40 }, { p: 500, c: 80 }, { p: 800, c: 150 }];
+const ZP_WEEK_TIERS = [{ p: 500, c: 100 }, { p: 1200, c: 200 }, { p: 2500, c: 400 }, { p: 4000, c: 800 }];
+const ZP_MONTH_REWARDS = [1500, 1000, 700, 500, 400, 300, 250, 200, 150, 100];
+const ZP_GAMES = ["ttt", "chess", "fourups", "muehle"];   // eigene Spiel-Bestenlisten (Schach + Dame zaehlen zusammen als "chess")
+const zpMonthKey = () => todayDateString().slice(0, 7);
+function zpPrevMonthKey() { const [y, m] = zpMonthKey().split("-").map(Number); return m === 1 ? (y - 1) + "-12" : y + "-" + String(m - 1).padStart(2, "0"); }
+function zpState(user) {
+  const z = user.stats.zp && typeof user.stats.zp === "object" ? user.stats.zp : (user.stats.zp = {});
+  const day = todayDateString(), wk = brainWeekInfo().id;
+  if (z.day !== day) { z.day = day; z.dp = 0; z.dc = 0; }
+  if (z.week !== wk) { z.week = wk; z.wp = 0; z.wc = 0; }
+  if (!z.mon || typeof z.mon !== "object") z.mon = {};
+  if (!z.g || typeof z.g !== "object") z.g = {};
+  if (!z.once || typeof z.once !== "object") z.once = {};
+  z.total = Math.max(0, Math.floor(z.total || 0)); z.dp = z.dp || 0; z.dc = z.dc || 0; z.wp = z.wp || 0; z.wc = z.wc || 0;
+  return z;
+}
+// Vergibt Zocker-Punkte (Tageslimit). game = optionale Spiel-Bestenliste. Gibt { gain, total, game } zurueck.
+function zpAdd(user, pts, why, game) {
+  try {
+    if (!user || isRestricted(user)) return { gain: 0, total: 0 };
+    pts = Math.max(0, Math.floor(Number(pts) || 0));
+    const z = zpState(user);
+    const gain = Math.min(pts, Math.max(0, ZP_DAY_CAP - z.dp));
+    if (gain > 0) {
+      z.total += gain; z.dp += gain; z.wp += gain;
+      const mk = zpMonthKey(); z.mon[mk] = (z.mon[mk] || 0) + gain;
+      Object.keys(z.mon).sort().slice(0, -3).forEach(k => delete z.mon[k]);
+      if (game && ZP_GAMES.includes(game)) z.g[game] = (z.g[game] || 0) + gain;
+    }
+    z.last = { gain, why: String(why || ""), t: Date.now() };
+    saveUsers().catch(() => {});
+    if (gain > 0) notifyAccount(user.username, { type: "zpGain", gain, total: z.total, game: game || null, gameTotal: game && z.g[game] != null ? z.g[game] : null, why: String(why || ""), t: z.last.t });
+    return { gain, total: z.total, t: Date.now(), game: game && z.g[game] != null ? z.g[game] : null };
+  } catch (e) { console.error("zpAdd", e); return { gain: 0, total: 0 }; }
+}
+function zpRankTotal(user) { const t = zpState(user).total; return 1 + users.filter(u => u !== user && ((u.stats.zp || {}).total || 0) > t).length; }
+function zpMonthRank(user, mk) { const t = ((user.stats.zp || {}).mon || {})[mk] || 0; if (t <= 0) return null; return 1 + users.filter(u => u !== user && (((u.stats.zp || {}).mon || {})[mk] || 0) > t).length; }
+function zpTop(valFn, n) {
+  return users.map(u => ({ u, v: valFn(u) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, n)
+    .map((x, i) => ({ pos: i + 1, name: x.u.username, avatar: x.u.avatar || null, pts: x.v }));
+}
+function zpStatus(user) {
+  const z = zpState(user), mk = zpMonthKey(), pk = zpPrevMonthKey(), prevRank = zpMonthRank(user, pk);
+  return {
+    ok: true, total: z.total, rank: zpRankTotal(user), day: { pts: z.dp, cap: ZP_DAY_CAP, claimed: z.dc, tiers: ZP_DAY_TIERS }, week: { pts: z.wp, claimed: z.wc, tiers: ZP_WEEK_TIERS },
+    month: { key: mk, pts: z.mon[mk] || 0, rank: zpMonthRank(user, mk), endsInDays: (() => { const [y, m] = mk.split("-").map(Number); const last = new Date(y, m, 0).getDate(); return Math.max(0, last - Number(todayDateString().slice(8, 10))); })(), rewards: ZP_MONTH_REWARDS },
+    prevMonth: { key: pk, rank: prevRank, claimable: prevRank != null && prevRank <= 10 && (z.mClaimed || "") < pk, coins: prevRank != null && prevRank <= 10 ? ZP_MONTH_REWARDS[prevRank - 1] : 0 },
+    games: z.g, last: z.last || null, coins: user.stats.coins || 0
+  };
+}
+async function zpApi(payload, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = payload.token ? findUserByToken(payload.token) : null, action = payload.action;
+  if (action === "board") {
+    const mk = zpMonthKey(), kind = payload.kind;
+    if (kind === "game") {
+      const g = String(payload.game || ""); if (!ZP_GAMES.includes(g)) return { ok: false };
+      const val = u => ((u.stats.zp || {}).g || {})[g] || 0, top = zpTop(val, 10);
+      const me = user ? { pts: val(user), pos: val(user) > 0 ? 1 + users.filter(u => u !== user && val(u) > val(user)).length : null } : null;
+      return { ok: true, top, me };
+    }
+    const val = kind === "month" ? (u => ((u.stats.zp || {}).mon || {})[mk] || 0) : (u => (u.stats.zp || {}).total || 0), top = zpTop(val, 10);
+    const me = user ? { pts: val(user), pos: val(user) > 0 ? 1 + users.filter(u => u !== user && val(u) > val(user)).length : null } : null;
+    return { ok: true, top, me, rewards: kind === "month" ? ZP_MONTH_REWARDS : undefined };
+  }
+  if (!user) return errObj("notLoggedIn", lang);
+  if (action === "status") { await saveUsers().catch(() => {}); return zpStatus(user); }
+  if (action === "claim") {
+    const z = zpState(user), kind = payload.kind;
+    if (isRestricted(user)) return errObj("notLoggedIn", lang);
+    let coins = 0;
+    if (kind === "day" || kind === "week") {
+      const tiers = kind === "day" ? ZP_DAY_TIERS : ZP_WEEK_TIERS, pts = kind === "day" ? z.dp : z.wp, k = kind === "day" ? "dc" : "wc";
+      for (let i = z[k]; i < tiers.length; i++) { if (pts >= tiers[i].p) { coins += tiers[i].c; z[k] = i + 1; } else break; }
+    } else if (kind === "month") {
+      const pk = zpPrevMonthKey(), r = zpMonthRank(user, pk);
+      if ((z.mClaimed || "") < pk) { z.mClaimed = pk; if (r != null && r <= 10) coins = ZP_MONTH_REWARDS[r - 1]; }
+    } else return errObj("invalidInput", lang);
+    if (coins > 0) user.stats.coins = (user.stats.coins || 0) + coins;
+    await saveUsers();
+    return { ...zpStatus(user), granted: coins };
+  }
+  if (action === "once") {  // einmalige Belohnung je Abschnitt (z. B. Vokabel-Thema bestanden), nur bekannte Arten
+    const kind = String(payload.kind || ""), id = String(payload.id || "").slice(0, 40);
+    if (kind !== "vocab" || !/^[A-Za-z0-9_\-]{1,40}$/.test(id)) return errObj("invalidInput", lang);
+    const z = zpState(user), key = kind + ":" + id;
+    if (z.once[key]) return { ...zpStatus(user), gain: 0 };
+    const r = zpAdd(user, 250, "vocab"); if (r.gain > 0) z.once[key] = 1;
+    return { ...zpStatus(user), gain: r.gain };
+  }
+  return errObj("invalidInput", lang);
+}
+
+/* ============================================================================
    BRAINING-BESTENLISTE (Brain Hood / Brain Fruit)
    - Wochenliste: Punkte = Summe der Level-Nummern, die in der Woche geschafft wurden
      (schwere Level zaehlen mehr). Reset jeden Montag 0:00 (Europe/Berlin).
@@ -3787,6 +3920,7 @@ async function saveUserStats(token, stats, lang) {
   const oldCoins = user.stats.coins || 0, oldPrestige = user.stats.braintestPrestige || 0;
   const oldAnswers = (user.stats.correctAnswers || 0) + (user.stats.wrongAnswers || 0), oldWL = (user.stats.wins || 0) + (user.stats.losses || 0);
   const oldKlasse = user.stats.klasse || 0, oldTtt = user.stats.tttRank || 0;
+  const zpWas = { synced: !!user.stats.syncedOnce, sm: user.stats.speedMathLevel || 1, fruit: (user.stats.fruit && user.stats.fruit.fruitLevel) || 1, bio: Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {}) };
   const oldCorrect = user.stats.correctAnswers || 0, oldWrong = user.stats.wrongAnswers || 0, oldWins = user.stats.wins || 0, oldLosses = user.stats.losses || 0, oldRounds = user.stats.roundsPlayed || 0;
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
@@ -3965,6 +4099,17 @@ async function saveUserStats(token, stats, lang) {
         if (!before[id] && (id.startsWith("cat_") || id.startsWith("collector_"))) feedPush(user, "achv", 0, id);
       }
     }
+  }
+  // Zocker-Punkte: Klasse bestanden 250, Speed-Math-Meilenstein-Level 150, Brain Fruit Level 50 (jedes 10. = 100), Biologie-Thema erstmals geschafft 250
+  if (zpWas.synced && !isRestricted(user)) {
+    let zpt = 0;
+    zpt += 250 * Math.min(1, Math.max(0, (user.stats.klasse || 0) - oldKlasse));
+    zpt += 150 * Math.min(3, Math.max(0, (user.stats.speedMathLevel || 1) - zpWas.sm));
+    const fl = (user.stats.fruit && user.stats.fruit.fruitLevel) || 1;
+    for (let L = zpWas.fruit; L < Math.min(fl, zpWas.fruit + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
+    const bioNow = Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {});
+    zpt += 250 * Math.min(3, Object.keys(bioNow).filter(k => !(k in zpWas.bio)).length);
+    if (zpt > 0) zpAdd(user, zpt, "solo");
   }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
@@ -5406,6 +5551,7 @@ function chessEloApply(g, winner) {
 function chessOnlineFinish(g, winner, why) {
   g.status = "over"; g.winner = winner; g.why = why; g.rev++; g.updated = Date.now();
   try { chessEloApply(g, winner); } catch (e) { console.error("Elo:", e.message); }
+  try { if (!g.zp && g.w && g.b) { const z = zpDuel("chess", { username: g.w }, { username: g.b }, winner === "draw" ? "draw" : (winner === "w" ? "a" : "b"), (g.log || []).length, 4); if (z) g.zp = { w: z.a, b: z.b }; } } catch (e) { console.error("zpChess:", e.message); }
 }
 const CHESS_CLOCK_MS = 10 * 60 * 1000, CHESS_CLOCK_INC_MS = 5000; // Mit Zeit: je Spieler 10 Minuten + 5 Sekunden pro Zug
 function chessOnlineCheckTimeout(g) {
@@ -5422,7 +5568,7 @@ function chessOnlineView(g, me) {
   const color = g.w === me ? "w" : g.b === me ? "b" : null;
   return {
     ok: true, code: g.code, rev: g.rev, w: g.w, b: g.b, color, status: g.status, random: !!g.random,
-    eloW: chessEloOf(findUserByName(g.w || "")), eloB: chessEloOf(findUserByName(g.b || "")), rated: !!g.rated, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
+    eloW: chessEloOf(findUserByName(g.w || "")), eloB: chessEloOf(findUserByName(g.b || "")), rated: !!g.rated, zp: g.zp || null, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
     board: g.board, turn: g.turn, last: g.last, log: g.log, capW: g.capW, capB: g.capB,
     check: g.status === "playing" && E.isInCheck(g.board, g.turn),
     timed: !!g.timed,
@@ -6483,6 +6629,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
+        else if (req.url === "/api/zp") result = await zpApi(payload, lang);
         else if (req.url === "/api/braining/claim") result = await brainClaim(payload.token, lang);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
@@ -6844,6 +6991,7 @@ wss.on("connection", (ws, req) => {
       if (room.duel) { clearTimeout(room.duel.timer); room.duel = null; }
       room.board = Array(9).fill(null);
       room.counters = tttFreshCounters();
+      room.zpDone = false; room.zpRes = null;
       room.xPieces = []; room.oPieces = []; // Quantum-Modus: Zug-Reihenfolge zurücksetzen
       room.gameOver = false;
       room.winner = null;
@@ -6899,7 +7047,7 @@ wss.on("connection", (ws, req) => {
     if (msg.action === "fuRematch") {
       const room = fuRooms.get(ws.fuRoomCode);
       if (!room || !room.over || room.players.length < 2) return;
-      room.board = fuFreshBoard(); room.over = false; room.winner = null; room.winCells = null; room.last = null;
+      room.board = fuFreshBoard(); room.over = false; room.winner = null; room.winCells = null; room.last = null; room.zpDone = false; room.zpRes = null;
       if (Math.random() < 0.5) room.players.forEach(p => { p.num = 3 - p.num; });
       room.turn = 1;
       fuBroadcast(room);
@@ -7060,7 +7208,7 @@ wss.on("connection", (ws, req) => {
       const room = dmRooms.get(ws.dmRoomCode);
       if (!room || !room.st.over || room.players.length < 2 || room.players.some(p => !p.connected)) return;
       clearTimeout(room.timer);
-      room.st = dmFreshState();
+      room.st = dmFreshState(); room.zpDone = false; room.zpRes = null;
       if (Math.random() < 0.5) room.players.forEach(p => { p.color = Dame.other(p.color); });
       room.players.forEach(p => { p.credited = false; });
       dmArm(room); dmBroadcast(room);
