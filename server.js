@@ -3284,14 +3284,14 @@ function handleTabooSkip(room, playerId) {
 /* ---- Taboo Solo: Wort in 5 Versuchen erraten (Wordle-Farben). Wort bleibt auf dem Server. ---- */
 const TABOO_SOLO_CARDS = (() => {
   for (const pth of ["shared/tabooSoloDE.json", "tabooSoloDE.json", "public/tabooSoloDE.json"]) {
-    try { const j = JSON.parse(fs.readFileSync(path.join(__dirname, pth), "utf8")); const l = (Array.isArray(j) ? j : []).filter(c => c && /^[A-Za-zÄÖÜäöü]{4,8}$/.test(c.w) && Array.isArray(c.h) && c.h.length === 5); if (l.length) { console.log("Taboo Solo: " + l.length + " Wörter aus " + pth); return l; } } catch (e) {}
+    try { const j = JSON.parse(fs.readFileSync(path.join(__dirname, pth), "utf8")); const l = (Array.isArray(j) ? j : []).filter(c => c && typeof c.w === "string" && /^[A-Za-zÄÖÜäöü]{4,10}$/.test(c.w.replace(/[^A-Za-zÄÖÜäöü]/g, "")) && Array.isArray(c.h) && c.h.length === 5); if (l.length) { console.log("Taboo Solo: " + l.length + " Wörter aus " + pth); return l; } } catch (e) {}
   }
   console.error("Taboo Solo: tabooSoloDE.json nicht gefunden - Ersatz aus den Taboo-Karten (Datei nach shared/tabooSoloDE.json hochladen).");
   return TABOO_CARDS.filter(c => /^[A-Za-zÄÖÜäöü]{4,8}$/.test(c.w) && Array.isArray(c.t) && c.t.length >= 5).map(c => ({ w: c.w, c: "Allgemein", h: c.t.slice(0, 5).map(x => ({ k: "w", t: x })) }));
 })();
-const TABOO_SOLO_PTS = [100, 80, 60, 40, 20], TABOO_HINT_COST = 15, tabooSolo = new Map();
+const TABOO_SOLO_PTS = [100, 80, 60, 40, 20], TABOO_HINT_COST = 5, tabooSolo = new Map();
 function tabooSoloView(g, extra) { const c = TABOO_SOLO_CARDS[g.idx]; return Object.assign({ ok: true, len: g.word.length, tries: g.rows.length, max: 5, rows: g.rows, cat: c.c, hints: c.h.slice(0, g.hn).map(h => ({ k: h.k, t: h.t })), hintsLeft: 5 - g.hn, hintCost: TABOO_HINT_COST, done: !!g.done }, extra || {}); }
-function tabooSoloPts(g) { return Math.max(5, TABOO_SOLO_PTS[g.rows.length - 1] - TABOO_HINT_COST * g.hn); }
+function tabooSoloPts(g) { return TABOO_SOLO_PTS[g.rows.length - 1]; }  // Hinweise kosten Muenzen, keine Punkte
 function tabooSoloApi(p, lang) {
   const sid = String(p.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40); if (!sid) return { ok: false };
   if (!TABOO_SOLO_CARDS.length) return { ok: false };
@@ -3299,14 +3299,23 @@ function tabooSoloApi(p, lang) {
     let idx = Math.floor(Math.random() * TABOO_SOLO_CARDS.length);
     const prev = tabooSolo.get(sid); if (prev && prev.idx === idx) idx = (idx + 1) % TABOO_SOLO_CARDS.length;
     if (process.env.TABOO_TEST_WORD) { const f = TABOO_SOLO_CARDS.findIndex(c => c.w === process.env.TABOO_TEST_WORD); if (f >= 0) idx = f; }  // nur fuer Tests
-    const g = { idx, word: TABOO_SOLO_CARDS[idx].w.toUpperCase(), rows: [], hn: 0, done: false, t: Date.now() };
+    const g = { idx, word: TABOO_SOLO_CARDS[idx].w.replace(/[^A-Za-zÄÖÜäöü]/g, "").toUpperCase(), rows: [], hn: 0, done: false, t: Date.now() };
     tabooSolo.set(sid, g);
     if (tabooSolo.size > 4000) Array.from(tabooSolo.keys()).slice(0, 1000).forEach(k => tabooSolo.delete(k));
     return tabooSoloView(g, { pts: TABOO_SOLO_PTS });
   }
   const g = tabooSolo.get(sid); if (!g) return { ok: false, expired: true };
   if (p.action === "state") return tabooSoloView(g, { pts: TABOO_SOLO_PTS });
-  if (p.action === "hint") { if (!g.done && g.hn < 5) g.hn++; return tabooSoloView(g, { pts: TABOO_SOLO_PTS }); }
+  if (p.action === "hint") {
+    if (g.done || g.hn >= 5) return tabooSoloView(g, { pts: TABOO_SOLO_PTS });
+    const hu = p.token ? findUserByToken(p.token) : null;  // mit Konto: 5 Muenzen je Hinweis, ohne Konto kostenlos (es gibt dort keine Punkte)
+    if (hu) {
+      if ((hu.stats.coins || 0) < TABOO_HINT_COST) return tabooSoloView(g, { pts: TABOO_SOLO_PTS, noCoins: true, coins: hu.stats.coins || 0 });
+      hu.stats.coins -= TABOO_HINT_COST; coinSrc = "taboo-hinweis"; saveUsers().catch(() => {});
+    }
+    g.hn++;
+    return tabooSoloView(g, { pts: TABOO_SOLO_PTS, coins: hu ? hu.stats.coins : undefined });
+  }
   if (p.action !== "guess" || g.done) return tabooSoloView(g);
   const guess = String(p.text || "").toUpperCase().replace(/[^A-ZÄÖÜ]/g, "");
   if (guess.length !== g.word.length) return Object.assign(tabooSoloView(g), { ok: true, rejected: "length" });
@@ -3316,11 +3325,11 @@ function tabooSoloApi(p, lang) {
   g.rows.push({ w: guess, s: res.join("") });
   let extra = {};
   if (guess === g.word) {
-    g.done = true; extra.won = true; extra.word = g.word;
+    g.done = true; extra.won = true; extra.word = TABOO_SOLO_CARDS[g.idx].w.toUpperCase();
     const user = p.token ? findUserByToken(p.token) : null, pts = tabooSoloPts(g);
     extra.zpPossible = pts;
     if (user && Date.now() - g.t > 2500) { const r = zpAdd(user, pts, "taboo", "taboo"); extra.zp = r.gain; extra.zpTotal = r.total; }
-  } else if (g.rows.length >= 5) { g.done = true; extra.won = false; extra.word = g.word; }
+  } else if (g.rows.length >= 5) { g.done = true; extra.won = false; extra.word = TABOO_SOLO_CARDS[g.idx].w.toUpperCase(); }
   return tabooSoloView(g, extra);
 }
 
@@ -4644,6 +4653,181 @@ async function adminZp(key, ip, payload) {
     u.stats.zp = undefined; zpState(u); delete u.stats.zp.once; zpState(u).total = 0;
     if (!(await saveUsers())) return { ok: false, error: "Speichern fehlgeschlagen." };
     console.log("[ZP] " + u.username + " zurückgesetzt"); return view();
+  }
+  return { ok: false, error: "Unbekannt." };
+}
+/* ============================================================================
+   EVENTS: BATTLE ROYALE (Admin legt an und veroeffentlicht, Spieler melden sich an)
+   Alle Spieler spielen gleichzeitig dieselbe Runde, nach jeder Runde fliegen die Letzten raus.
+   Rundenarten (Phase 1): Wissenstest, Higher or Lower, Speed Math.
+   ============================================================================ */
+const EV_TYPES = { quiz: "Wissenstest", hilo: "Higher or Lower", math: "Speed Math" };
+const EV_INTRO_SEC = process.env.EV_FAST ? 2 : 8, EV_ROUND_SEC = process.env.EV_FAST ? 8 : 45, EV_RESULT_SEC = process.env.EV_FAST ? 3 : 10; // EV_FAST nur fuer Tests
+const evRun = new Map(); // id -> { roundIdx, phase, phaseEnd, alive:Set, score:{}, lastAt:{}, q:{}, streak:{}, out:[], lastElim:[] }
+function evStore() { if (!Array.isArray(gameCfg.events)) gameCfg.events = []; return gameCfg.events; }
+function evGet(id) { return evStore().find(e => e.id === id); }
+function evHiloTopics() { return Object.entries(DATASETS.higherLower || {}).map(([k, v]) => ({ k, label: String(v.label || k).replace(/^Higher or Lower:\s*/, "") })); }
+function evRoundLabel(r) { return EV_TYPES[r.type] + (r.type === "hilo" && r.topic && DATASETS.higherLower[r.topic] ? " (" + String(DATASETS.higherLower[r.topic].label).replace(/^Higher or Lower:\s*/, "") + ")" : ""); }
+function evClean(p) {
+  const name = String(p.name || "").trim().slice(0, 40); if (!name) return { error: "Name fehlt." };
+  const rounds = (Array.isArray(p.rounds) ? p.rounds : []).slice(0, 12).filter(r => r && EV_TYPES[r.type]).map(r => ({ type: r.type, topic: r.type === "hilo" && r.topic && DATASETS.higherLower[r.topic] ? String(r.topic) : "" }));
+  if (!rounds.length) return { error: "Mindestens eine Runde." };
+  const n = (v, d, lo, hi) => { v = Math.floor(Number(v)); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
+  const pr = p.prizes || {}, g = (o) => ({ c: n(o && o.c, 0, 0, 1000000), z: n(o && o.z, 0, 0, 100000) });
+  return { ev: { name, start: Math.max(0, Math.floor(Number(p.start) || 0)), maxPlayers: n(p.maxPlayers, 32, 2, 200), minPlayers: n(p.minPlayers, 4, 2, 200), rounds, prizes: { p1: g(pr.p1), p2: g(pr.p2), p3: g(pr.p3), part: g(pr.part) } } };
+}
+function evUserKey(n) { return String(n || "").toLowerCase(); }
+function evBegin(ev) {
+  if (ev.entrants.length < ev.minPlayers) { ev.state = "cancelled"; ev.reason = "Zu wenig Anmeldungen"; saveGameCfg().catch(() => {}); return; }
+  const run = { roundIdx: 0, phase: "intro", phaseEnd: Date.now() + EV_INTRO_SEC * 1000, alive: new Set(ev.entrants.map(e => evUserKey(e.name))), names: {}, score: {}, lastAt: {}, q: {}, streak: {}, out: [], lastElim: [] };
+  ev.entrants.forEach(e => { const k = evUserKey(e.name); run.names[k] = e.name; run.score[k] = 0; run.lastAt[k] = 0; });
+  evRun.set(ev.id, run); ev.state = "running"; ev.startedAt = Date.now(); saveGameCfg().catch(() => {});
+  console.log("[Event] " + ev.name + " startet mit " + ev.entrants.length);
+}
+function evRank(run, keys) { return keys.slice().sort((a, b) => (run.score[b] - run.score[a]) || (run.lastAt[a] - run.lastAt[b]) || (a < b ? -1 : 1)); }
+function evFinish(ev, run) {
+  const surv = evRank(run, [...run.alive]), res = [];
+  surv.forEach(k => res.push({ name: run.names[k], score: run.score[k] }));
+  for (let i = run.out.length - 1; i >= 0; i--) res.push({ name: run.names[run.out[i].k], score: run.score[run.out[i].k] });
+  res.forEach((r, i) => { r.place = i + 1; });
+  ev.results = res; ev.state = "payout"; ev.endedAt = Date.now(); run.phase = "done"; saveGameCfg().catch(() => {});
+  console.log("[Event] " + ev.name + " beendet, Sieger: " + (res[0] ? res[0].name : "-"));
+}
+function evEndRound(ev, run) {
+  const last = run.roundIdx >= ev.rounds.length - 1, alive = [...run.alive];
+  run.lastElim = [];
+  if (!last && alive.length > 2) {
+    const n = Math.min(Math.max(1, Math.floor(alive.length * 0.25)), alive.length - 2), rk = evRank(run, alive), drop = rk.slice(rk.length - n).reverse();
+    drop.forEach(k => { run.alive.delete(k); run.out.push({ k, round: run.roundIdx }); run.lastElim.push(run.names[k]); });
+  }
+  if (last || run.alive.size <= 1) return evFinish(ev, run);
+  run.phase = "result"; run.phaseEnd = Date.now() + EV_RESULT_SEC * 1000;
+}
+function evTick() {
+  const now = Date.now();
+  for (const ev of evStore()) {
+    try {
+      if (ev.state === "open" && ev.start && now >= ev.start) evBegin(ev);
+      else if (ev.state === "running") {
+        const run = evRun.get(ev.id);
+        if (!run) { ev.state = "cancelled"; ev.reason = "Server neu gestartet"; saveGameCfg().catch(() => {}); continue; }
+        if (now < run.phaseEnd) continue;
+        if (run.phase === "intro") { run.phase = "play"; run.phaseEnd = now + EV_ROUND_SEC * 1000; run.q = {}; }
+        else if (run.phase === "play") evEndRound(ev, run);
+        else if (run.phase === "result") { run.roundIdx++; run.phase = "intro"; run.phaseEnd = now + EV_INTRO_SEC * 1000; }
+      }
+    } catch (e) { console.error("evTick", e); }
+  }
+}
+setInterval(evTick, 1000);
+// Wach-Ping: Render (Gratis) schlaeft nach ~15 Min ohne Besucher. Der Server ruft sich selbst ueber die oeffentliche Adresse auf (zaehlt dort als Besuch).
+// Nur aktiv, wenn RENDER_EXTERNAL_URL (setzt Render selbst) oder KEEPALIVE_URL gesetzt ist. Aus: KEEPALIVE=off
+(() => {
+  const url = process.env.KEEPALIVE_URL || process.env.RENDER_EXTERNAL_URL;
+  if (!url || process.env.KEEPALIVE === "off") return;
+  const ping = () => { try { fetch(url.replace(/\/$/, "") + "/api/features", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {}); } catch (e) {} };
+  setInterval(ping, 8 * 60 * 1000); console.log("Wach-Ping aktiv: " + url);
+})();
+function evMathQ(n) {
+  const lv = Math.min(4, Math.floor(n / 3)), r = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const ops = [() => { const a = r(3, 20), b = r(3, 20); return [a + " + " + b, a + b]; }, () => { const a = r(10, 40), b = r(2, 9); return [a + " − " + b, a - b]; }, () => { const a = r(2, 9), b = r(2, 9); return [a + " × " + b, a * b]; }, () => { const a = r(12, 59), b = r(12, 59); return [a + " + " + b, a + b]; }, () => { const a = r(11, 19), b = r(3, 9); return [a + " × " + b, a * b]; }];
+  const pool = ops.slice(0, 2 + lv); return pool[Math.floor(Math.random() * pool.length)]();
+}
+function evNewQ(ev, run, k) {
+  const rd = ev.rounds[run.roundIdx], t = Date.now();
+  if (rd.type === "quiz") { const q = shuffleAnswerOrder(QUIZ_QUESTIONS[Math.floor(Math.random() * QUIZ_QUESTIONS.length)]); return { kind: "quiz", t, ans: q.c, pub: { kind: "quiz", q: q.q, a: q.a, cat: q.cat || "" } }; }
+  if (rd.type === "hilo") {
+    const keys = Object.keys(DATASETS.higherLower || {}), key = rd.topic || keys[Math.floor(Math.random() * keys.length)], ds = DATASETS.higherLower[key], it = ds.items;
+    let a, b, g = 0; do { a = it[Math.floor(Math.random() * it.length)]; b = it[Math.floor(Math.random() * it.length)]; } while ((a === b || a.value === b.value) && ++g < 50);
+    return { kind: "hilo", t, ans: b.value > a.value ? "h" : "l", pub: { kind: "hilo", topic: String(ds.label).replace(/^Higher or Lower:\s*/, ""), unit: ds.unit || "", a: { name: a.name, value: a.value }, b: { name: b.name } } };
+  }
+  const [text, val] = evMathQ(run.correct && run.correct[k] || 0); return { kind: "math", t, ans: val, pub: { kind: "math", text } };
+}
+function evView(ev, userName) {
+  const run = evRun.get(ev.id), k = evUserKey(userName), me = userName ? ev.entrants.find(e => evUserKey(e.name) === k) : null;
+  const v = { ok: true, id: ev.id, name: ev.name, state: ev.state, start: ev.start, now: Date.now(), maxPlayers: ev.maxPlayers, minPlayers: ev.minPlayers, entrants: ev.entrants.length, joined: !!me, prizes: ev.prizes, rounds: ev.rounds.map(evRoundLabel), reason: ev.reason || "" };
+  if (ev.state === "open") v.names = ev.entrants.slice(0, 40).map(e => e.name);
+  if (run && ev.state === "running") {
+    const rk = evRank(run, Object.keys(run.score)), alive = run.alive;
+    v.run = { roundIdx: run.roundIdx, total: ev.rounds.length, phase: run.phase, phaseEnd: run.phaseEnd, alive: alive.size, roundLabel: evRoundLabel(ev.rounds[run.roundIdx]), lastElim: run.lastElim,
+      board: rk.slice(0, 8).map(x => ({ name: run.names[x], score: run.score[x], alive: alive.has(x) })), meAlive: alive.has(k), meScore: run.score[k] || 0, meRank: rk.indexOf(k) + 1, me: !!me, nextElim: run.roundIdx < ev.rounds.length - 1 && alive.size > 2 ? Math.min(Math.max(1, Math.floor(alive.size * 0.25)), alive.size - 2) : 0 };
+  }
+  if ((ev.state === "payout" || ev.state === "done") && ev.results) {
+    v.results = ev.results.slice(0, 10); const mi = ev.results.findIndex(r => evUserKey(r.name) === k); v.myPlace = mi >= 0 ? mi + 1 : 0;
+    if (ev.state === "done" && mi >= 0) { const pz = mi === 0 ? ev.prizes.p1 : mi === 1 ? ev.prizes.p2 : mi === 2 ? ev.prizes.p3 : ev.prizes.part; v.myPrize = pz; }
+  }
+  return v;
+}
+function evVisible() {
+  const l = evStore(), now = Date.now();
+  return l.find(e => e.state === "running") || l.filter(e => e.state === "open").sort((a, b) => (a.start || 9e15) - (b.start || 9e15))[0] || l.filter(e => (e.state === "payout" || e.state === "done") && now - (e.endedAt || 0) < 3 * 3600000).sort((a, b) => b.endedAt - a.endedAt)[0] || null;
+}
+function evApi(p, ip) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = p.token ? findUserByToken(p.token) : null, name = user ? String(user.username || "") : "", act = p.action || "status";
+  const ev = p.id ? evGet(String(p.id)) : evVisible();
+  if (act === "status") return ev && ev.state !== "draft" && ev.state !== "cancelled" ? evView(ev, name) : { ok: true, none: true };
+  if (!ev || ev.state === "draft") return { ok: false, error: "Event nicht gefunden." };
+  if (!user || isRestricted(user)) return { ok: false, error: "Bitte anmelden." };
+  const k = evUserKey(name);
+  if (act === "join") {
+    if (ev.state !== "open") return { ok: false, error: "Anmeldung ist nicht offen." };
+    if (!ev.entrants.some(e => evUserKey(e.name) === k)) { if (ev.entrants.length >= ev.maxPlayers) return { ok: false, error: "Das Event ist voll." }; ev.entrants.push({ name, t: Date.now() }); statHit("event_join"); maniaSaveSoon(); }
+    return evView(ev, name);
+  }
+  if (act === "leave") { if (ev.state === "open") { ev.entrants = ev.entrants.filter(e => evUserKey(e.name) !== k); maniaSaveSoon(); } return evView(ev, name); }
+  const run = evRun.get(ev.id);
+  if ((act === "question" || act === "answer") && (!run || ev.state !== "running" || run.phase !== "play" || !run.alive.has(k))) return Object.assign(evView(ev, name), { noPlay: true });
+  if (act === "question") { if (!run.q[k]) run.q[k] = evNewQ(ev, run, k); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
+  if (act === "answer") {
+    const q = run.q[k]; if (!q) { run.q[k] = evNewQ(ev, run, k); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
+    if (Date.now() - q.t < 250) return Object.assign(evView(ev, name), { q: q.pub, tooFast: true });
+    const a = q.kind === "quiz" ? Number(p.a) : q.kind === "hilo" ? String(p.a) : Number(p.a), ok = q.kind === "hilo" ? a === q.ans : a === q.ans;
+    if (!run.correct) run.correct = {};
+    if (ok) { run.streak[k] = (run.streak[k] || 0) + 1; run.correct[k] = (run.correct[k] || 0) + 1; run.score[k] += 10 + Math.min(5, run.streak[k] - 1) * 2; run.lastAt[k] = Date.now(); } else run.streak[k] = 0;
+    run.q[k] = evNewQ(ev, run, k);
+    return Object.assign(evView(ev, name), { q: run.q[k].pub, ok, streak: run.streak[k] });
+  }
+  return { ok: false };
+}
+function evGrant(u, z, why) {
+  if (!u) return;
+  const prize = z || {};
+  if (prize.c > 0) u.stats.coins = (u.stats.coins || 0) + prize.c;
+  if (prize.z > 0) { const st = zpState(u), mk = zpMonthKey(); st.total += prize.z; st.mon[mk] = (st.mon[mk] || 0) + prize.z; }
+  try { notifyAccount(u.username, { type: "eventPrize", coins: prize.c || 0, zp: prize.z || 0, why }); } catch (e) {}
+}
+async function adminEvents(key, ip, p) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  if (!usersLoaded) return { ok: false, error: "Konten noch nicht geladen." };
+  const act = p.action || "list", L = evStore();
+  const view = (extra) => Object.assign({ ok: true, types: EV_TYPES, topics: evHiloTopics(), roundSec: EV_ROUND_SEC, events: L.map(e => { const run = evRun.get(e.id); return Object.assign({}, e, { live: run && e.state === "running" ? { roundIdx: run.roundIdx, phase: run.phase, phaseEnd: run.phaseEnd, alive: run.alive.size, board: evRank(run, Object.keys(run.score)).slice(0, 12).map(x => ({ name: run.names[x], score: run.score[x], alive: run.alive.has(x) })) } : null }); }) }, extra || {});
+  const done = async (extra) => (await saveGameCfg()) ? view(extra) : { ok: false, error: "Speichern fehlgeschlagen." };
+  if (act === "list") return view();
+  if (act === "save") {
+    const c = evClean(p.ev || {}); if (c.error) return { ok: false, error: c.error };
+    let ev = p.ev && p.ev.id ? evGet(String(p.ev.id)) : null;
+    if (ev) { if (ev.state !== "draft") return { ok: false, error: "Nur Entwürfe lassen sich bearbeiten." }; Object.assign(ev, c.ev); }
+    else { ev = Object.assign({ id: "e" + Date.now().toString(36) + Math.floor(Math.random() * 1000).toString(36), state: "draft", entrants: [], created: Date.now() }, c.ev); L.push(ev); }
+    return done({ savedId: ev.id });
+  }
+  const ev = evGet(String(p.id || "")); if (!ev) return { ok: false, error: "Event nicht gefunden." };
+  if (act === "publish") { if (ev.state !== "draft") return { ok: false, error: "Schon veröffentlicht." }; if (!ev.start || ev.start < Date.now() + 60000) return { ok: false, error: "Startzeit muss in der Zukunft liegen." }; ev.state = "open"; console.log("[Event] veröffentlicht: " + ev.name); return done(); }
+  if (act === "startnow") { if (ev.state !== "open") return { ok: false, error: "Nur offene Events." }; ev.start = Date.now(); evBegin(ev); return done(); }
+  if (act === "cancel") { if (!["open", "running", "draft"].includes(ev.state)) return { ok: false, error: "Nicht möglich." }; ev.state = "cancelled"; ev.reason = "Vom Admin abgesagt"; evRun.delete(ev.id); return done(); }
+  if (act === "delete") { if (!["draft", "cancelled", "done"].includes(ev.state)) return { ok: false, error: "Erst absagen." }; gameCfg.events = L.filter(e => e !== ev); return done(); }
+  if (act === "skip") { const run = evRun.get(ev.id); if (run && ev.state === "running") run.phaseEnd = Date.now(); return view(); }
+  if (act === "kick") {
+    const k = evUserKey(p.name); ev.entrants = ev.entrants.filter(e => evUserKey(e.name) !== k); const run = evRun.get(ev.id);
+    if (run && run.alive.has(k)) { run.alive.delete(k); run.out.push({ k, round: run.roundIdx }); run.score[k] = -1; }
+    return done();
+  }
+  if (act === "payout") {
+    if (ev.state !== "payout" || !ev.results) return { ok: false, error: "Noch nichts auszuzahlen." };
+    ev.results.forEach((r, i) => { const u = findUserByName(r.name); evGrant(u, i === 0 ? ev.prizes.p1 : i === 1 ? ev.prizes.p2 : i === 2 ? ev.prizes.p3 : ev.prizes.part, "event:" + ev.name); });
+    ev.state = "done"; ev.paid = Date.now();
+    if (!(await saveUsers())) return { ok: false, error: "Konten speichern fehlgeschlagen." };
+    console.log("[Event] ausgezahlt: " + ev.name); return done();
   }
   return { ok: false, error: "Unbekannt." };
 }
@@ -6349,6 +6533,7 @@ const LOCKED_FEATURES = new Set(
 const GAME_DEFS = [
   { id: "braintest", name: "Brain Test", group: "Hauptmenü", icon: "🎯", classes: 10 },
   { id: "daily", name: "Tagesrätsel", group: "Hauptmenü", icon: "📅" },
+  { id: "events", name: "Events (Battle Royale)", group: "Online-Modus", icon: "⚔️" },
   { id: "party", name: "Party (Online)", group: "Online-Modus", icon: "🎉" },
   { id: "arena", name: "Arena", group: "Online-Modus", icon: "🏆", classes: 2, classNames: ["Schüler-Liga", "Lehrer-Liga"] },
   { id: "speedmath", name: "Speed Math", group: "Modi", icon: "➕" },
@@ -6397,7 +6582,7 @@ async function loadGameCfg() {
       const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_games`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
       const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result);
     } else if (fs.existsSync(GAMES_FILE)) raw = JSON.parse(fs.readFileSync(GAMES_FILE, "utf8"));
-    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined, zp: raw.zp && typeof raw.zp === "object" ? raw.zp : undefined, stats: raw.stats && typeof raw.stats === "object" ? raw.stats : undefined }; try { zpApplyCfg(); } catch (e) {}
+    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined, zp: raw.zp && typeof raw.zp === "object" ? raw.zp : undefined, stats: raw.stats && typeof raw.stats === "object" ? raw.stats : undefined, events: Array.isArray(raw.events) ? raw.events : undefined }; try { zpApplyCfg(); } catch (e) {}
   } catch (e) { console.error("Spiele-Einstellungen nicht lesbar:", e.message); }
 }
 // ---- NEWS (steht mit in den Spiele-Einstellungen, bleibt also mit gespeichert) ----
@@ -6969,6 +7154,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-chat-clear") result = await adminChat("clear", payload, ip, lang);
         else if (req.url === "/api/admin-chat-send") result = await adminChat("send", payload, ip, lang);
         else if (req.url === "/api/admin-games") result = adminGames(payload.key, ip);
+        else if (req.url === "/api/admin-events") result = await adminEvents(payload.key, ip, payload);
+        else if (req.url === "/api/event" && !gateOk("events", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/event") result = evApi(payload, ip);
         else if (req.url === "/api/admin-zp") result = await adminZp(payload.key, ip, payload);
         else if (req.url === "/api/admin-stats") result = adminStats(payload.key, ip);
         else if (req.url === "/api/stat-hit") result = statHitApi(payload, ip);
