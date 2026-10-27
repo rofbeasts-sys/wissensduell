@@ -4831,6 +4831,54 @@ async function adminEvents(key, ip, p) {
   }
   return { ok: false, error: "Unbekannt." };
 }
+
+/* ============================================================================
+   FEEDBACK: Spieler schicken Lob/Kritik/Fehler/Ideen (1x pro Tag), der Admin liest nach und belohnt Hilfreiches von Hand.
+   ============================================================================ */
+const FB_KINDS = { good: "Gut", bad: "Schlecht", bug: "Fehler", idea: "Idee" };
+const FB_REWARD = { c: 50, z: 100 };
+function fbStore() { if (!Array.isArray(gameCfg.feedback)) gameCfg.feedback = []; return gameCfg.feedback; }
+function feedbackApi(p, ip) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = p.token ? findUserByToken(p.token) : null;
+  if (!user || isRestricted(user)) return { ok: false, error: "Bitte anmelden." };
+  const day = todayDateString(), name = String(user.username || ""), k = name.toLowerCase();
+  const mine = fbStore().filter(f => f.user.toLowerCase() === k).slice(-5).reverse().map(f => ({ t: f.t, kind: f.kind, area: f.area, text: f.text.slice(0, 120), rewarded: !!f.rewarded }));
+  const can = user.fbDay !== day;
+  if (p.action !== "send") return { ok: true, can, mine, reward: FB_REWARD };
+  if (!can) return { ok: false, error: "Heute hast du schon Feedback geschickt. Morgen gern wieder!", can: false, mine, reward: FB_REWARD };
+  const kind = FB_KINDS[p.kind] ? String(p.kind) : "";
+  const text = String(p.text || "").replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "").trim().slice(0, 600);
+  const area = String(p.area || "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, 40);
+  if (!kind) return { ok: false, error: "Bitte wähle Gut, Schlecht, Fehler oder Idee." };
+  if (text.length < 10) return { ok: false, error: "Bitte schreib etwas ausführlicher (mindestens 10 Zeichen)." };
+  const L = fbStore();
+  L.push({ id: "f" + Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36), user: name, t: Date.now(), kind, area, text, state: "new", rewarded: 0 });
+  if (L.length > 600) L.splice(0, L.length - 600);
+  user.fbDay = day; statHit("feedback");
+  saveGameCfg().catch(() => {}); saveUsers().catch(() => {});
+  return { ok: true, sent: true, can: false, mine: [{ t: Date.now(), kind, area, text: text.slice(0, 120), rewarded: false }].concat(mine).slice(0, 5), reward: FB_REWARD };
+}
+async function adminFeedback(key, ip, p) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const act = p.action || "list", L = fbStore();
+  const view = () => { const M = fbStore(); return { ok: true, reward: FB_REWARD, newCount: M.filter(f => f.state === "new").length, items: M.slice().reverse().slice(0, 200) }; };
+  if (act === "list") return view();
+  const f = L.find(x => x.id === String(p.id || "")); if (!f) return { ok: false, error: "Nicht gefunden." };
+  if (act === "mark") { if (["new", "read", "kept"].includes(p.state)) f.state = p.state; return (await saveGameCfg()) ? view() : { ok: false, error: "Speichern fehlgeschlagen." }; }
+  if (act === "delete") { gameCfg.feedback = L.filter(x => x !== f); return (await saveGameCfg()) ? view() : { ok: false, error: "Speichern fehlgeschlagen." }; }
+  if (act === "reward") {
+    if (f.rewarded) return { ok: false, error: "Schon belohnt." };
+    const u = findUserByName(f.user); if (!u) return { ok: false, error: "Spieler nicht mehr vorhanden." };
+    const c = Math.max(0, Math.min(5000, Math.floor(Number(p.c)))), z = Math.max(0, Math.min(5000, Math.floor(Number(p.z))));
+    const g = { c: Number.isFinite(c) ? c : FB_REWARD.c, z: Number.isFinite(z) ? z : FB_REWARD.z };
+    evGrant(u, g, "feedback"); f.rewarded = Date.now(); f.state = f.state === "new" ? "read" : f.state; f.rc = g.c; f.rz = g.z;
+    if (!(await saveUsers())) return { ok: false, error: "Konten speichern fehlgeschlagen." };
+    if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
+    console.log("[Feedback] belohnt: " + u.username + " +" + g.c + " / +" + g.z + " ZP"); return view();
+  }
+  return { ok: false, error: "Unbekannt." };
+}
 async function adminCloak(payload, ip, lang) {
   if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
@@ -6582,7 +6630,7 @@ async function loadGameCfg() {
       const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_games`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
       const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result);
     } else if (fs.existsSync(GAMES_FILE)) raw = JSON.parse(fs.readFileSync(GAMES_FILE, "utf8"));
-    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined, zp: raw.zp && typeof raw.zp === "object" ? raw.zp : undefined, stats: raw.stats && typeof raw.stats === "object" ? raw.stats : undefined, events: Array.isArray(raw.events) ? raw.events : undefined }; try { zpApplyCfg(); } catch (e) {}
+    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined, zp: raw.zp && typeof raw.zp === "object" ? raw.zp : undefined, stats: raw.stats && typeof raw.stats === "object" ? raw.stats : undefined, events: Array.isArray(raw.events) ? raw.events : undefined, feedback: Array.isArray(raw.feedback) ? raw.feedback : undefined }; try { zpApplyCfg(); } catch (e) {}
   } catch (e) { console.error("Spiele-Einstellungen nicht lesbar:", e.message); }
 }
 // ---- NEWS (steht mit in den Spiele-Einstellungen, bleibt also mit gespeichert) ----
@@ -7157,6 +7205,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-events") result = await adminEvents(payload.key, ip, payload);
         else if (req.url === "/api/event" && !gateOk("events", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/event") result = evApi(payload, ip);
+        else if (req.url === "/api/admin-feedback") result = await adminFeedback(payload.key, ip, payload);
+        else if (req.url === "/api/feedback") result = feedbackApi(payload, ip);
         else if (req.url === "/api/admin-zp") result = await adminZp(payload.key, ip, payload);
         else if (req.url === "/api/admin-stats") result = adminStats(payload.key, ip);
         else if (req.url === "/api/stat-hit") result = statHitApi(payload, ip);
