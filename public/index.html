@@ -5299,6 +5299,7 @@ function renderApp(html){ document.getElementById("app").innerHTML = html; try{ 
 const ZP_MARKS = { 'startBrainingHub(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+150', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', 'startTabooHub(':'+100', 'startChem(':'+10 / Element' };
 function zpMarkCards(){
   if(!document.getElementById('zpbCss')){ const st = document.createElement('style'); st.id = 'zpbCss'; st.textContent = '.mode-card[data-zpb]{position:relative}.zpb{position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px;letter-spacing:.3px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35)}.zpb-i{display:inline-block;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}'; document.head.appendChild(st); }
+  if(featureLocked('zp')){ document.querySelectorAll('.zpb').forEach(e => e.remove()); return; }
   document.querySelectorAll('.mode-card:not(.locked)').forEach(c => {
     if(c.dataset.zpb) return;
     const oc = c.getAttribute('onclick') || '';
@@ -5306,7 +5307,7 @@ function zpMarkCards(){
   });
 }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
-const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', startManiaFlow:'mania' };
+const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', startManiaFlow:'mania', startTabooHub:'taboo' };
 function fmtCountdown(ms){
   const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
   if(ms <= 0) return L('gleich','soon');
@@ -5325,6 +5326,8 @@ setInterval(function(){
   const now = Date.now() + serverClockOff;
   if(Object.keys(gameCountdown).some(k => gameCountdown[k] <= now)){ gameCountdown = {}; try{ loadFeatureFlags().then(() => { try{ if(document.querySelector('.menu-hero')) renderMainMenu(); }catch(e){} }); }catch(e){} }
 }, 20000);
+/* Statistik: zaehlt Spielstarts (anonym, nur Spiel-ID) */
+(function(){ const m = Object.assign({}, GATE_MAP); for(const fn in m){ (function(fn, id){ let tries = 0; const wrap = () => { const f = window[fn]; if(typeof f !== 'function'){ if(++tries < 40) setTimeout(wrap, 500); return; } if(f.__sh) return; const w = function(){ try{ fetch('/api/stat-hit', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({g:id}), keepalive:true}).catch(()=>{}); }catch(e){} return f.apply(this, arguments); }; w.__sh = 1; try{ window[fn] = w; }catch(e){} }; setTimeout(wrap, 800); })(fn, m[fn]); } })();
 function applyGameGates(){
   document.querySelectorAll('#app [data-gid]').forEach(e => { if(hiddenFeatures.indexOf(e.dataset.gid) !== -1) e.remove(); });
   document.querySelectorAll('#app .mode-card[onclick]').forEach(c => {
@@ -7360,6 +7363,7 @@ function renderMainMenu(){
       </div>
     </div>
 
+    <div id="evBox"></div>
     <div class="menu-section-title">${L('Online-Modus','Online mode')}</div>
     <div class="menu-grid">
       ${hiddenFeatures.indexOf('party') !== -1 ? '' : featureLocked('party') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
@@ -7454,6 +7458,7 @@ ${currentLang === 'de' ? `
     ${legalLinksHtml()}
 
   `);
+  try{ evMenuLoad(); }catch(e){}
 }
 
 function statRing(pct, color, label){
@@ -15204,7 +15209,7 @@ function tabooHubCss(){
   const st = document.createElement('style'); st.id = 'tbhCss';
   st.textContent = `.tbh .logo{display:block;margin:12px auto 0;background:#fff;color:#111;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px #0008;width:210px}.tbh .logo .h{background:var(--accent);padding:12px;font-weight:900;font-size:30px;letter-spacing:2px;text-align:center}.tbh .logo .l div{padding:5px;color:#c0243a;font-weight:800;font-size:13px;border-top:1px solid #eee;text-align:center}
 .tbh .opt{margin-top:12px;border-radius:18px;padding:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);display:flex;gap:14px;align-items:center;cursor:pointer;position:relative}.tbh .opt .zpb{top:-9px;right:14px}.tbh .opt .ic{font-size:28px;width:48px;height:48px;flex:none;border-radius:14px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center}.tbh .opt b{display:block;font-size:17px}.tbh .opt span.s{font-size:12px;opacity:.75;line-height:1.35;display:block;margin-top:2px}.tbh .opt.main{background:linear-gradient(90deg,rgba(198,255,61,.25),rgba(61,224,240,.2));border-color:var(--accent)}
-.tbs .grid{margin-top:12px;display:grid;gap:6px}.tbs .row{display:flex;gap:6px;justify-content:center}.tbs .c{width:44px;height:48px;border-radius:9px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px}.tbs .c.y{background:#f2c230;color:#111;border-color:#f2c230}.tbs .c.g{background:#3ecf6a;color:#111;border-color:#3ecf6a}.tbs .c.k{background:#05070c;border-color:#05070c;color:#9aa}.tbs .c.cur{border-color:var(--accent)}
+.tbs .grid{margin-top:12px;display:grid;gap:6px}.tbs .row{display:flex;gap:6px;justify-content:center}.tbs .c{width:var(--cw,44px);height:var(--ch,48px);font-size:calc(var(--cw,44px)*.55);border-radius:9px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px}.tbs .c.y{background:#f2c230;color:#111;border-color:#f2c230}.tbs .c.g{background:#3ecf6a;color:#111;border-color:#3ecf6a}.tbs .c.k{background:#05070c;border-color:#05070c;color:#9aa}.tbs .c.cur{border-color:var(--accent)}
 .tbs .kb{margin-top:12px;display:flex;flex-direction:column;gap:6px;align-items:center}.tbs .kb div{display:flex;gap:5px}.tbs .kk{min-width:29px;height:42px;border-radius:8px;background:rgba(255,255,255,.14);border:0;color:var(--text);font-weight:800;font-size:15px;padding:0 7px;cursor:pointer}.tbs .kk.y{background:#f2c230;color:#111}.tbs .kk.g{background:#3ecf6a;color:#111}.tbs .kk.x{background:#05070c;color:#667}.tbs .kk.w{min-width:56px;background:var(--accent);color:#111}
 .tbs .hints{margin-top:12px;background:#fff;border-radius:18px;overflow:hidden;color:#111}.tbs .hints .h{background:var(--accent);padding:9px;text-align:center;font-weight:900;font-size:12px;letter-spacing:2px}.tbs .hints .w{padding:8px;text-align:center;font-weight:800;font-size:17px;color:#c0243a;border-top:1px solid #eee}.tbs .hints .lock{padding:8px;text-align:center;color:#999;border-top:1px solid #eee;font-size:13px}`;
   document.head.appendChild(st);
@@ -15216,12 +15221,14 @@ function startTabooHub(){
     <div class="picker-title" style="margin:0">TABOO</div>
     <div class="logo"><div class="h">TABOO</div><div class="l"><div>${L('Erklären','Explain')}</div><div>${L('Raten','Guess')}</div><div>${L('Gewinnen','Win')}</div></div></div>
     <p style="text-align:center;opacity:.8;font-size:14px;margin:14px 0 0">${L('Wähle, wie du spielen willst','Choose how to play')}</p>
-    <div class="opt main" onclick="tabooSoloStart()"><div class="ic">🔤</div><div><b>${L('Solo: Wort erraten','Solo: guess the word')}</b><span class="s">${L('5 Versuche, Hinweise und Farben wie bei Wordle','5 tries, hints and colours like Wordle')}</span></div><span class="zpb">⭐ +100 ${L('ZP','PP')}</span></div>
-    <div class="opt" onclick="partyTabooStart('taboo_ffa')"><div class="ic">🏆</div><div><b>${L('Wettbewerb','Competition')}</b><span class="s">${L('Jeder erklärt, alle raten. Wer schneller ist, bekommt mehr Punkte (ab 2 Spielern)','Everyone explains, all guess. Faster = more points (2+ players)')}</span></div></div>
-    <div class="opt" onclick="partyTabooStart('taboo')"><div class="ic">👥</div><div><b>${L('Team gegen Team','Team vs team')}</b><span class="s">${L('Zwei Teams, je 60 Sekunden, Tabu-Wächter aus dem Gegnerteam','Two teams, 60 seconds each, taboo watcher from the other team')}</span></div></div>
+    <div class="opt main" data-tg="taboo_solo" onclick="tabooSoloStart()"><div class="ic">🔤</div><div><b>${L('Solo: Wort erraten','Solo: guess the word')}</b><span class="s">${L('5 Versuche, Kategorie und Hinweise, die du selbst wählst','5 tries, hints and colours like Wordle')}</span></div><span class="zpb">⭐ +100 ${L('ZP','PP')}</span></div>
+    <div class="opt" data-tg="taboo_ffa" onclick="partyTabooStart('taboo_ffa')"><div class="ic">🏆</div><div><b>${L('Wettbewerb','Competition')}</b><span class="s">${L('Jeder erklärt, alle raten. Wer schneller ist, bekommt mehr Punkte (ab 2 Spielern)','Everyone explains, all guess. Faster = more points (2+ players)')}</span></div></div>
+    <div class="opt" data-tg="taboo_team" onclick="partyTabooStart('taboo')"><div class="ic">👥</div><div><b>${L('Team gegen Team','Team vs team')}</b><span class="s">${L('Zwei Teams, je 60 Sekunden, Tabu-Wächter aus dem Gegnerteam','Two teams, 60 seconds each, taboo watcher from the other team')}</span></div></div>
     <div class="d" style="text-align:center;margin-top:14px;font-size:12px;opacity:.8">${L('Zocker-Punkte gibt es nur im Solo-Modus. Der Party-Raum (mit Freunden) zählt nicht.','Player points only in solo mode. The party room (with friends) does not count.')}</div>
     <div class="actions-row" style="margin-top:16px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div>`);
+  document.querySelectorAll('.tbh .opt[data-tg]').forEach(o => { const g = o.dataset.tg; if(hiddenFeatures.indexOf(g) !== -1){ o.remove(); return; } if(featureLocked(g)){ o.removeAttribute('onclick'); o.style.opacity = '.45'; o.style.cursor = 'default'; const sp = o.querySelector('.s'); if(sp) sp.textContent = gateText(g); } });
+  if(featureLocked('zp')){ const d = document.querySelector('.tbh .d'); if(d) d.remove(); }
 }
 function partyTabooStart(defId){
   if(!account || (location.protocol !== 'http:' && location.protocol !== 'https:')){ startPartyFlow(); return; }
@@ -15247,14 +15254,14 @@ async function tabooSoloStart(){
   tabooSoloPaint();
   const r = await apiCall('/api/taboo-solo', { action:'start', sid: tbs.sid });
   if(!r || !r.ok){ tbs.msg = L('Nicht erreichbar.','Not reachable.'); tbs.busy = false; return tabooSoloPaint(); }
-  tbs = Object.assign(tbs, { len:r.len, rows:[], hints:r.hints, done:false, won:null, word:null, busy:false, keys:{}, msg:'', cur:'', zp:0, zpPossible:0 });
+  tbs = Object.assign(tbs, { len:r.len, rows:[], hints:r.hints, cat:r.cat, hintsLeft:r.hintsLeft, hintCost:r.hintCost, done:false, won:null, word:null, busy:false, keys:{}, msg:'', cur:'', zp:0, zpPossible:0 });
   tabooSoloPaint();
 }
 function tabooSoloPaint(){
   if(!tbs) return;
   if(!document.getElementById('tbsRoot')){ renderApp(`<div class="panel tbs" id="tbsRoot"></div>`); }
   const root = document.getElementById('tbsRoot'); if(!root) return;
-  const shown = tbs.hints.length, locked = Math.max(0, 5 - shown);
+  const LV = [L('Schwer','Hard'), L('Eher schwer','Fairly hard'), L('Mittel','Medium'), L('Eher leicht','Fairly easy'), L('Leicht','Easy')];
   let grid = '';
   for(let r = 0; r < 5; r++){
     grid += '<div class="row">';
@@ -15276,9 +15283,17 @@ function tabooSoloPaint(){
   } else end = `<div style="text-align:center;margin-top:10px;min-height:20px;font-weight:800">${esc(tbs.msg || '')}</div>`;
   root.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="tbsLeave()">${t('btn_back')}</button><div style="flex:1"><div class="picker-title" style="margin:0">TABOO SOLO</div></div></div>
     <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">⭐ ${L('bis +100 ZP','up to +100 PP')}</span></div>
-    <div class="hints"><div class="h">${L('TABU-WÖRTER ALS HINWEIS','TABOO WORDS AS HINT')}</div>${tbs.hints.map(w => `<div class="w">${esc(w)}</div>`).join('')}${Array.from({length:locked}, (_, i) => `<div class="lock">🔒 ${L('Hinweis nach Versuch','Hint after try')} ${shown - 1 + i}</div>`).join('')}</div>
-    <div class="grid">${grid}</div>${end}<div class="kb">${kb}</div>
+    <div class="hints"><div class="h">${L('KATEGORIE','CATEGORY')}: <b style="font-size:1.25em">${esc(tbs.cat || '')}</b></div>${tbs.hints.map((h, n) => `<div class="w"><span style="opacity:.6;font-size:11px;font-weight:700">${LV[n]} · ${h.k === 'e' ? L('Erklärung','Explanation') : L('Stichwort','Keyword')}</span><br>${esc(h.t)}</div>`).join('')}${(!tbs.done && tbs.hintsLeft > 0) ? `<button class="btn btn-block" style="margin:0;border-radius:0;background:#10150a;color:#c6ff3d;font-weight:800" onclick="tabooSoloHint()">💡 ${L('Hinweis nehmen','Take a hint')} (−${tbs.hintCost || 5} 🪙) · ${tbs.hintsLeft} ${L('übrig','left')}</button>` : ''}</div>
+    <div class="grid" style="--cw:${Math.min(44, Math.floor(330 / tbs.len) - 6)}px;--ch:${Math.min(48, Math.floor(330 / tbs.len) - 2)}px">${grid}</div>${end}<div class="kb">${kb}</div>
     <div style="display:flex;gap:10px;justify-content:center;font-size:11px;margin-top:10px;opacity:.85;flex-wrap:wrap"><span>🟩 ${L('richtiger Platz','right place')}</span><span>🟨 ${L('im Wort, falscher Platz','in word, wrong place')}</span><span>⬛ ${L('nicht drin','not in word')}</span></div>`;
+}
+async function tabooSoloHint(){
+  if(!tbs || tbs.busy || tbs.done || !(tbs.hintsLeft > 0)) return;
+  tbs.busy = true;
+  const r = await apiCall('/api/taboo-solo', { action:'hint', sid: tbs.sid, token: account && account.token });
+  if(!tbs) return; tbs.busy = false;
+  if(r && r.ok){ tbs.hints = r.hints; tbs.hintsLeft = r.hintsLeft; if(typeof r.coins === 'number' && account) account.profile.coins = r.coins; tbs.msg = r.noCoins ? L('Nicht genug Münzen für einen Hinweis','Not enough coins for a hint') : ''; } else if(r && r.expired){ tabooSoloStart(); return; }
+  tabooSoloPaint();
 }
 function tbsLeave(){ tbs = null; startTabooHub(); }
 function tabooSoloKey(k){
@@ -15299,13 +15314,103 @@ async function tabooSoloSubmit(){
   if(r.rejected){ tbs.msg = L('Zu kurz','Too short'); return tabooSoloPaint(); }
   const last = r.rows[r.rows.length - 1];
   [...last.w].forEach((c, i) => { const st = last.s[i], o = tbs.keys[c]; if(st === 'g' || (st === 'y' && o !== 'g') || (st === 'k' && !o)) tbs.keys[c] = st; });
-  Object.assign(tbs, { rows:r.rows, hints:r.hints, done:r.done, won:r.won, word:r.word, zp:r.zp || 0, zpPossible:r.zpPossible || 0, cur:'', msg:'' });
+  Object.assign(tbs, { rows:r.rows, hints:r.hints, hintsLeft:r.hintsLeft, done:r.done, won:r.won, word:r.word, zp:r.zp || 0, zpPossible:r.zpPossible || 0, cur:'', msg:'' });
   tabooSoloPaint();
 }
 document.addEventListener('keydown', e => {
   if(!tbs || !document.getElementById('tbsRoot') || e.ctrlKey || e.metaKey || e.altKey) return;
   if(e.key === 'Enter') tabooSoloKey('ENTER'); else if(e.key === 'Backspace') tabooSoloKey('DEL'); else if(/^[a-zA-ZäöüÄÖÜ]$/.test(e.key)) tabooSoloKey(e.key.toUpperCase());
 });
+
+
+/* ---------- EVENTS: BATTLE ROYALE ---------- */
+let evs = null;
+function evCss(){
+  if(document.getElementById('evCss')) return;
+  const st = document.createElement('style'); st.id = 'evCss';
+  st.textContent = `.evp .big{font-size:40px;font-weight:900;color:var(--accent);text-align:center;margin:6px 0}.evp .bx{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:12px;margin-top:10px}.evp .pl{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px}.evp .pl.me{background:rgba(198,255,61,.12);border-radius:8px;padding:6px}.evp .out{opacity:.45;text-decoration:line-through}.evp .ans{display:block;width:100%;margin-top:8px;text-align:left;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.07);color:inherit;font-size:15px;font-weight:700}.evp .ans:active{background:var(--accent);color:#10150a}.evp .chip{display:inline-block;background:rgba(255,255,255,.1);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:800;margin:0 6px 4px 0}.evp .tm{color:#ff5d8f;font-weight:900}`;
+  document.head.appendChild(st);
+}
+async function evMenuLoad(){
+  const box = document.getElementById('evBox'); if(!box || featureLocked('events')) return;
+  const r = await apiCall('/api/event', { action:'status', token: account && account.token });
+  const b2 = document.getElementById('evBox'); if(!b2 || !r || !r.ok || r.none) return;
+  const pz = r.prizes || {};
+  const sub = r.state === 'running' ? L('LÄUFT JETZT – mach mit!','LIVE NOW – join in!') : r.state === 'open' ? L('Anmeldung offen','Sign-up open') : L('Ergebnis ansehen','See results');
+  b2.innerHTML = `<div class="menu-section-title">${L('Events','Events')}</div><div class="menu-grid"><div class="mode-card" style="position:relative;border-color:var(--accent)" onclick="evOpen()"><span style="position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px">🪙 ${(pz.p1 && pz.p1.c) || 0}</span><div class="icon" style="font-size:38px">⚔️</div><h3>${esc(r.name)}</h3><p>${L('Battle Royale','Battle Royale')} · ${sub}</p></div></div>`;
+}
+function evOpen(){
+  evCss();
+  if(evs && evs.timer) clearInterval(evs.timer);
+  evs = { v:null, q:null, off:0, fetching:false, flash:'', sig:'', timer:null };
+  renderApp(`<div class="panel evp" id="evRoot"><div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="evClose()">${t('btn_back')}</button><div class="picker-title" style="margin:0">⚔️ BATTLE ROYALE</div></div><div id="evTop"></div><div id="evQ"></div></div>`);
+  evPoll(); evs.timer = setInterval(evPoll, 1000);
+}
+function evClose(){ if(evs && evs.timer) clearInterval(evs.timer); evs = null; renderMainMenu(); }
+function evLeft(ts){ const ms = ts - (Date.now() + (evs ? evs.off : 0)); return Math.max(0, ms); }
+function evFmt(ms){ const s = Math.ceil(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0'); }
+async function evPoll(){
+  if(!evs) return;
+  if(!document.getElementById('evRoot')){ clearInterval(evs.timer); evs = null; return; }
+  const r = await apiCall('/api/event', { action:'status', token: account && account.token });
+  if(!evs || !r) return;
+  if(!r.ok){ evs.v = null; document.getElementById('evTop').innerHTML = `<div class="bx">${L('Gerade nicht erreichbar.','Not reachable right now.')}</div>`; return; }
+  if(r.none){ document.getElementById('evTop').innerHTML = `<div class="bx">${L('Aktuell läuft kein Event.','No event right now.')}</div>`; return; }
+  evs.v = r; evs.off = r.now - Date.now();
+  evPaintTop();
+  const run = r.run, playing = r.state === 'running' && run && run.phase === 'play' && run.meAlive;
+  if(!playing){ if(evs.q){ evs.q = null; evPaintQ(); } }
+  else if(!evs.q && !evs.fetching){ evs.fetching = true; const q = await apiCall('/api/event', { action:'question', token: account.token }); if(evs){ evs.fetching = false; if(q && q.q){ evs.q = q.q; evPaintQ(); } } }
+}
+function evPrizeHtml(p){ return `<div class="pl"><span>🥇 ${L('Platz 1','1st')}</span><span>${p.p1.c} 🪙 · ${p.p1.z} ⭐</span></div><div class="pl"><span>🥈 ${L('Platz 2','2nd')}</span><span>${p.p2.c} 🪙 · ${p.p2.z} ⭐</span></div><div class="pl"><span>🥉 ${L('Platz 3','3rd')}</span><span>${p.p3.c} 🪙 · ${p.p3.z} ⭐</span></div><div class="pl"><span>${L('Teilnahme','Participation')}</span><span>${p.part.c} 🪙${p.part.z ? ' · ' + p.part.z + ' ⭐' : ''}</span></div>`; }
+function evBoardHtml(v){ const me = account && account.profile && account.profile.username; return (v.run.board || []).map((b, i) => `<div class="pl ${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}"><span class="${b.alive ? '' : 'out'}">${i + 1}. ${esc(b.name)}</span><b style="color:var(--accent)">${b.score}</b></div>`).join(''); }
+function evPaintTop(){
+  const v = evs.v, el = document.getElementById('evTop'); if(!el || !v) return;
+  const sig = JSON.stringify([v.state, v.joined, v.entrants, v.run && [v.run.roundIdx, v.run.phase, v.run.alive, v.run.meScore, v.run.meRank, v.run.board.map(b => b.score)], v.myPlace]) + Math.floor(evLeft(v.run ? v.run.phaseEnd : v.start) / 1000);
+  if(sig === evs.sig) return; evs.sig = sig;
+  let h = `<div style="font-size:20px;font-weight:900;margin:10px 0 2px">${esc(v.name)}</div>`;
+  if(v.state === 'open'){
+    const left = evLeft(v.start);
+    h += `<div class="big">${left > 0 ? evFmt(left) : L('gleich …','soon …')}</div><div class="d" style="text-align:center;opacity:.75;font-size:13px">${L('bis zum Start','until start')} · ${v.entrants} / ${v.maxPlayers} ${L('angemeldet','joined')} (${L('mind.','min.')} ${v.minPlayers})</div>`;
+    h += account ? (v.joined ? `<button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="evJoin('leave')">${L('ABMELDEN','LEAVE')}</button><div class="d" style="text-align:center;margin-top:6px;font-size:13px">✅ ${L('Du bist dabei! Bleib in der App.','You are in! Stay in the app.')}</div>` : `<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="evJoin('join')">${L('ANMELDEN','JOIN')}</button>`) : `<div class="bx">${L('Zum Mitspielen bitte anmelden (Konto).','Please log in to take part.')}</div>`;
+    h += `<div class="bx"><b>${L('Ablauf','Rounds')}</b><div class="d" style="margin-top:4px;line-height:1.7;font-size:13px">${v.rounds.map((r, i) => (i + 1) + '. ' + esc(r)).join('<br>')}</div><div class="d" style="margin-top:6px;font-size:12px;opacity:.8">${L('Nach jeder Runde fliegen die Letzten raus.','After each round the last players are out.')}</div></div><div class="bx"><b>${L('Preise','Prizes')}</b>${evPrizeHtml(v.prizes)}</div>`;
+    if(v.names && v.names.length) h += `<div class="bx"><b>${L('Dabei','Players')}</b><div style="margin-top:6px">${v.names.map(n => `<span class="chip">${esc(n)}</span>`).join('')}</div></div>`;
+  } else if(v.state === 'running' && v.run){
+    const r = v.run, left = evLeft(r.phaseEnd);
+    h += `<div><span class="chip">${L('Runde','Round')} ${r.roundIdx + 1} / ${r.total}</span><span class="chip">${esc(r.roundLabel)}</span><span class="chip">${L('Noch dabei','Alive')}: ${r.alive}</span></div>`;
+    if(r.phase === 'intro') h += `<div class="bx" style="text-align:center"><div style="font-weight:900;font-size:18px">${L('Gleich geht es los','Get ready')}</div><div class="big">${Math.ceil(left / 1000)}</div><div class="d" style="font-size:13px">${esc(r.roundLabel)}${r.nextElim ? ' · ' + L('Die letzten ' + r.nextElim + ' scheiden nach dieser Runde aus','The last ' + r.nextElim + ' are out after this round') : ''}</div></div>`;
+    else if(r.phase === 'play') h += `<div class="bx" style="display:flex;justify-content:space-between;align-items:center"><b>${r.meAlive ? L('Deine Punkte','Your points') + ': ' + r.meScore : L('Du schaust zu','You are watching')}</b><span class="tm">⏱ ${evFmt(left)}</span></div>` + (r.nextElim ? `<div class="d" style="font-size:12px;margin-top:6px;color:#ffb020">⚠️ ${L('Die letzten ' + r.nextElim + ' scheiden nach dieser Runde aus','The last ' + r.nextElim + ' are out after this round')}</div>` : '');
+    else if(r.phase === 'result') h += `<div class="bx" style="text-align:center"><div style="font-weight:900;font-size:17px">${r.me ? (r.meAlive ? '✅ ' + L('Du bist eine Runde weiter!','You are through!') : '💀 ' + L('Du bist ausgeschieden','You are out')) : L('Rundenende','Round over')}</div>${r.lastElim.length ? `<div class="d" style="font-size:13px;margin-top:6px">${L('Ausgeschieden','Out')}: ${r.lastElim.map(esc).join(', ')}</div>` : ''}<div class="d" style="margin-top:6px;font-size:13px">${L('Nächste Runde in','Next round in')} ${Math.ceil(left / 1000)} s</div></div>`;
+    h += `<div class="bx"><b>${L('Rangliste live','Live ranking')}</b>${r.me ? `<span class="d" style="float:right;font-size:12px">${L('Dein Platz','Your rank')}: ${r.meRank}</span>` : ''}${evBoardHtml(v)}</div>`;
+  } else if(v.state === 'payout' || v.state === 'done'){
+    h += `<div class="bx" style="text-align:center"><div style="font-size:26px">🏆</div><div style="font-weight:900;font-size:18px">${L('Event beendet','Event finished')}</div>${v.myPlace ? `<div style="margin-top:6px">${L('Dein Platz','Your rank')}: <b style="color:var(--accent)">${v.myPlace}</b></div>` : ''}${v.myPrize ? `<div style="margin-top:6px;color:var(--accent);font-weight:800">+${v.myPrize.c} 🪙 ${v.myPrize.z ? '+ ' + v.myPrize.z + ' ⭐' : ''}</div>` : (v.state === 'payout' && v.myPlace ? `<div class="d" style="margin-top:6px;font-size:13px">${L('Die Preise werden gleich ausgezahlt.','Prizes will be paid out shortly.')}</div>` : '')}</div><div class="bx"><b>${L('Ergebnis','Results')}</b>${(v.results || []).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--accent)">${r.score}</b></div>`).join('')}</div>`;
+  }
+  el.innerHTML = h;
+}
+async function evJoin(action){
+  const r = await apiCall('/api/event', { action, token: account && account.token });
+  if(r && r.ok){ evs.sig = ''; evs.v = r; evPaintTop(); } else if(r && r.error) alert(r.error);
+}
+function evPaintQ(){
+  const el = document.getElementById('evQ'); if(!el) return; const q = evs && evs.q;
+  if(!q){ el.innerHTML = ''; return; }
+  let h = `<div class="bx">`;
+  if(evs.flash) h += `<div style="text-align:center;font-size:22px;margin-bottom:4px">${evs.flash}</div>`;
+  if(q.kind === 'quiz') h += `<div class="d" style="font-size:12px;opacity:.7">${esc(q.cat || '')}</div><div style="font-weight:800;font-size:17px">${esc(q.q)}</div>` + q.a.map((a, i) => `<button class="ans" onclick="evAnswer(${i})">${esc(a)}</button>`).join('');
+  else if(q.kind === 'hilo') h += `<div class="d" style="text-align:center;font-size:12px;opacity:.7">${esc(q.topic)}</div><div style="display:flex;justify-content:space-between;gap:10px;text-align:center;margin:8px 0"><div style="flex:1"><b>${esc(q.a.name)}</b><div style="font-size:20px;font-weight:900;color:var(--accent)">${Number(q.a.value).toLocaleString('de-DE')}</div><div class="d" style="font-size:11px">${esc(q.unit)}</div></div><div style="align-self:center;font-weight:900">VS</div><div style="flex:1"><b>${esc(q.b.name)}</b><div style="font-size:24px;font-weight:900">?</div></div></div><button class="ans" onclick="evAnswer('h')">⬆️ ${L('Höher','Higher')}</button><button class="ans" onclick="evAnswer('l')">⬇️ ${L('Niedriger','Lower')}</button>`;
+  else h += `<div style="text-align:center;font-size:34px;font-weight:900;margin:8px 0">${esc(q.text)} = ?</div><input id="evNum" type="number" inputmode="numeric" autocomplete="off" style="width:100%;text-align:center;font-size:24px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:inherit" onkeydown="if(event.key==='Enter')evAnswer(document.getElementById('evNum').value)"><button class="btn btn-primary btn-block" style="margin-top:8px" onclick="evAnswer(document.getElementById('evNum').value)">OK</button>`;
+  el.innerHTML = h + '</div>';
+  const n = document.getElementById('evNum'); if(n) n.focus();
+}
+async function evAnswer(a){
+  if(!evs || !evs.q || evs.busy) return;
+  if(a === '' || a == null) return;
+  evs.busy = true;
+  const r = await apiCall('/api/event', { action:'answer', a, token: account && account.token });
+  if(!evs) return; evs.busy = false;
+  if(r && r.q){ evs.q = r.q; evs.flash = r.tooFast ? '' : (r.ok ? '✅' : '❌'); evs.v = r; evs.off = r.now - Date.now(); evs.sig = ''; evPaintTop(); evPaintQ(); setTimeout(() => { if(evs){ evs.flash = ''; } }, 600); }
+  else if(r && r.noPlay){ evs.q = null; evPaintQ(); }
+}
 
 /* ---------- TABOO (Party-Runde) ---------- */
 let partyTbTimer = null, partyTbKey = '';
