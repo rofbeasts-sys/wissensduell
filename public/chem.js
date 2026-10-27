@@ -324,6 +324,7 @@ function draw(){
   </style>
     <button class="btn btn-ghost" style="padding:7px 14px;font-size:13px;margin-bottom:10px" onclick="renderMainMenu()">&larr; Zurück</button>
     <div class="ch-top"><b style="font-size:20px">BRAINCHIMIE</b><span style="font-size:12px;color:var(--text-dim)">${have.length} / ${TOTAL} ${'entdeckt'}</span></div>
+    <div style="margin:6px 0 2px"><span class="zpb-i" style="margin-left:0">⭐ +10 ZP ${'pro neues Element'}</span></div>
     <div class="ch-bar"><i style="width:${Math.round(have.length / TOTAL * 100)}%"></i></div>
     <div class="ch-row" style="align-items:flex-start"><div style="text-align:center"><div class="ch-slot" id="chA" onclick="chClear('A')" style="${pinA ? 'border-style:solid;border-color:#c6ff3d' : ''}">${slot(slotA)}</div><button class="btn ${pinA ? 'btn-primary' : 'btn-ghost'}" style="margin-top:6px;padding:5px 12px;font-size:12px" onclick="chPin()">${have.length < PIN_AT ? '&#128274; ab ' + PIN_AT : (pinA ? 'Fixiert' : 'Fixieren')}</button></div><span class="ch-plus" style="margin-top:34px">+</span><div class="ch-slot" id="chB" onclick="chClear('B')">${slot(slotB)}</div></div>
     <button class="btn btn-primary btn-block" onclick="chCombine()" ${slotA && slotB ? '' : 'style="opacity:.5"'}>KOMBINIEREN</button>
@@ -414,6 +415,7 @@ window.chCombine = function(){
   const a = slotA, b = slotB; if(!pinA) slotA = null; slotB = null;
   if(have.includes(res)){ if(typeof sfx === 'function') sfx('tap'); draw(); msg(nm(res) + ' hast du schon.', '#9aa4c4'); return; }
   have.push(res); save();
+  try{ if(typeof window.zpChemFound === 'function') window.zpChemFound(res); }catch(e){}
   try{ if(typeof achvRecord === 'function') achvRecord({ t: 'chem', found: have.length }); }catch(e){}
   let coin = 0;
   try{ if(typeof fruitPay === 'function'){ const r = fruitPay(-2); if(r && r.ok) coin = 2; } }catch(e){}

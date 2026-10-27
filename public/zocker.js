@@ -76,7 +76,7 @@ window.zpClaim = async function(kind){
   if(r && r.ok){ try{ if(account && account.profile) account.profile.coins = r.coins; }catch(e){} zpToastShow(r.granted ? '+' + N(r.granted) : '', r.granted ? L('Münzen abgeholt','coins collected') : L('Nichts abzuholen','Nothing to collect')); }
   zpOpen(kind === 'month' ? 'month' : 'rewards');
 };
-const GAMESF = () => [['ttt', 'Tic Tac Toe'], ['chess', L('Schach & Dame','Chess & Checkers')], ['fourups', L('4 gewinnt','Connect 4')]];
+const GAMESF = () => [['ttt', 'Tic Tac Toe'], ['chess', L('Schach & Dame','Chess & Checkers')], ['fourups', L('4 gewinnt','Connect 4')], ['taboo', 'Taboo']];
 function gameButtons(){
   return `<div class="box"><div class="d" style="margin-bottom:8px">${L('BESTENLISTEN JE SPIEL','LEADERBOARD PER GAME')}</div><div style="display:flex;gap:8px;flex-wrap:wrap">${GAMESF().map(g => `<button class="btn btn-ghost" style="flex:1;min-width:30%;padding:10px 6px" onclick="zpGame('${g[0]}')">${g[1]}</button>`).join('')}</div></div>`;
 }
@@ -104,5 +104,6 @@ window.zpOnGain = function(m){
   try{ if(q('zpCardBody')) zpFillCard(); }catch(e){}
 };
 window.zpFillCard = zpFillCard;
+window.zpChemFound = function(name){ try{ if(tok()) api({ action: 'once', kind: 'chem', id: String(name) }); }catch(e){} };
 window.zpVocabPassed = function(id){ try{ if(tok()) api({ action: 'once', kind: 'vocab', id: String(id) }); }catch(e){} };
 })();

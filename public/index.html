@@ -5183,8 +5183,8 @@ async function cancelFriendRequestNow(username){
   await apiCall("/api/friends-cancel", { token: account.token, username });
   loadAndRenderFriendsList();
 }
-async function removeFriendNow(username){
-  if(!confirm(L(`${username} wirklich aus deiner Freundesliste entfernen?`,`Really remove ${username} from your friends list?`))) return;
+async function removeFriendNow(username, ok){
+  if(ok !== true){ appConfirm(L(`${username} wirklich aus deiner Freundesliste entfernen?`,`Really remove ${username} from your friends list?`), () => removeFriendNow(username, true), L('Entfernen','Remove'), null, true); return; }
   await apiCall("/api/friends-remove", { token: account.token, username });
   loadAndRenderFriendsList();
 }
@@ -5278,7 +5278,33 @@ async function syncAccountStats(profile){
 }
 
 /* ------------------------------ 6. RENDER-HELFER ---------------------------- */
-function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} }
+/* ---- Eigene Dialoge statt Browser-Fenstern ("Auf brain-pulse... wird Folgendes angezeigt") ---- */
+function appDialog(msg, buttons){
+  try{ const old = document.getElementById('appDlg'); if(old) old.remove(); }catch(e){}
+  if(!document.getElementById('appDlgCss')){ const st = document.createElement('style'); st.id = 'appDlgCss'; st.textContent = '#appDlg{position:fixed;inset:0;z-index:100000;background:rgba(3,6,14,.72);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}#appDlg .bx{width:100%;max-width:360px;background:#151b2b;border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:22px 20px 16px;box-shadow:0 14px 50px rgba(0,0,0,.6);animation:dlgIn .15s ease-out}#appDlg .tx{font-size:16px;line-height:1.45;white-space:pre-line;color:var(--text)}#appDlg .bt{display:flex;gap:10px;margin-top:18px}#appDlg .bt button{flex:1;padding:13px 10px;border-radius:14px;font-weight:900;font-size:14px;cursor:pointer;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:var(--text)}#appDlg .bt button.pri{background:var(--accent);color:#10150a;border-color:var(--accent)}#appDlg .bt button.dng{background:#ff4d6a;color:#fff;border-color:#ff4d6a}@keyframes dlgIn{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}'; document.head.appendChild(st); }
+  const o = document.createElement('div'); o.id = 'appDlg';
+  o.innerHTML = '<div class="bx"><div class="tx"></div><div class="bt"></div></div>';
+  o.querySelector('.tx').textContent = String(msg == null ? '' : msg);
+  const bt = o.querySelector('.bt');
+  buttons.forEach(b => { const e = document.createElement('button'); e.textContent = b.label; if(b.cls) e.className = b.cls; e.onclick = () => { o.remove(); if(b.fn) try{ b.fn(); }catch(err){ console.error(err); } }; bt.appendChild(e); });
+  o.addEventListener('click', ev => { if(ev.target === o && buttons.length === 1){ o.remove(); if(buttons[0].fn) try{ buttons[0].fn(); }catch(err){} } });
+  document.body.appendChild(o);
+}
+function appConfirm(msg, onYes, yesLabel, noLabel, danger){
+  appDialog(msg, [{ label: noLabel || L('Abbrechen','Cancel') }, { label: yesLabel || 'OK', cls: danger ? 'dng' : 'pri', fn: onYes }]);
+}
+window.alert = function(msg){ appDialog(msg, [{ label: 'OK', cls: 'pri' }]); };
+function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} try{ zpMarkCards(); }catch(e){} }
+/* ---- Zocker-Punkte-Kennzeichnung: Karten, bei denen man Punkte bekommt ---- */
+const ZP_MARKS = { 'startBrainingHub(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+150', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', 'startTabooHub(':'+100', 'startChem(':'+10 / Element' };
+function zpMarkCards(){
+  if(!document.getElementById('zpbCss')){ const st = document.createElement('style'); st.id = 'zpbCss'; st.textContent = '.mode-card[data-zpb]{position:relative}.zpb{position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px;letter-spacing:.3px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35)}.zpb-i{display:inline-block;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}'; document.head.appendChild(st); }
+  document.querySelectorAll('.mode-card:not(.locked)').forEach(c => {
+    if(c.dataset.zpb) return;
+    const oc = c.getAttribute('onclick') || '';
+    for(const fn in ZP_MARKS){ if(oc.trim().indexOf(fn) === 0){ c.dataset.zpb = '1'; c.insertAdjacentHTML('beforeend', '<span class="zpb">⭐ ' + ZP_MARKS[fn] + ' ' + L('ZP','PP') + '</span>'); break; } }
+  });
+}
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
 const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', startManiaFlow:'mania' };
 function fmtCountdown(ms){
@@ -7264,7 +7290,7 @@ function brainBoardsPaint(){
 function brainToggleBoards(){ brainOpen = !brainOpen; brainBoardsPaint(); }
 async function startBrainingHub(){
   setAudioZone("menu"); brainOpen = false; brainTabSel = 'hood'; brainData = { hood:null, fruit:null };
-  const paint = () => { const g = document.getElementById('brainCards'); if(g) g.innerHTML = brainCardsHtml(); };
+  const paint = () => { const g = document.getElementById('brainCards'); if(g){ g.innerHTML = brainCardsHtml(); try{ zpMarkCards(); }catch(e){} } };
   renderApp(`
     <div class="panel">
       <div class="picker-title">🧠 BRAINING</div>
@@ -7402,6 +7428,11 @@ ${currentLang === 'de' ? `
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><path d="M19 6H29M21 6V20L9 40C8 42 9 44 11 44H37C39 44 40 42 39 40L27 20V6" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M14 33H34" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="38" r="2" fill="#3de0ff"/><circle cx="29" cy="28" r="2" fill="#c6ff3d"/></svg></div>
         <h3>Brainchimie</h3>
         <p>${currentLang==='de' ? 'Kombiniere Elemente.' : (currentLang==='en' ? 'Combine elements.' : 'Only available in German')}</p>
+      </div>
+      <div class="mode-card ${currentLang==='de' ? '' : 'locked'}" onclick="${currentLang==='de' ? 'startTabooHub()' : ''}" style="${currentLang==='de' ? '' : 'opacity:.45; cursor:default;'}">
+        <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="7" y="5" width="34" height="38" rx="5" fill="#fff"/><rect x="7" y="5" width="34" height="11" rx="5" fill="#c6ff3d"/><path d="M14 24H34M14 30H34M14 36H34" stroke="#c0243a" stroke-width="3" stroke-linecap="round"/></svg></div>
+        <h3>Taboo</h3>
+        <p>${currentLang==='de' ? 'Wörter erraten und erklären, allein oder mit Freunden.' : 'Only available in German'}</p>
       </div>
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="2" y="6" width="44" height="36" rx="6" fill="#2f6bff"/><circle cx="9" cy="14" r="4" fill="#0b1236"/><circle cx="9" cy="24" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#0b1236"/><circle cx="19" cy="14" r="4" fill="#0b1236"/><circle cx="19" cy="24" r="4" fill="#0b1236"/><circle cx="19" cy="34" r="4" fill="#0b1236"/><circle cx="29" cy="14" r="4" fill="#0b1236"/><circle cx="29" cy="24" r="4" fill="#0b1236"/><circle cx="29" cy="34" r="4" fill="#0b1236"/><circle cx="39" cy="14" r="4" fill="#0b1236"/><circle cx="39" cy="24" r="4" fill="#0b1236"/><circle cx="39" cy="34" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="7" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="34" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="29" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="27" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="39" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="37" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="24" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="21.5" r="2" fill="#fff" opacity=".6"/></svg></div>
@@ -11875,8 +11906,8 @@ function renderTttRankOverview(profile){
     </div>
   `);
 }
-function tttResetRank(){
-  if(!confirm(L("Wirklich von ganz vorne (Weißer Gürtel) starten?","Really start over from the very beginning (white belt)?"))) return;
+function tttResetRank(ok){
+  if(ok !== true){ appConfirm(L("Wirklich von ganz vorne (Weißer Gürtel) starten?","Really start over from the very beginning (white belt)?"), () => tttResetRank(true), L('Neu starten','Start over'), null, true); return; }
   tttOverviewProfile.tttRank = 0;
   tttOverviewProfile.tttWinsAtRank = 0;
   if(tttOverviewProfile.isAccount) syncAccountStats(tttOverviewProfile);
@@ -12985,14 +13016,14 @@ function renderKlassenOverview(profile){
 // Ruehrt bewusst nichts anderes an (Erfolge, andere Modi, das Konto an sich
 // bleiben unangetastet). Gedacht z.B. zum eigenen Durchtesten von vorne,
 // ohne dafuer an der Datenbank (Upstash) selbst herumschrauben zu muessen.
-function braintestPrestige(){
+function braintestPrestige(ok){
   const profile = klassenOverviewProfile;
   const prestigeCount = profile.braintestPrestige || 0;
   const capped = prestigeCount >= BRAINTEST_PRESTIGE_MAX;
   const msg = capped
     ? L(`Höchste Prestige-Stufe (${BRAINTEST_PRESTIGE_MAX}) bereits erreicht - ein weiteres Zurücksetzen bringt keine Münzen mehr. Trotzdem von vorne beginnen?`,`Highest prestige level (${BRAINTEST_PRESTIGE_MAX}) already reached, resetting again gives no more coins. Start over anyway?`)
     : L(`Als Prestige ${prestigeCount+1} von ${BRAINTEST_PRESTIGE_MAX} von vorne beginnen? Du startest wieder bei Klasse 1, alle gespeicherten Punktestände und eventuelle Sperren werden gelöscht - dafür gibt es 🪙 ${BRAINTEST_PRESTIGE_COINS} Münzen. Erfolge und andere Modi bleiben unangetastet.`,`Start over as prestige ${prestigeCount+1} of ${BRAINTEST_PRESTIGE_MAX}? You start again at Class 1, all saved scores and any locks are deleted, in return you get 🪙 ${BRAINTEST_PRESTIGE_COINS} coins. Achievements and other modes stay untouched.`);
-  if(!confirm(msg)) return;
+  if(ok !== true){ appConfirm(msg, () => braintestPrestige(true), L('Von vorne','Start over'), null, true); return; }
   profile.klasse = 0;
   profile.haupttestUnlockedForKlasse = -1;
   profile.braintestScores = {};
@@ -13011,12 +13042,12 @@ function braintestPrestige(){
 // einen zusaetzlichen Haupttest-Versuch fuer Muenzen - wirkt technisch wie
 // ein "zurueckgenommener" Fehlversuch (ein Tagesversuch weniger, Sperre
 // weg) und ist pro Sperre nur einmal moeglich.
-function braintestBuyExtraAttempt(){
+function braintestBuyExtraAttempt(ok){
   const profile = klassenOverviewProfile;
   const klasseIdx = Math.min(profile.klasse||0, KLASSE_TESTS.length-1);
   if(!braintestGateFor(profile, klasseIdx, "needPractice") || profile.braintestExtraAttemptUsed) return;
   if((profile.coins||0) < BRAINTEST_EXTRA_ATTEMPT_COST){ alert(L(`Du hast nicht genug Münzen (benötigt: ${BRAINTEST_EXTRA_ATTEMPT_COST}).`,`You don't have enough coins (needed: ${BRAINTEST_EXTRA_ATTEMPT_COST}).`)); return; }
-  if(!confirm(L(`Für 🪙 ${BRAINTEST_EXTRA_ATTEMPT_COST} Münzen einen zusätzlichen Haupttest-Versuch kaufen (nur einmal möglich, bis du den Übungstest wieder bestehst)?`,`Buy an extra main test attempt for 🪙 ${BRAINTEST_EXTRA_ATTEMPT_COST} coins (only once, until you pass the practice test again)?`))) return;
+  if(ok !== true){ appConfirm(L(`Für 🪙 ${BRAINTEST_EXTRA_ATTEMPT_COST} Münzen einen zusätzlichen Haupttest-Versuch kaufen (nur einmal möglich, bis du den Übungstest wieder bestehst)?`,`Buy an extra main test attempt for 🪙 ${BRAINTEST_EXTRA_ATTEMPT_COST} coins (only once, until you pass the practice test again)?`), () => braintestBuyExtraAttempt(true), L('Kaufen','Buy')); return; }
   profile.coins -= BRAINTEST_EXTRA_ATTEMPT_COST;
   profile.braintestExtraAttemptUsed = true;
   profile.braintestGate = null;
@@ -13134,10 +13165,10 @@ function renderSoloQuestion(){
 // beantwortet) eine Bestaetigung, sonst (ganz am Anfang, nichts zu verlieren)
 // direkt raus wie bisher. Zusaetzlich mehr Abstand + eindeutigerer Text statt
 // des generischen "ZURÜCK", damit der Knopf nicht mit "WEITER" verwechselt wird.
-function exitSoloTest(){
+function exitSoloTest(ok){
   if(!solo){ renderMainMenu(); return; }
   const hasProgress = (solo.correct||0) > 0 || (solo.wrong||0) > 0 || (solo.qIndex||0) > 0;
-  if(hasProgress && !confirm(t('confirm_exit_test'))) return;
+  if(hasProgress && ok !== true){ appConfirm(t('confirm_exit_test'), () => exitSoloTest(true), L('Test abbrechen','Quit test'), L('Weiterspielen','Keep playing'), true); return; }
   clearInterval(solo.timerId);
   clearTimeout(solo.advanceTimer);
   solo = null;
@@ -13951,6 +13982,7 @@ function partyHandleMessage(msg){
       party.playerId = msg.playerId;
       party.roomCode = msg.roomCode;
       party.isHost = msg.isHost;
+      if(party.afterJoin){ const f = party.afterJoin; party.afterJoin = null; try{ f(); }catch(e){} }
       break;
     case "error":
       alert(msg.message);
@@ -14039,6 +14071,9 @@ function partyHandleMessage(msg){
       break;
     case "fourupsState":
       renderPartyFourups(msg);
+      break;
+    case "tabooState":
+      renderPartyTaboo(msg);
       break;
     case "guessItem":
       party.guessAttempts = [];
@@ -14336,7 +14371,8 @@ const PARTY_MODE_META = {
   get guessPicture(){ return L("Bild erraten","Guess the picture"); },
   stadtLandFluss: "Scattergories",
   ticTacToeGame: "Tic Tac Toe",
-  fourupsGame: "Fourups (4 gewinnt)"
+  fourupsGame: "Fourups (4 gewinnt)",
+  tabooGame: "Taboo"
 };
 const SLF_SUGGESTED_CATEGORIES_DE = ["Stadt","Land","Fluss","Name","Tier","Beruf","Pflanze","Farbe","Automarke","Filmtitel","Promi","Getränk","Sportart"];
 const SLF_SUGGESTED_CATEGORIES_EN = ["City","Country","River","Name","Animal","Job","Plant","Color","Car brand","Movie title","Celebrity","Drink","Sport"];
@@ -14399,7 +14435,7 @@ function categoryChipsGroupedHtml(defs, onClickFn){
 // hier unter "Modi", da es inhaltlich am ehesten dazu passt.
 const BUILDER_MODE_CATEGORIES = [
   { get title(){ return L("Modi","Modes"); }, kinds:["knowledgeQuiz","orderingGame","higherLowerGame","nennsBlitz","guessMusic"] },
-  { title:"Mini Games", kinds:["stadtLandFluss","ticTacToeGame","fourupsGame"] }
+  { title:"Mini Games", kinds:["stadtLandFluss","ticTacToeGame","fourupsGame","tabooGame"] }
 ];
 function builderModes(){
   const kinds = [...new Set(party.room.availableRoundDefs.map(d => d.kind))];
@@ -15160,6 +15196,188 @@ function renderPartyFourups(msg){
   }
 }
 function partyFourupsMove(c){ partySend({action:'fourupsMove', col:c}); }
+
+
+/* ---------- TABOO: Startseite, Solo (Wordle-Stil), Party-Start ---------- */
+function tabooHubCss(){
+  if(document.getElementById('tbhCss')) return;
+  const st = document.createElement('style'); st.id = 'tbhCss';
+  st.textContent = `.tbh .logo{display:block;margin:12px auto 0;background:#fff;color:#111;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px #0008;width:210px}.tbh .logo .h{background:var(--accent);padding:12px;font-weight:900;font-size:30px;letter-spacing:2px;text-align:center}.tbh .logo .l div{padding:5px;color:#c0243a;font-weight:800;font-size:13px;border-top:1px solid #eee;text-align:center}
+.tbh .opt{margin-top:12px;border-radius:18px;padding:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);display:flex;gap:14px;align-items:center;cursor:pointer;position:relative}.tbh .opt .zpb{top:-9px;right:14px}.tbh .opt .ic{font-size:28px;width:48px;height:48px;flex:none;border-radius:14px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center}.tbh .opt b{display:block;font-size:17px}.tbh .opt span.s{font-size:12px;opacity:.75;line-height:1.35;display:block;margin-top:2px}.tbh .opt.main{background:linear-gradient(90deg,rgba(198,255,61,.25),rgba(61,224,240,.2));border-color:var(--accent)}
+.tbs .grid{margin-top:12px;display:grid;gap:6px}.tbs .row{display:flex;gap:6px;justify-content:center}.tbs .c{width:44px;height:48px;border-radius:9px;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px}.tbs .c.y{background:#f2c230;color:#111;border-color:#f2c230}.tbs .c.g{background:#3ecf6a;color:#111;border-color:#3ecf6a}.tbs .c.k{background:#05070c;border-color:#05070c;color:#9aa}.tbs .c.cur{border-color:var(--accent)}
+.tbs .kb{margin-top:12px;display:flex;flex-direction:column;gap:6px;align-items:center}.tbs .kb div{display:flex;gap:5px}.tbs .kk{min-width:29px;height:42px;border-radius:8px;background:rgba(255,255,255,.14);border:0;color:var(--text);font-weight:800;font-size:15px;padding:0 7px;cursor:pointer}.tbs .kk.y{background:#f2c230;color:#111}.tbs .kk.g{background:#3ecf6a;color:#111}.tbs .kk.x{background:#05070c;color:#667}.tbs .kk.w{min-width:56px;background:var(--accent);color:#111}
+.tbs .hints{margin-top:12px;background:#fff;border-radius:18px;overflow:hidden;color:#111}.tbs .hints .h{background:var(--accent);padding:9px;text-align:center;font-weight:900;font-size:12px;letter-spacing:2px}.tbs .hints .w{padding:8px;text-align:center;font-weight:800;font-size:17px;color:#c0243a;border-top:1px solid #eee}.tbs .hints .lock{padding:8px;text-align:center;color:#999;border-top:1px solid #eee;font-size:13px}`;
+  document.head.appendChild(st);
+}
+function startTabooHub(){
+  if(currentLang !== 'de') return;
+  tabooHubCss(); tbs = null;
+  renderApp(`<div class="panel tbh">
+    <div class="picker-title" style="margin:0">TABOO</div>
+    <div class="logo"><div class="h">TABOO</div><div class="l"><div>${L('Erklären','Explain')}</div><div>${L('Raten','Guess')}</div><div>${L('Gewinnen','Win')}</div></div></div>
+    <p style="text-align:center;opacity:.8;font-size:14px;margin:14px 0 0">${L('Wähle, wie du spielen willst','Choose how to play')}</p>
+    <div class="opt main" onclick="tabooSoloStart()"><div class="ic">🔤</div><div><b>${L('Solo: Wort erraten','Solo: guess the word')}</b><span class="s">${L('5 Versuche, Hinweise und Farben wie bei Wordle','5 tries, hints and colours like Wordle')}</span></div><span class="zpb">⭐ +100 ${L('ZP','PP')}</span></div>
+    <div class="opt" onclick="partyTabooStart('taboo_ffa')"><div class="ic">🏆</div><div><b>${L('Wettbewerb','Competition')}</b><span class="s">${L('Jeder erklärt, alle raten. Wer schneller ist, bekommt mehr Punkte (ab 2 Spielern)','Everyone explains, all guess. Faster = more points (2+ players)')}</span></div></div>
+    <div class="opt" onclick="partyTabooStart('taboo')"><div class="ic">👥</div><div><b>${L('Team gegen Team','Team vs team')}</b><span class="s">${L('Zwei Teams, je 60 Sekunden, Tabu-Wächter aus dem Gegnerteam','Two teams, 60 seconds each, taboo watcher from the other team')}</span></div></div>
+    <div class="d" style="text-align:center;margin-top:14px;font-size:12px;opacity:.8">${L('Zocker-Punkte gibt es nur im Solo-Modus. Der Party-Raum (mit Freunden) zählt nicht.','Player points only in solo mode. The party room (with friends) does not count.')}</div>
+    <div class="actions-row" style="margin-top:16px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
+  </div>`);
+}
+function partyTabooStart(defId){
+  if(!account || (location.protocol !== 'http:' && location.protocol !== 'https:')){ startPartyFlow(); return; }
+  pendingCreateGameMode = 'mixed';
+  renderApp(`<div class="panel party-waiting"><div class="picker-title">TABOO</div><p>${L('Raum wird erstellt …','Creating room …')}</p></div>`);
+  partyConnect(
+    () => {
+      party.gameMode = 'mixed';
+      party.afterJoin = () => {
+        partySend({action:'setRoundCount', count:1}); partySend({action:'setRoundMode', mode:'custom'}); partySend({action:'setRoundDef', index:0, defId});
+        if(defId === 'taboo') partySend({action:'setTeamMode', teamMode:'2v2'});
+      };
+      party.ws.send(JSON.stringify({ action:'createRoom', name: account.profile.username, language: currentLang, gameMode:'mixed' }));
+    },
+    (msg) => { startPartyFlow(); setTimeout(() => partyShowEntryError(msg), 50); }
+  );
+}
+let tbs = null;
+function tbsSid(){ try{ let v = sessionStorage.getItem('tbsSid'); if(!v){ v = 's' + Math.random().toString(36).slice(2) + Date.now().toString(36); sessionStorage.setItem('tbsSid', v); } return v; }catch(e){ return 's' + Math.random().toString(36).slice(2); } }
+async function tabooSoloStart(){
+  tabooHubCss();
+  tbs = { sid: tbsSid(), cur:'', keys:{}, msg:'', busy:true, rows:[], hints:[], len:5, done:false };
+  tabooSoloPaint();
+  const r = await apiCall('/api/taboo-solo', { action:'start', sid: tbs.sid });
+  if(!r || !r.ok){ tbs.msg = L('Nicht erreichbar.','Not reachable.'); tbs.busy = false; return tabooSoloPaint(); }
+  tbs = Object.assign(tbs, { len:r.len, rows:[], hints:r.hints, done:false, won:null, word:null, busy:false, keys:{}, msg:'', cur:'', zp:0, zpPossible:0 });
+  tabooSoloPaint();
+}
+function tabooSoloPaint(){
+  if(!tbs) return;
+  if(!document.getElementById('tbsRoot')){ renderApp(`<div class="panel tbs" id="tbsRoot"></div>`); }
+  const root = document.getElementById('tbsRoot'); if(!root) return;
+  const shown = tbs.hints.length, locked = Math.max(0, 5 - shown);
+  let grid = '';
+  for(let r = 0; r < 5; r++){
+    grid += '<div class="row">';
+    const g = tbs.rows[r];
+    for(let i = 0; i < tbs.len; i++){
+      if(g) grid += `<div class="c ${g.s[i]}">${esc(g.w[i])}</div>`;
+      else if(r === tbs.rows.length && !tbs.done) grid += `<div class="c cur">${esc(tbs.cur[i] || '')}</div>`;
+      else grid += '<div class="c"></div>';
+    }
+    grid += '</div>';
+  }
+  const KB = ['QWERTZUIOPÜ', 'ASDFGHJKLÖÄ', 'YXCVBNM'];
+  const kb = KB.map((l, i) => '<div>' + (i === 2 ? `<button class="kk w" onclick="tabooSoloKey('ENTER')">OK</button>` : '') + [...l].map(c => `<button class="kk ${tbs.keys[c] === 'k' ? 'x' : (tbs.keys[c] || '')}" onclick="tabooSoloKey('${c}')">${c}</button>`).join('') + (i === 2 ? `<button class="kk w" onclick="tabooSoloKey('DEL')">⌫</button>` : '') + '</div>').join('');
+  let end = '';
+  if(tbs.done){
+    const win = tbs.won;
+    end = `<div style="text-align:center;margin-top:12px;font-weight:800">${win ? '🎉 ' + L('Richtig!','Correct!') : L('Das Wort war ','The word was ') + '<b style="color:var(--accent)">' + esc(tbs.word || '') + '</b>'}${win ? (tbs.zp ? `<div style="color:var(--accent);margin-top:4px">+${tbs.zp} ${L('Zocker-Punkte','Player points')}</div>` : (account ? '' : `<div class="d" style="margin-top:4px;font-weight:600">${L('Melde dich an, dann gibt es +'+tbs.zpPossible+' Zocker-Punkte','Log in to get +'+tbs.zpPossible+' player points')}</div>`)) : ''}</div>
+      <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="tabooSoloStart()">${L('NÄCHSTES WORT','NEXT WORD')}</button>`;
+  } else end = `<div style="text-align:center;margin-top:10px;min-height:20px;font-weight:800">${esc(tbs.msg || '')}</div>`;
+  root.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="tbsLeave()">${t('btn_back')}</button><div style="flex:1"><div class="picker-title" style="margin:0">TABOO SOLO</div></div></div>
+    <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">⭐ ${L('bis +100 ZP','up to +100 PP')}</span></div>
+    <div class="hints"><div class="h">${L('TABU-WÖRTER ALS HINWEIS','TABOO WORDS AS HINT')}</div>${tbs.hints.map(w => `<div class="w">${esc(w)}</div>`).join('')}${Array.from({length:locked}, (_, i) => `<div class="lock">🔒 ${L('Hinweis nach Versuch','Hint after try')} ${shown - 1 + i}</div>`).join('')}</div>
+    <div class="grid">${grid}</div>${end}<div class="kb">${kb}</div>
+    <div style="display:flex;gap:10px;justify-content:center;font-size:11px;margin-top:10px;opacity:.85;flex-wrap:wrap"><span>🟩 ${L('richtiger Platz','right place')}</span><span>🟨 ${L('im Wort, falscher Platz','in word, wrong place')}</span><span>⬛ ${L('nicht drin','not in word')}</span></div>`;
+}
+function tbsLeave(){ tbs = null; startTabooHub(); }
+function tabooSoloKey(k){
+  if(!tbs || tbs.done || tbs.busy) return;
+  if(k === 'DEL') tbs.cur = tbs.cur.slice(0, -1);
+  else if(k === 'ENTER'){ return tabooSoloSubmit(); }
+  else if(tbs.cur.length < tbs.len) tbs.cur += k;
+  tbs.msg = ''; tabooSoloPaint();
+}
+async function tabooSoloSubmit(){
+  if(!tbs || tbs.busy || tbs.done) return;
+  if(tbs.cur.length < tbs.len){ tbs.msg = L('Zu kurz','Too short'); return tabooSoloPaint(); }
+  tbs.busy = true;
+  const r = await apiCall('/api/taboo-solo', { action:'guess', sid: tbs.sid, text: tbs.cur, token: account && account.token });
+  if(!tbs) return;
+  tbs.busy = false;
+  if(!r || !r.ok){ if(r && r.expired){ tabooSoloStart(); return; } tbs.msg = L('Nicht erreichbar.','Not reachable.'); return tabooSoloPaint(); }
+  if(r.rejected){ tbs.msg = L('Zu kurz','Too short'); return tabooSoloPaint(); }
+  const last = r.rows[r.rows.length - 1];
+  [...last.w].forEach((c, i) => { const st = last.s[i], o = tbs.keys[c]; if(st === 'g' || (st === 'y' && o !== 'g') || (st === 'k' && !o)) tbs.keys[c] = st; });
+  Object.assign(tbs, { rows:r.rows, hints:r.hints, done:r.done, won:r.won, word:r.word, zp:r.zp || 0, zpPossible:r.zpPossible || 0, cur:'', msg:'' });
+  tabooSoloPaint();
+}
+document.addEventListener('keydown', e => {
+  if(!tbs || !document.getElementById('tbsRoot') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key === 'Enter') tabooSoloKey('ENTER'); else if(e.key === 'Backspace') tabooSoloKey('DEL'); else if(/^[a-zA-ZäöüÄÖÜ]$/.test(e.key)) tabooSoloKey(e.key.toUpperCase());
+});
+
+/* ---------- TABOO (Party-Runde) ---------- */
+let partyTbTimer = null, partyTbKey = '';
+function tbStyle(){
+  if(document.getElementById('tbStyle')) return;
+  const st = document.createElement('style'); st.id = 'tbStyle';
+  st.textContent = `.tb .tm{display:flex;justify-content:space-between;align-items:center;font-size:13px}.tb .tmv{font-size:34px;font-weight:900;color:var(--accent)}
+.tb .sc{display:flex;gap:8px;margin-top:8px}.tb .sc div{flex:1;border-radius:12px;padding:8px;background:rgba(255,255,255,.08);text-align:center;font-size:12px}.tb .sc b{display:block;font-size:22px}.tb .sc .on{outline:2px solid var(--accent)}
+.tb .card{margin-top:12px;border-radius:20px;background:#fff;color:#111;overflow:hidden;box-shadow:0 8px 30px #0008}.tb .card .h{background:var(--accent);padding:14px;text-align:center;font-size:28px;font-weight:900;letter-spacing:1px;word-break:break-word}
+.tb .card .l div{text-align:center;padding:10px;font-weight:800;font-size:18px;color:#c0243a;border-top:1px solid #eee}
+.tb .card.hid{background:rgba(255,255,255,.1);color:#fff}.tb .card.hid .h{background:rgba(255,255,255,.15);color:#fff;letter-spacing:4px}
+.tb .in{width:100%;box-sizing:border-box;margin-top:12px;border-radius:14px;padding:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:var(--text);font-size:17px}
+.tb .chip{display:inline-block;padding:6px 12px;border-radius:12px;background:rgba(255,255,255,.12);margin:4px 4px 0 0;font-size:14px}.tb .chip.ok{background:rgba(198,255,61,.28)}.tb .chip.tabu{background:rgba(255,77,106,.35)}
+.tb .big{width:100%;margin-top:10px}.tb .red{background:#ff4d6a;color:#fff;border:0}.tb .d{opacity:.75;font-size:12px}`;
+  document.head.appendChild(st);
+}
+function renderPartyTaboo(msg){
+  tbStyle(); party.tbMsg = msg;
+  const key = msg.phase + '|' + msg.turn + '|' + msg.role + '|' + (msg.ffa?1:0);
+  if(key !== partyTbKey || !document.getElementById('tbRoot')){
+    partyTbKey = key; clearInterval(partyTbTimer);
+    const tn = id => esc(msg.teamNames[id] || '');
+    const header = `<div class="picker-title">TABOO</div>`;
+    let body = '';
+    if(msg.phase === 'intro' && msg.ffa){
+      body = `<div class="explanation" style="margin-top:14px">${L('Jeder erklärt einmal 45 Sekunden. Alle anderen raten gleichzeitig, wer zuerst das Wort tippt, bekommt bis zu 10 Punkte (je schneller, desto mehr), der Erklärer die Hälfte. Sagt der Erklärer ein rotes Wort, drücke TABU: −3 für ihn.','Everyone explains once for 45 seconds. All others guess at the same time. The first to type the word gets up to 10 points (faster = more), the explainer gets half. If the explainer says a red word, hit TABU: −3 for them.')}</div>`;
+    } else if(msg.phase === 'intro'){
+      body = `<div class="explanation" style="margin-top:14px">${L('Zwei Teams, je 60 Sekunden. Ein Spieler erklärt einen Begriff, ohne die roten Wörter zu sagen, sein Team rät. Richtig: +1. Sagt er ein rotes Wort und das andere Team drückt TABU: −1.','Two teams, 60 seconds each. One player explains a word without saying the red words, their team guesses. Correct: +1. If a red word is said and the other team hits TABU: −1.')}</div>`;
+    } else if(msg.phase === 'turn'){
+      const roleText = { describer: L('Du erklärst','You explain'), guesser: L('Du ratest','You guess'), watcher: L('Du passt auf','You watch'), guesserWatcher: L('Rate und passe auf','Guess and watch') }[msg.role] || '';
+      const hint = { describer: L('Erkläre den Begriff, ohne die roten Wörter zu sagen.','Explain the word without saying the red words.'), guesser: esc(msg.describerName) + L(' erklärt gerade. Tippe deine Antworten ein.',' is explaining. Type your guesses.'), watcher: L('Sagt ','If ') + esc(msg.describerName) + L(' ein rotes Wort, drücke TABU.',' says a red word, hit TABU.'), guesserWatcher: esc(msg.describerName) + (msg.ffa ? L(' erklärt. Sei am schnellsten, TABU bei einem roten Wort!',' explains. Be the fastest, hit TABU on a red word!') : L(' erklärt allein. Rate und drücke TABU bei einem roten Wort.',' explains alone. Guess and hit TABU on a red word.')) }[msg.role] || '';
+      body = `<div class="tm"><span>${roleText}</span><span class="tmv" id="tbTime">0:60</span></div><div id="tbScores"></div><div class="d" style="margin-top:8px">${hint}</div><div id="tbCard"></div>`;
+      if(msg.role === 'guesser' || msg.role === 'guesserWatcher') body += `<input id="tbIn" class="in" autocomplete="off" autocapitalize="off" placeholder="${L('Deine Antwort …','Your answer …')}" onkeydown="if(event.key==='Enter')tbGuess()"><button class="btn btn-primary big" onclick="tbGuess()">${L('SENDEN','SEND')}</button>`;
+      if(msg.role === 'watcher' || msg.role === 'guesserWatcher') body += `<button class="btn big red" onclick="partySend({action:'tabooTabu'})">TABU!</button>`;
+      if(msg.role === 'describer') body += `<div id="tbSkip"></div>`;
+      body += `<div id="tbFeed"></div>`;
+    } else if(msg.ffa && (msg.phase === 'break' || msg.phase === 'result')){
+      const top = msg.board.length ? msg.board[0].pts : 0;
+      const rows = msg.board.map((b, i) => `<div class="panel" style="margin-top:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;${msg.phase === 'result' && b.pts === top ? 'outline:2px solid var(--accent)' : ''}"><span>${i + 1}. ${esc(b.name)}${b.id === msg.you ? ' ⭐' : ''}</span><b style="font-size:20px">${b.pts}</b></div>`).join('');
+      const last = (msg.log || []).slice(-1)[0];
+      const lastRow = msg.phase === 'break' && last ? `<div class="d" style="margin-top:10px">${esc(last.describer || '')}: ${last.found.map(w => `<span class="chip ok">${esc(w)}</span>`).join('') || L('nichts erraten','nothing guessed')}${last.bad.map(w => `<span class="chip tabu">${esc(w)}</span>`).join('')}</div>` : '';
+      body = `<div class="d" style="margin-top:6px">${msg.phase === 'result' ? L('Runde vorbei','Round over') : L('Pause, als Nächstes erklärt ','Break, next to explain: ') + esc(msg.nextName || '')}</div>${rows}${lastRow}`;
+    } else if(msg.phase === 'break' || msg.phase === 'result'){
+      const logRows = (msg.log || []).map(l => `<div class="panel" style="margin-top:10px;padding:14px"><div class="d">${tn(l.team)}</div><div style="margin-top:6px">${l.found.map(w => `<span class="chip ok">${esc(w)}</span>`).join('') || `<span class="d">${L('Nichts erraten','Nothing guessed')}</span>`}${l.bad.map(w => `<span class="chip tabu">${esc(w)}</span>`).join('')}${l.skipped.map(w => `<span class="chip">${esc(w)}</span>`).join('')}</div></div>`).join('');
+      const sc = msg.teams.map(t => `<div class="${msg.phase === 'result' && msg.scores[t] === Math.max(...msg.teams.map(x => msg.scores[x])) ? 'on' : ''}">${tn(t)}<b>${msg.scores[t]}</b></div>`).join('');
+      body = `<div class="d" style="margin-top:6px">${msg.phase === 'result' ? L('Runde vorbei','Round over') : L('Pause, gleich ist das andere Team dran','Break, the other team is up next')}</div><div class="sc">${sc}</div>${logRows}<div class="d" style="margin-top:8px">${L('Grün: erraten · Rot: Tabu · Grau: übersprungen','Green: guessed · Red: taboo · Grey: skipped')}</div>`;
+    }
+    renderApp(`<div class="panel tb" id="tbRoot">${header}${body}</div>`);
+  }
+  tbUpdate(msg);
+  clearInterval(partyTbTimer);
+  if(msg.phase === 'turn'){
+    const end = Date.now() + msg.remainingMs;
+    const upd = () => { const el = document.getElementById('tbTime'); if(!el){ clearInterval(partyTbTimer); return; } const s = Math.max(0, Math.ceil((end - Date.now()) / 1000)); el.textContent = '0:' + String(s).padStart(2, '0'); };
+    upd(); partyTbTimer = setInterval(upd, 300);
+  }
+}
+function tbUpdate(msg){
+  const tn = id => esc(msg.teamNames[id] || '');
+  const g = id => document.getElementById(id);
+  if(g('tbScores') && msg.ffa) g('tbScores').innerHTML = `<div class="sc" style="flex-wrap:wrap">${msg.board.map(b => `<div class="${b.id === msg.describerId ? 'on' : ''}" style="min-width:70px">${esc(b.name)}<b>${b.pts}</b></div>`).join('')}</div>`;
+  else if(g('tbScores')) g('tbScores').innerHTML = `<div class="sc">${msg.teams.map(t => `<div class="${t === msg.turnTeam ? 'on' : ''}">${tn(t)}<b>${msg.scores[t]}</b></div>`).join('')}</div>`;
+  if(g('tbCard')){
+    const c = msg.card;
+    if(c) g('tbCard').innerHTML = `<div class="card ${msg.role === 'guesserWatcher' ? 'hid' : ''}"><div class="h">${esc(c.w)}</div><div class="l">${c.t.map(w => `<div>${esc(w)}</div>`).join('')}</div></div>`;
+    else g('tbCard').innerHTML = `<div class="card hid"><div class="h">${'?'.repeat(Math.min(14, msg.wordLen || 6))}</div><div style="padding:12px;text-align:center;font-size:13px;opacity:.8">${L('Das gesuchte Wort hat ','The word has ')}${msg.wordLen || '?'}${L(' Buchstaben',' letters')}</div></div>`;
+  }
+  if(g('tbSkip')) g('tbSkip').innerHTML = `<button class="btn btn-ghost big" ${msg.skips > 0 ? '' : 'disabled'} onclick="partySend({action:'tabooSkip'})">${L('ÜBERSPRINGEN','SKIP')} (${msg.skips} ${L('übrig','left')})</button><div style="margin-top:8px"><button class="btn btn-primary big" disabled style="display:none"></button></div>`;
+  if(g('tbFeed')) g('tbFeed').innerHTML = `<div style="margin-top:12px">${(msg.feed || []).map(f => `<span class="chip ${f.ok ? 'ok' : f.tabu ? 'tabu' : ''}">${esc(f.name)}: ${esc(f.text)}</span>`).join('')}</div>`;
+}
+function tbGuess(){ const el = document.getElementById('tbIn'); if(!el) return; const v = el.value.trim(); if(!v) return; partySend({ action:'tabooGuess', text: v }); el.value = ''; el.focus(); }
+
 
 function renderPartyTicTacToeSkipped(msg){
   renderApp(`
