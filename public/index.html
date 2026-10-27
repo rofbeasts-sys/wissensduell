@@ -5296,15 +5296,42 @@ function appConfirm(msg, onYes, yesLabel, noLabel, danger){
 }
 window.alert = function(msg){ appDialog(msg, [{ label: 'OK', cls: 'pri' }]); };
 function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} try{ zpMarkCards(); }catch(e){} }
-/* ---- Zocker-Punkte-Kennzeichnung: Karten, bei denen man Punkte bekommt ---- */
-const ZP_MARKS = { 'startBrainingHub(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+150', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', 'startTabooHub(':'+100', 'startChem(':'+10 / Element' };
+/* ---- Brainups-Muenze (Grafik) ---- */
+let __buId = 0;
+function buPulse(sz){ // Brainups-Symbol: Puls-Linie
+  sz = sz || 16;
+  return `<svg width="${Math.round(sz*1.5)}" height="${sz}" viewBox="0 0 110 70" style="vertical-align:-${Math.round(sz*0.18)}px;display:inline-block"><polyline points="4,40 30,40 40,40 48,12 60,58 70,30 78,40 106,40" fill="none" stroke="#c6ff3d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+window.buPulse = buPulse;
+/* ---- Muenzen-Grafik (kaufbare Muenzen): ersetzt das Emoji 🪙 ueberall ---- */
+function coinSvg(sz){
+  sz = sz || 16; const id = 'cn' + (++__buId);
+  return `<svg width="${sz}" height="${sz}" viewBox="0 0 84 84" style="vertical-align:-${Math.round(sz*0.2)}px;display:inline-block"><defs><radialGradient id="${id}" cx=".35" cy=".3"><stop offset="0" stop-color="#eaff9a"/><stop offset="1" stop-color="#8fd10f"/></radialGradient></defs><circle cx="42" cy="42" r="38" fill="url(#${id})"/><circle cx="42" cy="42" r="30" fill="none" stroke="#10150a" stroke-opacity=".35" stroke-width="4"/><text x="42" y="52" text-anchor="middle" font-weight="900" font-size="28" fill="#10150a" font-family="system-ui,sans-serif">BC</text></svg>`;
+}
+window.coinSvg = coinSvg;
+(function coinSwap(){
+  let busy = false;
+  function swap(root){
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.nodeValue.indexOf('🪙') >= 0 && !/^(SCRIPT|STYLE|TEXTAREA|INPUT|OPTION|TITLE)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT });
+    const list = []; while(w.nextNode()) list.push(w.currentNode);
+    list.forEach(n => {
+      const parts = n.nodeValue.split('🪙'), fr = document.createDocumentFragment();
+      const fs = parseFloat(getComputedStyle(n.parentNode).fontSize) || 16, sz = Math.round(fs * 1.15);
+      parts.forEach((t, i) => { if(t) fr.appendChild(document.createTextNode(t)); if(i < parts.length - 1){ const sp = document.createElement('span'); sp.innerHTML = coinSvg(sz); fr.appendChild(sp.firstChild); } });
+      n.parentNode.replaceChild(fr, n);
+    });
+  }
+  new MutationObserver(() => { if(busy) return; busy = true; setTimeout(() => { try{ swap(document.body); }catch(e){} busy = false; }, 30); }).observe(document.body, { childList:true, subtree:true, characterData:true });
+})();
+/* ---- Brainups-Kennzeichnung: Karten, bei denen man Punkte bekommt ---- */
+const ZP_MARKS = { 'startBrainingHub(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+5–160', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', 'startTabooHub(':'+100', 'startChem(':'+10 / Element' };
 function zpMarkCards(){
   if(!document.getElementById('zpbCss')){ const st = document.createElement('style'); st.id = 'zpbCss'; st.textContent = '.mode-card[data-zpb]{position:relative}.zpb{position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px;letter-spacing:.3px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35)}.zpb-i{display:inline-block;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}'; document.head.appendChild(st); }
   if(featureLocked('zp')){ document.querySelectorAll('.zpb').forEach(e => e.remove()); return; }
   document.querySelectorAll('.mode-card:not(.locked)').forEach(c => {
     if(c.dataset.zpb) return;
     const oc = c.getAttribute('onclick') || '';
-    for(const fn in ZP_MARKS){ if(oc.trim().indexOf(fn) === 0){ c.dataset.zpb = '1'; c.insertAdjacentHTML('beforeend', '<span class="zpb">⭐ ' + ZP_MARKS[fn] + ' ' + L('ZP','PP') + '</span>'); break; } }
+    for(const fn in ZP_MARKS){ if(oc.trim().indexOf(fn) === 0){ c.dataset.zpb = '1'; c.insertAdjacentHTML('beforeend', '<span class="zpb">' + buPulse(13) + ' ' + ZP_MARKS[fn] + '</span>'); break; } }
   });
 }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
@@ -5879,7 +5906,7 @@ function renderChessHub(){
         <div class="mode-card" onclick="openChessOriginal()">
           <div class="icon">♟</div>
           <h3>Chess Original</h3>
-          <p>${L('Klassisches Schach: Bot (4 Stufen), Freunde oder zufälliger Gegner. Online gibt es Zocker-Punkte.','Classic chess: bot (4 levels), friends or a random opponent. Online games give player points.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
+          <p>${L('Klassisches Schach: Bot (4 Stufen), Freunde oder zufälliger Gegner. Online gibt es Brainups.','Classic chess: bot (4 levels), friends or a random opponent. Online games give Brainups.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
         </div>
         <div data-gid="chess_fantasy" class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">🐉</div>
@@ -6788,7 +6815,7 @@ function dzWeek(){
   renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">🎯 ${L('WOCHENZIEL','WEEKLY GOAL')}</div>
     <div class="picker-sub">${L('Mo–So · noch '+w.daysLeft+' Tag(e). Es zählt die höchste erreichte Stufe pro Rätselart. Die Belohnung (Schlüssel für Kisten und Münzen) holst du nach Wochenende ab.','Mon–Sun · '+w.daysLeft+' day(s) left. The highest tier per puzzle type counts. Collect the reward (keys for chests and coins) after the week ends.')}</div>
     ${due}${['sudoku','cw','ws','wv'].map(row).join('')}
-    <div style="margin:16px 0 6px;padding:12px;border:2px solid #c3ff4d;border-radius:16px;background:linear-gradient(135deg,#1f2a4d,#18304a)"><div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px"><span>⭐ ${L('GESAMT','TOTAL')}</span><span style="color:#ffd45a">${w.total.pct} %</span></div><div style="position:relative;height:16px;border-radius:10px;background:#0c1224;border:1px solid #2c3658;margin:10px 0;overflow:hidden"><div style="height:100%;width:${Math.min(100,w.total.pct)}%;background:linear-gradient(90deg,#c3ff4d,#3de0ff)"></div>${mk2}</div><div style="display:flex;gap:6px">${tc}</div></div>
+    <div style="margin:16px 0 6px;padding:12px;border:2px solid #c3ff4d;border-radius:16px;background:linear-gradient(135deg,#1f2a4d,#18304a)"><div style="display:flex;justify-content:space-between;font-weight:900;font-size:15px"><span>${buPulse(18)} ${L('GESAMT','TOTAL')}</span><span style="color:#ffd45a">${w.total.pct} %</span></div><div style="position:relative;height:16px;border-radius:10px;background:#0c1224;border:1px solid #2c3658;margin:10px 0;overflow:hidden"><div style="height:100%;width:${Math.min(100,w.total.pct)}%;background:linear-gradient(90deg,#c3ff4d,#3de0ff)"></div>${mk2}</div><div style="display:flex;gap:6px">${tc}</div></div>
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="dzList(dzLast)">${t('btn_back')}</button></div></div></div>`);
 }
 let dzBoardTab='sudoku', dzBoardMode='today', dzBoardData=null;
@@ -9892,11 +9919,13 @@ function finishOrderOfSpeed(){
   entry.correct = (entry.correct||0) + s.correct;
   profile.modeStats.orderofspeed = entry;
   const sec = Math.round((Date.now() - (s.startedAt || Date.now())) / 1000);
-  const thisRun = { level: s.level, points: s.points, sec };
+  const thisRun = { level: s.level, points: s.points, sec, t: Date.now() };
   const prevBest = profile.oosBest;
   const newBest = !prevBest || thisRun.points > prevBest.points || (thisRun.points === prevBest.points && thisRun.level > prevBest.level);
   profile.oosLast = thisRun;
   if(newBest) profile.oosBest = thisRun;
+  const OOS_ZP = [5,10,20,30,45,60,80,100,130,160]; let ooxZp = 0;
+  for(let Lv=1; Lv<=Math.min(15, Math.max(0,s.level-1), Math.floor(sec/6)); Lv++) ooxZp += OOS_ZP[Math.min(9, Math.floor((Lv-1)/5))];
   if(profile.isAccount) syncAccountStats(profile); else saveProfiles();
   renderApp(`
     <div class="panel">
@@ -9909,6 +9938,7 @@ function finishOrderOfSpeed(){
         <div class="result-item pos"><div class="n">${s.correct}</div><div class="l">${L('Runden richtig gelöst','Rounds solved correctly')}</div></div>
         <div class="result-item neg"><div class="n">${s.wrong}</div><div class="l">${L('Falsch','Wrong')}</div></div>
       </div>
+      ${(profile.isAccount && ooxZp > 0) ? `<div class="picker-sub" style="text-align:center;margin-top:10px;">${buPulse(16)} +${ooxZp} ${L('Brainups','Brainups')}</div>` : ``}
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-primary" onclick="startOrderOfSpeedGame(${durationSec === null ? 'null' : durationSec})">${L('NOCHMAL','AGAIN')}</button>
         <button class="btn btn-ghost" onclick="renderSpeedMathEntry(speedMathProfile)">ZU SPEED MATH</button>
@@ -10523,7 +10553,7 @@ function dmIntro(msg){
       <div class="lab">${L('GEGEN DEN BOT','VS THE BOT')}</div>
       <div class="bots"><button class="b" onclick="dmStartBot('easy')">🤖 ${L('Leicht','Easy')}<small>★☆☆</small></button><button class="b m" onclick="dmStartBot('normal')">🤖 ${L('Normal','Normal')}<small>★★☆</small></button><button class="b h" onclick="dmStartBot('hard')">🤖 ${L('Schwer','Hard')}<small>★★★</small></button></div>
       <div class="lab">${L('ONLINE SPIELEN','PLAY ONLINE')}</div>
-      <div style="font-size:12px;color:var(--accent);margin:-4px 0 8px">${L('Zocker-Punkte gewinnen: Mitspielen 50, Sieg 100','Win player points: playing 50, win 100')}</div>
+      <div style="font-size:12px;color:var(--accent);margin:-4px 0 8px">${L('Brainups gewinnen: Mitspielen 50, Sieg 100','Win Brainups: playing 50, win 100')}</div>
       <button class="big" style="margin-top:0" onclick="dmMpQueue()"><div class="e">🎲</div><div><b>${L('Zufallsgegner','Random opponent')}</b><span>${L('Sofort gegen einen echten Spieler','Instantly vs a real player')}</span></div><div class="ar">›</div></button>
       <button class="big" onclick="dmMpCreate()"><div class="e">👥</div><div><b>${L('Gegen Freund','Vs friend')}</b><span>${L('Per Code oder Link einladen','Invite via code or link')}</span></div><div class="ar">›</div></button>
       <div class="code"><input id="dmCodeIn" type="text" maxlength="8" placeholder="CODE"><button onclick="dmJoinScreen(document.getElementById('dmCodeIn').value.trim().toUpperCase())">${L('Beitreten','Join')}</button></div>
@@ -11080,7 +11110,7 @@ function startFourupsFlow(){
         <div class="mode-card" onclick="fuMpMenu()">
           <div class="icon">👥</div>
           <h3>${L('Mit Freunden','With friends')}</h3>
-          <p>${L('Online gegen einen Freund, per Einladung oder Code.','Online vs a friend, by invite or code.')}</p><p style="color:var(--accent);font-size:12px;margin-top:4px;">${L('Zocker-Punkte gewinnen: Mitspielen 50, Sieg 100','Win player points: playing 50, win 100')}</p>
+          <p>${L('Online gegen einen Freund, per Einladung oder Code.','Online vs a friend, by invite or code.')}</p><p style="color:var(--accent);font-size:12px;margin-top:4px;">${L('Brainups gewinnen: Mitspielen 50, Sieg 100','Win Brainups: playing 50, win 100')}</p>
         </div>
       </div>` : ''}
       <div class="actions-row" style="margin-top:18px;">
@@ -11821,7 +11851,7 @@ function tttOppSelect(mode){
       <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="tttProfileThen(${botFn})">🤖 ${L('Gegen Bot','Against the bot')}</button>
       ${MINI_ONLINE ? `<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttMpSelectedMode='${mode}';tttMpFixedMode=true;tttProfileThen(tttStartMultiplayer)">👥 ${L('Mit Freunden (Raum-Code)','With friends (room code)')}</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttProfileThen(p => tttMpQueue(p,'${mode}'))">🌐 ${L('Online (zufälliger Gegner)','Online (random opponent)')}</button>
-      <div style="margin-top:8px;font-size:12px;color:var(--accent);text-align:center;">${L('Online: Zocker-Punkte gewinnen (Mitspielen 50, Sieg 100)','Online: win player points (playing 50, win 100)')}</div>` : ''}
+      <div style="margin-top:8px;font-size:12px;color:var(--accent);text-align:center;">${L('Online: Brainups gewinnen (Mitspielen 50, Sieg 100)','Online: win Brainups (playing 50, win 100)')}</div>` : ''}
       <div class="actions-row" style="margin-top:18px;">
         <button class="btn btn-ghost" onclick="startTicTacToeFlow()">${t('btn_back')}</button>
       </div>
@@ -15222,10 +15252,10 @@ function startTabooHub(){
     <div class="picker-title" style="margin:0">TABOO</div>
     <div class="logo"><div class="h">TABOO</div><div class="l"><div>${L('Erklären','Explain')}</div><div>${L('Raten','Guess')}</div><div>${L('Gewinnen','Win')}</div></div></div>
     <p style="text-align:center;opacity:.8;font-size:14px;margin:14px 0 0">${L('Wähle, wie du spielen willst','Choose how to play')}</p>
-    <div class="opt main" data-tg="taboo_solo" onclick="tabooSoloStart()"><div class="ic">🔤</div><div><b>${L('Solo: Wort erraten','Solo: guess the word')}</b><span class="s">${L('5 Versuche, Kategorie und Hinweise, die du selbst wählst','5 tries, hints and colours like Wordle')}</span></div><span class="zpb">⭐ +100 ${L('ZP','PP')}</span></div>
+    <div class="opt main" data-tg="taboo_solo" onclick="tabooSoloStart()"><div class="ic">🔤</div><div><b>${L('Solo: Wort erraten','Solo: guess the word')}</b><span class="s">${L('5 Versuche, Kategorie und Hinweise, die du selbst wählst','5 tries, hints and colours like Wordle')}</span></div><span class="zpb">⭐ +100 ${'BU'}</span></div>
     <div class="opt" data-tg="taboo_ffa" onclick="partyTabooStart('taboo_ffa')"><div class="ic">🏆</div><div><b>${L('Wettbewerb','Competition')}</b><span class="s">${L('Jeder erklärt, alle raten. Wer schneller ist, bekommt mehr Punkte (ab 2 Spielern)','Everyone explains, all guess. Faster = more points (2+ players)')}</span></div></div>
     <div class="opt" data-tg="taboo_team" onclick="partyTabooStart('taboo')"><div class="ic">👥</div><div><b>${L('Team gegen Team','Team vs team')}</b><span class="s">${L('Zwei Teams, je 60 Sekunden, Tabu-Wächter aus dem Gegnerteam','Two teams, 60 seconds each, taboo watcher from the other team')}</span></div></div>
-    <div class="d" style="text-align:center;margin-top:14px;font-size:12px;opacity:.8">${L('Zocker-Punkte gibt es nur im Solo-Modus. Der Party-Raum (mit Freunden) zählt nicht.','Player points only in solo mode. The party room (with friends) does not count.')}</div>
+    <div class="d" style="text-align:center;margin-top:14px;font-size:12px;opacity:.8">${L('Brainups gibt es nur im Solo-Modus. Der Party-Raum (mit Freunden) zählt nicht.','Brainups only in solo mode. The party room (with friends) does not count.')}</div>
     <div class="actions-row" style="margin-top:16px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div>`);
   document.querySelectorAll('.tbh .opt[data-tg]').forEach(o => { const g = o.dataset.tg; if(hiddenFeatures.indexOf(g) !== -1){ o.remove(); return; } if(featureLocked(g)){ o.removeAttribute('onclick'); o.style.opacity = '.45'; o.style.cursor = 'default'; const sp = o.querySelector('.s'); if(sp) sp.textContent = gateText(g); } });
@@ -15279,11 +15309,11 @@ function tabooSoloPaint(){
   let end = '';
   if(tbs.done){
     const win = tbs.won;
-    end = `<div style="text-align:center;margin-top:12px;font-weight:800">${win ? '🎉 ' + L('Richtig!','Correct!') : L('Das Wort war ','The word was ') + '<b style="color:var(--accent)">' + esc(tbs.word || '') + '</b>'}${win ? (tbs.zp ? `<div style="color:var(--accent);margin-top:4px">+${tbs.zp} ${L('Zocker-Punkte','Player points')}</div>` : (account ? '' : `<div class="d" style="margin-top:4px;font-weight:600">${L('Melde dich an, dann gibt es +'+tbs.zpPossible+' Zocker-Punkte','Log in to get +'+tbs.zpPossible+' player points')}</div>`)) : ''}</div>
+    end = `<div style="text-align:center;margin-top:12px;font-weight:800">${win ? '🎉 ' + L('Richtig!','Correct!') : L('Das Wort war ','The word was ') + '<b style="color:var(--accent)">' + esc(tbs.word || '') + '</b>'}${win ? (tbs.zp ? `<div style="color:var(--accent);margin-top:4px">+${tbs.zp} ${L('Brainups','Brainups')}</div>` : (account ? '' : `<div class="d" style="margin-top:4px;font-weight:600">${L('Melde dich an, dann gibt es +'+tbs.zpPossible+' Brainups','Log in to get +'+tbs.zpPossible+' Brainups')}</div>`)) : ''}</div>
       <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="tabooSoloStart()">${L('NÄCHSTES WORT','NEXT WORD')}</button>`;
   } else end = `<div style="text-align:center;margin-top:10px;min-height:20px;font-weight:800">${esc(tbs.msg || '')}</div>`;
   root.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="tbsLeave()">${t('btn_back')}</button><div style="flex:1"><div class="picker-title" style="margin:0">TABOO SOLO</div></div></div>
-    <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">⭐ ${L('bis +100 ZP','up to +100 PP')}</span></div>
+    <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">${buPulse(13)} ${L('bis +100','up to +100')}</span></div>
     <div class="hints"><div class="h">${L('KATEGORIE','CATEGORY')}: <b style="font-size:1.25em">${esc(tbs.cat || '')}</b></div>${tbs.hints.map((h, n) => `<div class="w"><span style="opacity:.6;font-size:11px;font-weight:700">${LV[n]} · ${h.k === 'e' ? L('Erklärung','Explanation') : L('Stichwort','Keyword')}</span><br>${esc(h.t)}</div>`).join('')}${(!tbs.done && tbs.hintsLeft > 0) ? `<button class="btn btn-block" style="margin:0;border-radius:0;background:#10150a;color:#c6ff3d;font-weight:800" onclick="tabooSoloHint()">💡 ${L('Hinweis nehmen','Take a hint')} (−${tbs.hintCost || 5} 🪙) · ${tbs.hintsLeft} ${L('übrig','left')}</button>` : ''}</div>
     <div class="grid" style="--cw:${Math.min(44, Math.floor(330 / tbs.len) - 6)}px;--ch:${Math.min(48, Math.floor(330 / tbs.len) - 2)}px">${grid}</div>${end}<div class="kb">${kb}</div>
     <div style="display:flex;gap:10px;justify-content:center;font-size:11px;margin-top:10px;opacity:.85;flex-wrap:wrap"><span>🟩 ${L('richtiger Platz','right place')}</span><span>🟨 ${L('im Wort, falscher Platz','in word, wrong place')}</span><span>⬛ ${L('nicht drin','not in word')}</span></div>`;
@@ -15334,7 +15364,7 @@ async function openFeedbackModal(){
   d.style.cssText = 'position:fixed;inset:0;z-index:100003;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
   d.innerHTML = `<div style="background:#101a2b;border:2px solid #c6ff3d;border-radius:16px;padding:16px;max-width:400px;width:100%;color:#fff;font-family:system-ui,sans-serif;max-height:94vh;overflow:auto">
     <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:900;font-size:17px">💬 FEEDBACK</div><button id="fbX" style="border:0;background:none;color:#fff;font-size:22px;cursor:pointer">✕</button></div>
-    <div style="font-size:13px;line-height:1.5;color:#cfe;margin:6px 0 10px">${L('Sag uns, was gut ist, was nervt oder was fehlt. Einmal am Tag. Wenn dein Feedback hilft, bekommst du <b>50 Münzen und 100 Zocker-Punkte</b> vom Admin gutgeschrieben.','Tell us what is good, what annoys you or what is missing. Once a day. If your feedback helps, the admin credits you <b>50 coins and 100 player points</b>.')}</div>
+    <div style="font-size:13px;line-height:1.5;color:#cfe;margin:6px 0 10px">${L('Sag uns, was gut ist, was nervt oder was fehlt. Einmal am Tag. Wenn dein Feedback hilft, bekommst du <b>50 Münzen und 100 Brainups</b> vom Admin gutgeschrieben.','Tell us what is good, what annoys you or what is missing. Once a day. If your feedback helps, the admin credits you <b>50 coins and 100 Brainups</b>.')}</div>
     <div id="fbBody"><div style="opacity:.7">…</div></div></div>`;
   document.body.appendChild(d);
   d.querySelector('#fbX').onclick = () => d.remove();
@@ -15399,7 +15429,7 @@ async function evPoll(){
   if(!playing){ if(evs.q){ evs.q = null; evPaintQ(); } }
   else if(!evs.q && !evs.fetching){ evs.fetching = true; const q = await apiCall('/api/event', { action:'question', token: account.token }); if(evs){ evs.fetching = false; if(q && q.q){ evs.q = q.q; evPaintQ(); } } }
 }
-function evPrizeHtml(p){ return `<div class="pl"><span>🥇 ${L('Platz 1','1st')}</span><span>${p.p1.c} 🪙 · ${p.p1.z} ⭐</span></div><div class="pl"><span>🥈 ${L('Platz 2','2nd')}</span><span>${p.p2.c} 🪙 · ${p.p2.z} ⭐</span></div><div class="pl"><span>🥉 ${L('Platz 3','3rd')}</span><span>${p.p3.c} 🪙 · ${p.p3.z} ⭐</span></div><div class="pl"><span>${L('Teilnahme','Participation')}</span><span>${p.part.c} 🪙${p.part.z ? ' · ' + p.part.z + ' ⭐' : ''}</span></div>`; }
+function evPrizeHtml(p){ return `<div class="pl"><span>🥇 ${L('Platz 1','1st')}</span><span>${p.p1.c} 🪙 · ${p.p1.z} ${buPulse(14)}</span></div><div class="pl"><span>🥈 ${L('Platz 2','2nd')}</span><span>${p.p2.c} 🪙 · ${p.p2.z} ${buPulse(14)}</span></div><div class="pl"><span>🥉 ${L('Platz 3','3rd')}</span><span>${p.p3.c} 🪙 · ${p.p3.z} ${buPulse(14)}</span></div><div class="pl"><span>${L('Teilnahme','Participation')}</span><span>${p.part.c} 🪙${p.part.z ? ' · ' + p.part.z + ' ⭐' : ''}</span></div>`; }
 function evBoardHtml(v){ const me = account && account.profile && account.profile.username; return (v.run.board || []).map((b, i) => `<div class="pl ${me && b.name.toLowerCase() === me.toLowerCase() ? 'me' : ''}"><span class="${b.alive ? '' : 'out'}">${i + 1}. ${esc(b.name)}</span><b style="color:var(--accent)">${b.score}</b></div>`).join(''); }
 function evPaintTop(){
   const v = evs.v, el = document.getElementById('evTop'); if(!el || !v) return;
@@ -15420,7 +15450,7 @@ function evPaintTop(){
     else if(r.phase === 'result') h += `<div class="bx" style="text-align:center"><div style="font-weight:900;font-size:17px">${r.me ? (r.meAlive ? '✅ ' + L('Du bist eine Runde weiter!','You are through!') : '💀 ' + L('Du bist ausgeschieden','You are out')) : L('Rundenende','Round over')}</div>${r.lastElim.length ? `<div class="d" style="font-size:13px;margin-top:6px">${L('Ausgeschieden','Out')}: ${r.lastElim.map(esc).join(', ')}</div>` : ''}<div class="d" style="margin-top:6px;font-size:13px">${L('Nächste Runde in','Next round in')} ${Math.ceil(left / 1000)} s</div></div>`;
     h += `<div class="bx"><b>${L('Rangliste live','Live ranking')}</b>${r.me ? `<span class="d" style="float:right;font-size:12px">${L('Dein Platz','Your rank')}: ${r.meRank}</span>` : ''}${evBoardHtml(v)}</div>`;
   } else if(v.state === 'payout' || v.state === 'done'){
-    h += `<div class="bx" style="text-align:center"><div style="font-size:26px">🏆</div><div style="font-weight:900;font-size:18px">${L('Event beendet','Event finished')}</div>${v.myPlace ? `<div style="margin-top:6px">${L('Dein Platz','Your rank')}: <b style="color:var(--accent)">${v.myPlace}</b></div>` : ''}${v.myPrize ? `<div style="margin-top:6px;color:var(--accent);font-weight:800">+${v.myPrize.c} 🪙 ${v.myPrize.z ? '+ ' + v.myPrize.z + ' ⭐' : ''}</div>` : (v.state === 'payout' && v.myPlace ? `<div class="d" style="margin-top:6px;font-size:13px">${L('Die Preise werden gleich ausgezahlt.','Prizes will be paid out shortly.')}</div>` : '')}</div><div class="bx"><b>${L('Ergebnis','Results')}</b>${(v.results || []).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--accent)">${r.score}</b></div>`).join('')}</div>`;
+    h += `<div class="bx" style="text-align:center"><div style="font-size:26px">🏆</div><div style="font-weight:900;font-size:18px">${L('Event beendet','Event finished')}</div>${v.myPlace ? `<div style="margin-top:6px">${L('Dein Platz','Your rank')}: <b style="color:var(--accent)">${v.myPlace}</b></div>` : ''}${v.myPrize ? `<div style="margin-top:6px;color:var(--accent);font-weight:800">+${v.myPrize.c} 🪙 ${v.myPrize.z ? '+ ' + v.myPrize.z + ' ' + buPulse(14) : ''}</div>` : (v.state === 'payout' && v.myPlace ? `<div class="d" style="margin-top:6px;font-size:13px">${L('Die Preise werden gleich ausgezahlt.','Prizes will be paid out shortly.')}</div>` : '')}</div><div class="bx"><b>${L('Ergebnis','Results')}</b>${(v.results || []).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--accent)">${r.score}</b></div>`).join('')}</div>`;
   }
   el.innerHTML = h;
 }
