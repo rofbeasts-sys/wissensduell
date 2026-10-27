@@ -4588,6 +4588,7 @@ function statDay() {
   if (!gameCfg.stats[k]) {
     gameCfg.stats[k] = { p: {}, reg: 0, peak: 0, vis: 0 };
     Object.keys(gameCfg.stats).sort().slice(0, -45).forEach(x => delete gameCfg.stats[x]);
+    Object.keys(gameCfg.stats).forEach(x => { if (x !== k && gameCfg.stats[x] && gameCfg.stats[x].ids) delete gameCfg.stats[x].ids; });
   }
   return gameCfg.stats[k];
 }
@@ -6501,7 +6502,7 @@ function adminLive(key, ip) {
   players.sort((a, b) => (b.name ? 1 : 0) - (a.name ? 1 : 0) || String(a.name).localeCompare(String(b.name)));
   const top = Object.entries(games).sort((a, b) => b[1] - a[1]).map(([where, n]) => ({ where, n }));
   const chat = (conversations[PUB_KEY] || []).slice(-100);
-  return { ok: true, counts: Object.assign(presenceCounts(), { today: (seenToday.day === new Date().toISOString().slice(0, 10)) ? seenToday.set.size : 0 }), players, top, chat, blocked: chatBlockedLog.slice(-15).reverse() };
+  return { ok: true, counts: Object.assign(presenceCounts(), { today: Math.max((seenToday.day === new Date().toISOString().slice(0, 10)) ? seenToday.set.size : 0, (statDay().ids || []).length) }), players, top, chat, blocked: chatBlockedLog.slice(-15).reverse() };
 }
 async function adminChat(action, payload, ip, lang) {
   if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -6534,8 +6535,14 @@ const feed = []; // { t, kind, name|null, n }
 const seenToday = { day: "", set: new Set() };
 function seenTodayAdd(sid) {
   const d = new Date().toISOString().slice(0, 10);
-  if (seenToday.day !== d) { seenToday.day = d; seenToday.set = new Set(); }
-  if (seenToday.set.size < 50000) seenToday.set.add(sid);
+  if (seenToday.day !== d) { // neuer Tag oder Neustart: heutige Besucher aus dem Speicher zurueckholen (Deploy setzt den Zaehler sonst auf 0)
+    seenToday.day = d; seenToday.set = new Set();
+    try { const st = statDay(); if (Array.isArray(st.ids)) st.ids.forEach(x => seenToday.set.add(x)); } catch (e) {}
+  }
+  if (seenToday.set.size < 50000 && !seenToday.set.has(sid)) {
+    seenToday.set.add(sid);
+    try { const st = statDay(); if (!Array.isArray(st.ids)) st.ids = []; if (st.ids.length < 5000) { st.ids.push(sid); maniaSaveSoon(); } } catch (e) {}
+  }
 }
 function feedPush(user, kind, n, x) {
   const name = user && user.feedOptIn ? user.username : null;
@@ -6571,7 +6578,7 @@ function publicStats() {
   const c = presenceCounts();
   const d = new Date().toISOString().slice(0, 10);
   const cutoff = Date.now() - 24 * 3600 * 1000;
-  return { ok: true, online: c.online >= PUBLIC_ONLINE_MIN ? c.online : null, today: seenToday.day === d ? seenToday.set.size : 0, feed: feed.filter(e => e.t > cutoff).slice(0, 8) };
+  return { ok: true, online: c.online >= PUBLIC_ONLINE_MIN ? c.online : null, today: Math.max(seenToday.day === d ? seenToday.set.size : 0, (statDay().ids || []).length), feed: feed.filter(e => e.t > cutoff).slice(0, 8) };
 }
 const LOCKED_FEATURES = new Set(
   (process.env.LOCKED_FEATURES === undefined ? "arena,ordering,blitz,chess_fantasy,ttt_quantum,fourups_abilities,brain_royale" : process.env.LOCKED_FEATURES)
