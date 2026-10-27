@@ -285,14 +285,23 @@ const SLF_BOT_WORDS_EN = {
 /* Stadt Land Fluss ist EIGENSTÄNDIGER Modus (eigener Menüpunkt, eigenes    */
 /* Solo & Multiplayer) und steht daher NICHT mehr im normalen Mix-Pool.     */
 /* ------------------------------------------------------------------------ */
+const TABOO_CARDS = (() => {   // sucht die Kartenliste an mehreren Stellen, stuerzt nie ab, wenn sie fehlt
+  for (const p of ["shared/tabooDE.json", "tabooDE.json", "public/tabooDE.json", "shared/taboode.json"]) {
+    try { const j = JSON.parse(fs.readFileSync(path.join(__dirname, p), "utf8")); if (Array.isArray(j) && j.length) { console.log("Taboo: " + j.length + " Karten aus " + p); return j; } } catch (e) {}
+  }
+  console.error("Taboo: tabooDE.json nicht gefunden - Taboo ist deaktiviert (Datei nach shared/tabooDE.json hochladen).");
+  return [];
+})();
 function buildRoundDefPool() {
   const pool = [{ id: "quiz", kind: "knowledgeQuiz", label: "Wissenstest", germanOnly: true }];
   pool.push({ id: "tictactoe", kind: "ticTacToeGame", label: "Tic Tac Toe", germanOnly: false });
   pool.push({ id: "tictactoe_quantum", kind: "ticTacToeGame", variant: "quantum", label: "Tic Tac Toe Quantum", germanOnly: false });
   pool.push({ id: "tictactoe_quizmix", kind: "ticTacToeGame", variant: "quizmix", label: "Tic Tac Toe Quiz-Mix", germanOnly: true });
   pool.push({ id: "fourups", kind: "fourupsGame", label: "4 gewinnt", germanOnly: false });
-  pool.push({ id: "taboo", kind: "tabooGame", label: "Taboo", germanOnly: true });
-  pool.push({ id: "taboo_ffa", kind: "tabooGame", variant: "ffa", label: "Taboo Wettbewerb", germanOnly: true });
+  if (TABOO_CARDS.length) {
+    pool.push({ id: "taboo", kind: "tabooGame", label: "Taboo", germanOnly: true });
+    pool.push({ id: "taboo_ffa", kind: "tabooGame", variant: "ffa", label: "Taboo Wettbewerb", germanOnly: true });
+  }
   Object.entries(DATASETS.ordering).forEach(([key, ds]) => {
     pool.push({ id: "order_" + key, kind: "orderingGame", label: ds.label, datasetGroup: "ordering", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
   });
@@ -3128,7 +3137,7 @@ function handlePartyFourupsMove(room, playerId, col) {
 /* TABOO (Party-Runde): 2 Teams, je 60 s. Erklaerer sieht Begriff + 5 verbotene Woerter, */
 /* Rater tippen, Gegner-Aufpasser druecken TABU. Richtig +1, Tabu -1.        */
 /* ------------------------------------------------------------------------ */
-const TABOO_CARDS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/tabooDE.json"), "utf8"));
+/* TABOO_CARDS: siehe oben (frueh geladen, wird von buildRoundDefPool gebraucht) */
 const TABOO_TURN_MS = 60000, TABOO_SKIPS = 3, TABOO_BREAK_MS = 5000;
 const tabooNorm = s => String(s || "").toLowerCase().replace(/ß/g, "ss").replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u").replace(/[^a-z0-9]/g, "");
 function tabooHumans(room, teamId) { return Array.from(room.players.values()).filter(p => p.teamId === teamId && !p.isBot && p.connected && p.ws); }
@@ -3276,6 +3285,7 @@ const TABOO_SOLO_PTS = [100, 80, 60, 40, 20], tabooSolo = new Map();
 function tabooSoloView(g, extra) { return Object.assign({ ok: true, len: g.word.length, tries: g.rows.length, max: 5, rows: g.rows, hints: TABOO_SOLO_CARDS[g.idx].t.slice(0, Math.min(5, 2 + g.rows.length)), done: !!g.done }, extra || {}); }
 function tabooSoloApi(p, lang) {
   const sid = String(p.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40); if (!sid) return { ok: false };
+  if (!TABOO_SOLO_CARDS.length) return { ok: false };
   if (p.action === "start") {
     let idx = Math.floor(Math.random() * TABOO_SOLO_CARDS.length);
     const prev = tabooSolo.get(sid); if (prev && prev.idx === idx) idx = (idx + 1) % TABOO_SOLO_CARDS.length;
