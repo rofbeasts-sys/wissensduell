@@ -91,6 +91,7 @@ window.zpGameLabel = function(game){ return (GAMESF().find(g => g[0] === game) |
 /* ---- Einblendung nach der Partie ---- */
 let toastT = 0, lastT = 0;
 function zpToastShow(big, text, game){
+  if(!q('zpToastCss')){ const st = document.createElement('style'); st.id = 'zpToastCss'; st.textContent = '#zpToast{position:fixed;left:12px;right:12px;bottom:14px;z-index:9999;background:#151b2b;border:1px solid var(--accent);border-radius:16px;padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,.5);display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--text)}#zpToast b{color:var(--accent);font-size:24px}'; document.head.appendChild(st); }
   let el = q('zpToast'); if(el) el.remove();
   el = document.createElement('div'); el.id = 'zpToast';
   el.innerHTML = `<b>${big}</b><div style="flex:1"><div style="font-weight:800">${text}</div></div><span class="d" style="opacity:.7;font-size:12px">${L('Liste','List')} ›</span>`;
