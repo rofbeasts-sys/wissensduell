@@ -291,6 +291,8 @@ function buildRoundDefPool() {
   pool.push({ id: "tictactoe_quantum", kind: "ticTacToeGame", variant: "quantum", label: "Tic Tac Toe Quantum", germanOnly: false });
   pool.push({ id: "tictactoe_quizmix", kind: "ticTacToeGame", variant: "quizmix", label: "Tic Tac Toe Quiz-Mix", germanOnly: true });
   pool.push({ id: "fourups", kind: "fourupsGame", label: "4 gewinnt", germanOnly: false });
+  pool.push({ id: "taboo", kind: "tabooGame", label: "Taboo", germanOnly: true });
+  pool.push({ id: "taboo_ffa", kind: "tabooGame", variant: "ffa", label: "Taboo Wettbewerb", germanOnly: true });
   Object.entries(DATASETS.ordering).forEach(([key, ds]) => {
     pool.push({ id: "order_" + key, kind: "orderingGame", label: ds.label, datasetGroup: "ordering", datasetKey: key, germanOnly: !!ds.germanOnly, topicGroup: ds.group || null });
   });
@@ -3123,6 +3125,186 @@ function handlePartyFourupsMove(room, playerId, col) {
 }
 
 /* ------------------------------------------------------------------------ */
+/* TABOO (Party-Runde): 2 Teams, je 60 s. Erklaerer sieht Begriff + 5 verbotene Woerter, */
+/* Rater tippen, Gegner-Aufpasser druecken TABU. Richtig +1, Tabu -1.        */
+/* ------------------------------------------------------------------------ */
+const TABOO_CARDS = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/tabooDE.json"), "utf8"));
+const TABOO_TURN_MS = 60000, TABOO_SKIPS = 3, TABOO_BREAK_MS = 5000;
+const tabooNorm = s => String(s || "").toLowerCase().replace(/ß/g, "ss").replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u").replace(/[^a-z0-9]/g, "");
+function tabooHumans(room, teamId) { return Array.from(room.players.values()).filter(p => p.teamId === teamId && !p.isBot && p.connected && p.ws); }
+function startPartyTabooRound(room, def) {
+  const teamIds = Array.from(room.teams.keys());
+  const humansOk = teamIds.length === 2 && teamIds.every(t => tabooHumans(room, t).length > 0);
+  if (!humansOk) {
+    broadcast(room, { type: "ticTacToeSkipped", reason: "Taboo braucht genau 2 Teams mit je mindestens einem echten Spieler, diese Runde entfällt." });
+    return finishRoundEngine(room, new Map(teamIds.map(id => [id, 0])));
+  }
+  const deck = TABOO_CARDS.map((_, i) => i).sort(() => Math.random() - 0.5);
+  const order = teamIds.slice().sort(() => Math.random() - 0.5);
+  room.runtime = { kind: "tabooGame", teams: order, turn: -1, deck, di: 0, scores: { [order[0]]: 0, [order[1]]: 0 }, phase: "intro", timer: null, rot: { [order[0]]: 0, [order[1]]: 0 }, log: [], feed: [] };
+  tabooBroadcast(room);
+  const rt = room.runtime;
+  rt.timer = setTimeout(() => tabooNextTurn(room, rt), 4000);
+}
+/* Wettbewerb: jeder erklaert einmal, alle anderen raten gleichzeitig. Schneller = mehr Punkte (10 .. 3), Erklaerer bekommt die Haelfte, Tabu = -3 fuer den Erklaerer. */
+const TABOO_FFA_MS = Number(process.env.TABOO_FFA_MS) || 45000;
+function startPartyTabooFfaRound(room, def) {
+  const hs = Array.from(room.players.values()).filter(p => !p.isBot && p.connected && p.ws);
+  if (hs.length < 2) {
+    broadcast(room, { type: "ticTacToeSkipped", reason: "Taboo Wettbewerb braucht mindestens 2 echte Spieler, diese Runde entfällt." });
+    return finishRoundEngine(room, new Map(Array.from(room.teams.keys()).map(id => [id, 0])));
+  }
+  const deck = TABOO_CARDS.map((_, i) => i).sort(() => Math.random() - 0.5);
+  const order = hs.map(p => p.id).sort(() => Math.random() - 0.5);
+  const pts = {}; order.forEach(id => { pts[id] = 0; });
+  room.runtime = { kind: "tabooGame", ffa: true, order, turn: -1, deck, di: 0, pts, scores: {}, teams: [], phase: "intro", timer: null, log: [], feed: [] };
+  tabooBroadcast(room);
+  const rt = room.runtime;
+  rt.timer = setTimeout(() => tabooNextTurn(room, rt), 4000);
+}
+function tabooFfaNextTurn(room, rt) {
+  rt.turn++;
+  while (rt.turn < rt.order.length) { const d = room.players.get(rt.order[rt.turn]); if (d && d.connected && d.ws) break; rt.turn++; }
+  if (rt.turn >= rt.order.length) {
+    rt.phase = "result"; clearTimeout(rt.timer); tabooBroadcast(room);
+    rt.timer = setTimeout(() => {
+      if (room.runtime !== rt) return;
+      const byTeam = new Map(Array.from(room.teams.keys()).map(id => [id, 0]));
+      room.players.forEach(p => { if (rt.pts[p.id] != null && byTeam.has(p.teamId)) byTeam.set(p.teamId, byTeam.get(p.teamId) + Math.max(0, rt.pts[p.id])); });
+      finishRoundEngine(room, byTeam);
+    }, 7000);
+    return;
+  }
+  rt.describerId = rt.order[rt.turn];
+  rt.phase = "turn"; rt.skips = TABOO_SKIPS; rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); rt.endsAt = Date.now() + TABOO_FFA_MS; rt.feed = []; rt.found = []; rt.bad = []; rt.skipped = [];
+  clearTimeout(rt.timer);
+  tabooBroadcast(room);
+  rt.timer = setTimeout(() => tabooEndTurn(room, rt), TABOO_FFA_MS + 200);
+}
+function tabooDrawCard(rt) { const c = TABOO_CARDS[rt.deck[rt.di % rt.deck.length]]; rt.di++; return c; }
+function tabooNextTurn(room, rt) {
+  if (room.runtime !== rt) return;
+  if (rt.ffa) return tabooFfaNextTurn(room, rt);
+  rt.turn++;
+  if (rt.turn >= 2) {
+    rt.phase = "result"; clearTimeout(rt.timer); tabooBroadcast(room);
+    rt.timer = setTimeout(() => {
+      if (room.runtime !== rt) return;
+      finishRoundEngine(room, new Map(Object.entries(rt.scores)));
+    }, 6000);
+    return;
+  }
+  const tid = rt.teams[rt.turn], hs = tabooHumans(room, tid);
+  if (!hs.length) return tabooNextTurn(room, rt);
+  rt.describerId = hs[rt.rot[tid] % hs.length].id; rt.rot[tid]++;
+  rt.phase = "turn"; rt.skips = TABOO_SKIPS; rt.card = tabooDrawCard(rt); rt.endsAt = Date.now() + TABOO_TURN_MS; rt.feed = []; rt.found = []; rt.bad = []; rt.skipped = [];
+  clearTimeout(rt.timer);
+  tabooBroadcast(room);
+  rt.timer = setTimeout(() => tabooEndTurn(room, rt), TABOO_TURN_MS + 200);
+}
+function tabooEndTurn(room, rt) {
+  if (room.runtime !== rt || rt.phase !== "turn") return;
+  rt.phase = "break"; rt.log.push({ team: rt.teams[rt.turn], describer: rt.ffa ? (room.players.get(rt.describerId) || {}).name : undefined, found: rt.found, bad: rt.bad, skipped: rt.skipped });
+  clearTimeout(rt.timer); tabooBroadcast(room);
+  rt.timer = setTimeout(() => tabooNextTurn(room, rt), TABOO_BREAK_MS);
+}
+function tabooRoleOf(room, rt, p) {
+  if (rt.phase !== "turn") return "spectator";
+  const dp = room.players.get(rt.describerId), tid = rt.teams[rt.turn];
+  if (p.id === rt.describerId) return "describer";
+  if (rt.ffa) return rt.pts[p.id] != null ? "guesserWatcher" : "spectator";
+  const mates = Array.from(room.players.values()).filter(x => x.teamId === tid && x.id !== rt.describerId && !x.isBot && x.connected);
+  if (p.teamId === tid) return "guesser";
+  return mates.length ? "watcher" : "guesserWatcher";   // Gegner: aufpassen (und raten, wenn der Erklaerer allein im Team ist)
+}
+function tabooBroadcast(room) {
+  const rt = room.runtime; if (!rt || rt.kind !== "tabooGame") return;
+  const names = {}; room.teams.forEach(t => { names[t.id] = t.name; });
+  const board = rt.ffa ? Object.keys(rt.pts).map(id => ({ id, name: (room.players.get(id) || {}).name || "?", pts: rt.pts[id] })).sort((a, b) => b.pts - a.pts) : null;
+  const base = { type: "tabooState", ffa: !!rt.ffa, board, nTurns: rt.ffa ? rt.order.length : 2, phase: rt.phase, turn: rt.turn, teams: rt.teams, teamNames: names, scores: rt.scores, turnTeam: rt.teams[rt.turn] || null, describerId: rt.describerId || null,
+    describerName: rt.describerId && room.players.get(rt.describerId) ? room.players.get(rt.describerId).name : "", nextName: rt.ffa && rt.order[rt.turn + 1] && room.players.get(rt.order[rt.turn + 1]) ? room.players.get(rt.order[rt.turn + 1]).name : "", remainingMs: rt.phase === "turn" ? Math.max(0, rt.endsAt - Date.now()) : 0, skips: rt.skips || 0,
+    feed: rt.feed.slice(-6), found: rt.found || [], bad: rt.bad || [], skipped: rt.skipped || [], log: rt.phase === "result" || rt.phase === "break" ? rt.log : null };
+  room.players.forEach(p => {
+    if (!p.ws) return;
+    const role = tabooRoleOf(room, rt, p), m = Object.assign({ role, you: p.id, yourTeam: p.teamId }, base);
+    if (rt.phase === "turn" && rt.card) {
+      if (role === "describer" || role === "watcher") m.card = rt.card;                       // sieht Begriff + verbotene Woerter
+      else if (role === "guesserWatcher") m.card = { w: "?".repeat(rt.card.w.length), t: rt.card.t }; // Gegner allein-Team: nur verbotene Woerter, Begriff verdeckt
+      if (role === "guesser" || role === "guesserWatcher") m.wordLen = rt.card.w.length;
+    }
+    send(p.ws, m);
+  });
+}
+function handleTabooGuess(room, playerId, text) {
+  const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn") return;
+  const p = room.players.get(playerId); if (!p) return;
+  const role = tabooRoleOf(room, rt, p); if (role !== "guesser" && role !== "guesserWatcher") return;
+  text = String(text || "").slice(0, 40); if (!tabooNorm(text)) return;
+  if (p.lastGuessAt && Date.now() - p.lastGuessAt < 250) return; p.lastGuessAt = Date.now();
+  const ok = tabooNorm(text) === tabooNorm(rt.card.w), tid = rt.teams[rt.turn];
+  if (rt.ffa) {
+    if (!ok) { rt.feed.push({ name: p.name, text, ok: false }); return tabooBroadcast(room); }
+    const gp = Math.max(3, 10 - Math.floor((Date.now() - rt.cardAt) / 3000));
+    rt.pts[p.id] += gp; rt.pts[rt.describerId] += Math.ceil(gp / 2);
+    rt.feed.push({ name: p.name, text: rt.card.w + " +" + gp, ok: true });
+    rt.found.push(rt.card.w); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now();
+    return tabooBroadcast(room);
+  }
+  rt.feed.push({ name: p.name, text, ok });
+  if (ok) { rt.scores[tid]++; rt.found.push(rt.card.w); rt.card = tabooDrawCard(rt); }
+  tabooBroadcast(room);
+}
+function handleTabooTabu(room, playerId) {
+  const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn") return;
+  const p = room.players.get(playerId); if (!p) return;
+  const role = tabooRoleOf(room, rt, p); if (role !== "watcher" && role !== "guesserWatcher") return;
+  if (rt.lastTabuAt && Date.now() - rt.lastTabuAt < 800) return; rt.lastTabuAt = Date.now();
+  if (rt.ffa) { rt.pts[rt.describerId] -= 3; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU! −3", tabu: true }); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); return tabooBroadcast(room); }
+  const tid = rt.teams[rt.turn]; rt.scores[tid]--; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU!", tabu: true }); rt.card = tabooDrawCard(rt);
+  tabooBroadcast(room);
+}
+function handleTabooSkip(room, playerId) {
+  const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn" || playerId !== rt.describerId || rt.skips <= 0) return;
+  rt.skips--; rt.skipped.push(rt.card.w); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now();
+  tabooBroadcast(room);
+}
+
+
+/* ---- Taboo Solo: Wort in 5 Versuchen erraten (Wordle-Farben). Wort bleibt auf dem Server. ---- */
+const TABOO_SOLO_CARDS = TABOO_CARDS.filter(c => /^[A-Za-zÄÖÜäöü]{4,8}$/.test(c.w));
+const TABOO_SOLO_PTS = [100, 80, 60, 40, 20], tabooSolo = new Map();
+function tabooSoloView(g, extra) { return Object.assign({ ok: true, len: g.word.length, tries: g.rows.length, max: 5, rows: g.rows, hints: TABOO_SOLO_CARDS[g.idx].t.slice(0, Math.min(5, 2 + g.rows.length)), done: !!g.done }, extra || {}); }
+function tabooSoloApi(p, lang) {
+  const sid = String(p.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40); if (!sid) return { ok: false };
+  if (p.action === "start") {
+    let idx = Math.floor(Math.random() * TABOO_SOLO_CARDS.length);
+    const prev = tabooSolo.get(sid); if (prev && prev.idx === idx) idx = (idx + 1) % TABOO_SOLO_CARDS.length;
+    if (process.env.TABOO_TEST_WORD) { const f = TABOO_SOLO_CARDS.findIndex(c => c.w === process.env.TABOO_TEST_WORD); if (f >= 0) idx = f; }  // nur fuer Tests
+    const g = { idx, word: TABOO_SOLO_CARDS[idx].w.toUpperCase(), rows: [], done: false, t: Date.now() };
+    tabooSolo.set(sid, g);
+    if (tabooSolo.size > 4000) Array.from(tabooSolo.keys()).slice(0, 1000).forEach(k => tabooSolo.delete(k));
+    return tabooSoloView(g, { pts: TABOO_SOLO_PTS });
+  }
+  const g = tabooSolo.get(sid); if (!g) return { ok: false, expired: true };
+  if (p.action === "state") return tabooSoloView(g, { pts: TABOO_SOLO_PTS });
+  if (p.action !== "guess" || g.done) return tabooSoloView(g);
+  const guess = String(p.text || "").toUpperCase().replace(/[^A-ZÄÖÜ]/g, "");
+  if (guess.length !== g.word.length) return Object.assign(tabooSoloView(g), { ok: true, rejected: "length" });
+  const res = Array(guess.length).fill("k"), left = {};
+  for (let i = 0; i < guess.length; i++) { if (guess[i] === g.word[i]) res[i] = "g"; else left[g.word[i]] = (left[g.word[i]] || 0) + 1; }
+  for (let i = 0; i < guess.length; i++) if (res[i] !== "g" && left[guess[i]] > 0) { res[i] = "y"; left[guess[i]]--; }
+  g.rows.push({ w: guess, s: res.join("") });
+  let extra = {};
+  if (guess === g.word) {
+    g.done = true; extra.won = true; extra.word = g.word;
+    const user = p.token ? findUserByToken(p.token) : null, pts = TABOO_SOLO_PTS[g.rows.length - 1];
+    extra.zpPossible = pts;
+    if (user && Date.now() - g.t > 2500) { const r = zpAdd(user, pts, "taboo", "taboo"); extra.zp = r.gain; extra.zpTotal = r.total; }
+  } else if (g.rows.length >= 5) { g.done = true; extra.won = false; extra.word = g.word; }
+  return tabooSoloView(g, extra);
+}
+
+/* ------------------------------------------------------------------------ */
 /* Rundensteuerung                                                           */
 /* ------------------------------------------------------------------------ */
 function startNextRound(room) {
@@ -3151,6 +3333,7 @@ function startNextRound(room) {
     else if (def.kind === "nennsBlitz") startNennsBlitzRound(room, def);
     else if (def.kind === "ticTacToeGame") startPartyTicTacToeRound(room, def);
     else if (def.kind === "fourupsGame") startPartyFourupsRound(room, def);
+    else if (def.kind === "tabooGame") (def.variant === "ffa" ? startPartyTabooFfaRound : startPartyTabooRound)(room, def);
     else startRankingRound(room, def);
   }, 1800);
 }
@@ -3703,7 +3886,7 @@ const ZP_DAY_CAP = 1000;
 const ZP_DAY_TIERS = [{ p: 100, c: 20 }, { p: 250, c: 40 }, { p: 500, c: 80 }, { p: 800, c: 150 }];
 const ZP_WEEK_TIERS = [{ p: 500, c: 100 }, { p: 1200, c: 200 }, { p: 2500, c: 400 }, { p: 4000, c: 800 }];
 const ZP_MONTH_REWARDS = [1500, 1000, 700, 500, 400, 300, 250, 200, 150, 100];
-const ZP_GAMES = ["ttt", "chess", "fourups", "muehle"];   // eigene Spiel-Bestenlisten (Schach + Dame zaehlen zusammen als "chess")
+const ZP_GAMES = ["ttt", "chess", "fourups", "muehle", "taboo"];   // eigene Spiel-Bestenlisten (Schach + Dame zaehlen zusammen als "chess")
 const zpMonthKey = () => todayDateString().slice(0, 7);
 function zpPrevMonthKey() { const [y, m] = zpMonthKey().split("-").map(Number); return m === 1 ? (y - 1) + "-12" : y + "-" + String(m - 1).padStart(2, "0"); }
 function zpState(user) {
@@ -3751,6 +3934,8 @@ function zpStatus(user) {
     games: z.g, last: z.last || null, coins: user.stats.coins || 0
   };
 }
+/* Brainchimie: gueltige Ergebnis-Elemente aus public/chem.js (10 ZP pro neu entdecktem Element, einmalig) */
+const CHEM_RESULTS = (() => { try { const l = fs.readFileSync(path.join(__dirname, "public/chem.js"), "utf8").split("\n").find(x => x.startsWith("const D = ")); const j = JSON.parse(l.slice(l.indexOf("{"), l.lastIndexOf("}") + 1)); return new Set(j.r.map(x => x[2])); } catch (e) { console.error("CHEM_RESULTS", e.message); return new Set(); } })();
 async function zpApi(payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = payload.token ? findUserByToken(payload.token) : null, action = payload.action;
@@ -3784,11 +3969,12 @@ async function zpApi(payload, lang) {
     return { ...zpStatus(user), granted: coins };
   }
   if (action === "once") {  // einmalige Belohnung je Abschnitt (z. B. Vokabel-Thema bestanden), nur bekannte Arten
-    const kind = String(payload.kind || ""), id = String(payload.id || "").slice(0, 40);
-    if (kind !== "vocab" || !/^[A-Za-z0-9_\-]{1,40}$/.test(id)) return errObj("invalidInput", lang);
+    const kind = String(payload.kind || ""), id = String(payload.id || "").slice(0, 60);
+    const okId = kind === "vocab" ? /^[A-Za-z0-9_\-]{1,40}$/.test(id) : kind === "chem" ? CHEM_RESULTS.has(id) : false;
+    if (!okId) return errObj("invalidInput", lang);
     const z = zpState(user), key = kind + ":" + id;
     if (z.once[key]) return { ...zpStatus(user), gain: 0 };
-    const r = zpAdd(user, 250, "vocab"); if (r.gain > 0) z.once[key] = 1;
+    const r = zpAdd(user, kind === "chem" ? 10 : 250, kind); if (r.gain > 0) z.once[key] = 1;
     return { ...zpStatus(user), gain: r.gain };
   }
   return errObj("invalidInput", lang);
@@ -5551,7 +5737,7 @@ function chessEloApply(g, winner) {
 function chessOnlineFinish(g, winner, why) {
   g.status = "over"; g.winner = winner; g.why = why; g.rev++; g.updated = Date.now();
   try { chessEloApply(g, winner); } catch (e) { console.error("Elo:", e.message); }
-  try { if (!g.zp && g.w && g.b) { const z = zpDuel("chess", { username: g.w }, { username: g.b }, winner === "draw" ? "draw" : (winner === "w" ? "a" : "b"), (g.log || []).length, 4); if (z) g.zp = { w: z.a, b: z.b }; } } catch (e) { console.error("zpChess:", e.message); }
+  try { if (!g.zp && g.random && g.w && g.b) { const z = zpDuel("chess", { username: g.w }, { username: g.b }, winner === "draw" ? "draw" : (winner === "w" ? "a" : "b"), (g.log || []).length, 4); if (z) g.zp = { w: z.a, b: z.b }; } } catch (e) { console.error("zpChess:", e.message); }
 }
 const CHESS_CLOCK_MS = 10 * 60 * 1000, CHESS_CLOCK_INC_MS = 5000; // Mit Zeit: je Spieler 10 Minuten + 5 Sekunden pro Zug
 function chessOnlineCheckTimeout(g) {
@@ -6630,6 +6816,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);
+        else if (req.url === "/api/taboo-solo") result = tabooSoloApi(payload, lang);
         else if (req.url === "/api/braining/claim") result = await brainClaim(payload.token, lang);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
@@ -7503,6 +7690,15 @@ wss.on("connection", (ws, req) => {
         break;
       case "ticTacToeDuelAnswer":
         if (room.runtime && room.runtime.kind === "ticTacToeGame") partyTttDuelAnswer(room, ws.playerId, msg.index);
+        break;
+      case "tabooGuess":
+        handleTabooGuess(room, ws.playerId, msg.text);
+        break;
+      case "tabooTabu":
+        handleTabooTabu(room, ws.playerId);
+        break;
+      case "tabooSkip":
+        handleTabooSkip(room, ws.playerId);
         break;
       case "fourupsMove":
         if (room.runtime && room.runtime.kind === "fourupsGame") handlePartyFourupsMove(room, ws.playerId, msg.col);
