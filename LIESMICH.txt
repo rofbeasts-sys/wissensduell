@@ -1,0 +1,8 @@
+Brain Pulse - Update (alles im richtigen Ordner)
+Ordner komplett auf GitHub hochladen, die Struktur bleibt gleich:
+  server.js                  -> Hauptordner
+  public/index.html, admin.html, zocker.js, chem.js -> Ordner public/
+  shared/tabooDE.json, tabooSoloDE.json -> Ordner shared/ (beide neu bzw. wichtig fuer Taboo)
+Im Render-Log pruefen:
+  "Taboo: 503 Karten aus shared/tabooDE.json"
+  "Taboo Solo: 107 Woerter aus shared/tabooSoloDE.json"

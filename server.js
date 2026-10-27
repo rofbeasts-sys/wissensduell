@@ -379,7 +379,9 @@ function findRoundDef(id) {
   return ROUND_DEF_POOL.find(r => r.id === id) || SLF_ROUND_DEF_POOL.find(r => r.id === id);
 }
 function roundDefPoolForLanguage(language, gameMode) {
-  const base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : (DEDICATED_POOLS[gameMode] || ROUND_DEF_POOL);
+  let base = gameMode === "slf" ? SLF_ROUND_DEF_POOL : (DEDICATED_POOLS[gameMode] || ROUND_DEF_POOL);
+  const okGate = r => r.id === "taboo" ? (!featureLocked("taboo") && !featureLocked("taboo_team")) : r.id === "taboo_ffa" ? (!featureLocked("taboo") && !featureLocked("taboo_ffa")) : true;
+  base = base.filter(okGate);
   return language === "de" ? base : base.filter(r => !r.germanOnly).map(r => localizeDef(r, language));
 }
 
@@ -3280,9 +3282,16 @@ function handleTabooSkip(room, playerId) {
 
 
 /* ---- Taboo Solo: Wort in 5 Versuchen erraten (Wordle-Farben). Wort bleibt auf dem Server. ---- */
-const TABOO_SOLO_CARDS = TABOO_CARDS.filter(c => /^[A-Za-zÄÖÜäöü]{4,8}$/.test(c.w));
-const TABOO_SOLO_PTS = [100, 80, 60, 40, 20], tabooSolo = new Map();
-function tabooSoloView(g, extra) { return Object.assign({ ok: true, len: g.word.length, tries: g.rows.length, max: 5, rows: g.rows, hints: TABOO_SOLO_CARDS[g.idx].t.slice(0, Math.min(5, 2 + g.rows.length)), done: !!g.done }, extra || {}); }
+const TABOO_SOLO_CARDS = (() => {
+  for (const pth of ["shared/tabooSoloDE.json", "tabooSoloDE.json", "public/tabooSoloDE.json"]) {
+    try { const j = JSON.parse(fs.readFileSync(path.join(__dirname, pth), "utf8")); const l = (Array.isArray(j) ? j : []).filter(c => c && /^[A-Za-zÄÖÜäöü]{4,8}$/.test(c.w) && Array.isArray(c.h) && c.h.length === 5); if (l.length) { console.log("Taboo Solo: " + l.length + " Wörter aus " + pth); return l; } } catch (e) {}
+  }
+  console.error("Taboo Solo: tabooSoloDE.json nicht gefunden - Ersatz aus den Taboo-Karten (Datei nach shared/tabooSoloDE.json hochladen).");
+  return TABOO_CARDS.filter(c => /^[A-Za-zÄÖÜäöü]{4,8}$/.test(c.w) && Array.isArray(c.t) && c.t.length >= 5).map(c => ({ w: c.w, c: "Allgemein", h: c.t.slice(0, 5).map(x => ({ k: "w", t: x })) }));
+})();
+const TABOO_SOLO_PTS = [100, 80, 60, 40, 20], TABOO_HINT_COST = 15, tabooSolo = new Map();
+function tabooSoloView(g, extra) { const c = TABOO_SOLO_CARDS[g.idx]; return Object.assign({ ok: true, len: g.word.length, tries: g.rows.length, max: 5, rows: g.rows, cat: c.c, hints: c.h.slice(0, g.hn).map(h => ({ k: h.k, t: h.t })), hintsLeft: 5 - g.hn, hintCost: TABOO_HINT_COST, done: !!g.done }, extra || {}); }
+function tabooSoloPts(g) { return Math.max(5, TABOO_SOLO_PTS[g.rows.length - 1] - TABOO_HINT_COST * g.hn); }
 function tabooSoloApi(p, lang) {
   const sid = String(p.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40); if (!sid) return { ok: false };
   if (!TABOO_SOLO_CARDS.length) return { ok: false };
@@ -3290,13 +3299,14 @@ function tabooSoloApi(p, lang) {
     let idx = Math.floor(Math.random() * TABOO_SOLO_CARDS.length);
     const prev = tabooSolo.get(sid); if (prev && prev.idx === idx) idx = (idx + 1) % TABOO_SOLO_CARDS.length;
     if (process.env.TABOO_TEST_WORD) { const f = TABOO_SOLO_CARDS.findIndex(c => c.w === process.env.TABOO_TEST_WORD); if (f >= 0) idx = f; }  // nur fuer Tests
-    const g = { idx, word: TABOO_SOLO_CARDS[idx].w.toUpperCase(), rows: [], done: false, t: Date.now() };
+    const g = { idx, word: TABOO_SOLO_CARDS[idx].w.toUpperCase(), rows: [], hn: 0, done: false, t: Date.now() };
     tabooSolo.set(sid, g);
     if (tabooSolo.size > 4000) Array.from(tabooSolo.keys()).slice(0, 1000).forEach(k => tabooSolo.delete(k));
     return tabooSoloView(g, { pts: TABOO_SOLO_PTS });
   }
   const g = tabooSolo.get(sid); if (!g) return { ok: false, expired: true };
   if (p.action === "state") return tabooSoloView(g, { pts: TABOO_SOLO_PTS });
+  if (p.action === "hint") { if (!g.done && g.hn < 5) g.hn++; return tabooSoloView(g, { pts: TABOO_SOLO_PTS }); }
   if (p.action !== "guess" || g.done) return tabooSoloView(g);
   const guess = String(p.text || "").toUpperCase().replace(/[^A-ZÄÖÜ]/g, "");
   if (guess.length !== g.word.length) return Object.assign(tabooSoloView(g), { ok: true, rejected: "length" });
@@ -3307,7 +3317,7 @@ function tabooSoloApi(p, lang) {
   let extra = {};
   if (guess === g.word) {
     g.done = true; extra.won = true; extra.word = g.word;
-    const user = p.token ? findUserByToken(p.token) : null, pts = TABOO_SOLO_PTS[g.rows.length - 1];
+    const user = p.token ? findUserByToken(p.token) : null, pts = tabooSoloPts(g);
     extra.zpPossible = pts;
     if (user && Date.now() - g.t > 2500) { const r = zpAdd(user, pts, "taboo", "taboo"); extra.zp = r.gain; extra.zpTotal = r.total; }
   } else if (g.rows.length >= 5) { g.done = true; extra.won = false; extra.word = g.word; }
@@ -3323,6 +3333,7 @@ function startNextRound(room) {
     return endGame(room);
   }
   const def = room.roundDefs[room.currentRoundIndex];
+  statHit("party_" + def.id);
   room.phase = "playing";
   broadcast(room, {
     type: "roundStart",
@@ -3775,7 +3786,7 @@ async function registerUser(username, password, ip, lang, loginName) {
   user.stats.coins = (user.stats.coins || 0) + SIGNUP_BONUS;
   user.coinSnap = user.stats.coins;
   user.coinLog = [{ t: Date.now(), d: SIGNUP_BONUS, b: user.stats.coins, s: "anmeldebonus" }];
-  users.push(user);
+  users.push(user); statReg();
   if (!(await saveUsers())) {
     // Nicht gespeichert -> Konto zurueckrollen statt so zu tun, als waere alles gut
     users = users.filter(u => u !== user);
@@ -3892,10 +3903,18 @@ async function loginUser(username, password, ip, lang, code) {
 /* ============================================================================
    ZOCKER-PUNKTE (alle Spiele): Punkte gesamt / Tag / Woche / Monat, Belohnungen, Bestenlisten
    ============================================================================ */
-const ZP_DAY_CAP = 1000;
-const ZP_DAY_TIERS = [{ p: 100, c: 20 }, { p: 250, c: 40 }, { p: 500, c: 80 }, { p: 800, c: 150 }];
-const ZP_WEEK_TIERS = [{ p: 500, c: 100 }, { p: 1200, c: 200 }, { p: 2500, c: 400 }, { p: 4000, c: 800 }];
-const ZP_MONTH_REWARDS = [1500, 1000, 700, 500, 400, 300, 250, 200, 150, 100];
+let ZP_DAY_CAP = 1000;
+let ZP_DAY_TIERS = [{ p: 100, c: 20 }, { p: 250, c: 40 }, { p: 500, c: 80 }, { p: 800, c: 150 }];
+let ZP_WEEK_TIERS = [{ p: 500, c: 100 }, { p: 1200, c: 200 }, { p: 2500, c: 400 }, { p: 4000, c: 800 }];
+let ZP_MONTH_REWARDS = [1500, 1000, 700, 500, 400, 300, 250, 200, 150, 100];
+const ZP_DEFAULTS = { cap: 1000, day: JSON.parse(JSON.stringify(ZP_DAY_TIERS)), week: JSON.parse(JSON.stringify(ZP_WEEK_TIERS)), month: ZP_MONTH_REWARDS.slice() };
+function zpApplyCfg() {
+  const c = gameCfg && gameCfg.zp || {};
+  const tiers = (a, d) => Array.isArray(a) && a.length >= 1 && a.length <= 8 && a.every(x => x && x.p > 0 && x.c >= 0) ? a.map(x => ({ p: Math.floor(x.p), c: Math.floor(x.c) })).sort((m, n) => m.p - n.p) : d;
+  ZP_DAY_CAP = c.cap >= 10 && c.cap <= 100000 ? Math.floor(c.cap) : ZP_DEFAULTS.cap;
+  ZP_DAY_TIERS = tiers(c.day, ZP_DEFAULTS.day); ZP_WEEK_TIERS = tiers(c.week, ZP_DEFAULTS.week);
+  ZP_MONTH_REWARDS = Array.isArray(c.month) && c.month.length === 10 && c.month.every(x => x >= 0) ? c.month.map(x => Math.floor(x)) : ZP_DEFAULTS.month.slice();
+}
 const ZP_GAMES = ["ttt", "chess", "fourups", "muehle", "taboo"];   // eigene Spiel-Bestenlisten (Schach + Dame zaehlen zusammen als "chess")
 const zpMonthKey = () => todayDateString().slice(0, 7);
 function zpPrevMonthKey() { const [y, m] = zpMonthKey().split("-").map(Number); return m === 1 ? (y - 1) + "-12" : y + "-" + String(m - 1).padStart(2, "0"); }
@@ -3913,7 +3932,7 @@ function zpState(user) {
 // Vergibt Zocker-Punkte (Tageslimit). game = optionale Spiel-Bestenliste. Gibt { gain, total, game } zurueck.
 function zpAdd(user, pts, why, game) {
   try {
-    if (!user || isRestricted(user)) return { gain: 0, total: 0 };
+    if (!user || isRestricted(user) || featureLocked("zp")) return { gain: 0, total: 0 };
     pts = Math.max(0, Math.floor(Number(pts) || 0));
     const z = zpState(user);
     const gain = Math.min(pts, Math.max(0, ZP_DAY_CAP - z.dp));
@@ -3949,6 +3968,8 @@ const CHEM_RESULTS = (() => { try { const l = fs.readFileSync(path.join(__dirnam
 async function zpApi(payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = payload.token ? findUserByToken(payload.token) : null, action = payload.action;
+  if (featureLocked("zp") && !gateOk("zp", payload.adminKey, payload.__ip)) return FEATURE_LOCKED_RESULT;
+  if (action === "board" && featureLocked("boards") && !gateOk("boards", payload.adminKey, payload.__ip)) return FEATURE_LOCKED_RESULT;
   if (action === "board") {
     const mk = zpMonthKey(), kind = payload.kind;
     if (kind === "game") {
@@ -4549,6 +4570,82 @@ async function adminGameSet(key, ip, payload) {
   if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
   console.log("[Spiele] " + g.id + ": " + JSON.stringify(payload.cls !== undefined ? { cls: payload.cls, on: payload.on } : gameCfg.modes[g.id]));
   return adminGames(key, ip);
+}
+
+/* ---- STATISTIK (Zaehler je Tag, liegt mit in den Spiele-Einstellungen) ---- */
+function statDay() {
+  if (!gameCfg.stats || typeof gameCfg.stats !== "object") gameCfg.stats = {};
+  const k = new Date().toISOString().slice(0, 10);
+  if (!gameCfg.stats[k]) {
+    gameCfg.stats[k] = { p: {}, reg: 0, peak: 0, vis: 0 };
+    Object.keys(gameCfg.stats).sort().slice(0, -45).forEach(x => delete gameCfg.stats[x]);
+  }
+  return gameCfg.stats[k];
+}
+function statHit(key) {
+  try { key = String(key || "").slice(0, 40); if (!key) return; const d = statDay(); d.p[key] = (d.p[key] || 0) + 1; maniaSaveSoon(); } catch (e) {}
+}
+function statReg() { try { statDay().reg++; maniaSaveSoon(); } catch (e) {} }
+function statPeakTick(n) { try { const d = statDay(); let ch = false; if (n > (d.peak || 0)) { d.peak = n; ch = true; } const v = seenToday.set ? seenToday.set.size : 0; if (v > (d.vis || 0)) { d.vis = v; ch = true; } if (ch) maniaSaveSoon(); } catch (e) {} }
+const statHitSeen = new Map();
+function statHitApi(payload, ip) {
+  const id = String(payload.g || ""); if (!GAME_DEFS.some(g => g.id === id)) return { ok: false };
+  const k = ip + "|" + id, now = Date.now();
+  if (now - (statHitSeen.get(k) || 0) < 4000) return { ok: true };
+  if (statHitSeen.size > 5000) statHitSeen.clear();
+  statHitSeen.set(k, now); statHit(id); return { ok: true };
+}
+function adminStats(key, ip) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  statPeakTick(presenceCounts().online);
+  const days = [], names = {}; GAME_DEFS.forEach(g => { names[g.id] = g.name; });
+  const now = new Date();
+  for (let i = 0; i < 30; i++) {
+    const k = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10), d = (gameCfg.stats || {})[k] || { p: {}, reg: 0, peak: 0, vis: 0 };
+    days.push({ day: k, plays: Object.values(d.p).reduce((a, b) => a + b, 0), reg: d.reg || 0, peak: d.peak || 0, vis: d.vis || 0, p: d.p });
+  }
+  const sum = (arr, key) => arr.reduce((a, d) => a + (d[key] || 0), 0);
+  const agg = (n) => { const o = {}; days.slice(0, n).forEach(d => { for (const g in d.p) o[g] = (o[g] || 0) + d.p[g]; }); return Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([id, n]) => ({ id, name: names[id] || id.replace(/^party_/, "Party: "), n })); };
+  return { ok: true, today: days[0], week: { plays: sum(days.slice(0, 7), "plays"), reg: sum(days.slice(0, 7), "reg"), peak: Math.max(...days.slice(0, 7).map(d => d.peak)) }, month: { plays: sum(days, "plays"), reg: sum(days, "reg"), peak: Math.max(...days.map(d => d.peak)) },
+    top7: agg(7), top30: agg(30), days: days.map(d => ({ day: d.day, plays: d.plays, reg: d.reg, peak: d.peak, vis: d.vis })).reverse(), users: users.length, online: presenceCounts().online };
+}
+/* ---- ADMIN: ZOCKER-PUNKTE ---- */
+async function adminZp(key, ip, payload) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  if (!usersLoaded) return { ok: false, error: "Konten noch nicht geladen." };
+  const act = payload.action || "get", mk = zpMonthKey();
+  const cfgView = () => ({ cap: ZP_DAY_CAP, day: ZP_DAY_TIERS, week: ZP_WEEK_TIERS, month: ZP_MONTH_REWARDS, defaults: ZP_DEFAULTS, on: !featureLocked("zp"), boardsOn: !featureLocked("boards") });
+  const todayTop = zpTop(u => { const z = (u.stats.zp || {}); return z.day === todayDateString() ? (z.dp || 0) : 0; }, 10);
+  if (act === "get") return { ok: true, cfg: cfgView(), top: zpTop(u => (u.stats.zp || {}).total || 0, 10), topMonth: zpTop(u => ((u.stats.zp || {}).mon || {})[mk] || 0, 10), topToday: todayTop, monthKey: mk };
+  if (act === "set") {
+    const toT = a => (Array.isArray(a) ? a : []).map(x => ({ p: Math.floor(Number(x.p)), c: Math.floor(Number(x.c)) }));
+    const c = { cap: Math.floor(Number(payload.cap)), day: toT(payload.day), week: toT(payload.week), month: (payload.month || []).map(x => Math.floor(Number(x))) };
+    if (!(c.cap >= 10 && c.cap <= 100000)) return { ok: false, error: "Tageslimit 10 bis 100000." };
+    const bad = a => !a.length || a.length > 8 || a.some(x => !(x.p > 0) || !(x.c >= 0)) || a.some((x, i) => i && x.p <= a[i - 1].p);
+    if (bad(c.day) || bad(c.week)) return { ok: false, error: "Stufen: 1 bis 8, Punkte aufsteigend, Münzen ≥ 0." };
+    if (c.month.length !== 10 || c.month.some(x => !(x >= 0))) return { ok: false, error: "Monatspreise: genau 10 Werte ≥ 0." };
+    gameCfg.zp = c; zpApplyCfg();
+    if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
+    console.log("[ZP] Einstellungen geändert"); return { ok: true, cfg: cfgView() };
+  }
+  if (act === "reset-cfg") { delete gameCfg.zp; zpApplyCfg(); await saveGameCfg(); return { ok: true, cfg: cfgView() }; }
+  const u = findUserByName(String(payload.username || "").trim());
+  if (!u) return { ok: false, error: "Spieler nicht gefunden." };
+  const z = zpState(u);
+  const view = () => ({ ok: true, name: u.username, total: z.total, day: z.dp, week: z.wp, month: z.mon[mk] || 0, games: z.g, coins: u.stats.coins || 0, rank: zpRankTotal(u) });
+  if (act === "find") return view();
+  if (act === "credit") {
+    const n = Math.floor(Number(payload.pts)); if (!n || Math.abs(n) > 100000) return { ok: false, error: "Zahl ungültig." };
+    z.total = Math.max(0, z.total + n); z.mon[mk] = Math.max(0, (z.mon[mk] || 0) + n);
+    if (!(await saveUsers())) return { ok: false, error: "Speichern fehlgeschlagen." };
+    console.log("[ZP] " + u.username + " " + (n > 0 ? "+" : "") + n); return view();
+  }
+  if (act === "reset") {
+    u.stats.zp = undefined; zpState(u); delete u.stats.zp.once; zpState(u).total = 0;
+    if (!(await saveUsers())) return { ok: false, error: "Speichern fehlgeschlagen." };
+    console.log("[ZP] " + u.username + " zurückgesetzt"); return view();
+  }
+  return { ok: false, error: "Unbekannt." };
 }
 async function adminCloak(payload, ip, lang) {
   if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -6193,6 +6290,7 @@ async function adminChat(action, payload, ip, lang) {
 function presenceCounts() {
   const now = Date.now(); let total = 0, logged = 0;
   for (const [k, v] of presence) { if (now - v.t > PRESENCE_TTL) { presence.delete(k); continue; } total++; if (v.logged) logged++; }
+  statPeakTick(total);
   return { online: total, loggedIn: logged, guests: total - logged, peakToday: presencePeak(total) };
 }
 let presencePeakDay = "", presencePeakVal = 0;
@@ -6269,6 +6367,12 @@ const GAME_DEFS = [
   { id: "ttt", name: "Tic Tac Toe", group: "Minigames", icon: "❌" },
   { id: "ttt_quantum", name: "Quanten-Tic-Tac-Toe", group: "Minigames", icon: "⚛️", sub: "ttt" },
   { id: "brain_royale", name: "Brain Duel (Royale + Mana)", group: "Minigames", icon: "⚔️" },
+  { id: "taboo", name: "Taboo (alle Modi)", group: "Minigames", icon: "🚫" },
+  { id: "taboo_team", name: "Taboo Team (Party)", group: "Minigames", icon: "👥", sub: "taboo" },
+  { id: "taboo_ffa", name: "Taboo Wettbewerb (Party)", group: "Minigames", icon: "🏁", sub: "taboo" },
+  { id: "taboo_solo", name: "Taboo Solo", group: "Minigames", icon: "🔤", sub: "taboo" },
+  { id: "zp", name: "Zocker-Punkte-System", group: "Zocker-Punkte", icon: "⭐" },
+  { id: "boards", name: "Online-Bestenlisten", group: "Zocker-Punkte", icon: "🏆" },
   { id: "chem", name: "Brainchimie", group: "Minigames", icon: "⚗️" },
   { id: "fourups", name: "Fourups", group: "Minigames", icon: "🔴" },
   { id: "fourups_abilities", name: "Fourups Fähigkeiten", group: "Minigames", icon: "✨", sub: "fourups" },
@@ -6293,7 +6397,7 @@ async function loadGameCfg() {
       const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_games`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
       const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result);
     } else if (fs.existsSync(GAMES_FILE)) raw = JSON.parse(fs.readFileSync(GAMES_FILE, "utf8"));
-    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined };
+    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined, zp: raw.zp && typeof raw.zp === "object" ? raw.zp : undefined, stats: raw.stats && typeof raw.stats === "object" ? raw.stats : undefined }; try { zpApplyCfg(); } catch (e) {}
   } catch (e) { console.error("Spiele-Einstellungen nicht lesbar:", e.message); }
 }
 // ---- NEWS (steht mit in den Spiele-Einstellungen, bleibt also mit gespeichert) ----
@@ -6826,7 +6930,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);
-        else if (req.url === "/api/taboo-solo") result = tabooSoloApi(payload, lang);
+        else if (req.url === "/api/taboo-solo" && !(gateOk("taboo", payload.adminKey, ip) && gateOk("taboo_solo", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/taboo-solo") { if (payload.action === "start") statHit("taboo_solo"); result = tabooSoloApi(payload, lang); }
         else if (req.url === "/api/braining/claim") result = await brainClaim(payload.token, lang);
         else if (req.url === "/api/logout") result = await logoutUser(payload.token);
         else if (req.url === "/api/save-stats") result = await saveUserStats(payload.token, payload.stats || {}, lang);
@@ -6864,6 +6969,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-chat-clear") result = await adminChat("clear", payload, ip, lang);
         else if (req.url === "/api/admin-chat-send") result = await adminChat("send", payload, ip, lang);
         else if (req.url === "/api/admin-games") result = adminGames(payload.key, ip);
+        else if (req.url === "/api/admin-zp") result = await adminZp(payload.key, ip, payload);
+        else if (req.url === "/api/admin-stats") result = adminStats(payload.key, ip);
+        else if (req.url === "/api/stat-hit") result = statHitApi(payload, ip);
         else if (req.url === "/api/news") result = newsPublic(payload.token);
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
         else if (req.url === "/api/admin-news") result = await adminNews(payload.key, ip, payload);
