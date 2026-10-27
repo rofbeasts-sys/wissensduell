@@ -4702,6 +4702,7 @@ function toggleProfileMenu(ev){
     <button onclick="closeProfileMenu();openRecoveryKey()">${L('Schlüssel','Key')}</button>
     <button onclick="closeProfileMenu();openTotpModal()">🔐 ${L('Authenticator','Authenticator')}</button>
     <button onclick="closeProfileMenu();renderSettingsModal()">⚙️ ${L('Einstellungen','Settings')}</button>
+    <button onclick="closeProfileMenu();openFeedbackModal()">💬 Feedback</button>
     <button onclick="closeProfileMenu();openReportModal()">🚩 ${L('Melden','Report')}</button>
     <button style="color:#ff7a8a" onclick="closeProfileMenu();logoutAccount()">${L('Abmelden','Log out')}</button>`;
   m.onclick = e => e.stopPropagation();
@@ -15322,6 +15323,42 @@ document.addEventListener('keydown', e => {
   if(e.key === 'Enter') tabooSoloKey('ENTER'); else if(e.key === 'Backspace') tabooSoloKey('DEL'); else if(/^[a-zA-ZäöüÄÖÜ]$/.test(e.key)) tabooSoloKey(e.key.toUpperCase());
 });
 
+
+
+/* ---------- FEEDBACK (Profil-Menue) ---------- */
+let fbKind = '';
+async function openFeedbackModal(){
+  if(!account || document.getElementById('fbBox')) return;
+  fbKind = '';
+  const d = document.createElement('div'); d.id = 'fbBox';
+  d.style.cssText = 'position:fixed;inset:0;z-index:100003;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+  d.innerHTML = `<div style="background:#101a2b;border:2px solid #c6ff3d;border-radius:16px;padding:16px;max-width:400px;width:100%;color:#fff;font-family:system-ui,sans-serif;max-height:94vh;overflow:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:900;font-size:17px">💬 FEEDBACK</div><button id="fbX" style="border:0;background:none;color:#fff;font-size:22px;cursor:pointer">✕</button></div>
+    <div style="font-size:13px;line-height:1.5;color:#cfe;margin:6px 0 10px">${L('Sag uns, was gut ist, was nervt oder was fehlt. Einmal am Tag. Wenn dein Feedback hilft, bekommst du <b>50 Münzen und 100 Zocker-Punkte</b> vom Admin gutgeschrieben.','Tell us what is good, what annoys you or what is missing. Once a day. If your feedback helps, the admin credits you <b>50 coins and 100 player points</b>.')}</div>
+    <div id="fbBody"><div style="opacity:.7">…</div></div></div>`;
+  document.body.appendChild(d);
+  d.querySelector('#fbX').onclick = () => d.remove();
+  const r = await apiCall('/api/feedback', { action:'status', token: account.token });
+  fbPaint(r);
+}
+function fbPaint(r){
+  const b = document.getElementById('fbBody'); if(!b) return;
+  if(!r || !r.ok){ b.innerHTML = `<div style="color:#ffd45a">${esc((r && r.error) || L('Nicht erreichbar.','Not reachable.'))}</div>`; return; }
+  const K = [['good','👍',L('Gut','Good')],['bad','👎',L('Schlecht','Bad')],['bug','🐞',L('Fehler','Bug')],['idea','💡',L('Idee','Idea')]];
+  const mine = (r.mine || []).map(f => `<div style="border-top:1px solid #ffffff22;padding:6px 0;font-size:12px;opacity:.9">${({good:'👍',bad:'👎',bug:'🐞',idea:'💡'})[f.kind] || ''} ${esc(f.text)}${f.rewarded ? ` <b style="color:#c6ff3d">🎁 ${L('belohnt','rewarded')}</b>` : ''}</div>`).join('');
+  b.innerHTML = (r.can ? `<div style="display:flex;gap:6px;margin-bottom:8px">${K.map(([k,e,n]) => `<button data-k="${k}" style="flex:1;padding:8px 2px;border-radius:10px;border:1px solid #ffffff33;background:${fbKind===k?'#c6ff3d':'#ffffff10'};color:${fbKind===k?'#10150a':'#fff'};font-weight:800;font-size:12px;cursor:pointer">${e}<br>${n}</button>`).join('')}</div>
+    <input id="fbArea" maxlength="40" placeholder="${L('Welches Spiel? (optional)','Which game? (optional)')}" style="width:100%;box-sizing:border-box;padding:9px;border-radius:10px;border:1px solid #ffffff33;background:#0008;color:#fff;margin-bottom:8px">
+    <textarea id="fbText" maxlength="600" rows="5" placeholder="${L('Dein Feedback …','Your feedback …')}" style="width:100%;box-sizing:border-box;padding:9px;border-radius:10px;border:1px solid #ffffff33;background:#0008;color:#fff;font-family:inherit"></textarea>
+    <div id="fbMsg" style="font-size:12px;min-height:16px;color:#ffd45a;margin:4px 0"></div><button id="fbSend" class="btn btn-primary btn-block">${L('SENDEN','SEND')}</button>`
+    : `<div style="text-align:center;font-weight:800;padding:8px 0">${r.sent ? '✅ ' + L('Danke! Dein Feedback ist angekommen.','Thanks! Your feedback has arrived.') : L('Heute hast du schon Feedback geschickt. Morgen gern wieder!','You already sent feedback today. Come back tomorrow!')}</div>`)
+    + (mine ? `<div style="margin-top:10px;font-weight:800;font-size:12px;opacity:.7">${L('DEIN LETZTES FEEDBACK','YOUR LATEST FEEDBACK')}</div>${mine}` : '');
+  b.querySelectorAll('[data-k]').forEach(x => x.onclick = () => { fbKind = x.dataset.k; const t = document.getElementById('fbText').value, a = document.getElementById('fbArea').value; fbPaint(r); document.getElementById('fbText').value = t; document.getElementById('fbArea').value = a; });
+  const sb = document.getElementById('fbSend'); if(sb) sb.onclick = async () => {
+    sb.disabled = true;
+    const res = await apiCall('/api/feedback', { action:'send', token: account.token, kind: fbKind, area: document.getElementById('fbArea').value, text: document.getElementById('fbText').value });
+    if(res && res.ok){ fbPaint(res); } else { sb.disabled = false; const m = document.getElementById('fbMsg'); if(m) m.textContent = (res && res.error) || L('Nicht erreichbar.','Not reachable.'); if(res && res.can === false) fbPaint(res); }
+  };
+}
 
 /* ---------- EVENTS: BATTLE ROYALE ---------- */
 let evs = null;

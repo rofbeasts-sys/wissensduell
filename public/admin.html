@@ -73,6 +73,7 @@ button.mini{padding:4px 8px;font-size:12px}
     <button data-t="req">Anfragen<span class="n hidden" id="nReq"></span></button>
     <button data-t="rep">Meldungen<span class="n hidden" id="nRep"></span></button>
     <button data-t="news">News</button>
+    <button data-t="fb">Feedback<span class="n hidden" id="nFb"></span></button>
     <button data-t="ev">Events</button>
     <button data-t="zp">Zocker-Punkte</button>
     <button data-t="stats">Statistik</button>
@@ -176,6 +177,13 @@ button.mini{padding:4px 8px;font-size:12px}
     </div>
   </div>
 
+  <div id="tab_fb" class="hidden">
+    <div class="dim" style="font-size:12px;margin-bottom:8px">Spieler schicken 1× pro Tag Feedback aus dem Profil-Menü. <b>Belohnen</b> schreibt dem Spieler 50 Münzen + 100 Zocker-Punkte gut (nur einmal je Feedback). <b>Behalten</b> markiert es für dich, <b>Löschen</b> entfernt es nur bei dir.</div>
+    <div class="row" id="fbTabs" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+    <div id="fbMsgA" style="min-height:16px;font-size:13px;margin-bottom:6px"></div>
+    <div id="fbList">…</div>
+  </div>
+
   <div id="tab_req" class="hidden">
     <div class="card"><h2>PASSWORT-ANFRAGEN</h2><div id="reqs">…</div></div>
   </div>
@@ -262,8 +270,8 @@ let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['live','players','games','req','rep','news','mania','zp','stats','ev'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games') loadGames(); if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad(); if(t === 'mania'){ loadGames(); maniaCfgLoad(); }
+  ['live','players','games','req','rep','news','mania','zp','stats','ev','fb'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games') loadGames(); if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad(); if(t === 'mania'){ loadGames(); maniaCfgLoad(); }
 }
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
@@ -558,6 +566,29 @@ async function evDo(action, id, ask){
   const r = await api('/api/admin-events', { action, id });
   if(r && r.ok){ EVD = r; evMsg('Erledigt.', true); evPaintList(); } else evMsg((r && r.error) || 'Fehler');
 }
+
+/* ---- Feedback-Reiter ---- */
+let FBD = null, FBF = 'new';
+const FB_K = { good:'👍 Gut', bad:'👎 Schlecht', bug:'🐞 Fehler', idea:'💡 Idee' };
+async function fbLoad(){ const r = await api('/api/admin-feedback', { action:'list' }); if(!r || !r.ok){ $('fbList').textContent = (r && r.error) || 'Fehler'; return; } FBD = r; fbPaint(); }
+function fbBadge(){ const n = FBD ? FBD.newCount : 0; const e = $('nFb'); if(e){ e.textContent = n; e.classList.toggle('hidden', !n); } }
+function fbPaint(){
+  fbBadge();
+  const it = FBD.items, cnt = { new: it.filter(x => x.state === 'new').length, kept: it.filter(x => x.state === 'kept').length, rew: it.filter(x => x.rewarded).length, all: it.length };
+  $('fbTabs').innerHTML = [['new','Neu',cnt.new],['kept','Behalten',cnt.kept],['rew','Belohnt',cnt.rew],['all','Alle',cnt.all]].map(([k,n,c]) => `<button class="${FBF===k?'':'btn2'}" onclick="FBF='${k}';fbPaint()">${n} (${c})</button>`).join('');
+  const list = it.filter(x => FBF === 'all' || (FBF === 'new' && x.state === 'new') || (FBF === 'kept' && x.state === 'kept') || (FBF === 'rew' && x.rewarded));
+  $('fbList').innerHTML = list.length ? list.map(f => `<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(f.user)}</b><span class="dim" style="font-size:12px">${fdt(f.t)}</span></div>
+    <div style="margin:8px 0;display:flex;gap:6px;flex-wrap:wrap"><span class="pill">${FB_K[f.kind] || f.kind}</span>${f.area ? `<span class="pill cy">${esc(f.area)}</span>` : ''}${f.state === 'kept' ? '<span class="pill on">⭐ behalten</span>' : ''}${f.rewarded ? `<span class="pill on">🎁 belohnt (${f.rc} 🪙 + ${f.rz} ZP)</span>` : ''}</div>
+    <div style="white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.45">${esc(f.text)}</div>
+    <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${f.rewarded ? '' : `<button onclick="fbAct('reward','${f.id}')">🎁 Belohnen (${FBD.reward.c} 🪙 + ${FBD.reward.z} ZP)</button>`}${f.state === 'kept' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Nicht behalten</button>` : `<button class="btn2" onclick="fbAct('mark','${f.id}','kept')">⭐ Behalten</button>`}${f.state === 'new' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Gelesen</button>` : ''}<button class="btn2 red" onclick="fbAct('delete','${f.id}')">Löschen</button></div></div>`).join('') : '<div class="dim">Nichts in dieser Ansicht.</div>';
+}
+async function fbAct(action, id, state){
+  if(action === 'delete' && !confirm('Dieses Feedback bei dir löschen? (Der Spieler merkt nichts.)')) return;
+  if(action === 'reward' && !confirm('Spieler jetzt mit ' + FBD.reward.c + ' Münzen und ' + FBD.reward.z + ' Zocker-Punkten belohnen?')) return;
+  const r = await api('/api/admin-feedback', { action, id, state });
+  if(r && r.ok){ FBD = r; fbPaint(); $('fbMsgA').style.color = 'var(--ok)'; $('fbMsgA').textContent = action === 'reward' ? 'Belohnung ist gutgeschrieben.' : ''; } else { $('fbMsgA').style.color = '#ff5d8f'; $('fbMsgA').textContent = (r && r.error) || 'Fehler'; }
+}
+setTimeout(() => { try{ if(KEY) api('/api/admin-feedback', { action:'list' }).then(r => { if(r && r.ok){ FBD = r; fbBadge(); } }); }catch(e){} }, 2500);
 </script>
 </body>
 </html>
