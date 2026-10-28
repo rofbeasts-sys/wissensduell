@@ -163,14 +163,20 @@ button.mini{padding:4px 8px;font-size:12px}
   </div>
 
   <div id="tab_ev" class="hidden">
-    <div class="dim" style="font-size:12px;margin-bottom:8px">Battle Royale: alle Angemeldeten spielen gleichzeitig dieselbe Runde, nach jeder Runde fliegen die Letzten raus (ca. 25 %). Ein Event ist für Spieler <b>unsichtbar</b>, bis du es veröffentlichst. Preise werden erst nach deiner Bestätigung ausgezahlt.</div>
+    <div class="dim" style="font-size:12px;margin-bottom:8px"><b>Turnier-Baum</b> (8/16/32): 1 gegen 1, wer verliert, fliegt raus; pro Runde stellst du Spiele, Schwierigkeit und Wertung (Punkte / Aufgaben / Zeit) ein, im Finale gern mehrere Spiele. <b>Battle Royale</b> (10/50/100): alle spielen gleichzeitig, nach jeder Runde fliegen die Letzten raus (ca. 25 %). Ein Event ist für Spieler <b>unsichtbar</b>, bis du es veröffentlichst. Preise werden erst nach deiner Bestätigung ausgezahlt.</div>
     <div id="evMsg" style="min-height:16px;font-size:13px;margin-bottom:6px"></div>
     <div id="evList"></div>
     <div class="card"><h2 id="evFormT">NEUES EVENT</h2>
-      <input id="evName" maxlength="40" placeholder="Name, z. B. Halloween-Battle" style="width:100%;margin-bottom:8px">
-      <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap"><label class="dim" style="font-size:12px">Start<br><input id="evStart" type="datetime-local"></label><label class="dim" style="font-size:12px">Max. Spieler<br><input id="evMax" type="number" value="32" style="width:90px"></label><label class="dim" style="font-size:12px">Mind.<br><input id="evMin" type="number" value="4" style="width:70px"></label></div>
-      <h2 style="margin-top:6px">RUNDEN (Reihenfolge)</h2><div id="evRounds"></div>
-      <div class="row" style="gap:8px;margin:8px 0"><button class="btn2" onclick="evAddRound()">＋ Runde</button><button class="btn2" onclick="evRandomRounds()">🎲 Zufällig füllen</button></div>
+      <input id="evName" maxlength="40" placeholder="Name, z. B. Halloween-Turnier" style="width:100%;margin-bottom:8px">
+      <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap"><label class="dim" style="font-size:12px">Art<br><select id="evFmt" onchange="evSetFormat(this.value)" style="background:#08121f;color:#fff;border:1px solid var(--line);border-radius:10px;padding:8px"><option value="bracket">🏆 Turnier-Baum (1 gegen 1)</option><option value="royale">⚔️ Battle Royale</option></select></label>
+        <label class="dim" style="font-size:12px">Größe<br><select id="evSize" onchange="evSetSize(Number(this.value))" style="background:#08121f;color:#fff;border:1px solid var(--line);border-radius:10px;padding:8px"></select></label>
+        <label class="dim" style="font-size:12px">Mind. Spieler<br><input id="evMin" type="number" value="2" style="width:80px"></label>
+        <label class="dim" style="font-size:12px">Start<br><input id="evStart" type="datetime-local"></label></div>
+      <label class="dim" style="font-size:13px;display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" id="evSecret" checked> 🎲 Spiele geheim halten (Spieler sehen erst beim Start, welches Spiel kommt)</label>
+      <label class="dim" style="font-size:13px;display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap"><input type="checkbox" id="evBots" onchange="evBotsUi()"> 🤖 Mit Bots auffüllen, wenn zu wenige da sind – bis auf <input id="evBotTo" type="number" min="2" style="width:70px"> Spieler <span style="font-size:12px">(Bots stehen mit 🤖 im Namen, bekommen keine Preise)</span></label>
+      <div class="dim" id="evFmtInfo" style="font-size:12px;margin-bottom:6px"></div>
+      <h2 style="margin-top:6px" id="evRoundsT">RUNDEN</h2><div id="evRounds"></div>
+      <div class="row" style="gap:8px;margin:8px 0" id="evRoundBtns"></div>
       <h2>PREISE (Münzen / Brainups)</h2>
       <div id="evPrizes"></div>
       <div class="row" style="gap:8px;margin-top:10px"><button onclick="evSave()">Als Entwurf speichern</button><button class="btn2" onclick="evReset()">Neu</button></div>
@@ -516,13 +522,13 @@ async function stLoad(){
 }
 
 /* ---- Events-Reiter (Battle Royale) ---- */
-let EVD = null, EVF = { id:'', rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }, evTimer = null;
+let EVD = null, EVF = { id:'', format:'bracket', size:8, secret:true, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }, evTimer = null;
 const EV_STATE = { draft:'Entwurf', open:'Anmeldung offen', running:'Läuft', payout:'Beendet – Auszahlung offen', done:'Ausgezahlt', cancelled:'Abgesagt' };
 function evMsg(t, ok){ $('evMsg').style.color = ok ? 'var(--ok)' : '#ff5d8f'; $('evMsg').textContent = t || ''; }
 async function evLoad(){
   const r = await api('/api/admin-events', { action:'list' });
   if(!r || !r.ok){ evMsg((r && r.error) || 'Fehler'); return; }
-  EVD = r; evPaintList(); evPaintForm();
+  EVD = r; if(!EVF.rounds.length) evFillRounds(true); evPaintList(); evPaintForm();
   clearInterval(evTimer); evTimer = setInterval(() => { if($('tab_ev').classList.contains('hidden')){ clearInterval(evTimer); return; } if(EVD.events.some(e => e.state === 'running' || e.state === 'open')) evRefresh(); }, 4000);
 }
 async function evRefresh(){ const r = await api('/api/admin-events', { action:'list' }); if(r && r.ok){ EVD = r; evPaintList(); } }
@@ -530,37 +536,90 @@ function fdt(ts){ return ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digi
 function evPaintList(){
   const ev = EVD.events.slice().sort((a,b) => b.created - a.created);
   $('evList').innerHTML = ev.length ? ev.map(e => {
-    const pz = e.prizes, rn = e.rounds.map((r,i) => (i+1) + '. ' + EVD.types[r.type] + (r.topic ? ' (' + esc((EVD.topics.find(t => t.k === r.topic) || {}).label || r.topic) + ')' : '')).join(' · ');
+    const pz = e.prizes, br = e.format === 'bracket', rn = e.rounds.map((r,i) => (br ? evStageNm(Math.pow(2, e.rounds.length - i)) : 'Runde ' + (i+1)) + ': ' + (r.discs || [r]).map(d => esc(evDLabel(Object.assign(evDefDisc(d.type), d)))).join(' + ')).join('<br>');
+    const url = location.origin + '/?event=' + e.id, lnk = (e.state === 'open' || e.state === 'running') ? `<div style="margin-top:8px;background:#ffffff0d;border-radius:12px;padding:8px"><div class="dim" style="font-size:12px">🔗 Einladungslink (z. B. für Reddit): Besucher geben nur einen Namen ein und sind drin.</div><div class="row" style="gap:6px;margin-top:4px"><input readonly value="${url}" onclick="this.select()" style="flex:1;min-width:0"><button class="btn2" onclick="evCopy('${e.id}')">Kopieren</button></div></div>` : '';
     let act = '';
     if(e.state === 'draft') act = `<button onclick="evEdit('${e.id}')" class="btn2">Bearbeiten</button><button onclick="evDo('publish','${e.id}','Event für ALLE Spieler veröffentlichen? Danach können sie sich anmelden.')">✅ Veröffentlichen</button><button class="btn2 red" onclick="evDo('delete','${e.id}','Entwurf löschen?')">Löschen</button>`;
     else if(e.state === 'open') act = `<button onclick="evDo('startnow','${e.id}','Jetzt starten?')">▶ Jetzt starten</button><button class="btn2 red" onclick="evDo('cancel','${e.id}','Event absagen?')">Absagen</button>`;
     else if(e.state === 'running') act = `<button class="btn2" onclick="evDo('skip','${e.id}')">⏭ Phase überspringen</button><button class="btn2 red" onclick="evDo('cancel','${e.id}','Event abbrechen?')">Abbrechen</button>`;
     else if(e.state === 'payout') act = `<button onclick="evDo('payout','${e.id}','Preise jetzt an alle auszahlen?')">💰 Auszahlung bestätigen</button>`;
     else act = `<button class="btn2 red" onclick="evDo('delete','${e.id}','Eintrag löschen?')">Löschen</button>`;
-    const live = e.live ? `<div class="dim" style="margin-top:6px">Runde <b style="color:#fff">${e.live.roundIdx+1}/${e.rounds.length}</b> · ${esc(e.live.phase)} · noch dabei <b style="color:#fff">${e.live.alive}</b></div>` + e.live.board.map((b,i) => `<div class="pl"><span class="${b.alive?'':'dim'}">${i+1}. ${esc(b.name)}${b.alive?'':' (raus)'}</span><b style="color:var(--acc)">${b.score}</b></div>`).join('') : '';
+    const live = e.live && e.live.fmt === 'bracket' ? `<div class="dim" style="margin-top:6px"><b style="color:#fff">${esc(e.live.stage)}</b> · ${esc(e.live.phase)} · noch dabei <b style="color:#fff">${e.live.alive}</b></div>` + e.live.matches.map(m => `<div class="pl"><span>${esc(m.a)} ${m.b ? 'vs ' + esc(m.b) : '(Freilos)'}</span><b style="color:var(--acc)">${m.w ? '→ ' + esc(m.w) : ''}</b></div>`).join('') : e.live ? `<div class="dim" style="margin-top:6px">Runde <b style="color:#fff">${e.live.roundIdx+1}/${e.rounds.length}</b> · ${esc(e.live.phase)} · noch dabei <b style="color:#fff">${e.live.alive}</b></div>` + e.live.board.map((b,i) => `<div class="pl"><span class="${b.alive?'':'dim'}">${i+1}. ${esc(b.name)}${b.alive?'':' (raus)'}</span><b style="color:var(--acc)">${b.score}</b></div>`).join('') : '';
     const res = e.results ? `<div class="dim" style="margin-top:6px">Ergebnis:</div>` + e.results.slice(0,10).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--acc)">${r.score}</b></div>`).join('') + (e.state === 'payout' ? `<div class="dim" style="margin-top:6px">Auszahlung: 1. ${pz.p1.c} 🪙/${pz.p1.z} BU · 2. ${pz.p2.c}/${pz.p2.z} · 3. ${pz.p3.c}/${pz.p3.z} · alle anderen ${pz.part.c} 🪙/${pz.part.z} BU (${e.results.length} Spieler)</div>` : '') : '';
-    return `<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:16px">⚔️ ${esc(e.name)}</b><span class="pill ${e.state==='open'||e.state==='running'?'on':''}">${EV_STATE[e.state]||e.state}</span></div>
-      <div class="dim" style="margin-top:4px">Start ${fdt(e.start)} · ${e.entrants.length}/${e.maxPlayers} angemeldet (mind. ${e.minPlayers})${e.reason ? ' · ' + esc(e.reason) : ''}</div><div class="dim" style="font-size:12px;margin-top:4px">${rn}</div>
-      ${live}${res}<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${act}</div></div>`;
+    return `<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:16px">${br ? '🏆' : '⚔️'} ${esc(e.name)} <span class="dim" style="font-size:12px">(${br ? 'Turnier' : 'Battle Royale'} ${e.size || e.maxPlayers})</span></b><span class="pill ${e.state==='open'||e.state==='running'?'on':''}">${EV_STATE[e.state]||e.state}</span></div>
+      <div class="dim" style="margin-top:4px">Start ${fdt(e.start)} · ${e.entrants.length}/${e.maxPlayers} angemeldet (mind. ${e.minPlayers})${e.botFill ? ' · 🤖 Bots bis ' + (e.botTo || e.size) : ''}${e.reason ? ' · ' + esc(e.reason) : ''}</div><div class="dim" style="font-size:12px;margin-top:4px;line-height:1.5">${rn}</div>
+      ${lnk}${live}${res}<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${act}</div></div>`;
   }).join('') : '<div class="dim" style="margin-bottom:8px">Noch keine Events.</div>';
 }
-function evPaintForm(){
-  $('evFormT').textContent = EVF.id ? 'ENTWURF BEARBEITEN' : 'NEUES EVENT';
-  $('evRounds').innerHTML = EVF.rounds.map((r,i) => `<div class="row" style="gap:6px;margin-bottom:6px"><b style="width:20px">${i+1}</b><select onchange="evSetRound(${i},'type',this.value)" style="flex:1;background:#08121f;color:#fff;border:1px solid var(--line);border-radius:10px;padding:8px">${Object.entries(EVD.types).map(([k,v]) => `<option value="${k}" ${r.type===k?'selected':''}>${v}</option>`).join('')}</select>${r.type === 'hilo' ? `<select onchange="evSetRound(${i},'topic',this.value)" style="flex:1;background:#08121f;color:#fff;border:1px solid var(--line);border-radius:10px;padding:8px"><option value="">Thema: Zufall</option>${EVD.topics.map(t => `<option value="${t.k}" ${r.topic===t.k?'selected':''}>${esc(t.label)}</option>`).join('')}</select>` : ''}<button class="btn2 red" style="padding:6px 10px" onclick="evDelRound(${i})">✕</button></div>`).join('') || '<div class="dim">Noch keine Runde.</div>';
-  const pr = EVF.prizes, row = (k, l) => `<div class="row" style="gap:6px;margin-bottom:6px;align-items:center"><span style="width:90px">${l}</span><input type="number" min="0" value="${pr[k].c}" onchange="EVF.prizes.${k}.c=Number(this.value)" style="width:90px"><span class="dim">🪙</span><input type="number" min="0" value="${pr[k].z}" onchange="EVF.prizes.${k}.z=Number(this.value)" style="width:90px"><span class="dim">ZP</span></div>`;
-  $('evPrizes').innerHTML = row('p1','🥇 Platz 1') + row('p2','🥈 Platz 2') + row('p3','🥉 Platz 3') + row('part','Teilnahme');
+const SELS = 'background:#08121f;color:#fff;border:1px solid var(--line);border-radius:10px;padding:7px;max-width:100%';
+function evDefDisc(t){ return { type: t || 'quiz', mode:'points', sec:45, count:10, klasse:0, level:1, topic:'' }; }
+function evStageN(size){ return Math.log2(size); }
+function evStageNm(players){ return players === 2 ? 'Finale' : players === 4 ? 'Halbfinale' : players === 8 ? 'Viertelfinale' : players === 16 ? 'Achtelfinale' : 'Runde der ' + players; }
+function evDLabel(d){
+  let t = EVD.types[d.type] || d.type;
+  if(d.type === 'quiz' && d.klasse > 0) t += ' Kl. ' + d.klasse;
+  const tl = d.type === 'hilo' ? EVD.topics : d.type === 'sort' ? EVD.sortTopics : d.type === 'chrono' ? EVD.chronoTopics : null;
+  if(tl && d.topic) t += ' (' + ((tl.find(x => x.k === d.topic) || {}).label || d.topic) + ')';
+  if((d.type === 'math' || d.type === 'order') && d.level > 1) t += ' Stufe ' + d.level;
+  return t + ' · ' + (d.mode === 'time' ? d.count + ' Aufg. auf Zeit' : d.mode === 'tasks' ? 'Aufgaben ' + d.sec + ' s' : 'Punkte ' + d.sec + ' s');
 }
-function evAddRound(){ EVF.rounds.push({ type:'quiz', topic:'' }); evPaintForm(); }
+function evSetFormat(f){
+  EVF.format = f; EVF.size = f === 'bracket' ? 8 : 50; evFillRounds(true); evPaintForm();
+}
+function evBotsUi(){ EVF.botFill = $('evBots').checked; $('evBotTo').disabled = !EVF.botFill; if(EVF.botFill && !Number($('evBotTo').value)) $('evBotTo').value = EVF.size; }
+function evSetSize(n){ EVF.size = n; EVF.botTo = n; if(EVF.format === 'bracket') evFillRounds(false); evPaintForm(); }
+function evFillRounds(fresh){
+  if(EVF.format === 'bracket'){
+    const n = evStageN(EVF.size), old = fresh ? [] : EVF.rounds, out = [];
+    for(let i = 0; i < n; i++) out.push(old[i] && old[i].discs ? { discs: old[i].discs } : { discs: [evDefDisc('quiz')] });
+    EVF.rounds = out;
+  } else if(fresh || !EVF.rounds.length || !EVF.rounds[0].discs) EVF.rounds = [0,1,2,3].map(i => ({ discs: [evDefDisc(['quiz','hilo','math','order'][i])] }));
+}
+function evDiscHtml(ri, di, d){
+  const o = (k, v, sel) => `<option value="${k}" ${String(sel) === String(k) ? 'selected' : ''}>${v}</option>`, br = EVF.format === 'bracket';
+  const topicList = d.type === 'hilo' ? EVD.topics : d.type === 'sort' ? EVD.sortTopics : d.type === 'chrono' ? EVD.chronoTopics : null;
+  let h = `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#ffffff08;border-radius:12px;padding:8px;margin-top:6px">`;
+  if(br) h += `<b style="width:100%;font-size:12px" class="dim">Spiel ${di + 1}</b>`;
+  h += `<select onchange="evSetD(${ri},${di},'type',this.value)" style="${SELS}">${Object.entries(EVD.types).map(([k,v]) => o(k, v, d.type)).join('')}</select>`;
+  if(d.type === 'quiz' || d.type === 'mix') h += `<select onchange="evSetD(${ri},${di},'klasse',Number(this.value))" style="${SELS}">${o(0, 'Alle Klassen', d.klasse)}${[1,2,3,4,5,6,7,8,9,10].map(k => o(k, 'Klasse ' + k, d.klasse)).join('')}</select>`;
+  if(topicList) h += `<select onchange="evSetD(${ri},${di},'topic',this.value)" style="${SELS}">${o('', 'Thema: zufällig', d.topic)}${topicList.map(t => o(t.k, t.label, d.topic)).join('')}</select>`;
+  if(d.type === 'math' || d.type === 'order' || d.type === 'mix') h += `<select onchange="evSetD(${ri},${di},'level',Number(this.value))" style="${SELS}">${[1,2,3,4].map(k => o(k, 'Stufe ' + k + (k === 1 ? ' (leicht)' : k === 4 ? ' (schwer)' : ''), d.level)).join('')}</select>`;
+  h += `<select onchange="evSetD(${ri},${di},'mode',this.value)" style="${SELS}">${o('points', 'Wertung: Punkte', d.mode)}${o('tasks', 'Wertung: Aufgaben', d.mode)}${br ? o('time', 'Wertung: Zeit', d.mode) : ''}</select>`;
+  h += `<label class="dim" style="font-size:12px">${d.mode === 'time' ? 'max. Sek.' : 'Sek.'} <input type="number" min="15" max="300" value="${d.sec}" onchange="evSetD(${ri},${di},'sec',Number(this.value))" style="width:64px"></label>`;
+  if(d.mode === 'time') h += `<label class="dim" style="font-size:12px">Aufgaben <input type="number" min="3" max="60" value="${d.count}" onchange="evSetD(${ri},${di},'count',Number(this.value))" style="width:60px"></label>`;
+  if(br && EVF.rounds[ri].discs.length > 1) h += `<button class="btn2 red" style="padding:4px 10px" onclick="evDelDisc(${ri},${di})">✕</button>`;
+  if(!br) h += `<button class="btn2 red" style="padding:4px 10px" onclick="evDelRound(${ri})">✕</button>`;
+  return h + `</div>`;
+}
+function evPaintForm(){
+  const br = EVF.format === 'bracket';
+  $('evFormT').textContent = EVF.id ? 'ENTWURF BEARBEITEN' : 'NEUES EVENT';
+  $('evFmt').value = EVF.format; $('evSecret').checked = EVF.secret !== false; $('evBots').checked = !!EVF.botFill; $('evBotTo').value = EVF.botTo || EVF.size; $('evBotTo').max = EVF.size; $('evBotTo').disabled = !EVF.botFill;
+  $('evSize').innerHTML = (br ? [8,16,32] : [10,50,100]).map(n => `<option value="${n}" ${EVF.size === n ? 'selected' : ''}>${n} Spieler</option>`).join('');
+  $('evFmtInfo').textContent = br ? 'Wer verliert, scheidet aus. Gewinner: mehr gewonnene Spiele; bei Gleichstand die höhere Punktzahl. Reichen die Anmeldungen nicht für den vollen Baum, gibt es Freilose (mind. 2 Spieler).' : 'Alle spielen gleichzeitig. Nach jeder Runde scheiden ca. 25 % der Letzten aus, die Beste*n gewinnen.';
+  $('evRoundsT').textContent = br ? 'RUNDEN DES BAUMS' : 'RUNDEN (Reihenfolge)';
+  $('evRounds').innerHTML = EVF.rounds.map((r, i) => br
+    ? `<div style="border:1px solid var(--line);border-radius:14px;padding:8px;margin-bottom:8px"><b>${evStageNm(Math.pow(2, EVF.rounds.length - i))}</b>${r.discs.map((d, di) => evDiscHtml(i, di, d)).join('')}${r.discs.length < 5 ? `<button class="btn2" style="margin-top:6px" onclick="evAddDisc(${i})">＋ Weiteres Spiel in dieser Runde</button>` : ''}</div>`
+    : `<div style="margin-bottom:4px"><b style="font-size:12px" class="dim">Runde ${i + 1}</b>${evDiscHtml(i, 0, r.discs[0])}</div>`).join('');
+  $('evRoundBtns').innerHTML = br ? `<button class="btn2" onclick="evRandomRounds()">🎲 Zufällig füllen</button>` : `<button class="btn2" onclick="evAddRound()">＋ Runde</button><button class="btn2" onclick="evRandomRounds()">🎲 Zufällig füllen</button>`;
+  const pr = EVF.prizes, row = (k, l) => `<div class="row" style="gap:6px;margin-bottom:6px;align-items:center"><span style="width:110px">${l}</span><input type="number" min="0" value="${pr[k].c}" onchange="EVF.prizes.${k}.c=Number(this.value)" style="width:90px"><span class="dim">🪙</span><input type="number" min="0" value="${pr[k].z}" onchange="EVF.prizes.${k}.z=Number(this.value)" style="width:90px"><span class="dim">BU</span></div>`;
+  $('evPrizes').innerHTML = row('p1','🥇 Platz 1') + row('p2','🥈 Platz 2') + row('p3', br ? '🥉 Halbfinal-Aus' : '🥉 Platz 3') + row('part','Teilnahme');
+}
+function evSetD(ri, di, k, v){ const d = EVF.rounds[ri].discs[di]; d[k] = v; if(k === 'type'){ d.topic = ''; if(EVF.format !== 'bracket' && d.mode === 'time') d.mode = 'points'; } evPaintForm(); }
+function evAddDisc(ri){ EVF.rounds[ri].discs.push(evDefDisc(['quiz','hilo','math','order','sort','chrono','mix'][EVF.rounds[ri].discs.length % 7])); evPaintForm(); }
+function evDelDisc(ri, di){ EVF.rounds[ri].discs.splice(di, 1); evPaintForm(); }
+function evAddRound(){ EVF.rounds.push({ discs: [evDefDisc('quiz')] }); evPaintForm(); }
 function evDelRound(i){ EVF.rounds.splice(i, 1); evPaintForm(); }
-function evSetRound(i, k, v){ EVF.rounds[i][k] = v; if(k === 'type') EVF.rounds[i].topic = ''; evPaintForm(); }
-function evRandomRounds(){ const t = ['quiz','hilo','math']; EVF.rounds = Array.from({length:5}, (_, i) => ({ type: t[i % 3], topic:'' })).sort(() => Math.random() - .5); evPaintForm(); }
-function evReset(){ EVF = { id:'', rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }; $('evName').value = ''; $('evStart').value = ''; $('evMax').value = 32; $('evMin').value = 4; evPaintForm(); }
-function evEdit(id){ const e = EVD.events.find(x => x.id === id); if(!e) return; EVF = { id:e.id, rounds: JSON.parse(JSON.stringify(e.rounds)), prizes: JSON.parse(JSON.stringify(e.prizes)) }; $('evName').value = e.name; $('evStart').value = e.start ? toLocal(e.start) : ''; $('evMax').value = e.maxPlayers; $('evMin').value = e.minPlayers; evPaintForm(); window.scrollTo(0, document.body.scrollHeight); }
+function evRandomRounds(){ const t = ['quiz','hilo','math','order','sort','chrono','mix'], rnd = () => t[Math.floor(Math.random() * t.length)]; EVF.rounds = EVF.rounds.map(r => ({ discs: r.discs.map(d => Object.assign(evDefDisc(rnd()), { mode: d.mode, sec: d.sec, count: d.count })) })); evPaintForm(); }
+function evReset(){ EVF = { id:'', format:'bracket', size:8, secret:true, botFill:false, botTo:8, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }; evFillRounds(true); $('evName').value = ''; $('evStart').value = ''; $('evMin').value = 2; evPaintForm(); }
+function evEdit(id){ const e = EVD.events.find(x => x.id === id); if(!e) return; const rounds = e.rounds.map(r => ({ discs: (r.discs || [r]).map(d => Object.assign(evDefDisc(d.type), d)) }));
+  EVF = { id:e.id, format: e.format || 'royale', size: e.size || e.maxPlayers, secret: e.secret !== false, botFill: !!e.botFill, botTo: e.botTo || e.size || e.maxPlayers, rounds, prizes: JSON.parse(JSON.stringify(e.prizes)) }; $('evName').value = e.name; $('evStart').value = e.start ? toLocal(e.start) : ''; $('evMin').value = e.minPlayers; evPaintForm(); window.scrollTo(0, document.body.scrollHeight); }
 async function evSave(){
   const st = $('evStart').value ? new Date($('evStart').value).getTime() : 0;
-  const r = await api('/api/admin-events', { action:'save', ev:{ id: EVF.id, name: $('evName').value, start: st, maxPlayers: Number($('evMax').value), minPlayers: Number($('evMin').value), rounds: EVF.rounds, prizes: EVF.prizes } });
+  const r = await api('/api/admin-events', { action:'save', ev:{ id: EVF.id, name: $('evName').value, format: EVF.format, size: EVF.size, secret: $('evSecret').checked, botFill: $('evBots').checked, botTo: Number($('evBotTo').value) || EVF.size, start: st, minPlayers: Number($('evMin').value), rounds: EVF.rounds, prizes: EVF.prizes } });
   if(r && r.ok){ EVD = r; evMsg('Entwurf gespeichert. Zum Starten auf „Veröffentlichen“ tippen.', true); evReset(); evPaintList(); } else evMsg((r && r.error) || 'Fehler');
 }
+function evCopy(id){ const u = location.origin + '/?event=' + id; try{ navigator.clipboard.writeText(u).then(() => evMsg('Link kopiert.', true), () => prompt('Link kopieren:', u)); }catch(e){ prompt('Link kopieren:', u); } }
 async function evDo(action, id, ask){
   if(ask && !confirm(ask)) return;
   const r = await api('/api/admin-events', { action, id });
