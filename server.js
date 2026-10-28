@@ -4694,8 +4694,8 @@ async function adminZp(key, ip, payload) {
    Alle Spieler spielen gleichzeitig dieselbe Runde, nach jeder Runde fliegen die Letzten raus.
    Rundenarten (Phase 1): Wissenstest, Higher or Lower, Speed Math.
    ============================================================================ */
-const EVDUEL = require("./evduel.js")({ Dame, Mill, getChess: () => getChessEngine() });
-const EV_DUEL_NAMES = { ttt: "Duell: Tic Tac Toe", c4: "Duell: 4 gewinnt", mill: "Duell: Mühle", dame: "Duell: Dame", chess: "Duell: Schach" };
+const EVDUEL = require("./evduel.js")({ Dame, Mill, getChess: () => getChessEngine(), getQuiz: () => { const q = evNewQ({ rounds: [] }, {}, "x", { type: Math.random() < 0.5 ? "quiz" : (Math.random() < 0.5 ? "bio" : "vocab"), klasse: 0, topic: "" }, 0); return { q: q.pub.q, a: q.pub.a, cat: q.pub.cat, ans: q.ans }; } });
+const EV_DUEL_NAMES = { ttt: "Duell: Tic Tac Toe", ttq: "Duell: Tic Tac Toe Quiz", ttx: "Duell: Tic Tac Toe Quanten", c4: "Duell: 4 gewinnt", mill: "Duell: Mühle", dame: "Duell: Dame", chess: "Duell: Schach" };
 const evIsDuel = d => !!(d && EVDUEL.TYPES[d.type]);
 const EV_TYPES = { quiz: "Wissenstest", bio: "Biologie", vocab: "Vokabeln (Englisch)", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", ...EV_DUEL_NAMES, mix: "Überraschungs-Mix" };
 let EV_BIO = [], EV_VOC = [];
@@ -4783,6 +4783,12 @@ function evDuelBots(run, now) {
   run.matches.forEach(m => {
     const du = m.duel; if (!m.b || !du || du.res) return;
     if (du.bb) { if (now >= du.bb.at) { EVDUEL.finish(du, du.bb.w, "bot"); evDuelApply(run, m, now); } return; }
+    if (du.g === "ttq" && du.st.pend) {
+      EVDUEL.tick(du, now); if (du.res) { evDuelApply(run, m, now); return; }
+      const pd = du.st.pend; if (!pd) return; if (!pd.bat) pd.bat = { a: now + 1500 + Math.random() * 6000, b: now + 1500 + Math.random() * 6000 };
+      ["a", "b"].forEach(sd => { const bk = run.bots && run.bots.get(sd === "a" ? m.a : m.b); if (bk && du.st.pend === pd && pd.ans[sd] == null && now >= pd.bat[sd]) EVDUEL.play(du, sd, EVDUEL.botAnswer(du, sd, bk.skill)); });
+      if (du.res) evDuelApply(run, m, now); return;
+    }
     const side = du.st.turn, key = side === "a" ? m.a : m.b, bot = run.bots && run.bots.get(key);
     if (!bot || now < du.botAt || budget <= 0) return;
     budget--;
@@ -5045,7 +5051,7 @@ function evApi(p, ip) {
     const d = run.cfg[run.stageIdx].discs[run.discIdx], mm = run.matches.find(m => m.b && m.duel && (m.a === k || m.b === k));
     if (ev.state !== "running" || run.phase !== "play" || !evIsDuel(d) || !mm || !run.alive.has(k)) return Object.assign(evView(ev, name), { noPlay: true });
     const du = mm.duel, side = mm.a === k ? "a" : "b";
-    if (du.res || Number(p.rev) !== du.rev) return evView(ev, name);
+    if (du.res || (!du.st.pend && Number(p.rev) !== du.rev)) return evView(ev, name);
     if (EVDUEL.play(du, side, p.mi)) { if (du.res) evDuelApply(run, mm, Date.now()); else du.botAt = Date.now() + 700 + Math.random() * 1200; }
     return evView(ev, name);
   }

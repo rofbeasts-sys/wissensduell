@@ -3,9 +3,9 @@
  * Seite "a" beginnt (X / Rot / Weiss), Seite "b" folgt. Alle Zuege werden serverseitig geprueft.
  * Der Client bekommt pro Abfrage den Zustand + die Liste der erlaubten Zuege und sendet nur den Index. */
 module.exports = function (deps) {
-  const { Dame, Mill, getChess } = deps;
-  const TYPES = { ttt: "Tic Tac Toe", c4: "4 gewinnt", mill: "Mühle", dame: "Dame", chess: "Schach" };
-  const SEC = { ttt: 60, c4: 120, mill: 180, dame: 240, chess: 300 };
+  const { Dame, Mill, getChess, getQuiz } = deps;
+  const TYPES = { ttt: "Tic Tac Toe", ttq: "Tic Tac Toe Quiz", ttx: "Tic Tac Toe Quanten", c4: "4 gewinnt", mill: "Mühle", dame: "Dame", chess: "Schach" };
+  const SEC = { ttt: 60, ttq: 150, ttx: 90, c4: 120, mill: 180, dame: 240, chess: 300 };
   const other = s => (s === "a" ? "b" : "a");
   const TTT_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   const COL = { a: "w", b: "b" }; // Dame / Muehle / Schach: a = "w"
@@ -71,6 +71,8 @@ module.exports = function (deps) {
   function fresh(type, starter) {
     const st = starter || "a";
     if (type === "ttt") return { b: Array(9).fill(null), turn: st };
+    if (type === "ttx") return { b: Array(9).fill(null), turn: st, pc: { a: [], b: [] } };
+    if (type === "ttq") return { b: Array(9).fill(null), turn: st, pend: null };
     if (type === "c4") return { b: Array(C4W * C4H).fill(null), turn: st };
     if (type === "mill") return { s: Mill.initial(), turn: "a" };
     if (type === "dame") return { board: Dame.initialBoard(), turn: "a", quiet: 0 };
@@ -84,7 +86,8 @@ module.exports = function (deps) {
   function legal(d) {
     const s = d.st;
     if (d.res) return [];
-    if (d.g === "ttt") { const o = []; s.b.forEach((v, i) => { if (!v) o.push(i); }); return o; }
+    if (d.g === "ttq" && s.pend) return [0, 1, 2, 3];
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "ttq") { const o = []; s.b.forEach((v, i) => { if (!v) o.push(i); }); return o; }
     if (d.g === "c4") return c4Cols(s.b);
     if (d.g === "mill") return Mill.legalMoves(s.s, COL[s.turn]).map(m => ({ f: m.from, t: m.to, r: m.rm }));
     if (d.g === "dame") return Dame.legalMoves(s.board, COL[s.turn]).map(m => m.path);
@@ -92,13 +95,15 @@ module.exports = function (deps) {
   }
   function pubState(d) {
     const s = d.st;
+    if (d.g === "ttx") return { b: s.b, old: { a: s.pc.a.length >= 3 ? s.pc.a[0] : -1, b: s.pc.b.length >= 3 ? s.pc.b[0] : -1 } };
+    if (d.g === "ttq") return { b: s.b, pend: s.pend ? { cell: s.pend.cell, q: s.pend.q.q, a: s.pend.q.a, cat: s.pend.q.cat || "", ans: { a: s.pend.ans.a != null, b: s.pend.ans.b != null }, left: Math.max(0, Math.ceil((s.pend.start + QUIZ_MS - Date.now()) / 1000)) } : null };
     if (d.g === "ttt" || d.g === "c4") return { b: s.b };
     if (d.g === "mill") return { b: s.s.b.map(x => (x === "w" ? "a" : x === "b" ? "b" : null)), hand: { a: s.s.hand.w, b: s.s.hand.b } };
     if (d.g === "dame") return { board: s.board.map(r => r.map(p => (p ? (p.c === "w" ? "a" : "b") + (p.k ? "K" : "") : ""))) };
     return { board: s.board.map(r => r.map(p => (p ? (p.col === "w" ? "a" : "b") + p.t : ""))) };
   }
   function view(d, side) {
-    const s = d.st, mine = side && s.turn === side && !d.res;
+    const s = d.st, mine = side && !d.res && (d.g === "ttq" && s.pend ? s.pend.ans[side] == null : s.turn === side);
     return { g: d.g, you: side || "", turn: s.turn, rev: d.rev, over: !!d.res, res: d.res, why: d.why, n: d.n, round: d.round, wins: d.wins, last: d.lastMv, st: pubState(d), legal: mine ? legal(d) : [] };
   }
 
@@ -107,8 +112,9 @@ module.exports = function (deps) {
   function nextTurn(d, side) {
     // nach einem Zug: Ende pruefen
     const s = d.st;
-    if (d.g === "ttt") {
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "ttq") {
       if (TTT_LINES.some(l => l.every(i => s.b[i] === side))) return finish(d, side, "line");
+      if (d.g === "ttx" && d.n >= 60) return finish(d, "draw", "limit");
       if (s.b.every(v => v)) return redo(d);
     } else if (d.g === "c4") {
       if (c4Win(s.b, side)) return finish(d, side, "four");
@@ -131,14 +137,44 @@ module.exports = function (deps) {
   // Remis bei TTT / 4 gewinnt: neue Partie, andere Seite beginnt
   function redo(d) { d.round++; d.st = fresh(d.g, d.round % 2 ? "a" : "b"); d.lastMv = null; d.rev++; }
 
+  const QUIZ_MS = 20000;
+  function quizPlay(d, side, mi, now) {
+    const pd = d.st.pend; mi = Number(mi);
+    if (pd.ans[side] != null || !Number.isInteger(mi) || mi < 0 || mi > 3) return false;
+    pd.ans[side] = mi; pd.t[side] = now; d.rev++;
+    if (pd.ans.a != null && pd.ans.b != null) quizResolve(d, now);
+    return true;
+  }
+  function quizResolve(d, now) {
+    const s = d.st, pd = s.pend; if (!pd) return;
+    const ok = x => pd.ans[x] === pd.q.ans, ca = ok("a"), cb = ok("b");
+    let w = null; if (ca && cb) w = pd.t.a <= pd.t.b ? "a" : "b"; else if (ca) w = "a"; else if (cb) w = "b";
+    s.pend = null; d.n++; s.turn = other(s.turn);
+    if (w) { s.b[pd.cell] = w; d.lastMv = pd.cell; d.mv.a = d.mv.a || 1; d.mv.b = d.mv.b || 1; return nextTurn(d, w); }
+    d.rev++;
+  }
+  // wird jede Sekunde vom Server gerufen: Frage nach 20 s ohne Antwort zaehlt als falsch
+  function tick(d, now) {
+    const pd = d.st && d.st.pend; if (d.res || !pd) return;
+    if (now - pd.start > QUIZ_MS) { if (pd.ans.a == null) pd.ans.a = -1; if (pd.ans.b == null) pd.ans.b = -1; quizResolve(d, now); }
+  }
+  function botAnswer(d, side, skill) {
+    const pd = d.st.pend; if (!pd || pd.ans[side] != null) return -1;
+    const right = Math.random() < 0.35 + skill * 0.5; if (right) return pd.q.ans;
+    const w = [0, 1, 2, 3].filter(i => i !== pd.q.ans); return w[rnd(w.length)];
+  }
   function play(d, side, mi) {
-    if (d.res || d.st.turn !== side) return false;
+    if (d.res) return false;
+    if (d.g === "ttq" && d.st.pend) return quizPlay(d, side, mi, Date.now());
+    if (d.st.turn !== side) return false;
     const lg = legal(d); mi = Number(mi); if (!Number.isInteger(mi) || mi < 0 || mi >= lg.length) return false;
     return doMove(d, side, lg[mi]);
   }
   function doMove(d, side, m) {
     const s = d.st;
-    if (d.g === "ttt") { s.b[m] = side; d.lastMv = m; }
+    if (d.g === "ttq") { const q = getQuiz(); s.pend = { cell: m, q, ans: { a: null, b: null }, t: {}, start: Date.now() }; d.rev++; d.n++; d.mv[side]++; return true; }
+    if (d.g === "ttx") { s.b[m] = side; const pc = s.pc[side]; pc.push(m); if (pc.length > 3) { s.b[pc.shift()] = null; } d.lastMv = m; }
+    else if (d.g === "ttt") { s.b[m] = side; d.lastMv = m; }
     else if (d.g === "c4") { s.b = c4Drop(s.b, m, side); d.lastMv = m; }
     else if (d.g === "mill") {
       const st = s.s, mv = Mill.findMove(st, COL[side], m.f, m.t, m.r); if (!mv) return false;
@@ -158,7 +194,7 @@ module.exports = function (deps) {
       d.n++; d.mv[side]++; nextTurnAfter(d, side); return true;
     }
     d.n++; d.mv[side]++;
-    if (d.g === "ttt" || d.g === "c4") { s.turn = other(side); }
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "c4") { s.turn = other(side); }
     else if (d.g === "mill") { s.turn = other(side); }
     else if (d.g === "dame") { s.turn = other(side); }
     nextTurnAfter(d, side); return true;
@@ -169,7 +205,7 @@ module.exports = function (deps) {
   function botPick(d, side, skill) {
     const lg = legal(d); if (!lg.length) return -1;
     const s = d.st, hi = skill >= 0.55, rndMove = () => rnd(lg.length);
-    if (d.g === "ttt") {
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "ttq") {
       if (Math.random() > 0.35 + skill * 0.65) return rndMove();
       const win = side, opp = other(side), line = who => { for (const l of TTT_LINES) { const v = l.map(i => s.b[i]); if (v.filter(x => x === who).length === 2 && v.includes(null)) return l[v.indexOf(null)]; } return -1; };
       let c = line(win); if (c < 0) c = line(opp); if (c < 0 && !s.b[4]) c = 4;
@@ -213,9 +249,10 @@ module.exports = function (deps) {
     if (d.g === "mill") { a = Mill.total(s.s, "w"); b = Mill.total(s.s, "b"); }
     else if (d.g === "dame") { s.board.forEach(r => r.forEach(p => { if (p) (p.c === "w" ? (a += p.k ? 3 : 1) : (b += p.k ? 3 : 1)); })); }
     else if (d.g === "chess") { s.board.forEach(r => r.forEach(p => { if (p) (p.col === "w" ? (a += PV[p.t]) : (b += PV[p.t])); })); }
+    else if (d.g === "ttq") { s.b.forEach(v => { if (v === "a") a++; else if (v === "b") b++; }); }
     else { a = d.wins.a; b = d.wins.b; }
     return a > b ? "a" : b > a ? "b" : "draw";
   }
 
-  return { TYPES, SEC, create, view, play, botPick, judge, legal, finish, other };
+  return { TYPES, SEC, create, view, play, botPick, judge, legal, finish, other, tick, botAnswer };
 };
