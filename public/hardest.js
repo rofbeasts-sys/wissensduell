@@ -283,6 +283,8 @@ const ICO = {
  olymp: SV('<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v4M8 21h8M9.5 18h5"/>')
 };
 Object.keys(ICO).forEach(k => { if(G[k]) G[k].icon = ICO[k]; });
+const hdGate = id => { try{ if(typeof featureLocked === 'function' && featureLocked(id) && !(typeof adminViewOn === 'function' && adminViewOn())) return (typeof hiddenFeatures !== 'undefined' && hiddenFeatures.indexOf(id) !== -1) ? 'hide' : 'lock'; }catch(e){} return 'ok'; };
+const hdOn = k => hdGate('hard_' + k) === 'ok';
 const ORDER = ['balken', 'gedaechtnis', 'linie', 'gegenteil', 'flug', 'blasen', 'puls', 'farbe', 'tasten']; /* 'turm' bleibt im Code, ist aber aktuell aus dem Spiel genommen */
 /* ---------- Bot-Gegner: Zielwert + Anzeige, die mitzählt ---------- */
 function botTarget(game, diff){ const r = G[game].rng, f = diff === 0 ? .65 : diff === 2 ? 1.35 : 1; return Math.max(1, Math.round((r[0] + Math.random() * (r[1] - r[0])) * f)); }
@@ -325,7 +327,7 @@ window.startHardFlow = function(){
   killGame(); hdMusic();
   if(typeof featureLocked === 'function' && featureLocked('hard') && !(typeof adminViewOn === 'function' && adminViewOn())){ renderMainMenu(); return; }
   const ACC = {balken:'#c8ff3d',turm:'#3db0ff',gedaechtnis:'#ff4d6a',linie:'#ffc83d',gegenteil:'#b36bff',flug:'#3dffe0',blasen:'#ff8ad8',puls:'#5ee1ff',farbe:'#ff9a3d',tasten:'#d9d9ff'};
-  const cards = ORDER.map(k => `<div class="hdcard" style="--c:${ACC[k]}"><div class="hdcT"><div class="ic">${G[k].icon}</div><div class="tx"><h3>${G[k].name}</h3><p>${L(G[k].hint[0], G[k].hint[1])}</p></div><div class="hdbest">${L('BESTE', 'BEST')}<b>${fmt(st(k).best)}</b></div></div><div class="hdcB"><button class="hdb1" onclick="hdPlay('${k}',0)">Solo</button><button class="hdb2" onclick="hdPlay('${k}',1)">${L('Gegen Bot', 'vs Bot')}</button></div></div>`).join('');
+  const cards = ORDER.map(k => { const gt = hdGate('hard_' + k); if(gt === 'hide') return ''; if(gt === 'lock') return `<div class="hdcard" style="--c:${ACC[k]};opacity:.45"><div class="hdcT"><div class="ic">${G[k].icon}</div><div class="tx"><h3>${G[k].name}</h3><p>Coming soon</p></div></div></div>`; return `<div class="hdcard" style="--c:${ACC[k]}"><div class="hdcT"><div class="ic">${G[k].icon}</div><div class="tx"><h3>${G[k].name}</h3><p>${L(G[k].hint[0], G[k].hint[1])}</p></div><div class="hdbest">${L('BESTE', 'BEST')}<b>${fmt(st(k).best)}</b></div></div><div class="hdcB"><button class="hdb1" onclick="hdPlay('${k}',0)">Solo</button><button class="hdb2" onclick="hdPlay('${k}',1)">${L('Gegen Bot', 'vs Bot')}</button></div></div>`; }).join('');
   renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title" style="font-size:20px;line-height:1.25">💀 ${L('DAS SCHWERSTE SPIEL<br>DER WELT', 'THE HARDEST GAME<br>IN THE WORLD')}</div>
    <div class="picker-sub">${L('Ein Fehler und es ist vorbei. Wie weit kommst du?', 'One mistake and it is over. How far can you get?')}</div>
    <div class="settings-label" style="margin-top:12px">${L('Schwierigkeit des Bots', 'Bot difficulty')}</div>
@@ -333,6 +335,16 @@ window.startHardFlow = function(){
    <div class="hdcard" style="--c:#ffd23d"><div class="hdcT"><div class="ic">${ICO.olymp}</div><div class="tx"><h3>${L('Olympiade', 'Olympics')}</h3><p>${L('Alle Spiele durcheinander, jedes mit einem Leben. Die Punkte zählen zusammen.', 'All games shuffled, one life each. Points add up.')}</p></div><div class="hdbest">${L('BESTE', 'BEST')}<b>${fmt(st('olympiade').best)}</b></div></div><div class="hdcB"><button class="hdb1" onclick="hdOlymp(0)">Solo</button><button class="hdb2" onclick="hdOlymp(1)">${L('Gegen Bot', 'vs Bot')}</button></div></div>
    ${cards}
    <div class="actions-row" style="flex-direction:column;gap:8px;margin-top:14px"><button class="btn btn-ghost" id="hdMuteBtn" onclick="hdMute()">${hdMuted() ? L('🔇 Musik: aus', '🔇 Music: off') : L('🔊 Musik: an', '🔊 Music: on')}</button><button class="btn btn-ghost" onclick="brDuelHub()">${L('Zurück', 'Back')}</button></div></div>`);
+  (function(){ // Olympiade einzeln schaltbar + Stein-Spiel (ehem. Brainmania) als Karte
+    const app = $('hdApp'); if(!app) return;
+    if(hdGate('hard_olympiade') !== 'ok'){ const o = app.querySelector('.hdcard[style*="#ffd23d"]'); if(o) o.remove(); }
+    const gt = hdGate('mania'); if(gt === 'hide') return;
+    const box = document.createElement('div'); box.className = 'hdcard'; box.style.setProperty('--c', '#7ee8ff');
+    const ic = '<span style="display:inline-block;width:34px;height:24px;border-radius:50% 50% 45% 45%;background:radial-gradient(circle at 35% 30%,#b9a07f,#74583c 60%,#4a3826)"></span>';
+    if(gt === 'lock'){ box.style.opacity = '.45'; box.innerHTML = `<div class="hdcT"><div class="ic">${ic}</div><div class="tx"><h3>${L('Der Stein', 'The Rock')}</h3><p>Coming soon</p></div></div>`; }
+    else { box.innerHTML = `<div class="hdcT"><div class="ic">${ic}</div><div class="tx"><h3>${L('Der Stein', 'The Rock')}</h3><p>${L('Das sinnloseste Spiel der Welt. Tippe auf den Stein.', 'The most pointless game in the world. Tap the rock.')}</p></div></div><div class="hdcB"><button class="hdb1" onclick="startManiaFlow()">${L('Spielen', 'Play')}</button></div>`; }
+    const row = app.querySelector('.actions-row'); if(row) row.parentNode.insertBefore(box, row); else app.appendChild(box);
+  })();
 };
 window.hdDiff = function(d){ diff = d; startHardFlow(); };
 function shell(title, sub, withBot, game){ renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title" style="margin:0">${title}</div><div style="font-size:13px;font-weight:800;opacity:.85;margin-top:4px">${game ? statLine(game) : ''}</div><div class="picker-sub">${sub}</div><div class="hdbig" id="hdSc">0</div><div id="hdBot">${withBot ? '&nbsp;' : ''}</div><div id="hdMsg">&nbsp;</div><div id="hdHost" style="touch-action:none;user-select:none;min-height:60vh"></div></div>`); }
@@ -370,7 +382,7 @@ window.hdPlay = function(game, mode, go){
   if(game !== 'gedaechtnis' && game !== 'farbe') attachLayer();
 };
 window.hdOlymp = async function(mode){
-  killGame(); const my = alive; const order = ORDER.slice().sort(() => Math.random() - .5); const res = []; let total = 0, botTotal = 0; const targets = order.map(k => botTarget(k, diff));
+  killGame(); const my = alive; const order = ORDER.filter(hdOn).sort(() => Math.random() - .5); const res = []; let total = 0, botTotal = 0; const targets = order.map(k => botTarget(k, diff));
   for(let i = 0; i < order.length; i++){
     if(my !== alive) return; const k = order[i], g = G[k];
     renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title">${ICO.olymp} ${L('OLYMPIADE', 'OLYMPICS')} ${i + 1}/${order.length}</div><div class="hdbig" style="font-size:80px">${g.icon}</div><div class="picker-title" style="margin-top:6px">${g.name}</div><div class="picker-sub">${L(g.hint[0], g.hint[1])}</div><div style="margin-top:14px;font-weight:800">${L('Gesamt bisher: ', 'Total so far: ')}${fmt(total)}${mode ? ' · Bot ' + fmt(botTotal) : ''}</div></div>`);

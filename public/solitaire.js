@@ -1,4 +1,4 @@
-/* Solitaer (Steckspiel mit Kugeln) - kommt aus Brainmania. Springe ueber Kugeln, bis nur eine uebrig ist. */
+/* Solitaer (Steckspiel mit Kugeln) - Teil von Brainmania. Springe ueber Kugeln, bis nur eine uebrig ist. */
 (function(){
 'use strict';
 const L2 = (a, b) => (typeof L === 'function' ? L(a, b) : a);

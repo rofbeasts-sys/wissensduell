@@ -631,8 +631,7 @@ window.brDuelHub = function(){
     <div class="actions-row" style="flex-direction:column;gap:10px;margin-top:10px">
       <div class="mode-card" onclick="brIntro()" style="border-color:var(--warn);cursor:pointer"><div class="icon">⚔️</div><h3>Brain Royale</h3><p>${L('Figuren-Duell mit Quiz','Piece duel with quiz')}</p></div>
       <div class="mode-card" onclick="drIntro()" style="border-color:#ffc446;cursor:pointer"><div class="icon">🎲</div><h3>Brain Mana</h3><p>${L('Würfeln, Fallen & Fähigkeiten','Dice, traps & abilities')}</p></div>
-      ${(typeof featureLocked==='function' && (!featureLocked('hard') || (typeof adminViewOn==='function' && adminViewOn()))) ? `<div class="mode-card" onclick="startHardFlow()" style="border-color:#ff4d6a;cursor:pointer"><div class="icon">💀</div><h3>${L('Das schwerste Spiel der Welt','The hardest game in the world')}</h3><p>${L('5 Spiele, Solo oder gegen Bot, plus Olympiade','5 games, solo or vs bot, plus Olympics')}</p></div>` : ''}
-      ${(typeof featureLocked==='function' && (!featureLocked('mania') || (typeof adminViewOn==='function' && adminViewOn()))) ? `<div class="mode-card" onclick="startManiaFlow()" style="border-color:#7ee8ff;cursor:pointer"><div class="icon">🪨</div><h3>Brainmania</h3><p>${L('Das sinnloseste Spiel der Welt','The most pointless game in the world')}</p></div>` : ''}
+      ${(typeof featureLocked==='function' && (!featureLocked('hard') || (typeof adminViewOn==='function' && adminViewOn()))) ? `<div class="mode-card" onclick="startHardFlow()" style="border-color:#ff4d6a;cursor:pointer"><div class="icon">💀</div><h3>${L('Das schwerste Spiel der Welt','The hardest game in the world')}</h3><p>${L('Mehrere Spiele, Solo oder gegen Bot, plus Olympiade und der Stein','Several games, solo or vs bot, plus Olympics and the rock')}</p></div>` : ''}
       ${(typeof adminViewOn==='function' && adminViewOn()) ? `<div class="mode-card" onclick="renderChessFrame('/defense/index.html')" style="border-color:var(--warn);cursor:pointer"><div class="icon">🛡️</div><h3>Brain Defense</h3><p>${L('Tower Defense mit Fruchtkönigen, 100 Level','Tower defense with fruit kings, 100 levels')}</p></div>` : ''}
       <button class="btn btn-ghost" onclick="renderMainMenu()">${L('Zurück zum Menü','Back to menu')}</button></div></div>`);
 };
@@ -757,7 +756,7 @@ function add(k){
   render(); save(); progress();
 }
 window.bmReset = function(){ if(!confirm(L('Deine Runde auf 0 zurücksetzen? (Bestenliste bleibt)', 'Reset your round to 0? (Leaderboard stays)'))) return; M.n = 0; M.ms = 0; M.last = 0; next = 0; msg(L('Tippe auf den Stein.', 'Tap the rock.')); render(); save(); };
-window.bmLeave = function(){ try{ progress(true); }catch(e){} bmMusicStop(); brDuelHub(); };
+window.bmLeave = function(){ try{ progress(true); }catch(e){} bmMusicStop(); if(typeof startHardFlow === 'function') startHardFlow(); else brDuelHub(); };
 /* ---- Zuschauen: einem anderen Stein live beim Tippen zusehen, Reaktionen schicken ---- */
 window.bmWatch = function(enc){
   if(!account){ msg(L('Melde dich an, um anderen zuzuschauen und zu reagieren.', 'Log in to watch others and react.')); return; }
@@ -820,7 +819,6 @@ window.startManiaFlow = function(){
       <div id="bmStone">${STONE_SVG}</div>
     </div>
     <div id="bmMsg">&nbsp;</div>
-    <button class="btn btn-ghost" style="margin:6px auto 0;display:flex;gap:8px;align-items:center" onclick="SOL.open(window.startManiaFlow)"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%);border:1px solid #444"></span>${L('Solitär spielen','Play Solitaire')}</button>
     ${account ? '' : `<div class="explanation" style="margin:10px 0">${L('Melde dich an, damit du in die Bestenliste kommst.','Log in to get on the leaderboard.')}</div>`}
     <div class="settings-label" style="margin-top:14px">${L('BESTENLISTE (Tippe auf einen Namen zum Zuschauen)','LEADERBOARD (tap a name to watch)')}</div>
     <div id="bmBoard">…</div>

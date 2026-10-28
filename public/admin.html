@@ -77,7 +77,6 @@ button.mini{padding:4px 8px;font-size:12px}
     <button data-t="ev">Events</button>
     <button data-t="zp">Brainups</button>
     <button data-t="stats">Statistik</button>
-    <button data-t="mania">Brainmania</button>
   </div>
   <div id="tab_live">
   <div class="card">
@@ -127,6 +126,16 @@ button.mini{padding:4px 8px;font-size:12px}
     <div id="gmsg" style="min-height:16px;font-size:13px;color:var(--ok)"></div>
     <div id="gtest"></div>
     <div id="glist">…</div>
+    <div class="card"><h2>🪨 STEIN-SPIEL: EINSTELLUNGEN</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="mBotOn" onchange="maniaCfgSave()"> <b>Test-Bot tippt</b></label>
+      </div>
+      <div class="gd" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">Tipps pro Sekunde: <input type="number" id="mBotRate" min="0.1" max="200" step="0.5" style="width:90px" onchange="maniaCfgSave()"> Name: <input id="mBotName" maxlength="20" style="width:120px" onchange="maniaCfgSave()"></div>
+      <div class="dim" style="font-size:12px;margin-top:6px">Der Bot erscheint in der Bestenliste, tippt auf dem Server weiter (auch wenn du die App schließt) und lässt sich anschauen und anklicken. Zum Testen von Reaktionen und Anzeige. Nach dem Test: „Bot entfernen“.</div>
+      <div id="mStat" class="dim" style="font-size:13px;margin-top:8px"></div>
+      <div class="gd" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn2" onclick="maniaAct('reset-bot','Bot komplett entfernen?')">Bot entfernen</button><button type="button" class="btn2" onclick="maniaAct('clear-reactions','Alle Reaktionen löschen?')">Reaktionen löschen</button><button type="button" class="btn2" onclick="maniaAct('clear-board','Die ganze Bestenliste (ohne Bot) löschen?')">Bestenliste leeren</button></div>
+    </div>
+    <div class="card"><h2>WIE LANGE BRAUCHT MAN?</h2><div style="font-size:13px;line-height:1.6">Eine Million Tipps am Stück:<br>3 Tipps/s: 92,6 Std · 5 Tipps/s: 55,6 Std · 8 Tipps/s: 34,7 Std · 10 Tipps/s: 27,8 Std.<br>Ein Mensch schafft auf Dauer meist 4 bis 6 Tipps/s, also rund 45 bis 70 Stunden reine Tippzeit. Die Stein-Stufen (geheim) sind darauf abgestimmt: unter 30 Std gibt es die besten Chancen, über 150 Std fast nur Braun.</div></div>
   </div>
 
   <div id="tab_zp" class="hidden">
@@ -173,6 +182,7 @@ button.mini{padding:4px 8px;font-size:12px}
         <label class="dim" style="font-size:12px">Mind. Spieler<br><input id="evMin" type="number" value="2" style="width:80px"></label>
         <label class="dim" style="font-size:12px">Start<br><input id="evStart" type="datetime-local"></label></div>
       <label class="dim" style="font-size:13px;display:flex;gap:8px;align-items:center;margin-bottom:8px"><input type="checkbox" id="evSecret" checked> 🎲 Spiele geheim halten (Spieler sehen erst beim Start, welches Spiel kommt)</label>
+      <label class="dim" style="font-size:13px;display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap"><input type="checkbox" id="evBots" onchange="evBotsUi()"> 🤖 Mit Bots auffüllen, wenn zu wenige da sind – bis auf <input id="evBotTo" type="number" min="2" style="width:70px"> Spieler <span style="font-size:12px">(Bots stehen mit 🤖 im Namen, bekommen keine Preise)</span></label>
       <div class="dim" id="evFmtInfo" style="font-size:12px;margin-bottom:6px"></div>
       <h2 style="margin-top:6px" id="evRoundsT">RUNDEN</h2><div id="evRounds"></div>
       <div class="row" style="gap:8px;margin:8px 0" id="evRoundBtns"></div>
@@ -211,20 +221,6 @@ button.mini{padding:4px 8px;font-size:12px}
     </div>
     <div class="card"><h2>BISHERIGE NEWS</h2><div class="dim" style="font-size:12px;margin-bottom:6px">Ansicht folgt dem Reiter oben (Deutsch / English).</div><div id="nList">…</div></div>
   </div>
-  <div id="tab_mania" class="hidden">
-    <div class="card"><h2>🪨 BRAINMANIA</h2><div id="maniaGame" class="dim">…</div></div>
-    <div class="card"><h2>EINSTELLUNGEN</h2>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <label style="display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="mBotOn" onchange="maniaCfgSave()"> <b>Test-Bot tippt</b></label>
-      </div>
-      <div class="gd" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">Tipps pro Sekunde: <input type="number" id="mBotRate" min="0.1" max="200" step="0.5" style="width:90px" onchange="maniaCfgSave()"> Name: <input id="mBotName" maxlength="20" style="width:120px" onchange="maniaCfgSave()"></div>
-      <div class="dim" style="font-size:12px;margin-top:6px">Der Bot erscheint in der Bestenliste, tippt auf dem Server weiter (auch wenn du die App schließt) und lässt sich anschauen und anklicken. Zum Testen von Reaktionen und Anzeige. Nach dem Test: „Bot entfernen“.</div>
-      <div id="mStat" class="dim" style="font-size:13px;margin-top:8px"></div>
-      <div class="gd" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn2" onclick="maniaAct('reset-bot','Bot komplett entfernen?')">Bot entfernen</button><button type="button" class="btn2" onclick="maniaAct('clear-reactions','Alle Reaktionen löschen?')">Reaktionen löschen</button><button type="button" class="btn2" onclick="maniaAct('clear-board','Die ganze Bestenliste (ohne Bot) löschen?')">Bestenliste leeren</button></div>
-    </div>
-    <div class="card"><h2>WIE LANGE BRAUCHT MAN?</h2><div style="font-size:13px;line-height:1.6">Eine Million Tipps am Stück:<br>3 Tipps/s: 92,6 Std · 5 Tipps/s: 55,6 Std · 8 Tipps/s: 34,7 Std · 10 Tipps/s: 27,8 Std.<br>Ein Mensch schafft auf Dauer meist 4 bis 6 Tipps/s, also rund 45 bis 70 Stunden reine Tippzeit. Die Stein-Stufen (geheim) sind darauf abgestimmt: unter 30 Std gibt es die besten Chancen, über 150 Std fast nur Braun.</div></div>
-  </div>
-
   <div id="tab_rep" class="hidden">
     <div class="card"><h2>MELDUNGEN</h2><div id="reps">…</div></div>
   </div>
@@ -275,8 +271,8 @@ let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['live','players','games','req','rep','news','mania','zp','stats','ev','fb'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games') loadGames(); if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad(); if(t === 'mania'){ loadGames(); maniaCfgLoad(); }
+  ['live','players','games','req','rep','news','zp','stats','ev','fb'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
 }
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
@@ -437,10 +433,9 @@ function paintGames(){
   $('gtest').innerHTML = `<div class="card test"><h2>🧪 IM TEST (${test.length})</h2>${test.length ? test.map(g => `<div class="g"><div style="display:flex;justify-content:space-between"><b>${g.icon} ${esc(g.name)}</b><span class="ttag">${g.pending ? 'in ' + cd(g.pending - Date.now()) : 'läuft'}</span></div><div class="dim">Sichtbar für: du, Mods, Tester</div></div>`).join('') : '<span class="dim">Gerade nichts im Test.</span>'}</div>` + (soon.length ? `<div class="card"><h2>⏰ GEHT BALD FÜR ALLE ONLINE (${soon.length})</h2>${soon.map(g => `<div class="g"><div style="display:flex;justify-content:space-between"><b>${g.icon} ${esc(g.name)}</b><span class="ttag" style="background:#7a4a10">in ${cd(g.pending - Date.now())}</span></div></div>`).join('')}</div>` : '');
   const groups = []; GAMES.forEach(g => { if(!groups.includes(g.group)) groups.push(g.group); });
   $('glist').innerHTML = groups.map(gr => {
-    const items = GAMES.filter(g => g.group === gr && !g.sub && g.id !== 'mania');
+    const items = GAMES.filter(g => g.group === gr && !g.sub);
     return `<div class="card"><h2>${esc(gr.toUpperCase())}</h2>${items.map(g => gameRow(g, false) + GAMES.filter(x => x.sub === g.id).map(x => gameRow(x, true)).join('')).join('')}</div>`;
   }).join('');
-  const mg = GAMES.find(g => g.id === 'mania'); if($('maniaGame')) $('maniaGame').innerHTML = mg ? gameRow(mg, false) : 'Nicht gefunden.';
   document.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const g = GAMES.find(x => x.id === b.dataset.g); if(g.mode === b.dataset.m && !DRAFT[g.id]) return; DRAFT[g.id] = { mode: b.dataset.m, start: 0, hide: b.dataset.m === 'open' ? false : (DRAFT[g.id] ? !!DRAFT[g.id].hide : !!g.hide) }; if(g.mode === b.dataset.m && !g.start && !g.pending && DRAFT[g.id].hide === !!g.hide) delete DRAFT[g.id]; paintGames(); });
   document.querySelectorAll('[data-gs]').forEach(i => i.onchange = () => { const g = GAMES.find(x => x.id === i.dataset.gs); DRAFT[g.id] = { mode: DRAFT[g.id] ? DRAFT[g.id].mode : g.mode, start: i.value ? new Date(i.value).getTime() : 0, hide: DRAFT[g.id] ? !!DRAFT[g.id].hide : !!g.hide }; paintGames(); });
   document.querySelectorAll('[data-gh]').forEach(i => i.onchange = () => { const g = GAMES.find(x => x.id === i.dataset.gh), d = DRAFT[g.id] || { mode: g.mode, start: g.start || 0 }; d.hide = i.checked; DRAFT[g.id] = d; paintGames(); });
@@ -546,7 +541,7 @@ function evPaintList(){
     const live = e.live && e.live.fmt === 'bracket' ? `<div class="dim" style="margin-top:6px"><b style="color:#fff">${esc(e.live.stage)}</b> · ${esc(e.live.phase)} · noch dabei <b style="color:#fff">${e.live.alive}</b></div>` + e.live.matches.map(m => `<div class="pl"><span>${esc(m.a)} ${m.b ? 'vs ' + esc(m.b) : '(Freilos)'}</span><b style="color:var(--acc)">${m.w ? '→ ' + esc(m.w) : ''}</b></div>`).join('') : e.live ? `<div class="dim" style="margin-top:6px">Runde <b style="color:#fff">${e.live.roundIdx+1}/${e.rounds.length}</b> · ${esc(e.live.phase)} · noch dabei <b style="color:#fff">${e.live.alive}</b></div>` + e.live.board.map((b,i) => `<div class="pl"><span class="${b.alive?'':'dim'}">${i+1}. ${esc(b.name)}${b.alive?'':' (raus)'}</span><b style="color:var(--acc)">${b.score}</b></div>`).join('') : '';
     const res = e.results ? `<div class="dim" style="margin-top:6px">Ergebnis:</div>` + e.results.slice(0,10).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--acc)">${r.score}</b></div>`).join('') + (e.state === 'payout' ? `<div class="dim" style="margin-top:6px">Auszahlung: 1. ${pz.p1.c} 🪙/${pz.p1.z} BU · 2. ${pz.p2.c}/${pz.p2.z} · 3. ${pz.p3.c}/${pz.p3.z} · alle anderen ${pz.part.c} 🪙/${pz.part.z} BU (${e.results.length} Spieler)</div>` : '') : '';
     return `<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:16px">${br ? '🏆' : '⚔️'} ${esc(e.name)} <span class="dim" style="font-size:12px">(${br ? 'Turnier' : 'Battle Royale'} ${e.size || e.maxPlayers})</span></b><span class="pill ${e.state==='open'||e.state==='running'?'on':''}">${EV_STATE[e.state]||e.state}</span></div>
-      <div class="dim" style="margin-top:4px">Start ${fdt(e.start)} · ${e.entrants.length}/${e.maxPlayers} angemeldet (mind. ${e.minPlayers})${e.reason ? ' · ' + esc(e.reason) : ''}</div><div class="dim" style="font-size:12px;margin-top:4px;line-height:1.5">${rn}</div>
+      <div class="dim" style="margin-top:4px">Start ${fdt(e.start)} · ${e.entrants.length}/${e.maxPlayers} angemeldet (mind. ${e.minPlayers})${e.botFill ? ' · 🤖 Bots bis ' + (e.botTo || e.size) : ''}${e.reason ? ' · ' + esc(e.reason) : ''}</div><div class="dim" style="font-size:12px;margin-top:4px;line-height:1.5">${rn}</div>
       ${lnk}${live}${res}<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${act}</div></div>`;
   }).join('') : '<div class="dim" style="margin-bottom:8px">Noch keine Events.</div>';
 }
@@ -565,7 +560,8 @@ function evDLabel(d){
 function evSetFormat(f){
   EVF.format = f; EVF.size = f === 'bracket' ? 8 : 50; evFillRounds(true); evPaintForm();
 }
-function evSetSize(n){ EVF.size = n; if(EVF.format === 'bracket') evFillRounds(false); evPaintForm(); }
+function evBotsUi(){ EVF.botFill = $('evBots').checked; $('evBotTo').disabled = !EVF.botFill; if(EVF.botFill && !Number($('evBotTo').value)) $('evBotTo').value = EVF.size; }
+function evSetSize(n){ EVF.size = n; EVF.botTo = n; if(EVF.format === 'bracket') evFillRounds(false); evPaintForm(); }
 function evFillRounds(fresh){
   if(EVF.format === 'bracket'){
     const n = evStageN(EVF.size), old = fresh ? [] : EVF.rounds, out = [];
@@ -592,7 +588,7 @@ function evDiscHtml(ri, di, d){
 function evPaintForm(){
   const br = EVF.format === 'bracket';
   $('evFormT').textContent = EVF.id ? 'ENTWURF BEARBEITEN' : 'NEUES EVENT';
-  $('evFmt').value = EVF.format; $('evSecret').checked = EVF.secret !== false;
+  $('evFmt').value = EVF.format; $('evSecret').checked = EVF.secret !== false; $('evBots').checked = !!EVF.botFill; $('evBotTo').value = EVF.botTo || EVF.size; $('evBotTo').max = EVF.size; $('evBotTo').disabled = !EVF.botFill;
   $('evSize').innerHTML = (br ? [8,16,32] : [10,50,100]).map(n => `<option value="${n}" ${EVF.size === n ? 'selected' : ''}>${n} Spieler</option>`).join('');
   $('evFmtInfo').textContent = br ? 'Wer verliert, scheidet aus. Gewinner: mehr gewonnene Spiele; bei Gleichstand die höhere Punktzahl. Reichen die Anmeldungen nicht für den vollen Baum, gibt es Freilose (mind. 2 Spieler).' : 'Alle spielen gleichzeitig. Nach jeder Runde scheiden ca. 25 % der Letzten aus, die Beste*n gewinnen.';
   $('evRoundsT').textContent = br ? 'RUNDEN DES BAUMS' : 'RUNDEN (Reihenfolge)';
@@ -609,12 +605,12 @@ function evDelDisc(ri, di){ EVF.rounds[ri].discs.splice(di, 1); evPaintForm(); }
 function evAddRound(){ EVF.rounds.push({ discs: [evDefDisc('quiz')] }); evPaintForm(); }
 function evDelRound(i){ EVF.rounds.splice(i, 1); evPaintForm(); }
 function evRandomRounds(){ const t = ['quiz','hilo','math','order','sort','chrono','mix'], rnd = () => t[Math.floor(Math.random() * t.length)]; EVF.rounds = EVF.rounds.map(r => ({ discs: r.discs.map(d => Object.assign(evDefDisc(rnd()), { mode: d.mode, sec: d.sec, count: d.count })) })); evPaintForm(); }
-function evReset(){ EVF = { id:'', format:'bracket', size:8, secret:true, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }; evFillRounds(true); $('evName').value = ''; $('evStart').value = ''; $('evMin').value = 2; evPaintForm(); }
+function evReset(){ EVF = { id:'', format:'bracket', size:8, secret:true, botFill:false, botTo:8, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }; evFillRounds(true); $('evName').value = ''; $('evStart').value = ''; $('evMin').value = 2; evPaintForm(); }
 function evEdit(id){ const e = EVD.events.find(x => x.id === id); if(!e) return; const rounds = e.rounds.map(r => ({ discs: (r.discs || [r]).map(d => Object.assign(evDefDisc(d.type), d)) }));
-  EVF = { id:e.id, format: e.format || 'royale', size: e.size || e.maxPlayers, secret: e.secret !== false, rounds, prizes: JSON.parse(JSON.stringify(e.prizes)) }; $('evName').value = e.name; $('evStart').value = e.start ? toLocal(e.start) : ''; $('evMin').value = e.minPlayers; evPaintForm(); window.scrollTo(0, document.body.scrollHeight); }
+  EVF = { id:e.id, format: e.format || 'royale', size: e.size || e.maxPlayers, secret: e.secret !== false, botFill: !!e.botFill, botTo: e.botTo || e.size || e.maxPlayers, rounds, prizes: JSON.parse(JSON.stringify(e.prizes)) }; $('evName').value = e.name; $('evStart').value = e.start ? toLocal(e.start) : ''; $('evMin').value = e.minPlayers; evPaintForm(); window.scrollTo(0, document.body.scrollHeight); }
 async function evSave(){
   const st = $('evStart').value ? new Date($('evStart').value).getTime() : 0;
-  const r = await api('/api/admin-events', { action:'save', ev:{ id: EVF.id, name: $('evName').value, format: EVF.format, size: EVF.size, secret: $('evSecret').checked, start: st, minPlayers: Number($('evMin').value), rounds: EVF.rounds, prizes: EVF.prizes } });
+  const r = await api('/api/admin-events', { action:'save', ev:{ id: EVF.id, name: $('evName').value, format: EVF.format, size: EVF.size, secret: $('evSecret').checked, botFill: $('evBots').checked, botTo: Number($('evBotTo').value) || EVF.size, start: st, minPlayers: Number($('evMin').value), rounds: EVF.rounds, prizes: EVF.prizes } });
   if(r && r.ok){ EVD = r; evMsg('Entwurf gespeichert. Zum Starten auf „Veröffentlichen“ tippen.', true); evReset(); evPaintList(); } else evMsg((r && r.error) || 'Fehler');
 }
 function evCopy(id){ const u = location.origin + '/?event=' + id; try{ navigator.clipboard.writeText(u).then(() => evMsg('Link kopiert.', true), () => prompt('Link kopieren:', u)); }catch(e){ prompt('Link kopieren:', u); } }

@@ -7335,7 +7335,8 @@ function brainCardsHtml(){
       <div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${lvl}</span><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--warn);">${r && r.ok && r.mine ? r.mine.pts.toLocaleString() : 0} ${L('Pkt','pts')}</span></div></div>`;
   const hoodIc = `<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  return card('hood','Brain Hood',L('Pfeil-Würfel','Arrow cube'),hoodIc,f.hoodLevel||1,brainData.hood) + card('fruit','Brain Fruit',L('Match mit Bomben','Match with bombs'),'<span style="font-size:40px;line-height:46px;">🍓</span>',f.fruitLevel||1,brainData.fruit);
+  return card('hood','Brain Hood',L('Pfeil-Würfel','Arrow cube'),hoodIc,f.hoodLevel||1,brainData.hood) + card('fruit','Brain Fruit',L('Match mit Bomben','Match with bombs'),'<span style="font-size:40px;line-height:46px;">🍓</span>',f.fruitLevel||1,brainData.fruit)
+    + (hiddenFeatures.indexOf('braining_solitaire') !== -1 ? '' : featureLocked('braining_solitaire') ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon"><span style="display:inline-block;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%)"></span></div><h3>${L('Solitär','Solitaire')}</h3><p data-gate="braining_solitaire">${gateText('braining_solitaire')}</p></div>` : `<div class="mode-card" onclick="SOL.open(startBrainingHub)"><div class="icon"><span style="display:inline-block;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%);box-shadow:0 3px 6px rgba(0,0,0,.5)"></span></div><h3>${L('Solitär','Solitaire')}</h3><p>${L('Kugeln überspringen','Jump the marbles')}</p></div>`);
 }
 function brainBoardsPaint(){
   const el = document.getElementById('brainBoards'); if(!el) return;
@@ -7349,7 +7350,7 @@ async function startBrainingHub(){
   const paint = () => { const g = document.getElementById('brainCards'); if(g){ g.innerHTML = brainCardsHtml(); try{ zpMarkCards(); }catch(e){} } };
   renderApp(`
     <div class="panel">
-      <div class="picker-title">🧠 BRAINING</div>
+      <div class="picker-title">🧠 BRAINMANIA</div>
       <div class="picker-sub">${L('Denkspiele ohne Ende, jedes Level wird schwerer.','Endless puzzles, every level gets harder.')}</div>
       <div class="menu-grid" id="brainCards" style="margin-top:14px;grid-template-columns:1fr 1fr;"></div>
       <div id="brainClaim"></div>
@@ -7464,7 +7465,7 @@ ${currentLang === 'de' ? `
     <div class="menu-grid">
       <div class="mode-card" onclick="startBrainingHub()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><circle cx="33" cy="33" r="6" fill="#ff5d8f"/><path d="M33 27C33 24 35 23 37 23" stroke="#7cff8c" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
-        <h3>Braining</h3>
+        <h3>Brainmania</h3>
         <p>${L('Freizeit-Spiele: einfach mal zwischendurch zocken.','Leisure games: just play for fun, no thinking required.')}</p>
       </div>
       <div class="mode-card" onclick="renderChessHub()">

@@ -69,6 +69,7 @@ function sequences(s, p, dice){
     }
   }
   dfs(s, ds, []);
+  if(best === 0) return []; // kein Zug moeglich
   let list = Array.from(res.values());
   if(best === 1 && dice[0] !== dice[1]){
     const hi = Math.max(dice[0], dice[1]);
@@ -155,7 +156,7 @@ function setSkin(s){ try{ localStorage.setItem('bg_skin', s); }catch(e){} if(bg 
 const roll = () => 1 + Math.floor(Math.random() * 6);
 function pips(n){
   const P = { 1:[[50,50]], 2:[[25,25],[75,75]], 3:[[25,25],[50,50],[75,75]], 4:[[25,25],[75,25],[25,75],[75,75]], 5:[[25,25],[75,25],[50,50],[25,75],[75,75]], 6:[[25,22],[75,22],[25,50],[75,50],[25,78],[75,78]] }[n] || [];
-  return P.map(p => `<i style="left:calc(${p[0]}% - 3.5px);top:calc(${p[1]}% - 3.5px)"></i>`).join('');
+  return P.map(p => `<i style="left:calc(${p[0]}% - 4px);top:calc(${p[1]}% - 4px)"></i>`).join('');
 }
 const CSS = `<style>
 .bgp{--bgl:#c6ff3d;--bgc:#3de0ff}
@@ -169,7 +170,7 @@ const CSS = `<style>
 .bgp .bgpl{display:flex;align-items:center;gap:10px;background:#ffffff0d;border:1.5px solid #ffffff1a;border-radius:14px;padding:7px 10px;margin:8px 0}
 .bgp .bgpl.bgact{border-color:#c6ff3d;box-shadow:0 0 18px -6px #c6ff3d}.bgp .bgpl b{font-size:14px}.bgp .bgpl small{display:block;color:#9aa5c8;font-size:11px}.bgp .bgpl .bgr{margin-left:auto;font-size:12px;color:#9aa5c8;text-align:right}
 .bgp .bgav{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px}
-.bgb{position:relative;width:100%;max-width:440px;margin:8px auto;aspect-ratio:380/420;border-radius:18px;padding:8px 36px 8px 8px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.bgb{position:relative;width:calc(100% + 18px);max-width:540px;margin:8px -9px;aspect-ratio:380/470;border-radius:18px;padding:8px 36px 8px 8px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
 .bgb .row{position:absolute;left:8px;right:36px;height:42.5%;display:flex;z-index:1}.bgb .row.t{top:2%}.bgb .row.b{bottom:2%}
 .bgb .pt{flex:1;position:relative;height:100%;cursor:pointer}
 .bgb .tri{position:absolute;left:2px;right:2px;top:0;bottom:0;clip-path:polygon(0 0,100% 0,50% 100%)}
@@ -177,18 +178,18 @@ const CSS = `<style>
 .bgb .bar{width:6.5%;flex:none;position:relative;cursor:pointer;margin:-2% 0}
 .bgb .stack{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center}
 .bgb .t .stack{top:1%}.bgb .b .stack{bottom:1%;flex-direction:column-reverse}
-.bgb .ck{width:84%;max-width:30px;aspect-ratio:1;border-radius:50%;margin-bottom:-12%;position:relative;flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900}
+.bgb .ck{width:88%;max-width:42px;aspect-ratio:1;border-radius:50%;margin-bottom:-12%;position:relative;flex:none;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900}
 .bgb .t .ck{margin-bottom:0;margin-top:-12%}
 .bgb .ck:after{content:"";position:absolute;inset:22%;border-radius:50%;border:1.5px solid rgba(0,0,0,.2)}
 .bgb .ck.sel{transform:translateY(-3px);z-index:5}.bgb .t .ck.sel{transform:translateY(3px)}
-.bgb .tgt{position:absolute;left:50%;width:70%;max-width:26px;aspect-ratio:1;transform:translateX(-50%);border-radius:50%;z-index:4;pointer-events:none}
+.bgb .tgt{position:absolute;left:50%;width:70%;max-width:34px;aspect-ratio:1;transform:translateX(-50%);border-radius:50%;z-index:4;pointer-events:none}
 .bgb .t .tgt{top:2%}.bgb .b .tgt{bottom:2%}
 .bgb .mid{position:absolute;left:8px;right:36px;top:50%;height:12%;margin-top:-6%;display:flex;align-items:center;justify-content:center;gap:14px;z-index:3}
-.bgb .die{width:34px;height:34px;border-radius:9px;position:relative;transform:rotate(-8deg)}.bgb .die.dB{transform:rotate(9deg)}.bgb .die.used{opacity:.3}
-.bgb .die i{position:absolute;width:6px;height:6px;border-radius:50%}
-.bgb .off{position:absolute;right:6px;top:2%;bottom:2%;width:26px;border-radius:8px;display:flex;flex-direction:column;justify-content:space-between;padding:3px;align-items:center;z-index:2;cursor:pointer}
+.bgb .die{width:46px;height:46px;border-radius:11px;position:relative;transform:rotate(-8deg)}.bgb .die.dB{transform:rotate(9deg)}.bgb .die.used{opacity:.3}
+.bgb .die i{position:absolute;width:8px;height:8px;border-radius:50%}
+.bgb .off{position:absolute;right:6px;top:2%;bottom:2%;width:30px;border-radius:8px;display:flex;flex-direction:column;justify-content:space-between;padding:3px;align-items:center;z-index:2;cursor:pointer}
 .bgb .offg{display:flex;flex-direction:column;gap:1px;align-items:center}.bgb .offg.bt{justify-content:flex-end}
-.bgb .offg span{width:18px;height:5px;border-radius:2px;display:block}
+.bgb .offg span{width:22px;height:6px;border-radius:2px;display:block}
 .bgb .barst{position:absolute;left:0;right:0;display:flex;flex-direction:column;align-items:center;z-index:2}
 .bgb .offtgt{position:absolute;left:-2px;right:-2px;bottom:-2px;height:46%;border-radius:8px;pointer-events:none}
 .bgp .rollbtn{display:block;margin:8px auto;border:0;border-radius:16px;padding:13px 30px;font-weight:900;font-size:16px;color:#0b1024;background:linear-gradient(90deg,#c6ff3d,#3de0ff);cursor:pointer}
