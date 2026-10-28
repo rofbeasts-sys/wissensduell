@@ -561,7 +561,7 @@ function tttBroadcastState(room) {
 }
 
 
-// Zocker-Punkte fuer ein Duell zwischen zwei ECHTEN Konten: Mitspielen 50, Sieg 100 (Remis: beide 50).
+// Brainups fuer ein Duell zwischen zwei ECHTEN Konten: Mitspielen 50, Sieg 100 (Remis: beide 50).
 // Schutz: zwei verschiedene Konten, Mindestzuege, je Paar und Tag nur wenige Partien mit Punkten.
 const zpPairDay = new Map(), ZP_PAIR_PER_DAY = 4;
 function zpDuel(game, a, b, result /* "a" | "b" | "draw" */, moves, minMoves) {
@@ -3910,7 +3910,7 @@ async function loginUser(username, password, ip, lang, code) {
 
 
 /* ============================================================================
-   ZOCKER-PUNKTE (alle Spiele): Punkte gesamt / Tag / Woche / Monat, Belohnungen, Bestenlisten
+   BRAINUPS (alle Spiele): Punkte gesamt / Tag / Woche / Monat, Belohnungen, Bestenlisten
    ============================================================================ */
 let ZP_DAY_CAP = 1000;
 let ZP_DAY_TIERS = [{ p: 100, c: 20 }, { p: 250, c: 40 }, { p: 500, c: 80 }, { p: 800, c: 150 }];
@@ -3938,7 +3938,8 @@ function zpState(user) {
   z.total = Math.max(0, Math.floor(z.total || 0)); z.dp = z.dp || 0; z.dc = z.dc || 0; z.wp = z.wp || 0; z.wc = z.wc || 0;
   return z;
 }
-// Vergibt Zocker-Punkte (Tageslimit). game = optionale Spiel-Bestenliste. Gibt { gain, total, game } zurueck.
+// Vergibt Brainups (Tageslimit). game = optionale Spiel-Bestenliste. Gibt { gain, total, game } zurueck.
+const SM_ZP = [5, 10, 20, 30, 45, 60, 80, 100, 130, 160]; // Order of Speed: ZP je geschafftem Level, Stufen 1-5, 6-10 ... 46-50
 function zpAdd(user, pts, why, game) {
   try {
     if (!user || isRestricted(user) || featureLocked("zp")) return { gain: 0, total: 0 };
@@ -4146,7 +4147,7 @@ async function saveUserStats(token, stats, lang) {
   const oldCoins = user.stats.coins || 0, oldPrestige = user.stats.braintestPrestige || 0;
   const oldAnswers = (user.stats.correctAnswers || 0) + (user.stats.wrongAnswers || 0), oldWL = (user.stats.wins || 0) + (user.stats.losses || 0);
   const oldKlasse = user.stats.klasse || 0, oldTtt = user.stats.tttRank || 0;
-  const zpWas = { synced: !!user.stats.syncedOnce, sm: user.stats.speedMathLevel || 1, fruit: (user.stats.fruit && user.stats.fruit.fruitLevel) || 1, bio: Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {}) };
+  const zpWas = { oosT: (user.stats.oosLast && user.stats.oosLast.t) || 0, synced: !!user.stats.syncedOnce, sm: user.stats.speedMathLevel || 1, fruit: (user.stats.fruit && user.stats.fruit.fruitLevel) || 1, bio: Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {}) };
   const oldCorrect = user.stats.correctAnswers || 0, oldWrong = user.stats.wrongAnswers || 0, oldWins = user.stats.wins || 0, oldLosses = user.stats.losses || 0, oldRounds = user.stats.roundsPlayed || 0;
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
@@ -4251,6 +4252,7 @@ async function saveUserStats(token, stats, lang) {
     const r = stats[key];
     if (r && typeof r === "object" && [r.level, r.points, r.sec].every(n => typeof n === "number" && Number.isFinite(n))) {
       user.stats[key] = { level: Math.max(1, Math.min(200, Math.round(r.level))), points: Math.max(0, Math.min(1e7, Math.round(r.points))), sec: Math.max(0, Math.min(86400, Math.round(r.sec))) };
+      if (typeof r.t === "number" && Number.isFinite(r.t)) user.stats[key].t = Math.round(r.t);
     }
   }
   // Biologie: beste Trefferzahl je Thema + "fehlerfrei"-Markierung (strikt validiert)
@@ -4326,11 +4328,18 @@ async function saveUserStats(token, stats, lang) {
       }
     }
   }
-  // Zocker-Punkte: Klasse bestanden 250, Speed-Math-Meilenstein-Level 150, Brain Fruit Level 50 (jedes 10. = 100), Biologie-Thema erstmals geschafft 250
+  // Brainups: Klasse bestanden 250, Speed-Math-Meilenstein-Level 150, Order-of-Speed-Level 5 bis 160 (nach Stufen), Brain Fruit Level 50 (jedes 10. = 100), Biologie-Thema erstmals geschafft 250
   if (zpWas.synced && !isRestricted(user)) {
     let zpt = 0;
     zpt += 250 * Math.min(1, Math.max(0, (user.stats.klasse || 0) - oldKlasse));
     zpt += 150 * Math.min(3, Math.max(0, (user.stats.speedMathLevel || 1) - zpWas.sm));
+    { // Order of Speed: neue Runde -> ZP je geschafftem Level nach Stufen (5 ... 160), begrenzt durch gespielte Zeit
+      const o = user.stats.oosLast;
+      if (o && o.t > (zpWas.oosT || 0) && o.t <= Date.now() + 120000) {
+        const done = Math.min(15, Math.max(0, o.level - 1), Math.floor((o.sec || 0) / 6));
+        for (let L = 1; L <= done; L++) zpt += SM_ZP[Math.min(9, Math.floor((L - 1) / 5))];
+      }
+    }
     const fl = (user.stats.fruit && user.stats.fruit.fruitLevel) || 1;
     for (let L = zpWas.fruit; L < Math.min(fl, zpWas.fruit + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
     const bioNow = Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {});
@@ -4619,7 +4628,7 @@ function adminStats(key, ip) {
   return { ok: true, today: days[0], week: { plays: sum(days.slice(0, 7), "plays"), reg: sum(days.slice(0, 7), "reg"), peak: Math.max(...days.slice(0, 7).map(d => d.peak)) }, month: { plays: sum(days, "plays"), reg: sum(days, "reg"), peak: Math.max(...days.map(d => d.peak)) },
     top7: agg(7), top30: agg(30), days: days.map(d => ({ day: d.day, plays: d.plays, reg: d.reg, peak: d.peak, vis: d.vis })).reverse(), users: users.length, online: presenceCounts().online };
 }
-/* ---- ADMIN: ZOCKER-PUNKTE ---- */
+/* ---- ADMIN: BRAINUPS ---- */
 async function adminZp(key, ip, payload) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!usersLoaded) return { ok: false, error: "Konten noch nicht geladen." };
@@ -6611,8 +6620,8 @@ const GAME_DEFS = [
   { id: "taboo_team", name: "Taboo Team (Party)", group: "Minigames", icon: "👥", sub: "taboo" },
   { id: "taboo_ffa", name: "Taboo Wettbewerb (Party)", group: "Minigames", icon: "🏁", sub: "taboo" },
   { id: "taboo_solo", name: "Taboo Solo", group: "Minigames", icon: "🔤", sub: "taboo" },
-  { id: "zp", name: "Zocker-Punkte-System", group: "Zocker-Punkte", icon: "⭐" },
-  { id: "boards", name: "Online-Bestenlisten", group: "Zocker-Punkte", icon: "🏆" },
+  { id: "zp", name: "Brainups-System", group: "Brainups", icon: "⭐" },
+  { id: "boards", name: "Online-Bestenlisten", group: "Brainups", icon: "🏆" },
   { id: "chem", name: "Brainchimie", group: "Minigames", icon: "⚗️" },
   { id: "fourups", name: "Fourups", group: "Minigames", icon: "🔴" },
   { id: "fourups_abilities", name: "Fourups Fähigkeiten", group: "Minigames", icon: "✨", sub: "fourups" },
