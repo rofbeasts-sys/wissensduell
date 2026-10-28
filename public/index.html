@@ -539,6 +539,7 @@
 <script src="/dame-engine.js"></script>
 <script src="/muehle-engine.js"></script>
 <script src="/backgammon.js"></script>
+<script src="/evduel.js"></script>
 <script src="/solitaire.js"></script>
 <script src="/dice-3d.js"></script>
 <script src="/dice-race.js"></script>
@@ -15474,7 +15475,7 @@ async function evPoll(){
   evs.v = r; evs.off = r.now - Date.now();
   const ttl = document.getElementById('evTtl'); if(ttl) ttl.textContent = r.format === 'bracket' ? '🏆 ' + L('TURNIER','TOURNAMENT') : '⚔️ BATTLE ROYALE';
   evPaintTop();
-  const run = r.run, playing = r.state === 'running' && run && run.phase === 'play' && run.meAlive && !(run.fmt === 'bracket' && (run.meBye || run.meFin));
+  const run = r.run, playing = r.state === 'running' && run && run.phase === 'play' && run.meAlive && !run.isDuel && !(run.fmt === 'bracket' && (run.meBye || run.meFin));
   if(!playing){ if(evs.q){ evs.q = null; evPaintQ(); } }
   else if(!evs.q && !evs.fetching){ evs.fetching = true; const q = await apiCall('/api/event', { action:'question', id: evs.id || undefined, token: account.token }); if(evs){ evs.fetching = false; if(q && q.q){ evs.q = q.q; evPaintQ(); } } }
 }
@@ -15489,6 +15490,8 @@ function evBrHtml(v){
     h += `<div class="bx" style="text-align:center"><div style="font-weight:900;font-size:18px">${r.hidden ? '🎲 ' + L('Neue Überraschung!','New surprise!') : L('Gleich geht es los','Get ready')}</div><div class="big">${Math.ceil(left / 1000)}</div>` +
       (!r.me ? `<div class="d">${L('Du schaust zu','You are watching')}</div>` : !r.meAlive ? `<div class="d">💀 ${L('Du bist ausgeschieden – schau zu!','You are out – enjoy the show!')}</div>` : r.meBye ? `<div class="d">🍀 ${L('Freilos – du bist automatisch weiter','Bye – you advance automatically')}</div>` : `<div style="font-size:16px">${L('Dein Gegner','Your opponent')}: <b style="color:var(--accent)">${esc(r.opp || '?')}</b></div>`) +
       `<div class="d" style="font-size:13px;margin-top:6px">${r.hidden ? L('Welches Spiel kommt, siehst du, sobald es startet.','You will see the game as soon as it starts.') : esc(r.roundLabel)}</div></div>`;
+  } else if(r.phase === 'play' && r.isDuel){
+    h += `<div class="bx"><div style="display:flex;justify-content:space-between;align-items:center"><b>${esc(r.roundLabel.split(' · ')[0])}</b><span class="tm" id="evDuelTm">⏱ ${evFmt(left)}</span></div>` + (active && r.duel ? `<div id="evDuelBox">${evDuelHtml(r)}</div>` : `<div class="d" style="margin-top:6px">${!r.me ? L('Du schaust zu','You are watching') : !r.meAlive ? '💀 ' + L('Ausgeschieden','Out') : '🍀 ' + L('Freilos','Bye')}</div>`) + `</div>`;
   } else if(r.phase === 'play'){
     h += `<div class="bx"><div style="display:flex;justify-content:space-between;align-items:center"><b>${L('Wer gewinnt?','Who wins?')} (${unit})</b><span class="tm">⏱ ${evFmt(left)}</span></div>` +
       (active ? `<div style="display:flex;gap:10px;margin-top:8px"><div style="flex:1;text-align:center;background:rgba(198,255,61,.15);border-radius:12px;padding:8px"><div class="d">${L('Du','You')}</div><b style="font-size:24px;color:var(--accent)">${evBrVal(r, r.meScore, r.meCorrect, r.meFin, r.meTime)}</b></div><div style="flex:1;text-align:center;background:rgba(255,255,255,.08);border-radius:12px;padding:8px"><div class="d">${esc(r.opp || '')}</div><b style="font-size:24px">${evBrVal(r, r.oppScore, r.oppCorrect, r.oppFin, 0)}</b></div></div>${r.meFin ? `<div class="d" style="margin-top:6px;text-align:center">✅ ${L('Fertig! Warte auf deinen Gegner …','Done! Waiting for your opponent …')}</div>` : ''}` : `<div class="d" style="margin-top:6px">${!r.me ? L('Du schaust zu','You are watching') : !r.meAlive ? '💀 ' + L('Ausgeschieden','Out') : '🍀 ' + L('Freilos','Bye')}</div>`) + `</div>`;
@@ -15505,6 +15508,7 @@ function evBrHtml(v){
 }
 function evPaintTop(){
   const v = evs.v, el = document.getElementById('evTop'); if(!el || !v) return;
+  { const rr = v.run; if(v.state === 'running' && rr && rr.isDuel && rr.phase === 'play' && rr.duel && document.getElementById('evDuelBox')){ const k = [rr.stageIdx, rr.discIdx, rr.alive].join('|'); if(evs.duelKey === k){ const tm = document.getElementById('evDuelTm'); if(tm) tm.textContent = '⏱ ' + evFmt(evLeft(rr.phaseEnd)); if(evs.duelSig !== evDuelSig(rr)) evDuelPaint(); return; } } }
   const sig = JSON.stringify([v.state, v.joined, v.entrants, v.run && [v.run.roundIdx, v.run.phase, v.run.alive, v.run.meScore, v.run.meRank, v.run.board.map(b => b.score), v.run.stageIdx, v.run.discIdx, v.run.meCorrect, v.run.oppCorrect, v.run.oppScore, v.run.meFin, v.run.oppFin, v.run.matches && v.run.matches.map(m => [m.w, m.d.length])], v.myPlace]) + Math.floor(evLeft(v.run ? v.run.phaseEnd : v.start) / 1000);
   if(sig === evs.sig) return; evs.sig = sig;
   { const gi = document.getElementById('evGuestName'); if(v.state === 'open' && !v.joined && gi && (gi.value || document.activeElement === gi)){ const bg = el.querySelector('.big'); if(bg){ const lf = evLeft(v.start); bg.textContent = lf > 0 ? evFmt(lf) : L('gleich …','soon …'); } return; } }
@@ -15528,6 +15532,7 @@ function evPaintTop(){
     h += `<div class="bx" style="text-align:center"><div style="font-size:26px">🏆</div><div style="font-weight:900;font-size:18px">${L('Event beendet','Event finished')}</div>${v.myPlace ? `<div style="margin-top:6px">${L('Dein Platz','Your rank')}: <b style="color:var(--accent)">${v.myPlace}</b></div>` : ''}${v.myPrize ? `<div style="margin-top:6px;color:var(--accent);font-weight:800">+${v.myPrize.c} 🪙 ${v.myPrize.z ? '+ ' + v.myPrize.z + ' ' + buPulse(14) : ''}</div>` : (v.state === 'payout' && v.myPlace ? `<div class="d" style="margin-top:6px;font-size:13px">${L('Die Preise werden gleich ausgezahlt.','Prizes will be paid out shortly.')}</div>` : '')}</div><div class="bx"><b>${L('Ergebnis','Results')}</b>${(v.results || []).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--accent)">${r.score}</b></div>`).join('')}</div>`;
   }
   el.innerHTML = h;
+  { const rr = v.run; evs.duelKey = (v.state === 'running' && rr && rr.isDuel && rr.phase === 'play' && rr.duel && document.getElementById('evDuelBox')) ? [rr.stageIdx, rr.discIdx, rr.alive].join('|') : ''; if(evs.duelKey) evs.duelSig = evDuelSig(rr); }
 }
 async function evQuickJoin(){
   const inp = document.getElementById('evGuestName'), err = document.getElementById('evGuestErr'); if(!inp || !evs) return;
