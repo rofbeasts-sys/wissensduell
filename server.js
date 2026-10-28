@@ -3187,7 +3187,7 @@ function tabooFfaNextTurn(room, rt) {
     }, 7000);
     return;
   }
-  rt.describerId = rt.order[rt.turn];
+  rt.describerId = rt.order[rt.turn]; rt.watcherId = rt.order.length >= 3 && !rt.voice ? rt.order[(rt.turn + 1) % rt.order.length] : null;
   rt.phase = "turn"; rt.skips = TABOO_SKIPS; rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); rt.endsAt = Date.now() + rt.ms; rt.feed = []; rt.found = []; rt.bad = []; rt.skipped = [];
   clearTimeout(rt.timer);
   tabooBroadcast(room);
@@ -3224,7 +3224,8 @@ function tabooRoleOf(room, rt, p) {
   if (rt.phase !== "turn") return "spectator";
   const dp = room.players.get(rt.describerId), tid = rt.teams[rt.turn];
   if (p.id === rt.describerId) return "describer";
-  if (rt.ffa) return rt.pts[p.id] != null ? "guesserWatcher" : "spectator";
+  if (rt.voice) return "guesser";   // Nur erklaeren: alle anderen raten laut und haben keine Knoepfe, der Erklaerer bedient alles
+  if (rt.ffa) return rt.pts[p.id] == null ? "spectator" : (p.id === rt.watcherId ? "watcher" : "guesser");   // Wettbewerb: ein Waechter (naechster Erklaerer) sieht die Karte + TABU, alle anderen raten ohne Hilfswoerter
   const mates = Array.from(room.players.values()).filter(x => x.teamId === tid && x.id !== rt.describerId && !x.isBot && x.connected);
   if (p.teamId === tid) return "guesser";
   return mates.length ? "watcher" : "guesserWatcher";   // Gegner: aufpassen (und raten, wenn der Erklaerer allein im Team ist)
@@ -3233,7 +3234,7 @@ function tabooBroadcast(room) {
   const rt = room.runtime; if (!rt || rt.kind !== "tabooGame") return;
   const names = {}; room.teams.forEach(t => { names[t.id] = t.name; });
   const board = rt.ffa ? Object.keys(rt.pts).map(id => ({ id, name: (room.players.get(id) || {}).name || "?", pts: rt.pts[id] })).sort((a, b) => b.pts - a.pts) : null;
-  const base = { type: "tabooState", ffa: !!rt.ffa, voice: !!rt.voice, secs: Math.round((rt.ms || TABOO_TURN_MS) / 1000), board, nTurns: rt.ffa ? rt.order.length : 2, phase: rt.phase, turn: rt.turn, teams: rt.teams, teamNames: names, scores: rt.scores, turnTeam: rt.teams[rt.turn] || null, describerId: rt.describerId || null,
+  const base = { type: "tabooState", ffa: !!rt.ffa, voice: !!rt.voice, ci: rt.di, secs: Math.round((rt.ms || TABOO_TURN_MS) / 1000), board, nTurns: rt.ffa ? rt.order.length : 2, phase: rt.phase, turn: rt.turn, teams: rt.teams, teamNames: names, scores: rt.scores, turnTeam: rt.teams[rt.turn] || null, describerId: rt.describerId || null,
     describerName: rt.describerId && room.players.get(rt.describerId) ? room.players.get(rt.describerId).name : "", nextName: rt.ffa && rt.order[rt.turn + 1] && room.players.get(rt.order[rt.turn + 1]) ? room.players.get(rt.order[rt.turn + 1]).name : "", remainingMs: rt.phase === "turn" ? Math.max(0, rt.endsAt - Date.now()) : 0, skips: rt.skips || 0,
     feed: rt.feed.slice(-6), found: rt.found || [], bad: rt.bad || [], skipped: rt.skipped || [], log: rt.phase === "result" || rt.phase === "break" ? rt.log : null };
   room.players.forEach(p => {
@@ -3241,7 +3242,7 @@ function tabooBroadcast(room) {
     const role = tabooRoleOf(room, rt, p), m = Object.assign({ role, you: p.id, yourTeam: p.teamId }, base);
     if (rt.phase === "turn" && rt.card) {
       if (role === "describer" || role === "watcher") m.card = rt.card;                       // sieht Begriff + verbotene Woerter
-      else if (role === "guesserWatcher") m.card = { w: "?".repeat(rt.card.w.length), t: rt.card.t }; // Gegner allein-Team: nur verbotene Woerter, Begriff verdeckt
+      else if (role === "guesserWatcher") m.card = { w: "?".repeat(rt.card.w.length), t: [] }; // Rater sehen nie die verbotenen Woerter (das waeren Hinweise)
       if (role === "guesser" || role === "guesserWatcher") m.wordLen = rt.card.w.length;
     }
     send(p.ws, m);
@@ -3270,25 +3271,30 @@ function handleTabooGuess(room, playerId, text) {
 function handleTabooTabu(room, playerId) {
   const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn") return;
   const p = room.players.get(playerId); if (!p) return;
-  const role = tabooRoleOf(room, rt, p); if (role !== "watcher" && role !== "guesserWatcher") return;
+  const role = tabooRoleOf(room, rt, p); if (!(rt.voice && role === "describer") && role !== "watcher" && role !== "guesserWatcher") return;
   if (rt.lastTabuAt && Date.now() - rt.lastTabuAt < 800) return; rt.lastTabuAt = Date.now();
   if (rt.ffa) { rt.pts[rt.describerId] -= 3; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU! −3", tabu: true }); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); return tabooBroadcast(room); }
   const tid = rt.teams[rt.turn]; rt.scores[tid]--; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU!", tabu: true }); rt.card = tabooDrawCard(rt);
   tabooBroadcast(room);
 }
-function handleTabooOk(room, playerId, by) {   // Nur-erklaeren-Modus: der Erklaerer bestaetigt, dass das Wort laut erraten wurde
-  const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn" || !rt.voice || playerId !== rt.describerId) return;
+function handleTabooOk(room, playerId, by, ci) {   // Nur-erklaeren-Modus: Erklaerer ODER ein Rater bestaetigt, dass das Wort laut erraten wurde
+  const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn" || !rt.voice) return;
+  const p = room.players.get(playerId); if (!p) return;
+  if (playerId !== rt.describerId) return;
+  const role = "describer";
+  if (ci != null && Number(ci) !== rt.di) return;   // Karte hat schon gewechselt (zweiter Klick) -> ignorieren
   if (rt.lastOkAt && Date.now() - rt.lastOkAt < 600) return; rt.lastOkAt = Date.now();
   const d = room.players.get(rt.describerId);
   if (rt.ffa) {
-    if (!by || by === rt.describerId || rt.pts[by] == null) return;
-    const gp = Math.max(3, 10 - Math.floor((Date.now() - rt.cardAt) / 3000)), g = room.players.get(by);
-    rt.pts[by] += gp; rt.pts[rt.describerId] += Math.ceil(gp / 2);
+    const gid = role === "describer" ? by : playerId;
+    if (!gid || gid === rt.describerId || rt.pts[gid] == null) return;
+    const gp = Math.max(3, 10 - Math.floor((Date.now() - rt.cardAt) / 3000)), g = room.players.get(gid);
+    rt.pts[gid] += gp; rt.pts[rt.describerId] += Math.ceil(gp / 2);
     rt.feed.push({ name: g ? g.name : "?", text: rt.card.w + " +" + gp, ok: true });
     rt.found.push(rt.card.w); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now();
     return tabooBroadcast(room);
   }
-  const tid = rt.teams[rt.turn]; rt.scores[tid]++; rt.feed.push({ name: d ? d.name : "?", text: rt.card.w + " ✔", ok: true });
+  const tid = rt.teams[rt.turn]; rt.scores[tid]++; rt.feed.push({ name: p.name, text: rt.card.w + " ✔", ok: true });
   rt.found.push(rt.card.w); rt.card = tabooDrawCard(rt); tabooBroadcast(room);
 }
 function handleTabooSkip(room, playerId) {
@@ -8296,7 +8302,7 @@ wss.on("connection", (ws, req) => {
         handleTabooSkip(room, ws.playerId);
         break;
       case "tabooOk":
-        handleTabooOk(room, ws.playerId, msg.by);
+        handleTabooOk(room, ws.playerId, msg.by, msg.ci);
         break;
       case "tabooConfig":
         if (isHost && room.phase === "lobby") room.tabooCfg = { ms: Math.max(30, Math.min(300, Math.floor(Number(msg.secs) || 90))) * 1000, voice: msg.voice === true };
