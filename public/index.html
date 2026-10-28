@@ -5298,9 +5298,9 @@ window.alert = function(msg){ appDialog(msg, [{ label: 'OK', cls: 'pri' }]); };
 function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} try{ zpMarkCards(); }catch(e){} }
 /* ---- Brainups-Muenze (Grafik) ---- */
 let __buId = 0;
-function buPulse(sz){ // Brainups-Symbol: Puls-Linie
-  sz = sz || 16;
-  return `<svg width="${Math.round(sz*1.5)}" height="${sz}" viewBox="0 0 110 70" style="vertical-align:-${Math.round(sz*0.18)}px;display:inline-block"><polyline points="4,40 30,40 40,40 48,12 60,58 70,30 78,40 106,40" fill="none" stroke="#c6ff3d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+function buPulse(sz, col){ // Brainups-Symbol: Puls-Linie
+  sz = sz || 16; col = col || '#c6ff3d';
+  return `<svg width="${Math.round(sz*1.5)}" height="${sz}" viewBox="0 0 110 70" style="vertical-align:-${Math.round(sz*0.18)}px;display:inline-block"><polyline points="4,40 30,40 40,40 48,12 60,58 70,30 78,40 106,40" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 window.buPulse = buPulse;
 /* ---- Muenzen-Grafik (kaufbare Muenzen): ersetzt das Emoji 🪙 ueberall ---- */
@@ -5331,7 +5331,7 @@ function zpMarkCards(){
   document.querySelectorAll('.mode-card:not(.locked)').forEach(c => {
     if(c.dataset.zpb) return;
     const oc = c.getAttribute('onclick') || '';
-    for(const fn in ZP_MARKS){ if(oc.trim().indexOf(fn) === 0){ c.dataset.zpb = '1'; c.insertAdjacentHTML('beforeend', '<span class="zpb">' + buPulse(13) + ' ' + ZP_MARKS[fn] + '</span>'); break; } }
+    for(const fn in ZP_MARKS){ if(oc.trim().indexOf(fn) === 0){ c.dataset.zpb = '1'; c.insertAdjacentHTML('beforeend', '<span class="zpb">' + buPulse(13, '#10150a') + ' ' + ZP_MARKS[fn] + '</span>'); break; } }
   });
 }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
@@ -15313,7 +15313,7 @@ function tabooSoloPaint(){
       <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="tabooSoloStart()">${L('NÄCHSTES WORT','NEXT WORD')}</button>`;
   } else end = `<div style="text-align:center;margin-top:10px;min-height:20px;font-weight:800">${esc(tbs.msg || '')}</div>`;
   root.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="tbsLeave()">${t('btn_back')}</button><div style="flex:1"><div class="picker-title" style="margin:0">TABOO SOLO</div></div></div>
-    <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">${buPulse(13)} ${L('bis +100','up to +100')}</span></div>
+    <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">${buPulse(13, '#10150a')} ${L('bis +100','up to +100')}</span></div>
     <div class="hints"><div class="h">${L('KATEGORIE','CATEGORY')}: <b style="font-size:1.25em">${esc(tbs.cat || '')}</b></div>${tbs.hints.map((h, n) => `<div class="w"><span style="opacity:.6;font-size:11px;font-weight:700">${LV[n]} · ${h.k === 'e' ? L('Erklärung','Explanation') : L('Stichwort','Keyword')}</span><br>${esc(h.t)}</div>`).join('')}${(!tbs.done && tbs.hintsLeft > 0) ? `<button class="btn btn-block" style="margin:0;border-radius:0;background:#10150a;color:#c6ff3d;font-weight:800" onclick="tabooSoloHint()">💡 ${L('Hinweis nehmen','Take a hint')} (−${tbs.hintCost || 5} 🪙) · ${tbs.hintsLeft} ${L('übrig','left')}</button>` : ''}</div>
     <div class="grid" style="--cw:${Math.min(44, Math.floor(330 / tbs.len) - 6)}px;--ch:${Math.min(48, Math.floor(330 / tbs.len) - 2)}px">${grid}</div>${end}<div class="kb">${kb}</div>
     <div style="display:flex;gap:10px;justify-content:center;font-size:11px;margin-top:10px;opacity:.85;flex-wrap:wrap"><span>🟩 ${L('richtiger Platz','right place')}</span><span>🟨 ${L('im Wort, falscher Platz','in word, wrong place')}</span><span>⬛ ${L('nicht drin','not in word')}</span></div>`;

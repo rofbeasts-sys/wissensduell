@@ -75,7 +75,7 @@ button.mini{padding:4px 8px;font-size:12px}
     <button data-t="news">News</button>
     <button data-t="fb">Feedback<span class="n hidden" id="nFb"></span></button>
     <button data-t="ev">Events</button>
-    <button data-t="zp">Zocker-Punkte</button>
+    <button data-t="zp">Brainups</button>
     <button data-t="stats">Statistik</button>
     <button data-t="mania">Brainmania</button>
   </div>
@@ -132,7 +132,7 @@ button.mini{padding:4px 8px;font-size:12px}
   <div id="tab_zp" class="hidden">
     <div class="card"><h2>SYSTEM</h2>
       <div id="zpSw" class="row" style="gap:8px;flex-wrap:wrap"></div>
-      <div class="dim" style="font-size:12px;margin-top:6px">Aus = keine Punkte mehr, keine Abzeichen an den Karten, keine Zocker-Punkte-Seite. Einzelne Spiele schaltest du im Reiter „Spiele“.</div>
+      <div class="dim" style="font-size:12px;margin-top:6px">Aus = keine Punkte mehr, keine Abzeichen an den Karten, keine Brainups-Seite. Einzelne Spiele schaltest du im Reiter „Spiele“.</div>
     </div>
     <div class="card"><h2>EINSTELLUNGEN</h2>
       <div class="row" style="align-items:center;gap:8px"><span style="width:150px">Tageslimit (Punkte)</span><input id="zpCap" type="number" min="10" max="100000"></div>
@@ -146,7 +146,7 @@ button.mini{padding:4px 8px;font-size:12px}
       <div class="row"><input id="zpName" placeholder="Spielername" autocomplete="off" onkeydown="if(event.key==='Enter')zpFind()"><button onclick="zpFind()">Suchen</button></div>
       <div id="zpPl" class="dim" style="margin-top:8px"></div>
       <div id="zpAct" class="hidden" style="margin-top:8px"><div class="row" style="gap:8px"><input id="zpAmt" type="number" placeholder="Punkte (±)"><button onclick="zpCredit()">Gutschreiben / abziehen</button></div>
-        <div class="row" style="margin-top:8px"><button class="btn2 red" onclick="zpReset()">Alle Zocker-Punkte dieses Spielers zurücksetzen</button></div></div>
+        <div class="row" style="margin-top:8px"><button class="btn2 red" onclick="zpReset()">Alle Brainups dieses Spielers zurücksetzen</button></div></div>
     </div>
     <div class="card"><h2>TOP 10 GESAMT</h2><div id="zpTop" class="list">…</div></div>
     <div class="card"><h2>TOP 10 DIESER MONAT</h2><div id="zpTopM" class="list">…</div></div>
@@ -171,14 +171,14 @@ button.mini{padding:4px 8px;font-size:12px}
       <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap"><label class="dim" style="font-size:12px">Start<br><input id="evStart" type="datetime-local"></label><label class="dim" style="font-size:12px">Max. Spieler<br><input id="evMax" type="number" value="32" style="width:90px"></label><label class="dim" style="font-size:12px">Mind.<br><input id="evMin" type="number" value="4" style="width:70px"></label></div>
       <h2 style="margin-top:6px">RUNDEN (Reihenfolge)</h2><div id="evRounds"></div>
       <div class="row" style="gap:8px;margin:8px 0"><button class="btn2" onclick="evAddRound()">＋ Runde</button><button class="btn2" onclick="evRandomRounds()">🎲 Zufällig füllen</button></div>
-      <h2>PREISE (Münzen / Zocker-Punkte)</h2>
+      <h2>PREISE (Münzen / Brainups)</h2>
       <div id="evPrizes"></div>
       <div class="row" style="gap:8px;margin-top:10px"><button onclick="evSave()">Als Entwurf speichern</button><button class="btn2" onclick="evReset()">Neu</button></div>
     </div>
   </div>
 
   <div id="tab_fb" class="hidden">
-    <div class="dim" style="font-size:12px;margin-bottom:8px">Spieler schicken 1× pro Tag Feedback aus dem Profil-Menü. <b>Belohnen</b> schreibt dem Spieler 50 Münzen + 100 Zocker-Punkte gut (nur einmal je Feedback). <b>Behalten</b> markiert es für dich, <b>Löschen</b> entfernt es nur bei dir.</div>
+    <div class="dim" style="font-size:12px;margin-bottom:8px">Spieler schicken 1× pro Tag Feedback aus dem Profil-Menü. <b>Belohnen</b> schreibt dem Spieler 50 Münzen + 100 Brainups gut (nur einmal je Feedback). <b>Behalten</b> markiert es für dich, <b>Löschen</b> entfernt es nur bei dir.</div>
     <div class="row" id="fbTabs" style="gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
     <div id="fbMsgA" style="min-height:16px;font-size:13px;margin-bottom:6px"></div>
     <div id="fbList">…</div>
@@ -468,17 +468,17 @@ async function maniaAct(a, q){ if(!confirm(q)) return; const r = await api('/api
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => {});
 if(KEY) start(); else show(true);
 
-/* ---- Zocker-Punkte-Reiter ---- */
+/* ---- Brainups-Reiter ---- */
 let ZPC = null, ZPN = '';
 function tierRow(id, i, t){ return `<div class="row" style="gap:6px;margin-bottom:6px;align-items:center"><input data-k="${id}p" type="number" value="${t.p}" style="width:40%"><span>→</span><input data-k="${id}c" type="number" value="${t.c}" style="width:40%"><span class="dim">Münzen</span></div>`; }
 function zpPaint(){
   const c = ZPC.cfg;
-  $('zpSw').innerHTML = `<button class="btn2" onclick="zpSwitch('zp',${c.on?'false':'true'})">Zocker-Punkte: <b>${c.on?'AN':'AUS'}</b></button><button class="btn2" onclick="zpSwitch('boards',${c.boardsOn?'false':'true'})">Online-Bestenlisten: <b>${c.boardsOn?'AN':'AUS'}</b></button>`;
+  $('zpSw').innerHTML = `<button class="btn2" onclick="zpSwitch('zp',${c.on?'false':'true'})">Brainups: <b>${c.on?'AN':'AUS'}</b></button><button class="btn2" onclick="zpSwitch('boards',${c.boardsOn?'false':'true'})">Online-Bestenlisten: <b>${c.boardsOn?'AN':'AUS'}</b></button>`;
   $('zpCap').value = c.cap;
   $('zpDay').innerHTML = c.day.map((t,i) => tierRow('d',i,t)).join('');
   $('zpWeek').innerHTML = c.week.map((t,i) => tierRow('w',i,t)).join('');
   $('zpMon').innerHTML = c.month.map((v,i) => `<label style="font-size:12px">Platz ${i+1}<br><input data-k="m" type="number" value="${v}" style="width:80px"></label>`).join('');
-  const rows = a => a.length ? a.map(x => `<div class="pl"><span>${x.pos}. <b>${esc(x.name)}</b></span><b style="color:var(--acc)">${x.pts} ZP</b></div>`).join('') : '<span class="dim">Noch niemand.</span>';
+  const rows = a => a.length ? a.map(x => `<div class="pl"><span>${x.pos}. <b>${esc(x.name)}</b></span><b style="color:var(--acc)">${x.pts} BU</b></div>`).join('') : '<span class="dim">Noch niemand.</span>';
   $('zpTop').innerHTML = rows(ZPC.top); $('zpTopM').innerHTML = rows(ZPC.topMonth); $('zpTopT').innerHTML = rows(ZPC.topToday);
 }
 async function zpLoad(){ const r = await api('/api/admin-zp', { action:'get' }); if(!r || !r.ok){ $('zpMsg').textContent = (r && r.error) || 'Fehler'; return; } ZPC = r; zpPaint(); }
@@ -501,7 +501,7 @@ function zpShowPl(r){
 }
 async function zpFind(){ zpShowPl(await api('/api/admin-zp', { action:'find', username: $('zpName').value })); }
 async function zpCredit(){ const n = Number($('zpAmt').value); if(!n) return; zpShowPl(await api('/api/admin-zp', { action:'credit', username: ZPN, pts: n })); $('zpAmt').value = ''; zpLoad(); }
-async function zpReset(){ if(!confirm('Wirklich ALLE Zocker-Punkte von ' + ZPN + ' auf 0 setzen?')) return; zpShowPl(await api('/api/admin-zp', { action:'reset', username: ZPN })); zpLoad(); }
+async function zpReset(){ if(!confirm('Wirklich ALLE Brainups von ' + ZPN + ' auf 0 setzen?')) return; zpShowPl(await api('/api/admin-zp', { action:'reset', username: ZPN })); zpLoad(); }
 /* ---- Statistik-Reiter ---- */
 async function stLoad(){
   const r = await api('/api/admin-stats'); if(!r || !r.ok){ $('stToday').textContent = (r && r.error) || 'Fehler'; return; }
@@ -538,7 +538,7 @@ function evPaintList(){
     else if(e.state === 'payout') act = `<button onclick="evDo('payout','${e.id}','Preise jetzt an alle auszahlen?')">💰 Auszahlung bestätigen</button>`;
     else act = `<button class="btn2 red" onclick="evDo('delete','${e.id}','Eintrag löschen?')">Löschen</button>`;
     const live = e.live ? `<div class="dim" style="margin-top:6px">Runde <b style="color:#fff">${e.live.roundIdx+1}/${e.rounds.length}</b> · ${esc(e.live.phase)} · noch dabei <b style="color:#fff">${e.live.alive}</b></div>` + e.live.board.map((b,i) => `<div class="pl"><span class="${b.alive?'':'dim'}">${i+1}. ${esc(b.name)}${b.alive?'':' (raus)'}</span><b style="color:var(--acc)">${b.score}</b></div>`).join('') : '';
-    const res = e.results ? `<div class="dim" style="margin-top:6px">Ergebnis:</div>` + e.results.slice(0,10).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--acc)">${r.score}</b></div>`).join('') + (e.state === 'payout' ? `<div class="dim" style="margin-top:6px">Auszahlung: 1. ${pz.p1.c} 🪙/${pz.p1.z} ZP · 2. ${pz.p2.c}/${pz.p2.z} · 3. ${pz.p3.c}/${pz.p3.z} · alle anderen ${pz.part.c} 🪙/${pz.part.z} ZP (${e.results.length} Spieler)</div>` : '') : '';
+    const res = e.results ? `<div class="dim" style="margin-top:6px">Ergebnis:</div>` + e.results.slice(0,10).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--acc)">${r.score}</b></div>`).join('') + (e.state === 'payout' ? `<div class="dim" style="margin-top:6px">Auszahlung: 1. ${pz.p1.c} 🪙/${pz.p1.z} BU · 2. ${pz.p2.c}/${pz.p2.z} · 3. ${pz.p3.c}/${pz.p3.z} · alle anderen ${pz.part.c} 🪙/${pz.part.z} BU (${e.results.length} Spieler)</div>` : '') : '';
     return `<div class="card"><div class="row" style="justify-content:space-between"><b style="font-size:16px">⚔️ ${esc(e.name)}</b><span class="pill ${e.state==='open'||e.state==='running'?'on':''}">${EV_STATE[e.state]||e.state}</span></div>
       <div class="dim" style="margin-top:4px">Start ${fdt(e.start)} · ${e.entrants.length}/${e.maxPlayers} angemeldet (mind. ${e.minPlayers})${e.reason ? ' · ' + esc(e.reason) : ''}</div><div class="dim" style="font-size:12px;margin-top:4px">${rn}</div>
       ${live}${res}<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${act}</div></div>`;
@@ -578,13 +578,13 @@ function fbPaint(){
   $('fbTabs').innerHTML = [['new','Neu',cnt.new],['kept','Behalten',cnt.kept],['rew','Belohnt',cnt.rew],['all','Alle',cnt.all]].map(([k,n,c]) => `<button class="${FBF===k?'':'btn2'}" onclick="FBF='${k}';fbPaint()">${n} (${c})</button>`).join('');
   const list = it.filter(x => FBF === 'all' || (FBF === 'new' && x.state === 'new') || (FBF === 'kept' && x.state === 'kept') || (FBF === 'rew' && x.rewarded));
   $('fbList').innerHTML = list.length ? list.map(f => `<div class="card"><div class="row" style="justify-content:space-between"><b>${esc(f.user)}</b><span class="dim" style="font-size:12px">${fdt(f.t)}</span></div>
-    <div style="margin:8px 0;display:flex;gap:6px;flex-wrap:wrap"><span class="pill">${FB_K[f.kind] || f.kind}</span>${f.area ? `<span class="pill cy">${esc(f.area)}</span>` : ''}${f.state === 'kept' ? '<span class="pill on">⭐ behalten</span>' : ''}${f.rewarded ? `<span class="pill on">🎁 belohnt (${f.rc} 🪙 + ${f.rz} ZP)</span>` : ''}</div>
+    <div style="margin:8px 0;display:flex;gap:6px;flex-wrap:wrap"><span class="pill">${FB_K[f.kind] || f.kind}</span>${f.area ? `<span class="pill cy">${esc(f.area)}</span>` : ''}${f.state === 'kept' ? '<span class="pill on">⭐ behalten</span>' : ''}${f.rewarded ? `<span class="pill on">🎁 belohnt (${f.rc} 🪙 + ${f.rz} BU)</span>` : ''}</div>
     <div style="white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.45">${esc(f.text)}</div>
-    <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${f.rewarded ? '' : `<button onclick="fbAct('reward','${f.id}')">🎁 Belohnen (${FBD.reward.c} 🪙 + ${FBD.reward.z} ZP)</button>`}${f.state === 'kept' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Nicht behalten</button>` : `<button class="btn2" onclick="fbAct('mark','${f.id}','kept')">⭐ Behalten</button>`}${f.state === 'new' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Gelesen</button>` : ''}<button class="btn2 red" onclick="fbAct('delete','${f.id}')">Löschen</button></div></div>`).join('') : '<div class="dim">Nichts in dieser Ansicht.</div>';
+    <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${f.rewarded ? '' : `<button onclick="fbAct('reward','${f.id}')">🎁 Belohnen (${FBD.reward.c} 🪙 + ${FBD.reward.z} BU)</button>`}${f.state === 'kept' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Nicht behalten</button>` : `<button class="btn2" onclick="fbAct('mark','${f.id}','kept')">⭐ Behalten</button>`}${f.state === 'new' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Gelesen</button>` : ''}<button class="btn2 red" onclick="fbAct('delete','${f.id}')">Löschen</button></div></div>`).join('') : '<div class="dim">Nichts in dieser Ansicht.</div>';
 }
 async function fbAct(action, id, state){
   if(action === 'delete' && !confirm('Dieses Feedback bei dir löschen? (Der Spieler merkt nichts.)')) return;
-  if(action === 'reward' && !confirm('Spieler jetzt mit ' + FBD.reward.c + ' Münzen und ' + FBD.reward.z + ' Zocker-Punkten belohnen?')) return;
+  if(action === 'reward' && !confirm('Spieler jetzt mit ' + FBD.reward.c + ' Münzen und ' + FBD.reward.z + ' Brainups belohnen?')) return;
   const r = await api('/api/admin-feedback', { action, id, state });
   if(r && r.ok){ FBD = r; fbPaint(); $('fbMsgA').style.color = 'var(--ok)'; $('fbMsgA').textContent = action === 'reward' ? 'Belohnung ist gutgeschrieben.' : ''; } else { $('fbMsgA').style.color = '#ff5d8f'; $('fbMsgA').textContent = (r && r.error) || 'Fehler'; }
 }

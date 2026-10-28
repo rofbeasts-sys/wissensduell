@@ -1,4 +1,4 @@
-/* ZOCKER-PUNKTE: Hauptmenü-Karte, Bestenlisten (gesamt / Monat / je Spiel), Tages- und Wochen-Belohnungen, Einblendung nach jeder Partie */
+/* BRAINUPS: Hauptmenü-Karte, Bestenlisten (gesamt / Monat / je Spiel), Tages- und Wochen-Belohnungen, Einblendung nach jeder Partie */
 (function(){
 const N = v => (Number(v) || 0).toLocaleString('de-DE');
 const q = id => document.getElementById(id);
@@ -24,7 +24,7 @@ async function status(){ if(!tok()) return null; const r = await api({ action: '
 /* ---- Hauptmenü-Karte ---- */
 window.zpCardHtml = function(){
   setTimeout(zpFillCard, 30);
-  return `<div class="mode-card" id="zpCard" onclick="zpOpen('total')" style="border-color:var(--accent)"><div class="d" style="font-size:12px;opacity:.75;letter-spacing:1px">${L('ZOCKER-PUNKTE','PLAYER POINTS')}</div><div id="zpCardBody" style="margin-top:4px;font-size:15px">${L('Lädt…','Loading…')}</div></div>`;
+  return `<div class="mode-card" id="zpCard" onclick="zpOpen('total')" style="border-color:var(--accent)"><div class="d" style="font-size:12px;opacity:.75;letter-spacing:1px">${L('BRAINUPS','BRAINUPS')}</div><div id="zpCardBody" style="margin-top:4px;font-size:15px">${L('Lädt…','Loading…')}</div></div>`;
 };
 async function zpFillCard(){
   const el = q('zpCardBody'); if(!el) return;
@@ -48,7 +48,7 @@ function rows(top, me, rewards){
 }
 window.zpOpen = async function(tab){
   tab = tab || 'total';
-  renderApp(shell(L('ZOCKER-PUNKTE','PLAYER POINTS'), L('Alle Spiele zusammen','All games together'), tab, `<div class="box d">${L('Lädt…','Loading…')}</div>`));
+  renderApp(shell(L('BRAINUPS','BRAINUPS'), L('Alle Spiele zusammen','All games together'), tab, `<div class="box d">${L('Lädt…','Loading…')}</div>`));
   const s = tok() ? await status() : null;
   let inner = '';
   if(tab === 'total'){
@@ -61,7 +61,7 @@ window.zpOpen = async function(tab){
     const pm = s && s.prevMonth && s.prevMonth.claimable ? `<div class="box" style="border-color:#ffc83d"><b>${L('Letzter Monat: Platz ','Last month: rank ')}${s.prevMonth.rank}</b><div class="d">${N(s.prevMonth.coins)} ${L('Münzen warten auf dich','coins are waiting')}</div><button class="take" style="margin-top:8px" onclick="zpClaim('month')">${L('Abholen','Collect')}</button></div>` : '';
     inner = pm + `<div class="box"><div class="d" style="margin-bottom:6px">${L('Noch ','') + (s ? s.month.endsInDays : '–') + L(' Tage · die besten 10 werden belohnt (Münzen)',' days left · top 10 get rewards (coins)')}</div>${rows(b.top, b.me, b.rewards)}</div>`;
   }
-  renderApp(shell(L('ZOCKER-PUNKTE','PLAYER POINTS'), tab === 'month' ? L('Monats-Bestenliste','Monthly leaderboard') : L('Alle Spiele zusammen','All games together'), tab, inner));
+  renderApp(shell(L('BRAINUPS','BRAINUPS'), tab === 'month' ? L('Monats-Bestenliste','Monthly leaderboard') : L('Alle Spiele zusammen','All games together'), tab, inner));
 };
 function rewardBox(title, kind, st, pts){
   const rowsH = st.tiers.map((t, i) => {
@@ -98,10 +98,20 @@ function zpToastShow(big, text, game){
   el.onclick = () => { el.remove(); try{ game ? zpGame(game) : zpOpen('total'); }catch(e){} };
   document.body.appendChild(el); clearTimeout(toastT); toastT = setTimeout(() => { try{ el.remove(); }catch(e){} }, 7000);
 }
+let gainSum = 0;
+function zpGainModal(gain, total, game){
+  const old = q('zpGainBox'); if(old) gainSum += gain; else gainSum = gain;
+  if(old) old.remove();
+  if(!q('zpGainCss')){ const st = document.createElement('style'); st.id = 'zpGainCss'; st.textContent = '#zpGainBox{position:fixed;inset:0;z-index:100010;background:#000b;display:flex;align-items:center;justify-content:center;padding:18px}#zpGainBox .c{background:#101a2b;border:2px solid var(--accent);border-radius:20px;padding:22px 20px;max-width:340px;width:100%;text-align:center;color:#fff;font-family:inherit;animation:zpPop .35s ease-out}#zpGainBox .big{font-size:56px;font-weight:900;color:var(--accent);line-height:1.05}@keyframes zpPop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}'; document.head.appendChild(st); }
+  const el = document.createElement('div'); el.id = 'zpGainBox';
+  el.innerHTML = `<div class="c"><svg width="120" height="64" viewBox="0 0 110 70" style="display:block;margin:0 auto"><defs><filter id="zpG"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><polyline points="4,40 30,40 40,40 48,12 60,58 70,30 78,40 106,40" fill="none" stroke="#c6ff3d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#zpG)"/></svg><div style="font-weight:900;font-size:16px;letter-spacing:1px;margin-top:4px">${L('DEINE BRAINUPS STEIGEN!','YOUR BRAINUPS ARE RISING!')}</div><div class="big">+${N(gainSum)}</div><div style="opacity:.85;margin:6px 0 14px">${L('Brainups gesamt: ','Total Brainups: ')}<b>${N(total)}</b></div><button class="btn btn-primary btn-block" id="zpGainOk">${L('WEITER','CONTINUE')}</button><button class="btn btn-ghost btn-block" id="zpGainList" style="margin-top:8px">${L('Bestenliste ansehen','View leaderboard')}</button></div>`;
+  document.body.appendChild(el);
+  q('zpGainOk').onclick = () => { el.remove(); gainSum = 0; };
+  q('zpGainList').onclick = () => { el.remove(); gainSum = 0; try{ game ? zpGame(game) : zpOpen('total'); }catch(e){} };
+}
 window.zpOnGain = function(m){
   if(!m || !m.gain || m.t === lastT) return; lastT = m.t;
-  const gl = m.game ? window.zpGameLabel(m.game) : '';
-  zpToastShow('+' + N(m.gain), L('Zocker-Punkte', 'Player points') + ' · ' + L('gesamt ', 'total ') + N(m.total) + (gl && m.gameTotal != null ? ' · ' + gl + ' ' + N(m.gameTotal) : ''), m.game);
+  zpGainModal(m.gain, m.total, m.game);
   try{ if(q('zpCardBody')) zpFillCard(); }catch(e){}
 };
 window.zpFillCard = zpFillCard;
