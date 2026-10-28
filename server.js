@@ -3235,7 +3235,7 @@ function tabooBroadcast(room) {
   const names = {}; room.teams.forEach(t => { names[t.id] = t.name; });
   const board = rt.ffa ? Object.keys(rt.pts).map(id => ({ id, name: (room.players.get(id) || {}).name || "?", pts: rt.pts[id] })).sort((a, b) => b.pts - a.pts) : null;
   const base = { type: "tabooState", ffa: !!rt.ffa, voice: !!rt.voice, ci: rt.di, secs: Math.round((rt.ms || TABOO_TURN_MS) / 1000), board, nTurns: rt.ffa ? rt.order.length : 2, phase: rt.phase, turn: rt.turn, teams: rt.teams, teamNames: names, scores: rt.scores, turnTeam: rt.teams[rt.turn] || null, describerId: rt.describerId || null,
-    describerName: rt.describerId && room.players.get(rt.describerId) ? room.players.get(rt.describerId).name : "", nextName: rt.ffa && rt.order[rt.turn + 1] && room.players.get(rt.order[rt.turn + 1]) ? room.players.get(rt.order[rt.turn + 1]).name : "", remainingMs: rt.phase === "turn" ? Math.max(0, rt.endsAt - Date.now()) : 0, skips: rt.skips || 0,
+    describerName: rt.describerId && room.players.get(rt.describerId) ? room.players.get(rt.describerId).name : "", nextName: rt.ffa && rt.order[rt.turn + 1] && room.players.get(rt.order[rt.turn + 1]) ? room.players.get(rt.order[rt.turn + 1]).name : "", remainingMs: rt.phase === "turn" ? Math.max(0, rt.endsAt - Date.now()) : 0, skips: rt.skips || 0, cardAgeMs: rt.ffa && rt.phase === "turn" && rt.cardAt ? Math.max(0, Date.now() - rt.cardAt) : 0,
     feed: rt.feed.slice(-6), found: rt.found || [], bad: rt.bad || [], skipped: rt.skipped || [], log: rt.phase === "result" || rt.phase === "break" ? rt.log : null };
   room.players.forEach(p => {
     if (!p.ws) return;
@@ -4749,7 +4749,7 @@ function evClean(p) {
     if (!rounds.length) return { error: "Mindestens eine Runde." };
   }
   const pr = p.prizes || {}, g = (o) => ({ c: evNum(o && o.c, 0, 0, 1000000), z: evNum(o && o.z, 0, 0, 100000) });
-  return { ev: { name, format: fmt, secret: p.secret !== false, size, start: Math.max(0, Math.floor(Number(p.start) || 0)), maxPlayers: size, minPlayers: evNum(p.minPlayers, fmt === "bracket" ? 2 : 4, 2, size), botFill: p.botFill === true, botTo: evNum(p.botTo, size, 2, size), rounds, prizes: { p1: g(pr.p1), p2: g(pr.p2), p3: g(pr.p3), part: g(pr.part) } } };
+  return { ev: { name, format: fmt, secret: p.secret !== false, size, start: Math.max(0, Math.floor(Number(p.start) || 0)), startFull: p.startFull === true, maxPlayers: size, minPlayers: evNum(p.minPlayers, fmt === "bracket" ? 2 : 4, 2, size), botFill: p.botFill === true, botTo: evNum(p.botTo, size, 2, size), rounds, prizes: { p1: g(pr.p1), p2: g(pr.p2), p3: g(pr.p3), part: g(pr.part) } } };
 }
 function evUserKey(n) { return String(n || "").toLowerCase(); }
 const EV_BOT_NAMES = ["Pixel_Fox","Luna_88","Nerd4Life","Blitzkrieg","QuizQueen","Mr_Brain","Zocker99","Kaffeetasse","NightOwl","Hirnriss","TurboTim","Sternchen","Wuerfel_X","Rabauke","Quizzy","DerProf","LaraLoca","Bohne","Schlaufuchs","Kometen_K","Mia_Mau","Tiger77","FlinkeFee","Brainiac","Otto_O","Zitrone","Dr_Denk","PuzzlePit","Nova","Salto","KlugerKai","Emmi","Rakete","Gizmo","Hexe_H","Jule","Turm4","Wolke7","Tobi_T","Fuchs_F","Mondlicht","Kiwi_K","Blitzmerker","Denkdose","Quarkkopf","Lenny","Sparky","Pinguin_P","Knobel","Mister_X","Kleo","Rubin","Tinte","Faultier","Schnitzel","Neo_N","Zimt","Pfeffi","Wuschel","Honigbiene","Atlas","Bumerang","Chilli","Donner_D","Echo_E","Funke","Gustav","Hummel","Ikarus","Juwel","Koala_K","Lakritz","Murmel","Nuss_N","Orbit","Paprika","Quasar","Rolf_R","Sturmi","Tornado_T","Uhu","Vulkan_V","Waldi","Xaver","Yeti_Y","Zebra_Z"];
@@ -4759,7 +4759,7 @@ function evMakeBots(ev) {
   let target = Math.min(ev.size || ev.maxPlayers, ev.botTo || ev.size || ev.maxPlayers);
   if (ev.format === "bracket") { let e = 2; while (e < target) e *= 2; target = Math.min(e, ev.size); }
   const n = Math.max(0, target - real), taken = new Set(ev.entrants.map(e => evUserKey(e.name))), pool = evShuffle(EV_BOT_NAMES).filter(x => !taken.has(evUserKey(x))), out = [];
-  for (let i = 0; i < n; i++) out.push({ name: "🤖 " + (pool[i] || "Bot" + (i + 1)), skill: 0.2 + Math.random() * 0.7 });
+  for (let i = 0; i < n; i++) out.push({ name: (pool[i] || "Spieler" + (i + 1)), skill: 0.2 + Math.random() * 0.7 });
   return out;
 }
 // ---- Duelle (1 gegen 1 am Brett) ----
@@ -4821,8 +4821,8 @@ function evBegin(ev) {
 function evRank(run, keys) { return keys.slice().sort((a, b) => (run.score[b] - run.score[a]) || (run.lastAt[a] - run.lastAt[b]) || (a < b ? -1 : 1)); }
 function evFinish(ev, run) {
   const surv = evRank(run, [...run.alive]), res = [];
-  surv.forEach(k => res.push({ name: run.names[k], score: run.score[k] }));
-  for (let i = run.out.length - 1; i >= 0; i--) res.push({ name: run.names[run.out[i].k], score: run.score[run.out[i].k] });
+  surv.forEach(k => res.push({ name: run.names[k], score: run.score[k], bot: !!(run.bots && run.bots.has(k)) }));
+  for (let i = run.out.length - 1; i >= 0; i--) res.push({ name: run.names[run.out[i].k], score: run.score[run.out[i].k], bot: !!(run.bots && run.bots.has(run.out[i].k)) });
   res.forEach((r, i) => { r.place = i + 1; r.tier = i === 0 ? "p1" : i === 1 ? "p2" : i === 2 ? "p3" : "part"; });
   ev.results = res; ev.state = "payout"; ev.endedAt = Date.now(); run.phase = "done"; saveGameCfg().catch(() => {});
   console.log("[Event] " + ev.name + " beendet, Sieger: " + (res[0] ? res[0].name : "-"));
@@ -4890,11 +4890,12 @@ function evBrNextStage(ev, run, now) {
 }
 function evBrFinish(ev, run, champ) {
   const nm = k => run.names[k] || k, t = k => run.tot[k] || 0, res = [], fin = run.history[run.history.length - 1].matches[0], ru = fin.w === fin.a ? fin.b : fin.a;
-  res.push({ name: nm(champ), score: t(champ), place: 1, tier: "p1" });
-  if (ru) res.push({ name: nm(ru), score: t(ru), place: 2, tier: "p2" });
+  const isB = k => !!(run.bots && run.bots.has(k));
+  res.push({ name: nm(champ), score: t(champ), place: 1, tier: "p1", bot: isB(champ) });
+  if (ru) res.push({ name: nm(ru), score: t(ru), place: 2, tier: "p2", bot: isB(ru) });
   for (let s = run.history.length - 2; s >= 0; s--) {
     const h = run.history[s], slots = h.matches.length * 2;
-    h.matches.filter(m => m.b).map(m => m.w === m.a ? m.b : m.a).sort((x, y) => t(y) - t(x)).forEach(k => res.push({ name: nm(k), score: t(k), place: slots / 2 + 1, tier: slots === 4 ? "p3" : "part" }));
+    h.matches.filter(m => m.b).map(m => m.w === m.a ? m.b : m.a).sort((x, y) => t(y) - t(x)).forEach(k => res.push({ name: nm(k), score: t(k), place: slots / 2 + 1, tier: slots === 4 ? "p3" : "part", bot: isB(k) }));
   }
   ev.results = res; ev.state = "payout"; ev.endedAt = Date.now(); run.phase = "done"; saveGameCfg().catch(() => {});
   console.log("[Event] " + ev.name + " beendet, Sieger: " + nm(champ));
@@ -4917,7 +4918,7 @@ function evTick() {
   const now = Date.now();
   for (const ev of evStore()) {
     try {
-      if (ev.state === "open" && ev.start && now >= ev.start) evBegin(ev);
+      if (ev.state === "open" && ((ev.start && now >= ev.start) || (ev.startFull && ev.entrants.length >= ev.maxPlayers))) evBegin(ev);
       else if (ev.state === "running") {
         const run = evRun.get(ev.id);
         if (!run) { ev.state = "cancelled"; ev.reason = "Server neu gestartet"; saveGameCfg().catch(() => {}); continue; }
@@ -5006,6 +5007,7 @@ function evBrView(ev, run, k, isMe) {
 function evView(ev, userName) {
   const run = evRun.get(ev.id), k = evUserKey(userName), me = userName ? ev.entrants.find(e => evUserKey(e.name) === k) : null;
   const v = { ok: true, id: ev.id, name: ev.name, state: ev.state, start: ev.start, now: Date.now(), maxPlayers: ev.maxPlayers, minPlayers: ev.minPlayers, entrants: ev.entrants.length, joined: !!me, prizes: ev.prizes, format: ev.format || "royale", botFill: !!ev.botFill, botTo: ev.botTo || ev.size || ev.maxPlayers, size: ev.size || ev.maxPlayers, secret: ev.secret !== false, rounds: ev.format === "bracket" ? ev.rounds.map((r, i) => evStageName(Math.pow(2, ev.rounds.length - i)) + ": " + (ev.secret !== false ? "🎲 " + Array(evDiscs(r).length).fill("???").join(" + ") : evRoundLabel(r))) : ev.rounds.map((r, i) => ev.secret !== false ? "🎲 ???" : evRoundLabel(r)), reason: ev.reason || "" };
+  v.startFull = !!ev.startFull; { const uu = userName ? findUserByName(userName) : null; v.canStart = ev.state === "open" && !!uu && userRole(uu) === "mod"; }
   if (ev.state === "open") v.names = ev.entrants.slice(0, 40).map(e => e.name);
   if (run && ev.state === "running" && run.fmt === "bracket") v.run = evBrView(ev, run, k, !!me);
   else if (run && ev.state === "running") {
@@ -5036,6 +5038,7 @@ function evApi(p, ip) {
     if (!ev.entrants.some(e => evUserKey(e.name) === k)) { if (ev.entrants.length >= ev.maxPlayers) return { ok: false, error: "Das Event ist voll." }; ev.entrants.push({ name, t: Date.now() }); statHit("event_join"); maniaSaveSoon(); }
     return evView(ev, name);
   }
+  if (act === "startnow") { if (userRole(user) !== "mod" || ev.state !== "open") return { ok: false, error: "Nicht erlaubt." }; ev.start = Date.now(); console.log("[Event] von Mod gestartet: " + ev.name + " (" + user.username + ")"); evBegin(ev); return evView(ev, name); }
   if (act === "leave") { if (ev.state === "open") { ev.entrants = ev.entrants.filter(e => evUserKey(e.name) !== k); maniaSaveSoon(); } return evView(ev, name); }
   const run = evRun.get(ev.id);
   if (run && run.fmt === "bracket" && act === "move") {
@@ -5113,7 +5116,7 @@ async function adminEvents(key, ip, p) {
     return done({ savedId: ev.id });
   }
   const ev = evGet(String(p.id || "")); if (!ev) return { ok: false, error: "Event nicht gefunden." };
-  if (act === "publish") { if (ev.state !== "draft") return { ok: false, error: "Schon veröffentlicht." }; if (!ev.start || ev.start < Date.now() + 60000) return { ok: false, error: "Startzeit muss in der Zukunft liegen." }; ev.state = "open"; console.log("[Event] veröffentlicht: " + ev.name); return done(); }
+  if (act === "publish") { if (ev.state !== "draft") return { ok: false, error: "Schon veröffentlicht." }; if (ev.start && ev.start < Date.now() + 60000) return { ok: false, error: "Startzeit muss in der Zukunft liegen." }; if (!ev.start && !ev.startFull) return { ok: false, error: "Ohne Datum: „Start, sobald voll“ einschalten – oder du startest per Knopf." };  ev.state = "open"; console.log("[Event] veröffentlicht: " + ev.name); return done(); }
   if (act === "startnow") { if (ev.state !== "open") return { ok: false, error: "Nur offene Events." }; ev.start = Date.now(); evBegin(ev); return done(); }
   if (act === "cancel") { if (!["open", "running", "draft"].includes(ev.state)) return { ok: false, error: "Nicht möglich." }; ev.state = "cancelled"; ev.reason = "Vom Admin abgesagt"; evRun.delete(ev.id); return done(); }
   if (act === "delete") { if (!["draft", "cancelled", "done"].includes(ev.state)) return { ok: false, error: "Erst absagen." }; gameCfg.events = L.filter(e => e !== ev); return done(); }
