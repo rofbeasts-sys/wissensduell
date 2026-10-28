@@ -538,6 +538,8 @@
 <script src="/achievements.js"></script>
 <script src="/dame-engine.js"></script>
 <script src="/muehle-engine.js"></script>
+<script src="/backgammon.js"></script>
+<script src="/solitaire.js"></script>
 <script src="/dice-3d.js"></script>
 <script src="/dice-race.js"></script>
 <script src="/zocker.js"></script>
@@ -5337,7 +5339,7 @@ function zpMarkCards(){
   });
 }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
-const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', startManiaFlow:'mania', startTabooHub:'taboo' };
+const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', bgIntro:'backgammon', startManiaFlow:'mania', startTabooHub:'taboo' };
 function fmtCountdown(ms){
   const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
   if(ms <= 0) return L('gleich','soon');
@@ -5886,6 +5888,27 @@ async function chessInvitePoll(){
   }catch(e){}
 }
 setInterval(chessInvitePoll, 10000);
+// Fernpartie: kleiner Hinweis, wenn man bei einer Schach-Fernpartie dran ist (Tippen oeffnet die Partie)
+let chessCorrSig = '';
+async function chessCorrPoll(){
+  try{
+    if(!account || featureLocked('chess_online') || document.hidden || document.getElementById('chessFrame')) return;
+    const r = await apiCall('/api/chess-online/mylist', { token: localStorage.getItem(ACCOUNT_TOKEN_KEY) });
+    if(!r || !r.ok) return;
+    const mine = (r.games || []).filter(x => x.myTurn);
+    const sig = mine.map(x => x.code + ':' + x.moves).join(',');
+    const old = document.getElementById('chessCorrToast'); if(old && !mine.length) old.remove();
+    if(!mine.length || sig === chessCorrSig) return;
+    chessCorrSig = sig;
+    const x = mine[0]; if(old) old.remove();
+    const d = document.createElement('div'); d.id = 'chessCorrToast';
+    d.style.cssText = 'position:fixed;left:12px;right:12px;bottom:14px;z-index:100001;max-width:420px;margin:0 auto;background:var(--panel-2,#1c2338);border:1.5px solid var(--accent);border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 40px #000a;cursor:pointer';
+    d.innerHTML = `<span style="font-size:26px">♟️</span><div style="flex:1;font-size:14px"><b>${L('Du bist dran!','Your move!')}</b><div style="opacity:.8;font-size:12px">${L('Fernpartie gegen ','Correspondence game vs ')}${esc(x.opp || '')}${mine.length > 1 ? ' (+' + (mine.length - 1) + ')' : ''}</div></div><span style="font-weight:800;color:var(--accent)">${L('ÖFFNEN','OPEN')}</span>`;
+    d.onclick = () => { d.remove(); openChessOnline(x.code); };
+    document.body.appendChild(d); setTimeout(() => { if(d.parentNode) d.remove(); }, 12000);
+  }catch(e){}
+}
+setInterval(chessCorrPoll, 45000); setTimeout(chessCorrPoll, 8000);
 async function chessHubCheckInvites(){
   if(!account || featureLocked('chess_online')) return;
   const r = await apiCall('/api/chess-online/inbox', { token: localStorage.getItem(ACCOUNT_TOKEN_KEY) });
@@ -7467,6 +7490,11 @@ ${currentLang === 'de' ? `
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="7" y="5" width="34" height="38" rx="5" fill="#fff"/><rect x="7" y="5" width="34" height="11" rx="5" fill="#c6ff3d"/><path d="M14 24H34M14 30H34M14 36H34" stroke="#c0243a" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Taboo</h3>
         <p>${currentLang==='de' ? 'Wörter erraten und erklären, allein oder mit Freunden.' : 'Only available in German'}</p>
+      </div>
+      <div class="mode-card" onclick="bgIntro()">
+        <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="3" y="6" width="42" height="36" rx="6" fill="#5a3a22"/><path d="M6 9L11 26L16 9ZM17 9L22 26L27 9Z" fill="#d9b98a"/><path d="M27 39L32 22L37 39ZM38 39L43 22L48 39Z" fill="#d9b98a" transform="translate(-4 0)"/><circle cx="14" cy="36" r="4" fill="#c6ff3d"/><circle cx="34" cy="13" r="4" fill="#ff5d8f"/></svg></div>
+        <h3>Backgammon</h3>
+        <p>${L('Würfeln und ziehen, gegen den Bot.','Roll and move, against the bot.')}</p>
       </div>
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="2" y="6" width="44" height="36" rx="6" fill="#2f6bff"/><circle cx="9" cy="14" r="4" fill="#0b1236"/><circle cx="9" cy="24" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#0b1236"/><circle cx="19" cy="14" r="4" fill="#0b1236"/><circle cx="19" cy="24" r="4" fill="#0b1236"/><circle cx="19" cy="34" r="4" fill="#0b1236"/><circle cx="29" cy="14" r="4" fill="#0b1236"/><circle cx="29" cy="24" r="4" fill="#0b1236"/><circle cx="29" cy="34" r="4" fill="#0b1236"/><circle cx="39" cy="14" r="4" fill="#0b1236"/><circle cx="39" cy="24" r="4" fill="#0b1236"/><circle cx="39" cy="34" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="7" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="34" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="29" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="27" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="39" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="37" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="24" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="21.5" r="2" fill="#fff" opacity=".6"/></svg></div>

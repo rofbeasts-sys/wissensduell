@@ -820,6 +820,7 @@ window.startManiaFlow = function(){
       <div id="bmStone">${STONE_SVG}</div>
     </div>
     <div id="bmMsg">&nbsp;</div>
+    <button class="btn btn-ghost" style="margin:6px auto 0;display:flex;gap:8px;align-items:center" onclick="SOL.open(window.startManiaFlow)"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%);border:1px solid #444"></span>${L('Solitär spielen','Play Solitaire')}</button>
     ${account ? '' : `<div class="explanation" style="margin:10px 0">${L('Melde dich an, damit du in die Bestenliste kommst.','Log in to get on the leaderboard.')}</div>`}
     <div class="settings-label" style="margin-top:14px">${L('BESTENLISTE (Tippe auf einen Namen zum Zuschauen)','LEADERBOARD (tap a name to watch)')}</div>
     <div id="bmBoard">…</div>
