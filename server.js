@@ -6249,6 +6249,31 @@ async function chessApi(action, payload, lang) {
 const CHESS_ONLINE_MOVE_MS = Number(process.env.CHESS_ONLINE_MOVE_MS) || 3 * 60 * 1000;
 const CHESS_ONLINE_IDLE_MS = 3 * 60 * 60 * 1000;
 const chessOnlineGames = new Map(); // code -> game
+// Fernpartie (corr): keine Uhr, kein Zug-Limit, der naechste Zug darf auch erst nach Tagen kommen. Wird gespeichert (ueberlebt Neustart).
+const CHESS_CORR_FILE = USERS_FILE + ".chesscorr.json", CHESS_CORR_KEY = UPSTASH_USERS_KEY + "_chesscorr";
+const CHESS_CORR_WAIT_MS = 14 * 86400000, CHESS_CORR_IDLE_MS = 120 * 86400000, CHESS_CORR_OVER_MS = 7 * 86400000, CHESS_CORR_MAX = 15;
+let chessCorrTimer = null;
+function chessCorrList() { return Array.from(chessOnlineGames.values()).filter(g => g.corr); }
+function chessCorrSaveSoon() {
+  if (chessCorrTimer) return;
+  chessCorrTimer = setTimeout(async () => {
+    chessCorrTimer = null;
+    const body = JSON.stringify(chessCorrList());
+    try {
+      if (USE_UPSTASH) await fetch(`${UPSTASH_URL}/set/${CHESS_CORR_KEY}`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body });
+      else { fs.mkdirSync(path.dirname(CHESS_CORR_FILE), { recursive: true }); fs.writeFileSync(CHESS_CORR_FILE, body, "utf8"); }
+    } catch (e) { console.error("Fernpartien nicht gespeichert:", e.message); }
+  }, 800);
+}
+async function chessCorrLoad() {
+  try {
+    let raw = null;
+    if (USE_UPSTASH) { const res = await fetch(`${UPSTASH_URL}/get/${CHESS_CORR_KEY}`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } }); const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result); }
+    else if (fs.existsSync(CHESS_CORR_FILE)) raw = JSON.parse(fs.readFileSync(CHESS_CORR_FILE, "utf8"));
+    if (Array.isArray(raw)) raw.forEach(g => { if (g && g.code && g.corr && g.board && !chessOnlineGames.has(g.code)) chessOnlineGames.set(g.code, g); });
+    console.log("Fernpartien geladen: " + chessCorrList().length);
+  } catch (e) { console.error("Fernpartien nicht lesbar:", e.message); }
+}
 let chessEngine = null;
 function getChessEngine() {
   if (chessEngine) return chessEngine;
@@ -6275,7 +6300,10 @@ function chessInsufficient(board) {
 }
 function chessOnlineCleanup() {
   const now = Date.now();
-  for (const [code, g] of chessOnlineGames) if (now - g.updated > CHESS_ONLINE_IDLE_MS) chessOnlineGames.delete(code);
+  for (const [code, g] of chessOnlineGames) {
+    const lim = g.corr ? (g.status === "over" ? CHESS_CORR_OVER_MS : g.status === "waiting" ? CHESS_CORR_WAIT_MS : CHESS_CORR_IDLE_MS) : CHESS_ONLINE_IDLE_MS;
+    if (now - g.updated > lim) { chessOnlineGames.delete(code); if (g.corr) chessCorrSaveSoon(); }
+  }
 }
 function chessOnlineNewCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -6317,7 +6345,7 @@ function chessOnlineFinish(g, winner, why) {
 }
 const CHESS_CLOCK_MS = 10 * 60 * 1000, CHESS_CLOCK_INC_MS = 5000; // Mit Zeit: je Spieler 10 Minuten + 5 Sekunden pro Zug
 function chessOnlineCheckTimeout(g) {
-  if (g.status !== "playing") return;
+  if (g.status !== "playing" || g.corr) return;
   if (g.timed) {
     if (g.clock[g.turn] - (Date.now() - g.moveAt) <= 0) { g.clock[g.turn] = 0; chessOnlineFinish(g, g.turn === "w" ? "b" : "w", "time"); }
     return;
@@ -6333,10 +6361,10 @@ function chessOnlineView(g, me) {
     eloW: chessEloOf(findUserByName(g.w || "")), eloB: chessEloOf(findUserByName(g.b || "")), rated: !!g.rated, zp: g.zp || null, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
     board: g.board, turn: g.turn, last: g.last, log: g.log, capW: g.capW, capB: g.capB,
     check: g.status === "playing" && E.isInCheck(g.board, g.turn),
-    timed: !!g.timed,
+    timed: !!g.timed, corr: !!g.corr, updated: g.updated,
     clockW: g.timed ? Math.max(0, g.clock.w - (g.status === "playing" && g.turn === "w" ? Date.now() - g.moveAt : 0)) : null,
     clockB: g.timed ? Math.max(0, g.clock.b - (g.status === "playing" && g.turn === "b" ? Date.now() - g.moveAt : 0)) : null,
-    moveSecondsLeft: (g.status === "playing" && !g.timed) ? Math.max(0, Math.round((CHESS_ONLINE_MOVE_MS - (Date.now() - g.moveAt)) / 1000)) : null
+    moveSecondsLeft: (g.status === "playing" && !g.timed && !g.corr) ? Math.max(0, Math.round((CHESS_ONLINE_MOVE_MS - (Date.now() - g.moveAt)) / 1000)) : null
   };
 }
 function chessOnlineGet(payload, lang) {
@@ -6349,6 +6377,11 @@ function chessOnlineGet(payload, lang) {
 }
 const CHESS_ONLINE_MAX_PER_MIN = Number(process.env.CHESS_ONLINE_MAX_PER_MIN) || 240;
 async function chessOnlineApi(action, payload, lang) {
+  const r = await chessOnlineApi0(action, payload, lang);
+  if (action === "create" || action === "join" || action === "decline" || action === "leave" || action === "resign" || action === "move" || action === "queue") chessCorrSaveSoon();
+  return r;
+}
+async function chessOnlineApi0(action, payload, lang) {
   const base = chessOnlineGet(payload, lang);
   if (base.err) return base.err;
   if (rlHit("co|" + base.user.username, CHESS_ONLINE_MAX_PER_MIN + 1, 60000, 30000).lockedUntil > Date.now()) return errObj("tooManyRequests", lang);
@@ -6356,7 +6389,9 @@ async function chessOnlineApi(action, payload, lang) {
   const me = user.username;
   const msg = (de, en) => ({ ok: false, error: lang === "en" ? en : de });
   if (action === "create") {
-    for (const x of chessOnlineGames.values()) if ((x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
+    const corr = payload.corr === true;
+    if (corr && chessCorrList().filter(x => (x.w === me || x.b === me) && x.status !== "over").length >= CHESS_CORR_MAX) return msg("Du hast schon " + CHESS_CORR_MAX + " Fernpartien. Beende erst eine.", "You already have " + CHESS_CORR_MAX + " correspondence games. Finish one first.");
+    if (!corr) for (const x of chessOnlineGames.values()) if (!x.corr && (x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
       if (x.status === "waiting" && x.w === me) { chessOnlineGames.delete(x.code); } else return { ...msg("Du hast schon eine laufende Partie.", "You already have a game in progress."), code: x.code };
     }
     let invited = null;
@@ -6369,15 +6404,15 @@ async function chessOnlineApi(action, payload, lang) {
     if (!newCode) return msg("Gerade keine freie Partie möglich.", "No free game right now.");
     const E = getChessEngine();
     const first = Math.random() < 0.5 ? "w" : "b";
-    const timed = payload.timed === true;
-    const game = { code: newCode, w: first === "w" ? me : null, b: first === "b" ? me : null, invited, status: "waiting", rev: 1, timed, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS },
+    const timed = payload.timed === true && !corr;
+    const game = { code: newCode, corr, w: first === "w" ? me : null, b: first === "b" ? me : null, invited, status: "waiting", rev: 1, timed, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS },
       board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
     game.seen[chessPosKey(game)] = 1;
     chessOnlineGames.set(newCode, game);
     return chessOnlineView(game, me);
   }
   if (action === "queue") { // Zufallsgegner: eine wartende Zufalls-Partie uebernehmen, sonst selbst eine eroeffnen
-    for (const x of chessOnlineGames.values()) if ((x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
+    for (const x of chessOnlineGames.values()) if (!x.corr && (x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
       if (x.status === "waiting" && x.w === me && x.random) { x.updated = Date.now(); return chessOnlineView(x, me); }
       if (x.status === "waiting" && x.w === me) { chessOnlineGames.delete(x.code); } else return { ...msg("Du hast schon eine laufende Partie.", "You already have a running game."), code: x.code };
     }
@@ -6405,8 +6440,18 @@ async function chessOnlineApi(action, payload, lang) {
   }
   if (action === "inbox") {
     const list = [];
-    for (const x of chessOnlineGames.values()) if (x.status === "waiting" && x.invited === me) list.push({ code: x.code, from: x.w || x.b });
+    for (const x of chessOnlineGames.values()) if (x.status === "waiting" && x.invited === me) list.push({ code: x.code, from: x.w || x.b, corr: !!x.corr });
     return { ok: true, invites: list };
+  }
+  if (action === "mylist") { // meine Fernpartien (laufend, wartend, kuerzlich beendet) + wie viele davon gerade auf mich warten
+    const list = [];
+    for (const x of chessCorrList()) {
+      if (x.w !== me && x.b !== me) continue;
+      const color = x.w === me ? "w" : "b", opp = (color === "w" ? x.b : x.w) || null;
+      list.push({ code: x.code, opp, color, status: x.status, myTurn: x.status === "playing" && x.turn === color, moves: (x.log || []).length, updated: x.updated, winner: x.winner || null, why: x.why || null, invited: x.invited || null });
+    }
+    list.sort((a, b) => (b.myTurn - a.myTurn) || (b.updated - a.updated));
+    return { ok: true, games: list, myTurn: list.filter(x => x.myTurn).length };
   }
   if (!g) return msg("Diese Partie gibt es nicht (mehr).", "This game does not exist (anymore).");
   if (action === "join") {
@@ -6424,6 +6469,7 @@ async function chessOnlineApi(action, payload, lang) {
   if (g.w !== me && g.b !== me) return msg("Du bist nicht in dieser Partie.", "You are not in this game.");
   if (action === "state") { if (g.status === "waiting") g.updated = Date.now(); return chessOnlineView(g, me); }
   if (action === "leave") {
+    if (g.corr && g.status === "playing") return { ok: true };   // Fernpartie: Fenster zu heisst nicht aufgeben
     if (g.status === "waiting") chessOnlineGames.delete(code);
     else if (g.status === "playing") chessOnlineFinish(g, g.w === me ? "b" : "w", "resign");
     return { ok: true };
@@ -6850,6 +6896,7 @@ const GAME_DEFS = [
   { id: "zp", name: "Brainups-System", group: "Brainups", icon: "⭐" },
   { id: "boards", name: "Online-Bestenlisten", group: "Brainups", icon: "🏆" },
   { id: "chem", name: "Brainchimie", group: "Minigames", icon: "⚗️" },
+  { id: "backgammon", name: "Backgammon", group: "Minigames", icon: "🎲" },
   { id: "fourups", name: "Fourups", group: "Minigames", icon: "🔴" },
   { id: "fourups_abilities", name: "Fourups Fähigkeiten", group: "Minigames", icon: "✨", sub: "fourups" },
   { id: "ordering", name: "Ordering", group: "Minigames", icon: "🔢" },
@@ -7036,7 +7083,7 @@ async function saveGameCfg() {
   try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 // Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
-const DEFAULT_LOCKED_NEW = new Set(["mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
+const DEFAULT_LOCKED_NEW = new Set(["backgammon", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : ((LOCKED_FEATURES.has(id) || DEFAULT_LOCKED_NEW.has(id)) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
@@ -7339,6 +7386,7 @@ const SECURITY_HEADERS = {
 const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
 
 loadGameCfg();
+chessCorrLoad();
 const zlib = require("zlib");
 const gzCache = new Map();
 const server = http.createServer((req, res) => {
