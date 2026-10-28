@@ -143,18 +143,19 @@ button.mini{padding:4px 8px;font-size:12px}
       <div id="zpSw" class="row" style="gap:8px;flex-wrap:wrap"></div>
       <div class="dim" style="font-size:12px;margin-top:6px">Aus = keine Punkte mehr, keine Abzeichen an den Karten, keine Brainups-Seite. Einzelne Spiele schaltest du im Reiter „Spiele“.</div>
     </div>
-    <div class="card"><h2>EINSTELLUNGEN</h2>
-      <div class="row" style="align-items:center;gap:8px"><span style="width:150px">Tageslimit (Punkte)</span><input id="zpCap" type="number" min="10" max="100000"></div>
-      <h2 style="margin-top:12px">Tagesstufen (Punkte → Münzen)</h2><div id="zpDay"></div>
-      <h2 style="margin-top:12px">Wochenstufen (Punkte → Münzen)</h2><div id="zpWeek"></div>
-      <h2 style="margin-top:12px">Monatspreise Platz 1–10 (Münzen)</h2><div id="zpMon" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <div class="card"><details><summary style="cursor:pointer;list-style:none"><h2 style="display:inline">EINSTELLUNGEN ▾</h2> <span class="dim" style="font-size:12px">(Tippen zum Auf-/Zuklappen)</span></summary>
+      <div class="row" style="align-items:center;gap:8px;margin-top:8px"><span style="width:150px">Tageslimit (Punkte)</span><input id="zpCap" type="number" min="10" max="100000"></div>
+      <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:800">Tagesstufen (Punkte → Münzen) ▾</summary><div id="zpDay" style="margin-top:6px"></div></details>
+      <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:800">Wochenstufen (Punkte → Münzen) ▾</summary><div id="zpWeek" style="margin-top:6px"></div></details>
+      <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:800">Monatspreise Platz 1–10 (Münzen) ▾</summary><div id="zpMon" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div></details>
       <div class="row" style="margin-top:12px;gap:8px"><button onclick="zpSave()">Speichern</button><button class="btn2" onclick="zpDefaults()">Standardwerte laden</button></div>
       <div id="zpMsg" style="min-height:16px;font-size:13px;margin-top:6px"></div>
-    </div>
+    </details></div>
     <div class="card"><h2>SPIELER PRÜFEN</h2>
       <div class="row"><input id="zpName" placeholder="Spielername" autocomplete="off" onkeydown="if(event.key==='Enter')zpFind()"><button onclick="zpFind()">Suchen</button></div>
       <div id="zpPl" class="dim" style="margin-top:8px"></div>
-      <div id="zpAct" class="hidden" style="margin-top:8px"><div class="row" style="gap:8px"><input id="zpAmt" type="number" placeholder="Punkte (±)"><button onclick="zpCredit()">Gutschreiben / abziehen</button></div>
+      <div id="zpAct" class="hidden" style="margin-top:8px"><div class="row" style="gap:8px;flex-wrap:wrap"><input id="zpAmt" type="number" min="1" placeholder="Menge (z. B. 50)"><button onclick="zpCredit(1)">➕ Gutschreiben</button><button class="btn2 red" onclick="zpCredit(-1)">➖ Abziehen</button></div>
+        <div class="dim" style="font-size:12px;margin-top:6px">Zieht genau diese Menge ab (nicht unter 0). Unten: alles auf 0.</div>
         <div class="row" style="margin-top:8px"><button class="btn2 red" onclick="zpReset()">Alle Brainups dieses Spielers zurücksetzen</button></div></div>
     </div>
     <div class="card"><h2>TOP 10 GESAMT</h2><div id="zpTop" class="list">…</div></div>
@@ -501,7 +502,7 @@ function zpShowPl(r){
   $('zpPl').innerHTML = `<b style="color:#fff">${esc(r.name)}</b> · Platz ${r.rank}<br>Gesamt <b>${r.total}</b> · Monat <b>${r.month}</b> · Woche <b>${r.week}</b> · Heute <b>${r.day}</b> · Münzen ${r.coins}<br>Spiele: ${esc(gm)}`;
 }
 async function zpFind(){ zpShowPl(await api('/api/admin-zp', { action:'find', username: $('zpName').value })); }
-async function zpCredit(){ const n = Number($('zpAmt').value); if(!n) return; zpShowPl(await api('/api/admin-zp', { action:'credit', username: ZPN, pts: n })); $('zpAmt').value = ''; zpLoad(); }
+async function zpCredit(sg){ const a = Math.abs(Number($('zpAmt').value)); if(!a) return; const n = a * (sg < 0 ? -1 : 1); if(sg < 0 && !confirm(a + ' Brainups von ' + ZPN + ' abziehen?')) return; zpShowPl(await api('/api/admin-zp', { action:'credit', username: ZPN, pts: n })); $('zpAmt').value = ''; zpLoad(); }
 async function zpReset(){ if(!confirm('Wirklich ALLE Brainups von ' + ZPN + ' auf 0 setzen?')) return; zpShowPl(await api('/api/admin-zp', { action:'reset', username: ZPN })); zpLoad(); }
 /* ---- Statistik-Reiter ---- */
 async function stLoad(){
@@ -517,7 +518,7 @@ async function stLoad(){
 }
 
 /* ---- Events-Reiter (Battle Royale) ---- */
-let EVD = null, EVF = { id:'', format:'bracket', size:8, secret:true, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }, evTimer = null;
+let EVD = null, EVF = { id:'', format:'bracket', size:8, secret:true, botFill:true, botTo:8, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }, evTimer = null;
 const EV_STATE = { draft:'Entwurf', open:'Anmeldung offen', running:'Läuft', payout:'Beendet – Auszahlung offen', done:'Ausgezahlt', cancelled:'Abgesagt' };
 function evMsg(t, ok){ $('evMsg').style.color = ok ? 'var(--ok)' : '#ff5d8f'; $('evMsg').textContent = t || ''; }
 async function evLoad(){
@@ -639,7 +640,7 @@ function evDelDisc(ri, di){ EVF.rounds[ri].discs.splice(di, 1); evPaintForm(); }
 function evAddRound(){ EVF.rounds.push({ discs: [evDefDisc('quiz')] }); evPaintForm(); }
 function evDelRound(i){ EVF.rounds.splice(i, 1); evPaintForm(); }
 function evRandomRounds(){ const t = ['quiz','bio','vocab','hilo','math','order','sort','chrono','mix'].concat(EVF.format === 'bracket' ? ['ttt','c4','mill','dame','chess'] : []), rnd = () => t[Math.floor(Math.random() * t.length)]; EVF.rounds = EVF.rounds.map(r => ({ discs: r.discs.map(d => { const n = evDefDisc(rnd()); return evIsDuelT(n.type) ? n : Object.assign(n, { mode: evIsDuelT(d.type) ? 'points' : d.mode, sec: evIsDuelT(d.type) ? 45 : d.sec, count: d.count }); }) })); evPaintForm(); }
-function evReset(){ EVF = { id:'', format:'bracket', size:8, secret:true, botFill:false, botTo:8, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }; evFillRounds(true); $('evName').value = ''; $('evStart').value = ''; $('evMin').value = 2; evPaintForm(); }
+function evReset(){ EVF = { id:'', format:'bracket', size:8, secret:true, botFill:true, botTo:8, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }; evFillRounds(true); $('evName').value = ''; $('evStart').value = ''; $('evMin').value = 2; evPaintForm(); }
 function evEdit(id){ const e = EVD.events.find(x => x.id === id); if(!e) return; const rounds = e.rounds.map(r => ({ discs: (r.discs || [r]).map(d => Object.assign(evDefDisc(d.type), d)) }));
   EVF = { id:e.id, format: e.format || 'royale', size: e.size || e.maxPlayers, secret: e.secret !== false, botFill: !!e.botFill, botTo: e.botTo || e.size || e.maxPlayers, rounds, prizes: JSON.parse(JSON.stringify(e.prizes)) }; $('evName').value = e.name; $('evStart').value = e.start ? toLocal(e.start) : ''; $('evMin').value = e.minPlayers; evPaintForm(); window.scrollTo(0, document.body.scrollHeight); }
 async function evSave(){

@@ -15456,11 +15456,29 @@ async function evMenuLoad(){
   b2.innerHTML = `<div class="menu-section-title">${L('Events','Events')}</div><div class="menu-grid"><div class="mode-card" style="position:relative;border-color:var(--accent)" onclick="evOpen()"><span style="position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px">🪙 ${(pz.p1 && pz.p1.c) || 0}</span><div class="icon" style="font-size:38px">${r.format === 'bracket' ? '🏆' : '⚔️'}</div><h3>${esc(r.name)}</h3><p>${r.format === 'bracket' ? L('Turnier','Tournament') + ' (' + (r.size || r.maxPlayers) + ')' : 'Battle Royale (' + (r.size || r.maxPlayers) + ')'} · ${sub}</p></div></div>`;
 }
 function evOpen(id){
+  try{ localStorage.setItem('bp_intro_seen','1'); localStorage.setItem('bp_welcome_done','1'); }catch(e){}
+  ['introOv','welcomeOv'].forEach(i => { const o = document.getElementById(i); if(o) o.remove(); });
   evCss();
   if(evs && evs.timer) clearInterval(evs.timer);
   evs = { id: id || '', v:null, q:null, off:0, fetching:false, flash:'', sig:'', timer:null };
   renderApp(`<div class="panel evp" id="evRoot"><div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="evClose()">${t('btn_back')}</button><div class="picker-title" style="margin:0" id="evTtl">⚔️ EVENT</div></div><div id="evTop"></div><div id="evQ"></div></div>`);
-  evPoll(); evs.timer = setInterval(evPoll, 1000);
+  evPoll().then(() => { evAutoGuest(); }); evs.timer = setInterval(evPoll, 1000);
+}
+// Kein Konto, aber ein lokaler Profilname (Willkommen-Bildschirm): direkt als Gast mitmachen, ohne den Namen nochmal abzufragen
+async function evAutoGuest(){
+  try{
+    if(account || !evs || !evs.v || evs.v.state !== 'open' || evs.v.joined || evs.autoTried) return;
+    evs.autoTried = true;
+    const lid = localStorage.getItem(LAST_PROFILE_KEY), pr = (profiles || []).find(x => x.id === lid) || (profiles || [])[0];
+    const nm = pr && String(pr.name || '').trim();
+    if(!nm || nm.length < 3) return;
+    const r = await apiCall('/api/event-guest', { id: evs.id || evs.v.id || undefined, name: nm });
+    if(!r || !r.ok || !evs) return;
+    account = { token: r.token, profile: r.profile };
+    try{ localStorage.setItem(ACCOUNT_TOKEN_KEY, r.token); }catch(e){}
+    try{ syncStreamerFromAccount(); connectFriendsWs(); syncAdminCloak(); }catch(e){}
+    evs.sig = ''; evs.v = r.view; evs.id = r.view.id; evPaintTop();
+  }catch(e){}
 }
 function evClose(){ if(evs && evs.timer) clearInterval(evs.timer); evs = null; renderMainMenu(); }
 function evLeft(ts){ const ms = ts - (Date.now() + (evs ? evs.off : 0)); return Math.max(0, ms); }
@@ -15598,7 +15616,7 @@ function renderPartyTaboo(msg){
     } else if(msg.phase === 'turn'){
       const roleText = { describer: L('Du erklärst','You explain'), guesser: L('Du ratest','You guess'), watcher: L('Du passt auf','You watch'), guesserWatcher: L('Rate und passe auf','Guess and watch') }[msg.role] || '';
       const hint = { describer: L('Erkläre den Begriff, ohne die roten Wörter zu sagen.','Explain the word without saying the red words.'), guesser: esc(msg.describerName) + (msg.voice ? L(' erklärt gerade. Rate laut!',' is explaining. Guess out loud!') : L(' erklärt gerade. Tippe deine Antworten ein.',' is explaining. Type your guesses.')), watcher: L('Sagt ','If ') + esc(msg.describerName) + L(' ein rotes Wort, drücke TABU.',' says a red word, hit TABU.'), guesserWatcher: esc(msg.describerName) + (msg.ffa ? L(' erklärt. Sei am schnellsten, TABU bei einem roten Wort!',' explains. Be the fastest, hit TABU on a red word!') : L(' erklärt allein. Rate und drücke TABU bei einem roten Wort.',' explains alone. Guess and hit TABU on a red word.')) }[msg.role] || '';
-      body = `<div class="tm"><span>${roleText}</span><span class="tmv" id="tbTime">0:00</span></div><div id="tbScores"></div><div class="d" style="margin-top:8px">${hint}</div><div id="tbCard"></div>`;
+      body = `<div class="tm"><span>${roleText}</span><span class="tmv" id="tbTime">0:00</span></div><div id="tbScores"></div>${msg.ffa ? '<div id="tbPts" style="margin-top:8px"></div>' : ''}<div class="d" style="margin-top:8px">${hint}</div><div id="tbCard"></div>`;
       if(!msg.voice && (msg.role === 'guesser' || msg.role === 'guesserWatcher')) body += `<input id="tbIn" class="in" autocomplete="off" autocapitalize="off" placeholder="${L('Deine Antwort …','Your answer …')}" onkeydown="if(event.key==='Enter')tbGuess()"><button class="btn btn-primary big" onclick="tbGuess()">${L('SENDEN','SEND')}</button>`;
       if(msg.role === 'watcher' || msg.role === 'guesserWatcher') body += `<button class="btn big red" onclick="partySend({action:'tabooTabu'})">TABU!</button>`;
       if(msg.role === 'describer') body += `<div id="tbOk"></div><div id="tbSkip"></div>`;
@@ -15614,17 +15632,25 @@ function renderPartyTaboo(msg){
       const sc = msg.teams.map(t => `<div class="${msg.phase === 'result' && msg.scores[t] === Math.max(...msg.teams.map(x => msg.scores[x])) ? 'on' : ''}">${tn(t)}<b>${msg.scores[t]}</b></div>`).join('');
       body = `<div class="d" style="margin-top:6px">${msg.phase === 'result' ? L('Runde vorbei','Round over') : L('Pause, gleich ist das andere Team dran','Break, the other team is up next')}</div><div class="sc">${sc}</div>${logRows}<div class="d" style="margin-top:8px">${L('Grün: erraten · Rot: Tabu · Grau: übersprungen','Green: guessed · Red: taboo · Grey: skipped')}</div>`;
     }
-    renderApp(`<div class="panel tb" id="tbRoot">${header}${body}</div>`);
+    const rules = msg.ffa
+      ? L('Erraten: 3–10 Punkte (je schneller, desto mehr: alle 3 s ein Punkt weniger). Erklärer: die Hälfte davon. TABU: Erklärer −3 Punkte.','Guessed: 3–10 points (faster = more, −1 every 3 s). Explainer: half of that. TABU: explainer −3.')
+      : L('Erraten: +1 Punkt für das Team. TABU: −1 Punkt. Die Teams sind abwechselnd dran.','Guessed: +1 for the team. TABU: −1. Teams take turns.');
+    const rbox = `<details class="d" style="margin-top:12px;font-size:13px"><summary style="cursor:pointer;font-weight:800">ℹ️ ${L('So zählen die Punkte','How scoring works')}</summary><div style="margin-top:6px;line-height:1.5">${rules}</div></details>`;
+    renderApp(`<div class="panel tb" id="tbRoot">${header}${body}${rbox}</div>`);
   }
   tbUpdate(msg);
   clearInterval(partyTbTimer);
   if(msg.phase === 'turn'){
     const end = Date.now() + msg.remainingMs;
     const upd = () => { const el = document.getElementById('tbTime'); if(!el){ clearInterval(partyTbTimer); return; } const s = Math.max(0, Math.ceil((end - Date.now()) / 1000)); el.textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+    const pe = document.getElementById('tbPts');
+    const updP = () => { const el = document.getElementById('tbPts'); if(!el){ clearInterval(window.tbPtsTimer); return; } const age = Date.now() - (window.tbPtsAt || Date.now()), pts = Math.max(3, 10 - Math.floor(age / 3000)), frac = pts > 3 ? 1 - (age % 3000) / 3000 : 0; el.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><b style="font-size:13px;white-space:nowrap">⭐ ${L('Wert jetzt','Worth now')}: <span style="font-size:20px;color:var(--accent)">${pts}</span></b><div style="flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden"><div style="height:100%;width:${Math.round(frac * 100)}%;background:var(--accent)"></div></div></div>`; };
+    if(pe){ updP(); clearInterval(window.tbPtsTimer); window.tbPtsTimer = setInterval(updP, 200); } else clearInterval(window.tbPtsTimer);
     upd(); partyTbTimer = setInterval(upd, 300);
   }
 }
 function tbUpdate(msg){
+  window.tbPtsAt = Date.now() - (msg.cardAgeMs || 0);
   const tn = id => esc(msg.teamNames[id] || '');
   const g = id => document.getElementById(id);
   if(g('tbScores') && msg.ffa) g('tbScores').innerHTML = `<div class="sc" style="flex-wrap:wrap">${msg.board.map(b => `<div class="${b.id === msg.describerId ? 'on' : ''}" style="min-width:70px">${esc(b.name)}<b>${b.pts}</b></div>`).join('')}</div>`;
