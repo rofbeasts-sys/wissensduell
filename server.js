@@ -3140,7 +3140,8 @@ function handlePartyFourupsMove(room, playerId, col) {
 /* Rater tippen, Gegner-Aufpasser druecken TABU. Richtig +1, Tabu -1.        */
 /* ------------------------------------------------------------------------ */
 /* TABOO_CARDS: siehe oben (frueh geladen, wird von buildRoundDefPool gebraucht) */
-const TABOO_TURN_MS = 60000, TABOO_SKIPS = 3, TABOO_BREAK_MS = 5000;
+const TABOO_TURN_MS = 90000, TABOO_SKIPS = 3, TABOO_BREAK_MS = 5000;
+const tabooCfgOf = room => { const c = room.tabooCfg || {}; return { ms: Math.max(30000, Math.min(300000, Number(c.ms) || TABOO_TURN_MS)), voice: c.voice === true }; };
 const tabooNorm = s => String(s || "").toLowerCase().replace(/ß/g, "ss").replace(/ä/g, "a").replace(/ö/g, "o").replace(/ü/g, "u").replace(/[^a-z0-9]/g, "");
 function tabooHumans(room, teamId) { return Array.from(room.players.values()).filter(p => p.teamId === teamId && !p.isBot && p.connected && p.ws); }
 function startPartyTabooRound(room, def) {
@@ -3152,13 +3153,13 @@ function startPartyTabooRound(room, def) {
   }
   const deck = TABOO_CARDS.map((_, i) => i).sort(() => Math.random() - 0.5);
   const order = teamIds.slice().sort(() => Math.random() - 0.5);
-  room.runtime = { kind: "tabooGame", teams: order, turn: -1, deck, di: 0, scores: { [order[0]]: 0, [order[1]]: 0 }, phase: "intro", timer: null, rot: { [order[0]]: 0, [order[1]]: 0 }, log: [], feed: [] };
+  room.runtime = { kind: "tabooGame", teams: order, turn: -1, deck, di: 0, scores: { [order[0]]: 0, [order[1]]: 0 }, phase: "intro", timer: null, ms: tabooCfgOf(room).ms, voice: tabooCfgOf(room).voice, rot: { [order[0]]: 0, [order[1]]: 0 }, log: [], feed: [] };
   tabooBroadcast(room);
   const rt = room.runtime;
   rt.timer = setTimeout(() => tabooNextTurn(room, rt), 4000);
 }
 /* Wettbewerb: jeder erklaert einmal, alle anderen raten gleichzeitig. Schneller = mehr Punkte (10 .. 3), Erklaerer bekommt die Haelfte, Tabu = -3 fuer den Erklaerer. */
-const TABOO_FFA_MS = Number(process.env.TABOO_FFA_MS) || 45000;
+const TABOO_FFA_MS = Number(process.env.TABOO_FFA_MS) || 90000;
 function startPartyTabooFfaRound(room, def) {
   const hs = Array.from(room.players.values()).filter(p => !p.isBot && p.connected && p.ws);
   if (hs.length < 2) {
@@ -3168,7 +3169,7 @@ function startPartyTabooFfaRound(room, def) {
   const deck = TABOO_CARDS.map((_, i) => i).sort(() => Math.random() - 0.5);
   const order = hs.map(p => p.id).sort(() => Math.random() - 0.5);
   const pts = {}; order.forEach(id => { pts[id] = 0; });
-  room.runtime = { kind: "tabooGame", ffa: true, order, turn: -1, deck, di: 0, pts, scores: {}, teams: [], phase: "intro", timer: null, log: [], feed: [] };
+  room.runtime = { kind: "tabooGame", ffa: true, ms: tabooCfgOf(room).ms, voice: tabooCfgOf(room).voice, order, turn: -1, deck, di: 0, pts, scores: {}, teams: [], phase: "intro", timer: null, log: [], feed: [] };
   tabooBroadcast(room);
   const rt = room.runtime;
   rt.timer = setTimeout(() => tabooNextTurn(room, rt), 4000);
@@ -3187,10 +3188,10 @@ function tabooFfaNextTurn(room, rt) {
     return;
   }
   rt.describerId = rt.order[rt.turn];
-  rt.phase = "turn"; rt.skips = TABOO_SKIPS; rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); rt.endsAt = Date.now() + TABOO_FFA_MS; rt.feed = []; rt.found = []; rt.bad = []; rt.skipped = [];
+  rt.phase = "turn"; rt.skips = TABOO_SKIPS; rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); rt.endsAt = Date.now() + rt.ms; rt.feed = []; rt.found = []; rt.bad = []; rt.skipped = [];
   clearTimeout(rt.timer);
   tabooBroadcast(room);
-  rt.timer = setTimeout(() => tabooEndTurn(room, rt), TABOO_FFA_MS + 200);
+  rt.timer = setTimeout(() => tabooEndTurn(room, rt), rt.ms + 200);
 }
 function tabooDrawCard(rt) { const c = TABOO_CARDS[rt.deck[rt.di % rt.deck.length]]; rt.di++; return c; }
 function tabooNextTurn(room, rt) {
@@ -3208,10 +3209,10 @@ function tabooNextTurn(room, rt) {
   const tid = rt.teams[rt.turn], hs = tabooHumans(room, tid);
   if (!hs.length) return tabooNextTurn(room, rt);
   rt.describerId = hs[rt.rot[tid] % hs.length].id; rt.rot[tid]++;
-  rt.phase = "turn"; rt.skips = TABOO_SKIPS; rt.card = tabooDrawCard(rt); rt.endsAt = Date.now() + TABOO_TURN_MS; rt.feed = []; rt.found = []; rt.bad = []; rt.skipped = [];
+  rt.phase = "turn"; rt.skips = TABOO_SKIPS; rt.card = tabooDrawCard(rt); rt.endsAt = Date.now() + rt.ms; rt.feed = []; rt.found = []; rt.bad = []; rt.skipped = [];
   clearTimeout(rt.timer);
   tabooBroadcast(room);
-  rt.timer = setTimeout(() => tabooEndTurn(room, rt), TABOO_TURN_MS + 200);
+  rt.timer = setTimeout(() => tabooEndTurn(room, rt), rt.ms + 200);
 }
 function tabooEndTurn(room, rt) {
   if (room.runtime !== rt || rt.phase !== "turn") return;
@@ -3232,7 +3233,7 @@ function tabooBroadcast(room) {
   const rt = room.runtime; if (!rt || rt.kind !== "tabooGame") return;
   const names = {}; room.teams.forEach(t => { names[t.id] = t.name; });
   const board = rt.ffa ? Object.keys(rt.pts).map(id => ({ id, name: (room.players.get(id) || {}).name || "?", pts: rt.pts[id] })).sort((a, b) => b.pts - a.pts) : null;
-  const base = { type: "tabooState", ffa: !!rt.ffa, board, nTurns: rt.ffa ? rt.order.length : 2, phase: rt.phase, turn: rt.turn, teams: rt.teams, teamNames: names, scores: rt.scores, turnTeam: rt.teams[rt.turn] || null, describerId: rt.describerId || null,
+  const base = { type: "tabooState", ffa: !!rt.ffa, voice: !!rt.voice, secs: Math.round((rt.ms || TABOO_TURN_MS) / 1000), board, nTurns: rt.ffa ? rt.order.length : 2, phase: rt.phase, turn: rt.turn, teams: rt.teams, teamNames: names, scores: rt.scores, turnTeam: rt.teams[rt.turn] || null, describerId: rt.describerId || null,
     describerName: rt.describerId && room.players.get(rt.describerId) ? room.players.get(rt.describerId).name : "", nextName: rt.ffa && rt.order[rt.turn + 1] && room.players.get(rt.order[rt.turn + 1]) ? room.players.get(rt.order[rt.turn + 1]).name : "", remainingMs: rt.phase === "turn" ? Math.max(0, rt.endsAt - Date.now()) : 0, skips: rt.skips || 0,
     feed: rt.feed.slice(-6), found: rt.found || [], bad: rt.bad || [], skipped: rt.skipped || [], log: rt.phase === "result" || rt.phase === "break" ? rt.log : null };
   room.players.forEach(p => {
@@ -3249,6 +3250,7 @@ function tabooBroadcast(room) {
 function handleTabooGuess(room, playerId, text) {
   const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn") return;
   const p = room.players.get(playerId); if (!p) return;
+  if (rt.voice) return;
   const role = tabooRoleOf(room, rt, p); if (role !== "guesser" && role !== "guesserWatcher") return;
   text = String(text || "").slice(0, 40); if (!tabooNorm(text)) return;
   if (p.lastGuessAt && Date.now() - p.lastGuessAt < 250) return; p.lastGuessAt = Date.now();
@@ -3273,6 +3275,21 @@ function handleTabooTabu(room, playerId) {
   if (rt.ffa) { rt.pts[rt.describerId] -= 3; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU! −3", tabu: true }); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); return tabooBroadcast(room); }
   const tid = rt.teams[rt.turn]; rt.scores[tid]--; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU!", tabu: true }); rt.card = tabooDrawCard(rt);
   tabooBroadcast(room);
+}
+function handleTabooOk(room, playerId, by) {   // Nur-erklaeren-Modus: der Erklaerer bestaetigt, dass das Wort laut erraten wurde
+  const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn" || !rt.voice || playerId !== rt.describerId) return;
+  if (rt.lastOkAt && Date.now() - rt.lastOkAt < 600) return; rt.lastOkAt = Date.now();
+  const d = room.players.get(rt.describerId);
+  if (rt.ffa) {
+    if (!by || by === rt.describerId || rt.pts[by] == null) return;
+    const gp = Math.max(3, 10 - Math.floor((Date.now() - rt.cardAt) / 3000)), g = room.players.get(by);
+    rt.pts[by] += gp; rt.pts[rt.describerId] += Math.ceil(gp / 2);
+    rt.feed.push({ name: g ? g.name : "?", text: rt.card.w + " +" + gp, ok: true });
+    rt.found.push(rt.card.w); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now();
+    return tabooBroadcast(room);
+  }
+  const tid = rt.teams[rt.turn]; rt.scores[tid]++; rt.feed.push({ name: d ? d.name : "?", text: rt.card.w + " ✔", ok: true });
+  rt.found.push(rt.card.w); rt.card = tabooDrawCard(rt); tabooBroadcast(room);
 }
 function handleTabooSkip(room, playerId) {
   const rt = room.runtime; if (!rt || rt.kind !== "tabooGame" || rt.phase !== "turn" || playerId !== rt.describerId || rt.skips <= 0) return;
@@ -4671,35 +4688,94 @@ async function adminZp(key, ip, payload) {
    Alle Spieler spielen gleichzeitig dieselbe Runde, nach jeder Runde fliegen die Letzten raus.
    Rundenarten (Phase 1): Wissenstest, Higher or Lower, Speed Math.
    ============================================================================ */
-const EV_TYPES = { quiz: "Wissenstest", hilo: "Higher or Lower", math: "Speed Math" };
+const EV_TYPES = { quiz: "Wissenstest", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", mix: "Überraschungs-Mix" };
+const EV_TOPIC_GROUP = { hilo: "higherLower", sort: "ordering", chrono: "chronology" };
 const EV_INTRO_SEC = process.env.EV_FAST ? 2 : 8, EV_ROUND_SEC = process.env.EV_FAST ? 8 : 45, EV_RESULT_SEC = process.env.EV_FAST ? 3 : 10; // EV_FAST nur fuer Tests
 const evRun = new Map(); // id -> { roundIdx, phase, phaseEnd, alive:Set, score:{}, lastAt:{}, q:{}, streak:{}, out:[], lastElim:[] }
 function evStore() { if (!Array.isArray(gameCfg.events)) gameCfg.events = []; return gameCfg.events; }
 function evGet(id) { return evStore().find(e => e.id === id); }
 function evHiloTopics() { return Object.entries(DATASETS.higherLower || {}).map(([k, v]) => ({ k, label: String(v.label || k).replace(/^Higher or Lower:\s*/, "") })); }
-function evRoundLabel(r) { return EV_TYPES[r.type] + (r.type === "hilo" && r.topic && DATASETS.higherLower[r.topic] ? " (" + String(DATASETS.higherLower[r.topic].label).replace(/^Higher or Lower:\s*/, "") + ")" : ""); }
+const EV_MODES = { points: "Punkte", tasks: "Aufgaben", time: "Zeit" };
+const EV_DRES_SEC = process.env.EV_FAST ? 2 : 6;
+const evNum = (v, d, lo, hi) => { v = Math.floor(Number(v)); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
+function evDiscClean(d, fmt) {
+  d = d || {};
+  const type = EV_TYPES[d.type] ? d.type : "quiz";
+  let mode = EV_MODES[d.mode] ? d.mode : "points"; if (fmt === "royale" && mode === "time") mode = "points";
+  return { type, mode, sec: evNum(d.sec, 45, 15, 300), count: evNum(d.count, 10, 3, 60), klasse: type === "quiz" || type === "mix" ? evNum(d.klasse, 0, 0, 10) : 0, level: type === "math" || type === "order" || type === "mix" ? evNum(d.level, 1, 1, 4) : 1, topic: EV_TOPIC_GROUP[type] && d.topic && DATASETS[EV_TOPIC_GROUP[type]][d.topic] ? String(d.topic) : "" };
+}
+function evDiscs(rd) { return rd && Array.isArray(rd.discs) && rd.discs.length ? rd.discs : [evDiscClean({ type: rd && rd.type, topic: rd && rd.topic }, "royale")]; }
+function evDiscLabel(d) {
+  let t = EV_TYPES[d.type];
+  if (d.type === "quiz" && d.klasse > 0) t += " Kl. " + d.klasse;
+  if (EV_TOPIC_GROUP[d.type] && d.topic && DATASETS[EV_TOPIC_GROUP[d.type]][d.topic]) t += " (" + String(DATASETS[EV_TOPIC_GROUP[d.type]][d.topic].label).replace(/^[^:]*:\s*/, "") + ")";
+  if ((d.type === "math" || d.type === "order") && d.level > 1) t += " Stufe " + d.level;
+  const m = d.mode === "time" ? d.count + " Aufgaben auf Zeit" : d.mode === "tasks" ? "meiste Aufgaben in " + d.sec + " s" : "meiste Punkte in " + d.sec + " s";
+  return t + " · " + m;
+}
+function evRoundLabel(r) { return evDiscs(r).map(evDiscLabel).join(" + "); }
+function evStageName(players) { return players === 2 ? "Finale" : players === 4 ? "Halbfinale" : players === 8 ? "Viertelfinale" : players === 16 ? "Achtelfinale" : "Runde der " + players; }
 function evClean(p) {
   const name = String(p.name || "").trim().slice(0, 40); if (!name) return { error: "Name fehlt." };
-  const rounds = (Array.isArray(p.rounds) ? p.rounds : []).slice(0, 12).filter(r => r && EV_TYPES[r.type]).map(r => ({ type: r.type, topic: r.type === "hilo" && r.topic && DATASETS.higherLower[r.topic] ? String(r.topic) : "" }));
-  if (!rounds.length) return { error: "Mindestens eine Runde." };
-  const n = (v, d, lo, hi) => { v = Math.floor(Number(v)); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
-  const pr = p.prizes || {}, g = (o) => ({ c: n(o && o.c, 0, 0, 1000000), z: n(o && o.z, 0, 0, 100000) });
-  return { ev: { name, start: Math.max(0, Math.floor(Number(p.start) || 0)), maxPlayers: n(p.maxPlayers, 32, 2, 200), minPlayers: n(p.minPlayers, 4, 2, 200), rounds, prizes: { p1: g(pr.p1), p2: g(pr.p2), p3: g(pr.p3), part: g(pr.part) } } };
+  const fmt = p.format === "bracket" ? "bracket" : "royale";
+  const size = fmt === "bracket" ? ([8, 16, 32].includes(Number(p.size)) ? Number(p.size) : 8) : ([10, 50, 100].includes(Number(p.size)) ? Number(p.size) : evNum(p.maxPlayers, 50, 2, 200));
+  let rounds;
+  if (fmt === "bracket") {
+    const nSt = Math.log2(size), src = Array.isArray(p.rounds) ? p.rounds : [];
+    rounds = [];
+    for (let i = 0; i < nSt; i++) {
+      const rd = src[i] || {}, ds = (Array.isArray(rd.discs) && rd.discs.length ? rd.discs : [{}]).slice(0, 5).map(d => evDiscClean(d, "bracket"));
+      rounds.push({ discs: ds });
+    }
+  } else {
+    rounds = (Array.isArray(p.rounds) ? p.rounds : []).slice(0, 12).filter(r => r && (EV_TYPES[r.type] || (Array.isArray(r.discs) && r.discs.length))).map(r => ({ discs: [evDiscClean(Array.isArray(r.discs) && r.discs.length ? r.discs[0] : r, "royale")] }));
+    if (!rounds.length) return { error: "Mindestens eine Runde." };
+  }
+  const pr = p.prizes || {}, g = (o) => ({ c: evNum(o && o.c, 0, 0, 1000000), z: evNum(o && o.z, 0, 0, 100000) });
+  return { ev: { name, format: fmt, secret: p.secret !== false, size, start: Math.max(0, Math.floor(Number(p.start) || 0)), maxPlayers: size, minPlayers: evNum(p.minPlayers, fmt === "bracket" ? 2 : 4, 2, size), botFill: p.botFill === true, botTo: evNum(p.botTo, size, 2, size), rounds, prizes: { p1: g(pr.p1), p2: g(pr.p2), p3: g(pr.p3), part: g(pr.part) } } };
 }
 function evUserKey(n) { return String(n || "").toLowerCase(); }
+const EV_BOT_NAMES = ["Pixel_Fox","Luna_88","Nerd4Life","Blitzkrieg","QuizQueen","Mr_Brain","Zocker99","Kaffeetasse","NightOwl","Hirnriss","TurboTim","Sternchen","Wuerfel_X","Rabauke","Quizzy","DerProf","LaraLoca","Bohne","Schlaufuchs","Kometen_K","Mia_Mau","Tiger77","FlinkeFee","Brainiac","Otto_O","Zitrone","Dr_Denk","PuzzlePit","Nova","Salto","KlugerKai","Emmi","Rakete","Gizmo","Hexe_H","Jule","Turm4","Wolke7","Tobi_T","Fuchs_F","Mondlicht","Kiwi_K","Blitzmerker","Denkdose","Quarkkopf","Lenny","Sparky","Pinguin_P","Knobel","Mister_X","Kleo","Rubin","Tinte","Faultier","Schnitzel","Neo_N","Zimt","Pfeffi","Wuschel","Honigbiene","Atlas","Bumerang","Chilli","Donner_D","Echo_E","Funke","Gustav","Hummel","Ikarus","Juwel","Koala_K","Lakritz","Murmel","Nuss_N","Orbit","Paprika","Quasar","Rolf_R","Sturmi","Tornado_T","Uhu","Vulkan_V","Waldi","Xaver","Yeti_Y","Zebra_Z"];
+// Bots fuellen leere Plaetze (nur in der Laufzeit, nicht in ev.entrants -> kein Preis, keine Auszahlung)
+function evMakeBots(ev) {
+  const real = ev.entrants.length; if (!ev.botFill || real < 1) return [];
+  let target = Math.min(ev.size || ev.maxPlayers, ev.botTo || ev.size || ev.maxPlayers);
+  if (ev.format === "bracket") { let e = 2; while (e < target) e *= 2; target = Math.min(e, ev.size); }
+  const n = Math.max(0, target - real), taken = new Set(ev.entrants.map(e => evUserKey(e.name))), pool = evShuffle(EV_BOT_NAMES).filter(x => !taken.has(evUserKey(x))), out = [];
+  for (let i = 0; i < n; i++) out.push({ name: "🤖 " + (pool[i] || "Bot" + (i + 1)), skill: 0.2 + Math.random() * 0.7 });
+  return out;
+}
+function evBotsPlay(ev, run, now) {
+  if (!run.bots) return;
+  const br = run.fmt === "bracket", d = br ? run.cfg[run.stageIdx].discs[run.discIdx] : evDiscs(ev.rounds[run.roundIdx])[0];
+  run.bots.forEach((b, k) => {
+    if (!run.alive.has(k) || run.kicked && run.kicked.has(k)) return;
+    const st = br ? run.ps[k] : null; if (br && (!st || st.fin)) return;
+    if (Math.random() > 0.15 + b.skill * 0.2) return;
+    if (Math.random() < 0.12) { if (br) { st.streak = 0; if (d.mode === "time") st.pen += 3; } else run.streak[k] = 0; return; }
+    if (br) { st.streak++; st.correct++; st.score += 10 + Math.min(5, st.streak - 1) * 2; st.lastAt = now; if (d.mode === "time" && st.correct >= d.count) { st.fin = true; st.time = now - run.playStart + st.pen * 1000; } }
+    else { run.streak[k] = (run.streak[k] || 0) + 1; run.correct[k] = (run.correct[k] || 0) + 1; run.score[k] += d.mode === "tasks" ? 1 : 10 + Math.min(5, run.streak[k] - 1) * 2; run.lastAt[k] = now; }
+  });
+}
+function evAddBots(ev, run, bots, keys) {
+  if (!bots.length) return; run.bots = new Map();
+  bots.forEach(b => { const k = evUserKey(b.name); run.bots.set(k, { skill: b.skill }); run.names[k] = b.name; if (keys) keys.push(k); run.alive.add(k); if (run.score) { run.score[k] = 0; run.lastAt[k] = 0; } if (run.tot) run.tot[k] = 0; });
+}
 function evBegin(ev) {
-  if (ev.entrants.length < ev.minPlayers) { ev.state = "cancelled"; ev.reason = "Zu wenig Anmeldungen"; saveGameCfg().catch(() => {}); return; }
+  if (ev.entrants.length < ev.minPlayers && !(ev.botFill && ev.entrants.length >= 1)) { ev.state = "cancelled"; ev.reason = "Zu wenig Anmeldungen"; saveGameCfg().catch(() => {}); return; }
+  if (ev.format === "bracket") return evBeginBracket(ev);
   const run = { roundIdx: 0, phase: "intro", phaseEnd: Date.now() + EV_INTRO_SEC * 1000, alive: new Set(ev.entrants.map(e => evUserKey(e.name))), names: {}, score: {}, lastAt: {}, q: {}, streak: {}, out: [], lastElim: [] };
   ev.entrants.forEach(e => { const k = evUserKey(e.name); run.names[k] = e.name; run.score[k] = 0; run.lastAt[k] = 0; });
+  const bots = evMakeBots(ev); run.correct = run.correct || {}; evAddBots(ev, run, bots);
   evRun.set(ev.id, run); ev.state = "running"; ev.startedAt = Date.now(); saveGameCfg().catch(() => {});
-  console.log("[Event] " + ev.name + " startet mit " + ev.entrants.length);
+  console.log("[Event] " + ev.name + " startet mit " + ev.entrants.length + (bots.length ? " + " + bots.length + " Bots" : ""));
 }
 function evRank(run, keys) { return keys.slice().sort((a, b) => (run.score[b] - run.score[a]) || (run.lastAt[a] - run.lastAt[b]) || (a < b ? -1 : 1)); }
 function evFinish(ev, run) {
   const surv = evRank(run, [...run.alive]), res = [];
   surv.forEach(k => res.push({ name: run.names[k], score: run.score[k] }));
   for (let i = run.out.length - 1; i >= 0; i--) res.push({ name: run.names[run.out[i].k], score: run.score[run.out[i].k] });
-  res.forEach((r, i) => { r.place = i + 1; });
+  res.forEach((r, i) => { r.place = i + 1; r.tier = i === 0 ? "p1" : i === 1 ? "p2" : i === 2 ? "p3" : "part"; });
   ev.results = res; ev.state = "payout"; ev.endedAt = Date.now(); run.phase = "done"; saveGameCfg().catch(() => {});
   console.log("[Event] " + ev.name + " beendet, Sieger: " + (res[0] ? res[0].name : "-"));
 }
@@ -4713,6 +4789,79 @@ function evEndRound(ev, run) {
   if (last || run.alive.size <= 1) return evFinish(ev, run);
   run.phase = "result"; run.phaseEnd = Date.now() + EV_RESULT_SEC * 1000;
 }
+/* ---- Turnier-Baum (K.-o., 1 gegen 1): alle Spiele einer Runde laufen gleichzeitig ---- */
+function evShuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function evBeginBracket(ev) {
+  const bots = evMakeBots(ev), E = ev.entrants.length + bots.length; let eff = 2; while (eff < E) eff *= 2; eff = Math.min(eff, ev.size);
+  const nSt = Math.log2(eff), cfg = ev.rounds.slice(-nSt), keys = evShuffle(ev.entrants.map(e => evUserKey(e.name)).concat(bots.map(b => evUserKey(b.name)))), byes = Math.max(0, eff - keys.length);
+  const ms = []; let ix = 0; for (let m = 0; m < eff / 2; m++) { if (m < byes) ms.push({ a: keys[ix++], b: null, res: [] }); else ms.push({ a: keys[ix++], b: keys[ix++], res: [] }); }
+  const run = { fmt: "bracket", cfg, stageIdx: 0, discIdx: 0, phase: "intro", phaseEnd: Date.now() + EV_INTRO_SEC * 1000, matches: evShuffle(ms), history: [], names: {}, ps: {}, q: {}, tot: {}, stg: {}, alive: new Set(keys), kicked: new Set(), eff, playStart: 0, next: [] };
+  ev.entrants.forEach(e => { const k = evUserKey(e.name); run.names[k] = e.name; run.tot[k] = 0; });
+  evAddBots(ev, run, bots);
+  evRun.set(ev.id, run); ev.state = "running"; ev.startedAt = Date.now(); saveGameCfg().catch(() => {});
+  console.log("[Event] " + ev.name + " (Turnier-Baum " + eff + ") startet mit " + E);
+}
+function evBrBetter(mode, A, B) {
+  const early = () => (A.lastAt && B.lastAt) ? B.lastAt - A.lastAt : (A.lastAt ? 1 : B.lastAt ? -1 : 0);
+  if (mode === "time") {
+    if (A.fin !== B.fin) return A.fin ? 1 : -1;
+    const d = A.fin ? B.time - A.time : A.correct - B.correct; return d || early();
+  }
+  if (mode === "tasks") return (A.correct - B.correct) || (A.score - B.score) || early();
+  return (A.score - B.score) || (A.correct - B.correct) || early();
+}
+function evBrDiscEnd(ev, run, d, now) {
+  const snap = s => ({ score: s.score, correct: s.correct, fin: s.fin, time: s.time });
+  run.matches.forEach(m => {
+    if (!m.b) return; const A = run.ps[m.a], B = run.ps[m.b]; if (!A || !B) return;
+    let c = evBrBetter(d.mode, A, B); if (!c) c = Math.random() < 0.5 ? 1 : -1;
+    m.res.push({ a: snap(A), b: snap(B), w: c > 0 ? "a" : "b" });
+    [[m.a, A], [m.b, B]].forEach(([k, st]) => { const sc = Math.max(0, st.score); run.tot[k] = (run.tot[k] || 0) + sc; run.stg[k] = (run.stg[k] || 0) + sc; });
+  });
+  run.q = {}; run.phase = "dres"; run.phaseEnd = now + EV_DRES_SEC * 1000;
+}
+function evBrStageEnd(ev, run, now) {
+  const winners = [];
+  run.matches.forEach(m => {
+    if (!m.b) { m.winner = m.a; }
+    else {
+      const wa = m.res.filter(r => r.w === "a").length, wb = m.res.length - wa; m.wins = [wa, wb];
+      const dlt = wa !== wb ? wa - wb : ((run.stg[m.a] || 0) - (run.stg[m.b] || 0)) || (Math.random() < 0.5 ? 1 : -1);
+      m.winner = dlt > 0 ? m.a : m.b; run.alive.delete(m.winner === m.a ? m.b : m.a);
+    }
+    winners.push(m.winner);
+  });
+  run.history.push({ name: evStageName(run.matches.length * 2), matches: run.matches.map(m => ({ a: m.a, b: m.b, w: m.winner, wins: m.wins || null })) });
+  if (run.stageIdx >= run.cfg.length - 1) return evBrFinish(ev, run, winners[0]);
+  run.next = winners; run.phase = "result"; run.phaseEnd = now + EV_RESULT_SEC * 1000;
+}
+function evBrNextStage(ev, run, now) {
+  const ms = []; for (let i = 0; i < run.next.length; i += 2) ms.push({ a: run.next[i], b: run.next[i + 1] || null, res: [] });
+  run.matches = ms; run.stageIdx++; run.discIdx = 0; run.stg = {}; run.ps = {}; run.q = {}; run.phase = "intro"; run.phaseEnd = now + EV_INTRO_SEC * 1000;
+}
+function evBrFinish(ev, run, champ) {
+  const nm = k => run.names[k] || k, t = k => run.tot[k] || 0, res = [], fin = run.history[run.history.length - 1].matches[0], ru = fin.w === fin.a ? fin.b : fin.a;
+  res.push({ name: nm(champ), score: t(champ), place: 1, tier: "p1" });
+  if (ru) res.push({ name: nm(ru), score: t(ru), place: 2, tier: "p2" });
+  for (let s = run.history.length - 2; s >= 0; s--) {
+    const h = run.history[s], slots = h.matches.length * 2;
+    h.matches.filter(m => m.b).map(m => m.w === m.a ? m.b : m.a).sort((x, y) => t(y) - t(x)).forEach(k => res.push({ name: nm(k), score: t(k), place: slots / 2 + 1, tier: slots === 4 ? "p3" : "part" }));
+  }
+  ev.results = res; ev.state = "payout"; ev.endedAt = Date.now(); run.phase = "done"; saveGameCfg().catch(() => {});
+  console.log("[Event] " + ev.name + " beendet, Sieger: " + nm(champ));
+}
+function evBrTick(ev, run, now) {
+  const cfg = run.cfg[run.stageIdx], d = cfg.discs[run.discIdx];
+  if (run.phase === "play" && d.mode === "time" && now < run.phaseEnd && now - run.playStart > 2500) { const l = Object.values(run.ps); if (l.length && l.every(s => s.fin)) run.phaseEnd = now; }
+  if (now < run.phaseEnd) return;
+  if (run.phase === "intro") {
+    run.ps = {};
+    run.matches.forEach(m => [m.a, m.b].forEach(k => { if (!k || !m.b) return; const kk = run.kicked.has(k); run.ps[k] = { score: kk ? -1 : 0, correct: kk ? -1 : 0, streak: 0, lastAt: 0, pen: 0, fin: kk, time: 0 }; }));
+    run.q = {}; run.phase = "play"; run.playStart = now; run.phaseEnd = now + (process.env.EV_FAST ? EV_ROUND_SEC : d.sec) * 1000;
+  } else if (run.phase === "play") evBrDiscEnd(ev, run, d, now);
+  else if (run.phase === "dres") { if (run.discIdx < cfg.discs.length - 1) { run.discIdx++; run.phase = "intro"; run.phaseEnd = now + EV_INTRO_SEC * 1000; } else evBrStageEnd(ev, run, now); }
+  else if (run.phase === "result") evBrNextStage(ev, run, now);
+}
 function evTick() {
   const now = Date.now();
   for (const ev of evStore()) {
@@ -4721,8 +4870,10 @@ function evTick() {
       else if (ev.state === "running") {
         const run = evRun.get(ev.id);
         if (!run) { ev.state = "cancelled"; ev.reason = "Server neu gestartet"; saveGameCfg().catch(() => {}); continue; }
+        if (run.fmt === "bracket") { if (run.phase === "play") evBotsPlay(ev, run, now); evBrTick(ev, run, now); continue; }
+        if (run.phase === "play" && now < run.phaseEnd) evBotsPlay(ev, run, now);
         if (now < run.phaseEnd) continue;
-        if (run.phase === "intro") { run.phase = "play"; run.phaseEnd = now + EV_ROUND_SEC * 1000; run.q = {}; }
+        if (run.phase === "intro") { run.phase = "play"; run.phaseEnd = now + (process.env.EV_FAST ? EV_ROUND_SEC : evDiscs(ev.rounds[run.roundIdx])[0].sec) * 1000; run.q = {}; }
         else if (run.phase === "play") evEndRound(ev, run);
         else if (run.phase === "result") { run.roundIdx++; run.phase = "intro"; run.phaseEnd = now + EV_INTRO_SEC * 1000; }
       }
@@ -4738,33 +4889,71 @@ setInterval(evTick, 1000);
   const ping = () => { try { fetch(url.replace(/\/$/, "") + "/api/features", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).catch(() => {}); } catch (e) {} };
   setInterval(ping, 8 * 60 * 1000); console.log("Wach-Ping aktiv: " + url);
 })();
-function evMathQ(n) {
-  const lv = Math.min(4, Math.floor(n / 3)), r = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+function evMathQ(n, lvl) {
+  const lv = Math.min(4, Math.max((lvl || 1) - 1, Math.floor(n / 3))), r = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const ops = [() => { const a = r(3, 20), b = r(3, 20); return [a + " + " + b, a + b]; }, () => { const a = r(10, 40), b = r(2, 9); return [a + " − " + b, a - b]; }, () => { const a = r(2, 9), b = r(2, 9); return [a + " × " + b, a * b]; }, () => { const a = r(12, 59), b = r(12, 59); return [a + " + " + b, a + b]; }, () => { const a = r(11, 19), b = r(3, 9); return [a + " × " + b, a * b]; }];
   const pool = ops.slice(0, 2 + lv); return pool[Math.floor(Math.random() * pool.length)]();
 }
-function evNewQ(ev, run, k) {
-  const rd = ev.rounds[run.roundIdx], t = Date.now();
-  if (rd.type === "quiz") { const q = shuffleAnswerOrder(QUIZ_QUESTIONS[Math.floor(Math.random() * QUIZ_QUESTIONS.length)]); return { kind: "quiz", t, ans: q.c, pub: { kind: "quiz", q: q.q, a: q.a, cat: q.cat || "" } }; }
+function evCheck(q, a) {
+  if (q.kind === "order") { if (String(a) === String(q.seq[q.i])) { q.i++; q.pub.done.push(String(a)); return q.i >= q.seq.length ? "solved" : "step"; } return "wrong"; }
+  const x = q.kind === "hilo" ? String(a) : Number(a); return x === q.ans ? "solved" : "wrong";
+}
+function evNewQ(ev, run, k, disc, nc) {
+  const rd = disc || evDiscs(ev.rounds[run.roundIdx])[0], t = Date.now();
+  if (nc == null) nc = run.correct && run.correct[k] || 0;
+  if (rd.type === "mix") { const ts = ["quiz", "hilo", "math", "order", "sort", "chrono"]; return evNewQ(ev, run, k, Object.assign({}, rd, { type: ts[Math.floor(Math.random() * ts.length)], topic: "" }), nc); }
+  if (rd.type === "order") {
+    const lvl = rd.level || 1, cnt = Math.min(9, 4 + lvl + Math.floor(nc / 4)), mx = [20, 100, 500, 1000][lvl - 1], rules = lvl === 1 ? ["asc", "desc"] : ["asc", "desc", "even", "odd"], rule = rules[Math.floor(Math.random() * rules.length)];
+    const pool = new Set(); while (pool.size < cnt) pool.add(1 + Math.floor(Math.random() * mx));
+    let nums = [...pool]; if (rule === "even" || rule === "odd") { const want = rule === "even" ? 0 : 1; if (nums.filter(x => x % 2 === want).length < 3) { nums = nums.map((x, i) => i < 3 ? (x % 2 === want ? x : (x + 1 > mx ? x - 1 : x + 1)) : x); nums = [...new Set(nums)]; } }
+    const tgt = rule === "even" || rule === "odd" ? nums.filter(x => x % 2 === (rule === "even" ? 0 : 1)) : nums, seq = tgt.slice().sort((a, b) => rule === "desc" ? b - a : a - b);
+    const title = { asc: "Tippe aufsteigend (klein → groß)", desc: "Tippe absteigend (groß → klein)", even: "Nur die geraden Zahlen, aufsteigend", odd: "Nur die ungeraden Zahlen, aufsteigend" }[rule];
+    return { kind: "order", t, seq: seq.map(String), i: 0, pub: { kind: "order", title, items: evShuffle(nums).map(x => ({ id: String(x), t: String(x) })), done: [] } };
+  }
+  if (rd.type === "sort" || rd.type === "chrono") {
+    const grp = rd.type === "sort" ? "ordering" : "chronology", keys = Object.keys(DATASETS[grp] || {}), key = rd.topic && DATASETS[grp][rd.topic] ? rd.topic : keys[Math.floor(Math.random() * keys.length)], ds = DATASETS[grp][key];
+    const cnt = 4 + (nc >= 6 ? 1 : 0), vals = new Set(), pick = [];
+    evShuffle(ds.items).forEach(it => { if (pick.length < cnt && !vals.has(it.value)) { vals.add(it.value); pick.push(it); } });
+    const desc = ds.order === "desc", seq = pick.slice().sort((a, b) => desc ? b.value - a.value : a.value - b.value);
+    const unit = ds.unit || "", title = (rd.type === "chrono" ? "Chronologisch: " : "Sortiere: ") + String(ds.label).replace(/^[^:]*:\s*/, "") + " – " + (desc ? "höchster Wert zuerst" : "niedrigster Wert zuerst") + (unit ? " (" + unit + ")" : "");
+    return { kind: "order", t, seq: seq.map(x => String(x.id)), i: 0, pub: { kind: "order", title, items: evShuffle(pick).map(x => ({ id: String(x.id), t: x.name })), done: [] } };
+  }
+  if (rd.type === "quiz") {
+    const kp = rd.klasse > 0 && KLASSE_QUESTIONS[rd.klasse] && KLASSE_QUESTIONS[rd.klasse].length ? KLASSE_QUESTIONS[rd.klasse] : QUIZ_QUESTIONS;
+    const q = shuffleAnswerOrder(kp[Math.floor(Math.random() * kp.length)]); return { kind: "quiz", t, ans: q.c, pub: { kind: "quiz", q: q.q, a: q.a, cat: q.cat || "" } };
+  }
   if (rd.type === "hilo") {
     const keys = Object.keys(DATASETS.higherLower || {}), key = rd.topic || keys[Math.floor(Math.random() * keys.length)], ds = DATASETS.higherLower[key], it = ds.items;
     let a, b, g = 0; do { a = it[Math.floor(Math.random() * it.length)]; b = it[Math.floor(Math.random() * it.length)]; } while ((a === b || a.value === b.value) && ++g < 50);
     return { kind: "hilo", t, ans: b.value > a.value ? "h" : "l", pub: { kind: "hilo", topic: String(ds.label).replace(/^Higher or Lower:\s*/, ""), unit: ds.unit || "", a: { name: a.name, value: a.value }, b: { name: b.name } } };
   }
-  const [text, val] = evMathQ(run.correct && run.correct[k] || 0); return { kind: "math", t, ans: val, pub: { kind: "math", text } };
+  const [text, val] = evMathQ(nc, rd.level); return { kind: "math", t, ans: val, pub: { kind: "math", text } };
+}
+function evTier(r, i) { return r.tier || (i === 0 ? "p1" : i === 1 ? "p2" : i === 2 ? "p3" : "part"); }
+function evBrVal(mode, s, count) { return mode === "time" ? (s.fin ? (s.time / 1000).toFixed(1) + " s" : Math.max(0, s.correct) + "/" + count) : mode === "tasks" ? String(Math.max(0, s.correct)) : String(Math.max(0, s.score)); }
+function evBrView(ev, run, k, isMe) {
+  const cfg = run.cfg[run.stageIdx], d = cfg.discs[run.discIdx], nm = x => x ? (run.names[x] || x) : null;
+  const mm = run.matches.find(m => m.a === k || m.b === k), meA = !!mm && mm.a === k, oppK = mm ? (meA ? mm.b : mm.a) : null, ps = run.ps[k], op = oppK ? run.ps[oppK] : null;
+  const showRes = run.phase === "dres" || run.phase === "result", hide = ev.secret !== false && run.phase === "intro";
+  return { fmt: "bracket", stageIdx: run.stageIdx, total: run.cfg.length, stageName: evStageName(run.matches.length * 2), phase: run.phase, phaseEnd: run.phaseEnd, discIdx: run.discIdx, discTotal: cfg.discs.length,
+    roundLabel: hide ? "" : evDiscLabel(d), mode: hide ? "" : d.mode, count: hide ? 0 : d.count, sec: hide ? 0 : d.sec, hidden: hide, alive: run.alive.size, me: isMe, meAlive: run.alive.has(k), meBye: !!mm && !mm.b, opp: nm(oppK),
+    meScore: ps ? Math.max(0, ps.score) : 0, meCorrect: ps ? Math.max(0, ps.correct) : 0, meFin: !!(ps && ps.fin), meTime: ps && ps.fin ? ps.time : 0, oppScore: op ? Math.max(0, op.score) : 0, oppCorrect: op ? Math.max(0, op.correct) : 0, oppFin: !!(op && op.fin),
+    matches: run.matches.map(m => ({ a: nm(m.a), b: nm(m.b), w: m.winner ? nm(m.winner) : null, wins: m.wins || null, d: showRes ? m.res.map(r => ({ a: evBrVal(d.mode, r.a, d.count), b: evBrVal(d.mode, r.b, d.count), w: r.w })) : [], mine: m === mm })),
+    history: run.history.map(h => ({ name: h.name, matches: h.matches.map(m => ({ a: nm(m.a), b: nm(m.b), w: nm(m.w) })) })), lastElim: [], board: [], nextElim: 0 };
 }
 function evView(ev, userName) {
   const run = evRun.get(ev.id), k = evUserKey(userName), me = userName ? ev.entrants.find(e => evUserKey(e.name) === k) : null;
-  const v = { ok: true, id: ev.id, name: ev.name, state: ev.state, start: ev.start, now: Date.now(), maxPlayers: ev.maxPlayers, minPlayers: ev.minPlayers, entrants: ev.entrants.length, joined: !!me, prizes: ev.prizes, rounds: ev.rounds.map(evRoundLabel), reason: ev.reason || "" };
+  const v = { ok: true, id: ev.id, name: ev.name, state: ev.state, start: ev.start, now: Date.now(), maxPlayers: ev.maxPlayers, minPlayers: ev.minPlayers, entrants: ev.entrants.length, joined: !!me, prizes: ev.prizes, format: ev.format || "royale", botFill: !!ev.botFill, botTo: ev.botTo || ev.size || ev.maxPlayers, size: ev.size || ev.maxPlayers, secret: ev.secret !== false, rounds: ev.format === "bracket" ? ev.rounds.map((r, i) => evStageName(Math.pow(2, ev.rounds.length - i)) + ": " + (ev.secret !== false ? "🎲 " + Array(evDiscs(r).length).fill("???").join(" + ") : evRoundLabel(r))) : ev.rounds.map((r, i) => ev.secret !== false ? "🎲 ???" : evRoundLabel(r)), reason: ev.reason || "" };
   if (ev.state === "open") v.names = ev.entrants.slice(0, 40).map(e => e.name);
-  if (run && ev.state === "running") {
+  if (run && ev.state === "running" && run.fmt === "bracket") v.run = evBrView(ev, run, k, !!me);
+  else if (run && ev.state === "running") {
     const rk = evRank(run, Object.keys(run.score)), alive = run.alive;
-    v.run = { roundIdx: run.roundIdx, total: ev.rounds.length, phase: run.phase, phaseEnd: run.phaseEnd, alive: alive.size, roundLabel: evRoundLabel(ev.rounds[run.roundIdx]), lastElim: run.lastElim,
+    v.run = { roundIdx: run.roundIdx, total: ev.rounds.length, phase: run.phase, phaseEnd: run.phaseEnd, alive: alive.size, hidden: ev.secret !== false && run.phase === "intro", roundLabel: ev.secret !== false && run.phase === "intro" ? "" : evRoundLabel(ev.rounds[run.roundIdx]), lastElim: run.lastElim,
       board: rk.slice(0, 8).map(x => ({ name: run.names[x], score: run.score[x], alive: alive.has(x) })), meAlive: alive.has(k), meScore: run.score[k] || 0, meRank: rk.indexOf(k) + 1, me: !!me, nextElim: run.roundIdx < ev.rounds.length - 1 && alive.size > 2 ? Math.min(Math.max(1, Math.floor(alive.size * 0.25)), alive.size - 2) : 0 };
   }
   if ((ev.state === "payout" || ev.state === "done") && ev.results) {
-    v.results = ev.results.slice(0, 10); const mi = ev.results.findIndex(r => evUserKey(r.name) === k); v.myPlace = mi >= 0 ? mi + 1 : 0;
-    if (ev.state === "done" && mi >= 0) { const pz = mi === 0 ? ev.prizes.p1 : mi === 1 ? ev.prizes.p2 : mi === 2 ? ev.prizes.p3 : ev.prizes.part; v.myPrize = pz; }
+    v.results = ev.results.slice(0, 10); const mi = ev.results.findIndex(r => evUserKey(r.name) === k); v.myPlace = mi >= 0 ? (ev.results[mi].place || mi + 1) : 0;
+    if (ev.state === "done" && mi >= 0) { v.myPrize = ev.prizes[evTier(ev.results[mi], mi)]; }
   }
   return v;
 }
@@ -4787,18 +4976,49 @@ function evApi(p, ip) {
   }
   if (act === "leave") { if (ev.state === "open") { ev.entrants = ev.entrants.filter(e => evUserKey(e.name) !== k); maniaSaveSoon(); } return evView(ev, name); }
   const run = evRun.get(ev.id);
+  if (run && run.fmt === "bracket" && (act === "question" || act === "answer")) {
+    const ps = run.ps[k], d = run.cfg[run.stageIdx].discs[run.discIdx];
+    if (ev.state !== "running" || run.phase !== "play" || !ps || ps.fin || !run.alive.has(k)) return Object.assign(evView(ev, name), { noPlay: true });
+    if (act === "question") { if (!run.q[k]) run.q[k] = evNewQ(ev, run, k, d, ps.correct); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
+    const q = run.q[k]; if (!q) { run.q[k] = evNewQ(ev, run, k, d, ps.correct); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
+    if (Date.now() - q.t < 250) return Object.assign(evView(ev, name), { q: q.pub, tooFast: true });
+    const chk = evCheck(q, p.a), ok = chk === "solved", now = Date.now();
+    if (chk === "step") return Object.assign(evView(ev, name), { q: q.pub, step: true });
+    if (ok) {
+      ps.streak++; ps.correct++; ps.score += 10 + Math.min(5, ps.streak - 1) * 2; ps.lastAt = now;
+      if (d.mode === "time" && ps.correct >= d.count) { ps.fin = true; ps.time = now - run.playStart + ps.pen * 1000; return Object.assign(evView(ev, name), { noPlay: true, ok: true }); }
+    } else { ps.streak = 0; if (d.mode === "time") ps.pen += 3; }
+    run.q[k] = evNewQ(ev, run, k, d, ps.correct);
+    return Object.assign(evView(ev, name), { q: run.q[k].pub, ok, streak: ps.streak });
+  }
   if ((act === "question" || act === "answer") && (!run || ev.state !== "running" || run.phase !== "play" || !run.alive.has(k))) return Object.assign(evView(ev, name), { noPlay: true });
   if (act === "question") { if (!run.q[k]) run.q[k] = evNewQ(ev, run, k); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
   if (act === "answer") {
     const q = run.q[k]; if (!q) { run.q[k] = evNewQ(ev, run, k); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
     if (Date.now() - q.t < 250) return Object.assign(evView(ev, name), { q: q.pub, tooFast: true });
-    const a = q.kind === "quiz" ? Number(p.a) : q.kind === "hilo" ? String(p.a) : Number(p.a), ok = q.kind === "hilo" ? a === q.ans : a === q.ans;
+    const chk = evCheck(q, p.a), ok = chk === "solved";
+    if (chk === "step") return Object.assign(evView(ev, name), { q: q.pub, step: true });
     if (!run.correct) run.correct = {};
-    if (ok) { run.streak[k] = (run.streak[k] || 0) + 1; run.correct[k] = (run.correct[k] || 0) + 1; run.score[k] += 10 + Math.min(5, run.streak[k] - 1) * 2; run.lastAt[k] = Date.now(); } else run.streak[k] = 0;
+    if (ok) { run.streak[k] = (run.streak[k] || 0) + 1; run.correct[k] = (run.correct[k] || 0) + 1; run.score[k] += evDiscs(ev.rounds[run.roundIdx])[0].mode === "tasks" ? 1 : 10 + Math.min(5, run.streak[k] - 1) * 2; run.lastAt[k] = Date.now(); } else run.streak[k] = 0;
     run.q[k] = evNewQ(ev, run, k);
     return Object.assign(evView(ev, name), { q: run.q[k].pub, ok, streak: run.streak[k] });
   }
   return { ok: false };
+}
+// Einladungslink: Besucher geben nur einen Namen ein, bekommen ein Konto (zufaelliges Passwort, Zugang bleibt auf dem Geraet) und sind direkt angemeldet.
+async function evGuestJoin(p, ip, lang) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const ev = p.id ? evGet(String(p.id)) : evVisible();
+  if (!ev || ev.state === "draft" || ev.state === "cancelled") return { ok: false, error: "Dieses Event gibt es nicht (mehr)." };
+  if (ev.state !== "open") return { ok: false, error: "Die Anmeldung ist schon geschlossen." };
+  if (ev.entrants.length >= ev.maxPlayers) return { ok: false, error: "Das Event ist voll." };
+  const r = await registerUser(String(p.name || ""), crypto.randomBytes(12).toString("hex"), ip, lang, null);
+  if (!r.ok) return r;
+  const u = findUserByToken(r.token), name = u ? String(u.username) : String(r.profile.username);
+  if (u) u.quickJoin = ev.id;
+  if (ev.state === "open" && !ev.entrants.some(e => evUserKey(e.name) === evUserKey(name))) { ev.entrants.push({ name, t: Date.now() }); statHit("event_join"); }
+  maniaSaveSoon(); await saveUsers();
+  return { ok: true, token: r.token, profile: r.profile, bonus: r.bonus, view: evView(ev, name) };
 }
 function evGrant(u, z, why) {
   if (!u) return;
@@ -4811,7 +5031,7 @@ async function adminEvents(key, ip, p) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!usersLoaded) return { ok: false, error: "Konten noch nicht geladen." };
   const act = p.action || "list", L = evStore();
-  const view = (extra) => Object.assign({ ok: true, types: EV_TYPES, topics: evHiloTopics(), roundSec: EV_ROUND_SEC, events: L.map(e => { const run = evRun.get(e.id); return Object.assign({}, e, { live: run && e.state === "running" ? { roundIdx: run.roundIdx, phase: run.phase, phaseEnd: run.phaseEnd, alive: run.alive.size, board: evRank(run, Object.keys(run.score)).slice(0, 12).map(x => ({ name: run.names[x], score: run.score[x], alive: run.alive.has(x) })) } : null }); }) }, extra || {});
+  const view = (extra) => Object.assign({ ok: true, types: EV_TYPES, modes: EV_MODES, topics: evHiloTopics(), sortTopics: Object.entries(DATASETS.ordering || {}).map(([k, v]) => ({ k, label: String(v.label || k).replace(/^[^:]*:\s*/, "") })), chronoTopics: Object.entries(DATASETS.chronology || {}).map(([k, v]) => ({ k, label: String(v.label || k).replace(/^[^:]*:\s*/, "") })), roundSec: EV_ROUND_SEC, events: L.map(e => { const run = evRun.get(e.id); return Object.assign({}, e, { live: run && e.state === "running" && run.fmt === "bracket" ? { fmt: "bracket", stage: evStageName(run.matches.length * 2), stageIdx: run.stageIdx, phase: run.phase, phaseEnd: run.phaseEnd, alive: run.alive.size, matches: run.matches.map(m => ({ a: run.names[m.a], b: m.b ? run.names[m.b] : null, w: m.winner ? run.names[m.winner] : null })) } : run && e.state === "running" ? { roundIdx: run.roundIdx, phase: run.phase, phaseEnd: run.phaseEnd, alive: run.alive.size, board: evRank(run, Object.keys(run.score)).slice(0, 12).map(x => ({ name: run.names[x], score: run.score[x], alive: run.alive.has(x) })) } : null }); }) }, extra || {});
   const done = async (extra) => (await saveGameCfg()) ? view(extra) : { ok: false, error: "Speichern fehlgeschlagen." };
   if (act === "list") return view();
   if (act === "save") {
@@ -4829,12 +5049,13 @@ async function adminEvents(key, ip, p) {
   if (act === "skip") { const run = evRun.get(ev.id); if (run && ev.state === "running") run.phaseEnd = Date.now(); return view(); }
   if (act === "kick") {
     const k = evUserKey(p.name); ev.entrants = ev.entrants.filter(e => evUserKey(e.name) !== k); const run = evRun.get(ev.id);
-    if (run && run.alive.has(k)) { run.alive.delete(k); run.out.push({ k, round: run.roundIdx }); run.score[k] = -1; }
+    if (run && run.fmt === "bracket") { run.kicked.add(k); if (run.ps[k]) { run.ps[k].fin = true; run.ps[k].score = -1; run.ps[k].correct = -1; } }
+    else if (run && run.alive.has(k)) { run.alive.delete(k); run.out.push({ k, round: run.roundIdx }); run.score[k] = -1; }
     return done();
   }
   if (act === "payout") {
     if (ev.state !== "payout" || !ev.results) return { ok: false, error: "Noch nichts auszuzahlen." };
-    ev.results.forEach((r, i) => { const u = findUserByName(r.name); evGrant(u, i === 0 ? ev.prizes.p1 : i === 1 ? ev.prizes.p2 : i === 2 ? ev.prizes.p3 : ev.prizes.part, "event:" + ev.name); });
+    ev.results.forEach((r, i) => { if (r.bot || /^🤖/.test(r.name)) return; const u = findUserByName(r.name); evGrant(u, ev.prizes[evTier(r, i)], "event:" + ev.name); });
     ev.state = "done"; ev.paid = Date.now();
     if (!(await saveUsers())) return { ok: false, error: "Konten speichern fehlgeschlagen." };
     console.log("[Event] ausgezahlt: " + ev.name); return done();
@@ -7220,6 +7441,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-games") result = adminGames(payload.key, ip);
         else if (req.url === "/api/admin-events") result = await adminEvents(payload.key, ip, payload);
         else if (req.url === "/api/event" && !gateOk("events", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/event-guest" && !gateOk("events", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/event-guest") result = await evGuestJoin(payload, ip, lang);
         else if (req.url === "/api/event") result = evApi(payload, ip);
         else if (req.url === "/api/admin-feedback") result = await adminFeedback(payload.key, ip, payload);
         else if (req.url === "/api/feedback") result = feedbackApi(payload, ip);
@@ -8071,6 +8294,12 @@ wss.on("connection", (ws, req) => {
         break;
       case "tabooSkip":
         handleTabooSkip(room, ws.playerId);
+        break;
+      case "tabooOk":
+        handleTabooOk(room, ws.playerId, msg.by);
+        break;
+      case "tabooConfig":
+        if (isHost && room.phase === "lobby") room.tabooCfg = { ms: Math.max(30, Math.min(300, Math.floor(Number(msg.secs) || 90))) * 1000, voice: msg.voice === true };
         break;
       case "fourupsMove":
         if (room.runtime && room.runtime.kind === "fourupsGame") handlePartyFourupsMove(room, ws.playerId, msg.col);
