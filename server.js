@@ -4694,7 +4694,13 @@ async function adminZp(key, ip, payload) {
    Alle Spieler spielen gleichzeitig dieselbe Runde, nach jeder Runde fliegen die Letzten raus.
    Rundenarten (Phase 1): Wissenstest, Higher or Lower, Speed Math.
    ============================================================================ */
-const EV_TYPES = { quiz: "Wissenstest", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", mix: "Überraschungs-Mix" };
+const EVDUEL = require("./evduel.js")({ Dame, Mill, getChess: () => getChessEngine() });
+const EV_DUEL_NAMES = { ttt: "Duell: Tic Tac Toe", c4: "Duell: 4 gewinnt", mill: "Duell: Mühle", dame: "Duell: Dame", chess: "Duell: Schach" };
+const evIsDuel = d => !!(d && EVDUEL.TYPES[d.type]);
+const EV_TYPES = { quiz: "Wissenstest", bio: "Biologie", vocab: "Vokabeln (Englisch)", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", ...EV_DUEL_NAMES, mix: "Überraschungs-Mix" };
+let EV_BIO = [], EV_VOC = [];
+try { EV_BIO = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/biologyDE.json"), "utf8")); } catch (e) { console.log("biologyDE.json fehlt"); }
+try { EV_VOC = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/vocabDE.json"), "utf8")); } catch (e) { console.log("vocabDE.json fehlt"); }
 const EV_TOPIC_GROUP = { hilo: "higherLower", sort: "ordering", chrono: "chronology" };
 const EV_INTRO_SEC = process.env.EV_FAST ? 2 : 8, EV_ROUND_SEC = process.env.EV_FAST ? 8 : 45, EV_RESULT_SEC = process.env.EV_FAST ? 3 : 10; // EV_FAST nur fuer Tests
 const evRun = new Map(); // id -> { roundIdx, phase, phaseEnd, alive:Set, score:{}, lastAt:{}, q:{}, streak:{}, out:[], lastElim:[] }
@@ -4706,13 +4712,18 @@ const EV_DRES_SEC = process.env.EV_FAST ? 2 : 6;
 const evNum = (v, d, lo, hi) => { v = Math.floor(Number(v)); return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : d; };
 function evDiscClean(d, fmt) {
   d = d || {};
-  const type = EV_TYPES[d.type] ? d.type : "quiz";
+  let type = EV_TYPES[d.type] ? d.type : "quiz";
+  if (EVDUEL.TYPES[type]) {
+    if (fmt !== "bracket") type = "quiz";
+    else return { type, mode: "points", sec: evNum(d.sec, EVDUEL.SEC[type], 30, 600), count: 1, klasse: 0, level: 1, topic: "" };
+  }
   let mode = EV_MODES[d.mode] ? d.mode : "points"; if (fmt === "royale" && mode === "time") mode = "points";
   return { type, mode, sec: evNum(d.sec, 45, 15, 300), count: evNum(d.count, 10, 3, 60), klasse: type === "quiz" || type === "mix" ? evNum(d.klasse, 0, 0, 10) : 0, level: type === "math" || type === "order" || type === "mix" ? evNum(d.level, 1, 1, 4) : 1, topic: EV_TOPIC_GROUP[type] && d.topic && DATASETS[EV_TOPIC_GROUP[type]][d.topic] ? String(d.topic) : "" };
 }
 function evDiscs(rd) { return rd && Array.isArray(rd.discs) && rd.discs.length ? rd.discs : [evDiscClean({ type: rd && rd.type, topic: rd && rd.topic }, "royale")]; }
 function evDiscLabel(d) {
   let t = EV_TYPES[d.type];
+  if (evIsDuel(d)) return t + " · 1 gegen 1, max. " + Math.round(d.sec / 60 * 10) / 10 + " Min.";
   if (d.type === "quiz" && d.klasse > 0) t += " Kl. " + d.klasse;
   if (EV_TOPIC_GROUP[d.type] && d.topic && DATASETS[EV_TOPIC_GROUP[d.type]][d.topic]) t += " (" + String(DATASETS[EV_TOPIC_GROUP[d.type]][d.topic].label).replace(/^[^:]*:\s*/, "") + ")";
   if ((d.type === "math" || d.type === "order") && d.level > 1) t += " Stufe " + d.level;
@@ -4751,9 +4762,40 @@ function evMakeBots(ev) {
   for (let i = 0; i < n; i++) out.push({ name: "🤖 " + (pool[i] || "Bot" + (i + 1)), skill: 0.2 + Math.random() * 0.7 });
   return out;
 }
+// ---- Duelle (1 gegen 1 am Brett) ----
+function evDuelApply(run, m, now) {
+  const du = m.duel, A = run.ps[m.a], B = run.ps[m.b]; if (!du || !du.res || !A || !B) return;
+  const sa = du.res === "a" ? 100 : du.res === "draw" ? 50 : 0, sb = du.res === "b" ? 100 : du.res === "draw" ? 50 : 0;
+  A.score = sa; B.score = sb; A.correct = sa >= 100 ? 1 : 0; B.correct = sb >= 100 ? 1 : 0; A.fin = B.fin = true; A.lastAt = B.lastAt = 0;
+}
+function evDuelStart(run, d, now) {
+  run.matches.forEach(m => {
+    m.duel = null; if (!m.b) return;
+    const du = m.duel = EVDUEL.create(d.type), ka = run.kicked.has(m.a), kb = run.kicked.has(m.b);
+    if (ka || kb) { EVDUEL.finish(du, ka && !kb ? "b" : kb && !ka ? "a" : (Math.random() < 0.5 ? "a" : "b"), "kick"); evDuelApply(run, m, now); return; }
+    const ba = run.bots && run.bots.get(m.a), bb = run.bots && run.bots.get(m.b);
+    if (ba && bb) du.bb = { at: now + (run.phaseEnd - now) * (0.25 + Math.random() * 0.4), w: Math.random() < 0.5 + (ba.skill - bb.skill) * 0.45 ? "a" : "b" };
+    else du.botAt = now + 1500 + Math.random() * 1500;
+  });
+}
+function evDuelBots(run, now) {
+  let budget = 4;
+  run.matches.forEach(m => {
+    const du = m.duel; if (!m.b || !du || du.res) return;
+    if (du.bb) { if (now >= du.bb.at) { EVDUEL.finish(du, du.bb.w, "bot"); evDuelApply(run, m, now); } return; }
+    const side = du.st.turn, key = side === "a" ? m.a : m.b, bot = run.bots && run.bots.get(key);
+    if (!bot || now < du.botAt || budget <= 0) return;
+    budget--;
+    const mi = EVDUEL.botPick(du, side, bot.skill);
+    if (mi >= 0) EVDUEL.play(du, side, mi);
+    du.botAt = now + 800 + Math.random() * 1700;
+    if (du.res) evDuelApply(run, m, now);
+  });
+}
 function evBotsPlay(ev, run, now) {
   if (!run.bots) return;
   const br = run.fmt === "bracket", d = br ? run.cfg[run.stageIdx].discs[run.discIdx] : evDiscs(ev.rounds[run.roundIdx])[0];
+  if (br && evIsDuel(d)) return evDuelBots(run, now);
   run.bots.forEach((b, k) => {
     if (!run.alive.has(k) || run.kicked && run.kicked.has(k)) return;
     const st = br ? run.ps[k] : null; if (br && (!st || st.fin)) return;
@@ -4818,6 +4860,7 @@ function evBrBetter(mode, A, B) {
 }
 function evBrDiscEnd(ev, run, d, now) {
   const snap = s => ({ score: s.score, correct: s.correct, fin: s.fin, time: s.time });
+  if (evIsDuel(d)) run.matches.forEach(m => { if (m.b && m.duel && !m.duel.res) { EVDUEL.finish(m.duel, EVDUEL.judge(m.duel), "time"); evDuelApply(run, m, now); } });
   run.matches.forEach(m => {
     if (!m.b) return; const A = run.ps[m.a], B = run.ps[m.b]; if (!A || !B) return;
     let c = evBrBetter(d.mode, A, B); if (!c) c = Math.random() < 0.5 ? 1 : -1;
@@ -4858,12 +4901,14 @@ function evBrFinish(ev, run, champ) {
 }
 function evBrTick(ev, run, now) {
   const cfg = run.cfg[run.stageIdx], d = cfg.discs[run.discIdx];
+  if (run.phase === "play" && evIsDuel(d) && now < run.phaseEnd) { const ms = run.matches.filter(m => m.b && m.duel); if (ms.length && ms.every(m => m.duel.res)) run.phaseEnd = Math.min(run.phaseEnd, Math.max.apply(null, ms.map(m => m.duel.overAt)) + 2500); }
   if (run.phase === "play" && d.mode === "time" && now < run.phaseEnd && now - run.playStart > 2500) { const l = Object.values(run.ps); if (l.length && l.every(s => s.fin)) run.phaseEnd = now; }
   if (now < run.phaseEnd) return;
   if (run.phase === "intro") {
     run.ps = {};
     run.matches.forEach(m => [m.a, m.b].forEach(k => { if (!k || !m.b) return; const kk = run.kicked.has(k); run.ps[k] = { score: kk ? -1 : 0, correct: kk ? -1 : 0, streak: 0, lastAt: 0, pen: 0, fin: kk, time: 0 }; }));
-    run.q = {}; run.phase = "play"; run.playStart = now; run.phaseEnd = now + (process.env.EV_FAST ? EV_ROUND_SEC : d.sec) * 1000;
+    run.q = {}; run.phase = "play"; run.playStart = now; run.phaseEnd = now + (process.env.EV_FAST ? (evIsDuel(d) ? 25 : EV_ROUND_SEC) : d.sec) * 1000;
+    if (evIsDuel(d)) evDuelStart(run, d, now);
   } else if (run.phase === "play") evBrDiscEnd(ev, run, d, now);
   else if (run.phase === "dres") { if (run.discIdx < cfg.discs.length - 1) { run.discIdx++; run.phase = "intro"; run.phaseEnd = now + EV_INTRO_SEC * 1000; } else evBrStageEnd(ev, run, now); }
   else if (run.phase === "result") evBrNextStage(ev, run, now);
@@ -4907,7 +4952,7 @@ function evCheck(q, a) {
 function evNewQ(ev, run, k, disc, nc) {
   const rd = disc || evDiscs(ev.rounds[run.roundIdx])[0], t = Date.now();
   if (nc == null) nc = run.correct && run.correct[k] || 0;
-  if (rd.type === "mix") { const ts = ["quiz", "hilo", "math", "order", "sort", "chrono"]; return evNewQ(ev, run, k, Object.assign({}, rd, { type: ts[Math.floor(Math.random() * ts.length)], topic: "" }), nc); }
+  if (rd.type === "mix") { const ts = ["quiz", "bio", "vocab", "hilo", "math", "order", "sort", "chrono"]; return evNewQ(ev, run, k, Object.assign({}, rd, { type: ts[Math.floor(Math.random() * ts.length)], topic: "" }), nc); }
   if (rd.type === "order") {
     const lvl = rd.level || 1, cnt = Math.min(9, 4 + lvl + Math.floor(nc / 4)), mx = [20, 100, 500, 1000][lvl - 1], rules = lvl === 1 ? ["asc", "desc"] : ["asc", "desc", "even", "odd"], rule = rules[Math.floor(Math.random() * rules.length)];
     const pool = new Set(); while (pool.size < cnt) pool.add(1 + Math.floor(Math.random() * mx));
@@ -4924,7 +4969,17 @@ function evNewQ(ev, run, k, disc, nc) {
     const unit = ds.unit || "", title = (rd.type === "chrono" ? "Chronologisch: " : "Sortiere: ") + String(ds.label).replace(/^[^:]*:\s*/, "") + " – " + (desc ? "höchster Wert zuerst" : "niedrigster Wert zuerst") + (unit ? " (" + unit + ")" : "");
     return { kind: "order", t, seq: seq.map(x => String(x.id)), i: 0, pub: { kind: "order", title, items: evShuffle(pick).map(x => ({ id: String(x.id), t: x.name })), done: [] } };
   }
-  if (rd.type === "quiz") {
+  if (rd.type === "bio" && EV_BIO.length) {
+    const q = shuffleAnswerOrder(EV_BIO[Math.floor(Math.random() * EV_BIO.length)]); return { kind: "quiz", t, ans: q.c, pub: { kind: "quiz", q: q.q, a: q.a, cat: q.cat || "Biologie" } };
+  }
+  if (rd.type === "vocab" && EV_VOC.length > 8) {
+    const okW = x => x.en.length <= 22 && !/\.\.\./.test(x.en), isV = x => /^to /.test(x.en);
+    let w; do { w = EV_VOC[Math.floor(Math.random() * EV_VOC.length)]; } while (!okW(w));
+    const opts = new Set([w.en]); let g = 0;
+    while (opts.size < 4 && g++ < 200) { const o = EV_VOC[Math.floor(Math.random() * EV_VOC.length)]; if (o.en !== w.en && o.de !== w.de && okW(o) && (g > 120 || isV(o) === isV(w))) opts.add(o.en); }
+    const a = evShuffle([...opts]); return { kind: "quiz", t, ans: a.indexOf(w.en), pub: { kind: "quiz", q: "Was heißt „" + w.de + "“ auf Englisch?", a, cat: "Vokabeln" } };
+  }
+  if (rd.type === "quiz" || rd.type === "bio" || rd.type === "vocab") {
     const kp = rd.klasse > 0 && KLASSE_QUESTIONS[rd.klasse] && KLASSE_QUESTIONS[rd.klasse].length ? KLASSE_QUESTIONS[rd.klasse] : QUIZ_QUESTIONS;
     const q = shuffleAnswerOrder(kp[Math.floor(Math.random() * kp.length)]); return { kind: "quiz", t, ans: q.c, pub: { kind: "quiz", q: q.q, a: q.a, cat: q.cat || "" } };
   }
@@ -4936,15 +4991,16 @@ function evNewQ(ev, run, k, disc, nc) {
   const [text, val] = evMathQ(nc, rd.level); return { kind: "math", t, ans: val, pub: { kind: "math", text } };
 }
 function evTier(r, i) { return r.tier || (i === 0 ? "p1" : i === 1 ? "p2" : i === 2 ? "p3" : "part"); }
-function evBrVal(mode, s, count) { return mode === "time" ? (s.fin ? (s.time / 1000).toFixed(1) + " s" : Math.max(0, s.correct) + "/" + count) : mode === "tasks" ? String(Math.max(0, s.correct)) : String(Math.max(0, s.score)); }
+function evBrVal(mode, s, count, type) { if (EVDUEL.TYPES[type]) return s.score >= 100 ? "1" : s.score >= 50 ? "½" : "0"; return mode === "time" ? (s.fin ? (s.time / 1000).toFixed(1) + " s" : Math.max(0, s.correct) + "/" + count) : mode === "tasks" ? String(Math.max(0, s.correct)) : String(Math.max(0, s.score)); }
 function evBrView(ev, run, k, isMe) {
   const cfg = run.cfg[run.stageIdx], d = cfg.discs[run.discIdx], nm = x => x ? (run.names[x] || x) : null;
   const mm = run.matches.find(m => m.a === k || m.b === k), meA = !!mm && mm.a === k, oppK = mm ? (meA ? mm.b : mm.a) : null, ps = run.ps[k], op = oppK ? run.ps[oppK] : null;
   const showRes = run.phase === "dres" || run.phase === "result", hide = ev.secret !== false && run.phase === "intro";
   return { fmt: "bracket", stageIdx: run.stageIdx, total: run.cfg.length, stageName: evStageName(run.matches.length * 2), phase: run.phase, phaseEnd: run.phaseEnd, discIdx: run.discIdx, discTotal: cfg.discs.length,
+    isDuel: !hide && evIsDuel(d), duel: !hide && evIsDuel(d) && (run.phase === "play" || run.phase === "dres") && mm && mm.b && mm.duel ? EVDUEL.view(mm.duel, meA ? "a" : "b") : null,
     roundLabel: hide ? "" : evDiscLabel(d), mode: hide ? "" : d.mode, count: hide ? 0 : d.count, sec: hide ? 0 : d.sec, hidden: hide, alive: run.alive.size, me: isMe, meAlive: run.alive.has(k), meBye: !!mm && !mm.b, opp: nm(oppK),
     meScore: ps ? Math.max(0, ps.score) : 0, meCorrect: ps ? Math.max(0, ps.correct) : 0, meFin: !!(ps && ps.fin), meTime: ps && ps.fin ? ps.time : 0, oppScore: op ? Math.max(0, op.score) : 0, oppCorrect: op ? Math.max(0, op.correct) : 0, oppFin: !!(op && op.fin),
-    matches: run.matches.map(m => ({ a: nm(m.a), b: nm(m.b), w: m.winner ? nm(m.winner) : null, wins: m.wins || null, d: showRes ? m.res.map(r => ({ a: evBrVal(d.mode, r.a, d.count), b: evBrVal(d.mode, r.b, d.count), w: r.w })) : [], mine: m === mm })),
+    matches: run.matches.map(m => ({ a: nm(m.a), b: nm(m.b), w: m.winner ? nm(m.winner) : null, wins: m.wins || null, d: showRes ? m.res.map(r => ({ a: evBrVal(d.mode, r.a, d.count, d.type), b: evBrVal(d.mode, r.b, d.count, d.type), w: r.w })) : [], mine: m === mm })),
     history: run.history.map(h => ({ name: h.name, matches: h.matches.map(m => ({ a: nm(m.a), b: nm(m.b), w: nm(m.w) })) })), lastElim: [], board: [], nextElim: 0 };
 }
 function evView(ev, userName) {
@@ -4982,8 +5038,17 @@ function evApi(p, ip) {
   }
   if (act === "leave") { if (ev.state === "open") { ev.entrants = ev.entrants.filter(e => evUserKey(e.name) !== k); maniaSaveSoon(); } return evView(ev, name); }
   const run = evRun.get(ev.id);
+  if (run && run.fmt === "bracket" && act === "move") {
+    const d = run.cfg[run.stageIdx].discs[run.discIdx], mm = run.matches.find(m => m.b && m.duel && (m.a === k || m.b === k));
+    if (ev.state !== "running" || run.phase !== "play" || !evIsDuel(d) || !mm || !run.alive.has(k)) return Object.assign(evView(ev, name), { noPlay: true });
+    const du = mm.duel, side = mm.a === k ? "a" : "b";
+    if (du.res || Number(p.rev) !== du.rev) return evView(ev, name);
+    if (EVDUEL.play(du, side, p.mi)) { if (du.res) evDuelApply(run, mm, Date.now()); else du.botAt = Date.now() + 700 + Math.random() * 1200; }
+    return evView(ev, name);
+  }
   if (run && run.fmt === "bracket" && (act === "question" || act === "answer")) {
     const ps = run.ps[k], d = run.cfg[run.stageIdx].discs[run.discIdx];
+    if (evIsDuel(d)) return Object.assign(evView(ev, name), { noPlay: true });
     if (ev.state !== "running" || run.phase !== "play" || !ps || ps.fin || !run.alive.has(k)) return Object.assign(evView(ev, name), { noPlay: true });
     if (act === "question") { if (!run.q[k]) run.q[k] = evNewQ(ev, run, k, d, ps.correct); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
     const q = run.q[k]; if (!q) { run.q[k] = evNewQ(ev, run, k, d, ps.correct); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
@@ -5055,7 +5120,7 @@ async function adminEvents(key, ip, p) {
   if (act === "skip") { const run = evRun.get(ev.id); if (run && ev.state === "running") run.phaseEnd = Date.now(); return view(); }
   if (act === "kick") {
     const k = evUserKey(p.name); ev.entrants = ev.entrants.filter(e => evUserKey(e.name) !== k); const run = evRun.get(ev.id);
-    if (run && run.fmt === "bracket") { run.kicked.add(k); if (run.ps[k]) { run.ps[k].fin = true; run.ps[k].score = -1; run.ps[k].correct = -1; } }
+    if (run && run.fmt === "bracket") { run.kicked.add(k); if (run.ps[k]) { run.ps[k].fin = true; run.ps[k].score = -1; run.ps[k].correct = -1; } } if (run && run.fmt === "bracket") { const mm = run.matches.find(m => m.b && m.duel && !m.duel.res && (m.a === k || m.b === k)); if (mm && run.phase === "play") { EVDUEL.finish(mm.duel, mm.a === k ? "b" : "a", "kick"); evDuelApply(run, mm, Date.now()); } }
     else if (run && run.alive.has(k)) { run.alive.delete(k); run.out.push({ k, round: run.roundIdx }); run.score[k] = -1; }
     return done();
   }
@@ -6280,7 +6345,7 @@ function getChessEngine() {
   const vm = require("vm");
   const src = fs.readFileSync(path.join(__dirname, "public", "chess", "engine.js"), "utf8");
   const ctx = vm.createContext({ console, Math });
-  vm.runInContext(src + "\n;this.__api={initBoard,getLegalMoves,getAllLegalMoves,applyMove,isInCheck};", ctx);
+  vm.runInContext(src + "\n;this.__api={initBoard,getLegalMoves,getAllLegalMoves,applyMove,isInCheck,minimax};", ctx);
   chessEngine = ctx.__api;
   return chessEngine;
 }
