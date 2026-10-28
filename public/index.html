@@ -15461,7 +15461,7 @@ function evOpen(id){
   evCss();
   if(evs && evs.timer) clearInterval(evs.timer);
   evs = { id: id || '', v:null, q:null, off:0, fetching:false, flash:'', sig:'', timer:null };
-  renderApp(`<div class="panel evp" id="evRoot"><div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="evClose()">${t('btn_back')}</button><div class="picker-title" style="margin:0" id="evTtl">⚔️ EVENT</div></div><div id="evTop"></div><div id="evQ"></div></div>`);
+  renderApp(`<div class="panel evp" id="evRoot"><div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="evClose()">${t('btn_back')}</button><div class="picker-title" style="margin:0" id="evTtl">⚔️ EVENT</div></div><div id="evTop"></div><div id="evQ"></div><div id="evTw"></div></div>`);
   evPoll().then(() => { evAutoGuest(); }); evs.timer = setInterval(evPoll, 1000);
 }
 // Kein Konto, aber ein lokaler Profilname (Willkommen-Bildschirm): direkt als Gast mitmachen, ohne den Namen nochmal abzufragen
@@ -15493,7 +15493,11 @@ async function evPoll(){
   evs.v = r; evs.off = r.now - Date.now();
   const ttl = document.getElementById('evTtl'); if(ttl) ttl.textContent = r.format === 'bracket' ? '🏆 ' + L('TURNIER','TOURNAMENT') : '⚔️ BATTLE ROYALE';
   evPaintTop();
-  const run = r.run, playing = r.state === 'running' && run && run.phase === 'play' && run.meAlive && !run.isDuel && !(run.fmt === 'bracket' && (run.meBye || run.meFin));
+  const run = r.run;
+  if(!window.hdEv && !evs.hdLoading && run && ((run.hd) || /Schwerstes Spiel/.test(run.roundLabel || ''))){ evs.hdLoading = true; const sc = document.createElement('script'); sc.src = '/hardest.js?v=1'; sc.onerror = () => { if(evs) evs.hdLoading = false; }; document.head.appendChild(sc); }
+  const hdOn = r.state === 'running' && run && run.fmt !== 'bracket' && run.phase === 'play' && run.meAlive && run.hd && window.hdEv;
+  if(hdOn){ const idn = evs.id || undefined; window.hdEv.mount(run.hd.game, run.roundIdx + run.hd.game, (score, fin) => { if(fin === null) apiCall('/api/event', { action:'hdbegin', id: idn, token: account.token }); else apiCall('/api/event', { action:'hdscore', id: idn, token: account.token, score, fin: fin === true }); }); } else if(window.hdEv) window.hdEv.unmount();
+  const playing = !(run && run.hd) && r.state === 'running' && run && run.phase === 'play' && run.meAlive && !run.isDuel && !(run.fmt === 'bracket' && (run.meBye || run.meFin));
   if(!playing){ if(evs.q){ evs.q = null; evPaintQ(); } }
   else if(!evs.q && !evs.fetching){ evs.fetching = true; const q = await apiCall('/api/event', { action:'question', id: evs.id || undefined, token: account.token }); if(evs){ evs.fetching = false; if(q && q.q){ evs.q = q.q; evPaintQ(); } } }
 }
@@ -15524,10 +15528,22 @@ function evBrHtml(v){
   if(r.history && r.history.length) h += `<div class="bx"><b>${L('Bisher','So far')}</b>${r.history.map(x => `<div class="d" style="margin-top:4px;font-size:12px">${esc(x.name)}: ${x.matches.map(m => esc(m.w || '')).join(', ')}</div>`).join('')}</div>`;
   return h;
 }
+function evTwHtml(r){
+  const t = r.tw; if(!t) return '';
+  const keep = Math.max(0, r.alive - r.nextElim), safe = r.meAlive && r.meRankAlive > 0 && r.meRankAlive <= keep;
+  let h = `<div class="bx"><div style="display:flex;justify-content:space-between;align-items:center"><b>✅ ${L('Erraten','Solved')}: ${t.solved.length}</b><span class="d" style="font-size:12px">${L('von','of')} ${r.alive}</span></div>`;
+  h += `<div style="margin-top:6px">${t.solved.length ? t.solved.map((n, i) => `<span class="chip">${i + 1}. ${esc(n)}</span>`).join('') : `<span class="d">${L('Noch niemand','Nobody yet')}</span>`}</div>`;
+  h += `<div class="d" style="margin-top:8px;font-size:13px">🏁 ${L('Weiter kommen','Advance')}: <b>${keep}</b> ${L('von','of')} ${r.alive} · ${L('Die letzten','The last')} <b style="color:#ff7a8a">${r.nextElim}</b> ${L('scheiden aus','are out')}</div>`;
+  if(r.meAlive && r.nextElim) h += `<div style="margin-top:6px;font-weight:800;color:${safe ? 'var(--accent)' : '#ffb020'}">${safe ? '🟢 ' + L('Du bist gerade sicher','You are safe right now') : '⚠️ ' + L('Du bist gerade in Gefahr','You are in danger right now')} <span class="d" style="font-weight:400">(${L('Platz','rank')} ${r.meRankAlive})</span></div>`;
+  h += `<div class="d" style="margin-top:8px;font-size:12px">💡 ${t.hints.map((x, i) => (i + 1) + '. ' + esc(x)).join(' · ')}</div>`;
+  if(t.word) h += `<div style="margin-top:8px;font-weight:900;text-align:center">${L('Das Wort war','The word was')}: ${esc(t.word)}</div>`;
+  h += `<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:6px">${t.feed.length ? t.feed.slice().reverse().map(f => f.ok ? `<div class="d" style="font-size:13px">✅ <b>${esc(f.n)}</b> ${L('hat es erraten!','solved it!')}</div>` : `<div class="d" style="font-size:13px"><b>${esc(f.n)}</b>: ${esc(f.t)}</div>`).join('') : `<div class="d" style="font-size:12px">${L('Hier siehst du, was die anderen tippen.','You will see what the others type here.')}</div>`}</div></div>`;
+  return h;
+}
 function evPaintTop(){
   const v = evs.v, el = document.getElementById('evTop'); if(!el || !v) return;
   { const rr = v.run; if(v.state === 'running' && rr && rr.isDuel && rr.phase === 'play' && rr.duel && document.getElementById('evDuelBox')){ const k = [rr.stageIdx, rr.discIdx, rr.alive].join('|'); if(evs.duelKey === k){ const tm = document.getElementById('evDuelTm'); if(tm) tm.textContent = '⏱ ' + evFmt(evLeft(rr.phaseEnd)); if(evs.duelSig !== evDuelSig(rr)) evDuelPaint(); return; } } }
-  const sig = JSON.stringify([v.state, v.joined, v.entrants, v.run && [v.run.roundIdx, v.run.phase, v.run.alive, v.run.meScore, v.run.meRank, v.run.board.map(b => b.score), v.run.stageIdx, v.run.discIdx, v.run.meCorrect, v.run.oppCorrect, v.run.oppScore, v.run.meFin, v.run.oppFin, v.run.matches && v.run.matches.map(m => [m.w, m.d.length])], v.myPlace]) + Math.floor(evLeft(v.run ? v.run.phaseEnd : v.start) / 1000);
+  const sig = JSON.stringify([v.state, v.joined, v.entrants, v.run && [v.run.roundIdx, v.run.phase, v.run.alive, v.run.meScore, v.run.meRank, v.run.board.map(b => b.score), v.run.stageIdx, v.run.discIdx, v.run.hd && v.run.hd.game, v.run.tw && [v.run.tw.solved.length, v.run.tw.feed.length, v.run.tw.hints.length, v.run.meRankAlive], v.run.meCorrect, v.run.oppCorrect, v.run.oppScore, v.run.meFin, v.run.oppFin, v.run.matches && v.run.matches.map(m => [m.w, m.d.length])], v.myPlace]) + Math.floor(evLeft(v.run ? v.run.phaseEnd : v.start) / 1000);
   if(sig === evs.sig) return; evs.sig = sig;
   { const gi = document.getElementById('evGuestName'); if(v.state === 'open' && !v.joined && gi && (gi.value || document.activeElement === gi)){ const bg = el.querySelector('.big'); if(bg && v.start){ const lf = evLeft(v.start); bg.textContent = lf > 0 ? evFmt(lf) : L('gleich …','soon …'); } return; } }
   let h = `<div style="font-size:20px;font-weight:900;margin:10px 0 2px">${esc(v.name)}</div>`;
@@ -15545,11 +15561,12 @@ function evPaintTop(){
     if(r.phase === 'intro') h += `<div class="bx" style="text-align:center"><div style="font-weight:900;font-size:18px">${L('Gleich geht es los','Get ready')}</div><div class="big">${Math.ceil(left / 1000)}</div><div class="d" style="font-size:13px">${r.hidden ? '🎲 ' + L('Neue Überraschung – das Spiel siehst du gleich!','New surprise – you will see the game in a moment!') : esc(r.roundLabel)}${r.nextElim ? ' · ' + L('Die letzten ' + r.nextElim + ' scheiden nach dieser Runde aus','The last ' + r.nextElim + ' are out after this round') : ''}</div></div>`;
     else if(r.phase === 'play') h += `<div class="bx" style="display:flex;justify-content:space-between;align-items:center"><b>${r.meAlive ? L('Deine Punkte','Your points') + ': ' + r.meScore : L('Du schaust zu','You are watching')}</b><span class="tm">⏱ ${evFmt(left)}</span></div>` + (r.nextElim ? `<div class="d" style="font-size:12px;margin-top:6px;color:#ffb020">⚠️ ${L('Die letzten ' + r.nextElim + ' scheiden nach dieser Runde aus','The last ' + r.nextElim + ' are out after this round')}</div>` : '');
     else if(r.phase === 'result') h += `<div class="bx" style="text-align:center"><div style="font-weight:900;font-size:17px">${r.me ? (r.meAlive ? '✅ ' + L('Du bist eine Runde weiter!','You are through!') : '💀 ' + L('Du bist ausgeschieden','You are out')) : L('Rundenende','Round over')}</div>${r.lastElim.length ? `<div class="d" style="font-size:13px;margin-top:6px">${L('Ausgeschieden','Out')}: ${r.lastElim.map(esc).join(', ')}</div>` : ''}<div class="d" style="margin-top:6px;font-size:13px">${L('Nächste Runde in','Next round in')} ${Math.ceil(left / 1000)} s</div></div>`;
-    h += `<div class="bx"><b>${L('Rangliste live','Live ranking')}</b>${r.me ? `<span class="d" style="float:right;font-size:12px">${L('Dein Platz','Your rank')}: ${r.meRank}</span>` : ''}${evBoardHtml(v)}</div>`;
+    if(!((r.tw || r.hd) && r.phase === 'play')) h += `<div class="bx"><b>${L('Rangliste live','Live ranking')}</b>${r.me ? `<span class="d" style="float:right;font-size:12px">${L('Dein Platz','Your rank')}: ${r.meRank}</span>` : ''}${evBoardHtml(v)}</div>`;
   } else if(v.state === 'payout' || v.state === 'done'){
     h += `<div class="bx" style="text-align:center"><div style="font-size:26px">🏆</div><div style="font-weight:900;font-size:18px">${L('Event beendet','Event finished')}</div>${v.myPlace ? `<div style="margin-top:6px">${L('Dein Platz','Your rank')}: <b style="color:var(--accent)">${v.myPlace}</b></div>` : ''}${v.myPrize ? `<div style="margin-top:6px;color:var(--accent);font-weight:800">+${v.myPrize.c} 🪙 ${v.myPrize.z ? '+ ' + v.myPrize.z + ' ' + buPulse(14) : ''}</div>` : (v.state === 'payout' && v.myPlace ? `<div class="d" style="margin-top:6px;font-size:13px">${L('Die Preise werden gleich ausgezahlt.','Prizes will be paid out shortly.')}</div>` : '')}</div><div class="bx"><b>${L('Ergebnis','Results')}</b>${(v.results || []).map(r => `<div class="pl"><span>${r.place}. ${esc(r.name)}</span><b style="color:var(--accent)">${r.score}</b></div>`).join('')}</div>`;
   }
   el.innerHTML = h;
+  { const tw = document.getElementById('evTw'); if(tw && !(v.run && v.run.hd && v.run.phase === 'play')) tw.innerHTML = (v.state === 'running' && v.run && v.run.tw) ? evTwHtml(v.run) : ''; }
   { const rr = v.run; evs.duelKey = (v.state === 'running' && rr && rr.isDuel && rr.phase === 'play' && rr.duel && document.getElementById('evDuelBox')) ? [rr.stageIdx, rr.discIdx, rr.alive].join('|') : ''; if(evs.duelKey) evs.duelSig = evDuelSig(rr); }
 }
 async function evQuickJoin(){
@@ -15579,9 +15596,15 @@ function evPaintQ(){
   if(q.kind === 'quiz') h += `<div class="d" style="font-size:12px;opacity:.7">${esc(q.cat || '')}</div><div style="font-weight:800;font-size:17px">${esc(q.q)}</div>` + q.a.map((a, i) => `<button class="ans" onclick="evAnswer(${i})">${esc(a)}</button>`).join('');
   else if(q.kind === 'hilo') h += `<div class="d" style="text-align:center;font-size:12px;opacity:.7">${esc(q.topic)}</div><div style="display:flex;justify-content:space-between;gap:10px;text-align:center;margin:8px 0"><div style="flex:1"><b>${esc(q.a.name)}</b><div style="font-size:20px;font-weight:900;color:var(--accent)">${Number(q.a.value).toLocaleString('de-DE')}</div><div class="d" style="font-size:11px">${esc(q.unit)}</div></div><div style="align-self:center;font-weight:900">VS</div><div style="flex:1"><b>${esc(q.b.name)}</b><div style="font-size:24px;font-weight:900">?</div></div></div><button class="ans" onclick="evAnswer('h')">⬆️ ${L('Höher','Higher')}</button><button class="ans" onclick="evAnswer('l')">⬇️ ${L('Niedriger','Lower')}</button>`;
   else if(q.kind === 'order') h += `<div class="d" style="font-size:13px;margin-bottom:8px">${esc(q.title)}</div><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">${q.items.map(it => { const dn = (q.done || []).indexOf(it.id); return `<button class="ans" ${dn >= 0 ? 'disabled style="opacity:.45;width:auto;flex:0 0 auto"' : 'style="width:auto;flex:0 0 auto;min-width:64px"'} onclick="evAnswer(decodeURIComponent('${encodeURIComponent(it.id)}'))">${dn >= 0 ? (dn + 1) + '. ' : ''}${esc(it.t)}</button>`; }).join('')}</div>`;
+  else if(q.kind === 'word'){
+    const col = { g:'#3fae4f', y:'#d4a017', k:'#3a3f55' }, boxes = (r) => `<div style="display:flex;gap:5px;justify-content:center;margin-top:5px">${Array.from({length:q.len}, (_, i) => `<div style="width:${Math.min(40, Math.floor(300 / q.len))}px;height:${Math.min(40, Math.floor(300 / q.len))}px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;background:${r ? col[r.s[i]] : 'rgba(255,255,255,.08)'};color:#fff">${r ? esc(r.w[i]) : ''}</div>`).join('')}</div>`;
+    h += `<div class="d" style="font-size:12px;opacity:.7;text-align:center">${esc(q.cat || '')} · ${q.len} ${L('Buchstaben','letters')} · ${q.rows.length}/${q.max}</div>` + Array.from({length:q.max}, (_, i) => boxes(q.rows[i])).join('');
+    if(q.done) h += `<div style="text-align:center;font-weight:900;font-size:17px;margin-top:10px">${q.won ? '✅ ' + L('Erraten!','Solved!') : '❌ ' + L('Leider nicht – das Wort war ','Not this time – the word was ') + esc(q.word || '')}</div><div class="d" style="text-align:center;margin-top:4px">${L('Warte auf die anderen …','Waiting for the others …')}</div>`;
+    else h += `<input id="evWord" maxlength="${q.len}" autocomplete="off" autocapitalize="characters" style="width:100%;box-sizing:border-box;text-align:center;font-size:22px;letter-spacing:4px;text-transform:uppercase;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:inherit;margin-top:10px" onkeydown="if(event.key==='Enter')evAnswer(document.getElementById('evWord').value)"><button class="btn btn-primary btn-block" style="margin-top:8px" onclick="evAnswer(document.getElementById('evWord').value)">${L('RATEN','GUESS')}</button>`;
+  }
   else h += `<div style="text-align:center;font-size:34px;font-weight:900;margin:8px 0">${esc(q.text)} = ?</div><input id="evNum" type="number" inputmode="numeric" autocomplete="off" style="width:100%;text-align:center;font-size:24px;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:inherit" onkeydown="if(event.key==='Enter')evAnswer(document.getElementById('evNum').value)"><button class="btn btn-primary btn-block" style="margin-top:8px" onclick="evAnswer(document.getElementById('evNum').value)">OK</button>`;
   el.innerHTML = h + '</div>';
-  const n = document.getElementById('evNum'); if(n) n.focus();
+  const n = document.getElementById('evNum') || document.getElementById('evWord'); if(n) n.focus();
 }
 async function evAnswer(a){
   if(!evs || !evs.q || evs.busy) return;

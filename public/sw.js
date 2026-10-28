@@ -35,7 +35,7 @@ self.addEventListener("activate", (event) => {
 
 function isAppShellRequest(url) {
   // Die Startseite selbst sowie das eine JS-Modul, das sie laedt.
-  return url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/achievements.js" || url.pathname === "/dame-engine.js" || url.pathname === "/muehle-engine.js" || url.pathname === "/backgammon.js" || url.pathname === "/evduel.js" || url.pathname === "/solitaire.js" || url.pathname === "/dice-race.js" || url.pathname === "/dice-3d.js";
+  return url.pathname === "/" || url.pathname === "/index.html" || url.pathname === "/achievements.js" || url.pathname === "/dame-engine.js" || url.pathname === "/muehle-engine.js" || url.pathname === "/backgammon.js" || url.pathname === "/evduel.js" || url.pathname === "/hardest.js" || url.pathname === "/solitaire.js" || url.pathname === "/dice-race.js" || url.pathname === "/dice-3d.js";
 }
 function isStaticAsset(url) {
   return url.pathname.startsWith("/icons/") || url.pathname === "/manifest.json";

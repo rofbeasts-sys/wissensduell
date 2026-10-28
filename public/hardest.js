@@ -346,6 +346,26 @@ window.startHardFlow = function(){
     const row = app.querySelector('.actions-row'); if(row) row.parentNode.insertBefore(box, row); else app.appendChild(box);
   })();
 };
+/* ---------- Einbindung ins Battle Royale: Spiel laeuft im Event-Bereich, mehrere Versuche, bester zaehlt ---------- */
+let evHd = null;
+window.hdEv = {
+  mount(game, key, send){
+    if(evHd && evHd.key === key && $('hdHost')) return;
+    this.unmount(); const g = G[game], tgt = $('evTw'); if(!g || !tgt) return;
+    tgt.innerHTML = CSS + '<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-sub" style="margin:0">' + esc(Array.isArray(g.hint) ? L(g.hint[0], g.hint[1]) : (g.hint || '')) + '</div><div class="hdbig" id="hdSc">0</div><div id="hdMsg">&nbsp;</div><div id="hdHost" style="touch-action:none;user-select:none;min-height:50vh"></div><div id="hdAgain" style="margin-top:8px"></div></div>';
+    evHd = { key, game, best: 0, last: 0, pend: null, lastScore: 0 };
+    const st = evHd, flush = fin => { if(st.pend){ clearTimeout(st.pend); st.pend = null; } send(st.lastScore, fin); };
+    const begin = () => {
+      if(evHd !== st) return; killGame(); const ag = $('hdAgain'); if(ag) ag.innerHTML = ''; st.lastScore = 0; hud.score(0); hud.msg(' '); send(0, null);
+      const h = Object.assign({}, hud, { score(n){ hud.score(n); st.lastScore = n; if(n > st.best) st.best = n; if(!st.pend) st.pend = setTimeout(() => { st.pend = null; send(st.lastScore, false); }, 600); } });
+      stopFn = g.run($('hdHost'), h, score => { if(evHd !== st) return; stopFn = null; detachLayer(); st.lastScore = score; flush(true);
+        const a = $('hdAgain'); if(a) a.innerHTML = '<div style="font-weight:900;margin-bottom:6px">' + L('Dein Bester: ', 'Your best: ') + fmt(st.best) + '</div><button class="btn btn-block" id="hdAgainBtn">' + L('NOCHMAL', 'AGAIN') + '</button>'; const b = $('hdAgainBtn'); if(b) b.onclick = begin; });
+      if(game !== 'gedaechtnis' && game !== 'farbe') attachLayer();
+    };
+    begin();
+  },
+  unmount(){ if(!evHd) return; const st = evHd; evHd = null; if(st.pend) clearTimeout(st.pend); killGame(); }
+};
 window.hdDiff = function(d){ diff = d; startHardFlow(); };
 function shell(title, sub, withBot, game){ renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title" style="margin:0">${title}</div><div style="font-size:13px;font-weight:800;opacity:.85;margin-top:4px">${game ? statLine(game) : ''}</div><div class="picker-sub">${sub}</div><div class="hdbig" id="hdSc">0</div><div id="hdBot">${withBot ? '&nbsp;' : ''}</div><div id="hdMsg">&nbsp;</div><div id="hdHost" style="touch-action:none;user-select:none;min-height:60vh"></div></div>`); }
 const INTRO = {
