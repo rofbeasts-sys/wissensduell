@@ -4695,9 +4695,13 @@ async function adminZp(key, ip, payload) {
    Rundenarten (Phase 1): Wissenstest, Higher or Lower, Speed Math.
    ============================================================================ */
 const EVDUEL = require("./evduel.js")({ Dame, Mill, getChess: () => getChessEngine(), getQuiz: () => { const q = evNewQ({ rounds: [] }, {}, "x", { type: Math.random() < 0.5 ? "quiz" : (Math.random() < 0.5 ? "bio" : "vocab"), klasse: 0, topic: "" }, 0); return { q: q.pub.q, a: q.pub.a, cat: q.pub.cat, ans: q.ans }; } });
+// Geschicklichkeits-Spiele aus "Das schwerste Spiel der Welt" als Battle-Royale-Disziplin (nur Royale)
+const EV_HD = { balken: ["Der Balken", 1.5, [5, 14]], gedaechtnis: ["Das Gedächtnis", 3.4, [4, 11]], linie: ["Die Linie", 1.8, [6, 15]], gegenteil: ["Das Gegenteil", 1.5, [6, 17]], flug: ["Der Farbflug", 1.6, [5, 16]], blasen: ["Die Blasen", 1.1, [10, 34]], puls: ["Der Puls", 2.3, [3, 10]], farbe: ["Die Farbe", 5, [2, 7]], tasten: ["Die Tasten", 0.7, [15, 60]] };
+const EV_HD_NAMES = {}; Object.keys(EV_HD).forEach(k => { EV_HD_NAMES["hd_" + k] = "Schwerstes Spiel: " + EV_HD[k][0]; });
+const evHdKey = d => (d && typeof d.type === "string" && d.type.startsWith("hd_") && EV_HD[d.type.slice(3)]) ? d.type.slice(3) : "";
 const EV_DUEL_NAMES = { ttt: "Duell: Tic Tac Toe", ttq: "Duell: Tic Tac Toe Quiz", ttx: "Duell: Tic Tac Toe Quanten", c4: "Duell: 4 gewinnt", mill: "Duell: Mühle", dame: "Duell: Dame", chess: "Duell: Schach" };
 const evIsDuel = d => !!(d && EVDUEL.TYPES[d.type]);
-const EV_TYPES = { quiz: "Wissenstest", bio: "Biologie", vocab: "Vokabeln (Englisch)", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", ...EV_DUEL_NAMES, mix: "Überraschungs-Mix" };
+const EV_TYPES = { quiz: "Wissenstest", bio: "Biologie", vocab: "Vokabeln (Englisch)", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", taboo: "Taboo Solo (Wort erraten)", ...EV_HD_NAMES, ...EV_DUEL_NAMES, mix: "Überraschungs-Mix" };
 let EV_BIO = [], EV_VOC = [];
 try { EV_BIO = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/biologyDE.json"), "utf8")); } catch (e) { console.log("biologyDE.json fehlt"); }
 try { EV_VOC = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/vocabDE.json"), "utf8")); } catch (e) { console.log("vocabDE.json fehlt"); }
@@ -4713,6 +4717,8 @@ const evNum = (v, d, lo, hi) => { v = Math.floor(Number(v)); return Number.isFin
 function evDiscClean(d, fmt) {
   d = d || {};
   let type = EV_TYPES[d.type] ? d.type : "quiz";
+  if (type.startsWith("hd_")) { if (fmt !== "royale" || !evHdKey({ type })) type = "quiz"; else return { type, mode: "points", sec: evNum(d.sec, 60, 20, 300), count: 1, klasse: 0, level: 1, topic: "" }; }
+  if (type === "taboo") { if (fmt !== "royale") type = "quiz"; else return { type, mode: "points", sec: evNum(d.sec, 60, 30, 300), count: 1, klasse: 0, level: 1, topic: "" }; }
   if (EVDUEL.TYPES[type]) {
     if (fmt !== "bracket") type = "quiz";
     else return { type, mode: "points", sec: evNum(d.sec, EVDUEL.SEC[type], 30, 600), count: 1, klasse: 0, level: 1, topic: "" };
@@ -4723,6 +4729,8 @@ function evDiscClean(d, fmt) {
 function evDiscs(rd) { return rd && Array.isArray(rd.discs) && rd.discs.length ? rd.discs : [evDiscClean({ type: rd && rd.type, topic: rd && rd.topic }, "royale")]; }
 function evDiscLabel(d) {
   let t = EV_TYPES[d.type];
+  if (d.type === "taboo") return t + " · " + d.sec + " s, 5 Versuche";
+  if (evHdKey(d)) return t + " · " + d.sec + " s, beste Runde zählt";
   if (evIsDuel(d)) return t + " · 1 gegen 1, max. " + Math.round(d.sec / 60 * 10) / 10 + " Min.";
   if (d.type === "quiz" && d.klasse > 0) t += " Kl. " + d.klasse;
   if (EV_TOPIC_GROUP[d.type] && d.topic && DATASETS[EV_TOPIC_GROUP[d.type]][d.topic]) t += " (" + String(DATASETS[EV_TOPIC_GROUP[d.type]][d.topic].label).replace(/^[^:]*:\s*/, "") + ")";
@@ -4798,8 +4806,68 @@ function evDuelBots(run, now) {
     if (du.res) evDuelApply(run, m, now);
   });
 }
+// ---- Taboo Solo im Battle Royale: alle raten dasselbe Wort (5 Versuche, Wordle-Farben), Hinweise kommen nach und nach ----
+const EV_TW_PTS = [100, 80, 60, 40, 20];
+function evTwStart(run, d, now) {
+  if (d.type !== "taboo" || !TABOO_SOLO_CARDS.length) { run.tw = null; return; }
+  const idx = Math.floor(Math.random() * TABOO_SOLO_CARDS.length), c = TABOO_SOLO_CARDS[idx];
+  run.tw = { idx, word: c.w.replace(/[^A-Za-zÄÖÜäöü]/g, "").toUpperCase(), cat: c.c || "", hints: c.h.map(h => h.t), start: now, sec: d.sec, solved: [], feed: [], bots: new Map() };
+}
+function evHdStart(run, d, now) {
+  const g = evHdKey(d); if (!g) { run.hd = null; return; }
+  const rg = EV_HD[g][2], w = Math.max(1, Math.round(100 / ((rg[0] + rg[1]) / 2)));
+  run.hd = { game: g, w, att: {}, best: {}, start: now, sec: process.env.EV_FAST ? EV_ROUND_SEC : d.sec, bots: new Map() };
+}
+// Punkte eines Versuchs melden (laufend, damit auch der Stand bei Zeitablauf zaehlt). Obergrenze nach Spieltempo, damit Schummeln nicht ins Absurde geht.
+function evHdScore(run, k, score, fin, now) {
+  const hd = run.hd; if (!hd) return;
+  const att = hd.att[k]; if (!att) return;
+  const dur = Math.max(0, (now - att) / 1000), cap = Math.floor(dur / EV_HD[hd.game][1] * 2.5) + 3;
+  let sc = Math.floor(Number(score)); if (!(sc > 0)) sc = 0; sc = Math.min(sc, cap, 1000);
+  const b0 = hd.best[k] || 0; if (sc > b0) { hd.best[k] = sc; run.score[k] += (sc - b0) * hd.w; run.lastAt[k] = now; }
+  if (fin) delete hd.att[k];
+}
+function evHdBots(run, now) {
+  const hd = run.hd; if (!hd || !run.bots) return;
+  const pace = EV_HD[hd.game][1], rg = EV_HD[hd.game][2];
+  run.bots.forEach((b, k) => {
+    if (!run.alive.has(k)) return;
+    let st = hd.bots.get(k); if (!st) { st = { fin: Math.max(1, Math.round((rg[0] + (rg[1] - rg[0]) * Math.min(1, b.skill * (0.6 + Math.random() * 0.7))) * (0.8 + Math.random() * 0.4))), pace: pace * (1.1 - b.skill * 0.35) }; hd.bots.set(k, st); }
+    const el = (now - hd.start) / 1000, sc = Math.min(st.fin, Math.floor(el / st.pace)), b0 = hd.best[k] || 0;
+    if (sc > b0) { hd.best[k] = sc; run.score[k] += (sc - b0) * hd.w; run.lastAt[k] = now; }
+  });
+}
+function evTwColors(word, guess) {
+  const res = Array(guess.length).fill("k"), left = {};
+  for (let i = 0; i < guess.length; i++) { if (guess[i] === word[i]) res[i] = "g"; else left[word[i]] = (left[word[i]] || 0) + 1; }
+  for (let i = 0; i < guess.length; i++) if (res[i] !== "g" && left[guess[i]] > 0) { res[i] = "y"; left[guess[i]]--; }
+  return res.join("");
+}
+function evTwSolve(run, k, tries, now) {
+  const tw = run.tw; if (!tw || tw.solved.includes(k)) return;
+  tw.solved.push(k); tw.feed.push({ n: run.names[k], solved: true, at: now });
+  run.score[k] += EV_TW_PTS[Math.min(4, tries - 1)]; run.correct = run.correct || {}; run.correct[k] = (run.correct[k] || 0) + 1; run.lastAt[k] = now;
+}
+function evTwBots(run, d, now) {
+  const tw = run.tw; if (!tw || !run.bots) return;
+  run.bots.forEach((b, k) => {
+    if (!run.alive.has(k)) return;
+    let st = tw.bots.get(k);
+    if (!st) { st = { solves: Math.random() < 0.3 + b.skill * 0.62, at: tw.start + tw.sec * 1000 * (0.15 + Math.random() * 0.75) * (1.25 - b.skill * 0.6), wrong: 0, nextW: tw.start + 2500 + Math.random() * 9000 }; tw.bots.set(k, st); }
+    if (st.done) return;
+    if (st.solves && now >= st.at) { st.done = true; evTwSolve(run, k, st.wrong + 1, now); return; }
+    if (st.wrong < (st.solves ? 3 : 4) && now >= st.nextW && now < st.at) {
+      const pool = TABOO_SOLO_CARDS.map(c => c.w.replace(/[^A-Za-zÄÖÜäöü]/g, "").toUpperCase()).filter(w => w.length === tw.word.length && w !== tw.word);
+      if (pool.length) { st.wrong++; tw.feed.push({ n: run.names[k], t: pool[Math.floor(Math.random() * pool.length)], at: now }); }
+      st.nextW = now + 4000 + Math.random() * 9000;
+    }
+  });
+  if (tw.feed.length > 40) tw.feed.splice(0, tw.feed.length - 40);
+}
 function evBotsPlay(ev, run, now) {
   if (!run.bots) return;
+  if (run.fmt !== "bracket" && run.tw && evDiscs(ev.rounds[run.roundIdx])[0].type === "taboo") return evTwBots(run, null, now);
+  if (run.fmt !== "bracket" && run.hd) return evHdBots(run, now);
   const br = run.fmt === "bracket", d = br ? run.cfg[run.stageIdx].discs[run.discIdx] : evDiscs(ev.rounds[run.roundIdx])[0];
   if (br && evIsDuel(d)) return evDuelBots(run, now);
   run.bots.forEach((b, k) => {
@@ -4931,7 +4999,7 @@ function evTick() {
         if (run.fmt === "bracket") { if (run.phase === "play") evBotsPlay(ev, run, now); evBrTick(ev, run, now); continue; }
         if (run.phase === "play" && now < run.phaseEnd) evBotsPlay(ev, run, now);
         if (now < run.phaseEnd) continue;
-        if (run.phase === "intro") { run.phase = "play"; run.phaseEnd = now + (process.env.EV_FAST ? EV_ROUND_SEC : evDiscs(ev.rounds[run.roundIdx])[0].sec) * 1000; run.q = {}; }
+        if (run.phase === "intro") { run.phase = "play"; run.phaseEnd = now + (process.env.EV_FAST ? EV_ROUND_SEC : evDiscs(ev.rounds[run.roundIdx])[0].sec) * 1000; run.q = {}; evTwStart(run, evDiscs(ev.rounds[run.roundIdx])[0], now); if (run.tw && process.env.EV_FAST) run.tw.sec = EV_ROUND_SEC; evHdStart(run, evDiscs(ev.rounds[run.roundIdx])[0], now); }
         else if (run.phase === "play") evEndRound(ev, run);
         else if (run.phase === "result") { run.roundIdx++; run.phase = "intro"; run.phaseEnd = now + EV_INTRO_SEC * 1000; }
       }
@@ -4958,6 +5026,7 @@ function evCheck(q, a) {
 }
 function evNewQ(ev, run, k, disc, nc) {
   const rd = disc || evDiscs(ev.rounds[run.roundIdx])[0], t = Date.now();
+  if (rd.type === "taboo" && run.tw) return { kind: "word", t, pub: { kind: "word", len: run.tw.word.length, cat: run.tw.cat, rows: [], max: 5, done: false, won: false } };
   if (nc == null) nc = run.correct && run.correct[k] || 0;
   if (rd.type === "mix") { const ts = ["quiz", "bio", "vocab", "hilo", "math", "order", "sort", "chrono"]; return evNewQ(ev, run, k, Object.assign({}, rd, { type: ts[Math.floor(Math.random() * ts.length)], topic: "" }), nc); }
   if (rd.type === "order") {
@@ -5019,7 +5088,8 @@ function evView(ev, userName) {
   else if (run && ev.state === "running") {
     const rk = evRank(run, Object.keys(run.score)), alive = run.alive;
     v.run = { roundIdx: run.roundIdx, total: ev.rounds.length, phase: run.phase, phaseEnd: run.phaseEnd, alive: alive.size, hidden: ev.secret !== false && run.phase === "intro", roundLabel: ev.secret !== false && run.phase === "intro" ? "" : evRoundLabel(ev.rounds[run.roundIdx]), lastElim: run.lastElim,
-      board: rk.slice(0, 8).map(x => ({ name: run.names[x], score: run.score[x], alive: alive.has(x) })), meAlive: alive.has(k), meScore: run.score[k] || 0, meRank: rk.indexOf(k) + 1, me: !!me, nextElim: run.roundIdx < ev.rounds.length - 1 && alive.size > 2 ? Math.min(Math.max(1, Math.floor(alive.size * 0.25)), alive.size - 2) : 0 };
+      board: rk.slice(0, 8).map(x => ({ name: run.names[x], score: run.score[x], alive: alive.has(x) })), meAlive: alive.has(k), meRankAlive: rk.filter(x => alive.has(x)).indexOf(k) + 1, hd: run.hd && run.phase === "play" ? { game: run.hd.game, best: run.hd.best[k] || 0, w: run.hd.w } : null,
+      tw: run.tw && (run.phase === "play" || run.phase === "result") && evDiscs(ev.rounds[run.roundIdx])[0].type === "taboo" ? { len: run.tw.word.length, cat: run.tw.cat, hints: run.tw.hints.slice(0, Math.min(5, 1 + Math.floor((Date.now() - run.tw.start) / (run.tw.sec * 200)))), solved: run.tw.solved.map(x => run.names[x]), meSolved: run.tw.solved.includes(k), feed: run.tw.feed.slice(-8).map(f => ({ n: f.n, t: f.t || "", ok: !!f.solved })), word: run.phase === "result" ? run.tw.word : "" } : null, meScore: run.score[k] || 0, meRank: rk.indexOf(k) + 1, me: !!me, nextElim: run.roundIdx < ev.rounds.length - 1 && alive.size > 2 ? Math.min(Math.max(1, Math.floor(alive.size * 0.25)), alive.size - 2) : 0 };
   }
   if ((ev.state === "payout" || ev.state === "done") && ev.results) {
     v.results = ev.results.slice(0, 10); const mi = ev.results.findIndex(r => evUserKey(r.name) === k); v.myPlace = mi >= 0 ? (ev.results[mi].place || mi + 1) : 0;
@@ -5071,10 +5141,25 @@ function evApi(p, ip) {
     run.q[k] = evNewQ(ev, run, k, d, ps.correct);
     return Object.assign(evView(ev, name), { q: run.q[k].pub, ok, streak: ps.streak });
   }
+  if (run && run.fmt !== "bracket" && (act === "hdbegin" || act === "hdscore")) {
+    if (ev.state !== "running" || run.phase !== "play" || !run.hd || !run.alive.has(k)) return Object.assign(evView(ev, name), { noPlay: true });
+    const now = Date.now();
+    if (act === "hdbegin") run.hd.att[k] = now; else evHdScore(run, k, p.score, p.fin === true, now);
+    return evView(ev, name);
+  }
   if ((act === "question" || act === "answer") && (!run || ev.state !== "running" || run.phase !== "play" || !run.alive.has(k))) return Object.assign(evView(ev, name), { noPlay: true });
   if (act === "question") { if (!run.q[k]) run.q[k] = evNewQ(ev, run, k); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
   if (act === "answer") {
     const q = run.q[k]; if (!q) { run.q[k] = evNewQ(ev, run, k); return Object.assign(evView(ev, name), { q: run.q[k].pub }); }
+    if (q.kind === "word") {
+      const pb = q.pub, tw = run.tw; if (!tw || pb.done) return Object.assign(evView(ev, name), { q: pb, step: true });
+      const guess = String(p.a || "").toUpperCase().replace(/[^A-ZÄÖÜ]/g, "");
+      if (guess.length !== tw.word.length) return Object.assign(evView(ev, name), { q: pb, step: true, rejected: "length" });
+      const now = Date.now(); pb.rows.push({ w: guess, s: evTwColors(tw.word, guess) });
+      if (guess === tw.word) { pb.done = true; pb.won = true; pb.word = tw.word; evTwSolve(run, k, pb.rows.length, now); }
+      else { tw.feed.push({ n: name, t: guess, at: now }); if (tw.feed.length > 40) tw.feed.shift(); if (pb.rows.length >= 5) { pb.done = true; pb.won = false; pb.word = tw.word; } }
+      return Object.assign(evView(ev, name), { q: pb, step: true });
+    }
     if (Date.now() - q.t < 250) return Object.assign(evView(ev, name), { q: q.pub, tooFast: true });
     const chk = evCheck(q, p.a), ok = chk === "solved";
     if (chk === "step") return Object.assign(evView(ev, name), { q: q.pub, step: true });
