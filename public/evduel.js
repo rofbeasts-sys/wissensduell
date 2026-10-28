@@ -34,12 +34,19 @@
 
   /* ---------- Rendering ---------- */
   function ttt(d) {
-    const ok = d.legal || []; let h = '<div class="tt">';
+    const pend = d.g === 'ttq' && d.st.pend, ok = pend ? [] : (d.legal || []), old = d.g === 'ttx' ? d.st.old : null; let h = '<div class="tt">';
     for (let i = 0; i < 9; i++) {
-      const v = d.st.b[i], can = ok.indexOf(i) >= 0;
-      h += `<button class="${can ? 'ok' : ''}" ${can ? `onclick="evDuelMove(${ok.indexOf(i)})"` : ''} style="color:${v === 'a' ? C.a : C.b}">${v === 'a' ? '✕' : v === 'b' ? '◯' : ''}</button>`;
+      const v = d.st.b[i], can = ok.indexOf(i) >= 0, fade = old && (old.a === i || old.b === i), pc = pend && pend.cell === i;
+      h += `<button class="${can ? 'ok' : ''}" ${can ? `onclick="evDuelMove(${ok.indexOf(i)})"` : ''} style="color:${v === 'a' ? C.a : C.b};${fade ? 'opacity:.45;' : ''}${pc ? 'outline:3px solid #fff;' : ''}">${v === 'a' ? '✕' : v === 'b' ? '◯' : (pc ? '?' : '')}</button>`;
     }
-    return h + '</div>';
+    h += '</div>';
+    if (pend) {
+      const my = d.legal && d.legal.length, other = d.you === 'a' ? pend.ans.b : pend.ans.a, mine = d.you === 'a' ? pend.ans.a : pend.ans.b;
+      h += `<div class="bx2" style="margin-top:10px;background:rgba(255,255,255,.07);border-radius:12px;padding:10px"><div class="d" style="font-size:12px;opacity:.7">${esc2(pend.cat)} · ⏱ ${pend.left}s</div><div style="font-weight:800;font-size:16px;margin:4px 0 8px">${esc2(pend.q)}</div>` +
+        (my ? pend.a.map((a, i) => `<button class="ans" onclick="evDuelMove(${i})">${esc2(a)}</button>`).join('') : `<div class="d" style="text-align:center">${mine ? '✅ ' + T('Antwort gesendet', 'Answer sent') : ''}${other && !mine ? '' : ''} ${T('Warte auf den Gegner …', 'Waiting for the opponent …')}</div>`) +
+        `<div class="d" style="font-size:12px;margin-top:6px;text-align:center">${T('Wer richtig und schneller antwortet, bekommt das Feld.', 'Correct and fastest wins the cell.')}</div></div>`;
+    }
+    return h;
   }
   function c4(d) {
     const ok = d.legal || []; let h = '<div class="c4"><div class="cols">';
@@ -99,14 +106,14 @@
     const youA = d.you === 'a', pa = youA ? meN : opp, pb = youA ? opp : meN, mine = d.turn === d.you;
     const col = s => (d.g === 'mill' || d.g === 'dame' || d.g === 'chess') ? (s === 'a' ? '#f4f4f4' : '#222;border:1px solid #888') : C[s];
     let h = `<div class="evd"><div class="st"><div class="who ${d.turn === 'a' && !d.over ? 'on' : ''}"><i style="background:${col('a')}"></i>${esc2(pa)}${d.g === 'mill' ? ` <span class="d">(${d.st.hand.a})</span>` : ''}</div><div class="who ${d.turn === 'b' && !d.over ? 'on' : ''}"><i style="background:${col('b')}"></i>${esc2(pb)}${d.g === 'mill' ? ` <span class="d">(${d.st.hand.b})</span>` : ''}</div></div><div class="bd">`;
-    h += d.g === 'ttt' ? ttt(d) : d.g === 'c4' ? c4(d) : d.g === 'mill' ? mill(d) : grid(d, d.g === 'chess');
+    h += (d.g === 'ttt' || d.g === 'ttx' || d.g === 'ttq') ? ttt(d) : d.g === 'c4' ? c4(d) : d.g === 'mill' ? mill(d) : grid(d, d.g === 'chess');
     h += '</div>';
     let msg;
     if (d.over) msg = d.res === 'draw' ? '🤝 ' + T('Remis', 'Draw') : d.res === d.you ? '🏆 ' + T('Gewonnen!', 'You won!') : '💀 ' + T('Verloren', 'You lost');
     else if (mine) msg = '👉 ' + T('Du bist dran', 'Your turn') + (d.g === 'mill' && d.st.hand[d.you] > 0 ? ' · ' + T('Stein setzen', 'place a stone') : '');
     else msg = '⏳ ' + T(esc2(opp) + ' denkt …', esc2(opp) + ' is thinking …');
     let sub = '';
-    if (d.round > 1 && (d.g === 'ttt' || d.g === 'c4')) sub = T('Unentschieden – neue Runde!', 'Draw – new round!');
+    if (d.g === 'ttx' && !d.over) sub = T('Max. 3 Zeichen je Spieler – das älteste (blass) verschwindet.', 'Max 3 marks each – the oldest (faded) vanishes.'); else if (d.g === 'ttq' && !d.over && !(d.st.pend)) sub = mine ? T('Wähle ein Feld, dann gibt es eine Quizfrage.', 'Pick a cell, then a quiz question follows.') : ''; else if (d.round > 1 && (d.g === 'ttt' || d.g === 'c4')) sub = T('Unentschieden – neue Runde!', 'Draw – new round!');
     else if (d.g === 'mill' && mine && sel.to != null) sub = T('Mühle! Tippe einen gegnerischen Stein zum Entfernen.', 'Mill! Tap an enemy stone to remove.');
     else if (d.g === 'chess' && !d.over && mine) sub = T('Bauer erreicht das Ende → wird automatisch Dame.', 'Pawns auto-promote to a queen.');
     return h + `<div class="msg">${msg}</div><div class="sub">${sub}</div></div>`;

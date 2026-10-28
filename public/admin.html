@@ -549,7 +549,7 @@ function evPaintList(){
   }).join('') : '<div class="dim" style="margin-bottom:8px">Noch keine Events.</div>';
 }
 const SELS = 'background:#08121f;color:#fff;border:1px solid var(--line);border-radius:10px;padding:7px;max-width:100%';
-const EV_DSEC = { ttt:60, c4:120, mill:180, dame:240, chess:300 };
+const EV_DSEC = { ttt:60, ttq:150, ttx:90, c4:120, mill:180, dame:240, chess:300 };
 const evIsDuelT = t => !!EV_DSEC[t];
 function evDefDisc(t){ return { type: t || 'quiz', mode:'points', sec: EV_DSEC[t] || 45, count:10, klasse:0, level:1, topic:'' }; }
 function evStageN(size){ return Math.log2(size); }
@@ -565,7 +565,8 @@ function evDLabel(d){
 }
 const EV_TPLS = [
   ['♟️ Schachturnier','bracket',['chess']],
-  ['🎲 Brettspiel-Turnier (alle Duelle)','bracket',['ttt','c4','mill','dame','chess']],
+  ['🎲 Brettspiel-Turnier (alle Duelle)','bracket',['ttt','ttq','ttx','c4','mill','dame','chess']],
+  ['❌ Tic-Tac-Toe-Turnier (alle Varianten)','bracket',['ttt','ttq','ttx']],
   ['❌ Tic Tac Toe + 4 gewinnt','bracket',['ttt','c4']],
   ['🧠 Wissens-Turnier','bracket',['quiz','bio','vocab','hilo','math','order','sort','chrono']],
   ['🌀 Mischmasch Turnier (Wissen + Duelle)','bracket','all'],
@@ -574,7 +575,7 @@ const EV_TPLS = [
 ];
 function evTpl(i){
   const [n, f, ty] = EV_TPLS[i], pick = a => a[Math.floor(Math.random() * a.length)];
-  const know = ['quiz','bio','vocab','hilo','math','order','sort','chrono'], duel = ['ttt','c4','mill','dame','chess'];
+  const know = ['quiz','bio','vocab','hilo','math','order','sort','chrono'], duel = ['ttt','ttq','ttx','c4','mill','dame','chess'];
   EVF.format = f; if(f === 'bracket'){ if(![8,16,32].includes(EVF.size)) EVF.size = 8; } else EVF.size = 50;
   EVF.botTo = EVF.size;
   const cnt = f === 'bracket' ? evStageN(EVF.size) : (ty === 2 ? 2 : 4);
@@ -585,8 +586,8 @@ function evTpl(i){
     if(ty === 'all') list = [pick(r % 2 ? duel : know)];
     else if(ty === 'know' || ty === 2) list = [pick(know)];
     else if(ty.length === 1) list = [ty[0]];
-    else list = [ty.length >= 5 ? ty[Math.min(r, ty.length - 1)] : pick(ty)];
-    if(f === 'bracket' && ty.length === 5 && Array.isArray(ty)) list = [pick(duel)];
+    else list = [ty.length >= 7 ? ty[Math.min(r, ty.length - 1)] : pick(ty)];
+    if(f === 'bracket' && ty.length === 7 && Array.isArray(ty)) list = [pick(duel)];
     rounds.push({ discs: list.map(t => { const d = evDefDisc(t); if(f !== 'bracket' && !evIsDuelT(t)) d.sec = ty === 2 ? 30 : 45; return d; }) });
   }
   EVF.rounds = rounds; evPaintForm();
@@ -636,11 +637,11 @@ function evPaintForm(){
   $('evPrizes').innerHTML = row('p1','🥇 Platz 1') + row('p2','🥈 Platz 2') + row('p3', br ? '🥉 Halbfinal-Aus' : '🥉 Platz 3') + row('part','Teilnahme');
 }
 function evSetD(ri, di, k, v){ const d = EVF.rounds[ri].discs[di]; d[k] = v; if(k === 'type'){ d.topic = ''; if(evIsDuelT(v)){ d.sec = EV_DSEC[v]; d.mode = 'points'; } else if(d.sec > 300 || d.sec < 15) d.sec = 45; if(EVF.format !== 'bracket' && d.mode === 'time') d.mode = 'points'; } evPaintForm(); }
-function evAddDisc(ri){ const L = EVF.format === 'bracket' ? ['quiz','bio','vocab','hilo','math','order','sort','chrono','ttt','c4','mill','dame','chess','mix'] : ['quiz','bio','vocab','hilo','math','order','sort','chrono','mix']; EVF.rounds[ri].discs.push(evDefDisc(L[EVF.rounds[ri].discs.length % L.length])); evPaintForm(); }
+function evAddDisc(ri){ const L = EVF.format === 'bracket' ? ['quiz','bio','vocab','hilo','math','order','sort','chrono','ttt','ttq','ttx','c4','mill','dame','chess','mix'] : ['quiz','bio','vocab','hilo','math','order','sort','chrono','mix']; EVF.rounds[ri].discs.push(evDefDisc(L[EVF.rounds[ri].discs.length % L.length])); evPaintForm(); }
 function evDelDisc(ri, di){ EVF.rounds[ri].discs.splice(di, 1); evPaintForm(); }
 function evAddRound(){ EVF.rounds.push({ discs: [evDefDisc('quiz')] }); evPaintForm(); }
 function evDelRound(i){ EVF.rounds.splice(i, 1); evPaintForm(); }
-function evRandomRounds(){ const t = ['quiz','bio','vocab','hilo','math','order','sort','chrono','mix'].concat(EVF.format === 'bracket' ? ['ttt','c4','mill','dame','chess'] : []), rnd = () => t[Math.floor(Math.random() * t.length)]; EVF.rounds = EVF.rounds.map(r => ({ discs: r.discs.map(d => { const n = evDefDisc(rnd()); return evIsDuelT(n.type) ? n : Object.assign(n, { mode: evIsDuelT(d.type) ? 'points' : d.mode, sec: evIsDuelT(d.type) ? 45 : d.sec, count: d.count }); }) })); evPaintForm(); }
+function evRandomRounds(){ const t = ['quiz','bio','vocab','hilo','math','order','sort','chrono','mix'].concat(EVF.format === 'bracket' ? ['ttt','ttq','ttx','c4','mill','dame','chess'] : []), rnd = () => t[Math.floor(Math.random() * t.length)]; EVF.rounds = EVF.rounds.map(r => ({ discs: r.discs.map(d => { const n = evDefDisc(rnd()); return evIsDuelT(n.type) ? n : Object.assign(n, { mode: evIsDuelT(d.type) ? 'points' : d.mode, sec: evIsDuelT(d.type) ? 45 : d.sec, count: d.count }); }) })); evPaintForm(); }
 function evReset(){ EVF = { id:'', format:'bracket', size:8, secret:true, botFill:true, botTo:8, rounds:[], prizes:{ p1:{c:1000,z:300}, p2:{c:500,z:150}, p3:{c:250,z:75}, part:{c:20,z:0} } }; evFillRounds(true); $('evName').value = ''; $('evStart').value = ''; $('evFull').checked = false; $('evMin').value = 2; evPaintForm(); }
 function evEdit(id){ const e = EVD.events.find(x => x.id === id); if(!e) return; const rounds = e.rounds.map(r => ({ discs: (r.discs || [r]).map(d => Object.assign(evDefDisc(d.type), d)) }));
   EVF = { id:e.id, format: e.format || 'royale', size: e.size || e.maxPlayers, secret: e.secret !== false, botFill: !!e.botFill, botTo: e.botTo || e.size || e.maxPlayers, rounds, prizes: JSON.parse(JSON.stringify(e.prizes)) }; $('evName').value = e.name; $('evFull').checked = !!e.startFull; $('evStart').value = e.start ? toLocal(e.start) : ''; $('evMin').value = e.minPlayers; evPaintForm(); window.scrollTo(0, document.body.scrollHeight); }
