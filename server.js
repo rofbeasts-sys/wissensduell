@@ -561,7 +561,7 @@ function tttBroadcastState(room) {
 }
 
 
-// Brainups fuer ein Duell zwischen zwei ECHTEN Konten: Mitspielen 50, Sieg 100 (Remis: beide 50).
+// Brainups fuer ein Duell zwischen zwei ECHTEN Konten: Sieg 100, Remis beide 50, Niederlage 0.
 // Schutz: zwei verschiedene Konten, Mindestzuege, je Paar und Tag nur wenige Partien mit Punkten.
 const zpPairDay = new Map(), ZP_PAIR_PER_DAY = 4;
 function zpDuel(game, a, b, result /* "a" | "b" | "draw" */, moves, minMoves) {
@@ -574,7 +574,8 @@ function zpDuel(game, a, b, result /* "a" | "b" | "draw" */, moves, minMoves) {
     if ((zpPairDay.get(pk) || 0) >= ZP_PAIR_PER_DAY) return null;
     zpPairDay.set(pk, (zpPairDay.get(pk) || 0) + 1); if (zpPairDay.size > 5000) zpPairDay.clear();
     const key = game === "dame" ? "chess" : game;
-    return { a: zpAdd(ua, result === "a" ? 100 : 50, game, key), b: zpAdd(ub, result === "b" ? 100 : 50, game, key) };
+    const pts = r => result === "draw" ? 50 : result === r ? 100 : 0;
+    return { a: zpAdd(ua, pts("a"), game, key), b: zpAdd(ub, pts("b"), game, key) };
   } catch (e) { console.error("zpDuel", e); return null; }
 }
 
@@ -4084,9 +4085,9 @@ async function brainSubmit(token, game, level, lang, pts) {
   if (!BRAIN_GAMES.includes(game)) return errObj("invalidInput", lang);
   level = Math.round(Number(level)); if (!Number.isFinite(level) || level < 1 || level > 9999) return errObj("invalidInput", lang);
   const b = brainState(user), f = user.stats.fruit || {};
-  const saved = game === "fruit" ? (f.fruitLevel || 1) : game === "galaxy" ? 1e9 : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
+  const saved = game === "fruit" ? (f.fruitLevel || 1) : game === "galaxy" ? (f.galaxyLevel || 1) : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
   const maxOk = Math.max(b.best[game], saved) + 1;
-  if (game === "galaxy" ? level > 500 : level > maxOk) return { ok: false, error: "level" };
+  if (level > maxOk) return { ok: false, error: "level" };
   const now = Date.now(); const sinceLast = now - (b.last[game] || 0);
   if (sinceLast < BRAIN_MIN_GAP_MS) { if (sinceLast < 2000) flagCheat(user, "Brain " + game + " Spam"); return { ok: false, error: "tooFast" }; }
   b.last[game] = now;
@@ -4096,7 +4097,6 @@ async function brainSubmit(token, game, level, lang, pts) {
   let gain = level;
   if ((game === "fruit" || game === "galaxy") && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(200 * Math.min(180, sinceLast / 1000)), Math.round(Number(pts))));
   b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + gain);
-  if (game === "galaxy") { const cleared = Math.min(level - 1, 60, Math.floor(Math.min(sinceLast, 1800000) / 15000)); let zpt = 0; for (let L = 1; L <= cleared; L++) zpt += L % 5 === 0 ? 100 : 50; if (zpt > 0) zpAdd(user, Math.min(zpt, 300), "galaxy", "galaxy"); }
   await saveUsers();
   return { ok: true, points: b.weeks[w][game], rank: brainRankOf(b.best[game]) };
 }
@@ -4199,7 +4199,7 @@ async function saveUserStats(token, stats, lang) {
   const oldCoins = user.stats.coins || 0, oldPrestige = user.stats.braintestPrestige || 0;
   const oldAnswers = (user.stats.correctAnswers || 0) + (user.stats.wrongAnswers || 0), oldWL = (user.stats.wins || 0) + (user.stats.losses || 0);
   const oldKlasse = user.stats.klasse || 0, oldTtt = user.stats.tttRank || 0;
-  const zpWas = { oosT: (user.stats.oosLast && user.stats.oosLast.t) || 0, synced: !!user.stats.syncedOnce, sm: user.stats.speedMathLevel || 1, fruit: (user.stats.fruit && user.stats.fruit.fruitLevel) || 1, bio: Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {}) };
+  const zpWas = { oosT: (user.stats.oosLast && user.stats.oosLast.t) || 0, synced: !!user.stats.syncedOnce, sm: user.stats.speedMathLevel || 1, fruit: (user.stats.fruit && user.stats.fruit.fruitLevel) || 1, galaxy: (user.stats.fruit && user.stats.fruit.galaxyLevel) || 1, bio: Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {}) };
   const oldCorrect = user.stats.correctAnswers || 0, oldWrong = user.stats.wrongAnswers || 0, oldWins = user.stats.wins || 0, oldLosses = user.stats.losses || 0, oldRounds = user.stats.roundsPlayed || 0;
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
@@ -4289,6 +4289,9 @@ async function saveUserStats(token, stats, lang) {
       fruitLevel: Math.max(1, cur.fruitLevel || 1, n(f.fruitLevel, 9999)),
       hoodLevel: Math.max(1, cur.hoodLevel || 1, n(f.hoodLevel, 9999)),
       fruitPts: Math.max(cur.fruitPts || 0, n(f.fruitPts, 1e9)),
+      galaxyLevel: Math.max(1, cur.galaxyLevel || 1, n(f.galaxyLevel, 9999)),
+      galaxyPts: Math.max(cur.galaxyPts || 0, n(f.galaxyPts, 1e9)),
+      galaxySt: (() => { const a = typeof cur.galaxySt === "string" ? cur.galaxySt : "", b = typeof f.galaxySt === "string" && /^[0-3]{0,3000}$/.test(f.galaxySt) ? f.galaxySt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
       fruitSlot: Math.max(cur.fruitSlot || 0, n(f.fruitSlot, 1)),
       fruitKings: (cur.fruitKings || 0) | n(f.fruitKings, 63),
       fruitKing: n(f.fruitKing, 5),
@@ -4397,6 +4400,8 @@ async function saveUserStats(token, stats, lang) {
     }
     const fl = (user.stats.fruit && user.stats.fruit.fruitLevel) || 1;
     for (let L = zpWas.fruit; L < Math.min(fl, zpWas.fruit + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
+    const gl = (user.stats.fruit && user.stats.fruit.galaxyLevel) || 1;
+    for (let L = zpWas.galaxy; L < Math.min(gl, zpWas.galaxy + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
     const bioNow = Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {});
     zpt += 250 * Math.min(3, Object.keys(bioNow).filter(k => !(k in zpWas.bio)).length);
     if (zpt > 0) zpAdd(user, zpt, "solo");
@@ -5644,14 +5649,32 @@ async function saveConversations() {
 const PUB_KEY = "__public__", PUB_MAX = 100, PUB_LEN = 200;
 const pubLast = new Map(); // username -> [timestamps]
 const SOL_KEY = "__sol__", solSeen = new Map(); // username -> letzter Abruf im Solitaer-Chat
-async function chatPublicList(since, room, token) {
+function chatAnon(name) { const h = require("crypto").createHash("md5").update(String(name).toLowerCase() + "|bpchat").digest(); return "Anonym-" + (100 + ((h[0] << 8 | h[1]) % 900)); }
+// Chat-Ansicht je Betrachter: Fremde anonym, Freunde + du selbst mit echtem Namen; Streamer-Modus: nur Freunde; Admin bekommt den echten Namen als "ru" zum Antippen
+function chatView(msgs, me, adminView) {
+  const streamer = !!(me && me.streamerMode), out = [];
+  for (const m of msgs) {
+    if (m.sys || m.adm || !m.u) { out.push(m); continue; }
+    const mine = !!(me && String(m.u).toLowerCase() === me.username.toLowerCase());
+    const au = mine ? me : findUserByName(m.u);
+    const friend = !!(me && au && !mine && areFriends(me, au));
+    if (streamer && !mine && !friend) continue;
+    if (mine) out.push(Object.assign({}, m, { me: 1 }));
+    else if (friend) out.push(Object.assign({}, m, { fr: 1 }));
+    else { const o = { id: m.id, u: chatAnon(m.u), a: "👤", t: m.t, ts: m.ts, an: 1 }; if (adminView) o.ru = m.u; out.push(o); }
+  }
+  return out;
+}
+async function chatPublicList(since, room, token, adminKey, ip) {
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
   const isSol = room === "sol", KEY = isSol ? SOL_KEY : PUB_KEY;
   let solOnline = 0;
   if (isSol) { const u = token ? findUserByToken(token) : null; if (u) solSeen.set(u.username, Date.now()); const cut = Date.now() - 12000; for (const [k, t] of solSeen) { if (t < cut) solSeen.delete(k); } solOnline = solSeen.size; }
   const all = conversations[KEY] || [];
   const sn = parseInt(since, 10) || 0;
-  const msgs = sn ? all.filter(m => m.id > sn) : all.slice(-60);
+  const rawMsgs = sn ? all.filter(m => m.id > sn) : all.slice(-60);
+  const meU = token ? findUserByToken(token) : null, adminView = !!(adminKey && adminOk(adminKey, ip)) || !!(meU && meU.adminCloak);
+  const msgs = chatView(rawMsgs, meU, adminView);
   return { ok: true, ver: pubVer, messages: msgs, online: isSol ? solOnline : onlineAccounts.size, lastId: all.length ? all[all.length - 1].id : 0 };
 }
 // Chat-Filter: Rassismus, Beleidigungen, 18+ (nach Normalisierung: Gross/Klein, Akzente, Leetspeak, Trennzeichen)
@@ -6985,7 +7008,7 @@ function adminLive(key, ip) {
 async function adminChat(action, payload, ip, lang) {
   if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
-  const list = conversations[KEY] || (conversations[KEY] = []);
+  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
   if (action === "delete") { const id = parseInt(payload.id, 10); const i = list.findIndex(m => m.id === id); if (i >= 0) list.splice(i, 1); pubVer++; }
   else if (action === "clear") { pubVer++; const last = list.length ? list[list.length - 1].id : 0; list.length = 0; list.push({ id: last + 1, sys: true, k: "adminclear", ts: Date.now() }); }
   else if (action === "send") {
@@ -7031,7 +7054,7 @@ function feedPush(user, kind, n, x) {
 // Live-Meldung als Systemzeile im oeffentlichen Chat (ohne Absender; Name nur wenn erlaubt).
 async function chatSystemPost(kind, name, n, x) {
   if (!(await ensureConversationsLoaded())) return;
-  const list = conversations[KEY] || (conversations[KEY] = []);
+  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
   const last = list.length ? list[list.length - 1] : null;
   list.push({ id: (last ? last.id : 0) + 1, sys: 1, k: kind, nm: name || "", n: n | 0, x: x ? String(x).slice(0, 40) : "", u: "", t: "", ts: Date.now() });
   if (list.length > PUB_MAX) list.splice(0, list.length - PUB_MAX);
@@ -7745,7 +7768,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
         else if (req.url === "/api/audio-tracks") result = listAudioTracks();
-        else if (req.url === "/api/chat-public-list") result = await chatPublicList(payload.since, payload.room, payload.token);
+        else if (req.url === "/api/chat-public-list") result = await chatPublicList(payload.since, payload.room, payload.token, payload.adminKey, ip);
         else if (req.url === "/api/chat-public-send") result = await chatPublicSend(payload.token, payload.text, lang, payload.room);
         else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
