@@ -232,6 +232,28 @@ button.mini{padding:4px 8px;font-size:12px}
 </div>
 
 <script>
+/* Schoenes Bestaetigungsfenster statt nativem Dialog */
+function bpConfirm(msg, opt){
+  return new Promise(res => {
+    opt = opt || {}; const danger = opt.danger !== undefined ? opt.danger : /lösch|bann|ALLE|abziehen|zurücksetzen|delete|ban\b|reset/i.test(msg);
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(4,7,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:bpcIn .16s ease-out';
+    o.innerHTML = '<style>@keyframes bpcIn{from{opacity:0}to{opacity:1}}@keyframes bpcPop{from{transform:translateY(14px) scale(.96);opacity:0}to{transform:none;opacity:1}}</style>'
+      + '<div role="dialog" aria-modal="true" style="width:100%;max-width:360px;border-radius:22px;padding:22px 20px 18px;background:linear-gradient(160deg,#1b2442,#10172c);border:1px solid ' + (danger ? 'rgba(255,100,130,.45)' : 'rgba(61,224,255,.4)') + ';box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px ' + (danger ? 'rgba(255,80,120,.18)' : 'rgba(61,224,255,.16)') + ';color:#e8eefc;font-family:inherit;text-align:center;animation:bpcPop .2s ease-out">'
+      + '<div style="font-size:34px;line-height:1">' + (opt.icon || (danger ? '⚠️' : '❓')) + '</div>'
+      + '<div style="font-size:17px;font-weight:800;line-height:1.35;margin:10px 0 18px;white-space:pre-line"></div>'
+      + '<div style="display:flex;gap:10px"><button data-n style="flex:1;padding:13px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#e8eefc;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit"></button><button data-y style="flex:1;padding:13px;border-radius:14px;border:0;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;color:' + (danger ? '#fff' : '#06121a') + ';background:' + (danger ? 'linear-gradient(135deg,#ff5d7d,#d6244f)' : 'linear-gradient(135deg,#c6ff3d,#3de0ff)') + '"></button></div></div>';
+    o.querySelector('div[role=dialog] > div:nth-child(2)').textContent = msg;
+    const bn = o.querySelector('[data-n]'), by = o.querySelector('[data-y]');
+    const en = document.documentElement.lang === 'en';
+    bn.textContent = opt.no || (en ? 'Cancel' : 'Abbrechen'); by.textContent = opt.yes || (danger ? (en ? 'Yes' : 'Ja, sicher') : 'OK');
+    const done = v => { document.removeEventListener('keydown', kd, true); o.remove(); res(v); };
+    const kd = e => { if(e.key === 'Escape'){ e.stopPropagation(); done(false); } else if(e.key === 'Enter'){ e.stopPropagation(); done(true); } };
+    bn.onclick = () => done(false); by.onclick = () => done(true); o.onclick = e => { if(e.target === o) done(false); };
+    document.addEventListener('keydown', kd, true); document.body.appendChild(o); by.focus();
+  });
+}
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let KEY = ''; try{ KEY = localStorage.getItem('bp_admin_key') || ''; }catch(e){}
@@ -267,7 +289,7 @@ async function tick(){
   $('blocked').innerHTML = r.blocked.length ? r.blocked.map(b => `<div class="pl"><span><b>${esc(b.u)}</b> <span class="dim">${esc(b.why)}</span><br>${esc(b.t)}</span><span class="dim">${time(b.ts)}</span></div>`).join('') : '<span class="dim">Noch nichts gefiltert.</span>';
 }
 async function delMsg(id){ await api('/api/admin-chat-delete', { id }); tick(); }
-async function clearChat(){ if(!confirm('Wirklich den ganzen öffentlichen Chat löschen?')) return; await api('/api/admin-chat-clear'); tick(); }
+async function clearChat(){ if(!await bpConfirm('Wirklich den ganzen öffentlichen Chat löschen?')) return; await api('/api/admin-chat-clear'); tick(); }
 async function say(){ const i = $('say'), t = i.value.trim(); if(!t) return; i.value = ''; await api('/api/admin-chat-send', { text: t }); tick(); }
 
 let TAB = 'live', openU = null, coinlog = null;
@@ -318,7 +340,7 @@ async function doAct(act){
   const amt = +($('aAmt') || {}).value, mins = +($('aMin') || {}).value, why = (($('aWhy') || {}).value || '').trim();
   if(act === 'coinlog'){ const r = await api('/api/admin-user-coins', { username: u }); if(r && r.ok) coinlog = Object.assign({ u }, r); else $('pmsg').textContent = (r && r.error) || 'Fehler'; paintPlayers(); return; }
   if(act === 'coins' && !amt){ $('pmsg').textContent = 'Bitte einen Betrag eingeben.'; return; }
-  if(act === 'ban' && !confirm(u + ' dauerhaft bannen?')) return;
+  if(act === 'ban' && !await bpConfirm(u + ' dauerhaft bannen?')) return;
   const r = await api('/api/admin-user-action', { username: u, action: act, amount: amt, minutes: mins, reason: why });
   $('pmsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
   $('pmsg').textContent = r && r.ok ? '✓ ' + u + ': ' + r.note : '✗ ' + ((r && r.error) || 'Fehler');
@@ -378,7 +400,7 @@ function newsRender(){
     const tag = L === 'en' && same ? ' <span class="dim" style="font-size:11px">(noch nicht übersetzt, zeigt Deutsch)</span>' : '';
     return `<div class="u"><div class="dim" style="font-size:12px">${fd(n.ts)} · Nr. ${n.id}</div><b>${esc(x.title)}</b>${tag}<div style="white-space:pre-wrap;margin:4px 0;font-size:13px">${esc(x.text)}</div><button class="btn2 red" data-nd="${n.id}">Löschen</button></div>`;
   }).join('') : '<span class="dim">Keine News.</span>';
-  document.querySelectorAll('[data-nd]').forEach(b => b.onclick = async () => { if(!confirm('News löschen?')) return; await api('/api/admin-news', { action: 'del', id: +b.dataset.nd }); loadNews(); });
+  document.querySelectorAll('[data-nd]').forEach(b => b.onclick = async () => { if(!await bpConfirm('News löschen?')) return; await api('/api/admin-news', { action: 'del', id: +b.dataset.nd }); loadNews(); });
 }
 async function loadNews(){
   const r = await api('/api/admin-news', { action: 'list' });
@@ -401,7 +423,7 @@ async function loadReps(){
   const cn = { bug:'Fehler', player:'Spieler', message:'Nachricht', game:'Spiel', other:'Sonstiges' };
   box.innerHTML = r.reports.length ? r.reports.map(x => `<div class="u" style="opacity:${x.done ? .55 : 1}"><div class="dim" style="font-size:12px">${esc(cn[x.cat] || x.cat)} · ${fd(x.t)}${x.who ? ' · von ' + esc(x.who) : ' · anonym'}${x.target ? ' · betrifft ' + esc(x.target) : ''}</div><div style="margin-top:4px;white-space:pre-wrap;word-break:break-word">${esc(x.text)}</div>${x.email ? '<div style="margin-top:4px">✉ <a style="color:var(--acc)" href="mailto:' + esc(x.email) + '">' + esc(x.email) + '</a></div>' : ''}<div class="row" style="margin-top:6px"><button class="btn2 mini" data-rp="${esc(x.id)}">${x.done ? 'Wieder öffnen' : '✓ Erledigt'}</button><button class="ghost mini" data-rd="${esc(x.id)}">Löschen</button></div></div>`).join('') : '<span class="dim">Keine Meldungen.</span>';
   box.querySelectorAll('[data-rp]').forEach(b => b.onclick = async () => { await api('/api/admin-reports', { id: b.dataset.rp }); loadReps(); });
-  box.querySelectorAll('[data-rd]').forEach(b => b.onclick = async () => { if(confirm('Meldung löschen?')){ await api('/api/admin-reports', { id: b.dataset.rd, del: true }); loadReps(); } });
+  box.querySelectorAll('[data-rd]').forEach(b => b.onclick = async () => { if(await bpConfirm('Meldung löschen?')){ await api('/api/admin-reports', { id: b.dataset.rd, del: true }); loadReps(); } });
 }
 let GAMES = [], openG = null, GC = {}, DRAFT = {};
 async function loadGames(){
@@ -467,7 +489,7 @@ async function maniaCfgLoad(){
 async function maniaCfgSave(){
   const r = await api('/api/admin-mania', { action: 'set', botOn: $('mBotOn').checked, botRate: parseFloat($('mBotRate').value) || 6, botName: $('mBotName').value }); if(r && r.ok) maniaCfgLoad();
 }
-async function maniaAct(a, q){ if(!confirm(q)) return; const r = await api('/api/admin-mania', { action: a }); if(r && r.ok) maniaCfgLoad(); }
+async function maniaAct(a, q){ if(!await bpConfirm(q)) return; const r = await api('/api/admin-mania', { action: a }); if(r && r.ok) maniaCfgLoad(); }
 if('serviceWorker' in navigator) navigator.serviceWorker.register('/admin-sw.js', { scope: '/admin.html' }).catch(() => {});
 if(KEY) start(); else show(true);
 
@@ -495,7 +517,7 @@ function zpCollect(){
   return { action:'set', cap: Number($('zpCap').value), day: tiers(g('dp'), g('dc')), week: tiers(g('wp'), g('wc')), month: g('m') };
 }
 async function zpSave(){ const r = await api('/api/admin-zp', zpCollect()); $('zpMsg').style.color = r && r.ok ? 'var(--ok)' : '#ff5d8f'; $('zpMsg').textContent = r && r.ok ? 'Gespeichert. Gilt sofort.' : ((r && r.error) || 'Fehler'); if(r && r.ok){ ZPC.cfg = r.cfg; zpPaint(); } }
-async function zpDefaults(){ if(!confirm('Auf Standardwerte zurücksetzen?')) return; const r = await api('/api/admin-zp', { action:'reset-cfg' }); if(r && r.ok){ ZPC.cfg = r.cfg; zpPaint(); $('zpMsg').style.color = 'var(--ok)'; $('zpMsg').textContent = 'Standardwerte aktiv.'; } }
+async function zpDefaults(){ if(!await bpConfirm('Auf Standardwerte zurücksetzen?')) return; const r = await api('/api/admin-zp', { action:'reset-cfg' }); if(r && r.ok){ ZPC.cfg = r.cfg; zpPaint(); $('zpMsg').style.color = 'var(--ok)'; $('zpMsg').textContent = 'Standardwerte aktiv.'; } }
 function zpShowPl(r){
   if(!r || !r.ok){ $('zpPl').textContent = (r && r.error) || 'Fehler'; $('zpAct').classList.add('hidden'); return; }
   ZPN = r.name; $('zpAct').classList.remove('hidden');
@@ -503,8 +525,8 @@ function zpShowPl(r){
   $('zpPl').innerHTML = `<b style="color:#fff">${esc(r.name)}</b> · Platz ${r.rank}<br>Gesamt <b>${r.total}</b> · Monat <b>${r.month}</b> · Woche <b>${r.week}</b> · Heute <b>${r.day}</b> · Münzen ${r.coins}<br>Spiele: ${esc(gm)}`;
 }
 async function zpFind(){ zpShowPl(await api('/api/admin-zp', { action:'find', username: $('zpName').value })); }
-async function zpCredit(sg){ const a = Math.abs(Number($('zpAmt').value)); if(!a) return; const n = a * (sg < 0 ? -1 : 1); if(sg < 0 && !confirm(a + ' Brainups von ' + ZPN + ' abziehen?')) return; zpShowPl(await api('/api/admin-zp', { action:'credit', username: ZPN, pts: n })); $('zpAmt').value = ''; zpLoad(); }
-async function zpReset(){ if(!confirm('Wirklich ALLE Brainups von ' + ZPN + ' auf 0 setzen?')) return; zpShowPl(await api('/api/admin-zp', { action:'reset', username: ZPN })); zpLoad(); }
+async function zpCredit(sg){ const a = Math.abs(Number($('zpAmt').value)); if(!a) return; const n = a * (sg < 0 ? -1 : 1); if(sg < 0 && !await bpConfirm(a + ' Brainups von ' + ZPN + ' abziehen?')) return; zpShowPl(await api('/api/admin-zp', { action:'credit', username: ZPN, pts: n })); $('zpAmt').value = ''; zpLoad(); }
+async function zpReset(){ if(!await bpConfirm('Wirklich ALLE Brainups von ' + ZPN + ' auf 0 setzen?')) return; zpShowPl(await api('/api/admin-zp', { action:'reset', username: ZPN })); zpLoad(); }
 /* ---- Statistik-Reiter ---- */
 async function stLoad(){
   const r = await api('/api/admin-stats'); if(!r || !r.ok){ $('stToday').textContent = (r && r.error) || 'Fehler'; return; }
@@ -659,7 +681,7 @@ async function evSave(){
 }
 function evCopy(id){ const u = location.origin + '/?event=' + id; try{ navigator.clipboard.writeText(u).then(() => evMsg('Link kopiert.', true), () => prompt('Link kopieren:', u)); }catch(e){ prompt('Link kopieren:', u); } }
 async function evDo(action, id, ask){
-  if(ask && !confirm(ask)) return;
+  if(ask && !await bpConfirm(ask)) return;
   const r = await api('/api/admin-events', { action, id });
   if(r && r.ok){ EVD = r; evMsg('Erledigt.', true); evPaintList(); } else evMsg((r && r.error) || 'Fehler');
 }
@@ -680,8 +702,8 @@ function fbPaint(){
     <div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap">${f.rewarded ? '' : `<button onclick="fbAct('reward','${f.id}')">🎁 Belohnen (${FBD.reward.c} 🪙 + ${FBD.reward.z} BU)</button>`}${f.state === 'kept' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Nicht behalten</button>` : `<button class="btn2" onclick="fbAct('mark','${f.id}','kept')">⭐ Behalten</button>`}${f.state === 'new' ? `<button class="btn2" onclick="fbAct('mark','${f.id}','read')">Gelesen</button>` : ''}<button class="btn2 red" onclick="fbAct('delete','${f.id}')">Löschen</button></div></div>`).join('') : '<div class="dim">Nichts in dieser Ansicht.</div>';
 }
 async function fbAct(action, id, state){
-  if(action === 'delete' && !confirm('Dieses Feedback bei dir löschen? (Der Spieler merkt nichts.)')) return;
-  if(action === 'reward' && !confirm('Spieler jetzt mit ' + FBD.reward.c + ' Münzen und ' + FBD.reward.z + ' Brainups belohnen?')) return;
+  if(action === 'delete' && !await bpConfirm('Dieses Feedback bei dir löschen? (Der Spieler merkt nichts.)')) return;
+  if(action === 'reward' && !await bpConfirm('Spieler jetzt mit ' + FBD.reward.c + ' Münzen und ' + FBD.reward.z + ' Brainups belohnen?')) return;
   const r = await api('/api/admin-feedback', { action, id, state });
   if(r && r.ok){ FBD = r; fbPaint(); $('fbMsgA').style.color = 'var(--ok)'; $('fbMsgA').textContent = action === 'reward' ? 'Belohnung ist gutgeschrieben.' : ''; } else { $('fbMsgA').style.color = '#ff5d8f'; $('fbMsgA').textContent = (r && r.error) || 'Fehler'; }
 }

@@ -4234,6 +4234,29 @@ function featureLocked(name){ return lockedFeatures.indexOf(name) !== -1; }
 let gameModes = {}, hiddenFeatures = [], maintFeatures = [], braintestOff = [], arenaOff = [], gameCountdown = {}, serverClockOff = 0;
 function featureMaint(name){ return maintFeatures.indexOf(name) !== -1; }
 /* ---- Admin-Sicht: Schalter zwischen "Öffentlich" (wie jeder Spieler) und "Admin" (alles offen) ---- */
+
+/* Schoenes Bestaetigungsfenster statt nativem Dialog */
+function bpConfirm(msg, opt){
+  return new Promise(res => {
+    opt = opt || {}; const danger = opt.danger !== undefined ? opt.danger : /lösch|bann|ALLE|abziehen|zurücksetzen|delete|ban\b|reset/i.test(msg);
+    const o = document.createElement('div');
+    o.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(4,7,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:bpcIn .16s ease-out';
+    o.innerHTML = '<style>@keyframes bpcIn{from{opacity:0}to{opacity:1}}@keyframes bpcPop{from{transform:translateY(14px) scale(.96);opacity:0}to{transform:none;opacity:1}}</style>'
+      + '<div role="dialog" aria-modal="true" style="width:100%;max-width:360px;border-radius:22px;padding:22px 20px 18px;background:linear-gradient(160deg,#1b2442,#10172c);border:1px solid ' + (danger ? 'rgba(255,100,130,.45)' : 'rgba(61,224,255,.4)') + ';box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 40px ' + (danger ? 'rgba(255,80,120,.18)' : 'rgba(61,224,255,.16)') + ';color:#e8eefc;font-family:inherit;text-align:center;animation:bpcPop .2s ease-out">'
+      + '<div style="font-size:34px;line-height:1">' + (opt.icon || (danger ? '⚠️' : '❓')) + '</div>'
+      + '<div style="font-size:17px;font-weight:800;line-height:1.35;margin:10px 0 18px;white-space:pre-line"></div>'
+      + '<div style="display:flex;gap:10px"><button data-n style="flex:1;padding:13px;border-radius:14px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#e8eefc;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit"></button><button data-y style="flex:1;padding:13px;border-radius:14px;border:0;font-weight:900;font-size:15px;cursor:pointer;font-family:inherit;color:' + (danger ? '#fff' : '#06121a') + ';background:' + (danger ? 'linear-gradient(135deg,#ff5d7d,#d6244f)' : 'linear-gradient(135deg,#c6ff3d,#3de0ff)') + '"></button></div></div>';
+    o.querySelector('div[role=dialog] > div:nth-child(2)').textContent = msg;
+    const bn = o.querySelector('[data-n]'), by = o.querySelector('[data-y]');
+    const en = document.documentElement.lang === 'en';
+    bn.textContent = opt.no || (en ? 'Cancel' : 'Abbrechen'); by.textContent = opt.yes || (danger ? (en ? 'Yes' : 'Ja, sicher') : 'OK');
+    const done = v => { document.removeEventListener('keydown', kd, true); o.remove(); res(v); };
+    const kd = e => { if(e.key === 'Escape'){ e.stopPropagation(); done(false); } else if(e.key === 'Enter'){ e.stopPropagation(); done(true); } };
+    bn.onclick = () => done(false); by.onclick = () => done(true); o.onclick = e => { if(e.target === o) done(false); };
+    document.addEventListener('keydown', kd, true); document.body.appendChild(o); by.focus();
+  });
+}
+
 /* ---- Tester-Modus: Konten mit Tester-Recht (vom Admin vergeben) sehen die gesperrten Spiele, sonst nichts ---- */
 function isTesterMode(){ try{ return localStorage.getItem('bp_tester') === '1'; }catch(e){ return false; } }
 function testerClear(){ try{ if(localStorage.getItem('bp_tester') === '1'){ localStorage.removeItem('bp_admin_key'); localStorage.removeItem('bp_admin_view'); localStorage.removeItem('bp_tester'); localStorage.removeItem('bp_trole'); } }catch(e){} }
@@ -4505,13 +4528,13 @@ function admConPaint(){
   d.querySelector('#admOn').onchange = () => d.querySelector('#admGo').click();
   d.querySelectorAll('[data-adm-row]').forEach(el => el.onclick = () => { const nm = el.getAttribute('data-adm-row').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"'); admCon.open = admCon.open === nm ? null : nm; admConPaint(); });
   d.querySelectorAll('[data-adm-rep]').forEach(b => b.onclick = () => admReportsLoad(b.getAttribute('data-adm-rep'), false));
-  d.querySelectorAll('[data-adm-repdel]').forEach(b => b.onclick = () => { if(confirm('Meldung löschen?')) admReportsLoad(b.getAttribute('data-adm-repdel'), true); });
+  d.querySelectorAll('[data-adm-repdel]').forEach(b => b.onclick = async () => { if(await bpConfirm('Meldung löschen?')) admReportsLoad(b.getAttribute('data-adm-repdel'), true); });
   d.querySelectorAll('[data-adm-do]').forEach(b => b.onclick = async () => {
     const act = b.getAttribute('data-adm-do'), u = admCon.open; if(!u) return;
     const amt = +(d.querySelector('#admAmt')||{}).value, mins = +(d.querySelector('#admMin')||{}).value, why = ((d.querySelector('#admWhy')||{}).value||'').trim();
     if(act === 'coinlog'){ const cr = await adminCall('/api/admin-user-coins', {username:u}); if(cr && cr.ok){ admCon.coinlog = Object.assign({u}, cr); } else { admCon.msg = (cr && cr.error) || 'Fehler'; } admConPaint(); return; }
     if(act === 'coins' && !amt){ admCon.msg = 'Bitte einen Betrag eingeben.'; admConPaint(); return; }
-    if(act === 'ban' && !confirm(u + ' dauerhaft bannen?')){ return; }
+    if(act === 'ban' && !await bpConfirm(u + ' dauerhaft bannen?')){ return; }
     const r = await adminCall('/api/admin-user-action', {username:u, action:act, amount:amt, minutes:mins, reason:why});
     admCon.msg = r && r.ok ? '✓ ' + u + ': ' + r.note : '✗ ' + ((r && r.error) || 'Fehler');
     if(r && r.ok){ const i = admCon.list.findIndex(x => x.username === u); if(i >= 0) admCon.list[i] = r.user; }
@@ -15334,7 +15357,7 @@ async function tabooSoloStart(){
   tabooSoloPaint();
   const r = await apiCall('/api/taboo-solo', { action:'start', sid: tbs.sid });
   if(!r || !r.ok){ tbs.msg = L('Nicht erreichbar.','Not reachable.'); tbs.busy = false; return tabooSoloPaint(); }
-  tbs = Object.assign(tbs, { len:r.len, rows:[], hints:r.hints, cat:r.cat, hintsLeft:r.hintsLeft, hintCost:r.hintCost, done:false, won:null, word:null, busy:false, keys:{}, msg:'', cur:'', zp:0, zpPossible:0 });
+  tbs = Object.assign(tbs, { len:r.len, rows:[], hints:r.hints, cat:r.cat, hintsLeft:r.hintsLeft, hintCost:r.hintCost, done:false, won:null, word:null, busy:false, keys:{}, msg:'', cur:'', pos:0, zp:0, zpPossible:0 });
   tabooSoloPaint();
 }
 function tabooSoloPaint(){
@@ -15348,7 +15371,7 @@ function tabooSoloPaint(){
     const g = tbs.rows[r];
     for(let i = 0; i < tbs.len; i++){
       if(g) grid += `<div class="c ${g.s[i]}">${esc(g.w[i])}</div>`;
-      else if(r === tbs.rows.length && !tbs.done) grid += `<div class="c cur">${esc(tbs.cur[i] || '')}</div>`;
+      else if(r === tbs.rows.length && !tbs.done) grid += `<div class="c cur${(tbs.pos || 0) === i ? ' sel' : ''}" onclick="tbsCell(${i})" style="cursor:pointer;${(tbs.pos || 0) === i ? 'box-shadow:0 0 0 2px var(--accent),0 0 12px var(--accent);transform:scale(1.07)' : ''}">${esc((tbs.cur[i] || '').trim())}</div>`;
       else grid += '<div class="c"></div>';
     }
     grid += '</div>';
@@ -15378,14 +15401,22 @@ async function tabooSoloHint(){
 function tbsLeave(){ tbs = null; startTabooHub(); }
 function tabooSoloKey(k){
   if(!tbs || tbs.done || tbs.busy) return;
-  if(k === 'DEL') tbs.cur = tbs.cur.slice(0, -1);
-  else if(k === 'ENTER'){ return tabooSoloSubmit(); }
-  else if(tbs.cur.length < tbs.len) tbs.cur += k;
+  const a = Array.from({ length: tbs.len }, (_, i) => (tbs.cur[i] || ' ').trim() || ' '); let p = Math.min(tbs.len - 1, tbs.pos || 0);
+  if(k === 'ENTER'){ return tabooSoloSubmit(); }
+  if(k === 'DEL'){ if(a[p] !== ' ') a[p] = ' '; else if(p > 0){ p--; a[p] = ' '; } }
+  else { a[p] = k; const nx = a.findIndex((c, i) => i > p && c === ' '); p = nx >= 0 ? nx : Math.min(tbs.len - 1, p + 1); }
+  tbs.cur = a.join(''); tbs.pos = p;
   tbs.msg = ''; tabooSoloPaint();
+}
+function tbsCell(i){
+  if(!tbs || tbs.done || tbs.busy) return;
+  const a = Array.from({ length: tbs.len }, (_, j) => (tbs.cur[j] || ' ').trim() || ' ');
+  if((tbs.pos || 0) === i && a[i] !== ' '){ a[i] = ' '; tbs.cur = a.join(''); } // zweites Tippen auf ein gefuelltes, gewaehltes Feld loescht den Buchstaben
+  tbs.pos = i; tbs.msg = ''; tabooSoloPaint();
 }
 async function tabooSoloSubmit(){
   if(!tbs || tbs.busy || tbs.done) return;
-  if(tbs.cur.length < tbs.len){ tbs.msg = L('Zu kurz','Too short'); return tabooSoloPaint(); }
+  if(tbs.cur.length < tbs.len || /\s/.test(tbs.cur)){ tbs.msg = L('Zu kurz','Too short'); return tabooSoloPaint(); }
   tbs.busy = true;
   const r = await apiCall('/api/taboo-solo', { action:'guess', sid: tbs.sid, text: tbs.cur, token: account && account.token });
   if(!tbs) return;
@@ -15394,7 +15425,7 @@ async function tabooSoloSubmit(){
   if(r.rejected){ tbs.msg = L('Zu kurz','Too short'); return tabooSoloPaint(); }
   const last = r.rows[r.rows.length - 1];
   [...last.w].forEach((c, i) => { const st = last.s[i], o = tbs.keys[c]; if(st === 'g' || (st === 'y' && o !== 'g') || (st === 'k' && !o)) tbs.keys[c] = st; });
-  Object.assign(tbs, { rows:r.rows, hints:r.hints, hintsLeft:r.hintsLeft, done:r.done, won:r.won, word:r.word, zp:r.zp || 0, zpPossible:r.zpPossible || 0, cur:'', msg:'' });
+  Object.assign(tbs, { rows:r.rows, hints:r.hints, hintsLeft:r.hintsLeft, done:r.done, won:r.won, word:r.word, zp:r.zp || 0, zpPossible:r.zpPossible || 0, cur:'', pos:0, msg:'' });
   tabooSoloPaint();
 }
 document.addEventListener('keydown', e => {
@@ -15549,7 +15580,7 @@ function evPaintTop(){
   let h = `<div style="font-size:20px;font-weight:900;margin:10px 0 2px">${esc(v.name)}</div>`;
   if(v.state === 'open'){
     const left = evLeft(v.start);
-    h += `<div class="big">${!v.start ? '⏳' : left > 0 ? evFmt(left) : L('gleich …','soon …')}</div><div class="d" style="text-align:center;opacity:.75;font-size:13px">${v.start ? L('bis zum Start','until start') : L('Wartet auf Mitspieler','Waiting for players')}${v.startFull ? ' · ' + L('Start, sobald alle Plätze voll sind','starts when full') : ''} · ${v.entrants} / ${v.maxPlayers} ${L('angemeldet','joined')}</div>${v.canStart ? `<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="evStartNow()">▶ ${L('Event jetzt starten (Mod)','Start event now (mod)')}</button>` : ''}`;
+    h += `<div class="big">${!v.start ? '⏳' : left > 0 ? evFmt(left) : L('gleich …','soon …')}</div><div class="d" style="text-align:center;opacity:.75;font-size:13px">${v.start ? L('bis zum Start','until start') : L('Wartet auf Mitspieler','Waiting for players')}${v.startFull ? ' · ' + L('Start, sobald alle Plätze voll sind','starts when full') : ''} · ${v.entrants} / ${v.maxPlayers} ${L('angemeldet','joined')}</div>${v.canStart && isTesterMode() && (function(){ try{ return localStorage.getItem('bp_trole') === 'mod'; }catch(e){ return false; } })() ? `<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="evStartNow()">▶ ${L('Event jetzt starten (Mod)','Start event now (mod)')}</button>` : ''}`;
     h += account ? (v.joined ? `<button class="btn btn-ghost btn-block" style="margin-top:12px" onclick="evJoin('leave')">${L('ABMELDEN','LEAVE')}</button><div class="d" style="text-align:center;margin-top:6px;font-size:13px">✅ ${L('Du bist dabei! Bleib in der App.','You are in! Stay in the app.')}</div>` : `<button class="btn btn-primary btn-block" style="margin-top:12px" onclick="evJoin('join')">${L('ANMELDEN','JOIN')}</button>`) : `<div class="bx"><b>${L('Schnell mitmachen','Quick join')}</b><div class="d" style="font-size:13px;margin:4px 0 8px">${L('Nur einen Namen eingeben, das war es schon.','Just enter a name, that is all.')}</div><input id="evGuestName" maxlength="20" autocomplete="off" placeholder="${L('Dein Name (3–20 Zeichen)','Your name (3–20 characters)')}" onkeydown="if(event.key==='Enter')evQuickJoin()" style="width:100%;box-sizing:border-box;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.3);color:inherit;font-size:16px"><div id="evGuestErr" style="color:#ff7a8a;font-size:13px;min-height:18px;margin-top:4px"></div><button class="btn btn-primary btn-block" onclick="evQuickJoin()">${L('MITMACHEN','JOIN')}</button><div class="d" style="font-size:12px;margin-top:8px;opacity:.75">${L('Du hast schon ein Konto? Im Hauptmenü anmelden und wiederkommen.','Already have an account? Log in from the main menu and come back.')}</div></div>`;
     h += `<div class="bx"><b>${L('Ablauf','Rounds')}</b><div class="d" style="margin-top:4px;line-height:1.7;font-size:13px">${v.rounds.map((r, i) => (i + 1) + '. ' + esc(r)).join('<br>')}</div><div class="d" style="margin-top:6px;font-size:12px;opacity:.8">${v.format === 'bracket' ? L('K.-o.-System, 1 gegen 1: Wer verliert, scheidet aus. Reichen die Anmeldungen nicht für den vollen Baum, gibt es Freilose.','Knockout, 1v1: lose and you are out. If there are not enough players for a full bracket, some get a bye.') : L('Nach jeder Runde fliegen die Letzten raus.','After each round the last players are out.')}${v.secret ? ' ' + L('Welche Spiele kommen, bleibt eine Überraschung! 🎲','Which games come is a surprise! 🎲') : ''}</div></div><div class="bx"><b>${L('Preise','Prizes')}</b>${evPrizeHtml(v.prizes)}</div>`;
     if(v.names && v.names.length) h += `<div class="bx"><b>${L('Dabei','Players')}</b><div style="margin-top:6px">${v.names.map(n => `<span class="chip">${esc(n)}</span>`).join('')}</div></div>`;
@@ -15580,7 +15611,7 @@ async function evQuickJoin(){
   if(evs){ evs.sig = ''; evs.v = r.view; evs.id = r.view.id; evPaintTop(); }
 }
 async function evStartNow(){
-  if(!confirm(L('Event jetzt starten?','Start the event now?'))) return;
+  if(!await bpConfirm(L('Event jetzt starten?','Start the event now?'), { danger:false, icon:'▶️', yes:L('Jetzt starten','Start now') })) return;
   const r = await apiCall('/api/event', { action:'startnow', id: evs && evs.id || undefined, token: account && account.token });
   if(r && r.ok){ evs.sig = ''; evs.v = r; evPaintTop(); } else if(r && r.error) alert(r.error);
 }
@@ -16561,14 +16592,28 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
    Schalter unten links: Ton+Musik -> nur Ton -> aus. Wird beim ersten Tippen freigeschaltet.
    ============================================================================ */
 /* ===== Oeffentlicher Chat (gemeinsam, dauerhaft) ===== */
+/* Schwebende Knoepfe: verschiebbar (Position wird gemerkt), Klick bleibt Klick */
+window.bpDrag = function(el, key){
+  const K = 'bp_pos_' + key; let st = null, moved = false;
+  const clamp = (x, y) => { const w = el.offsetWidth || 40, h = el.offsetHeight || 40; return [Math.max(4, Math.min(innerWidth - w - 4, x)), Math.max(4, Math.min(innerHeight - h - 4, y))]; };
+  const put = (x, y) => { [x, y] = clamp(x, y); el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.right = 'auto'; el.style.bottom = 'auto'; };
+  try{ const sv = JSON.parse(localStorage.getItem(K) || 'null'); if(sv && typeof sv.x === 'number') put(sv.x * innerWidth, sv.y * innerHeight); }catch(e){}
+  el.style.touchAction = 'none';
+  el.addEventListener('pointerdown', e => { const r = el.getBoundingClientRect(); st = { px: e.clientX, py: e.clientY, x: r.left, y: r.top, id: e.pointerId }; moved = false; try{ el.setPointerCapture(e.pointerId); }catch(_){} });
+  el.addEventListener('pointermove', e => { if(!st || e.pointerId !== st.id) return; const dx = e.clientX - st.px, dy = e.clientY - st.py; if(!moved && Math.hypot(dx, dy) < 8) return; if(!moved){ moved = true; try{ el.setPointerCapture(e.pointerId); }catch(_){} el.style.transition = 'none'; el.style.transform = 'scale(1.12)'; } put(st.x + dx, st.y + dy); });
+  const end = e => { if(!st) return; if(moved){ const r = el.getBoundingClientRect(); try{ localStorage.setItem(K, JSON.stringify({ x: r.left / innerWidth, y: r.top / innerHeight })); }catch(_){} el.style.transform = ''; setTimeout(() => { moved = false; }, 50); } st = null; };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  el.addEventListener('click', e => { if(moved){ e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+  addEventListener('resize', () => { const r = el.getBoundingClientRect(); if(el.style.top) put(r.left, r.top); });
+};
 (function(){
   let lastId = 0, seenId = 0, open = false, timer = null, badgeTimer = null, msgs = [];
   try{ seenId = parseInt(localStorage.getItem('bp_chat_seen'),10) || 0; }catch(e){}
-  const BTN = "position:fixed;left:10px;bottom:150px;z-index:99980;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,16,34,.75);color:#fff;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center";
+  const BTN = "position:fixed;left:10px;bottom:150px;z-index:99980;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(61,224,255,.55);background:linear-gradient(145deg,rgba(40,60,120,.92),rgba(14,20,44,.92));box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 14px rgba(61,224,255,.22);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center";
   const fab = document.createElement('button'); fab.id = 'chatFab'; fab.type = 'button'; fab.style.cssText = BTN; fab.title = 'Chat';
   fab.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 7 9-7"/></svg><span id="chatBadge" style="display:none;position:absolute;right:-4px;top:-4px;background:#ff4d6d;color:#fff;border-radius:99px;font-size:10px;font-weight:800;padding:1px 5px"></span>';
   fab.onclick = () => toggle();
-  document.body.appendChild(fab);
+  document.body.appendChild(fab); bpDrag(fab, 'chat');
   const ov = document.createElement('div'); ov.id = 'chatOv';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center';
   ov.innerHTML = '<div id="chatBox" style="width:100%;max-width:520px;height:78vh;background:#121830;border:1px solid rgba(255,255,255,.18);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:14px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Brain-Chat</b><span id="chatOnline" style="font-size:12px;color:#7cff8c"></span><button id="chatX" style="background:none;border:0;color:#fff;font-size:22px;cursor:pointer">✕</button></div><div id="chatList" style="flex:1;overflow-y:auto;margin:10px 0"></div><div id="chatFoot"></div></div>';
@@ -16731,8 +16776,8 @@ if(typeof navigator !== "undefined" && navigator.serviceWorker){
   document.addEventListener('visibilitychange', () => { if(!ctx) return; if(document.hidden) ctx.suspend().catch(() => {}); else if(musicOn || sfxOn) ctx.resume().catch(() => {}); });
   // Schalter
   const BTN_CSS = "position:fixed;left:10px;bottom:62px;z-index:99980;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(10,16,34,.75);color:#fff;font-size:18px;cursor:pointer;opacity:.75;padding:0";
-  const btn = document.createElement('button'); btn.id = 'sfxBtn'; btn.type = 'button'; btn.style.cssText = BTN_CSS; btn.onclick = () => window.sfxToggle('sfx');
-  const mbtn = document.createElement('button'); mbtn.id = 'sfxMusicBtn'; mbtn.type = 'button'; mbtn.style.cssText = BTN_CSS.replace('bottom:62px', 'bottom:106px'); mbtn.onclick = () => window.sfxToggle('music');
+  const btn = document.createElement('button'); btn.id = 'sfxBtn'; btn.type = 'button'; btn.style.cssText = BTN_CSS; btn.onclick = () => window.sfxToggle('sfx'); bpDrag(btn, 'sfx');
+  const mbtn = document.createElement('button'); mbtn.id = 'sfxMusicBtn'; mbtn.type = 'button'; mbtn.style.cssText = BTN_CSS.replace('bottom:62px', 'bottom:106px'); mbtn.onclick = () => window.sfxToggle('music'); bpDrag(mbtn, 'music');
   faces();
   // kleiner Klick bei Buttons/Karten
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('.btn, .mode-card'); if(t) sfx('tap'); }, true);
