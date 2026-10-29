@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Brain Hood</title>
+<title>Brain Arrow</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:#0a0d16;color:#eef;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;touch-action:none;user-select:none}
@@ -36,8 +36,8 @@ h1{font-size:15px;margin:0;flex:1;white-space:nowrap}
 <script>
 (function(){
 var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
-var T = lang==="en" ? {title:"Brain Hood",level:"Level",left:n=>n+" arrows left",hint:"Drag to rotate · tap an arrow to push it out. It needs a free path to the edge of the next face.",won:"Level cleared!",wonp:"Next cube is bigger and trickier.",next:"Next level",lost:"Out of hearts",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level ",tm:"Time ",bt:"Best time ",stars:"until",hintC:"Curved arrows follow their shape. The whole path must be free."}
- : {title:"Brain Hood",level:"Level",left:n=>"Noch "+n+" Pfeile",hint:"Würfel ziehen zum Drehen · Pfeil antippen = er schiebt sich raus. Sein Weg bis zur Kante der nächsten Seite muss frei sein.",won:"Level geschafft!",wonp:"Der nächste Würfel ist größer und kniffliger.",next:"Nächstes Level",lost:"Keine Herzen mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level ",tm:"Zeit ",bt:"Bestzeit ",stars:"bis",hintC:"Gebogene Pfeile fahren ihre Form ab. Der ganze Weg muss frei sein."};
+var T = lang==="en" ? {title:"Brain Arrow",level:"Level",left:n=>n+" arrows left",hint:"Drag to rotate · tap an arrow to push it out. It needs a free path to the edge of the next face.",won:"Level cleared!",wonp:"Next cube is bigger and trickier.",next:"Next level",lost:"Out of hearts",lostp:"Reached level ",retry:"Try again",quit:"Quit",best:"Best: level ",tm:"Time ",bt:"Best time ",stars:"until",hintC:"Curved arrows follow their shape. The whole path must be free."}
+ : {title:"Brain Arrow",level:"Level",left:n=>"Noch "+n+" Pfeile",hint:"Würfel ziehen zum Drehen · Pfeil antippen = er schiebt sich raus. Sein Weg bis zur Kante der nächsten Seite muss frei sein.",won:"Level geschafft!",wonp:"Der nächste Würfel ist größer und kniffliger.",next:"Nächstes Level",lost:"Keine Herzen mehr",lostp:"Erreicht: Level ",retry:"Nochmal",quit:"Beenden",best:"Bestes: Level ",tm:"Zeit ",bt:"Bestzeit ",stars:"bis",hintC:"Gebogene Pfeile fahren ihre Form ab. Der ganze Weg muss frei sein."};
 var $=function(i){return document.getElementById(i)};
 var FACES=[ // n = Normale, u = rechts, v = runter (Weltkoordinaten, y nach unten) + CSS-Transform
  {n:[0,0,1],u:[1,0,0],v:[0,1,0],css:"rotateY(0deg)",col:"#c6ff3d"},
