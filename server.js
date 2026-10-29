@@ -4096,6 +4096,7 @@ async function brainSubmit(token, game, level, lang, pts) {
   let gain = level;
   if ((game === "fruit" || game === "galaxy") && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(200 * Math.min(180, sinceLast / 1000)), Math.round(Number(pts))));
   b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + gain);
+  if (game === "galaxy") { const cleared = Math.min(level - 1, 60, Math.floor(Math.min(sinceLast, 1800000) / 15000)); let zpt = 0; for (let L = 1; L <= cleared; L++) zpt += L % 5 === 0 ? 100 : 50; if (zpt > 0) zpAdd(user, Math.min(zpt, 300), "galaxy", "galaxy"); }
   await saveUsers();
   return { ok: true, points: b.weeks[w][game], rank: brainRankOf(b.best[game]) };
 }
@@ -4111,6 +4112,32 @@ function brainBoard(token, game) {
     mine = { pts, pos: idx >= 0 ? idx + 1 : null, rank: brainRankOf(b.best[game] || 0), level: b.best[game] || 0 };
   }
   return { ok: true, top, mine, endsInMs: wk.endsInMs, rewards: BRAIN_REWARDS };
+}
+// ---- Karten-Solitaer: kleine Bestenliste (wenigste Zuege, bei Gleichstand schnellere Zeit) ----
+const klLast = new Map();
+function kloKey(d) { return d === 3 ? "d3" : "d1"; }
+async function kloSubmit(token, draw, moves, secs, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  moves = Math.round(Number(moves)); secs = Math.round(Number(secs));
+  if (!Number.isFinite(moves) || !Number.isFinite(secs) || moves < 40 || moves > 5000 || secs < 45 || secs > 86400) return { ok: false, error: "invalid" };
+  const now = Date.now(); if (now - (klLast.get(user.username) || 0) < 40000) return { ok: false, error: "tooFast" }; klLast.set(user.username, now);
+  if (!user.stats.klo || typeof user.stats.klo !== "object") user.stats.klo = {};
+  const k = kloKey(draw), cur = user.stats.klo[k];
+  let improved = false;
+  if (!cur || moves < cur.m || (moves === cur.m && secs < cur.t)) { user.stats.klo[k] = { m: moves, t: secs, ts: now }; improved = true; }
+  user.stats.klo.wins = (user.stats.klo.wins | 0) + 1;
+  await saveUsers();
+  return { ok: true, improved, best: user.stats.klo[k] };
+}
+function kloBoard(token, draw) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const k = kloKey(draw), me = token ? findUserByToken(token) : null;
+  const all = users.filter(u => u.stats && u.stats.klo && u.stats.klo[k]).map(u => ({ u, m: u.stats.klo[k].m, t: u.stats.klo[k].t }))
+    .sort((a, b) => a.m - b.m || a.t - b.t || String(a.u.username).localeCompare(String(b.u.username)));
+  const top = all.slice(0, 10).map((x, i) => ({ pos: i + 1, name: x.u.username, avatar: x.u.avatar || "🙂", moves: x.m, secs: x.t }));
+  let mine = null; if (me && me.stats.klo && me.stats.klo[k]) { const i = all.findIndex(x => x.u === me); mine = { moves: me.stats.klo[k].m, secs: me.stats.klo[k].t, pos: i >= 0 ? i + 1 : null }; }
+  return { ok: true, top, mine };
 }
 async function brainClaim(token, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -5616,12 +5643,16 @@ async function saveConversations() {
 // ---- Oeffentlicher Chat (ueber das ganze Spiel), liegt in conversations["__public__"] ----
 const PUB_KEY = "__public__", PUB_MAX = 100, PUB_LEN = 200;
 const pubLast = new Map(); // username -> [timestamps]
-async function chatPublicList(since) {
+const SOL_KEY = "__sol__", solSeen = new Map(); // username -> letzter Abruf im Solitaer-Chat
+async function chatPublicList(since, room, token) {
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
-  const all = conversations[PUB_KEY] || [];
+  const isSol = room === "sol", KEY = isSol ? SOL_KEY : PUB_KEY;
+  let solOnline = 0;
+  if (isSol) { const u = token ? findUserByToken(token) : null; if (u) solSeen.set(u.username, Date.now()); const cut = Date.now() - 12000; for (const [k, t] of solSeen) { if (t < cut) solSeen.delete(k); } solOnline = solSeen.size; }
+  const all = conversations[KEY] || [];
   const sn = parseInt(since, 10) || 0;
   const msgs = sn ? all.filter(m => m.id > sn) : all.slice(-60);
-  return { ok: true, ver: pubVer, messages: msgs, online: onlineAccounts.size, lastId: all.length ? all[all.length - 1].id : 0 };
+  return { ok: true, ver: pubVer, messages: msgs, online: isSol ? solOnline : onlineAccounts.size, lastId: all.length ? all[all.length - 1].id : 0 };
 }
 // Chat-Filter: Rassismus, Beleidigungen, 18+ (nach Normalisierung: Gross/Klein, Akzente, Leetspeak, Trennzeichen)
 const CHAT_BAD = ["neger","nigger","nigga","kanake","kanacke","zigeuner","untermensch","heilhitler","siegheil","judensau","schwuchtel","hurensohn","fotze","wichser","arschloch","porno","onlyfans","blowjob","ficken","pussy","schlampe","vergewalt","killyourself","behindert","faggot","retard"]; // lange Begriffe: auch ueber Wortgrenzen
@@ -5637,7 +5668,8 @@ function chatBlocked(t) {
 }
 let pubVer = 0;
 const chatBlockedLog = []; // nur im Speicher, fuer die Admin-Seite
-async function chatPublicSend(token, text, lang) {
+async function chatPublicSend(token, text, lang, room) {
+  const isSol = room === "sol", KEY = isSol ? SOL_KEY : PUB_KEY;
   if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
   if (!me) return errObj("notLoggedIn", lang);
@@ -5647,13 +5679,13 @@ async function chatPublicSend(token, text, lang) {
   if (!t) return { ok: false, error: "Leer." };
   if (/(https?:\/\/|www\.|\.(com|de|net|org|io|ru|xyz|tv|me|ly|gg|to|co)\b)/i.test(t)) { chatBlockedLog.push({ ts: Date.now(), u: me.username, t, why: "link" }); if (chatBlockedLog.length > 40) chatBlockedLog.shift(); return { ok: false, error: "Links sind im Chat nicht erlaubt." }; }
   if (!me.adminCloak && chatBlocked(t)) { me.chatStrikes = (me.chatStrikes || 0) + 1; chatBlockedLog.push({ ts: Date.now(), u: me.username, t, why: "wort" }); if (chatBlockedLog.length > 40) chatBlockedLog.shift(); return { ok: false, error: "Diese Nachricht ist nicht erlaubt (Beleidigung, Rassismus oder 18+)." }; }
-  const now = Date.now(), key = me.username.toLowerCase();
+  const now = Date.now(), key = (isSol ? "sol:" : "") + me.username.toLowerCase();
   const arr = (pubLast.get(key) || []).filter(x => now - x < 20000);
   if (arr.length && now - arr[arr.length - 1] < 1500) return { ok: false, error: "Nicht so schnell." };
   if (arr.length >= 5) return { ok: false, error: "Zu viele Nachrichten, warte kurz." };
   arr.push(now); pubLast.set(key, arr);
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
-  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
+  const list = conversations[KEY] || (conversations[KEY] = []);
   const last = list.length ? list[list.length - 1] : null;
   if (last && last.u === (me.adminCloak ? "Admin" : me.username) && last.t === t) return { ok: false, error: "Doppelt." };
   const msg = { id: (last ? last.id : 0) + 1, u: me.adminCloak ? "Admin" : me.username, a: me.adminCloak ? "👑" : (me.avatar || null), t, ts: now };
@@ -6953,7 +6985,7 @@ function adminLive(key, ip) {
 async function adminChat(action, payload, ip, lang) {
   if (!adminOk(payload && payload.adminKey, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
-  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
+  const list = conversations[KEY] || (conversations[KEY] = []);
   if (action === "delete") { const id = parseInt(payload.id, 10); const i = list.findIndex(m => m.id === id); if (i >= 0) list.splice(i, 1); pubVer++; }
   else if (action === "clear") { pubVer++; const last = list.length ? list[list.length - 1].id : 0; list.length = 0; list.push({ id: last + 1, sys: true, k: "adminclear", ts: Date.now() }); }
   else if (action === "send") {
@@ -6999,7 +7031,7 @@ function feedPush(user, kind, n, x) {
 // Live-Meldung als Systemzeile im oeffentlichen Chat (ohne Absender; Name nur wenn erlaubt).
 async function chatSystemPost(kind, name, n, x) {
   if (!(await ensureConversationsLoaded())) return;
-  const list = conversations[PUB_KEY] || (conversations[PUB_KEY] = []);
+  const list = conversations[KEY] || (conversations[KEY] = []);
   const last = list.length ? list[list.length - 1] : null;
   list.push({ id: (last ? last.id : 0) + 1, sys: 1, k: kind, nm: name || "", n: n | 0, x: x ? String(x).slice(0, 40) : "", u: "", t: "", ts: Date.now() });
   if (list.length > PUB_MAX) list.splice(0, list.length - PUB_MAX);
@@ -7630,6 +7662,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/login") result = await loginUser(payload.username, payload.password, ip, lang, payload.code);
         else if (req.url === "/api/session") result = sessionUser(payload.token);
         else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
+        else if (req.url === "/api/klo/submit") result = await kloSubmit(payload.token, payload.draw, payload.moves, payload.secs, lang);
+        else if (req.url === "/api/klo/board") result = kloBoard(payload.token, payload.draw);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);
         else if (req.url === "/api/taboo-solo" && !(gateOk("taboo", payload.adminKey, ip) && gateOk("taboo_solo", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
@@ -7711,8 +7745,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/arena-leaderboard") result = arenaLeaderboard();
         else if (req.url === "/api/random-quiz-questions") result = randomQuizQuestions(payload.count);
         else if (req.url === "/api/audio-tracks") result = listAudioTracks();
-        else if (req.url === "/api/chat-public-list") result = await chatPublicList(payload.since);
-        else if (req.url === "/api/chat-public-send") result = await chatPublicSend(payload.token, payload.text, lang);
+        else if (req.url === "/api/chat-public-list") result = await chatPublicList(payload.since, payload.room, payload.token);
+        else if (req.url === "/api/chat-public-send") result = await chatPublicSend(payload.token, payload.text, lang, payload.room);
         else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
