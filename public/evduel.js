@@ -1,165 +1,258 @@
-/* Duell-Anzeige fuer Turnier-Events: Tic Tac Toe, 4 gewinnt, Muehle, Dame, Schach.
- * Der Server schickt Zustand + erlaubte Zuege; hier wird nur gezeichnet und der Zug-Index zurueckgeschickt. */
-(function () {
-  'use strict';
-  const sel = { key: '', path: [], from: null, to: null };
-  const C = { a: '#c6ff3d', b: '#ff4d6a' };
-  const esc2 = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const T = (de, en) => (typeof L === 'function' ? L(de, en) : de);
+"use strict";
+/* Duell-Spiele fuer Turnier-Events (1 gegen 1): Tic Tac Toe, 4 gewinnt, Muehle, Dame, Schach.
+ * Seite "a" beginnt (X / Rot / Weiss), Seite "b" folgt. Alle Zuege werden serverseitig geprueft.
+ * Der Client bekommt pro Abfrage den Zustand + die Liste der erlaubten Zuege und sendet nur den Index. */
+module.exports = function (deps) {
+  const { Dame, Mill, getChess, getQuiz } = deps;
+  const TYPES = { ttt: "Tic Tac Toe", ttq: "Tic Tac Toe Quiz", ttx: "Tic Tac Toe Quanten", c4: "4 gewinnt", mill: "Mühle", dame: "Dame", chess: "Schach" };
+  const SEC = { ttt: 60, ttq: 150, ttx: 90, c4: 120, mill: 180, dame: 240, chess: 300 };
+  const other = s => (s === "a" ? "b" : "a");
+  const TTT_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  const COL = { a: "w", b: "b" }; // Dame / Muehle / Schach: a = "w"
+  const rnd = n => Math.floor(Math.random() * n);
 
-  function css() {
-    if (document.getElementById('evdCss')) return;
-    const st = document.createElement('style'); st.id = 'evdCss';
-    st.textContent = `.evd{margin-top:8px}.evd .st{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;font-weight:800}
-.evd .who{flex:1;text-align:center;border-radius:12px;padding:6px 4px;background:rgba(255,255,255,.07);font-size:13px;border:2px solid transparent}.evd .who.on{border-color:var(--accent);background:rgba(198,255,61,.14)}
-.evd .who i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:5px;vertical-align:-1px}
-.evd .bd{margin:0 auto;width:100%;max-width:360px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.evd .tt{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.evd .tt button{aspect-ratio:1;border-radius:14px;border:0;background:rgba(255,255,255,.09);font-size:44px;font-weight:900;color:#fff;padding:0}
-.evd .tt button.ok{outline:2px dashed rgba(198,255,61,.55)}
-.evd .c4{background:#1b2a6b;border-radius:14px;padding:8px}.evd .c4 .cols{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.evd .c4 .col{display:grid;gap:5px;border-radius:10px;cursor:pointer}.evd .c4 .col.ok{background:rgba(198,255,61,.14)}
-.evd .c4 .cell{aspect-ratio:1;border-radius:50%;background:#0c1238}.evd .c4 .cell.a{background:${C.a}}.evd .c4 .cell.b{background:${C.b}}.evd .c4 .cell.l{box-shadow:0 0 0 3px #fff inset}
-.evd .sq{display:grid;grid-template-columns:repeat(8,1fr);border-radius:10px;overflow:hidden}.evd .sq div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;position:relative;font-size:min(8.6vw,34px);line-height:1}
-.evd .sq .lt{background:#d9c9a3}.evd .sq .dk{background:#7a5a36}.evd .sq .lm{box-shadow:0 0 0 100px rgba(198,255,61,.28) inset}.evd .sq .sl{box-shadow:0 0 0 100px rgba(255,214,0,.5) inset}
-.evd .sq .tg::after{content:'';width:34%;height:34%;border-radius:50%;background:rgba(40,160,40,.75);position:absolute}.evd .sq .mv{box-shadow:0 0 0 3px rgba(198,255,61,.9) inset}
-.evd .pc{width:78%;height:78%;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.55em;font-weight:900}
-.evd .pc.a{background:#f4f4f4;color:#222;box-shadow:0 2px 0 #aaa}.evd .pc.b{background:#222;color:#fff;box-shadow:0 2px 0 #000;border:2px solid #555}
-.evd .ch{font-size:1em;text-shadow:0 1px 2px rgba(0,0,0,.4)}.evd .ch.a{color:#fff;-webkit-text-stroke:1px #333}.evd .ch.b{color:#161616;-webkit-text-stroke:.5px #888}
-.evd .ml{width:100%;display:block}.evd .ml circle.pt{cursor:pointer}
-.evd .msg{text-align:center;margin-top:8px;font-weight:800;min-height:22px}.evd .sub{text-align:center;font-size:12px;opacity:.75;margin-top:2px}`;
-    document.head.appendChild(st);
-  }
-
-  function me() { return evs && evs.v && evs.v.run && evs.v.run.duel; }
-  function reset(d) { const k = d ? d.g + '|' + d.rev + '|' + d.round : ''; if (sel.key !== k) { sel.key = k; sel.path = []; sel.from = null; sel.to = null; } }
-
-  /* ---------- Rendering ---------- */
-  function ttt(d) {
-    const pend = d.g === 'ttq' && d.st.pend, ok = pend ? [] : (d.legal || []), old = d.g === 'ttx' ? d.st.old : null; let h = '<div class="tt">';
-    for (let i = 0; i < 9; i++) {
-      const v = d.st.b[i], can = ok.indexOf(i) >= 0, fade = old && (old.a === i || old.b === i), pc = pend && pend.cell === i;
-      h += `<button class="${can ? 'ok' : ''}" ${can ? `onclick="evDuelMove(${ok.indexOf(i)})"` : ''} style="color:${v === 'a' ? C.a : C.b};${fade ? 'opacity:.45;' : ''}${pc ? 'outline:3px solid #fff;' : ''}">${v === 'a' ? '✕' : v === 'b' ? '◯' : (pc ? '?' : '')}</button>`;
-    }
-    h += '</div>';
-    if (pend) {
-      const my = d.legal && d.legal.length, other = d.you === 'a' ? pend.ans.b : pend.ans.a, mine = d.you === 'a' ? pend.ans.a : pend.ans.b;
-      h += `<div class="bx2" style="margin-top:10px;background:rgba(255,255,255,.07);border-radius:12px;padding:10px"><div class="d" style="font-size:12px;opacity:.7">${esc2(pend.cat)} · ⏱ ${pend.left}s</div><div style="font-weight:800;font-size:16px;margin:4px 0 8px">${esc2(pend.q)}</div>` +
-        (my ? pend.a.map((a, i) => `<button class="ans" onclick="evDuelMove(${i})">${esc2(a)}</button>`).join('') : `<div class="d" style="text-align:center">${mine ? '✅ ' + T('Antwort gesendet', 'Answer sent') : ''}${other && !mine ? '' : ''} ${T('Warte auf den Gegner …', 'Waiting for the opponent …')}</div>`) +
-        `<div class="d" style="font-size:12px;margin-top:6px;text-align:center">${T('Wer richtig und schneller antwortet, bekommt das Feld.', 'Correct and fastest wins the cell.')}</div></div>`;
-    }
-    return h;
-  }
-  function c4(d) {
-    const ok = d.legal || []; let h = '<div class="c4"><div class="cols">';
-    for (let c = 0; c < 7; c++) {
-      const can = ok.indexOf(c) >= 0;
-      h += `<div class="col ${can ? 'ok' : ''}" ${can ? `onclick="evDuelMove(${ok.indexOf(c)})"` : ''}>`;
-      for (let r = 0; r < 6; r++) { const v = d.st.b[r * 7 + c]; h += `<div class="cell ${v || ''} ${d.last === c && v && (r === 0 || !d.st.b[(r - 1) * 7 + c]) ? 'l' : ''}"></div>`; }
-      h += '</div>';
-    }
-    return h + '</div></div>';
-  }
-  const MP = (() => { const o = []; [[20, 280], [70, 230], [120, 180]].forEach(([a, z]) => { const m = (a + z) / 2; o.push([a, a], [m, a], [z, a], [z, m], [z, z], [m, z], [a, z], [a, m]); }); return o; })();
-  function mill(d) {
-    const ok = d.legal || [], b = d.st.b;
-    let from = sel.from, cands = ok.filter(m => (from == null || m.f === from) && (sel.to == null || m.t === sel.to));
-    let stage = 'to';
-    if (ok.some(m => m.f != null) && from == null) stage = 'from'; else if (sel.to != null) stage = 'rm';
-    const hi = new Set();
-    if (d.turn === d.you && !d.over) cands.forEach(m => { if (stage === 'from') hi.add(m.f); else if (stage === 'to') hi.add(m.t); else if (m.r != null) hi.add(m.r); });
-    let s = '<svg class="ml" viewBox="0 0 300 300"><rect width="300" height="300" rx="16" fill="#7a5a36"/><g stroke="#e8d7b0" stroke-width="3" fill="none">';
-    [[20, 280], [70, 230], [120, 180]].forEach(([a, z]) => { s += `<rect x="${a}" y="${a}" width="${z - a}" height="${z - a}"/>`; });
-    s += '<path d="M150 20V120M150 180V280M20 150H120M180 150H280"/></g>';
-    for (let i = 0; i < 24; i++) {
-      const [x, y] = MP[i], v = b[i], h = hi.has(i), last = d.last && (d.last.t === i || d.last.f === i);
-      s += `<circle class="pt" cx="${x}" cy="${y}" r="${v ? 13 : 7}" fill="${v === 'a' ? '#f4f4f4' : v === 'b' ? '#222' : '#e8d7b0'}" stroke="${h ? '#c6ff3d' : v === 'b' ? '#777' : last ? '#fff' : 'none'}" stroke-width="${h ? 4 : 2}" onclick="evDuelMill(${i})"/>`;
-      if (h) s += `<circle cx="${x}" cy="${y}" r="20" fill="none" stroke="#c6ff3d" stroke-width="2" stroke-dasharray="4 3" pointer-events="none"/>`;
-    }
-    return s + '</svg>';
-  }
-  function grid(d, chess) {
-    const flip = d.you === 'b', ok = d.legal || [], bd = d.st.board;
-    let targets = new Set(), froms = new Set();
-    if (chess) { ok.forEach(m => froms.add(m.fr + ',' + m.fc)); if (sel.from) ok.filter(m => m.fr === sel.from[0] && m.fc === sel.from[1]).forEach(m => targets.add(m.tr + ',' + m.tc)); }
-    else {
-      ok.forEach(p => froms.add(p[0][0] + ',' + p[0][1]));
-      if (sel.path.length) ok.filter(p => pre(p, sel.path) && p.length > sel.path.length).forEach(p => targets.add(p[sel.path.length][0] + ',' + p[sel.path.length][1]));
-    }
-    const lm = new Set(); if (d.last) { if (chess) { lm.add(d.last.fr + ',' + d.last.fc); lm.add(d.last.tr + ',' + d.last.tc); } else if (Array.isArray(d.last)) { lm.add(d.last[0].join(',')); lm.add(d.last[d.last.length - 1].join(',')); } }
-    const G = { P: '♟', N: '♞', B: '♝', R: '♜', Q: '♛', K: '♚' };
-    let h = '<div class="sq">';
-    for (let i = 0; i < 64; i++) {
-      let r = Math.floor(i / 8), c = i % 8; if (flip) { r = 7 - r; c = 7 - c; }
-      const v = bd[r][c], key = r + ',' + c, dark = (r + c) % 2 === 1, isSel = chess ? (sel.from && sel.from[0] === r && sel.from[1] === c) : (sel.path.length && sel.path[0][0] === r && sel.path[0][1] === c);
-      const cls = (chess ? ((r + c) % 2 === 0 ? 'lt' : 'dk') : (dark ? 'dk' : 'lt')) + (lm.has(key) ? ' lm' : '') + (isSel ? ' sl' : '') + (targets.has(key) ? ' tg' : '') + (froms.has(key) && !sel.from && !sel.path.length ? ' mv' : '');
-      let inner = '';
-      if (v) inner = chess ? `<span class="ch ${v[0]}">${G[v[1]]}</span>` : `<span class="pc ${v[0]}">${v.length > 1 ? '♛' : ''}</span>`;
-      h += `<div class="${cls}" onclick="evDuelSq(${r},${c},${chess ? 1 : 0})">${inner}</div>`;
-    }
-    return h + '</div>';
-  }
-  function pre(p, pf) { if (p.length < pf.length) return false; for (let i = 0; i < pf.length; i++) if (p[i][0] !== pf[i][0] || p[i][1] !== pf[i][1]) return false; return true; }
-
-  function html(r) {
-    css(); const d = r.duel; if (!d) return '';
-    reset(d);
-    const nm = evs && evs.v && evs.v.run, meN = (account && account.profile && account.profile.username) || T('Du', 'You'), opp = r.opp || '?';
-    const youA = d.you === 'a', pa = youA ? meN : opp, pb = youA ? opp : meN, mine = d.turn === d.you;
-    const col = s => (d.g === 'mill' || d.g === 'dame' || d.g === 'chess') ? (s === 'a' ? '#f4f4f4' : '#222;border:1px solid #888') : C[s];
-    let h = `<div class="evd"><div class="st"><div class="who ${d.turn === 'a' && !d.over ? 'on' : ''}"><i style="background:${col('a')}"></i>${esc2(pa)}${d.g === 'mill' ? ` <span class="d">(${d.st.hand.a})</span>` : ''}</div><div class="who ${d.turn === 'b' && !d.over ? 'on' : ''}"><i style="background:${col('b')}"></i>${esc2(pb)}${d.g === 'mill' ? ` <span class="d">(${d.st.hand.b})</span>` : ''}</div></div><div class="bd">`;
-    h += (d.g === 'ttt' || d.g === 'ttx' || d.g === 'ttq') ? ttt(d) : d.g === 'c4' ? c4(d) : d.g === 'mill' ? mill(d) : grid(d, d.g === 'chess');
-    h += '</div>';
-    let msg;
-    if (d.over) msg = d.res === 'draw' ? '🤝 ' + T('Remis', 'Draw') : d.res === d.you ? '🏆 ' + T('Gewonnen!', 'You won!') : '💀 ' + T('Verloren', 'You lost');
-    else if (mine) msg = '👉 ' + T('Du bist dran', 'Your turn') + (d.g === 'mill' && d.st.hand[d.you] > 0 ? ' · ' + T('Stein setzen', 'place a stone') : '');
-    else msg = '⏳ ' + T(esc2(opp) + ' denkt …', esc2(opp) + ' is thinking …');
-    let sub = '';
-    if (d.g === 'ttx' && !d.over) sub = T('Max. 3 Zeichen je Spieler – das älteste (blass) verschwindet.', 'Max 3 marks each – the oldest (faded) vanishes.'); else if (d.g === 'ttq' && !d.over && !(d.st.pend)) sub = mine ? T('Wähle ein Feld, dann gibt es eine Quizfrage.', 'Pick a cell, then a quiz question follows.') : ''; else if (d.round > 1 && (d.g === 'ttt' || d.g === 'c4')) sub = T('Unentschieden – neue Runde!', 'Draw – new round!');
-    else if (d.g === 'mill' && mine && sel.to != null) sub = T('Mühle! Tippe einen gegnerischen Stein zum Entfernen.', 'Mill! Tap an enemy stone to remove.');
-    else if (d.g === 'chess' && !d.over && mine) sub = T('Bauer erreicht das Ende → wird automatisch Dame.', 'Pawns auto-promote to a queen.');
-    return h + `<div class="msg">${msg}</div><div class="sub">${sub}</div></div>`;
-  }
-
-  /* ---------- Eingaben ---------- */
-  async function send(mi) {
-    const d = me(); if (!d || evs.busy) return; evs.busy = true;
-    sel.path = []; sel.from = null; sel.to = null;
-    const r = await apiCall('/api/event', { action: 'move', mi, rev: d.rev, id: evs && evs.id || undefined, token: account && account.token });
-    if (!evs) return; evs.busy = false;
-    if (r && r.ok && r.run) { evs.v = r; evs.off = r.now - Date.now(); evs.sig = ''; paint(); }
-  }
-  window.evDuelMove = mi => send(mi);
-  window.evDuelMill = i => {
-    const d = me(); if (!d || d.turn !== d.you || d.over) return;
-    const ok = d.legal;
-    const filt = () => ok.filter(m => (sel.from == null || m.f === sel.from) && (sel.to == null || m.t === sel.to));
-    const stage = () => (sel.from == null && ok.some(m => m.f != null)) ? 'from' : (sel.to == null ? 'to' : 'rm');
-    const st = stage(); let cs = filt();
-    const nc = cs.filter(m => (st === 'from' ? m.f : st === 'to' ? m.t : m.r) === i);
-    if (!nc.length) { sel.from = null; sel.to = null; if (ok.some(m => m.f === i)) sel.from = i; return paint(); }
-    if (st === 'from') sel.from = i; else if (st === 'to') sel.to = i;
-    cs = filt(); if (st === 'rm') cs = cs.filter(m => m.r === i);
-    if (st === 'rm' || (cs.length === 1 && sel.to != null)) return send(ok.indexOf(cs[0]));
-    paint();
-  };
-  window.evDuelSq = (r, c, chess) => {
-    const d = me(); if (!d || d.turn !== d.you || d.over) return; const ok = d.legal;
-    if (chess) {
-      if (sel.from) { const i = ok.findIndex(m => m.fr === sel.from[0] && m.fc === sel.from[1] && m.tr === r && m.tc === c); if (i >= 0) return send(i); }
-      sel.from = ok.some(m => m.fr === r && m.fc === c) ? [r, c] : null;
-    } else {
-      if (!sel.path.length) { if (ok.some(p => p[0][0] === r && p[0][1] === c)) sel.path = [[r, c]]; }
-      else {
-        const np = sel.path.concat([[r, c]]), cs = ok.filter(p => pre(p, np));
-        if (!cs.length) { sel.path = ok.some(p => p[0][0] === r && p[0][1] === c) ? [[r, c]] : []; }
-        else if (cs.length === 1 && cs[0].length === np.length) return send(ok.indexOf(cs[0]));
-        else sel.path = np;
+  /* ---------- 4 gewinnt ---------- */
+  const C4W = 7, C4H = 6;
+  function c4Win(b, side) {
+    const at = (r, c) => (r >= 0 && r < C4H && c >= 0 && c < C4W ? b[r * C4W + c] : null);
+    for (let r = 0; r < C4H; r++) for (let c = 0; c < C4W; c++) {
+      if (at(r, c) !== side) continue;
+      for (const [dr, dc] of [[0,1],[1,0],[1,1],[1,-1]]) {
+        let k = 1; while (k < 4 && at(r + dr * k, c + dc * k) === side) k++;
+        if (k === 4) return true;
       }
     }
-    paint();
-  };
-  function paint() { const el = document.getElementById('evDuelBox'); if (!el || !evs || !evs.v || !evs.v.run) return; const r = evs.v.run; el.innerHTML = html(r); evs.duelSig = sigOf(r); }
-  function sigOf(r) { const d = r.duel; return d ? d.g + '|' + d.rev + '|' + d.turn + '|' + d.over + '|' + sel.from + '|' + sel.path.length + '|' + sel.to : ''; }
-  window.evDuelPaint = paint;
-  window.evDuelSig = sigOf;
-  window.evDuelHtml = html;
-})();
+    return false;
+  }
+  function c4Cols(b) { const o = []; for (let c = 0; c < C4W; c++) if (!b[c]) o.push(c); return o; }
+  function c4Drop(b, c, side) { const nb = b.slice(); for (let r = C4H - 1; r >= 0; r--) if (!nb[r * C4W + c]) { nb[r * C4W + c] = side; return nb; } return null; }
+  function c4Eval(b, me) {
+    let s = 0; const op = other(me);
+    const at = (r, c) => b[r * C4W + c];
+    for (let r = 0; r < C4H; r++) for (let c = 0; c < C4W; c++) for (const [dr, dc] of [[0,1],[1,0],[1,1],[1,-1]]) {
+      const r2 = r + dr * 3, c2 = c + dc * 3; if (r2 < 0 || r2 >= C4H || c2 < 0 || c2 >= C4W) continue;
+      let m = 0, o = 0; for (let k = 0; k < 4; k++) { const v = at(r + dr * k, c + dc * k); if (v === me) m++; else if (v === op) o++; }
+      if (m && o) continue; if (m === 3) s += 6; else if (m === 2) s += 2; if (o === 3) s -= 7; else if (o === 2) s -= 2;
+    }
+    for (let r = 0; r < C4H; r++) if (at(r, 3) === me) s += 3;
+    return s;
+  }
+  function c4Search(b, me, turn, depth, alpha, beta) {
+    if (c4Win(b, me)) return 10000 + depth; if (c4Win(b, other(me))) return -10000 - depth;
+    const cols = c4Cols(b); if (!cols.length) return 0; if (depth === 0) return c4Eval(b, me);
+    cols.sort((x, y) => Math.abs(x - 3) - Math.abs(y - 3));
+    let best = turn === me ? -Infinity : Infinity;
+    for (const c of cols) {
+      const v = c4Search(c4Drop(b, c, turn), me, other(turn), depth - 1, alpha, beta);
+      if (turn === me) { if (v > best) best = v; if (best > alpha) alpha = best; } else { if (v < best) best = v; if (best < beta) beta = best; }
+      if (alpha >= beta) break;
+    }
+    return best;
+  }
+
+  /* ---------- Schach ---------- */
+  function chessKey(g) {
+    let k = g.turn;
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = g.board[r][c]; k += p ? (p.col + p.t + (p.moved ? "m" : "")) : "."; }
+    if (g.last && g.last.dbl) k += "e" + g.last.tc;
+    return k;
+  }
+  function chessInsufficient(board) {
+    const pcs = [];
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) { const p = board[r][c]; if (p && p.t !== "K") pcs.push({ p, r, c }); }
+    if (!pcs.length) return true;
+    if (pcs.length === 1 && (pcs[0].p.t === "B" || pcs[0].p.t === "N")) return true;
+    if (pcs.length === 2 && pcs.every(x => x.p.t === "B") && ((pcs[0].r + pcs[0].c) % 2) === ((pcs[1].r + pcs[1].c) % 2)) return true;
+    return false;
+  }
+  const PV = { P: 100, N: 320, B: 330, R: 500, Q: 900, K: 0 };
+
+  /* ---------- Anlegen ---------- */
+  function fresh(type, starter) {
+    const st = starter || "a";
+    if (type === "ttt") return { b: Array(9).fill(null), turn: st };
+    if (type === "ttx") return { b: Array(9).fill(null), turn: st, pc: { a: [], b: [] } };
+    if (type === "ttq") return { b: Array(9).fill(null), turn: st, pend: null };
+    if (type === "c4") return { b: Array(C4W * C4H).fill(null), turn: st };
+    if (type === "mill") return { s: Mill.initial(), turn: "a" };
+    if (type === "dame") return { board: Dame.initialBoard(), turn: "a", quiet: 0 };
+    const E = getChess(); const g = { board: E.initBoard(), turn: "a", last: null, half: 0, seen: {} }; g.seen[chessKey(g)] = 1; return g;
+  }
+  function create(type) {
+    return { g: type, st: fresh(type, "a"), rev: 1, res: null, why: "", n: 0, mv: { a: 0, b: 0 }, round: 1, wins: { a: 0, b: 0 }, lastMv: null, botAt: 0, overAt: 0 };
+  }
+
+  /* ---------- Erlaubte Zuege (kompakt, Index = Zug) ---------- */
+  function legal(d) {
+    const s = d.st;
+    if (d.res) return [];
+    if (d.g === "ttq" && s.pend) return [0, 1, 2, 3];
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "ttq") { const o = []; s.b.forEach((v, i) => { if (!v) o.push(i); }); return o; }
+    if (d.g === "c4") return c4Cols(s.b);
+    if (d.g === "mill") return Mill.legalMoves(s.s, COL[s.turn]).map(m => ({ f: m.from, t: m.to, r: m.rm }));
+    if (d.g === "dame") return Dame.legalMoves(s.board, COL[s.turn]).map(m => m.path);
+    const E = getChess(); return E.getAllLegalMoves(s.board, COL[s.turn], s.last).map(m => ({ fr: m.fr, fc: m.fc, tr: m.tr, tc: m.tc }));
+  }
+  function pubState(d) {
+    const s = d.st;
+    if (d.g === "ttx") return { b: s.b, old: { a: s.pc.a.length >= 3 ? s.pc.a[0] : -1, b: s.pc.b.length >= 3 ? s.pc.b[0] : -1 } };
+    if (d.g === "ttq") return { b: s.b, pend: s.pend ? { cell: s.pend.cell, q: s.pend.q.q, a: s.pend.q.a, cat: s.pend.q.cat || "", ans: { a: s.pend.ans.a != null, b: s.pend.ans.b != null }, left: Math.max(0, Math.ceil((s.pend.start + QUIZ_MS - Date.now()) / 1000)) } : null };
+    if (d.g === "ttt" || d.g === "c4") return { b: s.b };
+    if (d.g === "mill") return { b: s.s.b.map(x => (x === "w" ? "a" : x === "b" ? "b" : null)), hand: { a: s.s.hand.w, b: s.s.hand.b } };
+    if (d.g === "dame") return { board: s.board.map(r => r.map(p => (p ? (p.c === "w" ? "a" : "b") + (p.k ? "K" : "") : ""))) };
+    return { board: s.board.map(r => r.map(p => (p ? (p.col === "w" ? "a" : "b") + p.t : ""))) };
+  }
+  function view(d, side) {
+    const s = d.st, mine = side && !d.res && (d.g === "ttq" && s.pend ? s.pend.ans[side] == null : s.turn === side);
+    return { g: d.g, you: side || "", turn: s.turn, rev: d.rev, over: !!d.res, res: d.res, why: d.why, n: d.n, round: d.round, wins: d.wins, last: d.lastMv, st: pubState(d), legal: mine ? legal(d) : [] };
+  }
+
+  /* ---------- Zug ausfuehren ---------- */
+  function finish(d, res, why) { d.res = res; d.why = why || ""; d.overAt = Date.now(); d.rev++; }
+  function nextTurn(d, side) {
+    // nach einem Zug: Ende pruefen
+    const s = d.st;
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "ttq") {
+      if (TTT_LINES.some(l => l.every(i => s.b[i] === side))) return finish(d, side, "line");
+      if (d.g === "ttx" && d.n >= 60) return finish(d, "draw", "limit");
+      if (s.b.every(v => v)) return redo(d);
+    } else if (d.g === "c4") {
+      if (c4Win(s.b, side)) return finish(d, side, "four");
+      if (!c4Cols(s.b).length) return redo(d);
+    } else if (d.g === "mill") {
+      const w = Mill.result(s.s); if (w) return finish(d, w === "w" ? "a" : "b", "mill");
+      if (s.s.quiet >= 40) return finish(d, "draw", "quiet");
+    } else if (d.g === "dame") {
+      const w = Dame.result(s.board, COL[s.turn]); if (w) return finish(d, w === "w" ? "a" : "b", "dame");
+      if (s.quiet >= 40) return finish(d, "draw", "quiet");
+    } else {
+      const E = getChess(), c = COL[s.turn], lg = E.getAllLegalMoves(s.board, c, s.last);
+      if (!lg.length) return E.isInCheck(s.board, c) ? finish(d, side, "mate") : finish(d, "draw", "stalemate");
+      if (chessInsufficient(s.board)) return finish(d, "draw", "insufficient");
+      if (s.half >= 100) return finish(d, "draw", "fifty");
+      if ((s.seen[chessKey(s)] || 0) >= 3) return finish(d, "draw", "threefold");
+    }
+    d.rev++;
+  }
+  // Remis bei TTT / 4 gewinnt: neue Partie, andere Seite beginnt
+  function redo(d) { d.round++; d.st = fresh(d.g, d.round % 2 ? "a" : "b"); d.lastMv = null; d.rev++; }
+
+  const QUIZ_MS = 20000;
+  function quizPlay(d, side, mi, now) {
+    const pd = d.st.pend; mi = Number(mi);
+    if (pd.ans[side] != null || !Number.isInteger(mi) || mi < 0 || mi > 3) return false;
+    pd.ans[side] = mi; pd.t[side] = now; d.rev++;
+    if (pd.ans.a != null && pd.ans.b != null) quizResolve(d, now);
+    return true;
+  }
+  function quizResolve(d, now) {
+    const s = d.st, pd = s.pend; if (!pd) return;
+    const ok = x => pd.ans[x] === pd.q.ans, ca = ok("a"), cb = ok("b");
+    let w = null; if (ca && cb) w = pd.t.a <= pd.t.b ? "a" : "b"; else if (ca) w = "a"; else if (cb) w = "b";
+    s.pend = null; d.n++; s.turn = other(s.turn);
+    if (w) { s.b[pd.cell] = w; d.lastMv = pd.cell; d.mv.a = d.mv.a || 1; d.mv.b = d.mv.b || 1; return nextTurn(d, w); }
+    d.rev++;
+  }
+  // wird jede Sekunde vom Server gerufen: Frage nach 20 s ohne Antwort zaehlt als falsch
+  function tick(d, now) {
+    const pd = d.st && d.st.pend; if (d.res || !pd) return;
+    if (now - pd.start > QUIZ_MS) { if (pd.ans.a == null) pd.ans.a = -1; if (pd.ans.b == null) pd.ans.b = -1; quizResolve(d, now); }
+  }
+  function botAnswer(d, side, skill) {
+    const pd = d.st.pend; if (!pd || pd.ans[side] != null) return -1;
+    const right = Math.random() < 0.35 + skill * 0.5; if (right) return pd.q.ans;
+    const w = [0, 1, 2, 3].filter(i => i !== pd.q.ans); return w[rnd(w.length)];
+  }
+  function play(d, side, mi) {
+    if (d.res) return false;
+    if (d.g === "ttq" && d.st.pend) return quizPlay(d, side, mi, Date.now());
+    if (d.st.turn !== side) return false;
+    const lg = legal(d); mi = Number(mi); if (!Number.isInteger(mi) || mi < 0 || mi >= lg.length) return false;
+    return doMove(d, side, lg[mi]);
+  }
+  function doMove(d, side, m) {
+    const s = d.st;
+    if (d.g === "ttq") { const q = getQuiz(); s.pend = { cell: m, q, ans: { a: null, b: null }, t: {}, start: Date.now() }; d.rev++; d.n++; d.mv[side]++; return true; }
+    if (d.g === "ttx") { s.b[m] = side; const pc = s.pc[side]; pc.push(m); if (pc.length > 3) { s.b[pc.shift()] = null; } d.lastMv = m; }
+    else if (d.g === "ttt") { s.b[m] = side; d.lastMv = m; }
+    else if (d.g === "c4") { s.b = c4Drop(s.b, m, side); d.lastMv = m; }
+    else if (d.g === "mill") {
+      const st = s.s, mv = Mill.findMove(st, COL[side], m.f, m.t, m.r); if (!mv) return false;
+      s.s = Mill.apply(st, mv); d.lastMv = { f: m.f, t: m.t, r: m.r };
+    } else if (d.g === "dame") {
+      const cl = Dame.legalMoves(s.board, COL[side]).find(x => JSON.stringify(x.path) === JSON.stringify(m)); if (!cl) return false;
+      const [r0, c0] = cl.path[0], mover = s.board[r0][c0];
+      s.quiet = (cl.captured.length || !mover.k) ? 0 : s.quiet + 1;
+      s.board = Dame.applyMove(s.board, cl); d.lastMv = m;
+    } else {
+      const E = getChess(), c = COL[side], mv = E.getLegalMoves(s.board, m.fr, m.fc, s.last).find(x => x.tr === m.tr && x.tc === m.tc); if (!mv) return false;
+      const piece = s.board[m.fr][m.fc], target = s.board[mv.tr][mv.tc], move = Object.assign({}, mv);
+      if (piece.t === "P" && (move.tr === 0 || move.tr === 7)) move.promTo = "Q";
+      s.board = E.applyMove(s.board, move); s.half = (piece.t === "P" || target || move.ep) ? 0 : s.half + 1; s.last = move; s.turn = other(side);
+      s.seen[chessKey(s)] = (s.seen[chessKey(s)] || 0) + 1;
+      d.lastMv = { fr: m.fr, fc: m.fc, tr: m.tr, tc: m.tc };
+      d.n++; d.mv[side]++; nextTurnAfter(d, side); return true;
+    }
+    d.n++; d.mv[side]++;
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "c4") { s.turn = other(side); }
+    else if (d.g === "mill") { s.turn = other(side); }
+    else if (d.g === "dame") { s.turn = other(side); }
+    nextTurnAfter(d, side); return true;
+  }
+  function nextTurnAfter(d, side) { nextTurn(d, side); }
+
+  /* ---------- Bots ---------- */
+  function botPick(d, side, skill) {
+    const lg = legal(d); if (!lg.length) return -1;
+    const s = d.st, hi = skill >= 0.55, rndMove = () => rnd(lg.length);
+    if (d.g === "ttt" || d.g === "ttx" || d.g === "ttq") {
+      if (Math.random() > 0.35 + skill * 0.65) return rndMove();
+      const win = side, opp = other(side), line = who => { for (const l of TTT_LINES) { const v = l.map(i => s.b[i]); if (v.filter(x => x === who).length === 2 && v.includes(null)) return l[v.indexOf(null)]; } return -1; };
+      let c = line(win); if (c < 0) c = line(opp); if (c < 0 && !s.b[4]) c = 4;
+      if (c < 0) { const co = [0, 2, 6, 8].filter(i => !s.b[i]); if (co.length) c = co[rnd(co.length)]; }
+      return c >= 0 ? lg.indexOf(c) : rndMove();
+    }
+    if (d.g === "c4") {
+      if (Math.random() < 0.28 - skill * 0.26) return rndMove();
+      const depth = skill < 0.35 ? 1 : skill < 0.65 ? 3 : 5; let best = -Infinity, bi = rndMove();
+      lg.forEach((c, i) => { const v = c4Search(c4Drop(s.b, c, side), side, other(side), depth - 1, -Infinity, Infinity) + Math.random() * (hi ? 0.5 : 4); if (v > best) { best = v; bi = i; } });
+      return bi;
+    }
+    if (d.g === "mill") {
+      if (Math.random() < 0.3 - skill * 0.28) return rndMove();
+      const mv = Mill.botMove(s.s, COL[side], skill < 0.4 ? "easy" : "normal"); if (!mv) return rndMove();
+      const i = lg.findIndex(x => x.f === (mv.from == null ? null : mv.from) && x.t === mv.to && x.r === (mv.rm == null ? null : mv.rm)); return i >= 0 ? i : rndMove();
+    }
+    if (d.g === "dame") {
+      if (Math.random() < 0.25 - skill * 0.23) return rndMove();
+      const mv = Dame.botMove(s.board, COL[side], skill < 0.4 ? "easy" : "normal"); if (!mv) return rndMove();
+      const key = JSON.stringify(mv.path); const i = lg.findIndex(x => JSON.stringify(x) === key); return i >= 0 ? i : rndMove();
+    }
+    // Schach
+    if (Math.random() < 0.22 - skill * 0.2) return rndMove();
+    const E = getChess(), c = COL[side], depth = skill < 0.45 ? 1 : 2, all = E.getAllLegalMoves(s.board, c, s.last);
+    let best = null, bv = c === "b" ? -Infinity : Infinity;
+    all.forEach(m => {
+      const v = E.minimax(E.applyMove(s.board, m), depth - 1, -Infinity, Infinity, c === "w", m) + (Math.random() - 0.5) * (skill < 0.45 ? 160 : 40);
+      if (c === "b" ? v > bv : v < bv) { bv = v; best = m; }
+    });
+    if (!best) return rndMove();
+    const i = lg.findIndex(x => x.fr === best.fr && x.fc === best.fc && x.tr === best.tr && x.tc === best.tc); return i >= 0 ? i : rndMove();
+  }
+
+  /* ---------- Zeit abgelaufen: wer steht besser? ---------- */
+  function judge(d) {
+    if (d.res) return d.res;
+    // wer gar nicht gezogen hat, verliert
+    if (d.mv.a === 0 && d.mv.b > 0) return "b"; if (d.mv.b === 0 && d.mv.a > 0) return "a";
+    const s = d.st; let a = 0, b = 0;
+    if (d.g === "mill") { a = Mill.total(s.s, "w"); b = Mill.total(s.s, "b"); }
+    else if (d.g === "dame") { s.board.forEach(r => r.forEach(p => { if (p) (p.c === "w" ? (a += p.k ? 3 : 1) : (b += p.k ? 3 : 1)); })); }
+    else if (d.g === "chess") { s.board.forEach(r => r.forEach(p => { if (p) (p.col === "w" ? (a += PV[p.t]) : (b += PV[p.t])); })); }
+    else if (d.g === "ttq") { s.b.forEach(v => { if (v === "a") a++; else if (v === "b") b++; }); }
+    else { a = d.wins.a; b = d.wins.b; }
+    return a > b ? "a" : b > a ? "b" : "draw";
+  }
+
+  return { TYPES, SEC, create, view, play, botPick, judge, legal, finish, other, tick, botAnswer };
+};
