@@ -541,6 +541,8 @@
 <script src="/backgammon.js"></script>
 <script src="/evduel.js"></script>
 <script src="/solitaire.js"></script>
+<script src="/klondike.js"></script>
+<script src="/galaxy.js"></script>
 <script src="/dice-3d.js"></script>
 <script src="/dice-race.js"></script>
 <script src="/zocker.js"></script>
@@ -4405,7 +4407,7 @@ let bpGame='';
 document.addEventListener('click',function(ev){ try{ const home=document.querySelector('#app h1'); const pk=document.querySelector('#app .picker-title'); const isHome=!!(home&&home.offsetParent&&!pk); const c=ev.target.closest&&ev.target.closest('.mode-card'); if(!c){ if(isHome) bpGame=''; return; } const h3=c.querySelector('h3'); if(!h3) return; const clean=x=>x.replace(/[^\p{L}\p{N} \-:&]/gu,'').replace(/\s+/g,' ').trim(); const t=clean(h3.textContent); bpGame = isHome ? t : ((pk?clean(pk.textContent):'')||bpGame).replace(/ ·.*$/,'')+' · '+t; }catch(e){} },true);
 function bpWhere(){ try{
   const fr=[...document.querySelectorAll('iframe')].find(f=>f.getClientRects().length>0&&f.offsetWidth>100);
-  if(fr){ const m=((fr.getAttribute('src')||'').match(/\/([a-z0-9_-]+)\//i)||[])[1]||''; const nm={fruit:'Brain Fruit',arrows:'Brain Hood',chess:'Chess',defense:'Brain Defense'}; if(nm[m]) return nm[m]; if(bpGame) return bpGame.slice(0,40); }
+  if(fr){ const m=((fr.getAttribute('src')||'').match(/\/([a-z0-9_-]+)\//i)||[])[1]||''; const nm={fruit:'Brain Fruit',arrows:'Brain Arrow',chess:'Chess',defense:'Brain Defense'}; if(nm[m]) return nm[m]; if(bpGame) return bpGame.slice(0,40); }
   const home=document.querySelector('#app h1'), pk=document.querySelector('#app .picker-title');
   if(home&&home.offsetParent&&!pk){ bpGame=''; return 'Startseite'; }
   if(bpGame) return bpGame.slice(0,40);
@@ -5164,7 +5166,7 @@ function renderFriendsList(){
               <div class="fst-box">Brain Test<b>${L('Klasse','Class')} ${f.st.klasse}</b></div>
               <div class="fst-box">${L('Bester Score','Best score')}<b>${f.st.score}</b></div>
               <div class="fst-box">Brain Fruit<b>Level ${f.st.fruitLevel}</b></div>
-              <div class="fst-box">Brain Hood<b>Level ${f.st.hoodLevel}</b></div>
+              <div class="fst-box">Brain Arrow<b>Level ${f.st.hoodLevel}</b></div>
               <div class="fst-box">${L('Siege','Wins')}<b>${f.st.wins}</b></div>
               <div class="fst-box">${L('Erfolge','Achievements')}<b>${f.achievements}</b></div></div>` : ``}
           </div>
@@ -5363,7 +5365,7 @@ function zpMarkCards(){
   });
 }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
-const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', bgIntro:'backgammon', startManiaFlow:'mania', startTabooHub:'taboo' };
+const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', bgIntro:'backgammon', startManiaFlow:'mania', startTabooHub:'taboo', startKartenWelt:'kartenwelt', startKugelSolitaer:'braining_solitaire', startBrainArrow:'braining_hood' };
 function fmtCountdown(ms){
   const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
   if(ms <= 0) return L('gleich','soon');
@@ -5879,7 +5881,8 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
   try{
     if(e.origin !== location.origin || !e.data) return;
     if(e.data.bpOpenShop === true){ startShopFlow(); return; }
-    if(e.data.bpArrowBack === true || e.data.bpFruitBack === true){ startBrainingHub(); return; }
+    if(e.data.bpArrowBack === true){ startSoloWelt(); return; }
+    if(e.data.bpFruitBack === true){ startBrainingHub(); return; }
     if(e.data.bpDefenseBack === true){ if(typeof brDuelHub==='function') brDuelHub(); else renderMainMenu(); return; }
     if(e.data.bpChessOnline === 'random' || e.data.bpChessOnline === 'friends'){ openChessOnline(null, e.data.bpChessOnline); return; }
     if(e.data.bpChessBack !== true) return;
@@ -7359,23 +7362,41 @@ function brainCardsHtml(){
       <div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${lvl}</span><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--warn);">${r && r.ok && r.mine ? r.mine.pts.toLocaleString() : 0} ${L('Pkt','pts')}</span></div></div>`;
   const hoodIc = `<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  return card('hood','Brain Hood',L('Pfeil-Würfel','Arrow cube'),hoodIc,f.hoodLevel||1,brainData.hood) + card('fruit','Brain Fruit',L('Match mit Bomben','Match with bombs'),'<span style="font-size:40px;line-height:46px;">🍓</span>',f.fruitLevel||1,brainData.fruit)
-    + (hiddenFeatures.indexOf('braining_solitaire') !== -1 ? '' : featureLocked('braining_solitaire') ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon"><span style="display:inline-block;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%)"></span></div><h3>${L('Solitär','Solitaire')}</h3><p data-gate="braining_solitaire">${gateText('braining_solitaire')}</p></div>` : `<div class="mode-card" onclick="SOL.open(startBrainingHub)"><div class="icon"><span style="display:inline-block;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%);box-shadow:0 3px 6px rgba(0,0,0,.5)"></span></div><h3>${L('Solitär','Solitaire')}</h3><p>${L('Kugeln überspringen','Jump the marbles')}</p></div>`);
+  return card('fruit','Brain Fruit',L('Match mit Bomben','Match with bombs'),'<span style="font-size:40px;line-height:46px;">🍓</span>',f.fruitLevel||1,brainData.fruit)
+    + (hiddenFeatures.indexOf('braining_galaxy') !== -1 ? '' : featureLocked('braining_galaxy') ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon"><span style="font-size:40px;line-height:40px">🪐</span></div><h3>Brain Galaxy</h3><p data-gate="braining_galaxy">${gateText('braining_galaxy')}</p></div>` : `<div class="mode-card" onclick="BGX.open(startBrainingHub)"><div class="icon"><span style="font-size:40px;line-height:40px">🪐</span></div><h3>Brain Galaxy</h3><p>${L('Planeten-Blasen, die sich drehen','Spinning planet bubbles')}</p></div>`)
 }
 function brainBoardsPaint(){
   const el = document.getElementById('brainBoards'); if(!el) return;
-  const tabs = `<div style="display:flex;gap:6px;margin-top:10px;"><button class="chip-btn${brainTabSel==='hood'?' active':''}" onclick="brainTabSel='hood';brainBoardsPaint()">🧊 Brain Hood</button><button class="chip-btn${brainTabSel==='fruit'?' active':''}" onclick="brainTabSel='fruit';brainBoardsPaint()">🍓 Brain Fruit</button></div>`;
-  el.innerHTML = brainOpen ? tabs + brainBoardHtml(brainTabSel, brainTabSel==='hood'?'Brain Hood':'Brain Fruit', brainTabSel==='hood'?'🧊':'🍓', brainData[brainTabSel]) : '';
+  const TB = { fruit:['🍓','Brain Fruit'], galaxy:['🪐','Brain Galaxy'], hood:['🧊','Brain Arrow'] };
+  const tabs = `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">${Object.keys(TB).map(k => `<button class="chip-btn${brainTabSel===k?' active':''}" onclick="brainTabSel='${k}';brainBoardsPaint()">${TB[k][0]} ${TB[k][1]}</button>`).join('')}</div>`;
+  el.innerHTML = brainOpen ? tabs + brainBoardHtml(brainTabSel, TB[brainTabSel][1], TB[brainTabSel][0], brainData[brainTabSel]) : '';
   const b = document.getElementById('brainBoardBtn'); if(b) b.innerHTML = `🏆 ${L('BESTENLISTEN','LEADERBOARDS')} ${brainOpen ? '▴' : '▾'}`;
 }
 function brainToggleBoards(){ brainOpen = !brainOpen; brainBoardsPaint(); }
+function startSoloWelt(){
+  setAudioZone("menu");
+  const arIc = '<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const kuIc = '<span style="display:inline-block;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%);box-shadow:0 3px 6px rgba(0,0,0,.5)"></span>';
+  const c = (id, fn, ic, title, sub) => hiddenFeatures.indexOf(id) !== -1 ? '' : featureLocked(id) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="${id}">${gateText(id)}</p></div>` : `<div class="mode-card" onclick="${fn}()"><div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p></div>`;
+  const cards = c('braining_solitaire', 'startKugelSolitaer', kuIc, L('Kugel-Solitär','Marble Solitaire'), L('Kugeln überspringen','Jump the marbles')) + c('braining_hood', 'startBrainArrow', arIc, 'Brain Arrow', L('Würfel drehen, Pfeile abräumen','Rotate the cube, clear the arrows'));
+  renderApp(`<div class="panel"><div class="picker-title">🎯 SOLO</div><div class="picker-sub">${L('Spiele für dich allein, ganz ohne Stress.','Games just for you, no stress.')}</div><div class="menu-grid" style="margin-top:14px;grid-template-columns:1fr 1fr">${cards || `<div class="d" style="grid-column:1/-1;opacity:.7">${L('Bald gibt es hier mehr.','More coming soon.')}</div>`}</div><div class="actions-row" style="margin-top:18px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div>`);
+}
+function startBrainArrow(){ renderChessFrame('/arrows/index.html'); }
+function startKugelSolitaer(){ SOL.open(startSoloWelt); }
+function startKartenWelt(){
+  setAudioZone("menu");
+  const ic = '<span style="font-size:40px;line-height:40px">🃏</span>';
+  const klo = hiddenFeatures.indexOf('kartenwelt_klondike') !== -1 ? '' : featureLocked('kartenwelt_klondike') ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${L('Karten-Solitär','Card Solitaire')}</h3><p data-gate="kartenwelt_klondike">${gateText('kartenwelt_klondike')}</p></div>` : `<div class="mode-card" onclick="KLO.open(startKartenWelt)"><div class="icon">${ic}</div><h3>${L('Karten-Solitär','Card Solitaire')}</h3><p>${L('Klondike mit Karten','Classic Klondike')}</p></div>`;
+  renderApp(`<div class="panel"><div class="picker-title">🃏 ${L('KARTEN WELT','CARD WORLD')}</div><div class="picker-sub">${L('Klassische Kartenspiele, ganz entspannt.','Classic card games, nice and relaxed.')}</div><div class="menu-grid" style="margin-top:14px;grid-template-columns:1fr 1fr">${klo || `<div class="d" style="grid-column:1/-1;opacity:.7">${L('Bald gibt es hier mehr.','More coming soon.')}</div>`}</div><div class="actions-row" style="margin-top:18px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div>`);
+}
 async function startBrainingHub(){
-  setAudioZone("menu"); brainOpen = false; brainTabSel = 'hood'; brainData = { hood:null, fruit:null };
-  const paint = () => { const g = document.getElementById('brainCards'); if(g){ g.innerHTML = brainCardsHtml(); try{ zpMarkCards(); }catch(e){} } };
+  setAudioZone("menu"); brainOpen = false; brainTabSel = 'fruit'; brainData = { hood:null, fruit:null, galaxy:null };
+  const paint = () => { const hb = document.getElementById('brainHeroBar'); if(hb && window.BGX && BGX.bar){ try{ hb.innerHTML = BGX.bar(); }catch(e){} } const g = document.getElementById('brainCards'); if(g){ g.innerHTML = brainCardsHtml(); try{ zpMarkCards(); }catch(e){} } };
   renderApp(`
     <div class="panel">
       <div class="picker-title">🧠 BRAINMANIA</div>
       <div class="picker-sub">${L('Denkspiele ohne Ende, jedes Level wird schwerer.','Endless puzzles, every level gets harder.')}</div>
+      <div id="brainHeroBar"></div>
       <div class="menu-grid" id="brainCards" style="margin-top:14px;grid-template-columns:1fr 1fr;"></div>
       <div id="brainClaim"></div>
       <button class="bs-link" id="brainBoardBtn" style="margin-top:14px;" onclick="brainToggleBoards()"></button>
@@ -7389,12 +7410,12 @@ async function startBrainingHub(){
     if(c.ok && c.profile){
       account.profile.coins = c.profile.coins; account.profile.fruit = c.profile.fruit;
       const el = document.getElementById('brainClaim');
-      if(el && c.rewards && c.rewards.length) el.innerHTML = `<div class="rank-up-banner" style="background:rgba(198,255,61,.15);border-color:var(--accent);color:var(--accent);margin-top:12px;">🏆 ${L('Wochenpreis!','Weekly prize!')} ${c.rewards.map(r => (r.game==='fruit'?'🍓':'🧊')+' '+L('Platz','Rank')+' '+r.pos+': 🪙'+r.coins+(r.hammer?' 🔨'+r.hammer:'')).join(' · ')}</div>`;
+      if(el && c.rewards && c.rewards.length) el.innerHTML = `<div class="rank-up-banner" style="background:rgba(198,255,61,.15);border-color:var(--accent);color:var(--accent);margin-top:12px;">🏆 ${L('Wochenpreis!','Weekly prize!')} ${c.rewards.map(r => (r.game==='fruit'?'🍓':r.game==='galaxy'?'🪐':'🧊')+' '+L('Platz','Rank')+' '+r.pos+': 🪙'+r.coins+(r.hammer?' 🔨'+r.hammer:'')).join(' · ')}</div>`;
       paint();
     }
   }
-  const [h, f] = await Promise.all([apiCall('/api/braining/board', { token: tok, game:'hood' }), apiCall('/api/braining/board', { token: tok, game:'fruit' })]);
-  brainData = { hood:h, fruit:f }; paint(); brainBoardsPaint();
+  const [h, f, gx] = await Promise.all([apiCall('/api/braining/board', { token: tok, game:'hood' }), apiCall('/api/braining/board', { token: tok, game:'fruit' }), apiCall('/api/braining/board', { token: tok, game:'galaxy' })]);
+  brainData = { hood:h, fruit:f, galaxy:gx }; paint(); brainBoardsPaint();
 }
 function renderMainMenu(){
   setAudioZone("menu");
@@ -7438,6 +7459,11 @@ function renderMainMenu(){
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="6" y="9" width="36" height="33" rx="6" fill="none" stroke="#3de0ff" stroke-width="3.5"/><path d="M6 19H42M15 5V12M33 5V12" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><path d="M17 31L22 36L32 26" stroke="#c6ff3d" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h3>${L('Tagesrätsel','Daily puzzles')}</h3>
         <p>${L('Jeden Tag neue Rätsel. Löse sie und sammle Münzen.','New puzzles every day. Solve them and collect coins.')}</p>
+      </div>
+      <div class="mode-card" onclick="startBrainingHub()">
+        <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><circle cx="33" cy="33" r="6" fill="#ff5d8f"/><path d="M33 27C33 24 35 23 37 23" stroke="#7cff8c" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
+        <h3>Brainmania</h3>
+        <p>${L('Freizeit-Spiele: einfach mal zwischendurch zocken.','Leisure games: just play for fun, no thinking required.')}</p>
       </div>
     </div>
 
@@ -7487,10 +7513,15 @@ ${currentLang === 'de' ? `
 
     <div class="menu-section-title">Mini Games</div>
     <div class="menu-grid">
-      <div class="mode-card" onclick="startBrainingHub()">
-        <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><circle cx="33" cy="33" r="6" fill="#ff5d8f"/><path d="M33 27C33 24 35 23 37 23" stroke="#7cff8c" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
-        <h3>Brainmania</h3>
-        <p>${L('Freizeit-Spiele: einfach mal zwischendurch zocken.','Leisure games: just play for fun, no thinking required.')}</p>
+      <div class="mode-card" onclick="startSoloWelt()">
+        <div class="icon"><span style="font-size:42px;line-height:46px">🎯</span></div>
+        <h3>Solo</h3>
+        <p>${L('Spiele für dich allein: Solitär und Arrow.','Games just for you: solitaire and arrow.')}</p>
+      </div>
+      <div class="mode-card" onclick="startKartenWelt()">
+        <div class="icon"><span style="font-size:42px;line-height:46px">🃏</span></div>
+        <h3>${L('Karten Welt','Card World')}</h3>
+        <p>${L('Kartenspiele zum Entspannen.','Card games to relax.')}</p>
       </div>
       <div class="mode-card" onclick="renderChessHub()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 5V13M20 9H28" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M16 38C16 30 20 26 20 20H28C28 26 32 30 32 38Z" fill="#fff"/><rect x="12" y="38" width="24" height="5" rx="2.5" fill="#fff"/><rect x="18" y="15" width="12" height="6" rx="3" fill="#fff"/></svg></div>
@@ -15381,11 +15412,11 @@ function tabooSoloPaint(){
   let end = '';
   if(tbs.done){
     const win = tbs.won;
-    end = `<div style="text-align:center;margin-top:12px;font-weight:800">${win ? '🎉 ' + L('Richtig!','Correct!') : L('Das Wort war ','The word was ') + '<b style="color:var(--accent)">' + esc(tbs.word || '') + '</b>'}${win ? (tbs.zp ? `<div style="color:var(--accent);margin-top:4px">+${tbs.zp} ${L('Brainups','Brainups')}</div>` : (account ? '' : `<div class="d" style="margin-top:4px;font-weight:600">${L('Melde dich an, dann gibt es +'+tbs.zpPossible+' Brainups','Log in to get +'+tbs.zpPossible+' Brainups')}</div>`)) : ''}</div>
+    end = `<div style="text-align:center;margin-top:12px;font-weight:800">${win ? '🎉 ' + L('Richtig!','Correct!') : L('Das Wort war ','The word was ') + '<b style="color:var(--accent)">' + esc(tbs.word || '') + '</b>'}${win ? (tbs.zp ? `<div style="color:var(--accent);margin-top:4px">+${tbs.zp} ${L('Brainups','Brainups')}${tbs.rows.length === 1 ? ' · ' + L('inkl. +50 Bonus für den 1. Versuch! 🎯','incl. +50 first-try bonus! 🎯') : ''}</div>` : (account ? '' : `<div class="d" style="margin-top:4px;font-weight:600">${L('Melde dich an, dann gibt es +'+tbs.zpPossible+' Brainups','Log in to get +'+tbs.zpPossible+' Brainups')}</div>`)) : ''}</div>
       <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="tabooSoloStart()">${L('NÄCHSTES WORT','NEXT WORD')}</button>`;
   } else end = `<div style="text-align:center;margin-top:10px;min-height:20px;font-weight:800">${esc(tbs.msg || '')}</div>`;
   root.innerHTML = `<div style="display:flex;align-items:center;gap:10px"><button class="btn btn-ghost" style="padding:8px 14px" onclick="tbsLeave()">${t('btn_back')}</button><div style="flex:1"><div class="picker-title" style="margin:0">TABOO SOLO</div></div></div>
-    <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">${buPulse(13, '#10150a')} ${L('bis +100','up to +100')}</span></div>
+    <div class="d" style="opacity:.75;font-size:12px;margin-top:6px">${tbs.len} ${L('Buchstaben · Versuch','letters · try')} ${Math.min(tbs.rows.length + 1, 5)} ${L('von','of')} 5 <span class="zpb-i">${buPulse(13, '#10150a')} ${L('bis +100 · 1. Versuch +50 extra','up to +100 · first try +50 extra')}</span></div>
     <div class="hints"><div class="h">${L('KATEGORIE','CATEGORY')}: <b style="font-size:1.25em">${esc(tbs.cat || '')}</b></div>${tbs.hints.map((h, n) => `<div class="w"><span style="opacity:.6;font-size:11px;font-weight:700">${LV[n]} · ${h.k === 'e' ? L('Erklärung','Explanation') : L('Stichwort','Keyword')}</span><br>${esc(h.t)}</div>`).join('')}${(!tbs.done && tbs.hintsLeft > 0) ? `<button class="btn btn-block" style="margin:0;border-radius:0;background:#10150a;color:#c6ff3d;font-weight:800" onclick="tabooSoloHint()">💡 ${L('Hinweis nehmen','Take a hint')} (−${tbs.hintCost || 5} 🪙) · ${tbs.hintsLeft} ${L('übrig','left')}</button>` : ''}</div>
     <div class="grid" style="--cw:${Math.min(44, Math.floor(330 / tbs.len) - 6)}px;--ch:${Math.min(48, Math.floor(330 / tbs.len) - 2)}px">${grid}</div>${end}<div class="kb">${kb}</div>
     <div style="display:flex;gap:10px;justify-content:center;font-size:11px;margin-top:10px;opacity:.85;flex-wrap:wrap"><span>🟩 ${L('richtiger Platz','right place')}</span><span>🟨 ${L('im Wort, falscher Platz','in word, wrong place')}</span><span>⬛ ${L('nicht drin','not in word')}</span></div>`;
