@@ -3349,7 +3349,8 @@ function tabooSoloApi(p, lang) {
   let extra = {};
   if (guess === g.word) {
     g.done = true; extra.won = true; extra.word = TABOO_SOLO_CARDS[g.idx].w.toUpperCase();
-    const user = p.token ? findUserByToken(p.token) : null, pts = tabooSoloPts(g);
+    const user = p.token ? findUserByToken(p.token) : null, pts = tabooSoloPts(g) + (g.rows.length === 1 ? 50 : 0);
+    if (g.rows.length === 1) extra.first = true;
     extra.zpPossible = pts;
     if (user && Date.now() - g.t > 2500) { const r = zpAdd(user, pts, "taboo", "taboo"); extra.zp = r.gain; extra.zpTotal = r.total; }
   } else if (g.rows.length >= 5) { g.done = true; extra.won = false; extra.word = TABOO_SOLO_CARDS[g.idx].w.toUpperCase(); }
@@ -4051,7 +4052,7 @@ async function zpApi(payload, lang) {
    - Rang (Elo-Stufe 1-10) richtet sich nach dem hoechsten erreichten Level und faellt nie.
    - Top 5 der Vorwoche bekommen Preise (einmal pro Woche abholbar).
    ============================================================================ */
-const BRAIN_GAMES = ["fruit", "hood"];
+const BRAIN_GAMES = ["fruit", "hood", "galaxy"];
 const BRAIN_RANK_LEVELS = [1, 50, 150, 400, 700, 1000, 1500, 2200, 3000, 4000];
 const BRAIN_REWARDS = [ { coins: 100, hammer: 3 }, { coins: 70, hammer: 2 }, { coins: 50, hammer: 1 }, { coins: 30, hammer: 0 }, { coins: 20, hammer: 0 } ];
 const BRAIN_MIN_GAP_MS = 8000;
@@ -4065,8 +4066,9 @@ const WEEK_MS = 7 * 86400000, MONDAY_OFFSET = 4 * 86400000;
 function brainWeekInfo() { const f = berlinFakeNow(); const id = Math.floor((f - MONDAY_OFFSET) / WEEK_MS); return { id, endsInMs: (id + 1) * WEEK_MS + MONDAY_OFFSET - f }; }
 function brainState(user) {
   const st = user.stats;
-  if (!st.brain || typeof st.brain !== "object") st.brain = { weeks: {}, best: { fruit: 0, hood: 0 }, last: { fruit: 0, hood: 0 }, claimed: 0 };
-  const b = st.brain; if (!b.weeks) b.weeks = {}; if (!b.best) b.best = { fruit: 0, hood: 0 }; if (!b.last) b.last = { fruit: 0, hood: 0 };
+  if (!st.brain || typeof st.brain !== "object") st.brain = { weeks: {}, best: { fruit: 0, hood: 0, galaxy: 0 }, last: { fruit: 0, hood: 0, galaxy: 0 }, claimed: 0 };
+  const b = st.brain; if (!b.weeks) b.weeks = {}; if (!b.best) b.best = { fruit: 0, hood: 0, galaxy: 0 }; if (!b.last) b.last = { fruit: 0, hood: 0, galaxy: 0 };
+  if (!b.best.galaxy) b.best.galaxy = 0; if (!b.last.galaxy) b.last.galaxy = 0;
   const cur = brainWeekInfo().id;
   for (const k of Object.keys(b.weeks)) if (Number(k) < cur - 2) delete b.weeks[k]; // nur die letzten Wochen behalten
   return b;
@@ -4082,17 +4084,17 @@ async function brainSubmit(token, game, level, lang, pts) {
   if (!BRAIN_GAMES.includes(game)) return errObj("invalidInput", lang);
   level = Math.round(Number(level)); if (!Number.isFinite(level) || level < 1 || level > 9999) return errObj("invalidInput", lang);
   const b = brainState(user), f = user.stats.fruit || {};
-  const saved = game === "fruit" ? (f.fruitLevel || 1) : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
+  const saved = game === "fruit" ? (f.fruitLevel || 1) : game === "galaxy" ? 1e9 : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
   const maxOk = Math.max(b.best[game], saved) + 1;
-  if (level > maxOk) return { ok: false, error: "level" };
+  if (game === "galaxy" ? level > 500 : level > maxOk) return { ok: false, error: "level" };
   const now = Date.now(); const sinceLast = now - (b.last[game] || 0);
   if (sinceLast < BRAIN_MIN_GAP_MS) { if (sinceLast < 2000) flagCheat(user, "Brain " + game + " Spam"); return { ok: false, error: "tooFast" }; }
   b.last[game] = now;
   b.best[game] = Math.max(b.best[game], level);
-  const w = brainWeekInfo().id; if (!b.weeks[w]) b.weeks[w] = { fruit: 0, hood: 0 };
+  const w = brainWeekInfo().id; if (!b.weeks[w]) b.weeks[w] = { fruit: 0, hood: 0, galaxy: 0 };
   // Brain Fruit zaehlt Spielpunkte (mit plausibler Obergrenze pro Runde), alles andere das Level
   let gain = level;
-  if (game === "fruit" && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(200 * Math.min(180, sinceLast / 1000)), Math.round(Number(pts))));
+  if ((game === "fruit" || game === "galaxy") && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(200 * Math.min(180, sinceLast / 1000)), Math.round(Number(pts))));
   b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + gain);
   await saveUsers();
   return { ok: true, points: b.weeks[w][game], rank: brainRankOf(b.best[game]) };
@@ -4264,6 +4266,9 @@ async function saveUserStats(token, stats, lang) {
       fruitKings: (cur.fruitKings || 0) | n(f.fruitKings, 63),
       fruitKing: n(f.fruitKing, 5),
       fruitBg: n(f.fruitBg, 3),
+      galaxyKing: n(f.galaxyKing, 5),
+      galaxyKL: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.galaxyKL) ? cur.galaxyKL[i] | 0 : 0), Array.isArray(f.galaxyKL) ? n(f.galaxyKL[i], 5) : 0)),
+      galaxyKX: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.galaxyKX) ? cur.galaxyKX[i] | 0 : 0), Array.isArray(f.galaxyKX) ? n(f.galaxyKX[i], 100000) : 0)),
       fruitKL: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.fruitKL) ? cur.fruitKL[i] | 0 : 0), Array.isArray(f.fruitKL) ? n(f.fruitKL[i], 5) : 0)),
       fruitKX: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.fruitKX) ? cur.fruitKX[i] | 0 : 0), Array.isArray(f.fruitKX) ? n(f.fruitKX[i], 100000) : 0)),
       fruitSt: (() => { const a = typeof cur.fruitSt === "string" ? cur.fruitSt : "", b = typeof f.fruitSt === "string" && /^[0-3]{0,3000}$/.test(f.fruitSt) ? f.fruitSt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
@@ -7037,8 +7042,11 @@ const GAME_DEFS = [
   { id: "vocab", name: "Vocab", group: "Modi", icon: "💬" },
   { id: "braining", name: "Brainmania", group: "Minigames", icon: "🧠" },
   { id: "braining_fruit", name: "Brain Fruit", group: "Minigames", icon: "🍓", sub: "braining" },
-  { id: "braining_hood", name: "Brain Hood", group: "Minigames", icon: "🧊", sub: "braining" },
-  { id: "braining_solitaire", name: "Solitär", group: "Minigames", icon: "⚫", sub: "braining" },
+  { id: "braining_hood", name: "Brain Arrow", group: "Solo Games", icon: "🧊" },
+  { id: "braining_solitaire", name: "Kugel-Solitär", group: "Solo Games", icon: "⚫" },
+  { id: "braining_galaxy", name: "Brain Galaxy", group: "Minigames", icon: "🪐", sub: "braining" },
+  { id: "kartenwelt", name: "Karten Welt", group: "Minigames", icon: "🃏" },
+  { id: "kartenwelt_klondike", name: "Karten-Solitär (Klondike)", group: "Minigames", icon: "🃏", sub: "kartenwelt" },
   { id: "chess", name: "Chess", group: "Minigames", icon: "♟️" },
   { id: "hard", name: "Das schwerste Spiel der Welt", group: "Minigames", icon: "💀" },
   { id: "mania", name: "Der Stein (ehem. Brainmania)", group: "Minigames", icon: "🪨", sub: "hard" },
