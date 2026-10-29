@@ -601,7 +601,7 @@ $("mbtn").onclick=function(){ showMap(); };
 $("bgbtn").onclick=function(){ showBgPicker(); };
 $("title").textContent="🍓 "+T.title; document.title=T.title;
 window.addEventListener("resize",function(){ if(!busy){ size(); sync(); } });
-kLoad(); if(!window.__noKings) applyTheme(); start();
+kLoad(); if(!window.__noKings) applyTheme(); start(); if(!window.__noKings) showMap();
 window.__fruit={gravity:gravity,setP:function(x){P=x},showMap:showMap,kLvl:kLvl,kv:kv,kXp:kXp,starsStr:starsStr,showKings:showKings,waveOf:waveOf,themeSvg:themeSvg,curK:function(){return curK},setK:function(i){curK=i},start:start,sync:sync,hud:hud,bar:function(){return {barPts:barPts,barNeed:barNeed,rdy:rdy.slice(),total0:total0}},addBar:addBar,powerHit:powerHit,finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
 })();
 </script></body></html>
