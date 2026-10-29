@@ -213,6 +213,14 @@ function showKings(first){
     var r=P.fruitPay(KPRICE); if(!r.ok){ m.textContent=r.why==="coins"?T.noCoins:T.noProf; return; }
     try{ P.fruitSet({fruitKings:(P.fruitData().fruitKings|0)|(1<<i)}); }catch(x){} kSet(i); showKings(first); }; });
 }
+function showUp(){
+  kLoad(); var i=curK, lv=kLvl(i), nx=lv<5?'<div class="up" id="upgo" style="margin:12px auto 0;display:inline-block">⬆ '+tx("Upgrade auf Stufe ","Upgrade to level ")+(lv+1)+' · '+LVC[lv]+' 🪙</div>':'<div style="color:#c6ff3d;font-weight:900;margin-top:12px">★ MAX</div>';
+  var rows=""; for(var n=1;n<=5;n++){ var cur=n===lv; rows+='<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;margin-top:5px;border-radius:10px;font-size:12px;text-align:left;background:'+(cur?'rgba(198,255,61,.14)':'rgba(255,255,255,.05)')+';opacity:'+(n<=lv?1:.5)+'"><b>'+tx("Stufe ","Level ")+n+'</b><span style="flex:1">'+(function(){ var s=KV[i][n-1], t=kv; return ""; })()+'</span></div>'; }
+  var h='<div class="kcoins">🪙 '+kCoins()+'</div><h2>👑 '+KINGS[i].n+'</h2><div style="text-align:center">'+ksvg(i,110)+'</div><div class="sub">'+tx("Held-Level ","Hero level ")+lv+'/5 · '+kDesc(i)+'</div><div style="text-align:center">'+nx+'</div><div id="kmsg" style="text-align:center;font-size:12px;color:#ffc446;min-height:18px;margin-top:8px"></div><div class="sub" style="margin-top:8px">'+tx("Den Helden wählst du oben in Brainmania – er gilt für beide Spiele.","Pick your hero at the top of Brainmania – it counts in both games.")+'</div><button class="kplay" id="kback" style="background:#ffffff14;margin-top:8px">← '+tx("Zurück","Back")+'</button>';
+  $("kings").innerHTML=h; $("kings").classList.add("show");
+  $("kback").onclick=function(){ $("kings").classList.remove("show"); };
+  var u=$("upgo"); if(u) u.onclick=function(){ var r=kBuyLvl(i); if(!r.ok){ $("kmsg").textContent=r.why==="coins"?T.noCoins:T.noProf; return; } showUp(); };
+}
 function kHas(i){ return curK===i; }
 function waveReward(L){ if(L<40||L%20) return ""; var k=(L-40)/20, n=k===0?5:k===1?6:8+(k-2)*2, c=100+k*50; if(!P) return ""; var got=[]; try{ got=P.fruitGrant(n)||[]; if(got.length&&c) P.fruitPay(-c); }catch(e){} return got.length?"  🎁 "+n+" "+tx("Helfer","helpers")+" + "+c+" 🪙":""; }
 // ===== Karte =====
@@ -588,12 +596,12 @@ window.addEventListener("pointerup",function(){
 });
 function findById(id){ for(var r=0;r<ROWS;r++) for(var c=0;c<COLS;c++){ var t=grid[r][c]; if(t&&t.id===id) return t; } return null; }
 $("back").onclick=function(e){ e.preventDefault(); quit(); };
-$("kbtn").onclick=function(){ showKings(false); };
+$("kbtn").onclick=function(){ showUp(); };
 $("mbtn").onclick=function(){ showMap(); };
 $("bgbtn").onclick=function(){ showBgPicker(); };
 $("title").textContent="🍓 "+T.title; document.title=T.title;
 window.addEventListener("resize",function(){ if(!busy){ size(); sync(); } });
-if(window.__noKings){ start(); } else { applyTheme(); showKings(true); }
+kLoad(); if(!window.__noKings) applyTheme(); start();
 window.__fruit={gravity:gravity,setP:function(x){P=x},showMap:showMap,kLvl:kLvl,kv:kv,kXp:kXp,starsStr:starsStr,showKings:showKings,waveOf:waveOf,themeSvg:themeSvg,curK:function(){return curK},setK:function(i){curK=i},start:start,sync:sync,hud:hud,bar:function(){return {barPts:barPts,barNeed:barNeed,rdy:rdy.slice(),total0:total0}},addBar:addBar,powerHit:powerHit,finish:finish,findMove:function(){for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){var t=grid[r][c];if(!t)continue;if(c+1<COLS&&grid[r][c+1]&&wouldMatch(t,grid[r][c+1]))return [t,grid[r][c+1]];if(r+1<ROWS&&grid[r+1][c]&&wouldMatch(t,grid[r+1][c]))return [t,grid[r+1][c]];}return null;},over:function(){return over},kind:function(){return kind},score:function(){return score},ice:function(){return ice},slime:function(){return slime},grid:function(){return grid},trySwap:trySwap,runs:runs,start:start,setLevel:function(l){level=l;start();},params:params,moves:function(){return moves},hasMove:hasMove,goal:function(){return goal},done:done,busy:function(){return busy}};
 })();
 </script></body></html>
