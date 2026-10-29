@@ -57,9 +57,9 @@ function tap(k, i){
 }
 function after(){ if(won()){ S.won = true; } paint(); }
 function undo(){ if(!S || S.auto || !S.hist.length) return; const o = JSON.parse(S.hist.pop()); S.g = o; S.sel = null; S.won = false; paint(); }
-function restart(){ stopAuto(); S.g = deal(); S.hist = []; S.sel = null; S.won = false; paint(); }
+function restart(){ stopAuto(); S.g = deal(); S.hist = []; S.sel = null; S.won = false; S.t0 = Date.now(); S.subm = 0; paint(); }
 function setTheme(t){ S.th = t; try{ localStorage.setItem('bp_klo_th', t); }catch(e){} paint(); }
-function setDraw(n){ S.draw = n; try{ localStorage.setItem('bp_klo_draw', String(n)); }catch(e){} paint(); }
+function setDraw(n){ S.draw = n; S.t0 = Date.now(); S.g = deal(); S.hist = []; S.sel = null; S.won = false; S.subm = 0; if(boardOpen) boardLoad(); try{ localStorage.setItem('bp_klo_draw', String(n)); }catch(e){} paint(); }
 function stopAuto(){ if(autoTimer){ clearInterval(autoTimer); autoTimer = null; } if(S) S.auto = false; }
 function canAuto(){ const g = S.g; return !g.stock.length && !g.waste.length && g.tab.every(c => c.every(x => x.up)) && !won(); }
 function auto(){
@@ -72,9 +72,11 @@ function auto(){
   }, 70);
 }
 const CSS = `<style>
-#kloApp{text-align:center}
-.klb{container-type:inline-size;width:100%;margin-top:8px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-.klr{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;--cw:calc((100cqw - 36px)/7)}
+#kloApp{text-align:center;position:fixed;inset:0;z-index:40;overflow-y:auto;background:var(--bg,#070b1a);padding:10px 6px 24px;max-width:none;width:auto;border-radius:0;border:0;-webkit-overflow-scrolling:touch}
+#kloApp>*{max-width:640px;margin-left:auto;margin-right:auto}
+.kcd{touch-action:none}
+.klb{container-type:inline-size;width:100%;margin:8px auto 0;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.klr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;--cw:calc((100cqw - 24px)/7)}
 .klt{margin-top:12px}
 .klc{position:relative;min-height:calc(var(--cw)*1.4);border-radius:calc(var(--cw)*.14);background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.16)}
 .klc.fd{border-style:solid;border-color:rgba(61,224,255,.28)}
@@ -110,7 +112,8 @@ function cardHtml(c, top, extra, data){
   return `<div class="${cls}" style="top:${top}" ${data || ''}>${c.up ? `<span class="a">${RK[c.r]}<br>${SU[c.s]}</span><span class="b">${SU[c.s]}</span>` : ''}</div>`;
 }
 function paint(){
-  const el = document.getElementById('kloApp'); if(!el) return; const g = S.g, sel = S.sel, cs = selCards();
+  const el = document.getElementById('kloApp'); if(!el) return;
+  if(S.won && !S.subm){ S.subm = 1; winSubmit(); } const g = S.g, sel = S.sel, cs = selCards();
   const tgF = new Set(), tgT = new Set();
   if(cs.length){ for(let i = 0; i < 4; i++) if(cs.length === 1 && canFound(cs[0], g.found[i])) tgF.add(i); for(let i = 0; i < 7; i++) if(!(sel.k === 't' + i) && canTab(cs[0], g.tab[i])) tgT.add(i); }
   // oben: Vorrat, Ablage, 4 Zielstapel (7 Spalten: stock, waste, leer, 4x found)
@@ -121,7 +124,7 @@ function paint(){
   let tb = '';
   for(let c = 0; c < 7; c++){
     const col = g.tab[c]; let y = 0; const parts = [];
-    col.forEach((x, i) => { const isSel = sel && sel.k === 't' + c && i >= sel.i; parts.push(cardHtml(x, `calc(var(--cw)*${y.toFixed(2)})`, isSel ? ' sel' : '', `data-k="t${c}" data-i="${i}"`)); y += x.up ? .46 : .2; });
+    col.forEach((x, i) => { const isSel = sel && sel.k === 't' + c && i >= sel.i; parts.push(cardHtml(x, `calc(var(--cw)*${y.toFixed(2)})`, isSel ? ' sel' : '', `data-k="t${c}" data-i="${i}"`)); y += x.up ? .52 : .2; });
     const h = col.length ? y - (col[col.length - 1].up ? .46 : .2) + 1.4 : 1.4;
     tb += `<div class="klc${tgT.has(c) ? ' tg' : ''}" data-k="t${c}" style="height:calc(var(--cw)*${(Math.max(h, 1.4) + 0.2).toFixed(2)})">${parts.join('')}</div>`;
   }
@@ -133,24 +136,98 @@ function paint(){
   el.setAttribute('data-th', S.th); el.querySelectorAll('[data-t]').forEach(b => b.style.borderColor = b.dataset.t === S.th ? '#c6ff3d' : '');
   el.querySelectorAll('[data-d]').forEach(b => b.style.borderColor = +b.dataset.d === S.draw ? '#c6ff3d' : '');
 }
+let chatT = 0, chatLast = 0;
+const escH = t => String(t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function chatStop(){ if(chatT){ clearInterval(chatT); chatT = 0; } }
+async function chatPoll(first){
+  const box = document.getElementById('kloMsgs'); if(!box || !S){ chatStop(); return; }
+  try{
+    const r = await apiCall('/api/chat-public-list', { room: 'sol', since: first ? 0 : chatLast, token: (typeof account !== 'undefined' && account) ? account.token : undefined });
+    if(!r || !r.ok) return; const on = document.getElementById('kloOn'); if(on) on.textContent = '🟢 ' + Math.max(1, r.online || 0) + ' ' + L2('hier', 'here');
+    if(first) box.innerHTML = '';
+    const near = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || first;
+    (r.messages || []).forEach(m => { if(m.id > chatLast) chatLast = m.id; box.insertAdjacentHTML('beforeend', `<div><b style="color:${m.adm ? '#ffd45a' : '#7fe3ff'}">${escH(m.a || '')} ${escH(m.u)}</b> ${escH(m.t)}</div>`); });
+    if(near) box.scrollTop = box.scrollHeight;
+  }catch(e){}
+}
+async function chatSend(){
+  const inp = document.getElementById('kloIn'); if(!inp) return; const t = inp.value.trim(); if(!t) return;
+  if(typeof account === 'undefined' || !account){ const box = document.getElementById('kloMsgs'); if(box) box.insertAdjacentHTML('beforeend', `<div style="color:#ffc446">${L2('Zum Mitchatten bitte einloggen.', 'Please log in to chat.')}</div>`); return; }
+  inp.value = '';
+  try{ const r = await apiCall('/api/chat-public-send', { room: 'sol', token: account.token, text: t }); if(r && !r.ok){ const box = document.getElementById('kloMsgs'); if(box){ box.insertAdjacentHTML('beforeend', `<div style="color:#ff8aa0">⚠ ${escH(r.error || '')}</div>`); box.scrollTop = box.scrollHeight; } } else chatPoll(false); }catch(e){}
+}
+function chatInit(){
+  chatStop(); chatLast = 0; chatPoll(true); chatT = setInterval(() => chatPoll(false), 3000);
+  const inp = document.getElementById('kloIn'), b = document.getElementById('kloSend');
+  if(b) b.onclick = chatSend; if(inp) inp.onkeydown = e => { if(e.key === 'Enter') chatSend(); };
+}
+let boardOpen = false, dragSup = false;
+async function winSubmit(){
+  const secs = Math.round((Date.now() - S.t0) / 1000), moves = S.g.moves;
+  try{ if(typeof account !== 'undefined' && account){ const r = await apiCall('/api/klo/submit', { token: account.token, draw: S.draw, moves, secs }); const m = document.getElementById('kloMsg'); if(m && r && r.ok) m.insertAdjacentHTML('beforeend', `<div style="margin-top:4px;font-size:12px;color:#7fe3ff">${r.improved ? '🏆 ' + L2('Neue Bestleistung in der Liste!', 'New personal best on the list!') : L2('Eingetragen – deine Bestleistung ist besser.', 'Logged – your best is still better.')}</div>`); if(boardOpen) boardLoad(); } }catch(e){}
+}
+const fmtT = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+async function boardLoad(){
+  const box = document.getElementById('kloBoardList'); if(!box) return; box.innerHTML = '<div style="opacity:.6;padding:6px">…</div>';
+  try{
+    const r = await apiCall('/api/klo/board', { token: (typeof account !== 'undefined' && account) ? account.token : undefined, draw: S.draw });
+    if(!r || !r.ok){ box.innerHTML = '<div style="opacity:.6;padding:6px">' + L2('Liste nicht erreichbar.', 'Unavailable.') + '</div>'; return; }
+    const medal = i => ['🥇', '🥈', '🥉'][i] || (i + 1);
+    box.innerHTML = (r.top.length ? r.top.map((x, i) => `<div style="display:flex;gap:8px;padding:4px 2px;font-size:13px${r.mine && r.mine.pos === x.pos ? ';color:#c6ff3d;font-weight:800' : ''}"><span style="width:26px">${medal(i)}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escH(x.avatar)} ${escH(x.name)}</span><span>${x.moves} ${L2('Züge', 'moves')}</span><span style="opacity:.7;width:44px;text-align:right">${fmtT(x.secs)}</span></div>`).join('') : '<div style="opacity:.6;padding:6px">' + L2('Noch niemand – sei der Erste!', 'Nobody yet – be the first!') + '</div>')
+      + (r.mine ? `<div style="font-size:12px;opacity:.75;margin-top:6px">${L2('Du', 'You')}: ${r.mine.moves} ${L2('Züge', 'moves')} · ${fmtT(r.mine.secs)}${r.mine.pos ? ' · ' + L2('Platz', 'rank') + ' ' + r.mine.pos : ''}</div>` : '');
+  }catch(e){}
+}
+function boardToggle(){ boardOpen = !boardOpen; const w = document.getElementById('kloBoardWrap'); if(w) w.style.display = boardOpen ? '' : 'none'; if(boardOpen) boardLoad(); }
+// ---- Karten ziehen (Drag & Drop) ----
+function dragInit(b){
+  let st = null, ghost = null;
+  b.addEventListener('pointerdown', e => {
+    if(!S || S.auto || e.button > 0) return; const t = e.target.closest('.kcd[data-k]'); if(!t) return; const k = t.dataset.k; if(k === 'stock') return;
+    st = { k, i: t.dataset.i != null ? +t.dataset.i : null, x: e.clientX, y: e.clientY, id: e.pointerId, on: false, ox: 0, oy: 0 };
+  });
+  b.addEventListener('pointermove', e => {
+    if(!st || e.pointerId !== st.id) return;
+    if(!st.on){
+      if(Math.hypot(e.clientX - st.x, e.clientY - st.y) < 9) return;
+      S.sel = null; tap(st.k, st.i); if(!S.sel){ st = null; return; }
+      const els = [...b.querySelectorAll('.kcd.sel')]; if(!els.length){ st = null; return; }
+      const r0 = els[0].getBoundingClientRect(); ghost = document.createElement('div'); ghost.style.cssText = `position:fixed;z-index:200;pointer-events:none;left:0;top:0;width:${r0.width}px;--cw:${r0.width}px;filter:drop-shadow(0 8px 10px rgba(0,0,0,.55))`;
+      els.forEach(el => { const r = el.getBoundingClientRect(), c = el.cloneNode(true); c.classList.remove('sel'); c.style.cssText = `position:absolute;left:0;top:${r.top - r0.top}px;width:${r.width}px;height:${r.height}px;opacity:1`; ghost.appendChild(c); el.style.opacity = '.25'; });
+      document.getElementById('kloApp').appendChild(ghost); st.ox = e.clientX - r0.left; st.oy = e.clientY - r0.top; st.on = true; try{ b.setPointerCapture(e.pointerId); }catch(x){}
+    }
+    ghost.style.transform = `translate(${e.clientX - st.ox}px,${e.clientY - st.oy}px)`; e.preventDefault();
+  });
+  const end = e => {
+    if(!st || e.pointerId !== st.id) return; const was = st; st = null;
+    if(!was.on) return; dragSup = true; setTimeout(() => dragSup = false, 80);
+    if(ghost){ ghost.remove(); ghost = null; }
+    const u = document.elementFromPoint(e.clientX, e.clientY), tg = u && u.closest('[data-k]');
+    if(tg && S && S.sel){ const k = tg.dataset.k; if((k[0] === 't' || k[0] === 'f') && !(k === was.k)){ tap(k, tg.dataset.i != null ? +tg.dataset.i : null); } }
+    if(S){ S.sel = null; paint(); }
+  };
+  b.addEventListener('pointerup', end); b.addEventListener('pointercancel', end);
+}
 function open(back){
   let dr = 1; try{ dr = localStorage.getItem('bp_klo_draw') === '3' ? 3 : 1; }catch(e){}
   let th = 'klassisch'; try{ const v = localStorage.getItem('bp_klo_th'); if(TH.some(x => x[0] === v)) th = v; }catch(e){}
-  S = { th, g: deal(), hist: [], sel: null, back: back || null, draw: dr, won: false, auto: false };
+  S = { th, g: deal(), hist: [], sel: null, back: back || null, draw: dr, won: false, auto: false, t0: Date.now(), subm: 0 };
   renderApp(CSS + `<div class="panel" id="kloApp">
-    <div class="picker-title" style="margin:0">KARTEN-SOLITÄR</div>
+    <button class="btn btn-ghost" id="kloBk" onclick="KLO.back()" aria-label="Zurück" style="position:absolute;left:8px;top:8px;padding:6px 14px;font-size:20px;line-height:1;z-index:2">←</button><div class="picker-title" style="margin:0">KARTEN-SOLITÄR</div>
     <div style="display:flex;justify-content:center;gap:18px;align-items:center;font-weight:800;margin-top:6px;flex-wrap:wrap"><span>${L2('Züge', 'Moves')}: <b id="kloMv">0</b></span><span style="display:flex;gap:6px;align-items:center">${L2('Ziehen', 'Draw')}: <button class="btn btn-ghost" data-d="1" style="padding:4px 12px" onclick="KLO.draw(1)">1</button><button class="btn btn-ghost" data-d="3" style="padding:4px 12px" onclick="KLO.draw(3)">3</button></span></div>
     <div class="kth">${TH.map(x => `<button class="btn btn-ghost" data-t="${x[0]}" onclick="KLO.theme('${x[0]}')">${L2(x[1], x[2])}</button>`).join('')}</div>
     <div class="klb" id="kloBoard"></div>
     <div id="kloMsg" style="min-height:44px;font-size:13px;padding:8px 6px 0;opacity:.9"></div>
-    <div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-ghost" id="kloUndo" style="flex:1" onclick="KLO.undo()">↩ ${L2('Zurück', 'Undo')}</button><button class="btn btn-ghost" style="flex:1" onclick="KLO.restart()">${L2('Neues Spiel', 'New game')}</button></div>
+    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="KLO.board()">🏆 ${L2('Bestenliste', 'Leaderboard')} <span style="opacity:.6;font-size:12px">(${L2('wenigste Züge', 'fewest moves')})</span></button>
+    <div id="kloBoardWrap" style="display:none;margin-top:6px;border-radius:14px;background:rgba(255,255,255,.05);padding:8px 12px;text-align:left"><div id="kloBoardList"></div></div>
+    <div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-ghost" id="kloUndo" aria-label="Letzten Zug zurücknehmen" title="Letzten Zug zurücknehmen" style="flex:1;font-size:26px;line-height:1" onclick="KLO.undo()">↶</button><button class="btn btn-ghost" style="flex:1" onclick="KLO.restart()">${L2('Neues Spiel', 'New game')}</button></div>
     <button class="btn btn-primary btn-block" id="kloAuto" style="margin-top:8px;display:none" onclick="KLO.auto()">✨ ${L2('Automatisch fertig legen', 'Auto-finish')}</button>
-    <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="KLO.back()">${L2('Zurück zu Brainmania', 'Back to Brainmania')}</button>
+    <div id="kloChat" style="margin-top:12px;border-radius:16px;background:rgba(255,255,255,.05);border:1.5px solid rgba(61,224,255,.25);padding:8px 10px;text-align:left"><div style="display:flex;justify-content:space-between;font-weight:800;font-size:13px"><span>💬 ${L2('Live-Chat Solitär', 'Solitaire live chat')}</span><span id="kloOn" style="opacity:.7">–</span></div><div id="kloMsgs" style="height:130px;overflow-y:auto;margin:6px 0;font-size:13px;line-height:1.35"></div><div id="kloRow" style="display:flex;gap:6px"><input id="kloIn" maxlength="200" placeholder="${L2('Schreib etwas Nettes …', 'Write something nice …')}" style="flex:1;min-width:0;border-radius:12px;border:1.5px solid #ffffff22;background:#0b1024;color:#fff;padding:9px 12px;font-size:14px"><button class="btn btn-primary" id="kloSend" style="padding:8px 14px">➤</button></div><div style="font-size:11px;opacity:.55;margin-top:5px">${L2('Keine Links, keine Beleidigungen oder Rassismus, nichts Strafbares – sonst gesperrt.', 'No links, insults, racism or anything illegal – or you get muted.')}</div></div>
   </div>`);
   const b = document.getElementById('kloBoard');
-  b.addEventListener('click', e => { const t = e.target.closest('[data-k]'); if(!t) return; const k = t.dataset.k; tap(k, t.dataset.i != null ? +t.dataset.i : null); });
-  paint();
+  dragInit(b);
+  b.addEventListener('click', e => { if(dragSup) return; const t = e.target.closest('[data-k]'); if(!t) return; const k = t.dataset.k; tap(k, t.dataset.i != null ? +t.dataset.i : null); });
+  paint(); chatInit();
 }
-window.KLO = { open, undo, restart, auto, draw: setDraw, theme: setTheme, back: () => { stopAuto(); const b = S && S.back; S = null; if(b) b(); else renderMainMenu(); } };
+window.KLO = { board: boardToggle, open, undo, restart, auto, draw: setDraw, theme: setTheme, back: () => { stopAuto(); chatStop(); const b = S && S.back; S = null; boardOpen = false; if(b) b(); else renderMainMenu(); } };
 window.__kloEngine = { deal, canTab, canFound, state: () => S, tap };
 })();

@@ -38,8 +38,8 @@ function lvFx(i, lv){ const c = HC[i] || '#fff', back = [], front = [];
 function heroInner(i, o){ o = o || {}; const base = (typeof KING_SVG !== 'undefined' && KING_SVG[i]) ? KING_SVG[i] : '', fx = lvFx(i, o.lvl || 1); return base; }
 function heroSvg(i, px, o){ o = o || {}; const gl = ''; return `<svg viewBox="0 0 120 150" width="${Math.round(px * .8)}" height="${px}" style="display:block;margin:auto;${gl}">${heroInner(i, o)}</svg>`; }
 function heroImg(i, lv){ const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 150" width="240" height="300">' + heroInner(i, { lvl: lv }) + '</svg>'; const im = new Image(); im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); return im; }
-function heroLoad(){ let v = lsGet('bp_galaxy_king', fdat().galaxyKing | 0); v = (v >= 0 && v < 6 && kOwn(v)) ? v : 0; HERO = v; }
-function heroSet(i){ HERO = i; try{ localStorage.setItem('bp_galaxy_king', JSON.stringify(i)); }catch(e){} try{ if(typeof fruitSet === 'function') fruitSet({ galaxyKing: i }); }catch(e){} }
+function heroLoad(){ let v = lsGet('bp_fruit_king', fdat().fruitKing | 0); v = (v >= 0 && v < 6 && kOwn(v)) ? v : 0; HERO = v; }
+function heroSet(i){ HERO = i; try{ localStorage.setItem('bp_fruit_king', String(i)); }catch(e){} try{ if(typeof fruitSet === 'function') fruitSet({ fruitKing: i }); }catch(e){} }
 function heroXp(){ const xs = kArr('galaxyKX'); xs[HERO]++; kArrSet('galaxyKX', xs); const ks = kArr('galaxyKL'), lv = kLvl(HERO); if(lv > ks[HERO]){ ks[HERO] = lv; kArrSet('galaxyKL', ks); } }
 
 /* ---------- Planeten-Sprites ---------- */
