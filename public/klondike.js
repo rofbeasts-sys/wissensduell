@@ -34,7 +34,7 @@ function autoMove(){ // Foundation zuerst, dann Tableau
   return false;
 }
 function tap(k, i){
-  if(!S || S.auto) return; const g = S.g;
+  if(!S || S.auto) return; S.hint = null; const g = S.g;
   if(k === 'stock'){
     S.sel = null; push();
     if(g.stock.length){ for(let n = 0; n < S.draw && g.stock.length; n++){ const c = g.stock.pop(); c.up = true; g.waste.push(c); } g.moves++; }
@@ -57,9 +57,9 @@ function tap(k, i){
 }
 function after(){ if(won()){ S.won = true; } paint(); }
 function undo(){ if(!S || S.auto || !S.hist.length) return; const o = JSON.parse(S.hist.pop()); S.g = o; S.sel = null; S.won = false; paint(); }
-function restart(){ stopAuto(); S.g = deal(); S.hist = []; S.sel = null; S.won = false; S.t0 = Date.now(); S.subm = 0; paint(); }
+function restart(){ stopAuto(); S.g = deal(); S.hist = []; S.sel = null; S.won = false; S.t0 = Date.now(); S.tEnd = 0; S.hint = null; S.subm = 0; paint(); }
 function setTheme(t){ S.th = t; try{ localStorage.setItem('bp_klo_th', t); }catch(e){} paint(); }
-function setDraw(n){ S.draw = n; S.t0 = Date.now(); S.g = deal(); S.hist = []; S.sel = null; S.won = false; S.subm = 0; if(boardOpen) boardLoad(); try{ localStorage.setItem('bp_klo_draw', String(n)); }catch(e){} paint(); }
+function setDraw(n){ S.draw = n; S.t0 = Date.now(); S.tEnd = 0; S.hint = null; S.g = deal(); S.hist = []; S.sel = null; S.won = false; S.subm = 0; if(boardOpen) boardLoad(); try{ localStorage.setItem('bp_klo_draw', String(n)); }catch(e){} paint(); }
 function stopAuto(){ if(autoTimer){ clearInterval(autoTimer); autoTimer = null; } if(S) S.auto = false; }
 function canAuto(){ const g = S.g; return !g.stock.length && !g.waste.length && g.tab.every(c => c.every(x => x.up)) && !won(); }
 function auto(){
@@ -72,11 +72,19 @@ function auto(){
   }, 70);
 }
 const CSS = `<style>
-#kloApp{text-align:center;position:fixed;inset:0;z-index:40;overflow-y:auto;background:var(--bg,#070b1a);padding:10px 6px 24px;max-width:none;width:auto;border-radius:0;border:0;-webkit-overflow-scrolling:touch}
-#kloApp>*{max-width:640px;margin-left:auto;margin-right:auto}
-.kcd{touch-action:none}
-.klb{container-type:inline-size;width:100%;margin:8px auto 0;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-.klr{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;--cw:calc((100cqw - 24px)/7)}
+#kloApp{text-align:center;position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;height:100vh;height:100dvh;background:var(--bg,#070b1a);padding:0 4px;max-width:none;width:auto;border-radius:0;border:0;overflow:hidden}
+#kloApp>*{width:100%;max-width:640px;margin-left:auto;margin-right:auto}
+#chatFab{display:none!important}
+.kbar{display:flex;align-items:center;gap:8px;padding:6px 2px;flex:none}.kbar .kst2{flex:1;display:flex;justify-content:center;gap:18px;font-weight:800;font-size:15px}
+.kib{width:44px;height:44px;border-radius:14px;border:1.5px solid #ffffff24;background:#ffffff10;color:#fff;font-size:20px;line-height:1;display:grid;place-items:center;flex:none}
+.ktool{display:flex;gap:6px;padding:6px 2px calc(8px + env(safe-area-inset-bottom));flex:none}.ktool .kib{flex:1;width:auto;height:50px;font-size:22px;position:relative}.ktool .kib:disabled{opacity:.35}.ktool .kib small{display:block;font-size:10px;font-weight:700;opacity:.7;line-height:1}
+.kbd{position:absolute;top:-5px;right:-3px;min-width:20px;height:20px;border-radius:99px;background:#ff3d6e;font-size:12px;font-weight:900;display:grid;place-items:center;padding:0 5px;color:#fff}
+.kshw{position:fixed;inset:0;z-index:300;display:none;background:rgba(0,0,0,.5);align-items:flex-end}.kshw.on{display:flex}
+.ksp{display:none;width:100%;max-width:640px;margin:0 auto;background:#10172c;border:1px solid #3de0ff40;border-bottom:0;border-radius:22px 22px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));max-height:78vh;max-height:78dvh;overflow:auto;text-align:left}.ksp.on{display:block}
+.ksp h3{margin:0 0 10px;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.kcd.hn{outline:3px solid #ffd45a;box-shadow:0 0 14px #ffd45a;animation:khn .9s infinite}.klc.hnd{border-color:#ffd45a!important;box-shadow:0 0 14px #ffd45a}@keyframes khn{50%{outline-color:#ffd45a55}}
+.klb{container-type:inline-size;flex:1;min-height:0;width:100%;margin:2px auto;overflow-y:auto;overflow-x:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.klr{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;--cw:calc((100cqw - 18px)/7)}
 .klt{margin-top:12px}
 .klc{position:relative;min-height:calc(var(--cw)*1.4);border-radius:calc(var(--cw)*.14);background:rgba(255,255,255,.05);border:1.5px dashed rgba(255,255,255,.16)}
 .klc.fd{border-style:solid;border-color:rgba(61,224,255,.28)}
@@ -103,7 +111,7 @@ const CSS = `<style>
 [data-th=gold] .kcd.dn{background:repeating-linear-gradient(45deg,#2b1c00 0 6px,#4a3200 6px 12px);border-color:#e8bf55}
 [data-th=gold] .klc{border-color:rgba(232,191,85,.35)}
 .kth{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:8px}
-.kth button{padding:5px 11px;font-size:12px;border-radius:99px}
+.kth button{padding:9px 16px;font-size:14px;border-radius:99px}
 .kst{position:relative;min-height:calc(var(--cw)*1.4)}
 .kemp{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cw)*.5);opacity:.35}
 </style>`;
@@ -121,18 +129,21 @@ function paint(){
   const wv = g.waste.slice(-S.draw);
   top += `<div class="klc kst" data-k="w" style="border-style:${g.waste.length ? 'solid' : 'dashed'}">${wv.map((c, n) => cardHtml(c, '0', (sel && sel.k === 'w' && n === wv.length - 1 ? ' sel' : ''), '').replace('style="top:0"', `style="top:0;left:${(S.draw === 3 ? n * 22 : 0)}%;right:${(S.draw === 3 ? (wv.length - 1 - n) * 22 : 0)}%"`)).join('')}</div><div></div>`;
   for(let i = 0; i < 4; i++){ const p = g.found[i], t = p[p.length - 1]; top += `<div class="klc kst fd${tgF.has(i) ? ' tg' : ''}" data-k="f${i}">${t ? cardHtml(t, '0', sel && sel.k === 'f' + i ? ' sel' : '') : `<div class="kemp">${SU[i]}</div>`}</div>`; }
-  let tb = '';
+  let tb = ''; const bd = el.querySelector('.klb'), cwPx = Math.max(20, (bd.clientWidth - 18) / 7), avail = bd.clientHeight ? (bd.clientHeight - (1.4 * cwPx + 14)) / cwPx : 99;
   for(let c = 0; c < 7; c++){
-    const col = g.tab[c]; let y = 0; const parts = [];
-    col.forEach((x, i) => { const isSel = sel && sel.k === 't' + c && i >= sel.i; parts.push(cardHtml(x, `calc(var(--cw)*${y.toFixed(2)})`, isSel ? ' sel' : '', `data-k="t${c}" data-i="${i}"`)); y += x.up ? .52 : .2; });
-    const h = col.length ? y - (col[col.length - 1].up ? .46 : .2) + 1.4 : 1.4;
-    tb += `<div class="klc${tgT.has(c) ? ' tg' : ''}" data-k="t${c}" style="height:calc(var(--cw)*${(Math.max(h, 1.4) + 0.2).toFixed(2)})">${parts.join('')}</div>`;
+    const col = g.tab[c]; let raw = 0; col.forEach((x, i) => { if(i < col.length - 1) raw += x.up ? .52 : .2; });
+    const f = raw > 0 ? Math.max(.38, Math.min(1, (avail - 1.5) / raw)) : 1; let y = 0; const parts = [];
+    col.forEach((x, i) => { const isSel = sel && sel.k === 't' + c && i >= sel.i; const hs = S.hint && S.hint.src.k === 't' + c && i >= S.hint.src.i; parts.push(cardHtml(x, `calc(var(--cw)*${y.toFixed(3)})`, (isSel ? ' sel' : '') + (hs ? ' hn' : ''), `data-k="t${c}" data-i="${i}"`)); y += (x.up ? .52 : .2) * f; });
+    const h = (col.length ? y + 1.4 - (col[col.length - 1].up ? .52 : .2) * f : 1.4);
+    tb += `<div class="klc${tgT.has(c) ? ' tg' : ''}${S.hint && S.hint.dst === 't' + c ? ' hnd' : ''}" data-k="t${c}" style="height:calc(var(--cw)*${(Math.max(h, 1.4) + 0.2).toFixed(3)})">${parts.join('')}</div>`;
   }
-  el.querySelector('.klb').innerHTML = `<div class="klr">${top}</div><div class="klr klt">${tb}</div>`;
+  const sc = bd.scrollTop; bd.innerHTML = `<div class="klr">${top}</div><div class="klr klt">${tb}</div>`; bd.scrollTop = sc;
+  if(S.hint){ const hs = S.hint.src, hd = S.hint.dst; if(hs.k === 'w'){ const w = bd.querySelectorAll('[data-k="w"] .kcd'); if(w.length) w[w.length - 1].classList.add('hn'); } else if(hs.k === 'stock'){ const e = bd.querySelector('[data-k="stock"]'); if(e) e.classList.add('hnd'); } if(hd && hd[0] === 'f'){ const e = bd.querySelector(`.klc[data-k="${hd}"]`); if(e) e.classList.add('hnd'); } }
+  if(S.won && !S.tEnd) S.tEnd = Date.now();
   el.querySelector('#kloMv').textContent = g.moves;
   const ab = el.querySelector('#kloAuto'); if(ab) ab.style.display = canAuto() && !S.auto ? '' : 'none';
   const ub = el.querySelector('#kloUndo'); if(ub) ub.disabled = !S.hist.length || S.auto;
-  el.querySelector('#kloMsg').innerHTML = S.won ? `<b style="color:#c6ff3d;font-size:18px">🎉 ${L2('Geschafft! Alle Karten sortiert.', 'Done! All cards sorted.')}</b> (${g.moves} ${L2('Züge', 'moves')})` : (sel ? L2('Jetzt Ziel antippen – oder dieselbe Karte nochmal für automatisch.', 'Tap a target – or the same card again for auto-move.') : L2('Karte antippen, dann das Ziel. Ziel: alle Karten nach Farbe von Ass bis König ablegen.', 'Tap a card, then its target. Goal: build all four suits from Ace to King.'));
+  el.querySelector('#kloMsg').innerHTML = S.won ? `<b style="color:#c6ff3d;font-size:15px">🎉 ${L2('Geschafft!', 'Done!')}</b> (${g.moves} ${L2('Züge', 'moves')})` : S.hint ? `<span style="color:#ffd45a">💡 ${S.hint.msg}</span>` : (sel ? L2('Jetzt Ziel antippen – oder dieselbe Karte nochmal für automatisch.', 'Tap a target – or the same card again for auto-move.') : '');
   el.setAttribute('data-th', S.th); el.querySelectorAll('[data-t]').forEach(b => b.style.borderColor = b.dataset.t === S.th ? '#c6ff3d' : '');
   el.querySelectorAll('[data-d]').forEach(b => b.style.borderColor = +b.dataset.d === S.draw ? '#c6ff3d' : '');
 }
@@ -142,12 +153,13 @@ function chatStop(){ if(chatT){ clearInterval(chatT); chatT = 0; } }
 async function chatPoll(first){
   const box = document.getElementById('kloMsgs'); if(!box || !S){ chatStop(); return; }
   try{
-    const r = await apiCall('/api/chat-public-list', { room: 'sol', since: first ? 0 : chatLast, token: (typeof account !== 'undefined' && account) ? account.token : undefined });
+    const r = await apiCall('/api/chat-public-list', { room: 'sol', since: first ? 0 : chatLast, token: (typeof account !== 'undefined' && account) ? account.token : undefined, adminKey: (typeof adminKeyStored === 'function' ? adminKeyStored() : '') || undefined });
     if(!r || !r.ok) return; const on = document.getElementById('kloOn'); if(on) on.textContent = '🟢 ' + Math.max(1, r.online || 0) + ' ' + L2('hier', 'here');
-    if(first) box.innerHTML = '';
+    if(first) box.innerHTML = ''; let nw = 0;
     const near = box.scrollHeight - box.scrollTop - box.clientHeight < 40 || first;
-    (r.messages || []).forEach(m => { if(m.id > chatLast) chatLast = m.id; box.insertAdjacentHTML('beforeend', `<div><b style="color:${m.adm ? '#ffd45a' : '#7fe3ff'}">${escH(m.a || '')} ${escH(m.u)}</b> ${escH(m.t)}</div>`); });
+    (r.messages || []).forEach(m => { if(m.id > chatLast){ chatLast = m.id; nw++; } box.insertAdjacentHTML('beforeend', `<div><b style="color:${m.adm ? '#ffd45a' : m.me ? '#c6ff3d' : '#7fe3ff'}">${escH(m.a || '')} ${m.ru ? `<span style="cursor:pointer;text-decoration:underline dotted" data-an="${escH(m.u)}" data-ru="${escH(m.ru)}" onclick="this.textContent=this.textContent===this.dataset.an?'🔍 '+this.dataset.ru:this.dataset.an">${escH(m.u)}</span>` : escH(m.u)}${m.fr ? ' 👥' : ''}</b> ${escH(m.t)}</div>`); });
     if(near) box.scrollTop = box.scrollHeight;
+    if(!first && nw && S && S.sheet !== 'chat'){ S.unread = (S.unread || 0) + nw; unreadPaint(); }
   }catch(e){}
 }
 async function chatSend(){
@@ -156,12 +168,46 @@ async function chatSend(){
   inp.value = '';
   try{ const r = await apiCall('/api/chat-public-send', { room: 'sol', token: account.token, text: t }); if(r && !r.ok){ const box = document.getElementById('kloMsgs'); if(box){ box.insertAdjacentHTML('beforeend', `<div style="color:#ff8aa0">⚠ ${escH(r.error || '')}</div>`); box.scrollTop = box.scrollHeight; } } else chatPoll(false); }catch(e){}
 }
+const solMuted = () => { try{ return localStorage.getItem('bp_mute_sol') === '1'; }catch(e){ return false; } };
+function solMuteUi(){
+  const m = solMuted(), b = document.getElementById('kloMute'), box = document.getElementById('kloMsgs'), row = document.getElementById('kloRow'), tb = document.getElementById('kloChatBtn');
+  if(b){ b.textContent = m ? '🔕' : '🔔'; b.title = m ? L2('Stumm – tippen zum Einschalten', 'Muted – tap to unmute') : L2('Chat stumm schalten', 'Mute chat'); }
+  if(tb) tb.firstChild.textContent = m ? '🔕' : '💬';
+  if(row) row.style.display = m ? 'none' : 'flex';
+  if(m){ if(box) box.innerHTML = `<div style="text-align:center;padding:30px 10px;opacity:.85"><div style="font-size:40px">🔕</div><div style="font-weight:800;margin:6px 0">${L2('Chat ist stumm', 'Chat is muted')}</div><button class="btn btn-primary" onclick="KLO.mute()" style="margin-top:8px">🔔 ${L2('Wieder einschalten', 'Turn back on')}</button></div>`; const o = document.getElementById('kloOn'); if(o) o.textContent = ''; if(S){ S.unread = 0; unreadPaint(); } }
+}
+function solMute(){ try{ localStorage.setItem('bp_mute_sol', solMuted() ? '0' : '1'); }catch(e){} if(solMuted()) chatStop(); else { chatLast = 0; const box = document.getElementById('kloMsgs'); if(box) box.innerHTML = ''; chatPoll(true); if(!chatT) chatT = setInterval(() => chatPoll(false), 3000); } solMuteUi(); }
 function chatInit(){
-  chatStop(); chatLast = 0; chatPoll(true); chatT = setInterval(() => chatPoll(false), 3000);
+  chatStop(); chatLast = 0; solMuteUi(); if(!solMuted()){ chatPoll(true); chatT = setInterval(() => chatPoll(false), 3000); }
   const inp = document.getElementById('kloIn'), b = document.getElementById('kloSend');
   if(b) b.onclick = chatSend; if(inp) inp.onkeydown = e => { if(e.key === 'Enter') chatSend(); };
 }
 let boardOpen = false, dragSup = false;
+function findHint(){
+  const g = S.g, wT = g.waste[g.waste.length - 1];
+  const T = L2;
+  if(wT) for(let i = 0; i < 4; i++) if(canFound(wT, g.found[i])) return { src: { k: 'w' }, dst: 'f' + i, msg: T('Ablage-Karte nach oben legen', 'Move the waste card up') };
+  for(let c = 0; c < 7; c++){ const col = g.tab[c], t = col[col.length - 1]; if(t && t.up) for(let i = 0; i < 4; i++) if(canFound(t, g.found[i])) return { src: { k: 't' + c, i: col.length - 1 }, dst: 'f' + i, msg: T('Karte nach oben legen', 'Move the card up') }; }
+  for(let c = 0; c < 7; c++){ const col = g.tab[c], fi = col.findIndex(x => x.up); if(fi > 0) for(let j = 0; j < 7; j++) if(j !== c && canTab(col[fi], g.tab[j])) return { src: { k: 't' + c, i: fi }, dst: 't' + j, msg: T('Deckt eine verdeckte Karte auf', 'Reveals a hidden card') }; }
+  if(wT) for(let j = 0; j < 7; j++) if(canTab(wT, g.tab[j])) return { src: { k: 'w' }, dst: 't' + j, msg: T('Ablage-Karte an eine Reihe legen', 'Play the waste card') };
+  for(let c = 0; c < 7; c++){ const col = g.tab[c]; if(col.length && col[0].up && col[0].r !== 13) for(let j = 0; j < 7; j++) if(j !== c && canTab(col[0], g.tab[j])) return { src: { k: 't' + c, i: 0 }, dst: 't' + j, msg: T('Macht eine Spalte frei', 'Frees up a column') }; }
+  if(g.stock.length || g.waste.length) return { src: { k: 'stock' }, dst: null, msg: T('Keine Karte frei – vom Stapel ziehen', 'No moves – draw from the stock') };
+  return null;
+}
+function hint(){
+  if(!S || S.auto || S.won) return; const h = findHint(); S.sel = null;
+  if(!h){ const m = document.getElementById('kloMsg'); if(m) m.innerHTML = `<span style="color:#ff8aa0">${L2('Kein Zug mehr möglich – neues Spiel?', 'No moves left – new game?')}</span>`; return; }
+  S.hint = h; paint(); setTimeout(() => { if(S && S.hint === h){ S.hint = null; paint(); } }, 3500);
+}
+function sheet(n){
+  if(!S) return; S.sheet = n; const w = document.getElementById('kloSheet'); if(!w) return; w.classList.toggle('on', !!n);
+  w.querySelectorAll('.ksp').forEach(p => p.classList.toggle('on', p.dataset.p === n));
+  if(n === 'lb') boardLoad(); if(n === 'chat'){ S.unread = 0; unreadPaint(); const m = document.getElementById('kloMsgs'); if(m) m.scrollTop = m.scrollHeight; }
+  boardOpen = n === 'lb';
+}
+function unreadPaint(){ const b = document.getElementById('kloBd'); if(!b || !S) return; b.style.display = S.unread > 0 ? '' : 'none'; b.textContent = S.unread > 9 ? '9+' : S.unread; }
+let rzT = 0; function onResize(){ if(!document.getElementById('kloApp')){ window.removeEventListener('resize', onResize); return; } clearTimeout(rzT); rzT = setTimeout(() => { if(S) paint(); }, 120); }
+
 async function winSubmit(){
   const secs = Math.round((Date.now() - S.t0) / 1000), moves = S.g.moves;
   try{ if(typeof account !== 'undefined' && account){ const r = await apiCall('/api/klo/submit', { token: account.token, draw: S.draw, moves, secs }); const m = document.getElementById('kloMsg'); if(m && r && r.ok) m.insertAdjacentHTML('beforeend', `<div style="margin-top:4px;font-size:12px;color:#7fe3ff">${r.improved ? '🏆 ' + L2('Neue Bestleistung in der Liste!', 'New personal best on the list!') : L2('Eingetragen – deine Bestleistung ist besser.', 'Logged – your best is still better.')}</div>`); if(boardOpen) boardLoad(); } }catch(e){}
@@ -210,24 +256,28 @@ function dragInit(b){
 function open(back){
   let dr = 1; try{ dr = localStorage.getItem('bp_klo_draw') === '3' ? 3 : 1; }catch(e){}
   let th = 'klassisch'; try{ const v = localStorage.getItem('bp_klo_th'); if(TH.some(x => x[0] === v)) th = v; }catch(e){}
-  S = { th, g: deal(), hist: [], sel: null, back: back || null, draw: dr, won: false, auto: false, t0: Date.now(), subm: 0 };
+  S = { th, g: deal(), hist: [], sel: null, back: back || null, draw: dr, won: false, auto: false, t0: Date.now(), subm: 0, tEnd: 0, hint: null, sheet: null, unread: 0 };
   renderApp(CSS + `<div class="panel" id="kloApp">
-    <button class="btn btn-ghost" id="kloBk" onclick="KLO.back()" aria-label="Zurück" style="position:absolute;left:8px;top:8px;padding:6px 14px;font-size:20px;line-height:1;z-index:2">←</button><div class="picker-title" style="margin:0">KARTEN-SOLITÄR</div>
-    <div style="display:flex;justify-content:center;gap:18px;align-items:center;font-weight:800;margin-top:6px;flex-wrap:wrap"><span>${L2('Züge', 'Moves')}: <b id="kloMv">0</b></span><span style="display:flex;gap:6px;align-items:center">${L2('Ziehen', 'Draw')}: <button class="btn btn-ghost" data-d="1" style="padding:4px 12px" onclick="KLO.draw(1)">1</button><button class="btn btn-ghost" data-d="3" style="padding:4px 12px" onclick="KLO.draw(3)">3</button></span></div>
-    <div class="kth">${TH.map(x => `<button class="btn btn-ghost" data-t="${x[0]}" onclick="KLO.theme('${x[0]}')">${L2(x[1], x[2])}</button>`).join('')}</div>
+    <div class="kbar"><button class="kib" onclick="KLO.back()" aria-label="${L2('Zurück', 'Back')}">←</button><div class="kst2"><span>👆 <b id="kloMv">0</b></span><span>⏱ <b id="kloTm">0:00</b></span></div><button class="kib" onclick="KLO.sheet('set')" aria-label="${L2('Einstellungen', 'Settings')}">⚙</button></div>
     <div class="klb" id="kloBoard"></div>
-    <div id="kloMsg" style="min-height:44px;font-size:13px;padding:8px 6px 0;opacity:.9"></div>
-    <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="KLO.board()">🏆 ${L2('Bestenliste', 'Leaderboard')} <span style="opacity:.6;font-size:12px">(${L2('wenigste Züge', 'fewest moves')})</span></button>
-    <div id="kloBoardWrap" style="display:none;margin-top:6px;border-radius:14px;background:rgba(255,255,255,.05);padding:8px 12px;text-align:left"><div id="kloBoardList"></div></div>
-    <div style="display:flex;gap:8px;margin-top:6px"><button class="btn btn-ghost" id="kloUndo" aria-label="Letzten Zug zurücknehmen" title="Letzten Zug zurücknehmen" style="flex:1;font-size:26px;line-height:1" onclick="KLO.undo()">↶</button><button class="btn btn-ghost" style="flex:1" onclick="KLO.restart()">${L2('Neues Spiel', 'New game')}</button></div>
-    <button class="btn btn-primary btn-block" id="kloAuto" style="margin-top:8px;display:none" onclick="KLO.auto()">✨ ${L2('Automatisch fertig legen', 'Auto-finish')}</button>
-    <div id="kloChat" style="margin-top:12px;border-radius:16px;background:rgba(255,255,255,.05);border:1.5px solid rgba(61,224,255,.25);padding:8px 10px;text-align:left"><div style="display:flex;justify-content:space-between;font-weight:800;font-size:13px"><span>💬 ${L2('Live-Chat Solitär', 'Solitaire live chat')}</span><span id="kloOn" style="opacity:.7">–</span></div><div id="kloMsgs" style="height:130px;overflow-y:auto;margin:6px 0;font-size:13px;line-height:1.35"></div><div id="kloRow" style="display:flex;gap:6px"><input id="kloIn" maxlength="200" placeholder="${L2('Schreib etwas Nettes …', 'Write something nice …')}" style="flex:1;min-width:0;border-radius:12px;border:1.5px solid #ffffff22;background:#0b1024;color:#fff;padding:9px 12px;font-size:14px"><button class="btn btn-primary" id="kloSend" style="padding:8px 14px">➤</button></div><div style="font-size:11px;opacity:.55;margin-top:5px">${L2('Keine Links, keine Beleidigungen oder Rassismus, nichts Strafbares – sonst gesperrt.', 'No links, insults, racism or anything illegal – or you get muted.')}</div></div>
+    <div id="kloMsg" style="min-height:20px;font-size:12px;padding:2px 6px;opacity:.9;flex:none"></div>
+    <div class="ktool"><button class="kib" id="kloUndo" onclick="KLO.undo()" aria-label="${L2('Letzten Zug zurücknehmen', 'Undo')}">↶</button><button class="kib" onclick="KLO.hint()" aria-label="${L2('Tipp', 'Hint')}">💡</button><button class="kib" id="kloAuto" style="display:none" onclick="KLO.auto()" aria-label="Auto">✨</button><button class="kib" onclick="KLO.sheet('lb')" aria-label="${L2('Bestenliste', 'Leaderboard')}">🏆</button><button class="kib" id="kloChatBtn" onclick="KLO.sheet('chat')" aria-label="Chat"><span>💬</span><span class="kbd" id="kloBd" style="display:none">0</span></button></div>
+    <div class="kshw" id="kloSheet" onclick="if(event.target===this)KLO.sheet(null)">
+      <div class="ksp" data-p="set"><h3>⚙ ${L2('Einstellungen', 'Settings')}<button class="kib" style="width:36px;height:36px;font-size:16px" onclick="KLO.sheet(null)">✕</button></h3>
+        <div style="font-weight:800;font-size:13px;margin-bottom:6px">${L2('Karten ziehen', 'Draw')}</div><div class="kth" style="justify-content:flex-start;margin:0 0 12px"><button class="btn btn-ghost" data-d="1" onclick="KLO.draw(1)">1</button><button class="btn btn-ghost" data-d="3" onclick="KLO.draw(3)">3</button></div>
+        <div style="font-weight:800;font-size:13px;margin-bottom:6px">${L2('Karten-Design', 'Card design')}</div><div class="kth" style="justify-content:flex-start;margin:0 0 12px">${TH.map(x => `<button class="btn btn-ghost" data-t="${x[0]}" onclick="KLO.theme('${x[0]}')">${L2(x[1], x[2])}</button>`).join('')}</div>
+        <button class="btn btn-primary btn-block" onclick="KLO.restart();KLO.sheet(null)">🔄 ${L2('Neues Spiel', 'New game')}</button></div>
+      <div class="ksp" data-p="lb"><h3>🏆 ${L2('Bestenliste', 'Leaderboard')} <span style="font-size:11px;opacity:.6;font-weight:600">${L2('wenigste Züge', 'fewest moves')}</span><button class="kib" style="width:36px;height:36px;font-size:16px" onclick="KLO.sheet(null)">✕</button></h3><div id="kloBoardList"></div></div>
+      <div class="ksp" data-p="chat" id="kloChat"><h3>💬 ${L2('Live-Chat Solitär', 'Solitaire live chat')} <span id="kloOn" style="font-size:12px;opacity:.7;font-weight:600;margin-left:auto;margin-right:8px">–</span><button class="kib" id="kloMute" style="width:36px;height:36px;font-size:16px;margin-right:6px" onclick="KLO.mute()"></button><button class="kib" style="width:36px;height:36px;font-size:16px" onclick="KLO.sheet(null)" aria-label="${L2('Minimieren', 'Minimize')}">⌄</button></h3>${typeof streamerMode !== 'undefined' && streamerMode ? `<div style="margin:0 0 6px;padding:6px 9px;border-radius:10px;background:#ffffff10;font-size:12px">🎥 ${L2('Streamer-Modus: nur Nachrichten von Freunden.', 'Streamer mode: friends’ messages only.')}</div>` : ''}<div id="kloMsgs" style="height:34vh;height:34dvh;overflow-y:auto;font-size:14px;line-height:1.4"></div><div id="kloRow" style="display:flex;gap:6px;margin-top:8px"><input id="kloIn" maxlength="200" placeholder="${L2('Schreib etwas Nettes …', 'Write something nice …')}" style="flex:1;min-width:0;border-radius:12px;border:1.5px solid #ffffff22;background:#0b1024;color:#fff;padding:11px 12px;font-size:16px"><button class="btn btn-primary" id="kloSend" style="padding:8px 16px">➤</button></div><div style="font-size:11px;opacity:.55;margin-top:6px">${L2('Keine Links, keine Beleidigungen oder Rassismus, nichts Strafbares – sonst gesperrt.', 'No links, insults, racism or anything illegal – or you get muted.')}</div></div>
+    </div>
   </div>`);
+  S.tm = setInterval(() => { const e = document.getElementById('kloTm'); if(!e || !S){ clearInterval(S && S.tm); return; } e.textContent = fmtT(Math.floor(((S.tEnd || Date.now()) - S.t0) / 1000)); }, 1000);
+  window.addEventListener('resize', onResize);
   const b = document.getElementById('kloBoard');
   dragInit(b);
   b.addEventListener('click', e => { if(dragSup) return; const t = e.target.closest('[data-k]'); if(!t) return; const k = t.dataset.k; tap(k, t.dataset.i != null ? +t.dataset.i : null); });
-  paint(); chatInit();
+  paint(); chatInit(); requestAnimationFrame(() => { if(S) paint(); });
 }
-window.KLO = { board: boardToggle, open, undo, restart, auto, draw: setDraw, theme: setTheme, back: () => { stopAuto(); chatStop(); const b = S && S.back; S = null; boardOpen = false; if(b) b(); else renderMainMenu(); } };
+window.KLO = { mute: solMute, hint, sheet, board: () => sheet('lb'), open, undo, restart, auto, draw: setDraw, theme: setTheme, back: () => { stopAuto(); chatStop(); if(S && S.tm) clearInterval(S.tm); const b = S && S.back; S = null; boardOpen = false; if(b) b(); else renderMainMenu(); } };
 window.__kloEngine = { deal, canTab, canFound, state: () => S, tap };
 })();

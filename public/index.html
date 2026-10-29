@@ -5354,7 +5354,7 @@ window.coinSvg = coinSvg;
   new MutationObserver(() => { if(busy) return; busy = true; setTimeout(() => { try{ swap(document.body); }catch(e){} busy = false; }, 30); }).observe(document.body, { childList:true, subtree:true, characterData:true });
 })();
 /* ---- Brainups-Kennzeichnung: Karten, bei denen man Punkte bekommt ---- */
-const ZP_MARKS = { 'startBrainingHub(':'+50–100', 'BGX.open(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+5–160', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', 'startTabooHub(':'+100', 'startChem(':'+10 / Element' };
+const ZP_MARKS = { 'startBrainingHub(':'+50–100', 'BGX.map(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+5–160', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', 'startTabooHub(':'+100', 'startChem(':'+10 / Element' };
 function zpMarkCards(){
   if(!document.getElementById('zpbCss')){ const st = document.createElement('style'); st.id = 'zpbCss'; st.textContent = '.mode-card[data-zpb]{position:relative}.zpb{position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px;letter-spacing:.3px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35)}.zpb-i{display:inline-block;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}'; document.head.appendChild(st); }
   if(featureLocked('zp')){ document.querySelectorAll('.zpb').forEach(e => e.remove()); return; }
@@ -7358,12 +7358,12 @@ function brainBoardHtml(game, title, ic, r){
 let brainData = { hood:null, fruit:null }, brainTabSel = 'hood', brainOpen = false;
 function brainCardsHtml(){
   const f = fruitData();
-  const card = (game, title, sub, ic, lvl, r) => hiddenFeatures.indexOf('braining_' + game) !== -1 ? '' : featureLocked('braining_' + game) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="braining_${game}">${gateText('braining_' + game)}</p></div>` : `<div class="mode-card" onclick="renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')" style="${admSty('braining_' + game)}">
+  const card = (game, title, sub, ic, lvl, r) => hiddenFeatures.indexOf('braining_' + game) !== -1 ? '' : featureLocked('braining_' + game) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="braining_${game}">${gateText('braining_' + game)}</p></div>` : `<div class="mode-card" onclick="${game==='galaxy'?'BGX.map(startBrainingHub)':`renderChessFrame('/${game==='hood'?'arrows':'fruit'}/index.html')`}" style="${admSty('braining_' + game)}">
       <div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${lvl}</span><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--warn);">${r && r.ok && r.mine ? r.mine.pts.toLocaleString() : 0} ${L('Pkt','pts')}</span></div></div>`;
   const hoodIc = `<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   return card('fruit','Brain Fruit',L('Match mit Bomben','Match with bombs'),'<span style="font-size:40px;line-height:46px;">🍓</span>',f.fruitLevel||1,brainData.fruit)
-    + (hiddenFeatures.indexOf('braining_galaxy') !== -1 ? '' : featureLocked('braining_galaxy') ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon"><span style="font-size:40px;line-height:40px">🪐</span></div><h3>Brain Galaxy</h3><p data-gate="braining_galaxy">${gateText('braining_galaxy')}</p></div>` : `<div class="mode-card" onclick="BGX.open(startBrainingHub)"><div class="icon"><span style="font-size:40px;line-height:40px">🪐</span></div><h3>Brain Galaxy</h3><p>${L('Planeten-Blasen, die sich drehen','Spinning planet bubbles')}</p></div>`)
+    + card('galaxy','Brain Galaxy',L('Planeten-Blasen, die sich drehen','Spinning planet bubbles'),'<span style="font-size:40px;line-height:46px;">🪐</span>',f.galaxyLevel||1,brainData.galaxy)
 }
 function brainBoardsPaint(){
   const el = document.getElementById('brainBoards'); if(!el) return;
@@ -10639,7 +10639,7 @@ function dmIntro(msg){
       <div class="lab">${L('GEGEN DEN BOT','VS THE BOT')}</div>
       <div class="bots"><button class="b" onclick="dmStartBot('easy')">🤖 ${L('Leicht','Easy')}<small>★☆☆</small></button><button class="b m" onclick="dmStartBot('normal')">🤖 ${L('Normal','Normal')}<small>★★☆</small></button><button class="b h" onclick="dmStartBot('hard')">🤖 ${L('Schwer','Hard')}<small>★★★</small></button></div>
       <div class="lab">${L('ONLINE SPIELEN','PLAY ONLINE')}</div>
-      <div style="font-size:12px;color:var(--accent);margin:-4px 0 8px">${L('Brainups gewinnen: Mitspielen 50, Sieg 100','Win Brainups: playing 50, win 100')}</div>
+      <div style="font-size:12px;color:var(--accent);margin:-4px 0 8px">${L('Brainups gewinnen: Sieg 100, Remis 50','Win Brainups: win 100, draw 50')}</div>
       <button class="big" style="margin-top:0" onclick="dmMpQueue()"><div class="e">🎲</div><div><b>${L('Zufallsgegner','Random opponent')}</b><span>${L('Sofort gegen einen echten Spieler','Instantly vs a real player')}</span></div><div class="ar">›</div></button>
       <button class="big" onclick="dmMpCreate()"><div class="e">👥</div><div><b>${L('Gegen Freund','Vs friend')}</b><span>${L('Per Code oder Link einladen','Invite via code or link')}</span></div><div class="ar">›</div></button>
       <div class="code"><input id="dmCodeIn" type="text" maxlength="8" placeholder="CODE"><button onclick="dmJoinScreen(document.getElementById('dmCodeIn').value.trim().toUpperCase())">${L('Beitreten','Join')}</button></div>
@@ -11196,7 +11196,7 @@ function startFourupsFlow(){
         <div class="mode-card" onclick="fuMpMenu()">
           <div class="icon">👥</div>
           <h3>${L('Mit Freunden','With friends')}</h3>
-          <p>${L('Online gegen einen Freund, per Einladung oder Code.','Online vs a friend, by invite or code.')}</p><p style="color:var(--accent);font-size:12px;margin-top:4px;">${L('Brainups gewinnen: Mitspielen 50, Sieg 100','Win Brainups: playing 50, win 100')}</p>
+          <p>${L('Online gegen einen Freund, per Einladung oder Code.','Online vs a friend, by invite or code.')}</p><p style="color:var(--accent);font-size:12px;margin-top:4px;">${L('Brainups gewinnen: Sieg 100, Remis 50','Win Brainups: win 100, draw 50')}</p>
         </div>
       </div>` : ''}
       <div class="actions-row" style="margin-top:18px;">
@@ -16638,7 +16638,8 @@ window.bpDrag = function(el, key){
   addEventListener('resize', () => { const r = el.getBoundingClientRect(); if(el.style.top) put(r.left, r.top); });
 };
 (function(){
-  let lastId = 0, seenId = 0, open = false, timer = null, badgeTimer = null, msgs = [];
+  let lastId = 0, seenId = 0, open = false, timer = null, badgeTimer = null, msgs = [], muted = false;
+  try{ muted = localStorage.getItem('bp_mute_pub') === '1'; }catch(e){}
   try{ seenId = parseInt(localStorage.getItem('bp_chat_seen'),10) || 0; }catch(e){}
   const BTN = "position:fixed;left:10px;bottom:150px;z-index:99980;width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(61,224,255,.55);background:linear-gradient(145deg,rgba(40,60,120,.92),rgba(14,20,44,.92));box-shadow:0 6px 18px rgba(0,0,0,.45),0 0 14px rgba(61,224,255,.22);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center";
   const fab = document.createElement('button'); fab.id = 'chatFab'; fab.type = 'button'; fab.style.cssText = BTN; fab.title = 'Chat';
@@ -16647,17 +16648,21 @@ window.bpDrag = function(el, key){
   document.body.appendChild(fab); bpDrag(fab, 'chat');
   const ov = document.createElement('div'); ov.id = 'chatOv';
   ov.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center';
-  ov.innerHTML = '<div id="chatBox" style="width:100%;max-width:520px;height:78vh;background:#121830;border:1px solid rgba(255,255,255,.18);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:14px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Brain-Chat</b><span id="chatOnline" style="font-size:12px;color:#7cff8c"></span><button id="chatX" style="background:none;border:0;color:#fff;font-size:22px;cursor:pointer">✕</button></div><div id="chatList" style="flex:1;overflow-y:auto;margin:10px 0"></div><div id="chatFoot"></div></div>';
+  ov.innerHTML = '<div id="chatBox" style="width:100%;max-width:520px;height:78vh;background:#121830;border:1px solid rgba(255,255,255,.18);border-radius:22px 22px 0 0;display:flex;flex-direction:column;padding:14px"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:18px">Brain-Chat</b><span id="chatOnline" style="font-size:12px;color:#7cff8c"></span><button id="chatMute" style="background:none;border:0;color:#fff;font-size:20px;cursor:pointer;margin-left:auto;margin-right:8px"></button><button id="chatX" style="background:none;border:0;color:#fff;font-size:22px;cursor:pointer">✕</button></div><div id="chatList" style="flex:1;overflow-y:auto;margin:10px 0"></div><div id="chatFoot"></div></div>';
   document.body.appendChild(ov);
   ov.onclick = e => { if(e.target === ov) toggle(false); };
   ov.querySelector('#chatX').onclick = () => toggle(false);
+  function muteUi(){ const b = ov.querySelector('#chatMute'); if(b){ b.textContent = muted ? '🔕' : '🔔'; b.title = muted ? L('Stumm – tippen zum Einschalten','Muted – tap to unmute') : L('Chat stumm schalten','Mute chat'); } fab.style.opacity = muted ? '.55' : ''; fab.title = muted ? 'Chat (stumm)' : 'Chat'; }
+  function setMute(v){ muted = v; try{ localStorage.setItem('bp_mute_pub', v ? '1' : '0'); }catch(e){} muteUi(); clearInterval(timer); if(muted){ badge(); render(true); } else { poll(true).then(() => { if(open){ markSeen(); timer = setInterval(() => poll(false), 3000); } }); render(true); } }
+  ov.querySelector('#chatMute').onclick = () => setMute(!muted);
   function me(){ try{ return account && account.profile ? account.profile.username : null; }catch(e){ return null; } }
   function fmt(ts){ const d = new Date(ts); return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); }
   function render(stick){
     const list = document.getElementById('chatList'); if(!list) return;
+    if(muted){ list.innerHTML = '<div style="text-align:center;padding:40px 14px;opacity:.85"><div style="font-size:44px">🔕</div><div style="font-weight:800;margin:8px 0">' + L('Chat ist stumm','Chat is muted') + '</div><div style="font-size:13px;opacity:.7">' + L('Du bekommst keine Nachrichten und keine Anzeige.','No messages and no notification dot.') + '</div><button class="btn btn-primary" id="chatUnmute" style="margin-top:14px">🔔 ' + L('Wieder einschalten','Turn back on') + '</button></div>'; const u = document.getElementById('chatUnmute'); if(u) u.onclick = () => setMute(false); return; }
     const m = me();
     const near = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
-    list.innerHTML = (newsUnread() ? '<div id="chatNewsHint" style="margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,59,92,.14);border:1.5px solid #ff3b5c;font-weight:800;font-size:14px;cursor:pointer;text-align:center">📰 ' + L('Neue News! Tippen zum Lesen','New news! Tap to read') + '</div>' : '') + (msgs.length ? msgs.map(x => { if(x.sys){ const tx = liveEventText({kind:x.k,name:x.nm,n:x.n,x:x.x}); return tx ? '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#2a2450;border:1px solid #8f7bff55;border-radius:99px;padding:5px 12px;font-size:12px;color:#d9d2ff">✨ ' + tx + '</span></div>' : ''; } const mine = (m && x.u === m) || (x.adm && adminViewOn()); return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:' + (x.adm ? '#ffd45a' : '#c6ff3d') + '">' + (x.adm ? '👑 ' : '') + esc(x.u) + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>');
+    list.innerHTML = (streamerMode ? '<div style="margin:2px 0 8px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12px;color:#c9d2f0">🎥 ' + L('Streamer-Modus: Du siehst nur Nachrichten deiner Freunde.','Streamer mode: you only see messages from your friends.') + '</div>' : '') + (newsUnread() ? '<div id="chatNewsHint" style="margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:rgba(255,59,92,.14);border:1.5px solid #ff3b5c;font-weight:800;font-size:14px;cursor:pointer;text-align:center">📰 ' + L('Neue News! Tippen zum Lesen','New news! Tap to read') + '</div>' : '') + (msgs.length ? msgs.map(x => { if(x.sys){ const tx = liveEventText({kind:x.k,name:x.nm,n:x.n,x:x.x}); return tx ? '<div style="text-align:center;margin:10px 0"><span style="display:inline-block;background:#2a2450;border:1px solid #8f7bff55;border-radius:99px;padding:5px 12px;font-size:12px;color:#d9d2ff">✨ ' + tx + '</span></div>' : ''; } const mine = x.me || (m && x.u === m) || (x.adm && adminViewOn()); return '<div style="display:flex;gap:8px;margin:8px 0;' + (mine ? 'flex-direction:row-reverse;' : '') + '"><div style="flex:0 0 32px">' + avatarHtml(x.a || '🙂', 32) + '</div><div style="max-width:78%;background:' + (mine ? '#1b3a2e' : '#1b2240') + ';border-radius:14px;padding:7px 11px;font-size:14px;word-break:break-word"><div style="font-size:11px;font-weight:800;color:' + (x.adm ? '#ffd45a' : '#c6ff3d') + '">' + (x.adm ? '👑 ' : '') + (x.ru ? '<span data-ru="' + esc(x.ru) + '" data-an="' + esc(x.u) + '" style="cursor:pointer;text-decoration:underline dotted" onclick="this.textContent = this.textContent === this.dataset.an ? \'🔍 \' + this.dataset.ru : this.dataset.an">' + esc(x.u) + '</span>' : esc(x.u)) + (x.fr ? ' 👥' : '') + ' <span style="color:#8892b0;font-weight:600">' + fmt(x.ts) + '</span></div>' + esc(x.t) + '</div></div>'; }).join('') : '<div style="text-align:center;color:#8892b0;margin-top:30px">' + L('Noch keine Nachrichten. Schreib die erste!','No messages yet. Write the first one!') + '</div>');
     const nh = document.getElementById('chatNewsHint'); if(nh) nh.onclick = () => { toggle(false); openNews(); };
     if(stick || near) list.scrollTop = list.scrollHeight;
   }
@@ -16675,7 +16680,7 @@ window.bpDrag = function(el, key){
     if(r && r.ok){ inp.value = ''; msgs.push(r.message); lastId = Math.max(lastId, r.message.id); render(true); } else err.textContent = (r && r.error) || 'Fehler';
   }
   async function poll(initial){
-    const r = await apiCall('/api/chat-public-list', initial ? {} : { since: lastId });
+    const r = await apiCall('/api/chat-public-list', Object.assign(initial ? {} : { since: lastId }, { token: (account && account.token) || undefined, adminKey: (typeof adminKeyStored === 'function' ? adminKeyStored() : '') || undefined }));
     if(!r || !r.ok) return;
     if(!initial && typeof r.ver === 'number' && typeof window._pubVer === 'number' && r.ver !== window._pubVer){ window._pubVer = r.ver; return poll(true); }
     window._pubVer = r.ver;
@@ -16687,19 +16692,20 @@ window.bpDrag = function(el, key){
   function markSeen(){ seenId = lastId; try{ localStorage.setItem('bp_chat_seen', String(seenId)); }catch(e){} badge(); }
   function badge(){
     const b = document.getElementById('chatBadge'); if(!b) return;
-    const m = me(); const n = open ? 0 : msgs.filter(x => x.id > seenId && x.u !== m).length;
+    const m = me(); const n = (open || muted) ? 0 : msgs.filter(x => x.id > seenId && x.u !== m).length;
     b.style.display = n ? 'block' : 'none'; b.textContent = n > 9 ? '9+' : String(n);
   }
   function toggle(force){
     open = typeof force === 'boolean' ? force : !open;
     ov.style.display = open ? 'flex' : 'none';
     clearInterval(timer);
-    if(open){ loadNews().then(() => render(false)); foot(); render(true); poll(true).then(markSeen); timer = setInterval(() => poll(false), 3000); }
+    if(open){ muteUi(); if(muted){ foot(); render(true); return; } loadNews().then(() => render(false)); foot(); render(true); poll(true).then(markSeen); timer = setInterval(() => poll(false), 3000); }
     else badge();
   }
   window.chatToggle = toggle;
-  poll(true).then(() => { if(!seenId && lastId){ seenId = lastId; } badge(); });
-  badgeTimer = setInterval(() => { if(!open && !document.hidden) poll(false); }, 20000);
+  if(!muted) poll(true).then(() => { if(!seenId && lastId){ seenId = lastId; } badge(); });
+  badgeTimer = setInterval(() => { if(!open && !muted && !document.hidden) poll(false); }, 20000);
+  muteUi();
 })();
 
 (function(){
