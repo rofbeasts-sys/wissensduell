@@ -5207,7 +5207,7 @@ async function adminEvents(key, ip, p) {
     return done({ savedId: ev.id });
   }
   const ev = evGet(String(p.id || "")); if (!ev) return { ok: false, error: "Event nicht gefunden." };
-  if (act === "publish") { if (ev.state !== "draft") return { ok: false, error: "Schon veröffentlicht." }; if (ev.start && ev.start < Date.now() + 60000) return { ok: false, error: "Startzeit muss in der Zukunft liegen." }; if (!ev.start && !ev.startFull) return { ok: false, error: "Ohne Datum: „Start, sobald voll“ einschalten – oder du startest per Knopf." };  ev.state = "open"; console.log("[Event] veröffentlicht: " + ev.name); return done(); }
+  if (act === "publish") { if (ev.state !== "draft") return { ok: false, error: "Schon veröffentlicht." }; if (ev.start && ev.start < Date.now() + 60000) return { ok: false, error: "Startzeit muss in der Zukunft liegen." };  ev.state = "open"; console.log("[Event] veröffentlicht: " + ev.name); return done(); }
   if (act === "startnow") { if (ev.state !== "open") return { ok: false, error: "Nur offene Events." }; ev.start = Date.now(); evBegin(ev); return done(); }
   if (act === "cancel") { if (!["open", "running", "draft"].includes(ev.state)) return { ok: false, error: "Nicht möglich." }; ev.state = "cancelled"; ev.reason = "Vom Admin abgesagt"; evRun.delete(ev.id); return done(); }
   if (act === "delete") { if (!["draft", "cancelled", "done"].includes(ev.state)) return { ok: false, error: "Erst absagen." }; gameCfg.events = L.filter(e => e !== ev); return done(); }
