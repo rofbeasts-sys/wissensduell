@@ -72,6 +72,7 @@ body{background-size:cover;background-position:center bottom;background-repeat:n
 <div class="wrap"><div class="board" id="board"></div></div>
 <div class="bos" id="bos"></div>
 <div class="info" id="info"></div>
+<script src="/core/herohud.js"></script>
 <div class="scr" id="kings"></div><div class="scr" id="mapscr"></div><div class="scr" id="bgs"></div>
 <div class="ov" id="ov"><div class="box"><h2 id="ot"></h2><p id="op"></p><div style="display:flex;gap:8px;justify-content:center"><button class="btn pri" id="o1"></button><button class="btn" id="o2"></button></div><div style="margin-top:10px"><button class="btn" id="o3" style="display:none;border-color:#ffc446"></button></div></div></div>
 <script>
@@ -299,7 +300,7 @@ function checkBar(){
   while(barNeed>0&&barPts>=barNeed&&rdy.length<slotCap){ rdy.push(Math.random()<.5?"cross":"bomb"); barPts-=barNeed; snd('ding'); }
   if(barNeed>0&&rdy.length>=slotCap&&barPts>barNeed) barPts=barNeed;
 }
-function addBar(g){ if(kind==="time"||barNeed<=0) return; barPts+=(kHas(0)?Math.round(g*kv(0)):g); checkBar(); }
+function addBar(g){ if(kind==="time"||barNeed<=0) return; var ub=(P&&P.UPG)?P.UPG.val("fruit","bar"):0; barPts+=(kHas(0)?Math.round(g*kv(0)*(1+ub)):Math.round(g*(1+ub))); checkBar(); }
 function pbarPaint(){
   var el=$("pbar"); if(kind==="time"||barNeed<=0){ el.innerHTML=""; return; }
   var pc=Math.min(100,barPts/barNeed*100), h='<div class="trk"><i style="width:'+pc+'%"></i></div>';
@@ -317,6 +318,7 @@ function hud(){
   ptsPaint(); pbarPaint();
   $("lvl").textContent=T.level+" "+level;
   $("mv").textContent=kind==="time"?"⏱ "+fmtT(timeLeft):T.moves+" "+moves;
+  if(window.HeroHUD&&!over&&((kind==="time"&&timeLeft>0&&timeLeft<=8)||(kind!=="time"&&moves>0&&moves<=3))) HeroHUD.react("danger");
   if(kind==="time"){ var pc=Math.min(100,score/target*100); $("goal").innerHTML='<div style="width:min(440px,92vw)"><div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px"><span>⭐ '+score.toLocaleString()+' '+T.pts+'</span><span style="color:#8d97b5">'+target.toLocaleString()+'</span></div><div class="sbar"><div style="width:'+pc+'%"></div></div></div>'; return; }
   $("goal").innerHTML=goal.map(function(g){
     var d=Math.max(0,g.n-g.got), ic=g.stone?"🪨":g.ice?"❄️":g.slime?"🟣":g.cherry?"🍒":FR[g.type];
@@ -346,7 +348,7 @@ function popPts(n,x,y){
   $("board").appendChild(e); setTimeout(function(){ e.style.transform="translateY(-34px)"; e.style.opacity="0"; },20); setTimeout(function(){ if(e.parentNode) e.parentNode.removeChild(e); },900);
 }
 async function remove(set,mult){
-  mult=mult||1;
+  mult=mult||1; if(mult>=3&&window.HeroHUD) HeroHUD.react('combo');
   // Steine neben geloeschten Feldern gehen auch kaputt (Kirschen nicht)
   var extra=[]; set.forEach(function(t){ [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){ var r=t.r+d[0],c=t.c+d[1]; if(inb(r,c)){ var n=grid[r][c]; if(n&&n.stone&&!n.cherry&&!set.has(n)&&extra.indexOf(n)<0) extra.push(n); } }); });
   extra.forEach(function(n){ n.hp=(n.hp||1)-1; if(n.hp<=0) set.add(n); else draw(n); });
@@ -473,6 +475,7 @@ function ensureMove(){
 }
 function finish(win){
   if(over) return; over=true; clearInterval(timerId);
+  if(window.HeroHUD) HeroHUD.react(win?'cheer':'over');
   try{ if(P&&P.sfxResult) P.sfxResult(!!win,false); }catch(e){} $("ov").classList.add("show");
   var bonus=0;
   if(win&&kind!=="time"){ bonus=Math.round(Math.max(0,moves)*50*fac(level)); score+=bonus; }
@@ -495,8 +498,10 @@ function finish(win){
 }
 function quit(){ if(window.parent!==window) parent.postMessage({bpFruitBack:true},location.origin); else location.href="/"; }
 function startTimer(){ if(timeStarted) return; timeStarted=true; timerId=setInterval(function(){ if(over){ clearInterval(timerId); return; } timeLeft--; hud(); if(timeLeft<=0){ clearInterval(timerId); finish(done()); } },1000); }
+function heroHudInit(){ if(!window.HeroHUD) return; kLoad(); HeroHUD.init({hero:curK,svg:KSVG[curK],side:"right",top:96,lang:lang,game:"fruit"}); }
 function start(){
-  clearInterval(timerId); contUsed=false; total0=totalBase(); barPts=0; barStep=0; rdy=[]; pmode=null; swapSel=null; sel=null; slotCap=hasSlot()?2:1; $("o3").style.display="none"; var p=params(level); kLoad(); if(kHas(5)){ p.ice2=0; if(p.nIce) p.nIce=Math.max(3,p.nIce-kv(5)); } if(kHas(1)&&p.kind!=="time") p.moves+=kv(1); kind=p.kind; types=p.types; moves=p.moves; score=0; timeStarted=false; target=p.target||0; timeLeft=p.time||0; slimeCleared=false; over=false; busy=false; sel=null; $("ov").classList.remove("show");
+  heroHudInit(); if(window.HeroHUD) setTimeout(function(){ HeroHUD.react('start'); },700);
+  clearInterval(timerId); contUsed=false; total0=totalBase(); barPts=0; barStep=0; rdy=[]; pmode=null; swapSel=null; sel=null; slotCap=hasSlot()?2:1; $("o3").style.display="none"; var p=params(level); kLoad(); if(kHas(5)){ p.ice2=0; if(p.nIce) p.nIce=Math.max(3,p.nIce-kv(5)); } if(kHas(1)&&p.kind!=="time") p.moves+=kv(1); if(p.kind!=="time"&&P&&P.UPG) p.moves+=P.UPG.val("fruit","moves"); kind=p.kind; types=p.types; moves=p.moves; score=0; timeStarted=false; target=p.target||0; timeLeft=p.time||0; slimeCleared=false; over=false; busy=false; sel=null; $("ov").classList.remove("show");
   $("board").innerHTML=""; size(); fill();
   goal=[]; var pool=[]; for(var i=0;i<types;i++) pool.push(i); pool.sort(function(){return Math.random()-.5});
   for(var g=0;g<p.nGoal;g++) goal.push({type:pool[g],n:p.per,got:0});

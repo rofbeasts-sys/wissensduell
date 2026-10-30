@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Hüpfer</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0f17;color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:12px 16px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:transparent;border:1px solid #232b3b;cursor:pointer}
+h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.02em}
+.pill{border:1px solid #232b3b;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:700}
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 12px 14px;position:relative}
+canvas{background:#0e1320;border:1px solid #1d2536;border-radius:18px;max-width:100%;max-height:100%;touch-action:none}
+.ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(5,7,12,.7)}
+.ov.show{display:flex}
+.box{background:#121826;border:1px solid #232b3b;border-radius:22px;padding:26px 22px;text-align:center;max-width:330px;width:100%}
+.box h2{margin:0 0 6px;font-size:24px}.box p{color:#8d97ad;margin:0 0 14px;font-size:14px}
+.big{font-size:54px;font-weight:800;color:#c6ff3d;line-height:1.1}
+.pri{background:#c6ff3d;border:0;color:#0b0f17;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:6px}
+.sec{background:transparent;border:1px solid #232b3b;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid #1a2132;padding:11px 2px;font-size:14px;gap:10px;color:#aab3c7;text-align:left}.row b{color:#c6ff3d}
+.zp{color:#c6ff3d;font-weight:800;margin-top:8px}.hint{color:#6c768c;font-size:12px;margin-top:10px}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title"></h1><span class="pill" id="sc">0 m</span><button class="back" id="lbb">🏆</button></div>
+<div class="stage" id="stage"><canvas id="cv" width="360" height="600"></canvas><div class="ov show" id="ov"><div class="box" id="box"></div></div></div>
+<script>
+(function(){
+var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
+var EN=lang==="en";
+var T=EN?{title:"Hopper",start:"START",tip:"The ball jumps by itself. Slide your finger left and right to steer it onto the platforms.",over:"You fell!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to save your height and earn Brainups.",empty:"No scores yet.",unit:" m"}
+ :{title:"Hüpfer",start:"START",tip:"Der Ball springt von allein. Schiebe den Finger nach links und rechts, um ihn auf die Plattformen zu lenken.",over:"Abgestürzt!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an, um deine Höhe zu speichern und Brainups zu bekommen.",empty:"Noch keine Ergebnisse.",unit:" m"};
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+$("title").textContent="⚪ "+T.title;
+var best=0; try{ best=parseInt(localStorage.getItem("bp_hopper_best"),10)||0; }catch(e){}
+var cv=$("cv"), x=cv.getContext("2d"), W=360, H=600;
+function fit(){ var st=$("stage"), aw=st.clientWidth-24, ah=st.clientHeight-14; var r=W/H; var w=Math.min(aw,ah*r,420); cv.style.width=w+"px"; cv.style.height=(w/r)+"px"; }
+window.addEventListener("resize",fit); fit();
+var S=null, raf=0, last=0, state="idle";
+var GR=1500, JV=-780, SPV=-1180, PW=72, PH=12, R=13;
+function newPlat(y,h){
+  var t=0, r=Math.random(); var lvl=Math.min(1,h/6000);
+  if(r<.12+lvl*.18) t=1; else if(r<.2+lvl*.3 && !S.lastBreak) t=2; else if(r<.25+lvl*.3) t=3;
+  S.lastBreak=(t===2);
+  return {x:10+Math.random()*(W-PW-20),y:y,t:t,dir:Math.random()<.5?-1:1,sp:50+Math.random()*60,gone:false};
+}
+function play(){
+  S={x:W/2,y:H-90,vy:JV,cam:0,maxH:0,plats:[],topY:H-60,over:false,lastBreak:false,drag:null};
+  S.plats.push({x:W/2-PW/2,y:H-60,t:0,dir:1,sp:0,gone:false}); S.topY=H-60;
+  while(S.topY>-300){ addPlat(); }
+  state="run"; $("ov").classList.remove("show"); last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
+}
+function addPlat(){ var h=Math.max(0,(H-60-S.topY)/10); var gap=55+Math.random()*(Math.min(150,75+h/55)-55); S.topY-=gap; S.plats.push(newPlat(S.topY,h)); }
+function loop(t){
+  if(state!=="run") return; var dt=Math.min(.033,(t-last)/1000); last=t; step(dt); draw(); if(state==="run") raf=requestAnimationFrame(loop);
+}
+function step(dt){
+  S.vy+=GR*dt; S.y+=S.vy*dt;
+  if(S.x<-R) S.x=W+R; if(S.x>W+R) S.x=-R;
+  S.plats.forEach(function(p){ if(p.t===1){ p.x+=p.dir*p.sp*dt; if(p.x<4){ p.x=4; p.dir=1; } if(p.x>W-PW-4){ p.x=W-PW-4; p.dir=-1; } } });
+  if(S.vy>0){ S.plats.forEach(function(p){ if(p.gone) return; var top=p.y; if(S.y+R>=top&&S.y+R-S.vy*dt<=top+4&&S.x>p.x-6&&S.x<p.x+PW+6){
+      if(p.t===2){ p.gone=true; sfx("bad"); return; } S.vy=p.t===3?SPV:JV; S.y=top-R; sfx("tap"); } }); }
+  var camT=H*.42; if(S.y<camT+S.cam){ S.cam=S.y-camT; }
+  var hh=Math.max(S.maxH,Math.floor(-S.cam/10)); if(hh>S.maxH){ S.maxH=hh; $("sc").textContent=S.maxH+T.unit; }
+  while(S.topY>S.cam-200) addPlat();
+  S.plats=S.plats.filter(function(p){ return p.y<S.cam+H+60&&!(p.gone&&p.y>S.y+400); });
+  if(S.y-S.cam>H+40){ over(); }
+}
+function draw(){
+  x.clearRect(0,0,W,H);
+  x.fillStyle="#1a2132"; for(var i=0;i<26;i++){ var gx=(i*97)%W, gy=((i*173)-S.cam*.3)%H; if(gy<0) gy+=H; x.fillRect(gx,gy,2,2); }
+  S.plats.forEach(function(p){ var y=p.y-S.cam; if(y<-20||y>H+20) return; var col=p.t===1?"#6cb6ff":p.t===2?"#8d6a4a":p.t===3?"#3ddc84":"#3ddc84"; x.globalAlpha=p.gone?.25:1; x.fillStyle=col; x.beginPath(); x.roundRect(p.x,y,PW,PH,6); x.fill();
+    if(p.t===3){ x.fillStyle="#ff5d6c"; x.beginPath(); x.roundRect(p.x+PW/2-10,y-9,20,10,4); x.fill(); } if(p.t===2){ x.strokeStyle="#0e1320"; x.lineWidth=2; x.beginPath(); x.moveTo(p.x+PW*.45,y); x.lineTo(p.x+PW*.55,y+PH); x.stroke(); } x.globalAlpha=1; });
+  var by=S.y-S.cam; x.save(); x.shadowColor="#ffffff"; x.shadowBlur=14; x.fillStyle="#fff"; x.beginPath(); x.arc(S.x,by,R,0,7); x.fill(); x.restore();
+}
+function over(){
+  state="over"; cancelAnimationFrame(raf); sfx("bad"); var sc=S.maxH, nb=sc>best&&sc>0; if(nb){ best=sc; try{ localStorage.setItem("bp_hopper_best",String(best)); }catch(e){} }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(sc>=300,false); }catch(e){}
+  $("box").innerHTML='<h2>'+esc(T.over)+'</h2><div class="big">'+sc+T.unit+'</div>'+(nb?'<div class="zp">🏆 '+esc(T.newB)+'</div>':'')+'<div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">'+esc(T.login)+'</div>')+'<div style="margin-top:14px"><button class="pri" id="go">'+esc(T.again)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+  $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board;
+  if(hasAcc()&&sc>=20) api("/api/solo/submit",{game:"hopper",val:sc}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
+}
+function home(){
+  state="idle"; S=null; cancelAnimationFrame(raf); x.clearRect(0,0,W,H);
+  $("box").innerHTML='<div style="font-size:30px">⚪</div><h2>'+esc(T.title)+'</h2><p>'+esc(T.tip)+'</p><div class="row"><span>'+esc(T.rec)+'</span><b>'+best+T.unit+'</b></div><div style="margin-top:14px"><button class="pri" id="go">'+esc(T.start)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+  $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board;
+}
+function board(){
+  if(state==="run"){ state="idle"; cancelAnimationFrame(raf); }
+  $("box").innerHTML='<h2>🏆 '+esc(T.board)+'</h2><div id="lbl"><div class="hint">…</div></div><button class="sec" id="bk">'+esc(T.back)+'</button>'; $("ov").classList.add("show");
+  $("bk").onclick=home;
+  api("/api/solo/board",{game:"hopper"}).then(function(r){ var el=$("lbl"); if(!el) return;
+    if(!r||!r.ok||!r.top||!r.top.length){ el.innerHTML='<div class="hint">'+esc(T.empty)+'</div>'; return; }
+    el.innerHTML=r.top.map(function(q){ return '<div class="row"><span>'+q.pos+'. '+esc(q.avatar)+' '+esc(q.name)+'</span><b>'+q.v+T.unit+'</b></div>'; }).join(""); });
+}
+// Steuerung: Finger schieben (relativ), Pfeiltasten am PC
+var KEYL=false, KEYR=false;
+cv.addEventListener("pointerdown",function(e){ if(state!=="run") return; S.drag={px:e.clientX,sx:S.x}; try{ cv.setPointerCapture(e.pointerId); }catch(_){} });
+cv.addEventListener("pointermove",function(e){ if(!S||!S.drag||state!=="run") return; var sc=W/cv.getBoundingClientRect().width; S.x=S.drag.sx+(e.clientX-S.drag.px)*sc*1.25; });
+function ed(){ if(S) S.drag=null; } cv.addEventListener("pointerup",ed); cv.addEventListener("pointercancel",ed);
+document.addEventListener("keydown",function(e){ if(!S||state!=="run") return; if(e.key==="ArrowLeft") S.x-=26; else if(e.key==="ArrowRight") S.x+=26; });
+document.addEventListener("visibilitychange",function(){ if(document.hidden&&state==="run"){ state="idle"; cancelAnimationFrame(raf); home(); } });
+$("back").onclick=function(){ cancelAnimationFrame(raf); if(window.parent!==window) parent.postMessage({bpArrowBack:true},location.origin); else location.href="/"; };
+$("lbb").onclick=board;
+home();
+})();
+</script></body></html>

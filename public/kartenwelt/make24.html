@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Make 24</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 15%,#233a7a,#0b1230 75%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:12px 14px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
+h1{font-size:14px;margin:0;flex:1;color:#b9c8ff;font-weight:700}
+.pill{border:1px solid #ffffff26;background:#0004;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:800;white-space:nowrap}
+#main{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;padding:0 14px 14px;overflow:hidden;position:relative}
+#cards{display:flex;gap:10px;justify-content:center;margin-top:10px}
+.cd{width:72px;height:100px;border-radius:14px;background:linear-gradient(#fff,#e9edf7);color:#1a2340;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:900;position:relative;box-shadow:0 8px 18px #0008;cursor:pointer;transition:transform .12s,opacity .15s}
+.cd.red{color:#c9242b}.cd.used{opacity:.3;transform:scale(.94)}
+.cd small{position:absolute;top:6px;left:8px;font-size:14px}.cd small.b{top:auto;bottom:6px;left:auto;right:8px;transform:rotate(180deg)}
+#ex{margin-top:18px;width:100%;max-width:380px;min-height:70px;background:#0007;border-radius:16px;padding:12px;text-align:center;font-size:24px;font-weight:900;letter-spacing:2px;word-break:break-all}
+#ex small{display:block;font-size:11.5px;font-weight:600;opacity:.75;letter-spacing:0;margin-top:3px;min-height:15px}
+#ex .ok{color:#7ae582}#ex .no{color:#ff8a8a}
+.opr{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.op{width:56px;height:56px;border-radius:50%;background:#ffffff18;border:2px solid #ffffff44;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;cursor:pointer;color:#fff}
+.op:active{background:#ffd45a;color:#3a2a00}
+.op.go{width:96px;border-radius:28px;font-size:18px;background:linear-gradient(135deg,#ffd45a,#ff8ab8);color:#3a1530;border:0}
+.helps{display:flex;gap:8px;justify-content:center;margin-top:16px}
+.hb{background:#0007;border:1px solid #ffffff30;border-radius:16px;padding:8px 14px;font-size:12px;font-weight:800;color:#fff;cursor:pointer}.hb:disabled{opacity:.4}
+.tb{width:min(92vw,380px);height:7px;border-radius:5px;background:#0007;margin-top:12px;overflow:hidden}.tb i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#ff8ab8,#ffd45a);transition:width 1s linear}
+.ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(5,8,25,.78);z-index:40}
+.ov.show{display:flex}
+.box{background:#14214a;border:1px solid #ffffff26;border-radius:22px;padding:26px 22px;text-align:center;max-width:330px;width:100%}
+.box h2{margin:0 0 6px;font-size:24px}.box p{color:#b9c8ff;margin:0 0 14px;font-size:14px}
+.big{font-size:54px;font-weight:800;color:#ffd45a;line-height:1.1}
+.pri{background:linear-gradient(90deg,#ffd45a,#ff8ab8);border:0;color:#2a1058;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:6px}
+.sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid #ffffff14;padding:11px 2px;font-size:14px;gap:10px;color:#b9c8ff;text-align:left}.row b{color:#ffd45a}
+.zp{color:#ffd45a;font-weight:800;margin-top:8px}.hint{color:#8d9bd0;font-size:12px;margin-top:10px}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title"></h1><span class="pill" id="rd"></span><span class="pill" id="hr"></span><button class="back" id="lbb">🏆</button></div>
+<div id="main"><div class="tb"><i id="tbi"></i></div><div id="cards"></div><div id="ex"></div>
+<div class="opr" id="ops"></div><div class="opr" id="ops2"></div><div class="helps"><button class="hb" id="hint"></button><button class="hb" id="skip"></button></div>
+<div class="ov show" id="ov"><div class="box" id="box"></div></div></div>
+<script>
+(function(){
+var lang="de"; try{ lang=localStorage.getItem("wq_lang")==="en"?"en":"de"; }catch(e){}
+var EN=lang==="en";
+var T=EN?{title:"Make 24",start:"START",tip:"Use all 4 cards exactly once with + − × ÷ and brackets to make 24. 10 rounds, 3 hearts.",over:"Game over",done:"Finished!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to earn Brainups and appear on the leaderboard.",empty:"No scores yet.",round:"Round",hint:"💡 Tip",skip:"⏭ Skip",solved:"Solved",wrongV:"Not 24",needAll:"Use every card once",solv:"A solution:",tooLate:"Time's up!"}
+ :{title:"Make 24",start:"START",tip:"Nutze alle 4 Karten genau einmal mit + − × ÷ und Klammern, damit 24 herauskommt. 10 Runden, 3 Herzen.",over:"Vorbei",done:"Geschafft!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an für Brainups und die Bestenliste.",empty:"Noch keine Ergebnisse.",round:"Runde",hint:"💡 Tipp",skip:"⏭ Überspringen",solved:"Gelöst",wrongV:"Nicht 24",needAll:"Jede Karte genau einmal",solv:"Eine Lösung:",tooLate:"Zeit abgelaufen!"};
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+$("title").textContent="♠ "+T.title;
+var best=0; try{ best=parseInt(localStorage.getItem("bp_m24_best"),10)||0; }catch(e){}
+var ROUNDS=10, TIME=50, SUITS=["♠","♥","♦","♣"];
+var S=null, timer=0;
+/* ---- Loeser: alle Ausdruecke mit den 4 Zahlen ---- */
+function solve(nums){
+  var res=[];
+  function rec(items){
+    if(items.length===1){ if(Math.abs(items[0].v-24)<1e-9) res.push(items[0].e); return; }
+    for(var i=0;i<items.length;i++) for(var j=0;j<items.length;j++){ if(i===j) continue;
+      var a=items[i], b=items[j], rest=items.filter(function(_,k){ return k!==i&&k!==j; });
+      var cands=[{v:a.v+b.v,e:"("+a.e+" + "+b.e+")"},{v:a.v*b.v,e:"("+a.e+" × "+b.e+")"},{v:a.v-b.v,e:"("+a.e+" − "+b.e+")"}];
+      if(Math.abs(b.v)>1e-9) cands.push({v:a.v/b.v,e:"("+a.e+" ÷ "+b.e+")"});
+      for(var k=0;k<cands.length;k++){ rec(rest.concat([cands[k]])); if(res.length>40) return; }
+    }
+  }
+  rec(nums.map(function(n){ return {v:n,e:String(n)}; })); return res;
+}
+function makeRound(r){
+  // spaetere Runden: weniger Loesungen
+  var maxSol=r<3?40:r<6?12:r<9?6:3, tries=0, n, sols;
+  while(tries++<400){ n=[1,2,3,4].map(function(){ return 1+Math.floor(Math.random()*13); }); sols=solve(n); if(sols.length&&(sols.length<=maxSol||tries>300)) break; }
+  if(!sols||!sols.length){ n=[3,3,8,8]; sols=solve(n); }
+  return {nums:n,sol:sols[0].replace(/^\((.*)\)$/,"$1"),suit:n.map(function(){ return SUITS[Math.floor(Math.random()*4)]; })};
+}
+function rank(v){ return v===1?"A":v===11?"J":v===12?"Q":v===13?"K":String(v); }
+/* ---- Ausdruck auswerten (eigener Parser, kein eval) ---- */
+function evalExpr(tokens){
+  var p=0;
+  function peek(){ return tokens[p]; }
+  function expr(){ var v=term(); while(peek()&&(peek().t==="+"||peek().t==="−")){ var o=tokens[p++].t, r=term(); if(v===null||r===null) return null; v=o==="+"?v+r:v-r; } return v; }
+  function term(){ var v=fac(); while(peek()&&(peek().t==="×"||peek().t==="÷")){ var o=tokens[p++].t, r=fac(); if(v===null||r===null) return null; if(o==="÷"&&Math.abs(r)<1e-12) return null; v=o==="×"?v*r:v/r; } return v; }
+  function fac(){ var t=peek(); if(!t) return null; if(t.t==="("){ p++; var v=expr(); if(!peek()||peek().t!==")") return null; p++; return v; } if(t.n!==undefined){ p++; return t.n; } return null; }
+  var v=expr(); if(p!==tokens.length) return null; return v;
+}
+function render(){
+  var R=S.round; $("rd").textContent=T.round+" "+(S.idx+1)+"/"+ROUNDS; var h=""; for(var i=0;i<3;i++) h+=i<S.hearts?"❤️":"🖤"; $("hr").textContent=h;
+  $("cards").innerHTML=""; R.nums.forEach(function(n,i){ var d=document.createElement("div"); var red=R.suit[i]==="♥"||R.suit[i]==="♦"; d.className="cd"+(red?" red":"")+(S.used[i]?" used":""); d.innerHTML="<small>"+R.suit[i]+"</small>"+rank(n)+"<small class=b>"+R.suit[i]+"</small>"; d.onclick=function(){ addNum(i); }; $("cards").appendChild(d); });
+  var txt=S.tok.map(function(t){ return t.n!==undefined?t.n:t.t; }).join(" ");
+  $("ex").innerHTML=(txt||"&nbsp;")+"<small id='exs'>"+(S.msg||"")+"</small>";
+  $("hint").textContent=T.hint+" x"+S.hints; $("hint").disabled=S.hints<=0||!!S.shown; $("skip").textContent=T.skip+" x"+S.skips; $("skip").disabled=S.skips<=0;
+}
+function addNum(i){ if(!S||S.used[i]||S.lock) return; var last=S.tok[S.tok.length-1]; if(last&&(last.n!==undefined||last.t===")")) return; S.used[i]=true; S.tok.push({n:S.round.nums[i],ci:i}); S.msg=""; sfx("tap"); render(); }
+function addOp(t){ if(!S||S.lock) return; var last=S.tok[S.tok.length-1];
+  if(t==="("){ if(last&&(last.n!==undefined||last.t===")")) return; }
+  else if(t===")"){ var o=0,c=0; S.tok.forEach(function(x){ if(x.t==="(") o++; if(x.t===")") c++; }); if(o<=c||!last||(last.n===undefined&&last.t!==")")) return; }
+  else { if(!last||(last.n===undefined&&last.t!==")")) return; }
+  S.tok.push({t:t}); S.msg=""; sfx("tap"); render(); }
+function back(){ if(!S||S.lock||!S.tok.length) return; var x=S.tok.pop(); if(x.n!==undefined) S.used[x.ci]=false; S.msg=""; render(); }
+function check(){
+  if(!S||S.lock) return; var nUsed=S.used.filter(Boolean).length; if(nUsed<4){ S.msg=T.needAll; render(); sfx("bad"); return; }
+  var v=evalExpr(S.tok); if(v===null){ S.msg="?"; render(); sfx("bad"); return; }
+  if(Math.abs(v-24)<1e-9){ S.msg="= 24 ✓"; S.lock=true; var bonus=Math.max(0,S.left); S.score+=100+bonus; S.solved++; sfx("good"); render(); $("exs").className="ok"; setTimeout(nextRound,900); }
+  else { S.msg="= "+(Math.round(v*100)/100)+" ("+T.wrongV+")"; render(); $("exs").className="no"; sfx("bad"); }
+}
+function nextRound(){ if(!S) return; clearInterval(timer); S.idx++; if(S.idx>=ROUNDS){ finish(true); return; } startRound(); }
+function startRound(){
+  S.round=makeRound(S.idx); S.used=[false,false,false,false]; S.tok=[]; S.msg=""; S.lock=false; S.shown=false; S.left=TIME; $("tbi").style.width="100%"; render();
+  clearInterval(timer); timer=setInterval(function(){ if(!S||S.lock) return; S.left--; $("tbi").style.width=Math.max(0,S.left/TIME*100)+"%"; if(S.left<=0){ timeout(); } },1000);
+}
+function timeout(){ clearInterval(timer); S.lock=true; S.hearts--; S.msg=T.tooLate+" "+S.round.sol; render(); sfx("bad"); if(S.hearts<=0) setTimeout(function(){ finish(false); },1800); else setTimeout(nextRound,2200); }
+function hint(){ if(!S||S.lock||S.hints<=0||S.shown) return; S.hints--; S.shown=true; var pat=S.round.sol.replace(/\d+/g,"?"); S.msg=T.solv+" "+pat; render(); }
+function skip(){ if(!S||S.lock||S.skips<=0) return; S.skips--; S.lock=true; S.msg=T.solv+" "+S.round.sol; render(); setTimeout(nextRound,1800); }
+function finish(full){
+  clearInterval(timer); var sc=S.score, solved=S.solved, nb=sc>best&&sc>0; if(nb){ best=sc; try{ localStorage.setItem("bp_m24_best",String(best)); }catch(e){} }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(solved>=5,false); }catch(e){}
+  $("box").innerHTML='<h2>'+esc(full?T.done:T.over)+'</h2><div class="big">'+sc+'</div><p>'+esc(T.solved)+': '+solved+' / '+ROUNDS+'</p>'+(nb?'<div class="zp">🏆 '+esc(T.newB)+'</div>':'')+'<div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">'+esc(T.login)+'</div>')+'<div style="margin-top:14px"><button class="pri" id="go">'+esc(T.again)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+  $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board; S.over=true;
+  if(hasAcc()&&solved>=2) api("/api/solo/submit",{game:"make24",val:sc}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
+}
+function play(){ S={idx:0,score:0,solved:0,hearts:3,hints:2,skips:1,lock:false,over:false}; $("ov").classList.remove("show"); startRound(); }
+function home(){
+  if(S) S.over=true; clearInterval(timer);
+  $("box").innerHTML='<div style="font-size:30px">♠️</div><h2>'+esc(T.title)+'</h2><p>'+esc(T.tip)+'</p><div class="row"><span>'+esc(T.rec)+'</span><b>'+best+'</b></div><div style="margin-top:14px"><button class="pri" id="go">'+esc(T.start)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+  $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board;
+}
+function board(){
+  $("box").innerHTML='<h2>🏆 '+esc(T.board)+'</h2><div id="lbl"><div class="hint">…</div></div><button class="sec" id="bk">'+esc(T.back)+'</button>'; $("ov").classList.add("show");
+  $("bk").onclick=home;
+  api("/api/solo/board",{game:"make24"}).then(function(r){ var el=$("lbl"); if(!el) return;
+    if(!r||!r.ok||!r.top||!r.top.length){ el.innerHTML='<div class="hint">'+esc(T.empty)+'</div>'; return; }
+    el.innerHTML=r.top.map(function(q){ return '<div class="row"><span>'+q.pos+'. '+esc(q.avatar)+' '+esc(q.name)+'</span><b>'+q.v+'</b></div>'; }).join(""); });
+}
+var ops=["+","−","×","÷"], ops2=["(",")","⌫","OK"];
+ops.forEach(function(o){ var d=document.createElement("div"); d.className="op"; d.textContent=o; d.onclick=function(){ addOp(o); }; $("ops").appendChild(d); });
+ops2.forEach(function(o){ var d=document.createElement("div"); d.className="op"+(o==="OK"?" go":""); d.textContent=o; d.onclick=function(){ if(o==="⌫") back(); else if(o==="OK") check(); else addOp(o); }; $("ops2").appendChild(d); });
+$("hint").onclick=hint; $("skip").onclick=skip;
+$("back").onclick=function(){ clearInterval(timer); if(window.parent!==window) parent.postMessage({bpKartenBack:true},location.origin); else location.href="/"; };
+$("lbb").onclick=board;
+document.addEventListener("visibilitychange",function(){ if(document.hidden&&S&&!S.over&&!S.lock){ /* Pause: Zeit laeuft weiter, aber Spieler wird nicht bestraft */ } });
+window.__m24={play:play,S:function(){ return S; },solve:solve,evalExpr:evalExpr,addNum:addNum,addOp:addOp,check:check};
+home();
+})();
+</script></body></html>

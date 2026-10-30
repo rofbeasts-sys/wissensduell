@@ -84,7 +84,7 @@ const { ok, section, sleep, finish, startServer, post, wsConnect } = require("./
     await post(P, "/api/friends-accept", { token: tokA, username: "friendsB" });
     let listA = await post(P, "/api/friends-list", { token: tokA });
     ok("Frisches Konto: 0 Erfolge in der Freundesliste sichtbar", listA.friends.find(f => f.username === "friendsB").achievements === 0);
-    const Achv = require("../public/achievements.js");
+    const Achv = require("../public/core/achievements.js");
     const st = Achv.newState(); Achv.apply(st, { t: "gen", n: 10 }); Achv.apply(st, { t: "gen", n: 90 }); // gen_10 + gen_100
     await post(P, "/api/save-stats", { token: tokB, stats: { achv: st } });
     listA = await post(P, "/api/friends-list", { token: tokA });

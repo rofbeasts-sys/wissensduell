@@ -5,7 +5,7 @@
  * lang)/getDesc(id, lang)/getCategoryTitle(catId, lang) fallen bei
  * fehlender Übersetzung automatisch auf Deutsch zurück. */
 const { ok, section, finish, loadClient } = require("./helpers");
-const Achv = require("../public/achievements.js");
+const Achv = require("../public/core/achievements.js");
 
 (async () => {
   section("Alle 62 Erfolge haben eine englische Übersetzung (kein stiller Rückfall auf Deutsch)");

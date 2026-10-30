@@ -2,7 +2,7 @@
 const { ok, section, finish, loadClient, startServer, fs, path } = require("./helpers");
 
 (async () => {
-  const dir = path.join(__dirname, "..", "public", "chess-world");
+  const dir = path.join(__dirname, "..", "public", "chess", "world");
 
   section("Dateien vorhanden, Querwerbung entfernt, Rückweg zu Brain Pulse");
   {
@@ -35,7 +35,7 @@ const { ok, section, finish, loadClient, startServer, fs, path } = require("./he
     R('openChessOriginal();');
     ok("Original öffnet im Vollbild-Rahmen innerhalb der App (keine Weiterleitung)", state.last.includes('<iframe id="chessFrame" src="/chess/index.html"'));
     R('openChessWorld();');
-    ok("Fantasy ebenfalls im Rahmen", state.last.includes('src="/chess-world/index.html"'));
+    ok("Fantasy ebenfalls im Rahmen", state.last.includes('src="/chess/world/index.html"'));
     R('currentLang="en"; renderChessHub();');
     ok("[en] Hub: Original aktiv, Fantasy gesperrt", state.last.includes('onclick="openChessOriginal()"') && !state.last.includes('onclick="openChessWorld()"') && state.last.includes("Only available in German"));
   }
@@ -110,8 +110,8 @@ const { ok, section, finish, loadClient, startServer, fs, path } = require("./he
   {
     const S = await startServer();
     for (const [f, type] of [["index.html", "text/html"], ["game.js", "javascript"], ["style.css", "text/css"], ["bild/cover.jpg", "image/jpeg"]]) {
-      const r = await fetch(`http://127.0.0.1:${S.port}/chess-world/${f}`);
-      ok(`/chess-world/${f} -> 200 ${type}`, r.status === 200 && (r.headers.get("content-type") || "").includes(type));
+      const r = await fetch(`http://127.0.0.1:${S.port}/chess/world/${f}`);
+      ok(`/chess/world/${f} -> 200 ${type}`, r.status === 200 && (r.headers.get("content-type") || "").includes(type));
     }
     for (const [f, type] of [["index.html", "text/html"], ["engine.js", "javascript"]]) {
       const r = await fetch(`http://127.0.0.1:${S.port}/chess/${f}`);

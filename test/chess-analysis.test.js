@@ -46,8 +46,8 @@ section("Einbindung in Original, Online und Fantasy");
 {
   const o = fs.readFileSync(path.join(root, "chess", "index.html"), "utf8");
   const on = fs.readFileSync(path.join(root, "chess", "online.html"), "utf8");
-  const fa = fs.readFileSync(path.join(root, "chess-world", "index.html"), "utf8");
-  const fg = fs.readFileSync(path.join(root, "chess-world", "game.js"), "utf8");
+  const fa = fs.readFileSync(path.join(root, "chess", "world", "index.html"), "utf8");
+  const fg = fs.readFileSync(path.join(root, "chess", "world", "game.js"), "utf8");
   ok("Original: Skript, Aufzeichnung, Knöpfe", o.includes("analysis.js") && o.includes("G.rec.push") && o.includes('id="anaBtn"') && o.includes('id="endAna"'));
   ok("Online: Skript, Aufzeichnung eigener Züge, Knopf", on.includes("analysis.js") && on.includes("REC.push(pre)") && on.includes('id="endAna"'));
   ok("Fantasy: Skript, Aufzeichnung, Analyse-Knopf im Ergebnis", fa.includes("/chess/analysis.js") && fg.includes("chess.rec") && fg.includes("bpAnalysis.show(chess.rec"));

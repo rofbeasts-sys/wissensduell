@@ -5,7 +5,7 @@
  * (aus profile.biologyDone/biologyPerfect abgeleitet), kein Pro-Ereignis-
  * Addieren, damit Wiederholungen nicht doppelt zählen. */
 const { ok, section, finish, loadClient } = require("./helpers");
-const Achv = require("../public/achievements.js");
+const Achv = require("../public/core/achievements.js");
 
 (async () => {
   section("Speed Math: zwei neue, höhere Stufen (75/100) zusätzlich zur bisherigen Obergrenze (50)");

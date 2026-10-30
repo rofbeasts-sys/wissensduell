@@ -88,7 +88,7 @@ function buildCluster(){
   G.n0 = G.cl.size - 1;
 }
 function fresh(best){ if(!(LVL >= 1)) LVL = 1;
-  G = { rockets: 1, rarmed: false, charge: 0, award: false, waveShots: 0, hero: HERO, smul: HERO === 2 ? kv(2) : 1, cmul: HERO === 0 ? kv(0) : 1, grace: 0, wave: LVL, won: false, rate: 0, score: 0, best: best || 0, combo: 0, theta: 0, wi: 0, dir: LVL % 2 ? 1 : -1, miss: 0, bombs: 2, armed: false, shot: null, parts: [], texts: [], over: false, aim: null, lastT: 0, shots: 0, stars: Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + .3, a: Math.random() * .6 + .2 })) };
+  G = { rockets: 1 + ((window.UPG && UPG.val('galaxy', 'rockets')) | 0), rarmed: false, charge: 0, award: false, waveShots: 0, hero: HERO, smul: HERO === 2 ? kv(2) : 1, cmul: HERO === 0 ? kv(0) : 1, grace: 0, wave: LVL, won: false, rate: 0, score: 0, best: best || 0, combo: 0, theta: 0, wi: 0, dir: LVL % 2 ? 1 : -1, miss: 0, bombs: 2 + ((window.UPG && UPG.val('galaxy', 'bombs')) | 0), armed: false, shot: null, parts: [], texts: [], over: false, aim: null, lastT: 0, shots: 0, stars: Array.from({ length: 70 }, () => ({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.4 + .3, a: Math.random() * .6 + .2 })) };
   buildCluster(); G.cur = pickCol(); G.next = pickCol(); waveStart(); G.himg = heroImg(HERO, kLvl(HERO)); G.far = 0; G.cheer = 0;
 }
 function subm(){ return; /* Punkte werden jetzt beim Level-Sieg gemeldet */  try{ if(G && !G.subm && G.score > 0 && window.brainSubmit){ G.subm = 1; brainSubmit('galaxy', Math.max(1, Math.min(500, G.wave)), G.score); } }catch(e){} }
@@ -250,8 +250,8 @@ function drawHero(x){
 function hud(){
   const g = id => document.getElementById(id); if(!g('bgSc')) return;
   g('bgSc').textContent = G.score.toLocaleString(); g('bgBest').textContent = Math.max(G.best, G.score).toLocaleString(); g('bgWave').textContent = LVL; g('bgCombo').textContent = G.combo > 1 ? '🔥 x' + G.combo : '';
-  g('bgBomb').textContent = '💣 ×' + G.bombs; g('bgBomb').style.borderColor = G.armed ? '#ffb04a' : ''; g('bgBomb').style.background = G.armed ? 'rgba(255,176,74,.22)' : '';
-  g('bgRock').textContent = '🚀 ×' + G.rockets; g('bgRock').style.borderColor = G.rarmed ? '#3de0ff' : ''; g('bgRock').style.background = G.rarmed ? 'rgba(61,224,255,.22)' : '';
+  g('bgBomb').textContent = '💣 ×' + (G.bombs + (fdat().gxBomb | 0)); g('bgBomb').style.borderColor = G.armed ? '#ffb04a' : ''; g('bgBomb').style.background = G.armed ? 'rgba(255,176,74,.22)' : '';
+  g('bgRock').textContent = '🚀 ×' + (G.rockets + (fdat().gxRocket | 0)); g('bgRock').style.borderColor = G.rarmed ? '#3de0ff' : ''; g('bgRock').style.background = G.rarmed ? 'rgba(61,224,255,.22)' : '';
   g('bgBar').style.width = Math.min(100, G.charge) + '%';
 }
 function loop(t){
@@ -267,9 +267,10 @@ function showHeroes(msg){
     const st = ow ? (sel ? '✓ ' + L2('Gewählt', 'Selected') : L2('Besitzt', 'Owned')) : (free ? '🔒 ' + L2('Ab Level 50', 'From level 50') : '500 🪙');
     return `<div data-h="${i}" style="border-radius:18px;padding:10px 6px;text-align:center;cursor:pointer;background:#141b36;border:2px solid ${sel ? '#ffd45a' : '#2a3358'};${sel ? 'box-shadow:0 0 16px rgba(255,212,90,.5);' : ''}${lock ? 'opacity:.5;' : ''}">${heroSvg(i, 110, { lvl: kLvl(i) })}<div style="font-weight:800;font-size:14px;margin-top:2px">${L2(KN[i][0], KN[i][1])}</div>${ow ? `<div style="font-size:10.5px;color:#c6ff3d;font-weight:800">${L2('Stufe', 'Level')} ${kLvl(i)}/5</div>` : ''}<div style="font-size:11px;opacity:.75;min-height:30px;margin:2px 4px">${kDesc(i)}</div><div style="margin-top:6px;padding:6px;border-radius:10px;background:${ow || lock ? '#2a3358' : '#ffd45a'};color:${ow || lock ? '#e8eefc' : '#2b1c00'};font-weight:900;font-size:12px">${st}</div>${ow ? `<div data-up="${i}" style="margin-top:6px;padding:7px;border-radius:10px;background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#06121a;font-weight:900;font-size:12px">${kLvl(i) >= 5 ? '★ MAX' : '⬆ Upgrade'}</div>` : ''}</div>`; };
   renderApp(`<div class="panel" id="bgApp" style="text-align:center"><div style="display:flex;justify-content:space-between;align-items:center"><div class="picker-title" style="margin:0">👑 ${L2('Charaktere-Auswahl', 'Hero selection')}</div><span style="font-weight:800;font-size:13px">🪙 ${coins}</span></div>
-    <div class="picker-sub">${L2('Dein Held gilt in Brain Fruit und Brain Galaxy. Besitz teilst du dir, Stufen sind pro Spiel.', 'Your hero counts in Brain Fruit and Brain Galaxy. Ownership is shared, levels are per game.')}</div>
+    <div class="picker-sub">${L2('Dein Held gilt in Brain Fruit, Galaxy und Jong. Besitz teilst du dir, Stufen sind pro Spiel.', 'Your hero counts in Brain Fruit, Galaxy and Jong. Ownership is shared, levels are per game.')}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">${[0, 1, 2, 3, 4, 5].map(card).join('')}</div>
     <div id="bgMsg" style="min-height:20px;font-size:12px;color:#ffc446;margin-top:8px">${msg || ''}</div>
+    <button class="btn btn-block" style="margin-bottom:8px;background:linear-gradient(90deg,#ffd45a,#ff8ab8);color:#3a1530;font-weight:900" onclick="startUpgradeTree(()=>BGX.heroes())">🌳 ${L2('Upgrade-Baum', 'Upgrade tree')}</button>
     <button class="btn btn-primary btn-block" onclick="BGX.back()">✓ ${L2('Fertig', 'Done')}</button></div>`);
   document.querySelectorAll('#bgApp [data-up]').forEach(el => el.onclick = e => { e.stopPropagation(); upgradeWin(+el.dataset.up); });
   document.querySelectorAll('#bgApp [data-h]').forEach(el => el.onclick = async () => {
@@ -365,8 +366,8 @@ function barHtml(){
 window.BGX = {
   open, play, bar: barHtml, map(back){ showMap(back); }, next(){ play(LVL + 1); }, heroes(){ if(raf){ cancelAnimationFrame(raf); raf = 0; } showHeroes(); },
   swap(){ if(!G || G.over || G.shot) return; const t = G.cur; G.cur = G.next; G.next = t; },
-  bomb(){ if(!G || G.over || G.shot) return; if(G.bombs > 0){ G.armed = !G.armed; G.rarmed = false; } hud(); },
-  rocket(){ if(!G || G.over || G.shot) return; if(G.rockets > 0){ G.rarmed = !G.rarmed; G.armed = false; } hud(); },
+  bomb(){ if(!G || G.over || G.shot) return; if(G.bombs <= 0 && (fdat().gxBomb | 0) > 0){ try{ fruitSet({ gxBomb: (fdat().gxBomb | 0) - 1 }); }catch(e){} G.bombs++; } if(G.bombs > 0){ G.armed = !G.armed; G.rarmed = false; } hud(); },
+  rocket(){ if(!G || G.over || G.shot) return; if(G.rockets <= 0 && (fdat().gxRocket | 0) > 0){ try{ fruitSet({ gxRocket: (fdat().gxRocket | 0) - 1 }); }catch(e){} G.rockets++; } if(G.rockets > 0){ G.rarmed = !G.rarmed; G.armed = false; } hud(); },
   restart(){ if(!G) return; fresh(G.best); hud(); endPanel(); },
   back(){ closeMap(); if(raf){ cancelAnimationFrame(raf); raf = 0; } const b = BACK; G = null; if(b) b(); else renderMainMenu(); }
 };

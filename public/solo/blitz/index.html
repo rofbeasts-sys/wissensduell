@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Wahr oder Falsch Blitz</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0f17;color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:14px 16px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:transparent;border:1px solid #232b3b;cursor:pointer}
+h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.02em}
+.pill{border:1px solid #232b3b;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:700;white-space:nowrap;color:#eef1f7}
+.main{flex:1;display:flex;flex-direction:column;padding:4px 20px 20px;max-width:560px;width:100%;margin:0 auto;min-height:0}
+.bar{height:3px;background:#1a2132;border-radius:3px;margin:6px 0 22px;overflow:hidden;flex:none}
+.bar i{display:block;height:100%;width:100%;background:#c6ff3d}
+.card{flex:1;min-height:0;background:#121826;border:1px solid #1d2536;border-radius:20px;padding:28px 22px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:clamp(21px,5.4vw,29px);line-height:1.4;font-weight:600;transition:border-color .15s,background .15s;overflow:auto}
+.card.ok{border-color:#3ddc84;background:#102319}.card.no{border-color:#ff5d6c;background:#2a1318;animation:sh .3s}
+@keyframes sh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.corr{font-size:14px;color:#ff9aa4;margin-top:12px;min-height:20px;text-align:center}
+.btns{display:flex;gap:12px;margin-top:14px;flex:none}
+.btns button{flex:1;padding:22px 0;border-radius:16px;font-size:17px;font-weight:700;color:#eef1f7;cursor:pointer;background:transparent;border:1.5px solid}
+.w{border-color:#3ddc84!important;color:#3ddc84!important}.f{border-color:#ff5d6c!important;color:#ff5d6c!important}
+.btns button:active{transform:scale(.98);background:#ffffff0d}
+.pri{background:#c6ff3d;border:0;color:#0b0f17;border-radius:14px;padding:16px;font-size:16px;font-weight:800;cursor:pointer;width:100%}
+.sec{background:transparent;border:1px solid #232b3b;color:#eef1f7;border-radius:14px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.center{text-align:center}
+.big{font-size:76px;font-weight:800;color:#c6ff3d;line-height:1.1}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid #1a2132;padding:13px 2px;font-size:15px;gap:10px;color:#aab3c7}
+.row b{color:#eef1f7}
+.hint{color:#6c768c;font-size:12px;margin-top:12px}
+.zp{color:#c6ff3d;font-weight:800}
+.lb{margin-top:10px;overflow:auto;flex:1}
+.lb .row b{color:#c6ff3d}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title"></h1><span class="pill" id="tm" style="display:none"></span><span class="pill" id="st" style="display:none"></span></div>
+<div class="main" id="main"></div>
+<script src="data.js"></script>
+<script>
+(function(){
+var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
+var EN = lang==="en";
+var T = EN ? {title:"True or False Blitz",start:"START",rules:"60 seconds. As many statements as you can. A wrong answer costs 5 seconds.",rec:"Your record",today:"Today's best",rank:"Rank today",t:"TRUE",f:"FALSE",done:"Time is up!",right:"correct",bestS:"Best streak",again:"PLAY AGAIN",board:"Today's leaderboard",hide:"Back",newBest:"New personal record!",zp:"Brainups",login:"Log in to save your score and earn Brainups.",streak:"Streak",empty:"Nobody has played today yet.",keys:"Keys: ← true · → false"}
+ : {title:"Wahr oder Falsch Blitz",start:"START",rules:"60 Sekunden. So viele Aussagen wie möglich. Eine falsche Antwort kostet 5 Sekunden.",rec:"Dein Rekord",today:"Heute bestes Ergebnis",rank:"Platz heute",t:"WAHR",f:"FALSCH",done:"Zeit abgelaufen!",right:"richtig",bestS:"Beste Serie",again:"NOCHMAL",board:"Tagesrangliste",hide:"Zurück",newBest:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an, um dein Ergebnis zu speichern und Brainups zu bekommen.",streak:"Serie",empty:"Heute hat noch niemand gespielt.",keys:"Tasten: ← wahr · → falsch"};
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(path,body){ try{ if(PP&&PP.tfApi) return PP.tfApi(path,body||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+var best=0; try{ best=parseInt(localStorage.getItem("bp_tf_best"),10)||0; }catch(e){}
+var info={}; // Server-Stand (Heute / Platz)
+$("title").textContent="⚡ "+T.title;
+$("back").onclick=function(){ stop(); if(window.parent!==window) parent.postMessage({bpArrowBack:true},location.origin); else location.href="/"; };
+
+var G=null, timer=null;
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function stop(){ if(timer){ clearInterval(timer); timer=null; } G=null; document.onkeydown=null; }
+
+function home(){
+  stop(); $("tm").style.display="none"; $("st").style.display="none";
+  var m=$("main");
+  m.innerHTML='<div class="center" style="margin-top:6vh"><div style="font-size:40px">⚡</div><div class="big" style="font-size:32px;color:#eef1f7;margin:8px 0 12px">'+esc(T.title)+'</div><div style="color:#8d97ad">'+esc(T.rules)+'</div></div>'
+   +'<div style="margin-top:22px"><div class="row"><span>'+esc(T.rec)+'</span><b id="hr">'+best+'</b></div>'
+   +'<div class="row"><span>'+esc(T.today)+'</span><b id="hd">–</b></div><div class="row"><span>'+esc(T.rank)+'</span><b id="hp">–</b></div></div>'
+   +'<div style="margin-top:auto"><button class="pri" id="go">'+esc(T.start)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button><div class="hint center">'+esc(T.keys)+'</div></div>';
+  $("go").onclick=play; $("lb").onclick=board;
+  api("/api/tf/board",{}).then(function(r){ if(r&&r.ok&&r.mine){ info=r.mine; if($("hd")) $("hd").textContent=r.mine.day||"–"; if($("hp")) $("hp").textContent=r.mine.pos?("#"+r.mine.pos):"–"; if(r.mine.best>best){ best=r.mine.best; if($("hr")) $("hr").textContent=best; } } });
+}
+function board(){
+  var m=$("main");
+  m.innerHTML='<div class="picker-title" style="font-weight:800;font-size:18px;text-align:center;margin:6px 0 4px">🏆 '+esc(T.board)+'</div><div class="lb" id="lbl"><div class="hint center">…</div></div><button class="sec" id="bk">'+esc(T.hide)+'</button>';
+  $("bk").onclick=home;
+  api("/api/tf/board",{}).then(function(r){
+    var el=$("lbl"); if(!el) return;
+    if(!r||!r.ok||!r.top||!r.top.length){ el.innerHTML='<div class="hint center">'+esc(T.empty)+'</div>'; return; }
+    el.innerHTML=r.top.map(function(x){ return '<div class="row"><span>'+x.pos+'. '+esc(x.avatar)+' '+esc(x.name)+'</span><b>'+x.c+' · 🔥'+x.st+'</b></div>'; }).join("");
+  });
+}
+function play(){
+  var pool=shuffle(window.TFDATA.slice());
+  G={pool:pool,i:0,end:Date.now()+60000,c:0,st:0,bestSt:0,lock:false,pen:0};
+  var m=$("main");
+  m.innerHTML='<div class="bar"><i id="bf"></i></div><div class="card" id="card"></div><div class="corr" id="corr"></div>'
+   +'<div class="btns"><button class="w" id="bt">✔ '+esc(T.t)+'</button><button class="f" id="bf2">✘ '+esc(T.f)+'</button></div>';
+  $("bt").onclick=function(){ ans(true); }; $("bf2").onclick=function(){ ans(false); };
+  document.onkeydown=function(e){ if(e.key==="ArrowLeft") ans(true); else if(e.key==="ArrowRight") ans(false); };
+  $("tm").style.display=""; $("st").style.display="";
+  show(); tick(); timer=setInterval(tick,100);
+}
+function cur(){ return G.pool[G.i % G.pool.length]; }
+function show(){
+  var q=cur(); $("card").className="card"; $("card").textContent=EN?q.e:q.d; $("corr").textContent=""; G.lock=false;
+  $("st").textContent="🔥 "+G.st;
+}
+function tick(){
+  if(!G) return;
+  var left=Math.max(0,G.end-Date.now()); $("tm").textContent="⏱ "+Math.ceil(left/1000)+"s";
+  var bf=$("bf"); if(bf) bf.style.width=Math.min(100,left/600)+"%";
+  if(left<=0) finish();
+}
+function ans(v){
+  if(!G||G.lock) return; var q=cur(); var ok=(!!q.w)===v; G.lock=true;
+  if(ok){ G.c++; G.st++; if(G.st>G.bestSt) G.bestSt=G.st; $("card").className="card ok"; sfx("good"); setTimeout(function(){ if(G){ G.i++; show(); } },180); }
+  else { G.st=0; G.end-=5000; $("card").className="card no"; sfx("bad"); $("corr").textContent=(EN?q.ce:q.cd)||""; $("st").textContent="🔥 0"; setTimeout(function(){ if(G){ G.i++; show(); } },900); }
+}
+function finish(){
+  if(!G) return; var g=G; stop();
+  var newBest=g.c>best; if(newBest){ best=g.c; try{ localStorage.setItem("bp_tf_best",String(best)); }catch(e){} }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(g.c>=10,false); }catch(e){}
+  $("tm").style.display="none"; $("st").style.display="none";
+  var m=$("main");
+  m.innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">'+esc(T.done)+'</div><div class="big">'+g.c+'</div><div style="color:#8d97ad">'+esc(T.right)+'</div>'+(newBest&&g.c>0?'<div class="zp" style="margin-top:8px">🏆 '+esc(T.newBest)+'</div>':'')+'</div>'
+   +'<div style="margin-top:18px"><div class="row"><span>'+esc(T.bestS)+'</span><b>'+g.bestSt+'</b></div><div class="row"><span>'+esc(T.rec)+'</span><b>'+best+'</b></div><div class="row" id="zpr" style="display:none"><span>'+esc(T.zp)+'</span><b class="zp" id="zpv"></b></div><div class="row" id="rkr" style="display:none"><span>'+esc(T.rank)+'</span><b id="rkv"></b></div></div>'
+   +(hasAcc()?'':'<div class="hint center">'+esc(T.login)+'</div>')
+   +'<div style="margin-top:auto"><button class="pri" id="ag">'+esc(T.again)+'</button><button class="sec" id="lb2">🏆 '+esc(T.board)+'</button></div>';
+  $("ag").onclick=play; $("lb2").onclick=board;
+  if(hasAcc()&&g.c>0) api("/api/tf/submit",{correct:g.c,streak:g.bestSt}).then(function(r){
+    if(!r||!r.ok) return;
+    if(r.zp>0){ $("zpr").style.display=""; $("zpv").textContent="+"+r.zp+" ⭐"; }
+    api("/api/tf/board",{}).then(function(b){ if(b&&b.ok&&b.mine&&b.mine.pos&&$("rkr")){ $("rkr").style.display=""; $("rkv").textContent="#"+b.mine.pos; } });
+  });
+}
+home();
+})();
+</script></body></html>

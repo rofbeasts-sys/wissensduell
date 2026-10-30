@@ -268,6 +268,51 @@ G.tasten = { name: 'Die Tasten', icon: '', hint: ['Tippe die Kacheln der Reihe n
   raf = requestAnimationFrame(loop); return () => { over = true; cancelAnimationFrame(raf); host.onpointerdown = null; hdDuck(.5); };
  } };
 
+
+G.farbwort = { name: 'Das Farbwort', icon: '', hint: ['Tippe die Farbe, in der das Wort geschrieben ist. Nicht das Wort.', 'Tap the color the word is written in. Not the word.'], pace: 1.4, rng: [6, 18],
+ run(host, hud, end){
+  const C = [{ c: '#ff4d6a', de: 'ROT', en: 'RED' }, { c: '#3dff7a', de: 'GRÜN', en: 'GREEN' }, { c: '#3db0ff', de: 'BLAU', en: 'BLUE' }, { c: '#ffd23d', de: 'GELB', en: 'YELLOW' }];
+  let lvl = 0, word = 0, ink = 0, rule = 0, t0 = 0, lim = 3000, over = false, timer = null, iv = null;
+  host.innerHTML = '<div id="hdRule" style="font-size:14px;font-weight:900;letter-spacing:2px;min-height:20px;color:#ffb24d;margin-top:10px"></div><div id="hdWord" style="font-size:68px;font-weight:900;margin:14px 0 14px;min-height:84px;letter-spacing:2px"></div><div style="width:300px;max-width:90%;height:12px;background:rgba(255,255,255,.1);border-radius:6px;margin:0 auto 18px;overflow:hidden"><div id="hdTb" style="height:100%;width:100%;background:#c8ff3d"></div></div><div id="hdBtns" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:330px;margin:0 auto"></div>';
+  const limit = () => Math.max(1300, 3200 - lvl * 70);
+  function show(){
+    word = Math.floor(Math.random() * 4); ink = Math.random() < .2 ? word : (word + 1 + Math.floor(Math.random() * 3)) % 4;
+    rule = lvl >= 5 && Math.random() < .35 ? 1 : 0;
+    const w = $('hdWord'); w.textContent = L(C[word].de, C[word].en); w.style.color = C[ink].c; w.style.textShadow = '0 0 22px ' + C[ink].c;
+    $('hdRule').textContent = rule ? L('TIPPE DAS WORT', 'TAP THE WORD') : L('TIPPE DIE FARBE', 'TAP THE COLOR');
+    const order = [0, 1, 2, 3].sort(() => Math.random() - .5);
+    $('hdBtns').innerHTML = order.map(k => '<div class="hdfw" data-k="' + k + '" style="padding:22px 4px;border-radius:18px;background:' + C[k].c + ';color:#0b0f1a;font-weight:900;font-size:17px;letter-spacing:1px;cursor:pointer;touch-action:manipulation">' + L(C[k].de, C[k].en) + '</div>').join('');
+    host.querySelectorAll('.hdfw').forEach(e => e.onpointerdown = () => pick(+e.dataset.k));
+    t0 = performance.now(); lim = limit(); clearTimeout(timer); timer = setTimeout(() => lose(L('Zu langsam.', 'Too slow.')), lim);
+  }
+  function lose(m){ if(over) return; over = true; clearTimeout(timer); hud.msg(m); const w = $('hdWord'); if(w) w.style.opacity = '.4'; setTimeout(() => end(lvl), 900); }
+  function pick(k){ if(over) return; const want = rule ? word : ink; if(k === want){ lvl++; hud.score(lvl); show(); } else lose(rule ? L('Falsch. Du solltest das Wort nehmen.', 'Wrong. You had to take the word.') : L('Falsch. Du solltest die Farbe nehmen.', 'Wrong. You had to take the color.')); }
+  iv = setInterval(() => { const b = $('hdTb'); if(b && !over) b.style.width = Math.max(0, 100 - (performance.now() - t0) / lim * 100) + '%'; }, 40);
+  hud.msg(L('Nicht das Wort lesen. Die Farbe zählt.', 'Do not read the word. The color counts.')); show();
+  return () => { over = true; clearTimeout(timer); clearInterval(iv); };
+ } };
+G.reflex = { name: 'Der Reflex', icon: '', hint: ['Tippe, sobald es grün wird. Keine Sekunde früher.', 'Tap the moment it turns green. Not a moment earlier.'], pace: 1.2, rng: [6, 16],
+ run(host, hud, end){
+  host.innerHTML = '<div id="hdRf" style="width:240px;height:240px;border-radius:50%;margin:24px auto 0;background:#ff4d6a;box-shadow:0 0 50px rgba(255,77,106,.5);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#0b0f1a;letter-spacing:1px"></div><div id="hdRfT" style="font-size:22px;font-weight:800;margin-top:16px;min-height:30px;color:#e8f8ff"></div>';
+  let lvl = 0, st = 'wait', tOn = 0, over = false, tm = null;
+  const lim = () => Math.max(340, 820 - lvl * 28);
+  const paint = (col, txt) => { const e = $('hdRf'); if(!e) return; e.style.background = col; e.style.boxShadow = '0 0 50px ' + col + '88'; e.textContent = txt || ''; };
+  function cycle(){
+    if(over) return; st = 'wait'; paint('#ff4d6a', L('WARTEN', 'WAIT'));
+    tm = setTimeout(() => {
+      if(over) return;
+      if(lvl >= 4 && Math.random() < .35){ st = 'decoy'; paint(Math.random() < .5 ? '#3db0ff' : '#ffb24d', L('NEIN', 'NO')); tm = setTimeout(cycle, 520 + Math.random() * 380); }
+      else { st = 'go'; tOn = performance.now(); paint('#3dff7a', L('JETZT', 'NOW')); tm = setTimeout(() => lose(L('Zu langsam.', 'Too slow.')), lim()); }
+    }, 900 + Math.random() * 1900);
+  }
+  function lose(m){ if(over) return; over = true; clearTimeout(tm); hud.msg(m); paint('#8a93a8', ''); setTimeout(() => end(lvl), 900); }
+  host.onpointerdown = () => { if(over) return;
+    if(st === 'go'){ clearTimeout(tm); st = 'done'; const rt = Math.round(performance.now() - tOn); lvl++; hud.score(lvl); const t = $('hdRfT'); if(t) t.textContent = rt + ' ms'; setTimeout(() => { const t2 = $('hdRfT'); if(t2) t2.textContent = ''; }, 700); tm = setTimeout(cycle, 650); }
+    else if(st === 'wait') lose(L('Zu früh.', 'Too early.'));
+    else if(st === 'decoy') lose(L('Das war nicht Grün.', 'That was not green.')); };
+  hud.msg(L('Rot = warten. Nur Grün zählt.', 'Red = wait. Only green counts.')); cycle();
+  return () => { over = true; clearTimeout(tm); host.onpointerdown = null; };
+ } };
 const SV = p => '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.14em">' + p + '</svg>';
 const ICO = {
  balken: SV('<rect x="2" y="9" width="20" height="6" rx="3"/><rect x="4.5" y="10.8" width="7" height="2.4" rx="1.2" fill="currentColor" stroke="none" opacity=".55"/><circle cx="16" cy="12" r="2" fill="currentColor"/>'),
@@ -280,12 +325,14 @@ const ICO = {
  farbe: SV('<path d="M12 3c3.5 4.2 6 7 6 10a6 6 0 0 1-12 0c0-3 2.5-5.8 6-10Z"/><path d="M9 14a3 3 0 0 0 3 3"/>'),
  tasten: SV('<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M15 3v18"/><rect x="7.4" y="3" width="3.2" height="10" rx="1" fill="currentColor"/><rect x="13.4" y="3" width="3.2" height="10" rx="1" fill="currentColor"/>'),
  flug: SV('<path d="M12 2c4 4 5 9 3 15H9C7 11 8 6 12 2Z"/><path d="M9 17l-3 4M15 17l3 4"/><circle cx="12" cy="9.5" r="1.8" fill="currentColor"/>'),
+ farbwort: SV('<path d="M4 20L12 4l8 16"/><path d="M7.5 14h9"/>'),
+ reflex: SV('<circle cx="12" cy="12" r="9"/><path d="M13 5l-4 8h5l-3 6"/>'),
  olymp: SV('<path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/><path d="M12 14v4M8 21h8M9.5 18h5"/>')
 };
 Object.keys(ICO).forEach(k => { if(G[k]) G[k].icon = ICO[k]; });
 const hdGate = id => { try{ if(typeof featureLocked === 'function' && featureLocked(id) && !(typeof adminViewOn === 'function' && adminViewOn())) return (typeof hiddenFeatures !== 'undefined' && hiddenFeatures.indexOf(id) !== -1) ? 'hide' : 'lock'; }catch(e){} return 'ok'; };
 const hdOn = k => hdGate('hard_' + k) === 'ok';
-const ORDER = ['balken', 'gedaechtnis', 'linie', 'gegenteil', 'flug', 'blasen', 'puls', 'farbe', 'tasten']; /* 'turm' bleibt im Code, ist aber aktuell aus dem Spiel genommen */
+const ORDER = ['balken', 'gedaechtnis', 'linie', 'gegenteil', 'flug', 'blasen', 'puls', 'farbe', 'tasten', 'farbwort', 'reflex']; /* 'turm' bleibt im Code, ist aber aktuell aus dem Spiel genommen */
 /* ---------- Bot-Gegner: Zielwert + Anzeige, die mitzählt ---------- */
 function botTarget(game, diff){ const r = G[game].rng, f = diff === 0 ? .65 : diff === 2 ? 1.35 : 1; return Math.max(1, Math.round((r[0] + Math.random() * (r[1] - r[0])) * f)); }
 function botTicker(target, pace, label){ let n = 0, stop = false; const iv = setInterval(() => { if(stop) return; if(n < target){ n++; const e = $('hdBot'); if(e) e.textContent = label + ': ' + n; } }, Math.max(350, pace * 1000)); return { value: () => n, finish(){ stop = true; clearInterval(iv); const e = $('hdBot'); if(e) e.textContent = label + ': ' + target; }, stop(){ stop = true; clearInterval(iv); } }; }
@@ -326,7 +373,7 @@ setInterval(() => { if(HM && !$('hdApp')) hdMusicStop(); }, 800);
 window.startHardFlow = function(){
   killGame(); hdMusic();
   if(typeof featureLocked === 'function' && featureLocked('hard') && !(typeof adminViewOn === 'function' && adminViewOn())){ renderMainMenu(); return; }
-  const ACC = {balken:'#c8ff3d',turm:'#3db0ff',gedaechtnis:'#ff4d6a',linie:'#ffc83d',gegenteil:'#b36bff',flug:'#3dffe0',blasen:'#ff8ad8',puls:'#5ee1ff',farbe:'#ff9a3d',tasten:'#d9d9ff'};
+  const ACC = {balken:'#c8ff3d',turm:'#3db0ff',gedaechtnis:'#ff4d6a',linie:'#ffc83d',gegenteil:'#b36bff',flug:'#3dffe0',blasen:'#ff8ad8',puls:'#5ee1ff',farbe:'#ff9a3d',tasten:'#d9d9ff',farbwort:'#ff8a4d',reflex:'#3dff7a'};
   const cards = ORDER.map(k => { const gt = hdGate('hard_' + k); if(gt === 'hide') return ''; if(gt === 'lock') return `<div class="hdcard" style="--c:${ACC[k]};opacity:.45"><div class="hdcT"><div class="ic">${G[k].icon}</div><div class="tx"><h3>${G[k].name}</h3><p>Coming soon</p></div></div></div>`; return `<div class="hdcard" style="--c:${ACC[k]}"><div class="hdcT"><div class="ic">${G[k].icon}</div><div class="tx"><h3>${G[k].name}</h3><p>${L(G[k].hint[0], G[k].hint[1])}</p></div><div class="hdbest">${L('BESTE', 'BEST')}<b>${fmt(st(k).best)}</b></div></div><div class="hdcB"><button class="hdb1" onclick="hdPlay('${k}',0)">Solo</button><button class="hdb2" onclick="hdPlay('${k}',1)">${L('Gegen Bot', 'vs Bot')}</button></div></div>`; }).join('');
   renderApp(CSS + `<div class="panel" id="hdApp"><i class="hdsh"></i><div class="picker-title" style="font-size:20px;line-height:1.25">💀 ${L('DAS SCHWERSTE SPIEL<br>DER WELT', 'THE HARDEST GAME<br>IN THE WORLD')}</div>
    <div class="picker-sub">${L('Ein Fehler und es ist vorbei. Wie weit kommst du?', 'One mistake and it is over. How far can you get?')}</div>
@@ -360,7 +407,7 @@ window.hdEv = {
       const h = Object.assign({}, hud, { score(n){ hud.score(n); st.lastScore = n; if(n > st.best) st.best = n; if(!st.pend) st.pend = setTimeout(() => { st.pend = null; send(st.lastScore, false); }, 600); } });
       stopFn = g.run($('hdHost'), h, score => { if(evHd !== st) return; stopFn = null; detachLayer(); st.lastScore = score; flush(true);
         const a = $('hdAgain'); if(a) a.innerHTML = '<div style="font-weight:900;margin-bottom:6px">' + L('Dein Bester: ', 'Your best: ') + fmt(st.best) + '</div><button class="btn btn-block" id="hdAgainBtn">' + L('NOCHMAL', 'AGAIN') + '</button>'; const b = $('hdAgainBtn'); if(b) b.onclick = begin; });
-      if(game !== 'gedaechtnis' && game !== 'farbe') attachLayer();
+      if(game !== 'gedaechtnis' && game !== 'farbe' && game !== 'farbwort') attachLayer();
     };
     begin();
   },
@@ -378,6 +425,8 @@ const INTRO = {
  puls: ['Eine Kugel wächst und schrumpft in einer Form.', 'Tippe genau dann, wenn die Kugel die Form ausfüllt. Nur 100 % zählt. Die Form wechselt jedes Level.', 'A ball grows and shrinks inside a shape.', 'Tap exactly when the ball fills the shape. Only 100% counts. The shape changes every level.', '<div style="position:relative;width:90px;height:90px;margin:12px auto"><div style="position:absolute;inset:0;border-radius:50%;border:4px solid #c8ff3d;box-shadow:0 0 16px #c8ff3d"></div><div style="position:absolute;inset:14px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#3db0ff)"></div></div>'],
  farbe: ['Oben siehst du eine Zielfarbe.', 'Mische sie mit den Reglern nach und tippe auf FERTIG. Nur 100 % zählt.', 'You see a target color.', 'Mix it with the sliders and tap DONE. Only 100% counts.', '<div style="display:flex;gap:10px;justify-content:center;margin:14px"><span style="width:60px;height:40px;border-radius:12px;background:#b85a8a"></span><span style="width:60px;height:40px;border-radius:12px;background:#b85a8a;outline:3px solid rgba(255,255,255,.4)"></span></div>'],
  tasten: ['Dunkle Kacheln fallen in vier Spuren.', 'Tippe jede Kachel in ihrer Spur an, von unten nach oben. Jede getroffene Kachel spielt einen Ton der Melodie. Keine auslassen.', 'Dark tiles fall in four lanes.', 'Tap each tile in its lane, from the bottom up. Each hit plays a note of the melody. Do not miss any.', '<div style="display:flex;gap:6px;justify-content:center;margin:14px"><span style="width:30px;height:60px;border-radius:8px;background:#1b1450;border:2px solid #9fe8ff"></span><span style="width:30px;height:60px;border-radius:8px;background:#1b1450;border:2px solid #c8ff3d;margin-top:16px"></span><span style="width:30px;height:60px;border-radius:8px;background:#1b1450;border:2px solid #9fe8ff;margin-top:-10px"></span></div>'],
+ farbwort: ['Ein Farbwort erscheint, aber in einer anderen Farbe.', 'Tippe die Farbe, in der das Wort geschrieben ist, nicht das Wort selbst. Später kommt manchmal „TIPPE DAS WORT“: dann zählt das Wort. Die Felder wechseln jedes Mal ihren Platz.', 'A color word appears, but in a different color.', 'Tap the color the word is written in, not the word itself. Later it sometimes says “TAP THE WORD”: then the word counts. The fields swap places every time.', '<div style="text-align:center;margin:14px"><div style="font-size:44px;font-weight:900;color:#3dff7a">ROT</div><div style="display:flex;gap:8px;justify-content:center;margin-top:8px"><span style="width:40px;height:26px;border-radius:8px;background:#ff4d6a"></span><span style="width:40px;height:26px;border-radius:8px;background:#3dff7a;outline:2px solid #fff"></span></div></div>'],
+ reflex: ['Ein roter Kreis wartet.', 'Tippe in dem Moment, in dem er grün wird. Zu früh ist ein Fehler. Später täuschen blaue und orange Blitze: nicht tippen. Du wirst immer weniger Zeit haben.', 'A red circle waits.', 'Tap the moment it turns green. Too early is a mistake. Later blue and orange flashes try to fool you: do not tap. You get less and less time.', '<div style="display:flex;gap:14px;justify-content:center;margin:14px"><span style="width:46px;height:46px;border-radius:50%;background:#ff4d6a"></span><span style="width:46px;height:46px;border-radius:50%;background:#3dff7a"></span></div>'],
  gegenteil: ['Ein Pfeil erscheint. Seine Farbe sagt dir, wohin du wischst.', 'Roter Pfeil: wische in die GEGENÜBERLIEGENDE Richtung. Grüner Pfeil: wische in Pfeilrichtung.', 'An arrow appears. Its color tells you where to swipe.', 'Red arrow: swipe the OPPOSITE way. Green arrow: swipe the same way.', '<div style="display:flex;gap:30px;justify-content:center;font-size:54px;margin:10px"><span style="color:#ff4d6a">⬆</span><span style="color:#3dff7a">⬆</span></div><div style="display:flex;gap:30px;justify-content:center;font-size:13px;font-weight:800"><span>⬇ swipe</span><span>⬆ swipe</span></div>']
 };
 window.hdPlay = function(game, mode, go){
@@ -399,7 +448,7 @@ window.hdPlay = function(game, mode, go){
     ${rankBox(b)}
     <div class="actions-row" style="flex-direction:row;gap:10px;margin-top:auto;padding-top:18px"><button class="btn" style="flex:1" onclick="hdPlay('${game}',${mode},1)">${L('Nochmal', 'Again')}</button><button class="btn btn-ghost" style="flex:1" onclick="startHardFlow()">${L('Raus', 'Exit')}</button></div></div>`);
   });
-  if(game !== 'gedaechtnis' && game !== 'farbe') attachLayer();
+  if(game !== 'gedaechtnis' && game !== 'farbe' && game !== 'farbwort') attachLayer();
 };
 window.hdOlymp = async function(mode){
   killGame(); const my = alive; const order = ORDER.filter(hdOn).sort(() => Math.random() - .5); const res = []; let total = 0, botTotal = 0; const targets = order.map(k => botTarget(k, diff));

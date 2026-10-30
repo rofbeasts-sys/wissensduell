@@ -157,7 +157,7 @@ function signStripeBody(bodyStr, secret, timestamp) {
     await S4.stop(); await S3.stop();
   }
 
-  const js = fs.readFileSync(path.join(__dirname, "..", "public", "chess-world", "game.js"), "utf8");
+  const js = fs.readFileSync(path.join(__dirname, "..", "public", "chess", "world", "game.js"), "utf8");
   section("Client: kein lokaler Schlüssel-Weg mehr");
   {
     ok("Keine G.keys+= / G.keys-= Zuweisungen", !/G\.keys\s*[+-]=/.test(js));

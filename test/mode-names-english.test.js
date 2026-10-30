@@ -8,7 +8,7 @@
  * Englisch), Rundenbau, Server-Labels und die Datensatz-Präfixe. Die
  * Fragen selbst bleiben unverändert (nur die Modus-Namen sind gemeint). */
 const { ok, section, finish, loadClient, startServer, wsConnect, sleep } = require("./helpers");
-const Achv = require("../public/achievements.js");
+const Achv = require("../public/core/achievements.js");
 const fs = require("fs"), path = require("path");
 
 const NEW_NAMES = ["Drag and Drop", "Higher or Lower", "Scattergories", "Quick-Fire"];

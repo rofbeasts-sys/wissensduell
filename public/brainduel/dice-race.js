@@ -626,13 +626,13 @@ window.brDuelHub = function(){
   if(typeof brAllowed === 'function' && !brAllowed()){ renderMainMenu(); return; }
   if(typeof brClearTimers === 'function') brClearTimers(); clr(); g = null;
   renderApp(`<div class="panel">
-    <div class="picker-title">⚔️ BRAIN DUEL</div>
-    <div class="picker-sub">${L('Duelle und Tests, wähle.','Duels and tests, pick one.')}</div>
+    <div class="picker-title">🧪 BRAIN PRO</div>
+    <div class="picker-sub">${L('In offener Entwicklung: Ideen, die wir testen und erstmal nur grob haben.','In open development: ideas we are testing, still rough.')}</div>
     <div class="actions-row" style="flex-direction:column;gap:10px;margin-top:10px">
       <div class="mode-card" onclick="brIntro()" style="border-color:var(--warn);cursor:pointer"><div class="icon">⚔️</div><h3>Brain Royale</h3><p>${L('Figuren-Duell mit Quiz','Piece duel with quiz')}</p></div>
-      <div class="mode-card" onclick="drIntro()" style="border-color:#ffc446;cursor:pointer"><div class="icon">🎲</div><h3>Brain Mana</h3><p>${L('Würfeln, Fallen & Fähigkeiten','Dice, traps & abilities')}</p></div>
-      ${(typeof featureLocked==='function' && (!featureLocked('hard') || (typeof adminViewOn==='function' && adminViewOn()))) ? `<div class="mode-card" onclick="startHardFlow()" style="border-color:#ff4d6a;cursor:pointer"><div class="icon">💀</div><h3>${L('Das schwerste Spiel der Welt','The hardest game in the world')}</h3><p>${L('Mehrere Spiele, Solo oder gegen Bot, plus Olympiade und der Stein','Several games, solo or vs bot, plus Olympics and the rock')}</p></div>` : ''}
-      ${(typeof adminViewOn==='function' && adminViewOn()) ? `<div class="mode-card" onclick="renderChessFrame('/defense/index.html')" style="border-color:var(--warn);cursor:pointer"><div class="icon">🛡️</div><h3>Brain Defense</h3><p>${L('Tower Defense mit Fruchtkönigen, 100 Level','Tower defense with fruit kings, 100 levels')}</p></div>` : ''}
+      <div class="mode-card" onclick="drIntro()" style="border-color:var(--warn);cursor:pointer"><div class="icon">🎲</div><h3>Brain Mana</h3><p>${L('Würfeln, Fallen & Fähigkeiten','Dice, traps & abilities')}</p></div>
+      ${(typeof featureLocked==='function' && (!featureLocked('hard') || (typeof adminViewOn==='function' && adminViewOn()))) ? `<div class="mode-card" onclick="startHardFlow()" style="border-color:var(--warn);cursor:pointer"><div class="icon">💀</div><h3>${L('Das schwerste Spiel der Welt','The hardest game in the world')}</h3><p>${L('Mehrere Spiele, Solo oder gegen Bot, plus Olympiade und der Stein','Several games, solo or vs bot, plus Olympics and the rock')}</p></div>` : ''}
+      ${(typeof adminViewOn==='function' && adminViewOn()) ? `<div class="mode-card" onclick="renderChessFrame('/solo/defense/index.html')" style="border-color:var(--warn);cursor:pointer"><div class="icon">🛡️</div><h3>Brain Defense</h3><p>${L('Tower Defense mit Fruchtkönigen, 100 Level','Tower defense with fruit kings, 100 levels')}</p></div>` : ''}
       <button class="btn btn-ghost" onclick="renderMainMenu()">${L('Zurück zum Menü','Back to menu')}</button></div></div>`);
 };
 window.drState = function(){ return g; };

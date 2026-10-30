@@ -1,0 +1,472 @@
+[
+{
+"q": "Wie hoch ist der Eiffelturm (mit Antenne)?",
+"qe": "How tall is the Eiffel Tower (with antenna)?",
+"a": 330,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "Seit 2022 sind es 330 Meter.",
+"xe": "Since 2022 it is 330 meters."
+},
+{
+"q": "Wie hoch ist die Zugspitze?",
+"qe": "How high is the Zugspitze?",
+"a": 2962,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "Deutschlands höchster Berg: 2962 m.",
+"xe": "Germany's highest mountain: 2,962 m."
+},
+{
+"q": "Wie hoch ist der Mount Everest?",
+"qe": "How high is Mount Everest?",
+"a": 8849,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "Offiziell 8849 m.",
+"xe": "Officially 8,849 m."
+},
+{
+"q": "Wie lang ist der Nil?",
+"qe": "How long is the Nile?",
+"a": 6650,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Rund 6650 km.",
+"xe": "About 6,650 km."
+},
+{
+"q": "Wie viele Knochen hat ein erwachsener Mensch?",
+"qe": "How many bones does an adult human have?",
+"a": 206,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "Es sind 206.",
+"xe": "It is 206."
+},
+{
+"q": "Wie weit ist der Mond von der Erde entfernt?",
+"qe": "How far is the Moon from Earth?",
+"a": 384400,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Im Schnitt 384.400 km.",
+"xe": "On average 384,400 km."
+},
+{
+"q": "In welchem Jahr war die erste Mondlandung?",
+"qe": "In which year was the first Moon landing?",
+"a": 1969,
+"u": "",
+"ue": "",
+"s": 60,
+"x": "Apollo 11, 1969.",
+"xe": "Apollo 11, 1969."
+},
+{
+"q": "In welchem Jahr fiel die Berliner Mauer?",
+"qe": "In which year did the Berlin Wall fall?",
+"a": 1989,
+"u": "",
+"ue": "",
+"s": 60,
+"x": "Am 9. November 1989.",
+"xe": "On November 9, 1989."
+},
+{
+"q": "In welchem Jahr sank die Titanic?",
+"qe": "In which year did the Titanic sink?",
+"a": 1912,
+"u": "",
+"ue": "",
+"s": 100,
+"x": "Im April 1912.",
+"xe": "In April 1912."
+},
+{
+"q": "In welchem Jahr kam das erste iPhone auf den Markt?",
+"qe": "In which year was the first iPhone released?",
+"a": 2007,
+"u": "",
+"ue": "",
+"s": 30,
+"x": "2007.",
+"xe": "2007."
+},
+{
+"q": "In welchem Jahr wurde die Bundesrepublik Deutschland gegründet?",
+"qe": "In which year was the Federal Republic of Germany founded?",
+"a": 1949,
+"u": "",
+"ue": "",
+"s": 60,
+"x": "Mit dem Grundgesetz 1949.",
+"xe": "With the Basic Law in 1949."
+},
+{
+"q": "Wie lang ist der Rhein?",
+"qe": "How long is the Rhine?",
+"a": 1233,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Rund 1233 km.",
+"xe": "About 1,233 km."
+},
+{
+"q": "Wie tief ist der Marianengraben?",
+"qe": "How deep is the Mariana Trench?",
+"a": 10935,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "Etwa 10.935 m.",
+"xe": "About 10,935 m."
+},
+{
+"q": "Wie viele Tasten hat ein Klavier?",
+"qe": "How many keys does a piano have?",
+"a": 88,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "Es sind 88.",
+"xe": "It is 88."
+},
+{
+"q": "Wie hoch ist der Burj Khalifa?",
+"qe": "How tall is the Burj Khalifa?",
+"a": 828,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "828 Meter.",
+"xe": "828 meters."
+},
+{
+"q": "Wie schnell kann ein Gepard rennen?",
+"qe": "How fast can a cheetah run?",
+"a": 110,
+"u": "km/h",
+"ue": "km/h",
+"s": 0,
+"x": "Bis etwa 110 km/h.",
+"xe": "Up to about 110 km/h."
+},
+{
+"q": "Wie viel wiegt ein Blauwal?",
+"qe": "How much does a blue whale weigh?",
+"a": 150,
+"u": "Tonnen",
+"ue": "tons",
+"s": 0,
+"x": "Bis zu etwa 150 Tonnen.",
+"xe": "Up to about 150 tons."
+},
+{
+"q": "Wie groß ist die Fläche von Deutschland?",
+"qe": "How big is the area of Germany?",
+"a": 357600,
+"u": "km²",
+"ue": "km²",
+"s": 0,
+"x": "Rund 357.600 km².",
+"xe": "About 357,600 km²."
+},
+{
+"q": "Wie lang ist die Chinesische Mauer (alle Abschnitte)?",
+"qe": "How long is the Great Wall of China (all sections)?",
+"a": 21196,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Rund 21.000 km.",
+"xe": "About 21,000 km."
+},
+{
+"q": "Wie viel Prozent der Erdoberfläche sind mit Wasser bedeckt?",
+"qe": "What percent of Earth's surface is covered by water?",
+"a": 71,
+"u": "%",
+"ue": "%",
+"s": 0,
+"x": "Etwa 71 %.",
+"xe": "About 71%."
+},
+{
+"q": "Wie alt ist die Erde?",
+"qe": "How old is the Earth?",
+"a": 4.5,
+"u": "Mrd. Jahre",
+"ue": "billion years",
+"s": 0,
+"x": "Rund 4,5 Milliarden Jahre.",
+"xe": "About 4.5 billion years."
+},
+{
+"q": "Wie hoch ist der Kölner Dom?",
+"qe": "How tall is Cologne Cathedral?",
+"a": 157,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "157 Meter.",
+"xe": "157 meters."
+},
+{
+"q": "Wie viele Zähne hat ein erwachsener Mensch (mit Weisheitszähnen)?",
+"qe": "How many teeth does an adult have (with wisdom teeth)?",
+"a": 32,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "Es sind 32.",
+"xe": "It is 32."
+},
+{
+"q": "Wie lang ist ein Marathon?",
+"qe": "How long is a marathon?",
+"a": 42.195,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "42,195 km.",
+"xe": "42.195 km."
+},
+{
+"q": "Wie schnell ist der 100-m-Weltrekord der Männer?",
+"qe": "What is the men's 100 m world record time?",
+"a": 9.58,
+"u": "Sekunden",
+"ue": "seconds",
+"s": 4,
+"x": "Usain Bolt, 9,58 s.",
+"xe": "Usain Bolt, 9.58 s."
+},
+{
+"q": "Wie viele Sekunden hat ein Tag?",
+"qe": "How many seconds are in a day?",
+"a": 86400,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "24 × 60 × 60 = 86.400.",
+"xe": "24 × 60 × 60 = 86,400."
+},
+{
+"q": "Wie lang ist der Äquator der Erde?",
+"qe": "How long is the Earth's equator?",
+"a": 40075,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Rund 40.075 km.",
+"xe": "About 40,075 km."
+},
+{
+"q": "Wie hoch ist die Freiheitsstatue vom Boden bis zur Fackel?",
+"qe": "How tall is the Statue of Liberty from the ground to the torch?",
+"a": 93,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "Etwa 93 Meter.",
+"xe": "About 93 meters."
+},
+{
+"q": "Wie hoch ist das Matterhorn?",
+"qe": "How high is the Matterhorn?",
+"a": 4478,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "4478 Meter.",
+"xe": "4,478 meters."
+},
+{
+"q": "Wie viel Blut hat ein Erwachsener ungefähr?",
+"qe": "About how much blood does an adult have?",
+"a": 5,
+"u": "Liter",
+"ue": "liters",
+"s": 0,
+"x": "Etwa 5 Liter.",
+"xe": "About 5 liters."
+},
+{
+"q": "Wie lang ist der Amazonas?",
+"qe": "How long is the Amazon River?",
+"a": 6400,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Rund 6400 km.",
+"xe": "About 6,400 km."
+},
+{
+"q": "Wie hoch ist der Berliner Fernsehturm?",
+"qe": "How tall is the Berlin TV Tower?",
+"a": 368,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "368 Meter.",
+"xe": "368 meters."
+},
+{
+"q": "Wie viele Einwohner hat Berlin ungefähr?",
+"qe": "About how many people live in Berlin?",
+"a": 3.7,
+"u": "Mio.",
+"ue": "million",
+"s": 0,
+"x": "Rund 3,7 Millionen.",
+"xe": "About 3.7 million."
+},
+{
+"q": "Wie viele Sprachen gibt es ungefähr auf der Welt?",
+"qe": "About how many languages are there in the world?",
+"a": 7000,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "Rund 7000.",
+"xe": "About 7,000."
+},
+{
+"q": "Wie lang war die Titanic?",
+"qe": "How long was the Titanic?",
+"a": 269,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "269 Meter.",
+"xe": "269 meters."
+},
+{
+"q": "Wie viele Stufen hat das Empire State Building bis zur 86. Etage?",
+"qe": "How many steps lead up the Empire State Building to the 86th floor?",
+"a": 1576,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "1576 Stufen.",
+"xe": "1,576 steps."
+},
+{
+"q": "Wie warm ist die Oberfläche der Sonne?",
+"qe": "How hot is the surface of the Sun?",
+"a": 5500,
+"u": "°C",
+"ue": "°C",
+"s": 0,
+"x": "Etwa 5500 °C.",
+"xe": "About 5,500 °C."
+},
+{
+"q": "Wie viele Menschen leben auf der Erde?",
+"qe": "How many people live on Earth?",
+"a": 8.2,
+"u": "Mrd.",
+"ue": "billion",
+"s": 0,
+"x": "Etwa 8,2 Milliarden.",
+"xe": "About 8.2 billion."
+},
+{
+"q": "Wie hoch ist der Elizabeth Tower (Big Ben)?",
+"qe": "How tall is the Elizabeth Tower (Big Ben)?",
+"a": 96,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "96 Meter.",
+"xe": "96 meters."
+},
+{
+"q": "Wie tief ist der Baikalsee?",
+"qe": "How deep is Lake Baikal?",
+"a": 1642,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "Bis zu 1642 Meter.",
+"xe": "Up to 1,642 meters."
+},
+{
+"q": "Wie hoch ist der Fuji?",
+"qe": "How high is Mount Fuji?",
+"a": 3776,
+"u": "m",
+"ue": "m",
+"s": 0,
+"x": "3776 Meter.",
+"xe": "3,776 meters."
+},
+{
+"q": "Um welches Jahr erfand Gutenberg den Buchdruck mit beweglichen Lettern?",
+"qe": "Around which year did Gutenberg invent movable-type printing?",
+"a": 1450,
+"u": "",
+"ue": "",
+"s": 80,
+"x": "Um 1450.",
+"xe": "Around 1450."
+},
+{
+"q": "Wie schnell ist das Licht pro Sekunde?",
+"qe": "How fast does light travel per second?",
+"a": 299792,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Rund 300.000 km pro Sekunde.",
+"xe": "About 300,000 km per second."
+},
+{
+"q": "Wie groß ist der Durchmesser der Erde?",
+"qe": "What is the diameter of the Earth?",
+"a": 12742,
+"u": "km",
+"ue": "km",
+"s": 0,
+"x": "Rund 12.742 km.",
+"xe": "About 12,742 km."
+},
+{
+"q": "Wie viele Herzschläge hat ein Mensch in Ruhe pro Minute?",
+"qe": "How many times does a resting human heart beat per minute?",
+"a": 70,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "60 bis 80, im Schnitt etwa 70.",
+"xe": "60 to 80, about 70 on average."
+},
+{
+"q": "Wie groß ist der Vatikan?",
+"qe": "How big is Vatican City?",
+"a": 0.44,
+"u": "km²",
+"ue": "km²",
+"s": 0,
+"x": "Nur 0,44 km².",
+"xe": "Only 0.44 km²."
+},
+{
+"q": "Wie viele Mitgliedstaaten hat die EU?",
+"qe": "How many member states does the EU have?",
+"a": 27,
+"u": "",
+"ue": "",
+"s": 0,
+"x": "27 Staaten.",
+"xe": "27 countries."
+}
+]

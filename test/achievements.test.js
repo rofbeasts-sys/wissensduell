@@ -1,6 +1,6 @@
 /* Erfolge: Regelwerk (jeder Erfolg + Grenzwerte), Server-Zusammenfuehren, Client-Einbindung */
 const { ok, section, sleep, finish, startServer, post, wsConnect, loadClient } = require("./helpers");
-const Achv = require("../public/achievements.js");
+const Achv = require("../public/core/achievements.js");
 
 const fresh = () => Achv.newState();
 const has = (s, id) => !!s.unlocked[id];

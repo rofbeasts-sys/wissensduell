@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Pyramide</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 25%,#1d5a48,#0a2a20 75%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:12px 14px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
+h1{font-size:14px;margin:0;flex:1;color:#bfe6d6;font-weight:700}
+.pill{border:1px solid #ffffff26;background:#0004;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:800;white-space:nowrap}
+#main{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;align-items:center}
+#field{position:relative;flex:none;margin-top:6px}
+.c{position:absolute;border-radius:7px;background:linear-gradient(#fff,#eee);color:#222;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 6px #0007;line-height:1.05;cursor:pointer;transition:transform .15s,opacity .2s,top .25s,left .25s}
+.c.rd{color:#c9242b}.c.dn{background:linear-gradient(135deg,#3b5bd6,#1e2f84);color:transparent;border:2px solid #fff;cursor:default}
+.c.dn:after{content:"✦";color:#fff6;position:absolute;font-size:18px}
+.c.pl:not(.dn){box-shadow:0 0 0 3px #7ae58288,0 3px 6px #0007}
+.c.hn{outline:3px solid #ffd45a;box-shadow:0 0 16px #ffd45a;animation:pu .7s infinite}
+.c.gone{opacity:0;transform:scale(.5);pointer-events:none}
+@keyframes pu{50%{transform:translateY(-4px)}}
+#bottom{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:26px}
+#info{position:absolute;left:0;right:0;text-align:center;font-size:12px;opacity:.85}
+.btnx{padding:9px 15px;border-radius:16px;background:#0008;border:1px solid #fff3;font-size:12.5px;font-weight:800;color:#fff;cursor:pointer}.btnx:disabled{opacity:.4}
+#streak{position:absolute;left:0;right:0;text-align:center;font-size:20px;font-weight:900;color:#ffd45a;text-shadow:0 2px 8px #000;opacity:0;pointer-events:none}
+#streak.go{animation:pp 1s forwards}@keyframes pp{0%{opacity:0;transform:scale(.6)}20%{opacity:1;transform:scale(1.1)}100%{opacity:0;transform:translateY(-26px)}}
+.ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(3,20,14,.78);z-index:40}
+.ov.show{display:flex}
+.box{background:#0f3328;border:1px solid #ffffff26;border-radius:22px;padding:26px 22px;text-align:center;max-width:330px;width:100%}
+.box h2{margin:0 0 6px;font-size:24px}.box p{color:#bfe6d6;margin:0 0 14px;font-size:14px}
+.big{font-size:54px;font-weight:800;color:#ffd45a;line-height:1.1}
+.pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#0a2a20;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:6px}
+.sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid #ffffff14;padding:11px 2px;font-size:14px;gap:10px;color:#bfe6d6;text-align:left}.row b{color:#ffd45a}
+.zp{color:#ffd45a;font-weight:800;margin-top:8px}.hint{color:#8fc3ad;font-size:12px;margin-top:10px}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title"></h1><span class="pill" id="sc">0</span><span class="pill" id="st"></span><button class="back" id="lbb">🏆</button></div>
+<div id="main"><div id="field"></div><div id="streak"></div><div id="info"></div><div id="bottom"></div>
+<div class="ov show" id="ov"><div class="box" id="box"></div></div></div>
+<script>
+(function(){
+var lang="de"; try{ lang=localStorage.getItem("wq_lang")==="en"?"en":"de"; }catch(e){}
+var EN=lang==="en";
+var T=EN?{title:"Pyramid",start:"START",tip:"Tap a face-up card that is one higher or lower than the open card (Ace and King connect). Clear all 3 peaks. Tap the pile when nothing fits.",over:"No more moves",won:"All peaks cleared!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to earn Brainups and appear on the leaderboard.",empty:"No scores yet.",undo:"↩ Undo",hint:"💡 Tip",left:"Pile",streak:"Streak",info:"Clear all 3 peaks · cards from Ace to King"}
+ :{title:"Pyramide",start:"START",tip:"Tippe eine offene Karte, die eins höher oder niedriger als die Ablagekarte ist (Ass und König gehören zusammen). Räume alle 3 Gipfel ab. Tippe den Stapel, wenn nichts mehr passt.",over:"Keine Züge mehr",won:"Alle Gipfel abgeräumt!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an für Brainups und die Bestenliste.",empty:"Noch keine Ergebnisse.",undo:"↩ Zurück",hint:"💡 Tipp",left:"Stapel",streak:"Serie",info:"Räume alle 3 Gipfel ab · Karten von Ass bis König"};
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+$("title").textContent="🔺 "+T.title;
+var best=0; try{ best=parseInt(localStorage.getItem("bp_pyr_best"),10)||0; }catch(e){}
+var SUITS=["♠","♥","♦","♣"], RK=["","A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+var ROWS=[[1.5,4.5,7.5],[1,2,4,5,7,8],[.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5],[0,1,2,3,4,5,6,7,8,9]];
+var S=null, geo={};
+function newDeck(){ var d=[]; for(var s=0;s<4;s++) for(var r=1;r<=13;r++) d.push({s:s,r:r}); for(var i=d.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)),t=d[i]; d[i]=d[j]; d[j]=t; } return d; }
+function play(){
+  var d=newDeck(), cards=[];
+  ROWS.forEach(function(row,ri){ row.forEach(function(x){ var c=d.pop(); c.row=ri; c.x=x; c.gone=false; cards.push(c); }); });
+  var waste=[d.pop()];
+  S={cards:cards,stock:d,waste:waste,score:0,streak:0,maxStreak:0,hist:[],over:false,hints:1,undos:2,hn:null};
+  $("ov").classList.remove("show"); build(); paint();
+}
+function coveredBy(c){ // Karten der naechsten Reihe, die c verdecken
+  if(c.row>=3) return []; return S.cards.filter(function(o){ return !o.gone&&o.row===c.row+1&&Math.abs(o.x-c.x)===.5; });
+}
+function isFree(c){ return !c.gone&&coveredBy(c).length===0; }
+function adjacent(a,b){ var d=Math.abs(a-b); return d===1||d===12; }
+function build(){
+  var f=$("field"), W=Math.min(window.innerWidth-16,430); var cw=Math.floor(W/10.9), ch=Math.round(cw*1.42), ux=(W-cw)/9, uy=Math.round(ch*.62);
+  geo={W:W,cw:cw,ch:ch,ux:ux,uy:uy,H:uy*3+ch+4};
+  f.style.width=W+"px"; f.style.height=geo.H+"px"; f.innerHTML="";
+  S.cards.forEach(function(c){ var e=document.createElement("div"); e.className="c"; e.style.width=cw+"px"; e.style.height=ch+"px"; e.style.fontSize=Math.round(cw*.42)+"px"; e.style.left=Math.round(c.x*ux)+"px"; e.style.top=(c.row*uy)+"px"; e.style.zIndex=c.row; e.onclick=function(){ tapCard(c); }; c.el=e; f.appendChild(e); });
+  var b=$("bottom"); b.style.top=(geo.H+34)+"px"; b.innerHTML="";
+  var cw2=Math.round(cw*1.5), ch2=Math.round(ch*1.5);
+  var st=document.createElement("div"); st.className="c dn"; st.id="stk"; st.style.cssText="position:relative;width:"+cw2+"px;height:"+ch2+"px;cursor:pointer"; st.onclick=drawStock;
+  var wa=document.createElement("div"); wa.className="c"; wa.id="wst"; wa.style.cssText="position:relative;width:"+cw2+"px;height:"+ch2+"px;font-size:"+Math.round(cw*.62)+"px;cursor:default";
+  b.appendChild(wa); b.appendChild(st);
+  var btn=document.createElement("div"); btn.style.cssText="position:absolute;left:0;right:0;top:"+(ch2+22)+"px;display:flex;gap:10px;justify-content:center"; btn.innerHTML='<button class="btnx" id="bU"></button><button class="btnx" id="bH"></button>'; b.appendChild(btn);
+  $("bU").onclick=undo; $("bH").onclick=hint; $("info").style.top=(geo.H+10)+"px"; $("info").textContent=T.info; $("streak").style.top=(geo.H+6)+"px";
+}
+function face(e,c){ e.innerHTML=RK[c.r]+"<span>"+SUITS[c.s]+"</span>"; e.classList.toggle("rd",c.s===1||c.s===2); }
+function paint(){
+  var top=S.waste[S.waste.length-1];
+  S.cards.forEach(function(c){ var e=c.el, fr=isFree(c); e.className="c"+(c.gone?" gone":"")+(fr?"":" dn")+((fr&&adjacent(c.r,top.r))?" pl":"")+(S.hn===c?" hn":""); if(fr&&!c.gone) face(e,c); else e.innerHTML=""; if(fr&&(c.s===1||c.s===2)) e.classList.add("rd"); });
+  var wa=$("wst"); face(wa,top); var stk=$("stk"); stk.style.opacity=S.stock.length?1:.25; stk.innerHTML=S.stock.length?'<span style="color:#fff;font-size:14px;position:absolute;bottom:4px;opacity:.9">'+S.stock.length+'</span>':"";
+  $("sc").textContent=S.score; $("st").textContent=T.streak+" x"+S.streak; $("bU").textContent=T.undo+" x"+S.undos; $("bU").disabled=S.undos<=0||!S.hist.length; $("bH").textContent=T.hint+" x"+S.hints; $("bH").disabled=S.hints<=0;
+}
+function snap(){ S.hist.push({gone:S.cards.map(function(c){ return c.gone; }),stock:S.stock.slice(),waste:S.waste.slice(),score:S.score,streak:S.streak}); if(S.hist.length>40) S.hist.shift(); }
+function undo(){ if(!S||S.over||S.undos<=0||!S.hist.length) return; var h=S.hist.pop(); S.undos--; S.cards.forEach(function(c,i){ c.gone=h.gone[i]; }); S.stock=h.stock; S.waste=h.waste; S.score=h.score; S.streak=h.streak; S.hn=null; paint(); }
+function hint(){ if(!S||S.over||S.hints<=0) return; var top=S.waste[S.waste.length-1], m=S.cards.filter(function(c){ return isFree(c)&&adjacent(c.r,top.r); }); S.hints--; S.hn=m.length?m[0]:null; if(!m.length){ var s=$("stk"); s.style.outline="3px solid #ffd45a"; setTimeout(function(){ s.style.outline=""; },1500); } paint(); setTimeout(function(){ if(S){ S.hn=null; if(!S.over) paint(); } },2500); }
+function tapCard(c){
+  if(!S||S.over||!isFree(c)) return; var top=S.waste[S.waste.length-1];
+  if(!adjacent(c.r,top.r)){ c.el.style.transform="translateX(-4px)"; setTimeout(function(){ c.el.style.transform=""; },120); sfx("bad"); return; }
+  snap(); c.gone=true; S.waste.push({s:c.s,r:c.r}); S.streak++; if(S.streak>S.maxStreak) S.maxStreak=S.streak;
+  var gain=10*Math.min(S.streak,10); S.score+=gain; sfx("tap"); if(S.streak>=3){ var e=$("streak"); e.textContent=T.streak+" x"+S.streak+" +"+gain; e.classList.remove("go"); void e.offsetWidth; e.classList.add("go"); }
+  // Gipfel frei?
+  S.cards.filter(function(x){ return x.row===0&&x.gone&&!x.cleared; }).forEach(function(x){ x.cleared=true; S.score+=100; sfx("good"); });
+  paint(); if(S.cards.every(function(x){ return x.gone; })) end(true); else checkStuck();
+}
+function drawStock(){
+  if(!S||S.over||!S.stock.length) return; snap(); S.waste.push(S.stock.pop()); S.streak=0; sfx("tap"); paint(); checkStuck();
+}
+function checkStuck(){
+  if(S.stock.length) return; var top=S.waste[S.waste.length-1];
+  if(!S.cards.some(function(c){ return isFree(c)&&adjacent(c.r,top.r); })) end(false);
+}
+function end(win){
+  S.over=true; if(win) S.score+=200+S.stock.length*20; var sc=S.score, nb=sc>best&&sc>0; if(nb){ best=sc; try{ localStorage.setItem("bp_pyr_best",String(best)); }catch(e){} }
+  sfx(win?"win":"bad"); try{ PP&&PP.sfxResult&&PP.sfxResult(win,false); }catch(e){}
+  var left=S.cards.filter(function(c){ return !c.gone; }).length;
+  setTimeout(function(){
+    $("box").innerHTML='<h2>'+esc(win?T.won:T.over)+'</h2><div class="big">'+sc+'</div>'+(win?'':'<p>'+left+' / 28</p>')+(nb?'<div class="zp">🏆 '+esc(T.newB)+'</div>':'')+'<div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">'+esc(T.login)+'</div>')+'<div style="margin-top:14px"><button class="pri" id="go">'+esc(T.again)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+    $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board;
+  },win?600:900);
+  if(hasAcc()&&sc>=20) api("/api/solo/submit",{game:"pyramide",val:sc}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
+}
+function home(){
+  $("box").innerHTML='<div style="font-size:30px">🔺</div><h2>'+esc(T.title)+'</h2><p>'+esc(T.tip)+'</p><div class="row"><span>'+esc(T.rec)+'</span><b>'+best+'</b></div><div style="margin-top:14px"><button class="pri" id="go">'+esc(T.start)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+  $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board;
+}
+function board(){
+  $("box").innerHTML='<h2>🏆 '+esc(T.board)+'</h2><div id="lbl"><div class="hint">…</div></div><button class="sec" id="bk">'+esc(T.back)+'</button>'; $("ov").classList.add("show");
+  $("bk").onclick=function(){ if(S&&!S.over) $("ov").classList.remove("show"); else home(); };
+  api("/api/solo/board",{game:"pyramide"}).then(function(r){ var el=$("lbl"); if(!el) return;
+    if(!r||!r.ok||!r.top||!r.top.length){ el.innerHTML='<div class="hint">'+esc(T.empty)+'</div>'; return; }
+    el.innerHTML=r.top.map(function(q){ return '<div class="row"><span>'+q.pos+'. '+esc(q.avatar)+' '+esc(q.name)+'</span><b>'+q.v+'</b></div>'; }).join(""); });
+}
+window.addEventListener("resize",function(){ if(S&&!S.over){ build(); paint(); } });
+$("back").onclick=function(){ if(window.parent!==window) parent.postMessage({bpKartenBack:true},location.origin); else location.href="/"; };
+$("lbb").onclick=board;
+window.__py={play:play,S:function(){ return S; },tapCard:tapCard,isFree:isFree,adjacent:adjacent,drawStock:drawStock};
+home();
+})();
+</script></body></html>

@@ -75,10 +75,12 @@
     <div id="lobbyBody">
       <div class="h2" id="hElo"></div><div class="item" id="eloBox"></div>
       <div class="row" style="margin-top:10px"><button class="btn primary" id="rndBtn"></button></div>
+      <div class="h2" id="hCorr"></div><div class="list" id="corrList"></div>
+      <div class="h2" id="hMode"></div>
+      <div class="chips" id="timeChips" style="margin:2px 0 8px"><button class="chip" id="tmOn"></button><button class="chip" id="tmOff"></button><button class="chip" id="tmCorr"></button></div>
       <div class="h2" id="hInv"></div><div class="list" id="invites"></div>
       <div class="h2" id="hFr"></div><div class="list" id="friends"></div>
       <div class="h2" id="hCode"></div>
-      <div class="chips" id="timeChips" style="margin:2px 0 8px"><button class="chip" id="tmOn"></button><button class="chip" id="tmOff"></button></div>
       <div class="row" style="margin-top:6px"><button class="btn primary" id="mkCode"></button></div>
       <div class="row"><input class="code" id="codeIn" maxlength="5" placeholder="CODE" autocomplete="off"><button class="btn" id="joinBtn"></button></div>
       <div class="msg err" id="lobbyErr"></div>
@@ -96,9 +98,9 @@
     <div class="clk" id="clkBot"></div>
     <div id="waitBox" style="display:none">
       <div class="msg" id="waitTxt"></div><div class="big" id="waitCode"></div>
-      <div class="row"><button class="btn" id="copyBtn"></button><button class="btn" id="cancelBtn"></button></div>
+      <div class="row"><button class="btn" id="copyBtn"></button><button class="btn" id="cancelBtn"></button></div><div class="row"><button class="btn" id="laterBtn2" style="display:none"></button></div>
     </div>
-    <div class="row" id="gameBtns"><button class="btn" id="resignBtn"></button></div>
+    <div class="row" id="gameBtns"><button class="btn" id="laterBtn" style="display:none"></button><button class="btn" id="resignBtn"></button></div>
     <div class="log" id="log"></div>
   </div>
 </div>
@@ -121,14 +123,14 @@ const T = {
     waiting:"Warte auf deinen Freund … Code:", copy:"Code kopieren", copied:"Kopiert!", cancel:"Abbrechen", resign:"Aufgeben", confirmResign:"Wirklich aufgeben?",
     yourTurn:"Du bist dran", theirTurn:"%s ist dran", check:"Schach!", you:"Du", youAre:"Du spielst %s", white:"Weiß", black:"Schwarz", secs:"s",
     win:"Gewonnen!", loss:"Verloren", draw:"Remis", mate:"Schachmatt", stalemate:"Patt", insufficient:"Zu wenig Material", fifty:"50-Züge-Regel", threefold:"Dreifache Stellungswiederholung",
-    resign_:"Aufgegeben", time:"Zeit abgelaufen", toLobby:"Zur Lobby", close:"Schließen", promo:"Umwandeln in", invited:"%s hat dich eingeladen", err:"Das hat nicht geklappt.", hElo:"Dein Elo", random:"🌐 Zufälliger Gegner (Elo, mit Zeit)", searching:"Suche einen Gegner …", hTop:"Beste Spieler (Elo)", withTime:"⏱ Mit Zeit (10 Min + 5 s)", noTime:"∞ Ohne Zeit", timeLbl:"Mit Zeit", noTimeLbl:"Ohne Zeit", games:"Partien", rank:"Platz", noTop:"Noch keine gewerteten Partien.", eloChange:"Elo", unrated:"Nicht gewertet (zu kurz oder zu oft gegen denselben Gegner)." },
+    resign_:"Aufgegeben", time:"Zeit abgelaufen", toLobby:"Zur Lobby", close:"Schließen", promo:"Umwandeln in", invited:"%s hat dich eingeladen", err:"Das hat nicht geklappt.", hElo:"Dein Elo", random:"🌐 Zufälliger Gegner (Elo, mit Zeit)", searching:"Suche einen Gegner …", hTop:"Beste Spieler (Elo)", withTime:"⏱ Mit Zeit (10 Min + 5 s)", noTime:"🚶 Ohne Uhr (3 Min./Zug)", corr:"🕰️ Fernpartie (keine Zeit)", corrLbl:"Fernpartie", hMode:"Spielart für Einladungen und Code", hCorr:"Meine Fernpartien", noCorr:"Noch keine Fernpartie. Lade einen Freund ein oder erstelle einen Code, wähle oben „Fernpartie“: Du ziehst, wartest, und der nächste Zug darf auch erst nach Tagen kommen.", yourMove:"Du bist dran", waitsFor:"wartet auf %s", waitFriend:"wartet auf einen Mitspieler · Code %s", later:"← Später weiterspielen", gWon:"Gewonnen", gLost:"Verloren", gDraw:"Remis", play:"Spielen", movesN:"Züge", timeLbl:"Mit Zeit", noTimeLbl:"Ohne Uhr", games:"Partien", rank:"Platz", noTop:"Noch keine gewerteten Partien.", eloChange:"Elo", unrated:"Nicht gewertet (zu kurz oder zu oft gegen denselben Gegner)." },
   en:{ title:"Chess Online", sub:"Play live against a friend or a random opponent. Wins and losses change your Elo points.", hInv:"Invitations", hFr:"Invite a friend", hCode:"Play with a code",
     noInv:"No invitations.", noFr:"You have no friends yet. Add some in the main menu under Friends.", invite:"Invite", accept:"Accept", decline:"Decline",
     mkCode:"Create room with code", join:"Join", needLogin:"Please log in to Brain Pulse to play online.",
     waiting:"Waiting for your friend … Code:", copy:"Copy code", copied:"Copied!", cancel:"Cancel", resign:"Resign", confirmResign:"Really resign?",
     yourTurn:"Your move", theirTurn:"%s to move", check:"Check!", you:"You", youAre:"You play %s", white:"White", black:"Black", secs:"s",
     win:"You won!", loss:"You lost", draw:"Draw", mate:"Checkmate", stalemate:"Stalemate", insufficient:"Insufficient material", fifty:"50-move rule", threefold:"Threefold repetition",
-    resign_:"Resigned", time:"Out of time", toLobby:"Back to lobby", close:"Close", promo:"Promote to", invited:"%s invited you", err:"That did not work.", hElo:"Your Elo", random:"🌐 Random opponent (Elo, timed)", searching:"Looking for an opponent …", hTop:"Top players (Elo)", withTime:"⏱ Timed (10 min + 5 s)", noTime:"∞ No clock", timeLbl:"Timed", noTimeLbl:"No clock", games:"games", rank:"Rank", noTop:"No rated games yet.", eloChange:"Elo", unrated:"Not rated (too short or too many games against the same opponent)." }
+    resign_:"Resigned", time:"Out of time", toLobby:"Back to lobby", close:"Close", promo:"Promote to", invited:"%s invited you", err:"That did not work.", hElo:"Your Elo", random:"🌐 Random opponent (Elo, timed)", searching:"Looking for an opponent …", hTop:"Top players (Elo)", withTime:"⏱ Timed (10 min + 5 s)", noTime:"🚶 No clock (3 min/move)", corr:"🕰️ Correspondence (no time limit)", corrLbl:"Correspondence", hMode:"Game type for invitations and code", hCorr:"My correspondence games", noCorr:"No correspondence game yet. Invite a friend or create a code and pick “Correspondence” above: you move, then wait, and the next move may come days later.", yourMove:"Your move", waitsFor:"waiting for %s", waitFriend:"waiting for a player · code %s", later:"← Continue later", gWon:"Won", gLost:"Lost", gDraw:"Draw", play:"Play", movesN:"moves", timeLbl:"Timed", noTimeLbl:"No clock", games:"games", rank:"Rank", noTop:"No rated games yet.", eloChange:"Elo", unrated:"Not rated (too short or too many games against the same opponent)." }
 }[LANG];
 document.documentElement.lang = LANG;
 const SYM = { K:"♚︎", Q:"♛︎", R:"♜︎", B:"♝︎", N:"♞︎", P:"♟︎" };
@@ -154,7 +156,7 @@ function texts(){
   $("title").textContent = T.title; $("sub").textContent = T.sub;
   $("hInv").textContent = T.hInv; $("hFr").textContent = T.hFr; $("hCode").textContent = T.hCode;
   $("hElo").textContent = T.hElo; $("hTop").textContent = T.hTop; $("rndBtn").textContent = T.random;
-  $("tmOn").textContent = T.withTime; $("tmOff").textContent = T.noTime; paintTime();
+  $("tmOn").textContent = T.withTime; $("tmOff").textContent = T.noTime; $("tmCorr").textContent = T.corr; $("hMode").textContent = T.hMode; $("hCorr").textContent = T.hCorr; $("laterBtn").textContent = T.later; $("laterBtn2").textContent = T.later; paintTime();
   $("mkCode").textContent = T.mkCode; $("joinBtn").textContent = T.join;
   $("copyBtn").textContent = T.copy; $("cancelBtn").textContent = T.cancel; $("resignBtn").textContent = T.resign;
   $("endAna").textContent = "🔎"; $("endLobby").textContent = T.toLobby; $("endClose").textContent = T.close;
@@ -162,7 +164,20 @@ function texts(){
 async function refreshLobby(){
   if(!token()){ $("loginMsg").style.display = "block"; $("loginMsg").textContent = T.needLogin; $("lobbyBody").style.display = "none"; return; }
   $("loginMsg").style.display = "none"; $("lobbyBody").style.display = "block";
-  const [inv, fr, rk] = await Promise.all([ api("inbox"), apiRoot("/api/friends-list"), api("ranking") ]);
+  const [inv, fr, rk, cl] = await Promise.all([ api("inbox"), apiRoot("/api/friends-list"), api("ranking"), api("mylist") ]);
+  const cb = $("corrList"); cb.innerHTML = "";
+  const cg = (cl && cl.games) || [];
+  if(!cg.length) cb.innerHTML = `<div class="msg">${T.noCorr}</div>`;
+  cg.forEach(x => {
+    const d = document.createElement("div"); d.className = "item";
+    let lbl, strong = false;
+    if(x.status === "waiting") lbl = T.waitFriend.replace("%s", STREAMER ? "******" : x.code);
+    else if(x.status === "over") lbl = x.winner === "draw" ? T.gDraw : x.winner === x.color ? T.gWon : T.gLost;
+    else if(x.myTurn){ lbl = T.yourMove; strong = true; } else lbl = T.waitsFor.replace("%s", x.opp || "");
+    d.innerHTML = `<span class="dot ${x.myTurn ? "on" : ""}"></span><span class="nm">${esc(x.opp || (x.invited ? x.invited : "…"))}<br><small style="font-weight:600;color:${strong ? "var(--accent)" : "var(--text-dim)"}">${esc(lbl)}${x.status === "playing" ? " · " + x.moves + " " + T.movesN : ""}</small></span>`;
+    const b = document.createElement("button"); b.className = "btn" + (x.myTurn ? " primary" : ""); b.textContent = T.play; b.onclick = () => { code = x.code; enterGame(); };
+    d.appendChild(b); cb.appendChild(d);
+  });
   if(rk && rk.ok){
     $("eloBox").innerHTML = `<span class="nm">${rk.elo}</span><span style="color:var(--text-dim);font-size:13px">${rk.games} ${T.games}${rk.pos ? " · " + T.rank + " " + rk.pos : ""} · ${rk.wins}-${rk.losses}</span>`;
     const tl = $("topList"); tl.innerHTML = rk.top.length ? "" : `<div class="msg">${T.noTop}</div>`;
@@ -189,13 +204,13 @@ async function refreshLobby(){
   });
 }
 function lobbyErr(r){ $("lobbyErr").textContent = (r && r.error) || ""; }
-let useClock = (function(){ try{ return localStorage.getItem("bp_chess_clock") !== "0"; }catch(e){ return true; } })();
-function paintTime(){ $("tmOn").classList.toggle("active", useClock); $("tmOff").classList.toggle("active", !useClock); }
-$("tmOn").onclick = () => { useClock = true; try{ localStorage.setItem("bp_chess_clock","1"); }catch(e){} paintTime(); };
-$("tmOff").onclick = () => { useClock = false; try{ localStorage.setItem("bp_chess_clock","0"); }catch(e){} paintTime(); };
+let clockMode = (function(){ try{ const v = localStorage.getItem("bp_chess_mode"); if(v === "timed" || v === "quick" || v === "corr") return v; return localStorage.getItem("bp_chess_clock") === "0" ? "quick" : "timed"; }catch(e){ return "timed"; } })();
+function paintTime(){ $("tmOn").classList.toggle("active", clockMode === "timed"); $("tmOff").classList.toggle("active", clockMode === "quick"); $("tmCorr").classList.toggle("active", clockMode === "corr"); }
+function setMode(m){ clockMode = m; try{ localStorage.setItem("bp_chess_mode", m); }catch(e){} paintTime(); }
+$("tmOn").onclick = () => setMode("timed"); $("tmOff").onclick = () => setMode("quick"); $("tmCorr").onclick = () => setMode("corr");
 async function createGame(invite){
   lobbyErr(); code = null;
-  const r = await api("create", Object.assign({ timed: useClock }, invite ? { invite } : {}));
+  const r = await api("create", Object.assign({ timed: clockMode === "timed", corr: clockMode === "corr" }, invite ? { invite } : {}));
   if(!r.ok){ if(r.code){ code = r.code; enterGame(); return; } lobbyErr(r); return; }
   code = r.code; enterGame();
 }
@@ -219,7 +234,7 @@ $("codeIn").addEventListener("keydown", (e) => { if(e.key === "Enter") joinCode(
 
 // ---------- Spiel ----------
 function enterGame(){
-  REC = []; rememberCode(code); lastRev = 0; sel = null; moves = []; shownEnd = false;
+  REC = []; slowPoll = false; rememberCode(code); lastRev = 0; sel = null; moves = []; shownEnd = false;
   $("lobby").style.display = "none"; $("game").style.display = "block";
   clearInterval(lobbyTimer); clearInterval(timer);
   poll(); timer = setInterval(poll, 1000);
@@ -229,11 +244,14 @@ function leaveToLobby(){
   $("game").style.display = "none"; $("lobby").style.display = "block"; $("endOv").classList.remove("show");
   refreshLobby(); lobbyTimer = setInterval(refreshLobby, 4000);
 }
+let slowPoll = false;
 async function poll(){
   if(!code || busy) return;
   const r = await api("state");
   if(!r.ok){ if(r.error){ leaveToLobby(); lobbyErr(r); } return; }
-  S = r; S._t = Date.now(); draw();
+  S = r; S._t = Date.now();
+  if(S.corr){ rememberCode(null); if(!slowPoll){ slowPoll = true; clearInterval(timer); timer = setInterval(poll, 3000); } }
+  draw();
 }
 function fmtClock(ms){ ms = Math.max(0, ms); const t = Math.ceil(ms / 1000), m = Math.floor(t / 60), s = t % 60; return m + ":" + String(s).padStart(2, "0"); }
 function paintClocks(){
@@ -284,6 +302,7 @@ function draw(){
 
   paintClocks();
   const waiting = S.status === "waiting";
+  $("laterBtn").style.display = S.corr && S.status === "playing" ? "" : "none"; $("laterBtn2").style.display = S.corr && waiting ? "" : "none";
   $("waitBox").style.display = waiting ? "block" : "none";
   $("gameBtns").style.display = waiting ? "none" : "flex";
   if(waiting){ $("waitTxt").textContent = S.random ? T.searching : T.waiting; $("waitCode").textContent = S.random ? "" : (STREAMER ? "******" : S.code); $("copyBtn").style.display = S.random ? "none" : ""; }
@@ -295,7 +314,7 @@ function draw(){
     let t = myTurn ? T.yourTurn : T.theirTurn.replace("%s", other || "");
     if(S.check) t += " · " + T.check;
     if(S.moveSecondsLeft != null) t += " · " + S.moveSecondsLeft + T.secs;
-    t += " · " + (S.timed ? T.timeLbl : T.noTimeLbl);
+    t += " · " + (S.corr ? "🕰️ " + T.corrLbl : S.timed ? T.timeLbl : T.noTimeLbl);
     st.textContent = t; st.style.color = S.check && myTurn ? "var(--bad)" : "var(--accent)";
   }
 }
@@ -347,6 +366,7 @@ async function sendMove(mv, promTo){
 }
 $("resignBtn").onclick = async () => { if(!S || S.status !== "playing" || !confirm(T.confirmResign)) return; const r = await api("resign"); if(r.ok){ S = r; draw(); } };
 $("cancelBtn").onclick = async () => { await api("leave"); leaveToLobby(); };
+$("laterBtn").onclick = leaveToLobby; $("laterBtn2").onclick = leaveToLobby;
 $("copyBtn").onclick = async () => { try{ await navigator.clipboard.writeText(code); $("copyBtn").textContent = T.copied; setTimeout(() => $("copyBtn").textContent = T.copy, 1500); }catch(e){} };
 $("endLobby").onclick = leaveToLobby;
 $("endAna").onclick = () => { $("endOv").classList.remove("show"); bpAnalysis.show(REC); };

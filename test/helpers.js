@@ -114,7 +114,7 @@ function loadClient({ fakeTime = false, fetchImpl = null, account = false, local
     document: { getElementById: id => id === "app" ? app : (state.els[id] || (state.els[id] = mk())), querySelectorAll() { return []; }, addEventListener() {}, createElement() { return {}; }, title: "" },
     window: {}, navigator: { language: "de" },
     localStorage: (() => { const store = Object.assign({}, localStorageData); return { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = v; }, removeItem: k => { delete store[k]; }, _store: store }; })(),
-    fetch: fetchImpl || (async () => ({ json: async () => ({}) })), console, Achv: require("../public/achievements.js"),
+    fetch: fetchImpl || (async () => ({ json: async () => ({}) })), console, Achv: require("../public/core/achievements.js"),
     setTimeout: fakeTime ? fSetTimeout : setTimeout, clearTimeout: fakeTime ? fClear : clearTimeout,
     setInterval: fakeTime ? fSetInterval : setInterval, clearInterval: fakeTime ? fClear : clearInterval,
     location: { protocol: "https:", host: "t", href: "", search: "", pathname: "/" }, alert() {}, confirm() { return true; },

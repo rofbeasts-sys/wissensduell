@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Flappy-Flug</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0f17;color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:12px 16px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:transparent;border:1px solid #232b3b;cursor:pointer}
+h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.02em}
+.pill{border:1px solid #232b3b;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:700}
+.stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 12px 14px;position:relative}
+canvas{background:#0e1320;border:1px solid #1d2536;border-radius:18px;max-width:100%;max-height:100%;touch-action:none}
+.ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(5,7,12,.7)}
+.ov.show{display:flex}
+.box{background:#121826;border:1px solid #232b3b;border-radius:22px;padding:26px 22px;text-align:center;max-width:330px;width:100%}
+.box h2{margin:0 0 6px;font-size:24px}.box p{color:#8d97ad;margin:0 0 14px;font-size:14px}
+.big{font-size:54px;font-weight:800;color:#c6ff3d;line-height:1.1}
+.pri{background:#c6ff3d;border:0;color:#0b0f17;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:6px}
+.sec{background:transparent;border:1px solid #232b3b;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.row{display:flex;justify-content:space-between;border-bottom:1px solid #1a2132;padding:11px 2px;font-size:14px;gap:10px;color:#aab3c7;text-align:left}.row b{color:#c6ff3d}
+.zp{color:#c6ff3d;font-weight:800;margin-top:8px}.hint{color:#6c768c;font-size:12px;margin-top:10px}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title"></h1><span class="pill" id="sc">0</span><button class="back" id="lbb">🏆</button></div>
+<div class="stage" id="stage"><canvas id="cv" width="360" height="600"></canvas><div class="ov show" id="ov"><div class="box" id="box"></div></div></div>
+<script>
+(function(){
+var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
+var EN=lang==="en";
+var T=EN?{title:"Flappy Flight",start:"START",tip:"Tap to flap. Fly through the gaps without touching the pipes.",over:"Crash!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to save your score and earn Brainups.",empty:"No scores yet.",unit:" m"}
+ :{title:"Flappy-Flug",start:"START",tip:"Tippe zum Flattern. Fliege durch die Lücken, ohne die Röhren zu berühren.",over:"Crash!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an, um deinen Punktestand zu speichern und Brainups zu bekommen.",empty:"Noch keine Ergebnisse.",unit:" m"};
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+$("title").textContent="⚪ "+T.title;
+var best=0; try{ best=parseInt(localStorage.getItem("bp_flappy_best"),10)||0; }catch(e){}
+var cv=$("cv"), x=cv.getContext("2d"), W=360, H=600;
+function fit(){ var st=$("stage"), aw=st.clientWidth-24, ah=st.clientHeight-14; var r=W/H; var w=Math.min(aw,ah*r,420); cv.style.width=w+"px"; cv.style.height=(w/r)+"px"; }
+window.addEventListener("resize",fit); fit();
+var S=null, raf=0, last=0, state="idle";
+var GR=1500, FLAP=-440, SPD=135, PWD=58, R=13, BX=90;
+function gapSize(){ return Math.max(118,170-S.score*2); }
+function addPipe(xx){ var g=gapSize(), top=70+Math.random()*(H-g-140); S.pipes.push({x:xx,top:top,gap:g,passed:false}); }
+function play(){
+  S={y:H/2,vy:0,score:0,pipes:[],t:0,started:false}; addPipe(W+40); addPipe(W+40+200); addPipe(W+40+400);
+  $("sc").textContent="0"; state="run"; $("ov").classList.remove("show"); last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
+}
+function loop(t){ if(state!=="run") return; var dt=Math.min(.033,(t-last)/1000); last=t; step(dt); draw(); if(state==="run") raf=requestAnimationFrame(loop); }
+function flap(){ if(state!=="run") return; S.started=true; S.vy=FLAP; sfx("tap"); }
+function step(dt){
+  S.t+=dt;
+  if(!S.started){ S.y=H/2+Math.sin(S.t*5)*8; return; }
+  S.vy+=GR*dt; S.y+=S.vy*dt;
+  var sp=SPD+Math.min(60,S.score*2.5);
+  S.pipes.forEach(function(p){ p.x-=sp*dt; if(!p.passed&&p.x+PWD<BX-R){ p.passed=true; S.score++; $("sc").textContent=S.score; sfx("good"); } });
+  if(S.pipes[0].x<-PWD-4){ S.pipes.shift(); addPipe(S.pipes[S.pipes.length-1].x+200); }
+  if(S.y+R>H||S.y-R<0){ over(); return; }
+  for(var i=0;i<S.pipes.length;i++){ var p=S.pipes[i]; if(BX+R>p.x&&BX-R<p.x+PWD&&(S.y-R<p.top||S.y+R>p.top+p.gap)){ over(); return; } }
+}
+function draw(){
+  x.clearRect(0,0,W,H);
+  S.pipes.forEach(function(p){ x.fillStyle="#151c2b"; x.strokeStyle="#3ddc84"; x.lineWidth=2;
+    x.beginPath(); x.roundRect(p.x,-10,PWD,p.top+10,[0,0,10,10]); x.fill(); x.stroke();
+    x.beginPath(); x.roundRect(p.x,p.top+p.gap,PWD,H-p.top-p.gap+10,[10,10,0,0]); x.fill(); x.stroke(); });
+  x.save(); x.shadowColor="#ffffff"; x.shadowBlur=14; x.fillStyle="#fff"; x.beginPath(); x.arc(BX,S.y,R,0,7); x.fill(); x.restore();
+  if(!S.started){ x.fillStyle="#8d97ad"; x.font="600 14px system-ui"; x.textAlign="center"; x.fillText(EN?"Tap to fly":"Tippen zum Fliegen",W/2,H*.7); }
+}
+function over(){
+  state="over"; cancelAnimationFrame(raf); sfx("bad"); var sc=S.score, nb=sc>best&&sc>0; if(nb){ best=sc; try{ localStorage.setItem("bp_flappy_best",String(best)); }catch(e){} }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(sc>=10,false); }catch(e){}
+  $("box").innerHTML='<h2>'+esc(T.over)+'</h2><div class="big">'+sc+'</div>'+(nb?'<div class="zp">🏆 '+esc(T.newB)+'</div>':'')+'<div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">'+esc(T.login)+'</div>')+'<div style="margin-top:14px"><button class="pri" id="go">'+esc(T.again)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+  setTimeout(function(){ $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board; },450);
+  if(hasAcc()&&sc>=2) api("/api/solo/submit",{game:"flappy",val:sc}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
+}
+function home(){
+  state="idle"; S=null; cancelAnimationFrame(raf); x.clearRect(0,0,W,H);
+  $("box").innerHTML='<div style="font-size:30px">⚪</div><h2>'+esc(T.title)+'</h2><p>'+esc(T.tip)+'</p><div class="row"><span>'+esc(T.rec)+'</span><b>'+best+'</b></div><div style="margin-top:14px"><button class="pri" id="go">'+esc(T.start)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
+  $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board;
+}
+function board(){
+  if(state==="run"){ state="idle"; cancelAnimationFrame(raf); }
+  $("box").innerHTML='<h2>🏆 '+esc(T.board)+'</h2><div id="lbl"><div class="hint">…</div></div><button class="sec" id="bk">'+esc(T.back)+'</button>'; $("ov").classList.add("show");
+  $("bk").onclick=home;
+  api("/api/solo/board",{game:"flappy"}).then(function(r){ var el=$("lbl"); if(!el) return;
+    if(!r||!r.ok||!r.top||!r.top.length){ el.innerHTML='<div class="hint">'+esc(T.empty)+'</div>'; return; }
+    el.innerHTML=r.top.map(function(q){ return '<div class="row"><span>'+q.pos+'. '+esc(q.avatar)+' '+esc(q.name)+'</span><b>'+q.v+'</b></div>'; }).join(""); });
+}
+cv.addEventListener("pointerdown",function(e){ e.preventDefault(); flap(); });
+document.addEventListener("keydown",function(e){ if(e.key===" "||e.key==="ArrowUp"){ e.preventDefault(); flap(); } });
+document.addEventListener("visibilitychange",function(){ if(document.hidden&&state==="run"){ state="idle"; cancelAnimationFrame(raf); home(); } });
+$("back").onclick=function(){ cancelAnimationFrame(raf); if(window.parent!==window) parent.postMessage({bpArrowBack:true},location.origin); else location.href="/"; };
+$("lbb").onclick=board;
+home();
+})();
+</script></body></html>

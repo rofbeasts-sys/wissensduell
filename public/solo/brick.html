@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Brick Flieger</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#2a2d33;color:#1b2014;font-family:ui-monospace,Menlo,Consolas,monospace;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:12px 14px;color:#cfd3dc}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:transparent;border:1px solid #4a4f59;cursor:pointer}
+h1{font:700 14px system-ui,sans-serif;margin:0;flex:1;color:#aab0bd;letter-spacing:.04em}
+.dev{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 14px 14px}
+.shell{background:#c9cdbb;border:10px solid #3b3f46;border-radius:30px;padding:14px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 50px #0008;max-height:100%}
+.row{display:flex;gap:14px;min-height:0}
+.lcd{background:#a8b38a;border:3px solid #6a7358;border-radius:6px;display:grid;grid-template-columns:repeat(10,1fr);gap:2px;padding:6px;position:relative}
+.px{background:#9aa57d;border-radius:1px}.px.on{background:#1b2014}
+.side{width:76px;font-size:11px;font-weight:700;display:flex;flex-direction:column;gap:12px;align-items:center;padding-top:4px;text-align:center}
+.side b{display:block;font-size:19px;letter-spacing:1px}
+.hearts{font-size:20px;letter-spacing:2px}
+.btns{display:flex;justify-content:space-between;align-items:center;padding:0 6px}
+.rb{width:64px;height:64px;border-radius:50%;background:#e04a3a;box-shadow:0 5px 0 #8f2a20;border:0;color:#fff;font:800 13px system-ui;cursor:pointer;touch-action:none}
+.rb:active,.rb.dn{transform:translateY(4px);box-shadow:0 1px 0 #8f2a20}
+.mid{font:700 12px system-ui,sans-serif;color:#4c5340;text-align:center;line-height:1.4;padding:2px 0 2px;touch-action:none}
+.msg{position:absolute;inset:0;background:#a8b38af2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-weight:800;gap:10px;padding:8px}
+.msg .t{font-size:18px;letter-spacing:1px}.msg .s{font-size:13px}
+.msg button{background:#1b2014;color:#a8b38a;border:0;border-radius:8px;padding:10px 14px;font:800 13px ui-monospace,monospace;cursor:pointer}
+.msg .zp{color:#1b2014}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title"></h1><button class="back" id="lbb">🏆</button></div>
+<div class="dev"><div class="shell" id="shell">
+  <div class="row"><div class="lcd" id="lcd"><div class="msg" id="msg"></div></div>
+   <div class="side"><div id="s1"></div><div id="s2"></div><div id="s3"></div><div class="hearts" id="hp"></div></div></div>
+  <div class="mid" id="mid"></div>
+</div></div>
+<script>
+(function(){
+var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
+var EN=lang==="en";
+var T=EN?{title:"BRICK FLIGHT",score:"SCORE",hi:"HI",speed:"SPEED",start:"START",tip:"Slide your finger left and right to steer the plane. Dodge the blocks.",hint:"◀ slide to steer ▶",over:"GAME OVER",again:"AGAIN",board:"TOP 10",back:"BACK",newB:"NEW RECORD!",zp:"Brainups",login:"Log in to save your score.",empty:"No scores yet.",pause:"PAUSED",cont:"CONTINUE"}
+ :{title:"BRICK FLIEGER",score:"PUNKTE",hi:"REKORD",speed:"TEMPO",start:"START",tip:"Schiebe den Finger nach links und rechts, um das Flugzeug zu lenken. Weiche den Blöcken aus.",hint:"◀ zum Lenken schieben ▶",over:"GAME OVER",again:"NOCHMAL",board:"TOP 10",back:"ZURÜCK",newB:"NEUER REKORD!",zp:"Brainups",login:"Melde dich an, um deinen Rekord zu speichern.",empty:"Noch keine Ergebnisse.",pause:"PAUSE",cont:"WEITER"};
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+$("title").textContent="✈ "+T.title; $("mid").textContent=T.hint;
+var COLS=10, ROWS=20, hi=0; try{ hi=parseInt(localStorage.getItem("bp_brick_hi"),10)||0; }catch(e){}
+var cells=[]; var lcd=$("lcd"); for(var i=0;i<COLS*ROWS;i++){ var d=document.createElement("div"); d.className="px"; lcd.insertBefore(d,$("msg")); cells.push(d); }
+function sizeShell(){
+  var dev=document.querySelector(".dev"), aw=dev.clientWidth-14, ah=dev.clientHeight-14;
+  var maxLcdH=ah-36-28-20-20, maxLcdW=aw-76-14-28-20-20-6;
+  var w=Math.min(maxLcdW,maxLcdH/2.0,230); w=Math.max(110,w);
+  lcd.style.width=w+12+"px"; lcd.style.height=(w*2)+18+"px";
+}
+window.addEventListener("resize",sizeShell);
+var G=null, timer=null, state="idle";
+var PLANE=[[0,0],[-1,1],[0,1],[1,1],[0,2],[-1,3],[0,3],[1,3]];
+function draw(){
+  var g=new Array(COLS*ROWS), i;
+  if(G){
+    G.obs.forEach(function(o){ for(var rr=0;rr<o.h;rr++){ var y=o.y+rr; if(y<0||y>=ROWS) continue; o.cols.forEach(function(c){ g[y*COLS+c]=1; }); } });
+    if(!(G.hit>0&&G.hit%2===1)) PLANE.forEach(function(s){ g[(ROWS-4+s[1])*COLS+G.x+s[0]]=1; });
+  }
+  for(i=0;i<cells.length;i++) cells[i].className="px"+(g[i]?" on":"");
+  $("s1").innerHTML=T.score+"<b>"+(G?G.score:0)+"</b>"; $("s2").innerHTML=T.hi+"<b>"+hi+"</b>"; $("s3").innerHTML=T.speed+"<b>"+(G?G.lvl:1)+"</b>";
+  $("hp").textContent=G?new Array(G.lives+1).join("♥"):"♥♥♥";
+}
+function tickMs(){ return Math.max(85,330-(G.lvl-1)*22); }
+function showMsg(html){ var m=$("msg"); m.innerHTML=html; m.style.display="flex"; }
+function hideMsg(){ $("msg").style.display="none"; }
+function home(){
+  state="idle"; G=null; clearTimeout(timer); draw();
+  showMsg('<div class="t">✈ '+esc(T.title)+'</div><div class="s">'+esc(T.tip)+'</div><button id="go">'+esc(T.start)+'</button><button id="lb2">'+esc(T.board)+'</button>');
+  $("go").onclick=play; $("lb2").onclick=board;
+}
+function play(){
+  G={x:5,obs:[],score:0,lvl:1,lives:3,passed:0,since:99,hit:0}; state="run"; hideMsg(); draw(); loop();
+}
+function loop(){
+  clearTimeout(timer); if(state!=="run") return;
+  step(); if(state==="run") timer=setTimeout(loop,tickMs());
+}
+function spawn(){
+  var r=Math.random(), lvl=G.lvl;
+  if(lvl<3||r<.5){ var w=2+Math.floor(Math.random()*3), c0=Math.floor(Math.random()*(COLS-w+1)), cols=[]; for(var i=0;i<w;i++) cols.push(c0+i); G.obs.push({y:-2,h:2,cols:cols}); }
+  else { var gap=lvl>=7?3:4, g0=Math.floor(Math.random()*(COLS-gap+1)), cols=[]; for(var c=0;c<COLS;c++) if(c<g0||c>=g0+gap) cols.push(c); G.obs.push({y:-2,h:2,cols:cols}); }
+}
+function step(){
+  if(G.hit>0) G.hit--;
+  G.obs.forEach(function(o){ o.y++; });
+  G.obs=G.obs.filter(function(o){ if(o.y>=ROWS){ G.passed++; G.score+=10; sfx("tap"); if(G.passed%5===0) G.lvl++; return false; } return true; });
+  G.since++; var gap=Math.max(5,8-Math.floor(G.lvl/3));
+  if(G.since>=gap){ spawn(); G.since=0; }
+  if(G.hit<=0){
+    var hit=null;
+    PLANE.forEach(function(s){ var py=ROWS-4+s[1], px=G.x+s[0]; G.obs.forEach(function(o){ if(py>=o.y&&py<o.y+o.h&&o.cols.indexOf(px)>=0) hit=o; }); });
+    if(hit) crash(hit);
+  }
+  draw();
+}
+function crash(o){
+  G.obs=G.obs.filter(function(x){ return x!==o; }); G.lives--; G.hit=6; sfx("bad");
+  if(G.lives<=0){ over(); }
+}
+function over(){
+  state="over"; clearTimeout(timer); var sc=G.score, nb=sc>hi&&sc>0; if(nb){ hi=sc; try{ localStorage.setItem("bp_brick_hi",String(hi)); }catch(e){} }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(sc>=150,false); }catch(e){}
+  draw();
+  showMsg('<div class="t">'+esc(T.over)+'</div><div class="s">'+esc(T.score)+' '+sc+'</div>'+(nb?'<div class="s">'+esc(T.newB)+'</div>':'')+'<div class="s zp" id="zpl"></div>'+(hasAcc()?'':'<div class="s">'+esc(T.login)+'</div>')+'<button id="go">'+esc(T.again)+'</button><button id="lb2">'+esc(T.board)+'</button>');
+  $("go").onclick=play; $("lb2").onclick=board;
+  if(hasAcc()&&sc>=20) api("/api/solo/submit",{game:"brick",val:sc}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
+}
+function board(){
+  var prev=state; state=prev==="run"?"pause":prev;
+  showMsg('<div class="t">'+esc(T.board)+'</div><div class="s" id="lbl" style="font-size:12px;line-height:1.5">…</div><button id="bk">'+esc(T.back)+'</button>');
+  $("bk").onclick=function(){ if(G&&state==="over") over(); else home(); };
+  api("/api/solo/board",{game:"brick"}).then(function(r){ var el=$("lbl"); if(!el) return;
+    if(!r||!r.ok||!r.top||!r.top.length){ el.textContent=T.empty; return; }
+    el.innerHTML=r.top.slice(0,8).map(function(x){ return x.pos+". "+esc(x.name)+" – "+x.v; }).join("<br>"); });
+}
+function setX(x){ if(state!=="run") return; x=Math.max(1,Math.min(COLS-2,x)); if(x!==G.x){ G.x=x; draw(); } }
+var drag=null;
+function cellW(){ return lcd.getBoundingClientRect().width/COLS; }
+document.addEventListener("pointerdown",function(e){ if(state!=="run"||e.target.closest("button,.back")) return; drag={x:e.clientX,gx:G.x}; });
+document.addEventListener("pointermove",function(e){ if(!drag||state!=="run") return; setX(drag.gx+Math.round((e.clientX-drag.x)/cellW())); });
+function endDrag(){ drag=null; }
+document.addEventListener("pointerup",endDrag); document.addEventListener("pointercancel",endDrag);
+document.addEventListener("keydown",function(e){ if(state!=="run") return; if(e.key==="ArrowLeft") setX(G.x-1); else if(e.key==="ArrowRight") setX(G.x+1); });
+document.addEventListener("visibilitychange",function(){ if(document.hidden&&state==="run"){ state="pause"; clearTimeout(timer); showMsg('<div class="t">'+esc(T.pause)+'</div><button id="cn">'+esc(T.cont)+'</button>'); $("cn").onclick=function(){ hideMsg(); state="run"; loop(); }; } });
+$("back").onclick=function(){ clearTimeout(timer); if(window.parent!==window) parent.postMessage({bpArrowBack:true},location.origin); else location.href="/"; };
+$("lbb").onclick=function(){ if(state==="run"){ state="pause"; clearTimeout(timer); } board(); };
+sizeShell(); home();
+})();
+</script></body></html>

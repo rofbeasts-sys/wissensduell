@@ -3987,7 +3987,7 @@ function closeChessSpieleModal(){
 
 function openRealm(){
   closeChessSpieleModal();
-  window.location.href='/chess-world/index.html';
+  window.location.href='/chess/world/index.html';
 }
 
 function openRoulette(){

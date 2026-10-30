@@ -25,8 +25,8 @@ const path = require("path");
 const os = require("os");
 const crypto = require("crypto");
 const { WebSocketServer } = require("./lib/miniws");
-// Erfolge: gleiche Datei wie im Browser (public/achievements.js) - eine Definition, ein Regelwerk
-const Achv = require("./public/achievements.js");
+// Erfolge: gleiche Datei wie im Browser (public/core/achievements.js) - eine Definition, ein Regelwerk
+const Achv = require("./public/core/achievements.js");
 const DailyPz = require("./lib/dailyPuzzles.js");
 const DailyWords = require("./lib/dailyWords.js");
 
@@ -143,6 +143,7 @@ function dsFor(group, key, language) {
   });
 }
 function localizeDef(def, language) {
+  if (def && def.kind === "estimateGame" && language !== "de") return Object.assign({}, def, { label: "Estimation questions" });
   if (def && language !== "de" && def.kind === "stadtLandFluss") {
     if (def.slfPartyMix) return Object.assign({}, def, { label: "Scattergories: Party mix (10 random categories)" });
     if (def.id === "slf_custom") return Object.assign({}, def, { label: "Scattergories: Custom categories (" + (def.categories || []).join(", ") + ")" });
@@ -294,6 +295,7 @@ const TABOO_CARDS = (() => {   // sucht die Kartenliste an mehreren Stellen, stu
 })();
 function buildRoundDefPool() {
   const pool = [{ id: "quiz", kind: "knowledgeQuiz", label: "Wissenstest", germanOnly: true }];
+  pool.push({ id: "estimate", kind: "estimateGame", label: "Schätzfragen", germanOnly: false });
   pool.push({ id: "tictactoe", kind: "ticTacToeGame", label: "Tic Tac Toe", germanOnly: false });
   pool.push({ id: "tictactoe_quantum", kind: "ticTacToeGame", variant: "quantum", label: "Tic Tac Toe Quantum", germanOnly: false });
   pool.push({ id: "tictactoe_quizmix", kind: "ticTacToeGame", variant: "quizmix", label: "Tic Tac Toe Quiz-Mix", germanOnly: true });
@@ -2674,6 +2676,84 @@ function finishRoundEngine(room, roundPointsByTeam) {
   });
 }
 
+/* ------------------------------------------------------------------------ */
+/* RUNDE: estimateGame ("Schätzfragen")                                      */
+/* 5 Zahlen-Fragen, alle tippen gleichzeitig eine Schätzung. Je näher dran,  */
+/* desto mehr Punkte (<=2 % 100, <=10 % 60, <=25 % 30); wer in der Runde am  */
+/* naechsten liegt, bekommt +40 Bonus (nur bei mehreren Spielern).           */
+/* Fehlende Antwort = 0 Punkte, nie Minus.                                   */
+/* ------------------------------------------------------------------------ */
+const EST_COUNT = 5, EST_TIME_LIMIT = 25;
+function startEstimateRound(room, def) {
+  const qs = evShuffle(EST_DATA.slice()).slice(0, EST_COUNT);
+  if (!qs.length) return finishRoundEngine(room, new Map(Array.from(room.teams.keys()).map(id => [id, 0])));
+  room.runtime = {
+    kind: "estimateGame", questions: qs, qIndex: 0, guesses: new Map(), resolved: false, awaitingEstContinue: false,
+    roundPointsByTeam: new Map(Array.from(room.teams.keys()).map(id => [id, 0])), timer: null
+  };
+  sendNextEstimate(room);
+}
+function estText(room, q, key) { return room.language === "de" ? q[key] : (q[key + "e"] || q[key]); }
+function sendNextEstimate(room) {
+  const rt = room.runtime; if (!rt || rt.kind !== "estimateGame") return;
+  const q = rt.questions[rt.qIndex];
+  rt.guesses.clear(); rt.resolved = false; rt.awaitingEstContinue = false;
+  rt.deadline = Date.now() + EST_TIME_LIMIT * 1000;
+  broadcast(room, { type: "estimateQuestion", index: rt.qIndex, total: rt.questions.length, q: estText(room, q, "q"), unit: estText(room, q, "u"), timeLimit: EST_TIME_LIMIT });
+  clearTimeout(rt.timer);
+  rt.timer = setTimeout(() => resolveEstimate(room), EST_TIME_LIMIT * 1000 + 300);
+  const at = rt.qIndex;
+  room.players.forEach(p => {
+    if (!p.isBot) return;
+    const tier = BOT_TIERS[p.botTier] || BOT_TIERS[DEFAULT_BOT_TIER];
+    const spread = 0.04 + (1 - tier.prob) * 0.9;
+    setTimeout(() => {
+      if (!room.runtime || room.runtime !== rt || rt.qIndex !== at || rt.resolved) return;
+      const g = q.a * (1 + (Math.random() * 2 - 1) * spread);
+      handleEstimateGuess(room, p.id, Math.abs(g) >= 100 ? Math.round(g) : Math.round(g * 100) / 100);
+    }, 2500 + Math.random() * 9000);
+  });
+}
+function handleEstimateGuess(room, playerId, value) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "estimateGame" || rt.resolved || rt.guesses.has(playerId)) return;
+  const v = Number(String(value).replace(",", "."));
+  if (!Number.isFinite(v) || Math.abs(v) > 1e12) return;
+  rt.guesses.set(playerId, v);
+  const player = room.players.get(playerId);
+  if (player && player.ws) send(player.ws, { type: "estimateAck" });
+  broadcast(room, { type: "estimateProgress", answered: rt.guesses.size, total: room.players.size });
+  if (Array.from(room.players.keys()).every(pid => rt.guesses.has(pid))) { clearTimeout(rt.timer); resolveEstimate(room); }
+}
+function estPoints(err) { return err <= 0.02 ? 100 : err <= 0.10 ? 60 : err <= 0.25 ? 30 : 0; }
+function resolveEstimate(room) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "estimateGame" || rt.resolved) return;
+  rt.resolved = true; clearTimeout(rt.timer);
+  const q = rt.questions[rt.qIndex], scale = q.s || Math.abs(q.a) || 1;
+  const rows = Array.from(room.players.values()).map(p => {
+    const has = rt.guesses.has(p.id), g = has ? rt.guesses.get(p.id) : null;
+    return { playerId: p.id, name: p.name, teamId: p.teamId, guess: g, err: has ? Math.abs(g - q.a) / scale : null };
+  });
+  const answered = rows.filter(r => r.err !== null);
+  const bestErr = answered.length ? Math.min(...answered.map(r => r.err)) : null;
+  rows.forEach(r => {
+    r.delta = r.err === null ? 0 : estPoints(r.err) + (rows.length > 1 && r.err === bestErr && r.err <= 0.5 ? 40 : 0);
+    r.best = r.err !== null && r.err === bestErr;
+    if (r.teamId && r.delta) rt.roundPointsByTeam.set(r.teamId, (rt.roundPointsByTeam.get(r.teamId) || 0) + r.delta);
+  });
+  rows.sort((a, b) => (a.err === null) - (b.err === null) || a.err - b.err);
+  broadcast(room, { type: "estimateReveal", answer: q.a, unit: estText(room, q, "u"), text: estText(room, q, "x"), results: rows.map(r => ({ playerId: r.playerId, name: r.name, guess: r.guess, delta: r.delta, best: r.best })) });
+  rt.awaitingEstContinue = true;
+}
+function advanceEstimate(room) {
+  const rt = room.runtime;
+  if (!rt || rt.kind !== "estimateGame" || !rt.awaitingEstContinue) return;
+  rt.awaitingEstContinue = false; rt.qIndex++;
+  if (rt.qIndex >= rt.questions.length) finishRoundEngine(room, rt.roundPointsByTeam);
+  else sendNextEstimate(room);
+}
+
 // Tic Tac Toe als Party-Runde: team- statt einzelspielerbasiert, jedes der
 // beiden Teams spielt gemeinsam eine Seite (X/O) - JEDES Teammitglied darf
 // ziehen, wenn das eigene Team dran ist (kein festes "wer genau" innerhalb
@@ -2943,7 +3023,7 @@ function forfeit(room, gone) {
   if (!room.st.over && room.players.length === 2) { room.st.over = true; room.st.winner = gone.side === "a" ? "b" : "a"; room.st.why = "left"; room.st.duel = null; clearTimeout(room.timer); brBroadcast(room); }
 }
 /* ---- DAME (Deutsche Dame, serverautoritativ): Raumcode-Duell + Zufallsgegner. Meilensteine zaehlen NUR Siege gegen echte Spieler. ---- */
-const Dame = require("./public/dame-engine.js");
+const Dame = require("./public/chess/dame-engine.js");
 const DM_GRACE_MS = 60000, DM_MOVE_MS = 120000, DM_QUIET_LIMIT = 40, DM_MIN_PLIES_FOR_CREDIT = 12, DM_PAIR_CAP_PER_DAY = 3;
 const DAME_SKINS = [{ id: "wood", wins: 0 }, { id: "neon", wins: 3 }, { id: "glass", wins: 8 }, { id: "flat", wins: 15 }, { id: "metal", wins: 30 }, { id: "pulse", wins: 50 }];
 const dmRooms = new Map();
@@ -3025,7 +3105,7 @@ function dmHandleDisconnect(ws, leaveForGood) {
   pl.graceTimer = setTimeout(() => { if (!pl.connected && !room.st.over && room.players.length === 2) dmEnd(room, other ? other.color : null, "left"); }, DM_GRACE_MS);
 }
 /* ---- MUEHLE (Neun-Maenner-Muehle, serverautoritativ): Raumcode-Duell + Zufallsgegner. Nur Admin, solange "muehle" gesperrt ist. ---- */
-const Mill = require("./public/muehle-engine.js");
+const Mill = require("./public/chess/muehle-engine.js");
 const MU_GRACE_MS = 60000, MU_MOVE_MS = 120000, MU_QUIET_LIMIT = 50;
 const muRooms = new Map();
 let muQueue = [];
@@ -3386,6 +3466,7 @@ function startNextRound(room) {
     else if (def.kind === "stadtLandFluss") startStadtLandFlussRound(room, def);
     else if (def.kind === "orderingGame") startOrderingSimultaneousRound(room, def);
     else if (def.kind === "nennsBlitz") startNennsBlitzRound(room, def);
+    else if (def.kind === "estimateGame") startEstimateRound(room, def);
     else if (def.kind === "ticTacToeGame") startPartyTicTacToeRound(room, def);
     else if (def.kind === "fourupsGame") startPartyFourupsRound(room, def);
     else if (def.kind === "tabooGame") (def.variant === "ffa" ? startPartyTabooFfaRound : startPartyTabooRound)(room, def);
@@ -3998,8 +4079,8 @@ function zpStatus(user) {
     games: z.g, last: z.last || null, coins: user.stats.coins || 0
   };
 }
-/* Brainchimie: gueltige Ergebnis-Elemente aus public/chem.js (10 ZP pro neu entdecktem Element, einmalig) */
-const CHEM_RESULTS = (() => { try { const l = fs.readFileSync(path.join(__dirname, "public/chem.js"), "utf8").split("\n").find(x => x.startsWith("const D = ")); const j = JSON.parse(l.slice(l.indexOf("{"), l.lastIndexOf("}") + 1)); return new Set(j.r.map(x => x[2])); } catch (e) { console.error("CHEM_RESULTS", e.message); return new Set(); } })();
+/* Brainchimie: gueltige Ergebnis-Elemente aus public/brainchimie/chem.js (10 ZP pro neu entdecktem Element, einmalig) */
+const CHEM_RESULTS = (() => { try { const l = fs.readFileSync(path.join(__dirname, "public/brainchimie/chem.js"), "utf8").split("\n").find(x => x.startsWith("const D = ")); const j = JSON.parse(l.slice(l.indexOf("{"), l.lastIndexOf("}") + 1)); return new Set(j.r.map(x => x[2])); } catch (e) { console.error("CHEM_RESULTS", e.message); return new Set(); } })();
 async function zpApi(payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = payload.token ? findUserByToken(payload.token) : null, action = payload.action;
@@ -4137,6 +4218,109 @@ function kloBoard(token, draw) {
     .sort((a, b) => a.m - b.m || a.t - b.t || String(a.u.username).localeCompare(String(b.u.username)));
   const top = all.slice(0, 10).map((x, i) => ({ pos: i + 1, name: x.u.username, avatar: x.u.avatar || "🙂", moves: x.m, secs: x.t }));
   let mine = null; if (me && me.stats.klo && me.stats.klo[k]) { const i = all.findIndex(x => x.u === me); mine = { moves: me.stats.klo[k].m, secs: me.stats.klo[k].t, pos: i >= 0 ? i + 1 : null }; }
+  return { ok: true, top, mine };
+}
+// ---- Wahr oder Falsch Blitz (Solo): 60 Sekunden, Tagesbestenliste, Brainups nur fuer gute Laeufe (nie fuers Verlieren) ----
+const tfLast = new Map();
+const tfDayId = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+async function tfSubmit(token, correct, streak, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  correct = Math.round(Number(correct)); streak = Math.round(Number(streak));
+  if (!Number.isFinite(correct) || !Number.isFinite(streak) || correct < 0 || correct > 90 || streak < 0 || streak > correct) return { ok: false, error: "invalid" };
+  const now = Date.now(); if (now - (tfLast.get(user.username) || 0) < 50000) return { ok: false, error: "tooFast" }; tfLast.set(user.username, now);
+  if (!user.stats.tf || typeof user.stats.tf !== "object") user.stats.tf = {};
+  const t = user.stats.tf, day = tfDayId();
+  if (!t.day || t.day.id !== day) t.day = { id: day, c: 0, st: 0, paid: false };
+  const newBest = correct > ((t.best && t.best.c) || 0);
+  if (newBest) t.best = { c: correct, st: streak, ts: now };
+  if (correct > t.day.c) { t.day.c = correct; t.day.st = streak; }
+  t.plays = (t.plays | 0) + 1;
+  let zp = 0;
+  if (correct >= 10 && !t.day.paid) { t.day.paid = true; zp = zpAdd(user, 20 + (newBest ? 30 : 0), "tf", "tf").gain; }
+  else if (correct >= 10 && newBest) zp = zpAdd(user, 30, "tf", "tf").gain;
+  await saveUsers();
+  return { ok: true, newBest, best: t.best, day: t.day.c, zp };
+}
+function tfBoard(token) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const day = tfDayId(), me = token ? findUserByToken(token) : null;
+  const all = users.filter(u => u.stats && u.stats.tf && u.stats.tf.day && u.stats.tf.day.id === day && u.stats.tf.day.c > 0).map(u => ({ u, c: u.stats.tf.day.c, st: u.stats.tf.day.st || 0 }))
+    .sort((a, b) => b.c - a.c || b.st - a.st || String(a.u.username).localeCompare(String(b.u.username)));
+  const top = all.slice(0, 10).map((x, i) => ({ pos: i + 1, name: x.u.username, avatar: x.u.avatar || "🙂", c: x.c, st: x.st }));
+  let mine = null; if (me && me.stats.tf) { const i = all.findIndex(x => x.u === me); mine = { day: i >= 0 ? all[i].c : 0, pos: i >= 0 ? i + 1 : null, best: (me.stats.tf.best && me.stats.tf.best.c) || 0 }; }
+  return { ok: true, top, mine };
+}
+// ---- Solo: Minesucher (schnellste Zeit je Stufe) + 2048 (hoechster Punktestand). Brainups nur fuer Siege/gute Ergebnisse, einmal pro Tag ----
+const soloLast = new Map();
+const MS_MIN_SECS = { e: 6, m: 14, h: 24 };
+async function soloSubmit(token, game, val, diff, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  if (!["ms", "g2048", "brick", "hopper", "flappy", "block", "make24", "pyramide"].includes(game)) return { ok: false, error: "invalid" };
+  val = Math.round(Number(val)); if (!Number.isFinite(val) || val < 1) return { ok: false, error: "invalid" };
+  if (game === "ms" && (!MS_MIN_SECS[diff] || val < MS_MIN_SECS[diff] || val > 3600)) return { ok: false, error: "invalid" };
+  if (game === "g2048" && (val > 3000000 || val < 20)) return { ok: false, error: "invalid" };
+  if (game === "brick" && (val > 200000 || val < 20)) return { ok: false, error: "invalid" };
+  if (game === "hopper" && (val > 60000 || val < 20)) return { ok: false, error: "invalid" };
+  if (game === "flappy" && (val > 3000 || val < 2)) return { ok: false, error: "invalid" };
+  if (game === "block" && (val > 500000 || val < 20)) return { ok: false, error: "invalid" };
+  if (game === "make24" && (val > 1600 || val < 100)) return { ok: false, error: "invalid" };
+  if (game === "pyramide" && (val > 20000 || val < 20)) return { ok: false, error: "invalid" };
+  const now = Date.now(), lk = user.username + "|" + game; if (now - (soloLast.get(lk) || 0) < 20000) return { ok: false, error: "tooFast" }; soloLast.set(lk, now);
+  if (!user.stats.solo || typeof user.stats.solo !== "object") user.stats.solo = {};
+  const S = user.stats.solo, day = tfDayId();
+  if (!S.day || S.day.id !== day) S.day = { id: day, ms: false, g: false, b: false, h: false, f: false };
+  let improved = false, zp = 0;
+  if (game === "ms") {
+    if (!S.ms) S.ms = {};
+    const cur = S.ms[diff]; if (!cur || val < cur.t) { S.ms[diff] = { t: val, ts: now }; improved = true; }
+    S.msWins = (S.msWins | 0) + 1;
+    if (!S.day.ms) { S.day.ms = true; zp = zpAdd(user, diff === "e" ? 10 : diff === "m" ? 20 : 30, "ms", "ms").gain; }
+  } else if (game === "hopper" || game === "flappy") {
+    const k = game === "hopper" ? "h" : "f", dk = k;
+    if (!S[k] || typeof S[k] !== "object") S[k] = { best: 0 };
+    if (val > (S[k].best || 0)) { S[k].best = val; S[k].ts = now; improved = true; }
+    const lo = game === "hopper" ? 500 : 15, hi2 = game === "hopper" ? 2000 : 50;
+    if (val >= lo && !S.day[dk]) { S.day[dk] = true; zp = zpAdd(user, val >= hi2 ? 40 : 20, game, game).gain; }
+  } else if (game === "block" || game === "make24" || game === "pyramide") {
+    const k = game === "block" ? "bk" : game === "make24" ? "m24" : "py";
+    if (!S[k] || typeof S[k] !== "object") S[k] = { best: 0 };
+    if (val > (S[k].best || 0)) { S[k].best = val; S[k].ts = now; improved = true; }
+    const lo = game === "block" ? 500 : game === "make24" ? 500 : 300, hi2 = game === "block" ? 2000 : game === "make24" ? 1100 : 1000;
+    if (val >= lo && !S.day[k]) { S.day[k] = true; zp = zpAdd(user, val >= hi2 ? 40 : 20, game, game).gain; }
+  } else if (game === "brick") {
+    if (!S.b || typeof S.b !== "object") S.b = { best: 0 };
+    if (val > (S.b.best || 0)) { S.b.best = val; S.b.ts = now; improved = true; }
+    if (val >= 300 && !S.day.b) { S.day.b = true; zp = zpAdd(user, val >= 1500 ? 40 : 20, "brick", "brick").gain; }
+  } else {
+    if (!S.g || typeof S.g !== "object") S.g = { best: 0 };
+    if (val > (S.g.best || 0)) { S.g.best = val; S.g.ts = now; improved = true; }
+    if (val >= 5000 && !S.day.g) { S.day.g = true; zp = zpAdd(user, val >= 20000 ? 40 : 20, "g2048", "g2048").gain; }
+  }
+  await saveUsers();
+  return { ok: true, improved, zp };
+}
+function soloBoard(token, game, diff) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const me = token ? findUserByToken(token) : null;
+  let all;
+  if (game === "ms") {
+    if (!MS_MIN_SECS[diff]) return { ok: false };
+    all = users.filter(u => u.stats && u.stats.solo && u.stats.solo.ms && u.stats.solo.ms[diff]).map(u => ({ u, v: u.stats.solo.ms[diff].t })).sort((a, b) => a.v - b.v || String(a.u.username).localeCompare(String(b.u.username)));
+  } else if (game === "g2048") {
+    all = users.filter(u => u.stats && u.stats.solo && u.stats.solo.g && u.stats.solo.g.best > 0).map(u => ({ u, v: u.stats.solo.g.best })).sort((a, b) => b.v - a.v || String(a.u.username).localeCompare(String(b.u.username)));
+  } else if (game === "hopper" || game === "flappy") {
+    const k = game === "hopper" ? "h" : "f";
+    all = users.filter(u => u.stats && u.stats.solo && u.stats.solo[k] && u.stats.solo[k].best > 0).map(u => ({ u, v: u.stats.solo[k].best })).sort((a, b) => b.v - a.v || String(a.u.username).localeCompare(String(b.u.username)));
+  } else if (game === "block" || game === "make24" || game === "pyramide") {
+    const k = game === "block" ? "bk" : game === "make24" ? "m24" : "py";
+    all = users.filter(u => u.stats && u.stats.solo && u.stats.solo[k] && u.stats.solo[k].best > 0).map(u => ({ u, v: u.stats.solo[k].best })).sort((a, b) => b.v - a.v || String(a.u.username).localeCompare(String(b.u.username)));
+  } else if (game === "brick") {
+    all = users.filter(u => u.stats && u.stats.solo && u.stats.solo.b && u.stats.solo.b.best > 0).map(u => ({ u, v: u.stats.solo.b.best })).sort((a, b) => b.v - a.v || String(a.u.username).localeCompare(String(b.u.username)));
+  } else return { ok: false };
+  const top = all.slice(0, 10).map((x, i) => ({ pos: i + 1, name: x.u.username, avatar: x.u.avatar || "🙂", v: x.v }));
+  let mine = null; if (me) { const i = all.findIndex(x => x.u === me); if (i >= 0) mine = { v: all[i].v, pos: i + 1 }; }
   return { ok: true, top, mine };
 }
 async function brainClaim(token, lang) {
@@ -4293,6 +4477,12 @@ async function saveUserStats(token, stats, lang) {
       galaxyPts: Math.max(cur.galaxyPts || 0, n(f.galaxyPts, 1e9)),
       galaxySt: (() => { const a = typeof cur.galaxySt === "string" ? cur.galaxySt : "", b = typeof f.galaxySt === "string" && /^[0-3]{0,3000}$/.test(f.galaxySt) ? f.galaxySt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
       fruitSlot: Math.max(cur.fruitSlot || 0, n(f.fruitSlot, 1)),
+      jongLevel: Math.max(1, cur.jongLevel || 1, n(f.jongLevel, 9999)),
+      jongSt: (() => { const a = typeof cur.jongSt === "string" ? cur.jongSt : "", b = typeof f.jongSt === "string" && /^[0-3]{0,3000}$/.test(f.jongSt) ? f.jongSt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
+      jongHearts: (typeof f.jongHearts === "number" && Number.isFinite(f.jongHearts)) ? Math.max(0, Math.min(3, Math.round(f.jongHearts))) : (typeof cur.jongHearts === "number" ? cur.jongHearts : 3),
+      jongHeartsT: (typeof f.jongHeartsT === "number" && Number.isFinite(f.jongHeartsT)) ? Math.max(0, Math.round(f.jongHeartsT)) : (cur.jongHeartsT || 0),
+      jongKX: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.jongKX) ? cur.jongKX[i] | 0 : 0), Array.isArray(f.jongKX) ? n(f.jongKX[i], 100000) : 0)),
+      tree: (cur.tree || 0) | n(f.tree, 16777215),
       fruitKings: (cur.fruitKings || 0) | n(f.fruitKings, 63),
       fruitKing: n(f.fruitKing, 5),
       fruitBg: n(f.fruitBg, 3),
@@ -4302,7 +4492,8 @@ async function saveUserStats(token, stats, lang) {
       fruitKL: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.fruitKL) ? cur.fruitKL[i] | 0 : 0), Array.isArray(f.fruitKL) ? n(f.fruitKL[i], 5) : 0)),
       fruitKX: [0,1,2,3,4,5].map(i => Math.max((Array.isArray(cur.fruitKX) ? cur.fruitKX[i] | 0 : 0), Array.isArray(f.fruitKX) ? n(f.fruitKX[i], 100000) : 0)),
       fruitSt: (() => { const a = typeof cur.fruitSt === "string" ? cur.fruitSt : "", b = typeof f.fruitSt === "string" && /^[0-3]{0,3000}$/.test(f.fruitSt) ? f.fruitSt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
-      hammer: n(f.hammer, 999), broom: n(f.broom, 999), shuffle: n(f.shuffle, 999), moves: n(f.moves, 999)
+      hammer: n(f.hammer, 999), broom: n(f.broom, 999), shuffle: n(f.shuffle, 999), moves: n(f.moves, 999),
+      gxRocket: n(f.gxRocket, 999), gxBomb: n(f.gxBomb, 999), jgHint: n(f.jgHint, 999), jgShuf: n(f.jgShuf, 999), jgUndo: n(f.jgUndo, 999)
     };
   }
   // Order of Speed: letzte + beste Runde {level, points, sec}
@@ -4733,13 +4924,15 @@ async function adminZp(key, ip, payload) {
    ============================================================================ */
 const EVDUEL = require("./evduel.js")({ Dame, Mill, getChess: () => getChessEngine(), getQuiz: () => { const q = evNewQ({ rounds: [] }, {}, "x", { type: Math.random() < 0.5 ? "quiz" : (Math.random() < 0.5 ? "bio" : "vocab"), klasse: 0, topic: "" }, 0); return { q: q.pub.q, a: q.pub.a, cat: q.pub.cat, ans: q.ans }; } });
 // Geschicklichkeits-Spiele aus "Das schwerste Spiel der Welt" als Battle-Royale-Disziplin (nur Royale)
-const EV_HD = { balken: ["Der Balken", 1.5, [5, 14]], gedaechtnis: ["Das Gedächtnis", 3.4, [4, 11]], linie: ["Die Linie", 1.8, [6, 15]], gegenteil: ["Das Gegenteil", 1.5, [6, 17]], flug: ["Der Farbflug", 1.6, [5, 16]], blasen: ["Die Blasen", 1.1, [10, 34]], puls: ["Der Puls", 2.3, [3, 10]], farbe: ["Die Farbe", 5, [2, 7]], tasten: ["Die Tasten", 0.7, [15, 60]] };
+const EV_HD = { balken: ["Der Balken", 1.5, [5, 14]], gedaechtnis: ["Das Gedächtnis", 3.4, [4, 11]], linie: ["Die Linie", 1.8, [6, 15]], gegenteil: ["Das Gegenteil", 1.5, [6, 17]], flug: ["Der Farbflug", 1.6, [5, 16]], blasen: ["Die Blasen", 1.1, [10, 34]], puls: ["Der Puls", 2.3, [3, 10]], farbe: ["Die Farbe", 5, [2, 7]], tasten: ["Die Tasten", 0.7, [15, 60]], farbwort: ["Das Farbwort", 1.4, [6, 18]], reflex: ["Der Reflex", 1.2, [6, 16]] };
 const EV_HD_NAMES = {}; Object.keys(EV_HD).forEach(k => { EV_HD_NAMES["hd_" + k] = "Schwerstes Spiel: " + EV_HD[k][0]; });
 const evHdKey = d => (d && typeof d.type === "string" && d.type.startsWith("hd_") && EV_HD[d.type.slice(3)]) ? d.type.slice(3) : "";
 const EV_DUEL_NAMES = { ttt: "Duell: Tic Tac Toe", ttq: "Duell: Tic Tac Toe Quiz", ttx: "Duell: Tic Tac Toe Quanten", c4: "Duell: 4 gewinnt", mill: "Duell: Mühle", dame: "Duell: Dame", chess: "Duell: Schach" };
 const evIsDuel = d => !!(d && EVDUEL.TYPES[d.type]);
-const EV_TYPES = { quiz: "Wissenstest", bio: "Biologie", vocab: "Vokabeln (Englisch)", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", taboo: "Taboo Solo (Wort erraten)", ...EV_HD_NAMES, ...EV_DUEL_NAMES, mix: "Überraschungs-Mix" };
-let EV_BIO = [], EV_VOC = [];
+const EV_TYPES = { quiz: "Wissenstest", bio: "Biologie", vocab: "Vokabeln (Englisch)", hilo: "Higher or Lower", math: "Speed Math", order: "Order of Speed", sort: "Sortieren", chrono: "Chronologie", taboo: "Taboo Solo (Wort erraten)", tf: "Wahr oder Falsch Blitz", ...EV_HD_NAMES, ...EV_DUEL_NAMES, mix: "Überraschungs-Mix" };
+let EV_BIO = [], EV_VOC = [], TF_DATA = [], EST_DATA = [];
+try { EST_DATA = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/estimate.json"), "utf8")); } catch (e) { console.log("estimate.json fehlt"); }
+try { TF_DATA = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/tf.json"), "utf8")); } catch (e) { console.log("tf.json fehlt"); }
 try { EV_BIO = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/biologyDE.json"), "utf8")); } catch (e) { console.log("biologyDE.json fehlt"); }
 try { EV_VOC = JSON.parse(fs.readFileSync(path.join(__dirname, "shared/vocabDE.json"), "utf8")); } catch (e) { console.log("vocabDE.json fehlt"); }
 const EV_TOPIC_GROUP = { hilo: "higherLower", sort: "ordering", chrono: "chronology" };
@@ -5065,7 +5258,7 @@ function evNewQ(ev, run, k, disc, nc) {
   const rd = disc || evDiscs(ev.rounds[run.roundIdx])[0], t = Date.now();
   if (rd.type === "taboo" && run.tw) return { kind: "word", t, pub: { kind: "word", len: run.tw.word.length, cat: run.tw.cat, rows: [], max: 5, done: false, won: false } };
   if (nc == null) nc = run.correct && run.correct[k] || 0;
-  if (rd.type === "mix") { const ts = ["quiz", "bio", "vocab", "hilo", "math", "order", "sort", "chrono"]; return evNewQ(ev, run, k, Object.assign({}, rd, { type: ts[Math.floor(Math.random() * ts.length)], topic: "" }), nc); }
+  if (rd.type === "mix") { const ts = ["quiz", "bio", "vocab", "hilo", "math", "order", "sort", "chrono", "tf"]; return evNewQ(ev, run, k, Object.assign({}, rd, { type: ts[Math.floor(Math.random() * ts.length)], topic: "" }), nc); }
   if (rd.type === "order") {
     const lvl = rd.level || 1, cnt = Math.min(9, 4 + lvl + Math.floor(nc / 4)), mx = [20, 100, 500, 1000][lvl - 1], rules = lvl === 1 ? ["asc", "desc"] : ["asc", "desc", "even", "odd"], rule = rules[Math.floor(Math.random() * rules.length)];
     const pool = new Set(); while (pool.size < cnt) pool.add(1 + Math.floor(Math.random() * mx));
@@ -5081,6 +5274,10 @@ function evNewQ(ev, run, k, disc, nc) {
     const desc = ds.order === "desc", seq = pick.slice().sort((a, b) => desc ? b.value - a.value : a.value - b.value);
     const unit = ds.unit || "", title = (rd.type === "chrono" ? "Chronologisch: " : "Sortiere: ") + String(ds.label).replace(/^[^:]*:\s*/, "") + " – " + (desc ? "höchster Wert zuerst" : "niedrigster Wert zuerst") + (unit ? " (" + unit + ")" : "");
     return { kind: "order", t, seq: seq.map(x => String(x.id)), i: 0, pub: { kind: "order", title, items: evShuffle(pick).map(x => ({ id: String(x.id), t: x.name })), done: [] } };
+  }
+  if (rd.type === "tf" && TF_DATA.length) {
+    const q = TF_DATA[Math.floor(Math.random() * TF_DATA.length)];
+    return { kind: "quiz", t, ans: q.w ? 0 : 1, pub: { kind: "quiz", q: q.d, a: ["Wahr", "Falsch"], cat: "Wahr oder Falsch" } };
   }
   if (rd.type === "bio" && EV_BIO.length) {
     const q = shuffleAnswerOrder(EV_BIO[Math.floor(Math.random() * EV_BIO.length)]); return { kind: "quiz", t, ans: q.c, pub: { kind: "quiz", q: q.q, a: q.a, cat: q.cat || "Biologie" } };
@@ -6049,10 +6246,10 @@ async function fourupsApi(action, payload, lang) {
 // ---------------------------------------------------------------------------
 // Belohnung = hoechste geloeste Stufe des Tages (NICHT addiert): Sudoku 25/50/75, Kreuzwort klein 25 / mittel 50 / gross 75.
 // Muenzen werden erst am NAECHSTEN Tag abgeholt. Stufen muessen der Reihe nach geloest werden.
-const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 } };
+const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 }, wr: { easy: 25, medium: 50, hard: 75 } };
 // Hilfen kosten Muenzen (vom Guthaben, sofort). Preise liegen nur hier; der Client bekommt sie mit dem Raetsel.
-const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 } };
-const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"] };
+const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 }, wr: {} };
+const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"], wr: ["easy", "medium", "hard"] };
 const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
 const dailyCache = new Map();
@@ -6066,7 +6263,7 @@ function dailyWeekDates(today) { // Montag bis heute
 }
 function dailyAllowedDates(today) { return dailyDow(today) === 0 ? dailyWeekDates(today) : [today]; } // nachholen nur sonntags
 const DAILY_CATCH_MAX = 3; // Nachholen: so viele verpasste Tage pro Woche (frei waehlbar), nachgeholt = halbe Muenzen
-const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"]];
+const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"], ["wr", "easy"], ["wr", "medium"], ["wr", "hard"]];
 function dailyState(user) {
   if (!user.stats.daily || typeof user.stats.daily !== "object") user.stats.daily = { solved: {}, started: {} };
   const d = user.stats.daily; if (!d.solved) d.solved = {}; if (!d.started) d.started = {};
@@ -6113,7 +6310,31 @@ function weeklyDue(d, today) {
 }
 function dailyLocked(d, date, type, diff) {
   const ord = DAILY_ORDER[type], i = ord.indexOf(diff);
+  if (type === "wr") { const pk = date + ":wr:" + ord[i - 1]; return i > 0 && !d.solved[pk] && !(d.wr && d.wr[pk] && d.wr[pk].done); } // Wort raten: auch ein verlorenes Level schaltet das naechste frei
   return i > 0 && !d.solved[date + ":" + type + ":" + ord[i - 1]];
+}
+// ---- Wort raten (Tagesraetsel): Wordle-Spiel, Wort des Tages je Stufe, Tipps nur bei leicht (3) und mittel (1) ----
+const WR_TRIES = 6, WR_TIPS = { easy: 3, medium: 1, hard: 0 }, WR_LEN = { easy: [4, 5], medium: [5, 6], hard: [6, 9] };
+const WR_EN = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, "shared/wortratenEN.json"), "utf8")); } catch (e) { return []; } })();
+const wrPools = {}, wrGuest = new Map();
+function wrPool(lg, diff) {
+  const k = lg + diff; if (wrPools[k]) return wrPools[k];
+  const [a, b] = WR_LEN[diff];
+  let list = lg === "en" ? WR_EN.map(c => ({ w: c.w, c: c.c, t: c.h })) : TABOO_SOLO_CARDS.map(c => ({ w: c.w.replace(/[^A-Za-zÄÖÜäöü]/g, "").toUpperCase(), c: c.c, t: c.h.filter(h => h.k === "e").concat(c.h.filter(h => h.k !== "e")).map(h => h.t) }));
+  list = list.filter(c => c.w.length >= a && c.w.length <= b);
+  let seed = diff === "easy" ? 17 : diff === "medium" ? 29 : 43;  // feste Mischung: jedes Wort kommt pro Zyklus nur einmal dran
+  const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+  for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+  return (wrPools[k] = list);
+}
+function wrCard(date, lg, diff) {
+  const pool = wrPool(lg, diff); if (!pool.length) return null;
+  const [y, m, dd] = date.split("-").map(Number), n = Math.round(Date.UTC(y, m - 1, dd) / 86400000);
+  return pool[((n % pool.length) + pool.length) % pool.length];
+}
+function wrView(st, card, diff, extra) {
+  const tm = WR_TIPS[diff];
+  return Object.assign({ ok: true, len: card.w.length, rows: st.rows, max: WR_TRIES, tipsMax: tm, tips: card.t.slice(0, Math.min(st.hn, tm, card.t.length)), cat: diff === "hard" ? null : card.c, done: !!st.done, won: !!st.won, word: st.done ? card.w : undefined, wrLang: st.lang }, extra || {});
 }
 // Abholbar = Tag der Loesung liegt vor heute; "pending" = erst morgen abholbar
 function dailyPayout(d, today) {
@@ -6193,7 +6414,7 @@ async function dailyApi(action, payload, lang) {
   const today = dailyToday(), allowed = dailyAllowedDates(today);
   const d = user ? dailyState(user) : { solved: {}, started: {} };
   if (action === "state") {
-    const catchUsed = (user ? (d.catchDays[dailyWeekStart(today)] || []) : []), catchLeft = Math.max(0, DAILY_CATCH_MAX - catchUsed.length), days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date) && (date === today || !user || catchUsed.includes(date) || catchLeft > 0), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], locked: !!user && dailyLocked(d, date, t, df) })) }));
+    const catchUsed = (user ? (d.catchDays[dailyWeekStart(today)] || []) : []), catchLeft = Math.max(0, DAILY_CATCH_MAX - catchUsed.length), days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date) && (date === today || !user || catchUsed.includes(date) || catchLeft > 0), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], failed: t === "wr" ? !!(d.wr && d.wr[date + ":wr:" + df] && d.wr[date + ":wr:" + df].done && !d.solved[date + ":wr:" + df]) : undefined, locked: !!user && dailyLocked(d, date, t, df) })) }));
     const po = user ? dailyPayout(d, today) : { claimable: 0, pending: 0 };
     const ws0 = dailyWeekStart(today), wval = weeklyProgress(d, ws0), wev = weeklyEval(wval), due = user ? weeklyDue(d, today) : { keys: 0, coins: 0 };
     const weekly = { start: ws0, daysLeft: 7 - (dailyDow(today) === 0 ? 6 : dailyDow(today) - 1), types: {}, total: { pct: wev.pct, tiers: WEEKLY_TOTAL_PCT, tier: wev.tier.total }, rewards: WEEKLY_REWARD, due: { keys: due.keys, coins: due.coins } };
@@ -6239,7 +6460,7 @@ async function dailyApi(action, payload, lang) {
     }
     return Object.assign({ ok: true }, out);
   }
-  const date = String(payload.date || ""), type = ["cw", "ws", "wv"].includes(payload.type) ? payload.type : "sudoku", diff = String(payload.diff || "");
+  const date = String(payload.date || ""), type = ["cw", "ws", "wv", "wr"].includes(payload.type) ? payload.type : "sudoku", diff = String(payload.diff || "");
   if (!DAILY_REWARDS[type] || !DAILY_REWARDS[type][diff] || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return errObj("invalidInput", lang);
   if (!allowed.includes(date)) return { ok: false, error: lang === "en" ? "This puzzle is not available now. Missed puzzles can be caught up on Sundays." : "Dieses Rätsel ist gerade nicht verfügbar. Verpasste Rätsel kannst du sonntags nachholen." };
   const skey = date + ":" + type + ":" + diff;
@@ -6252,6 +6473,44 @@ async function dailyApi(action, payload, lang) {
     }
   }
   if (user && dailyLocked(d, date, type, diff)) return { ok: false, error: lang === "en" ? "Solve the easier puzzle first." : "Löse zuerst das leichtere Rätsel." };
+  if (type === "wr") {
+    if (!user) { const sid = String(payload.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40); if (!sid) return errObj("invalidInput", lang); }
+    if (user && (!d.wr || typeof d.wr !== "object")) d.wr = {};
+    let st;
+    if (user) st = d.wr[skey]; else { const gk = String(payload.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40) + skey; st = wrGuest.get(gk); if (!st) { st = null; } }
+    const gk2 = user ? null : String(payload.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40) + skey;
+    if (!st) { st = { rows: [], hn: 0, done: false, won: false, lang: lang === "en" ? "en" : "de" }; if (user) d.wr[skey] = st; else { wrGuest.set(gk2, st); if (wrGuest.size > 3000) Array.from(wrGuest.keys()).slice(0, 800).forEach(k => wrGuest.delete(k)); } }
+    const card = wrCard(date, st.lang, diff); if (!card) return errObj("invalidInput", lang);
+    const reward = date === today ? DAILY_REWARDS.wr[diff] : Math.floor(DAILY_REWARDS.wr[diff] / 2);
+    const pub = { date, type, diff, reward, solved: !!d.solved[skey] };
+    if (action === "puzzle") { if (user && !d.started[skey] && !st.done) d.started[skey] = Date.now(); if (user) await saveUsers(); return wrView(st, card, diff, pub); }
+    if (action === "hint") {
+      if (!st.done && st.hn < WR_TIPS[diff]) { st.hn++; if (user) await saveUsers(); }
+      return wrView(st, card, diff, pub);
+    }
+    if (action === "guess") {
+      if (st.done) return wrView(st, card, diff, pub);
+      const guess = String(payload.text || "").toUpperCase().replace(/[^A-ZÄÖÜ]/g, "");
+      if (guess.length !== card.w.length) return wrView(st, card, diff, Object.assign(pub, { rejected: "length" }));
+      const res = Array(guess.length).fill("k"), left = {};
+      for (let i = 0; i < guess.length; i++) { if (guess[i] === card.w[i]) res[i] = "g"; else left[card.w[i]] = (left[card.w[i]] || 0) + 1; }
+      for (let i = 0; i < guess.length; i++) if (res[i] !== "g" && left[guess[i]] > 0) { res[i] = "y"; left[guess[i]]--; }
+      st.rows.push({ w: guess, s: res.join("") });
+      if (guess === card.w) {
+        st.done = true; st.won = true;
+        if (user) {
+          d.solved[skey] = Date.now(); delete d.started[skey];
+          const gain = isRestricted(user) ? 0 : reward, bk = date + ":wr";
+          if (gain > ((d.best[bk] && d.best[bk].r) || 0)) d.best[bk] = { r: gain, day: dailyToday() };
+          else if (d.best[bk]) d.best[bk].day = dailyToday();
+        }
+      } else if (st.rows.length >= WR_TRIES) { st.done = true; st.won = false; if (user) delete d.started[skey]; }
+      if (user) await saveUsers();
+      const po = user ? dailyPayout(d, dailyToday()) : { claimable: 0, pending: 0 };
+      return wrView(st, card, diff, Object.assign(pub, { solved: !!d.solved[skey], reward, gain: st.won && user ? reward : 0, loggedIn: !!user, claimable: po.claimable, pending: po.pending }));
+    }
+    return errObj("invalidInput", lang);
+  }
   if (action === "puzzle") {
     const pz = dailyGet(date, type, diff, lang);
     if (user && !d.solved[skey] && !d.started[skey]) { d.started[skey] = Date.now(); await saveUsers(); }
@@ -7099,9 +7358,19 @@ const GAME_DEFS = [
   { id: "braining_fruit", name: "Brain Fruit", group: "Minigames", icon: "🍓", sub: "braining" },
   { id: "braining_hood", name: "Brain Arrow", group: "Solo Games", icon: "🧊" },
   { id: "braining_solitaire", name: "Kugel-Solitär", group: "Solo Games", icon: "⚫" },
+  { id: "braining_tf", name: "Wahr oder Falsch Blitz", group: "Solo Games", icon: "⚡" },
+  { id: "braining_ms", name: "Minesucher", group: "Solo Games", icon: "💣" },
+  { id: "braining_2048", name: "2048", group: "Solo Games", icon: "🔢" },
+  { id: "braining_brick", name: "Brick Flieger", group: "Solo Games", icon: "✈️" },
+  { id: "braining_hopper", name: "Hüpfer", group: "Solo Games", icon: "⚪" },
+  { id: "braining_flappy", name: "Flappy-Flug", group: "Solo Games", icon: "🕊️" },
+  { id: "braining_block", name: "Block Puzzle", group: "Solo Games", icon: "🧩" },
   { id: "braining_galaxy", name: "Brain Galaxy", group: "Minigames", icon: "🪐", sub: "braining" },
+  { id: "braining_jong", name: "Brain Jong", group: "Minigames", icon: "🀄", sub: "braining" },
   { id: "kartenwelt", name: "Karten Welt", group: "Minigames", icon: "🃏" },
   { id: "kartenwelt_klondike", name: "Karten-Solitär (Klondike)", group: "Minigames", icon: "🃏", sub: "kartenwelt" },
+  { id: "kartenwelt_make24", name: "Make 24", group: "Minigames", icon: "♠️", sub: "kartenwelt" },
+  { id: "kartenwelt_pyramide", name: "Pyramide", group: "Minigames", icon: "🔺", sub: "kartenwelt" },
   { id: "chess", name: "Chess", group: "Minigames", icon: "♟️" },
   { id: "hard", name: "Das schwerste Spiel der Welt", group: "Minigames", icon: "💀" },
   { id: "mania", name: "Der Stein (ehem. Brainmania)", group: "Minigames", icon: "🪨", sub: "hard" },
@@ -7114,6 +7383,8 @@ const GAME_DEFS = [
   { id: "hard_puls", name: "Der Puls", group: "Minigames", icon: "💓", sub: "hard" },
   { id: "hard_farbe", name: "Die Farbe", group: "Minigames", icon: "🎨", sub: "hard" },
   { id: "hard_tasten", name: "Die Tasten", group: "Minigames", icon: "⌨️", sub: "hard" },
+  { id: "hard_farbwort", name: "Das Farbwort", group: "Minigames", icon: "🎨", sub: "hard" },
+  { id: "hard_reflex", name: "Der Reflex", group: "Minigames", icon: "⚡", sub: "hard" },
   { id: "hard_olympiade", name: "Olympiade", group: "Minigames", icon: "🏅", sub: "hard" },
   { id: "chess_online", name: "Chess online", group: "Minigames", icon: "🌐", sub: "chess" },
   { id: "chess_fantasy", name: "Fantasy-Schach", group: "Minigames", icon: "🧙", sub: "chess" },
@@ -7288,7 +7559,7 @@ async function maniaApiCall(payload) {
   const v = maniaView(name); v.account = !!u; v.name = name; return v;
 }
 // ---- DAS SCHWERSTE SPIEL DER WELT (Bestenlisten je Spiel, liegen mit in den Spiele-Einstellungen) ----
-const HARD_GAMES = ["balken", "turm", "gedaechtnis", "linie", "gegenteil", "flug", "blasen", "puls", "farbe", "tasten", "olympiade"];
+const HARD_GAMES = ["balken", "turm", "gedaechtnis", "linie", "gegenteil", "flug", "blasen", "puls", "farbe", "tasten", "farbwort", "reflex", "olympiade"];
 function hardApiCall(payload) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const game = String(payload.game || ""); if (!HARD_GAMES.includes(game)) return { ok: false, error: "Unbekannt." };
@@ -7687,6 +7958,10 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/braining/submit") result = await brainSubmit(payload.token, payload.game, payload.level, lang, payload.pts);
         else if (req.url === "/api/klo/submit") result = await kloSubmit(payload.token, payload.draw, payload.moves, payload.secs, lang);
         else if (req.url === "/api/klo/board") result = kloBoard(payload.token, payload.draw);
+        else if (req.url === "/api/tf/submit") result = await tfSubmit(payload.token, payload.correct, payload.streak, lang);
+        else if (req.url === "/api/tf/board") result = tfBoard(payload.token);
+        else if (req.url === "/api/solo/submit") result = await soloSubmit(payload.token, payload.game, payload.val, payload.diff, lang);
+        else if (req.url === "/api/solo/board") result = soloBoard(payload.token, payload.game, payload.diff);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);
         else if (req.url === "/api/taboo-solo" && !(gateOk("taboo", payload.adminKey, ip) && gateOk("taboo_solo", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
@@ -8555,6 +8830,7 @@ wss.on("connection", (ws, req) => {
         else if (isHost && room.runtime && room.runtime.kind === "stadtLandFluss" && room.runtime.phase === "challenge") slfFinalizeRound(room);
         else if (isHost && room.runtime && room.runtime.kind === "orderingGame" && !room.runtime.finalized) { clearTimeout(room.runtime.timer); finalizeOrderingRound(room); }
         else if (isHost && room.runtime && room.runtime.kind === "higherLowerGame" && room.runtime.awaitingRankContinue) { room.runtime.awaitingRankContinue = false; advanceRankingTurn(room, false); }
+        else if (isHost && room.runtime && room.runtime.kind === "estimateGame" && room.runtime.awaitingEstContinue) advanceEstimate(room);
         else if (isHost && room.runtime && room.runtime.awaitingRoundEndContinue) { room.runtime.awaitingRoundEndContinue = false; finishRoundEngine(room, room.runtime.roundPointsByTeam); }
         break;
       case "quizAnswer":
@@ -8602,6 +8878,9 @@ wss.on("connection", (ws, req) => {
         break;
       case "musicReplay":
         handleMusicReplay(room, ws.playerId);
+        break;
+      case "estimateGuess":
+        handleEstimateGuess(room, ws.playerId, msg.value);
         break;
       case "nennsBlitzSubmit":
         handleNennsBlitzSubmit(room, ws.playerId, msg.text);
