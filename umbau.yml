@@ -1,0 +1,61 @@
+name: Umbau
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/umbau.yml'
+permissions:
+  contents: write
+jobs:
+  umbau:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Umbau
+        run: |
+          set -e
+          if [ ! -f brain-pulse-struktur.zip ]; then echo 'Keine ZIP-Datei gefunden, nichts zu tun'; exit 0; fi
+          mv_() { if [ -e "$1" ]; then mkdir -p "$(dirname "$2")"; git mv -f "$1" "$2" 2>/dev/null || { mkdir -p "$2"; cp -r "$1"/. "$2"/; git rm -rqf "$1"; }; fi; }
+          mv_ public/achievements.js public/core/achievements.js
+          mv_ public/zocker.js public/core/zocker.js
+          mv_ public/herohud.js public/core/herohud.js
+          mv_ public/evduel.js public/online/evduel.js
+          mv_ public/vocab.js public/modi/vocab.js
+          mv_ public/arrows public/solo/arrows
+          mv_ public/blitz public/solo/blitz
+          mv_ public/minesweeper public/solo/minesweeper
+          mv_ public/g2048 public/solo/g2048
+          mv_ public/brick public/solo/brick
+          mv_ public/hopper public/solo/hopper
+          mv_ public/flappy public/solo/flappy
+          mv_ public/defense public/solo/defense
+          mv_ public/blockpuzzle.html public/solo/blockpuzzle.html
+          mv_ public/solitaire.js public/solo/solitaire.js
+          mv_ public/backgammon.js public/solo/backgammon.js
+          mv_ public/fruit.html public/brainmania/fruit.html
+          mv_ public/jong.html public/brainmania/jong.html
+          mv_ public/galaxy.js public/brainmania/galaxy.js
+          mv_ public/hardest.js public/brainmania/hardest.js
+          mv_ public/klondike.js public/kartenwelt/klondike.js
+          mv_ public/make24.html public/kartenwelt/make24.html
+          mv_ public/pyramide.html public/kartenwelt/pyramide.html
+          mv_ public/dame-engine.js public/chess/dame-engine.js
+          mv_ public/muehle-engine.js public/chess/muehle-engine.js
+          mv_ public/chess-world public/chess/world
+          mv_ public/dice-3d.js public/brainduel/dice-3d.js
+          mv_ public/dice-race.js public/brainduel/dice-race.js
+          mv_ public/chem.js public/brainchimie/chem.js
+          unzip -oq brain-pulse-struktur.zip
+          rm -f LIESMICH.txt
+          for d in arrows minesweeper g2048 brick hopper flappy; do git rm -rqf --ignore-unmatch "public/solo/$d"; rm -rf "public/solo/$d"; done
+          for d in fruit jong make24 pyramide blockpuzzle; do git rm -rqf --ignore-unmatch "public/$d"; rm -rf "public/$d"; done
+          git rm -qf --ignore-unmatch public/fruit.html public/jong.html public/make24.html public/pyramide.html public/blockpuzzle.html
+          git rm -qf --ignore-unmatch brain-pulse-struktur.zip
+          rm -f brain-pulse-struktur.zip
+      - name: Speichern
+        run: |
+          git config user.name "umbau"
+          git config user.email "umbau@users.noreply.github.com"
+          git add -A
+          git commit -m "Ordnerstruktur wie das Menue" || echo "nichts zu tun"
+          git push
