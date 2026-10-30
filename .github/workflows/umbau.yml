@@ -1,0 +1,34 @@
+set -e
+ZIP=$(ls brain-pulse-struktur*.zip 2>/dev/null | head -1)
+if [ -z "$ZIP" ]; then echo 'Keine ZIP-Datei gefunden, nichts zu tun'; exit 0; fi
+mv_() { if [ -e "$1" ]; then mkdir -p "$(dirname "$2")"; git mv -f "$1" "$2" 2>/dev/null || { mkdir -p "$2"; cp -r "$1"/. "$2"/; git rm -rqf "$1"; }; fi; }
+mv_ public/achievements.js public/core/achievements.js
+mv_ public/zocker.js public/core/zocker.js
+mv_ public/herohud.js public/core/herohud.js
+mv_ public/evduel.js public/online/evduel.js
+mv_ public/vocab.js public/modi/vocab.js
+mv_ public/arrows public/solo/arrows
+mv_ public/blitz public/solo/blitz
+mv_ public/minesweeper public/solo/minesweeper
+mv_ public/g2048 public/solo/g2048
+mv_ public/brick public/solo/brick
+mv_ public/hopper public/solo/hopper
+mv_ public/flappy public/solo/flappy
+mv_ public/defense public/solo/defense
+mv_ public/blockpuzzle.html public/solo/blockpuzzle.html
+mv_ public/solitaire.js public/solo/solitaire.js
+mv_ public/backgammon.js public/solo/backgammon.js
+mv_ public/fruit.html public/brainmania/fruit.html
+mv_ public/jong.html public/brainmania/jong.html
+mv_ public/galaxy.js public/brainmania/galaxy.js
+mv_ public/hardest.js public/brainmania/hardest.js
+mv_ public/klondike.js public/kartenwelt/klondike.js
+mv_ public/make24.html public/kartenwelt/make24.html
+mv_ public/pyramide.html public/kartenwelt/pyramide.html
+mv_ public/dame-engine.js public/chess/dame-engine.js
+mv_ public/muehle-engine.js public/chess/muehle-engine.js
+mv_ public/chess-world public/chess/world
+mv_ public/dice-3d.js public/brainduel/dice-3d.js
+mv_ public/dice-race.js public/brainduel/dice-race.js
+mv_ public/chem.js public/brainchimie/chem.js
+unzip -oq "$ZIP"
