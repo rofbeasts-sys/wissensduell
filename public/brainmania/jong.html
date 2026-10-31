@@ -96,6 +96,8 @@ function stOf(L){ return +(stStr()[L-1]||0); }
 function totalStars(from,to){ var s=stStr(),t=0; for(var i=(from||1)-1;i<Math.min(s.length,to||s.length);i++) t+=+s[i]; return t; }
 function best(){ return Math.max(1,fdat().jongLevel|0,lsGet("bp_jong_lv",1)|0); }
 function bestSet(L){ if(L<=best()) return; lsSet("bp_jong_lv",L); fset({jongLevel:L}); }
+function ptsTot(){ return Math.max(fdat().jongPts|0,lsGet("bp_jong_pts",0)|0); }
+function ptsAdd(n){ var t=ptsTot()+n; lsSet("bp_jong_pts",t); fset({jongPts:t}); return t; }
 function canPlay(L){ return L<=best()&&totalStars()>=gateReq(wIdx(L)); }
 /* ---------- Herzen ---------- */
 var HMAX=3, HMS=20*60*1000;
@@ -290,11 +292,12 @@ function win(){
   if(stars>3) stars=3; var prev=stOf(G.L), L=G.L, first=L>=best(); var coinsGain=0;
   stSet(L,Math.max(prev,stars));
   if(first){ coinsGain=Math.round((5+stars*3+Math.floor(wInner(L)/5))*G.hb.coin); try{ if(P&&P.fruitEarn) P.fruitEarn(coinsGain); }catch(e){} bestSet(L+1); }
+  var gp=100+20*L+stars*50; ptsAdd(gp); try{ if(P&&P.brainSubmit) P.brainSubmit("jong",L,gp); }catch(e){}
   heroXp(heroIdx()); snd("win"); try{ if(P&&P.sfxResult) P.sfxResult(true,false); }catch(e){}
   if(window.HeroHUD) HeroHUD.react("cheer");
   var boss=wInner(L)===15, nxt=L+1, can=canPlay(nxt);
   $("ot").textContent="🎉 "+(boss?tx("Boss besiegt!","Boss defeated!"):tx("Level geschafft!","Level cleared!")); $("os").textContent="⭐".repeat(stars)+"☆".repeat(3-stars);
-  $("op").innerHTML=(coinsGain?"🪙 +"+coinsGain+" · ":"")+(stars<3?tx("Ohne Mischen und schnell gibt es 3 Sterne.","No shuffle and fast = 3 stars."):tx("Perfekt!","Perfect!"))+(can?"":"<br><b>🔒 "+tx("Nächste Welt: noch ","Next world: ")+Math.max(0,gateReq(wIdx(nxt))-totalStars())+" ⭐ "+tx("nötig","needed")+"</b>");
+  $("op").innerHTML="🏆 +"+gp+" "+tx("Punkte","pts")+" · "+(coinsGain?"🪙 +"+coinsGain+" · ":"")+(stars<3?tx("Ohne Mischen und schnell gibt es 3 Sterne.","No shuffle and fast = 3 stars."):tx("Perfekt!","Perfect!"))+(can?"":"<br><b>🔒 "+tx("Nächste Welt: noch ","Next world: ")+Math.max(0,gateReq(wIdx(nxt))-totalStars())+" ⭐ "+tx("nötig","needed")+"</b>");
   $("o1").textContent=can?tx("➜ Nächstes Level","➜ Next level"):tx("🌳 Zur Lebensbaum-Karte","🌳 To the tree map"); $("o1").onclick=function(){ can?start(nxt):showMap(); };
   $("o2").textContent=tx("🌳 Karte","🌳 Map"); $("o2").onclick=function(){ showMap(); }; $("ov").classList.add("show"); paintTop();
 }

@@ -119,7 +119,7 @@ function finish(full){
   try{ PP&&PP.sfxResult&&PP.sfxResult(solved>=5,false); }catch(e){}
   $("box").innerHTML='<h2>'+esc(full?T.done:T.over)+'</h2><div class="big">'+sc+'</div><p>'+esc(T.solved)+': '+solved+' / '+ROUNDS+'</p>'+(nb?'<div class="zp">🏆 '+esc(T.newB)+'</div>':'')+'<div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">'+esc(T.login)+'</div>')+'<div style="margin-top:14px"><button class="pri" id="go">'+esc(T.again)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
   $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board; S.over=true;
-  if(hasAcc()&&solved>=2) api("/api/solo/submit",{game:"make24",val:sc}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
+  if(hasAcc()&&solved>=2) api("/api/solo/submit",{game:"make24",val:sc,solved:solved}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
 }
 function play(){ S={idx:0,score:0,solved:0,hearts:3,hints:2,skips:1,lock:false,over:false}; $("ov").classList.remove("show"); startRound(); }
 function home(){

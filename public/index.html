@@ -5355,7 +5355,7 @@ window.coinSvg = coinSvg;
   new MutationObserver(() => { if(busy) return; busy = true; setTimeout(() => { try{ swap(document.body); }catch(e){} busy = false; }, 30); }).observe(document.body, { childList:true, subtree:true, characterData:true });
 })();
 /* ---- Brainups-Kennzeichnung: Karten, bei denen man Punkte bekommt ---- */
-const ZP_MARKS = { 'startBrainingHub(':'+50–100', 'BGX.map(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+5–160', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', 'startTabooHub(':'+100', 'startBlitzTF(':'+20–50', 'startMinesucher(':'+10–30', 'start2048(':'+20–40', 'startBrick(':'+20–40', 'startHopper(':'+20–40', 'startFlappy(':'+20–40', 'startBlockPuzzle(':'+20–40', 'startMake24(':'+20–40', 'startPyramide(':'+20–40', 'startChem(':'+10 / Element' };
+const ZP_MARKS = { 'startErdkunde(':'+50–100', 'KLO.open(':'+150', 'startKugelSolitaer(':'+10–500', 'startBrainingHub(':'+50–100', 'BGX.map(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+5–160', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', "renderChessFrame('/brainmania/fruit":'+50–100', "renderChessFrame('/brainmania/jong":'+50–100', 'startTabooHub(':'+100', 'startBlitzTF(':'+10–50', 'startMinesucher(':'+10–30', 'start2048(':'+100–500', 'startBrick(':'+20–40', 'startHopper(':'+20–40', 'startFlappy(':'+20–40', 'startBlockPuzzle(':'+20–40', 'startMake24(':'+100 / Level', 'startPyramide(':'+150', 'startChem(':'+10 / Element' };
 function zpMarkCards(){
   if(!document.getElementById('zpbCss')){ const st = document.createElement('style'); st.id = 'zpbCss'; st.textContent = '.mode-card[data-zpb]{position:relative}.zpb{position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px;letter-spacing:.3px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35)}.zpb-i{display:inline-block;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}'; document.head.appendChild(st); }
   if(featureLocked('zp')){ document.querySelectorAll('.zpb').forEach(e => e.remove()); return; }
@@ -5366,7 +5366,7 @@ function zpMarkCards(){
   });
 }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
-const GATE_MAP = { startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', bgIntro:'backgammon', startManiaFlow:'mania', startTabooHub:'taboo', startKartenWelt:'kartenwelt', startKugelSolitaer:'braining_solitaire', startBrainArrow:'braining_hood', startBlitzTF:'braining_tf', startMinesucher:'braining_ms', start2048:'braining_2048', startBrick:'braining_brick', startHopper:'braining_hopper', startFlappy:'braining_flappy', startBlockPuzzle:'braining_block', startMake24:'kartenwelt_make24', startPyramide:'kartenwelt_pyramide' };
+const GATE_MAP = { startErdkunde:'geo', startSoloFlow:'braintest', startDailyFlow:'daily', startSpeedMathFlow:'speedmath', startVocab:'vocab', startBrainingHub:'braining', renderChessHub:'chess', startTicTacToeFlow:'ttt', startChem:'chem', startFourupsFlow:'fourups', bgIntro:'backgammon', startManiaFlow:'mania', startTabooHub:'taboo', startKartenWelt:'kartenwelt', startKugelSolitaer:'braining_solitaire', startBrainArrow:'braining_hood', startBlitzTF:'braining_tf', startMinesucher:'braining_ms', start2048:'braining_2048', startBrick:'braining_brick', startHopper:'braining_hopper', startFlappy:'braining_flappy', startBlockPuzzle:'braining_block', startMake24:'kartenwelt_make24', startPyramide:'kartenwelt_pyramide' };
 function fmtCountdown(ms){
   const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60;
   if(ms <= 0) return L('gleich','soon');
@@ -5883,6 +5883,7 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
     if(e.origin !== location.origin || !e.data) return;
     if(e.data.bpOpenShop === true){ startShopFlow(); return; }
     if(e.data.bpArrowBack === true){ startSoloWelt(); return; }
+    if(e.data.bpGeoBack === true){ renderMainMenu(); return; }
     if(e.data.bpKartenBack === true){ startKartenWelt(); return; }
     if(e.data.bpFruitBack === true){ startBrainingHub(); return; }
     if(e.data.bpDefenseBack === true){ if(typeof brDuelHub==='function') brDuelHub(); else renderMainMenu(); return; }
@@ -6785,6 +6786,22 @@ function dzStyle(){
   if(document.getElementById('dz-style')) return;
   const st=document.createElement('style'); st.id='dz-style';
   st.textContent=`
+  .dzs-c.hn,.dzc.hn{background:#1fa8d6!important;color:#04222c!important}
+  .dzs-c.hn::after,.dzc.hn::after{content:"★";position:absolute;top:0;right:2px;font-size:10px;color:#fff;text-shadow:0 0 2px #04222c}
+  .dzs-c{position:relative}
+  .hchip{background:#1fa8d6!important;color:#04222c!important;text-decoration:none!important;border:1.5px solid #fff}
+  .hchip::after{content:" ★";color:#fff}
+  .wvc{position:relative;transition:background .12s,transform .12s}
+  .wvc-fd{background:rgba(124,255,140,.34)!important;border-color:rgba(124,255,140,.7)!important}
+  .wvc-fd::after{content:"✓";position:absolute;top:1px;right:4px;font-size:11px;color:#7cff8c;font-weight:900}
+  .wvc-on{background:#ffd45a!important;color:#10161f!important;border-color:#fff!important;transform:scale(1.06)}
+  .wvc-on[data-b]::after{content:attr(data-b);position:absolute;top:1px;right:4px;font-size:10px;font-weight:900;color:#10161f;opacity:.7}
+  .wvc-on.wvc-bad{background:#ff5d6e!important}.wvc-on.wvc-dup{background:#4aa8ff!important}
+  .wvc-hint{background:#3de0ff!important;color:#06222b!important;border:3px solid #fff!important;box-shadow:0 0 0 3px #3de0ff,0 0 18px 4px rgba(61,224,255,.9);animation:dzpulse 1s infinite;z-index:2}
+  .wvc-hint::before{content:"★";position:absolute;top:0;left:4px;font-size:12px}
+  .wvc-shake{animation:dzshake .3s;outline:3px solid #ff5d6e;outline-offset:-3px}
+  @keyframes dzpulse{50%{transform:scale(1.1)}}
+  @keyframes dzshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
   .dz-timer{font-size:22px;font-weight:800;color:#c6ff3d;margin:2px 0 4px;letter-spacing:1px}.dz-wrap{max-width:480px;margin:0 auto;text-align:center;container-type:inline-size}
   .dz-day{margin:12px 0;padding:10px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);text-align:left}
   .dz-day h4{margin:0 0 8px;font-size:14px}
@@ -6950,7 +6967,7 @@ async function dzClaim(){
 let dzwr=null;
 function dzWrSid(){ try{ let v=localStorage.getItem('bp_wr_sid'); if(!v){ v='g'+Math.random().toString(36).slice(2,12); localStorage.setItem('bp_wr_sid',v); } return v; }catch(e){ return 'g'+Math.random().toString(36).slice(2,12); } }
 function dzWrApply(r){
-  Object.assign(dzwr,{len:r.len,rows:r.rows||[],max:r.max||6,tipsMax:r.tipsMax||0,tips:r.tips||[],cat:r.cat||null,done:!!r.done,won:!!r.won,word:r.word||'',reward:r.reward,wl:r.wrLang||'de'});
+  Object.assign(dzwr,{len:r.len,rows:r.rows||[],max:r.max||6,tipsMax:r.tipsMax||0,tips:r.tips||[],cat:r.cat||null,done:!!r.done,won:!!r.won,word:r.word||'',reward:r.reward,wl:r.wrLang||'de',nextCost:r.nextCost||0});
   const keys={}; dzwr.rows.forEach(row=>[...row.w].forEach((c,i)=>{ const st=row.s[i],o=keys[c]; if(st==='g'||(st==='y'&&o!=='g')||(st==='k'&&!o)) keys[c]=st; })); dzwr.keys=keys;
 }
 async function dzWrOpen(date,diff){
@@ -6981,6 +6998,7 @@ function dzWrPaint(){
   let end='';
   if(w.done){
     end=`<div style="text-align:center;margin-top:12px;font-weight:800">${w.won?'🎉 '+L('Richtig!','Correct!'):L('Das Wort war ','The word was ')+'<b style="color:var(--accent)">'+esc(w.word)+'</b>'}${w.won?`<div style="color:#ffd45a;margin-top:4px">🪙 ${w.reward} ${account?L('ab morgen abholbar','collectable from tomorrow'):L('(melde dich an, um Münzen zu bekommen)','(log in to earn coins)')}</div>`:`<div style="opacity:.8;font-size:12px;margin-top:4px">${L('Heute leider keine Münzen für diese Stufe.','No coins for this level today.')}</div>`}</div>
+      ${(!w.won&&w.nextCost)?`<button class="btn btn-block" style="margin-top:10px;border-color:#ffd45a" ${account&&(account.profile.coins||0)>=w.nextCost?'':'disabled'} onclick="dzWrNext()">⏭ ${L('Neues Wort für diese Stufe','New word for this level')} · 🪙 ${w.nextCost}</button><div style="opacity:.75;font-size:12px;text-align:center;margin-top:4px">${account?L('Guthaben','Balance')+': '+(account.profile.coins||0)+' 🪙':L('Melde dich an, um ein neues Wort zu holen.','Log in to get a new word.')}</div>`:''}
       <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="startDailyFlow()">${L('ZURÜCK ZUM TAGESRÄTSEL','BACK TO DAILY PUZZLES')}</button>`;
   } else end=`<div style="text-align:center;margin-top:10px;min-height:20px;font-weight:800;color:#ff8a8a">${esc(w.msg||'')}</div>`;
   const tipsLeft=tm-w.tips.length;
@@ -7004,6 +7022,15 @@ function dzWrCell(i){
   const a=Array.from({length:w.len},(_,j)=>(w.cur[j]||' ').trim()||' ');
   if(w.pos===i&&a[i]!==' '){ a[i]=' '; w.cur=a.join(''); }
   w.pos=i; w.msg=''; dzWrPaint();
+}
+async function dzWrNext(){
+  const w=dzwr; if(!w||w.busy||!w.done||w.won||!account) return;
+  w.busy=true; const r=await apiCall('/api/daily/next',{token:account.token,sid:w.sid,date:w.date,type:'wr',diff:w.diff}); if(!dzwr) return; w.busy=false;
+  if(!r||!r.ok){ w.msg=(r&&r.error)||L('Nicht erreichbar.','Not reachable.'); alert(w.msg); return dzWrPaint(); }
+  if(typeof r.balance==='number'&&account.profile) account.profile.coins=r.balance;
+  dzWrApply(r); w.cur=''; w.pos=0; w.msg='';
+  if(typeof sfx==='function'){ try{ sfx('mill'); }catch(e){} }
+  dzWrPaint();
 }
 async function dzWrTip(){
   const w=dzwr; if(!w||w.busy||w.done||w.tips.length>=w.tipsMax) return;
@@ -7049,9 +7076,9 @@ async function dzOpen(date,type,diff){
     r.words.forEach((w,i)=>{ for(let k=0;k<w.len;k++){ const rr=w.r+(w.dir==='down'?k:0), cc=w.c+(w.dir==='across'?k:0); dz.cover[rr][cc][w.dir]=i; } });
     const f=r.words.findIndex(w=>w.dir==='across')>=0?r.words.findIndex(w=>w.dir==='across'):0; dz.sel=[r.words[f].r,r.words[f].c]; dz.dir=r.words[f].dir;
   }
-  dz.hints=r.hints||{}; dzFrame(); dzTimerStart();
+  dz.hints=r.hints||{}; dz.hs=(saved&&saved.sig===dz.sig&&saved.hs)||{}; dz.hw=(saved&&saved.sig===dz.sig&&saved.hw)||{}; dzFrame(); dzTimerStart();
 }
-function dzSave(){ if(!dz) return; try{ if(dz.kind==='ws'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } if(dz.kind==='wv'){ localStorage.setItem(dz.key, JSON.stringify({sig:dz.sig,found:dz.found,el:dzElapsed()})); return; } localStorage.setItem(dz.key, JSON.stringify(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,notes:dz.notes,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()})); }catch(e){} }
+function dzSave(){ if(!dz) return; try{ const x={hs:dz.hs||{},hw:dz.hw||{}}; if(dz.kind==='ws'||dz.kind==='wv'){ localStorage.setItem(dz.key, JSON.stringify(Object.assign({sig:dz.sig,found:dz.found,el:dzElapsed()},x))); return; } localStorage.setItem(dz.key, JSON.stringify(Object.assign(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,notes:dz.notes,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()},x))); }catch(e){} }
 function dzFrame(){
   if(!dz) return;
   const head=`<div class="picker-title">${dzIcon(dz.type)} ${dzTypeName(dz.type,dz.diff).toUpperCase()}</div>${dz.cat?`<div class="picker-sub" style="font-size:16px;font-weight:800;color:#ffd45a">${dz.cat.icon} ${esc(dz.cat.name)}</div>`:''}<div class="picker-sub">${dzDayLabel(dz.date)} · 🪙 ${dz.reward}${account?'':' · '+L('ohne Anmeldung keine Münzen','no coins without login')}</div><div class="dz-timer" id="dzTimer">⏱ ${dzFmt(dzElapsed())}</div>`;
@@ -7083,10 +7110,10 @@ async function dzHint(hk){
   if(!dz) return;
   if(!r||!r.ok){ dzMsg((r&&r.error)||L('Fehler','Error')); return; }
   if(account&&account.profile) account.profile.coins=r.balance;
-  if(dz.kind==='sudoku'){ dz.cur[r.idx]=r.value; dz.puzzle[r.idx]=r.value; dz.sel=r.idx; if(dz.notes) dz.notes[r.idx]=0; }
-  else if(dz.kind==='cw'){ if(r.cells) r.cells.forEach(x=>{ dz.letters[x.r][x.c]=x.letter; }); else dz.letters[r.r][r.c]=r.letter; }
-  else if(dz.kind==='ws'){ if(r.w){ dz.found[r.w]={w:r.w,r:r.r,c:r.c,r2:r.r2,c2:r.c2}; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
-  else if(dz.kind==='wv'){ if(r.w){ dz.found[r.w]={w:r.w,path:r.path}; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
+  if(dz.kind==='sudoku'){ dz.cur[r.idx]=r.value; dz.puzzle[r.idx]=r.value; dz.hs[r.idx]=1; dz.sel=r.idx; if(dz.notes) dz.notes[r.idx]=0; }
+  else if(dz.kind==='cw'){ if(r.cells) r.cells.forEach(x=>{ dz.letters[x.r][x.c]=x.letter; dz.hs[x.r+','+x.c]=1; }); else { dz.letters[r.r][r.c]=r.letter; dz.hs[r.r+','+r.c]=1; } }
+  else if(dz.kind==='ws'){ if(r.w){ dz.found[r.w]={w:r.w,r:r.r,c:r.c,r2:r.r2,c2:r.c2}; dz.hw[r.w]=1; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dz.hintLen=r.len; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
+  else if(dz.kind==='wv'){ if(r.w){ dz.found[r.w]={w:r.w,path:r.path}; dz.hw[r.w]=1; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dz.hintLen=r.len; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
   if(typeof sfx==='function') sfx('mill');
   dzSave(); dzPaint(); dzHelpPaint();
   if(r.cost) { /* Kostenhinweis */ }
@@ -7110,7 +7137,7 @@ function dzSudokuHtml(){
   let g='';
   for(let i=0;i<81;i++){
     const r=(i/9)|0,c=i%9, given=dz.puzzle[i]>0, nt=dz.notes[i]||0;
-    const cl=['dzs-c', given?'g':'', i===sel?'s':'', (sel>=0&&i!==sel&&(r===sr||c===sc||(((r/3)|0)===((sr/3)|0)&&((c/3)|0)===((sc/3)|0))))?'p':'', (hl&&cur[i]===hl&&i!==sel)?'s2':'', (!given&&bad.has(i))?'e':'', (dz.wrong&&dz.wrong[i]===cur[i]&&!given)?'x':'', c%3===2&&c<8?'br':'', r%3===2&&r<8?'bb':''].join(' ');
+    const cl=['dzs-c', given?'g':'', i===sel?'s':'', (sel>=0&&i!==sel&&(r===sr||c===sc||(((r/3)|0)===((sr/3)|0)&&((c/3)|0)===((sc/3)|0))))?'p':'', (hl&&cur[i]===hl&&i!==sel)?'s2':'', (!given&&bad.has(i))?'e':'', (dz.wrong&&dz.wrong[i]===cur[i]&&!given)?'x':'', dz.hs&&dz.hs[i]?'hn':'', c%3===2&&c<8?'br':'', r%3===2&&r<8?'bb':''].join(' ');
     let inner=cur[i]||'';
     if(!cur[i]&&nt){ inner='<div class="dzs-nt">'; for(let n=1;n<=9;n++) inner+=(nt&(1<<n))?`<b${hl===n?' class="h"':''}>${n}</b>`:'<b></b>'; inner+='</div>'; }
     g+=`<div class="${cl}" onclick="dzSel(${i})">${inner}</div>`;
@@ -7153,12 +7180,14 @@ function dzWsHtml(){
   let g='';
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
     const k=r+','+c, ci=cov[k], isP=pv[k], bg=ci!==undefined?DZ_COLORS[ci%DZ_COLORS.length]:(dz.hintK===k?'rgba(61,224,255,.75)':isP?'rgba(255,212,90,.55)':(selK===k?'rgba(255,212,90,.85)':'rgba(255,255,255,.07)'));
-    g+=`<div data-k="${k}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:800;font-size:clamp(11px,${Math.floor(300/N)/10*1.05}cqw,22px);background:${bg};color:${ci!==undefined||isP||selK===k?'#10161f':'#fff'};user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
+    g+=`<div data-k="${k}" class="${dz.hintK===k&&ci===undefined?'wvc wvc-hint':''}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;font-weight:800;font-size:clamp(11px,${Math.floor(300/N)/10*1.05}cqw,22px);background:${bg};color:${ci!==undefined||isP||selK===k?'#10161f':'#fff'};user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
   }
   const hard=dz.diff==='big', nF=Object.keys(dz.found).length;
-  const words=dz.words.map(w=>{ const f=dz.found[w]; return `<span style="padding:4px 8px;border-radius:10px;font-size:13px;font-weight:700;margin:3px;display:inline-block;${f?`background:${DZ_COLORS[dzWsWordIdx(w)%DZ_COLORS.length]};color:#10161f;text-decoration:line-through`:'background:rgba(255,255,255,.08)'}">${esc(w)}</span>`; }).join('');
+  const words=dz.words.map(w=>{ const f=dz.found[w]; return `<span style="padding:4px 8px;border-radius:10px;font-size:13px;font-weight:700;margin:3px;display:inline-block;${f?`background:${DZ_COLORS[dzWsWordIdx(w)%DZ_COLORS.length]};color:#10161f;text-decoration:line-through`:'background:rgba(255,255,255,.08)'}" class="${f&&dz.hw&&dz.hw[w]?'hchip':''}">${esc(w)}</span>`; }).join('');
+  const hwList=Object.keys(dz.hw||{}).filter(w=>dz.found[w]);
+  const hwHtml=(hard&&hwList.length)?`<div style="text-align:center;margin:4px 0"><span style="font-size:12px;opacity:.8">${L('Mit Hilfe gefunden','Found with help')}:</span> ${hwList.map(w=>`<span class="hchip" style="padding:4px 8px;border-radius:10px;font-size:13px;font-weight:700;margin:3px;display:inline-block">${esc(w)}</span>`).join('')}</div>`:'';
   const cnt=`<div style="font-weight:800;margin:6px 0;color:${nF>=dz.words.length?'#7cff8c':'#fff'}">${nF} / ${dz.words.length} ${L('gefunden','found')} · ${L('noch','left:')} ${dz.words.length-nF}</div>`;
-  return `<div id="dzWsGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:3px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>${hard?cnt:`<div style="text-align:center;margin-top:8px">${words}</div>`}<div class="picker-sub" style="font-size:12px">${L('Wörter ziehen oder Anfang und Ende antippen. Sie stehen waagerecht, senkrecht oder schräg, immer in Leserichtung, nie rückwärts.','Drag across letters, or tap the first and last letter. Words run left to right, top to bottom or diagonally, never backwards.')}</div>`;
+  return `<div id="dzWsGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:3px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>${hard?cnt+hwHtml:`<div style="text-align:center;margin-top:8px">${words}</div>`}<div class="picker-sub" style="font-size:12px">${L('Wörter ziehen oder Anfang und Ende antippen. Sie stehen waagerecht, senkrecht oder schräg, immer in Leserichtung, nie rückwärts.','Drag across letters, or tap the first and last letter. Words run left to right, top to bottom or diagonally, never backwards.')}</div>`;
 }
 function dzWsLine(a,b){
   const dr=b[0]-a[0], dc=b[1]-a[1], n=Math.max(Math.abs(dr),Math.abs(dc));
@@ -7170,7 +7199,7 @@ function dzWsTry(a,b){
   const cells=dzWsLine(a,b); if(!cells) return false;
   const str=cells.map(p=>dz.grid[p[0]][p[1]]).join(''), rev=str.split('').reverse().join('');
   const w=dz.words.find(x=>!dz.found[x]&&(x===str||x===rev)); if(!w) return false;
-  dz.found[w]={w,r:a[0],c:a[1],r2:b[0],c2:b[1]}; dzSave(); if(typeof sfx==='function') sfx('mill'); return true;
+  dz.found[w]={w,r:a[0],c:a[1],r2:b[0],c2:b[1]}; if(dz.hintK&&dz.hintLen===w.length&&((a[0]+','+a[1]===dz.hintK)||(b[0]+','+b[1]===dz.hintK))){ dz.hw[w]=1; dz.hintK=null; } dzSave(); if(typeof sfx==='function') sfx('mill'); return true;
 }
 (function(){
   let down=null, last=null;
@@ -7198,17 +7227,17 @@ function dzPaintWsOnly(){
 /* ---------- Woerter verbinden (Boggle-artig): ueber benachbarte Buchstaben wischen, auch diagonal ---------- */
 function dzWvPoints(len){ return len<3?0:len===3?1:len===4?2:len===5?3:5; }
 function dzWvPts(){ return Object.keys(dz.found).reduce((a,w)=>a+dzWvPoints(w.length),0); }
+function dzWvCls(k,curK,fc){ return 'wvc'+(curK[k]!==undefined?' wvc-on'+(dz.flash==='bad'?' wvc-bad':dz.flash==='dup'?' wvc-dup':''):(dz.hintK===k?' wvc-hint':fc[k]?' wvc-fd':'')); }
 function dzWvHtml(){
   const N=dz.size, cur=dz.cur, curK={}; cur.forEach((p,i)=>{ curK[p[0]+','+p[1]]=i; });
   const foundCells={}; Object.values(dz.found).forEach(f=>f.path.forEach(p=>{ foundCells[p[0]+','+p[1]]=1; }));
   const word=cur.map(p=>dz.grid[p[0]][p[1]]).join('');
   let g='';
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
-    const k=r+','+c, on=curK[k]!==undefined, fd=foundCells[k];
-    const bg=on?(dz.flash==='bad'?'#ff5d6e':dz.flash==='dup'?'#4aa8ff':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fd?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)');
-    g+=`<div data-k="${k}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:900;font-size:clamp(14px,${Math.floor(330/N)/10*1.0}cqw,28px);background:${bg};color:${on?'#10161f':'#fff'};border:2px solid ${on?'#fff':'rgba(255,255,255,.12)'};user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
+    const k=r+','+c;
+    g+=`<div data-k="${k}" class="${dzWvCls(k,curK,foundCells)}"${curK[k]!==undefined?` data-b="${curK[k]+1}"`:''} style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:12px;font-weight:900;font-size:clamp(${dz.diff==='big'?18:14}px,${Math.floor(330/N)/10*(dz.diff==='big'?1.3:1.0)}cqw,${dz.diff==='big'?34:28}px);background:rgba(255,255,255,.1);color:#fff;border:2px solid rgba(255,255,255,.12);user-select:none;touch-action:none">${dz.grid[r][c]}</div>`;
   }
-  const words=Object.keys(dz.found).map(w=>`<span data-w="${esc(w)}" style="transition:background .15s;padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;margin:3px;display:inline-block;background:#7cff8c;color:#10161f">${esc(w)} <small>+${dzWvPoints(w.length)}</small></span>`).join('');
+  const words=Object.keys(dz.found).map(w=>`<span data-w="${esc(w)}" style="transition:background .15s;padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;margin:3px;display:inline-block;background:#7cff8c;color:#10161f" class="${dz.hw&&dz.hw[w]?'hchip':''}">${esc(w)} <small>+${dzWvPoints(w.length)}</small></span>`).join('');
   const pts=dzWvPts(), bon=({small:5,medium:10,big:50})[dz.diff];
   return `<div id="dzWvWord" style="min-height:34px;font-size:24px;font-weight:900;letter-spacing:3px;color:${dz.flash==='bad'?'#ff8a9a':dz.flash==='dup'?'#6ab8ff':dz.flash==='ok'?'#7cff8c':'#ffd45a'}">${esc(word)||'&nbsp;'}</div>
     <div id="dzWvGrid" style="display:grid;grid-template-columns:repeat(${N},1fr);gap:${N>7?4:6}px;width:min(100cqw,440px);margin:6px auto;touch-action:none">${g}</div>
@@ -7219,14 +7248,20 @@ function dzWvHtml(){
     <div class="picker-sub" style="font-size:12px">${L('Wische über benachbarte Buchstaben (auch diagonal), um beliebige Wörter zu bilden (ab 3 Buchstaben, Umlaute als AE, OE, UE, z. B. BAER). Punkte: 3 Buchstaben = 1, 4 = 2, 5 = 3, ab 6 = 5.','Swipe across neighbouring letters (diagonals too) to spell any words (3+ letters). Points: 3 letters = 1, 4 = 2, 5 = 3, 6+ = 5.')}</div>
     <div class="actions-row" style="margin:6px 0"><button class="btn btn-ghost" onclick="dzWvClear()">✖ ${L('Löschen','Clear')}</button></div>`;
 }
+function dzWvEndList(){
+  const all=Array.from(new Set((dz.valid||[]).concat(Object.keys(dz.found)))).sort((a,b)=>b.length-a.length||a.localeCompare(b));
+  const nf=all.filter(w=>dz.found[w]).length;
+  const chips=all.map(w=>{ const f=!!dz.found[w]; return `<span style="display:inline-block;margin:3px;padding:4px 9px;border-radius:10px;font-size:13px;font-weight:800;background:${f?'#7cff8c':'rgba(255,255,255,.1)'};color:${f?'#10161f':'#cfd6e0'}">${esc(w)} ${f?'✓':''}</span>`; }).join('');
+  return `<div style="margin:14px 0 6px;text-align:left"><div style="font-weight:800;text-align:center;margin-bottom:6px">${L('Alle möglichen Wörter','All possible words')}: ${nf} / ${all.length} ${L('gefunden','found')}</div><div style="text-align:center;max-height:260px;overflow:auto">${chips}</div></div>`;
+}
 function dzWvAdj(a,b){ return Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]))===1; }
 function dzWvPaintOnly(){
   // nur Farben/Wort aktualisieren (kein komplettes Neuzeichnen -> kein Ruckeln)
   const gEl=document.getElementById('dzWvGrid'); if(!gEl||!dz||dz.kind!=='wv'){ const b=document.getElementById('dzBody'); if(b&&dz&&dz.kind==='wv') b.innerHTML=dzWvHtml(); return; }
   const curK={}; dz.cur.forEach((p,i)=>{ curK[p[0]+','+p[1]]=i; });
   const fc={}; Object.values(dz.found).forEach(f=>f.path.forEach(p=>{ fc[p[0]+','+p[1]]=1; }));
-  gEl.querySelectorAll('[data-k]').forEach(el=>{ const k=el.dataset.k, on=curK[k]!==undefined;
-    el.style.background=on?(dz.flash==='bad'?'#ff5d6e':dz.flash==='dup'?'#4aa8ff':'#ffd45a'):(dz.hintK===k?'rgba(61,224,255,.75)':fc[k]?'rgba(124,255,140,.28)':'rgba(255,255,255,.1)'); el.style.color=on?'#10161f':'#fff'; });
+  gEl.querySelectorAll('[data-k]').forEach(el=>{ const k=el.dataset.k; const keep=el.classList.contains('wvc-shake');
+    el.className=dzWvCls(k,curK,fc)+(keep?' wvc-shake':''); if(curK[k]!==undefined) el.dataset.b=curK[k]+1; else el.removeAttribute('data-b'); });
   const w=document.getElementById('dzWvWord'); if(w){ w.textContent=dz.cur.map(p=>dz.grid[p[0]][p[1]]).join('')||'\u00a0'; w.style.color=dz.flash==='bad'?'#ff8a9a':dz.flash==='dup'?'#6ab8ff':dz.flash==='ok'?'#7cff8c':'#ffd45a'; }
 }
 function dzWvClear(){ if(!dz||dz.kind!=='wv') return; dz.cur=[]; dz.flash=''; dzWvPaintOnly(); }
@@ -7249,7 +7284,7 @@ async function dzWvCommit(){
     dzMsg((!ok&&(!r||!r.ok||r.uncertain))?L('Wörterbuch gerade nicht erreichbar, versuch es gleich nochmal.','Dictionary not reachable right now, try again in a moment.'):'','#ffd45a');
   }
   if(!ok){ bad(); return; }
-  dz.found[w]={w,path}; dz.flash='ok'; dzSave(); if(typeof sfx==='function') sfx('mill');
+  dz.found[w]={w,path}; dz.flash='ok'; if(dz.hintK&&dz.hintLen===w.length&&path[0][0]+','+path[0][1]===dz.hintK){ dz.hw[w]=1; dz.hintK=null; } dzSave(); if(typeof sfx==='function') sfx('mill');
   dzPaint(); const pts=dzWvPts(), gain=dzWvPoints(w.length);
   dzMsg('+'+gain+' '+L('Punkte','points'),'#7cff8c');
   if(pts>=dz.n && pts-gain<dz.n) dzMsg(L('Ziel geschafft! Du kannst „Fertig, prüfen“ drücken oder weitersuchen.','Goal reached! Tap “Done, check” or keep going.'),'#7cff8c');
@@ -7279,7 +7314,8 @@ async function dzWvCommit(){
     const cur=dz.cur, last=cur[cur.length-1]; if(!last) return;
     if(t.k[0]===last[0]&&t.k[1]===last[1]) return;
     if(cur.length>1&&t.k[0]===cur[cur.length-2][0]&&t.k[1]===cur[cur.length-2][1]){ cur.pop(); moved=true; dzWvPaintOnly(); return; }  // zurueck wischen
-    if(cur.some(p=>p[0]===t.k[0]&&p[1]===t.k[1])||!dzWvAdj(last,t.k)) return;
+    if(cur.some(p=>p[0]===t.k[0]&&p[1]===t.k[1])){ const el=document.querySelector('#dzWvGrid [data-k="'+t.k[0]+','+t.k[1]+'"]'); if(el&&!el.classList.contains('wvc-shake')){ el.classList.add('wvc-shake'); if(typeof sfx==='function') sfx('tap'); setTimeout(()=>el.classList.remove('wvc-shake'),320); } return; }
+    if(!dzWvAdj(last,t.k)) return;
     cur.push(t.k); moved=true; dzWvPaintOnly();
   });
   document.addEventListener('pointerup',()=>{
@@ -7301,7 +7337,7 @@ function dzCwHtml(){
   for(let r=0;r<N;r++) for(let c=0;c<N;c++){
     const cell=dz.cells[r][c];
     if(!cell){ g+='<div class="dzc b"></div>'; continue; }
-    const cl='dzc'+(dz.sel&&dz.sel[0]===r&&dz.sel[1]===c?' s':(inW(r,c)?' w':''))+(dzWrongAt(r,c)?' x':'');
+    const cl='dzc'+(dz.sel&&dz.sel[0]===r&&dz.sel[1]===c?' s':(inW(r,c)?' w':''))+(dzWrongAt(r,c)?' x':'')+(dz.hs&&dz.hs[r+','+c]?' hn':'');
     g+=`<div class="${cl}" onclick="dzCell(${r},${c})">${cell.n?`<i>${cell.n}</i>`:''}${dz.letters[r][c]||''}</div>`;
   }
   const arrow=aw?(aw.dir==='across'?'→':'↓'):'';
@@ -7368,7 +7404,7 @@ async function dzSubmit(){
     dzPaint();
   }
   if(!r.correct){ dzMsg(dz.kind==='wv'?L(r.wrong+' Punkt(e) fehlen noch.',r.wrong+' point(s) still missing.'):dz.kind==='ws'?L(r.wrong+' Wort/Wörter fehlen noch.',r.wrong+' word(s) still missing.'):dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
-  const solvedTime=dzElapsed(); dzTimerStop();
+  const wvList=dz.kind==='wv'?dzWvEndList():''; const solvedTime=dzElapsed(); dzTimerStop();
   try{ if(!r.tooFast) achvRecord({ t:'daily', type:dz.type, date:dz.date }); }catch(e){}
   try{ localStorage.removeItem(dz.key); }catch(e){}
   if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance;
@@ -7378,7 +7414,7 @@ async function dzSubmit(){
     :r.deferred?L('Richtig! 🎉 Belohnung: '+r.reward+' Münzen'+', abholbar ab morgen. Höhere Stufe = mehr (nicht addiert).','Correct! 🎉 Reward: '+r.reward+' coins, collect from tomorrow. A higher level pays more (not added up).')
     :L('Richtig! 🎉 +'+r.coins+' Münzen','Correct! 🎉 +'+r.coins+' coins');
   if(r.tooFast){ dzMsg(txt,'#ffd45a'); dzTimerStart(); return; }
-  renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div><div class="dz-timer">⏱ ${dzFmt(solvedTime)}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
+  renderApp(`<div class="panel"><div class="dz-wrap"><div style="font-size:64px;margin-top:20px">🎉</div><div class="picker-title">${L('GELÖST!','SOLVED!')}</div>${wvList}<div class="dz-timer">⏱ ${dzFmt(solvedTime)}</div><div class="picker-sub" style="font-size:16px;color:#c6ff3d">${txt}</div><div class="actions-row" style="margin-top:16px"><button class="btn" onclick="startDailyFlow()">${L('Weiter','Continue')}</button></div></div></div>`);
 }
 
 /* ---- Braining: Level + Booster (Brain Fruit / Brain Hood laufen in einem iframe und holen sich das hier) ---- */
@@ -7502,8 +7538,9 @@ function brainBoardHtml(game, title, ic, r){
   const me = r.mine ? `<div style="font-size:12px;color:var(--text-dim);margin-top:8px;">${L('Du','You')}: ${r.mine.pts.toLocaleString()} ${L('Punkte','pts')}${r.mine.pos ? ' · '+L('Platz','rank')+' '+r.mine.pos : ''} · ${L('Rang','Rank')} R${r.mine.rank} (${L('Level','level')} ${r.mine.level})</div>` : `<div style="font-size:12px;color:var(--text-dim);margin-top:8px;">${L('Melde dich an, um in der Liste zu erscheinen.','Log in to appear on the board.')}</div>`;
   return `<div class="lbcard"><div class="lbh"><b>${ic} ${title}</b><span class="cd">⏳ ${L('noch','in')} ${left}</span></div><div class="lbs">${L('Beste 10 diese Woche · Top 5 bekommen Preise','Top 10 this week · top 5 win prizes')}</div>${rows}${me}</div>`;
 }
-let brainData = { hood:null, fruit:null }, brainTabSel = 'hood', brainOpen = false;
+let brainData = { hood:null, fruit:null, jong:null }, brainTabSel = 'fruit', brainOpen = false;
 function brainCardsHtml(){
+  if(!document.getElementById('brain3Css')){ const st=document.createElement('style'); st.id='brain3Css'; st.textContent='.brain3 .mode-card{padding:26px 6px 10px!important;min-width:0;text-align:center}.brain3 .mode-card h3{font-size:14px!important;margin:4px 0}.brain3 .mode-card p{font-size:11px!important;line-height:1.25;margin:0}.brain3 .mode-card .icon{transform:scale(.85)}.brain3 .mode-card>div[style*=flex]{justify-content:center;gap:4px!important}.brain3 .mode-card>div[style*=flex] span{font-size:10.5px!important;padding:2px 6px!important}.brain3 .zpb{top:4px!important;right:4px!important;font-size:9px!important;padding:2px 5px!important}'; document.head.appendChild(st); }
   const f = fruitData();
   const card = (game, title, sub, ic, lvl, r) => hiddenFeatures.indexOf('braining_' + game) !== -1 ? '' : featureLocked('braining_' + game) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="braining_${game}">${gateText('braining_' + game)}</p></div>` : `<div class="mode-card" onclick="${game==='galaxy'?'BGX.map(startBrainingHub)':`renderChessFrame('${game==='hood'?'/solo/arrows.html':'/brainmania/fruit.html'}')`}" style="${admSty('braining_' + game)}">
       <div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p>
@@ -7515,7 +7552,7 @@ function brainCardsHtml(){
 }
 function brainBoardsPaint(){
   const el = document.getElementById('brainBoards'); if(!el) return;
-  const TB = { fruit:['🍓','Brain Fruit'], galaxy:['🪐','Brain Galaxy'], hood:['🧊','Brain Arrow'] };
+  const TB = { fruit:['🍓','Brain Fruit'], galaxy:['🪐','Brain Galaxy'], jong:['🀄','Brain Jong'] };
   const tabs = `<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">${Object.keys(TB).map(k => `<button class="chip-btn${brainTabSel===k?' active':''}" onclick="brainTabSel='${k}';brainBoardsPaint()">${TB[k][0]} ${TB[k][1]}</button>`).join('')}</div>`;
   el.innerHTML = brainOpen ? tabs + brainBoardHtml(brainTabSel, TB[brainTabSel][1], TB[brainTabSel][0], brainData[brainTabSel]) : '';
   const b = document.getElementById('brainBoardBtn'); if(b) b.innerHTML = `🏆 ${L('BESTENLISTEN','LEADERBOARDS')} ${brainOpen ? '▴' : '▾'}`;
@@ -7526,10 +7563,12 @@ function startSoloWelt(){
   const arIc = '<svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><path d="M18 30L30 30M26 26L30 30L26 34" fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const kuIc = '<span style="display:inline-block;width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#8a8f9c,#0b0c10 62%);box-shadow:0 3px 6px rgba(0,0,0,.5)"></span>';
   const c = (id, fn, ic, title, sub) => hiddenFeatures.indexOf(id) !== -1 ? '' : featureLocked(id) ? `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>${title}</h3><p data-gate="${id}">${gateText(id)}</p></div>` : `<div class="mode-card" onclick="${fn}()"><div class="icon">${ic}</div><h3>${title}</h3><p>${sub}</p></div>`;
-  const cards = c('braining_solitaire', 'startKugelSolitaer', kuIc, L('Kugel-Solitär','Marble Solitaire'), L('Kugeln überspringen','Jump the marbles')) + c('braining_hood', 'startBrainArrow', arIc, 'Brain Arrow', L('Würfel drehen, Pfeile abräumen','Rotate the cube, clear the arrows')) + c('braining_tf', 'startBlitzTF', '<span style="font-size:40px;line-height:40px">⚡</span>', L('Wahr oder Falsch Blitz','True or False Blitz'), L('60 Sekunden, so viele wie möglich','60 seconds, as many as you can')) + c('braining_ms', 'startMinesucher', '<span style="font-size:40px;line-height:40px">💣</span>', L('Minesucher','Minesweeper'), L('Minen finden, schnell sein','Find the mines, be fast')) + c('braining_2048', 'start2048', '<span style="font-size:40px;line-height:40px">🔢</span>', '2048', L('Zahlen verschmelzen','Merge the numbers')) + c('braining_brick', 'startBrick', '<span style="font-size:40px;line-height:40px">✈️</span>', L('Brick Flieger','Brick Flight'), L('Schieben und ausweichen','Slide and dodge')) + c('braining_hopper', 'startHopper', '<span style="display:inline-block;width:34px;height:34px;border-radius:50%;background:#fff;box-shadow:0 0 14px #fff8"></span>', L('Hüpfer','Hopper'), L('Immer höher springen','Jump higher and higher')) + c('braining_flappy', 'startFlappy', '<span style="font-size:40px;line-height:40px">🕊️</span>', L('Flappy-Flug','Flappy Flight'), L('Durch die Lücken fliegen','Fly through the gaps')) + c('braining_block', 'startBlockPuzzle', '<span style="font-size:40px;line-height:40px">🧩</span>', 'Block Puzzle', L('Formen ziehen, Reihen füllen','Drag shapes, fill the rows'));
+  const SIC = {"sol": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><circle cx=\"24\" cy=\"24\" r=\"21\" fill=\"#c99a5b\" stroke=\"#7a5537\" stroke-width=\"3\"/><circle cx=\"24\" cy=\"24\" r=\"16\" fill=\"none\" stroke=\"#a87a40\" stroke-width=\"1.5\"/><circle cx=\"24\" cy=\"12\" r=\"4.6\" fill=\"url(#mg)\"/><circle cx=\"15\" cy=\"20\" r=\"4.6\" fill=\"url(#mg)\"/><circle cx=\"33\" cy=\"20\" r=\"4.6\" fill=\"url(#mg)\"/><circle cx=\"15\" cy=\"30\" r=\"4.6\" fill=\"url(#mg)\"/><circle cx=\"33\" cy=\"30\" r=\"4.6\" fill=\"url(#mg)\"/><circle cx=\"24\" cy=\"36\" r=\"4.6\" fill=\"url(#mg)\"/><circle cx=\"24\" cy=\"24\" r=\"4.6\" fill=\"url(#mg)\"/><circle cx=\"24\" cy=\"24\" r=\"4.6\" fill=\"#3a2a1a\" opacity=\".0\"/><defs><radialGradient id=\"mg\" cx=\".35\" cy=\".3\"><stop offset=\"0\" stop-color=\"#9aa0ad\"/><stop offset=\".7\" stop-color=\"#0b0c10\"/></radialGradient></defs></svg>", "tf": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><rect x=\"3\" y=\"3\" width=\"42\" height=\"42\" rx=\"11\" fill=\"#1b2340\" stroke=\"#ffd45a\" stroke-width=\"2.5\"/><path d=\"M27 6L14 26H23L19 42L34 20H25Z\" fill=\"#ffd45a\" stroke=\"#fff3b0\" stroke-width=\"1.2\" stroke-linejoin=\"round\"/><path d=\"M6 36L9 39L14 33\" stroke=\"#7cff8c\" stroke-width=\"2.4\" fill=\"none\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M36 10L42 16M42 10L36 16\" stroke=\"#ff5d6c\" stroke-width=\"2.4\" stroke-linecap=\"round\"/></svg>", "ms": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><g stroke=\"#cfd6e8\" stroke-width=\"3.2\" stroke-linecap=\"round\"><path d=\"M24 4V44M4 24H44M10 10L38 38M38 10L10 38\"/></g><circle cx=\"24\" cy=\"24\" r=\"13\" fill=\"url(#mm)\"/><circle cx=\"19\" cy=\"19\" r=\"3.6\" fill=\"#fff\" opacity=\".75\"/><path d=\"M33 12L38 6\" stroke=\"#ffb02e\" stroke-width=\"2.4\" stroke-linecap=\"round\"/><circle cx=\"39\" cy=\"5\" r=\"2.6\" fill=\"#ff5d6c\"/><defs><radialGradient id=\"mm\" cx=\".35\" cy=\".3\"><stop offset=\"0\" stop-color=\"#6b7388\"/><stop offset=\".8\" stop-color=\"#14171f\"/></radialGradient></defs></svg>", "g2048": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><rect x=\"2\" y=\"2\" width=\"44\" height=\"44\" rx=\"9\" fill=\"#2a2338\"/><rect x=\"6\" y=\"6\" width=\"17\" height=\"17\" rx=\"4\" fill=\"#edc22e\"/><rect x=\"25\" y=\"6\" width=\"17\" height=\"17\" rx=\"4\" fill=\"#f59563\"/><rect x=\"6\" y=\"25\" width=\"17\" height=\"17\" rx=\"4\" fill=\"#f67c5f\"/><rect x=\"25\" y=\"25\" width=\"17\" height=\"17\" rx=\"4\" fill=\"#ff5d6c\"/><g fill=\"#fff\" font-family=\"system-ui\" font-weight=\"900\" text-anchor=\"middle\" font-size=\"10\"><text x=\"14.5\" y=\"18.5\">2</text><text x=\"33.5\" y=\"18.5\">4</text><text x=\"14.5\" y=\"37.5\">8</text><text x=\"33.5\" y=\"37.5\" font-size=\"8\">16</text></g></svg>", "brick": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><rect x=\"1\" y=\"1\" width=\"46\" height=\"46\" rx=\"9\" fill=\"#0e1320\" stroke=\"#1d2536\" stroke-width=\"2\"/><rect x=\"5.0\" y=\"4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"10.2\" y=\"4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"15.4\" y=\"4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"20.6\" y=\"4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"31.0\" y=\"4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ffb02e\"/><rect x=\"36.2\" y=\"4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ffb02e\"/><rect x=\"41.4\" y=\"4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ffb02e\"/><rect x=\"5.0\" y=\"9.2\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"10.2\" y=\"9.2\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"15.4\" y=\"9.2\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"20.6\" y=\"9.2\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ff5d6c\"/><rect x=\"31.0\" y=\"9.2\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ffb02e\"/><rect x=\"36.2\" y=\"9.2\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ffb02e\"/><rect x=\"41.4\" y=\"9.2\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#ffb02e\"/><rect x=\"13.0\" y=\"14.4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#b07aff\"/><rect x=\"18.2\" y=\"14.4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#b07aff\"/><rect x=\"23.4\" y=\"14.4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#b07aff\"/><rect x=\"36.0\" y=\"14.4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#3de0ff\"/><rect x=\"41.2\" y=\"14.4\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#3de0ff\"/><rect x=\"13.0\" y=\"19.6\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#b07aff\"/><rect x=\"18.2\" y=\"19.6\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#b07aff\"/><rect x=\"23.4\" y=\"19.6\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#b07aff\"/><rect x=\"36.0\" y=\"19.6\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#3de0ff\"/><rect x=\"41.2\" y=\"19.6\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#3de0ff\"/><rect x=\"21.7\" y=\"26.5\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/><rect x=\"16.5\" y=\"31.7\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/><rect x=\"21.7\" y=\"31.7\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/><rect x=\"26.9\" y=\"31.7\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/><rect x=\"21.7\" y=\"36.9\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/><rect x=\"16.5\" y=\"42.1\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/><rect x=\"21.7\" y=\"42.1\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/><rect x=\"26.9\" y=\"42.1\" width=\"4.6\" height=\"4.6\" rx=\"1\" fill=\"#fff\" stroke=\"#3de0ff\" stroke-width=\".9\"/></svg>", "hop": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><rect x=\"2\" y=\"2\" width=\"44\" height=\"44\" rx=\"11\" fill=\"#12192b\"/><circle cx=\"24\" cy=\"12\" r=\"6\" fill=\"#fff\"/><circle cx=\"24\" cy=\"12\" r=\"9\" fill=\"#fff\" opacity=\".15\"/><rect x=\"11\" y=\"24\" width=\"26\" height=\"5\" rx=\"2.5\" fill=\"#3ddc84\"/><rect x=\"6\" y=\"33\" width=\"14\" height=\"4\" rx=\"2\" fill=\"#bfefff\"/><rect x=\"28\" y=\"33\" width=\"14\" height=\"4\" rx=\"2\" fill=\"#b455ff\"/><path d=\"M2 42Q8 38 14 42T26 42T38 42T46 42V46H2Z\" fill=\"#ff5a1f\"/></svg>", "flp": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><rect x=\"2\" y=\"2\" width=\"44\" height=\"44\" rx=\"11\" fill=\"#1a1740\"/><rect x=\"31\" y=\"2\" width=\"11\" height=\"14\" rx=\"2\" fill=\"#151c2b\" stroke=\"#3ddc84\" stroke-width=\"2\"/><rect x=\"31\" y=\"32\" width=\"11\" height=\"14\" rx=\"2\" fill=\"#151c2b\" stroke=\"#3ddc84\" stroke-width=\"2\"/><circle cx=\"17\" cy=\"24\" r=\"8\" fill=\"#fff\"/><path d=\"M10 25Q6 18 12 18Q14 22 15 25Z\" fill=\"#cfe9ff\"/><circle cx=\"20\" cy=\"22\" r=\"2\" fill=\"#10161f\"/><path d=\"M24 25L30 26L24 28Z\" fill=\"#ffb02e\"/></svg>", "blk": "<svg viewBox=\"0 0 48 48\" width=\"46\" height=\"46\"><rect x=\"2\" y=\"2\" width=\"44\" height=\"44\" rx=\"9\" fill=\"#2a1058\"/><g stroke=\"#fff3\" stroke-width=\"1\"><rect x=\"7\" y=\"7\" width=\"12\" height=\"12\" rx=\"3\" fill=\"#4d9bff\"/><rect x=\"7\" y=\"20\" width=\"12\" height=\"12\" rx=\"3\" fill=\"#4d9bff\"/><rect x=\"7\" y=\"33\" width=\"12\" height=\"9\" rx=\"3\" fill=\"#4d9bff\"/><rect x=\"20\" y=\"33\" width=\"12\" height=\"9\" rx=\"3\" fill=\"#4d9bff\"/><rect x=\"33\" y=\"33\" width=\"9\" height=\"9\" rx=\"3\" fill=\"#ffd45a\"/><rect x=\"33\" y=\"20\" width=\"9\" height=\"12\" rx=\"3\" fill=\"#ff5d8f\"/><rect x=\"20\" y=\"20\" width=\"12\" height=\"12\" rx=\"3\" fill=\"#7ae582\"/></g></svg>", "bg": "<svg viewBox=\"0 0 48 48\" width=\"44\" height=\"44\"><rect x=\"3\" y=\"6\" width=\"42\" height=\"36\" rx=\"6\" fill=\"#5a3a22\"/><path d=\"M6 9L11 26L16 9ZM17 9L22 26L27 9Z\" fill=\"#d9b98a\"/><path d=\"M27 39L32 22L37 39ZM38 39L43 22L48 39Z\" fill=\"#d9b98a\" transform=\"translate(-4 0)\"/><circle cx=\"14\" cy=\"36\" r=\"4\" fill=\"#c6ff3d\"/><circle cx=\"34\" cy=\"13\" r=\"4\" fill=\"#ff5d8f\"/></svg>"};
+  const cards = c('braining_solitaire', 'startKugelSolitaer', kuIc, L('Kugel-Solitär','Marble Solitaire'), L('Kugeln überspringen','Jump the marbles')) + c('braining_hood', 'startBrainArrow', arIc, 'Brain Arrow', L('Würfel drehen, Pfeile abräumen','Rotate the cube, clear the arrows')) + c('braining_tf', 'startBlitzTF', SIC.tf, L('Wahr oder Falsch Blitz','True or False Blitz'), L('3 Minuten, so viele wie möglich','3 minutes, as many as you can')) + c('braining_ms', 'startMinesucher', '<span style="font-size:40px;line-height:40px">💣</span>', L('Minesucher','Minesweeper'), L('Minen finden, schnell sein','Find the mines, be fast')) + c('braining_2048', 'start2048', '<span style="font-size:40px;line-height:40px">🔢</span>', '2048', L('Zahlen verschmelzen','Merge the numbers')) + c('braining_brick', 'startBrick', SIC.brick, L('Brick Flieger','Brick Flight'), L('Schieben und ausweichen','Slide and dodge')) + c('braining_hopper', 'startHopper', SIC.hop, L('Hüpfer','Hopper'), L('Immer höher springen','Jump higher and higher')) + c('braining_flappy', 'startFlappy', SIC.flp, L('Flappy-Flug','Flappy Flight'), L('Durch die Lücken fliegen','Fly through the gaps')) + c('braining_block', 'startBlockPuzzle', SIC.blk, 'Block Puzzle', L('Formen ziehen, Reihen füllen','Drag shapes, fill the rows')) + `<div class="mode-card" onclick="bgIntro()"><div class="icon">${SIC.bg}</div><h3>Backgammon</h3><p>${L('Würfeln und ziehen, gegen den Bot','Roll and move, against the bot')}</p></div>`;
   renderApp(`<div class="panel"><div class="picker-title">🎯 SOLO</div><div class="picker-sub">${L('Spiele für dich allein, ganz ohne Stress.','Games just for you, no stress.')}</div><div class="menu-grid" style="margin-top:14px;grid-template-columns:1fr 1fr">${cards || `<div class="d" style="grid-column:1/-1;opacity:.7">${L('Bald gibt es hier mehr.','More coming soon.')}</div>`}</div><div class="actions-row" style="margin-top:18px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div>`);
 }
 function startBrainArrow(){ renderChessFrame('/solo/arrows.html'); }
+function startErdkunde(){ renderChessFrame('/modi/erdkunde/index.html'); }
 function startBlitzTF(){ renderChessFrame('/solo/blitz/index.html'); }
 function startMinesucher(){ renderChessFrame('/solo/minesweeper.html'); }
 function start2048(){ renderChessFrame('/solo/g2048.html'); }
@@ -7556,7 +7595,7 @@ function jongCardHtml(f){
   const ic = '<span style="font-size:40px;line-height:46px;">🀄</span>';
   if(featureLocked('braining_jong')) return `<div class="mode-card locked" style="opacity:.45;cursor:default"><div class="icon">${ic}</div><h3>Brain Jong</h3><p data-gate="braining_jong">${gateText('braining_jong')}</p></div>`;
   return `<div class="mode-card" onclick="renderChessFrame('/brainmania/jong.html')" style="${admSty('braining_jong')}"><div class="icon">${ic}</div><h3>Brain Jong</h3><p>${L('Mahjong im Lebensbaum','Mahjong on the tree of life')}</p>
-      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${f.jongLevel||1}</span></div></div>`;
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;"><span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--accent);">${L('Level','Level')} ${f.jongLevel||1}</span>${true?`<span style="background:rgba(255,255,255,.08);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:800;color:var(--warn);">${((brainData.jong&&brainData.jong.ok&&brainData.jong.mine&&brainData.jong.mine.pts)||f.jongPts||0).toLocaleString()} ${L('Pkt','pts')}</span>`:''}</div></div>`;
 }
 /* ---------- Upgrade-Baum (Screen) ---------- */
 let upgSel = null, upgMsg = '';
@@ -7604,14 +7643,14 @@ async function upgBuy(id){
   startUpgradeTree();
 }
 async function startBrainingHub(){
-  setAudioZone("menu"); brainOpen = false; brainTabSel = 'fruit'; brainData = { hood:null, fruit:null, galaxy:null };
+  setAudioZone("menu"); brainOpen = false; brainTabSel = 'fruit'; brainData = { fruit:null, galaxy:null, jong:null };
   const paint = () => { const hb = document.getElementById('brainHeroBar'); if(hb && window.BGX && BGX.bar){ try{ hb.innerHTML = BGX.bar(); }catch(e){} } const g = document.getElementById('brainCards'); if(g){ g.innerHTML = brainCardsHtml(); try{ zpMarkCards(); }catch(e){} } };
   renderApp(`
     <div class="panel">
       <div class="picker-title">🧠 BRAINMANIA</div>
       <div class="picker-sub">${L('Denkspiele ohne Ende, jedes Level wird schwerer.','Endless puzzles, every level gets harder.')}</div>
       <div id="brainHeroBar"></div>
-      <div class="menu-grid" id="brainCards" style="margin-top:14px;grid-template-columns:1fr 1fr;"></div>
+      <div class="menu-grid brain3" id="brainCards" style="margin-top:14px;grid-template-columns:repeat(3,1fr);gap:8px"></div>
       <div id="brainClaim"></div>
       <button class="bs-link" id="brainBoardBtn" style="margin-top:14px;" onclick="brainToggleBoards()"></button>
       <div id="brainBoards"></div>
@@ -7624,12 +7663,12 @@ async function startBrainingHub(){
     if(c.ok && c.profile){
       account.profile.coins = c.profile.coins; account.profile.fruit = c.profile.fruit;
       const el = document.getElementById('brainClaim');
-      if(el && c.rewards && c.rewards.length) el.innerHTML = `<div class="rank-up-banner" style="background:rgba(198,255,61,.15);border-color:var(--accent);color:var(--accent);margin-top:12px;">🏆 ${L('Wochenpreis!','Weekly prize!')} ${c.rewards.map(r => (r.game==='fruit'?'🍓':r.game==='galaxy'?'🪐':'🧊')+' '+L('Platz','Rank')+' '+r.pos+': 🪙'+r.coins+(r.hammer?' 🔨'+r.hammer:'')).join(' · ')}</div>`;
+      if(el && c.rewards && c.rewards.length) el.innerHTML = `<div class="rank-up-banner" style="background:rgba(198,255,61,.15);border-color:var(--accent);color:var(--accent);margin-top:12px;">🏆 ${L('Wochenpreis!','Weekly prize!')} ${c.rewards.map(r => (r.game==='fruit'?'🍓':r.game==='galaxy'?'🪐':r.game==='jong'?'🀄':'🧊')+' '+L('Platz','Rank')+' '+r.pos+': 🪙'+r.coins+(r.hammer?' 🔨'+r.hammer:'')).join(' · ')}</div>`;
       paint();
     }
   }
-  const [h, f, gx] = await Promise.all([apiCall('/api/braining/board', { token: tok, game:'hood' }), apiCall('/api/braining/board', { token: tok, game:'fruit' }), apiCall('/api/braining/board', { token: tok, game:'galaxy' })]);
-  brainData = { hood:h, fruit:f, galaxy:gx }; paint(); brainBoardsPaint();
+  const [jg, f, gx] = await Promise.all([apiCall('/api/braining/board', { token: tok, game:'jong' }), apiCall('/api/braining/board', { token: tok, game:'fruit' }), apiCall('/api/braining/board', { token: tok, game:'galaxy' })]);
+  brainData = { jong:jg, fruit:f, galaxy:gx }; paint(); brainBoardsPaint();
 }
 function renderMainMenu(){
   setAudioZone("menu");
@@ -7717,6 +7756,11 @@ function renderMainMenu(){
         <p>${L('Entdecke, wie dein Körper funktioniert.','Discover how your body works.')}</p>
       </div>`}
 ${currentLang === 'de' ? `
+      <div class="mode-card" onclick="startErdkunde()">
+        <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="24" cy="24" r="19" fill="#0f3a5c" stroke="#3de0ff" stroke-width="3"/><path d="M12 17C16 14 20 15 22 18C24 21 20 24 17 24C14 24 12 21 10 22M27 12C31 12 34 15 33 18C32 21 36 21 38 24C38 29 34 33 30 33C27 33 28 29 26 27C24 25 27 22 25 19C24 17 26 15 27 12Z" fill="#3ddc84"/><ellipse cx="24" cy="24" rx="8" ry="19" fill="none" stroke="#3de0ff" stroke-width="1.5" opacity=".6"/></svg></div>
+        <h3>Erdkunde</h3>
+        <p>Bundesländer, Berge, Flüsse, Hauptstädte und mehr.</p>
+      </div>
       <div class="mode-card" onclick="startVocab()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="6" y="8" width="36" height="28" rx="6" fill="none" stroke="#ffc446" stroke-width="3.5"/><path d="M16 36L14 43L24 36" fill="none" stroke="#ffc446" stroke-width="3.5" stroke-linejoin="round"/><path d="M15 27L20 16L25 27M17 23.5H23" fill="none" stroke="#ffc446" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M29 20H35M32 20V27" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Vocab</h3>
@@ -7755,11 +7799,6 @@ ${currentLang === 'de' ? `
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="7" y="5" width="34" height="38" rx="5" fill="#fff"/><rect x="7" y="5" width="34" height="11" rx="5" fill="#c6ff3d"/><path d="M14 24H34M14 30H34M14 36H34" stroke="#c0243a" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Taboo</h3>
         <p>${currentLang==='de' ? 'Wörter erraten und erklären, allein oder mit Freunden.' : 'Only available in German'}</p>
-      </div>
-      <div class="mode-card" onclick="bgIntro()">
-        <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="3" y="6" width="42" height="36" rx="6" fill="#5a3a22"/><path d="M6 9L11 26L16 9ZM17 9L22 26L27 9Z" fill="#d9b98a"/><path d="M27 39L32 22L37 39ZM38 39L43 22L48 39Z" fill="#d9b98a" transform="translate(-4 0)"/><circle cx="14" cy="36" r="4" fill="#c6ff3d"/><circle cx="34" cy="13" r="4" fill="#ff5d8f"/></svg></div>
-        <h3>Backgammon</h3>
-        <p>${L('Würfeln und ziehen, gegen den Bot.','Roll and move, against the bot.')}</p>
       </div>
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="2" y="6" width="44" height="36" rx="6" fill="#2f6bff"/><circle cx="9" cy="14" r="4" fill="#0b1236"/><circle cx="9" cy="24" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#0b1236"/><circle cx="19" cy="14" r="4" fill="#0b1236"/><circle cx="19" cy="24" r="4" fill="#0b1236"/><circle cx="19" cy="34" r="4" fill="#0b1236"/><circle cx="29" cy="14" r="4" fill="#0b1236"/><circle cx="29" cy="24" r="4" fill="#0b1236"/><circle cx="29" cy="34" r="4" fill="#0b1236"/><circle cx="39" cy="14" r="4" fill="#0b1236"/><circle cx="39" cy="24" r="4" fill="#0b1236"/><circle cx="39" cy="34" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="7" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="34" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="29" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="27" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="39" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="37" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="24" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="21.5" r="2" fill="#fff" opacity=".6"/></svg></div>

@@ -4134,7 +4134,7 @@ async function zpApi(payload, lang) {
    - Rang (Elo-Stufe 1-10) richtet sich nach dem hoechsten erreichten Level und faellt nie.
    - Top 5 der Vorwoche bekommen Preise (einmal pro Woche abholbar).
    ============================================================================ */
-const BRAIN_GAMES = ["fruit", "hood", "galaxy"];
+const BRAIN_GAMES = ["fruit", "hood", "galaxy", "jong"];
 const BRAIN_RANK_LEVELS = [1, 50, 150, 400, 700, 1000, 1500, 2200, 3000, 4000];
 const BRAIN_REWARDS = [ { coins: 100, hammer: 3 }, { coins: 70, hammer: 2 }, { coins: 50, hammer: 1 }, { coins: 30, hammer: 0 }, { coins: 20, hammer: 0 } ];
 const BRAIN_MIN_GAP_MS = 8000;
@@ -4150,7 +4150,7 @@ function brainState(user) {
   const st = user.stats;
   if (!st.brain || typeof st.brain !== "object") st.brain = { weeks: {}, best: { fruit: 0, hood: 0, galaxy: 0 }, last: { fruit: 0, hood: 0, galaxy: 0 }, claimed: 0 };
   const b = st.brain; if (!b.weeks) b.weeks = {}; if (!b.best) b.best = { fruit: 0, hood: 0, galaxy: 0 }; if (!b.last) b.last = { fruit: 0, hood: 0, galaxy: 0 };
-  if (!b.best.galaxy) b.best.galaxy = 0; if (!b.last.galaxy) b.last.galaxy = 0;
+  if (!b.best.galaxy) b.best.galaxy = 0; if (!b.last.galaxy) b.last.galaxy = 0; if (!b.best.jong) b.best.jong = 0; if (!b.last.jong) b.last.jong = 0;
   const cur = brainWeekInfo().id;
   for (const k of Object.keys(b.weeks)) if (Number(k) < cur - 2) delete b.weeks[k]; // nur die letzten Wochen behalten
   return b;
@@ -4166,17 +4166,17 @@ async function brainSubmit(token, game, level, lang, pts) {
   if (!BRAIN_GAMES.includes(game)) return errObj("invalidInput", lang);
   level = Math.round(Number(level)); if (!Number.isFinite(level) || level < 1 || level > 9999) return errObj("invalidInput", lang);
   const b = brainState(user), f = user.stats.fruit || {};
-  const saved = game === "fruit" ? (f.fruitLevel || 1) : game === "galaxy" ? (f.galaxyLevel || 1) : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
+  const saved = game === "fruit" ? (f.fruitLevel || 1) : game === "galaxy" ? (f.galaxyLevel || 1) : game === "jong" ? (f.jongLevel || 1) : (f.hoodLevel || 1); // das vom Client gespeicherte "aktuelle" Level
   const maxOk = Math.max(b.best[game], saved) + 1;
   if (level > maxOk) return { ok: false, error: "level" };
   const now = Date.now(); const sinceLast = now - (b.last[game] || 0);
   if (sinceLast < BRAIN_MIN_GAP_MS) { if (sinceLast < 2000) flagCheat(user, "Brain " + game + " Spam"); return { ok: false, error: "tooFast" }; }
   b.last[game] = now;
   b.best[game] = Math.max(b.best[game], level);
-  const w = brainWeekInfo().id; if (!b.weeks[w]) b.weeks[w] = { fruit: 0, hood: 0, galaxy: 0 };
+  const w = brainWeekInfo().id; if (!b.weeks[w]) b.weeks[w] = { fruit: 0, hood: 0, galaxy: 0, jong: 0 };
   // Brain Fruit zaehlt Spielpunkte (mit plausibler Obergrenze pro Runde), alles andere das Level
   let gain = level;
-  if ((game === "fruit" || game === "galaxy") && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(200 * Math.min(180, sinceLast / 1000)), Math.round(Number(pts))));
+  if ((game === "fruit" || game === "galaxy" || game === "jong") && Number.isFinite(Number(pts)) && Number(pts) > 0) gain = Math.max(level, Math.min(Math.round(6000 * (1 + level / 20)), Math.round(200 * Math.min(180, sinceLast / 1000)), Math.round(Number(pts))));
   b.weeks[w][game] = Math.min(1e9, (b.weeks[w][game] || 0) + gain);
   await saveUsers();
   return { ok: true, points: b.weeks[w][game], rank: brainRankOf(b.best[game]) };
@@ -4208,8 +4208,9 @@ async function kloSubmit(token, draw, moves, secs, lang) {
   let improved = false;
   if (!cur || moves < cur.m || (moves === cur.m && secs < cur.t)) { user.stats.klo[k] = { m: moves, t: secs, ts: now }; improved = true; }
   user.stats.klo.wins = (user.stats.klo.wins | 0) + 1;
+  const zp = zpAdd(user, 150, "klondike", "klondike").gain; // 150 Brainups pro Sieg
   await saveUsers();
-  return { ok: true, improved, best: user.stats.klo[k] };
+  return { ok: true, improved, best: user.stats.klo[k], zp };
 }
 function kloBoard(token, draw) {
   if (!usersLoaded) return { ok: false, unavailable: true };
@@ -4227,8 +4228,8 @@ async function tfSubmit(token, correct, streak, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
   correct = Math.round(Number(correct)); streak = Math.round(Number(streak));
-  if (!Number.isFinite(correct) || !Number.isFinite(streak) || correct < 0 || correct > 90 || streak < 0 || streak > correct) return { ok: false, error: "invalid" };
-  const now = Date.now(); if (now - (tfLast.get(user.username) || 0) < 50000) return { ok: false, error: "tooFast" }; tfLast.set(user.username, now);
+  if (!Number.isFinite(correct) || !Number.isFinite(streak) || correct < 0 || correct > 300 || streak < 0 || streak > correct) return { ok: false, error: "invalid" };
+  const now = Date.now(); if (now - (tfLast.get(user.username) || 0) < 120000) return { ok: false, error: "tooFast" }; tfLast.set(user.username, now);
   if (!user.stats.tf || typeof user.stats.tf !== "object") user.stats.tf = {};
   const t = user.stats.tf, day = tfDayId();
   if (!t.day || t.day.id !== day) t.day = { id: day, c: 0, st: 0, paid: false };
@@ -4237,8 +4238,9 @@ async function tfSubmit(token, correct, streak, lang) {
   if (correct > t.day.c) { t.day.c = correct; t.day.st = streak; }
   t.plays = (t.plays | 0) + 1;
   let zp = 0;
-  if (correct >= 10 && !t.day.paid) { t.day.paid = true; zp = zpAdd(user, 20 + (newBest ? 30 : 0), "tf", "tf").gain; }
-  else if (correct >= 10 && newBest) zp = zpAdd(user, 30, "tf", "tf").gain;
+  // Brainups: allererste Runde einmalig 50, danach nur bei neuem Rekord 10
+  if (!t.first) { t.first = true; zp = zpAdd(user, 50, "tf", "tf").gain; }
+  else if (newBest && correct >= 5) zp = zpAdd(user, 10, "tf", "tf").gain;
   await saveUsers();
   return { ok: true, newBest, best: t.best, day: t.day.c, zp };
 }
@@ -4254,11 +4256,16 @@ function tfBoard(token) {
 // ---- Solo: Minesucher (schnellste Zeit je Stufe) + 2048 (hoechster Punktestand). Brainups nur fuer Siege/gute Ergebnisse, einmal pro Tag ----
 const soloLast = new Map();
 const MS_MIN_SECS = { e: 6, m: 14, h: 24 };
-async function soloSubmit(token, game, val, diff, lang) {
+const GEO_TOPICS = ["bl", "de", "mt", "wa", "eu", "wo", "blk", "hkp", "pk", "gb", "wg", "kt", "ku", "ke", "kp", "kn", "ks", "ka", "po"];
+async function soloSubmit(token, game, val, diff, lang, extra) {
+  extra = extra || {};
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
-  if (!["ms", "g2048", "brick", "hopper", "flappy", "block", "make24", "pyramide"].includes(game)) return { ok: false, error: "invalid" };
+  if (!["ms", "g2048", "brick", "hopper", "flappy", "block", "make24", "pyramide", "sol", "t2048", "geo"].includes(game)) return { ok: false, error: "invalid" };
   val = Math.round(Number(val)); if (!Number.isFinite(val) || val < 1) return { ok: false, error: "invalid" };
+  if (game === "geo" && (!GEO_TOPICS.includes(String(diff)) || val < 8 || val > 10)) return { ok: false, error: "invalid" };
+  if (game === "sol" && val !== 1) return { ok: false, error: "invalid" };
+  if (game === "t2048" && (val < 2048 || val > 131072)) return { ok: false, error: "invalid" };
   if (game === "ms" && (!MS_MIN_SECS[diff] || val < MS_MIN_SECS[diff] || val > 3600)) return { ok: false, error: "invalid" };
   if (game === "g2048" && (val > 3000000 || val < 20)) return { ok: false, error: "invalid" };
   if (game === "brick" && (val > 200000 || val < 20)) return { ok: false, error: "invalid" };
@@ -4272,7 +4279,24 @@ async function soloSubmit(token, game, val, diff, lang) {
   const S = user.stats.solo, day = tfDayId();
   if (!S.day || S.day.id !== day) S.day = { id: day, ms: false, g: false, b: false, h: false, f: false };
   let improved = false, zp = 0;
-  if (game === "ms") {
+  if (game === "geo") {
+    // Erdkunde: ab 8 von 10 beim 1. Mal 50 Brainups je Thema, bei 10 von 10 beim 1. Mal weitere 50
+    if (!S.geo || typeof S.geo !== "object") S.geo = {};
+    const g = S.geo[diff] || (S.geo[diff] = { best: 0, p8: false, p10: false });
+    if (val > g.best) { g.best = val; improved = true; }
+    let pts = 0;
+    if (val >= 8 && !g.p8) { g.p8 = true; pts += 50; }
+    if (val === 10 && !g.p10) { g.p10 = true; pts += 50; }
+    if (pts > 0) zp = zpAdd(user, pts, "geo", "geo").gain;
+  } else if (game === "sol") {
+    // Kugel-Solitaer: 1. Sieg 500 Brainups, jeder weitere 10
+    S.solWins = (S.solWins | 0) + 1;
+    zp = zpAdd(user, S.solWins === 1 ? 500 : 10, "sol", "sol").gain;
+  } else if (game === "t2048") {
+    // 2048: erstmals die Kachel 2048 = 500, danach 100 (einmal pro Tag)
+    if (!S.t2048) { S.t2048 = 1; zp = zpAdd(user, 500, "g2048", "g2048").gain; }
+    else if (!S.day.t) { S.day.t = true; zp = zpAdd(user, 100, "g2048", "g2048").gain; }
+  } else if (game === "ms") {
     if (!S.ms) S.ms = {};
     const cur = S.ms[diff]; if (!cur || val < cur.t) { S.ms[diff] = { t: val, ts: now }; improved = true; }
     S.msWins = (S.msWins | 0) + 1;
@@ -4287,8 +4311,16 @@ async function soloSubmit(token, game, val, diff, lang) {
     const k = game === "block" ? "bk" : game === "make24" ? "m24" : "py";
     if (!S[k] || typeof S[k] !== "object") S[k] = { best: 0 };
     if (val > (S[k].best || 0)) { S[k].best = val; S[k].ts = now; improved = true; }
-    const lo = game === "block" ? 500 : game === "make24" ? 500 : 300, hi2 = game === "block" ? 2000 : game === "make24" ? 1100 : 1000;
-    if (val >= lo && !S.day[k]) { S.day[k] = true; zp = zpAdd(user, val >= hi2 ? 40 : 20, game, game).gain; }
+    if (game === "block") {
+      if (val >= 500 && !S.day[k]) { S.day[k] = true; zp = zpAdd(user, val >= 2000 ? 40 : 20, game, game).gain; }
+    } else if (game === "make24") {
+      // Make 24: 100 Brainups pro geloestem Level (max. 10 Runden)
+      const solved = Math.max(0, Math.min(10, Math.round(Number(extra.solved)) || 0));
+      if (solved > 0) zp = zpAdd(user, 100 * solved, "make24", "make24").gain;
+    } else {
+      // Pyramide: 150 Brainups pro Sieg (alle Karten abgeraeumt)
+      if (extra.win === true || extra.win === 1) zp = zpAdd(user, 150, "pyramide", "pyramide").gain;
+    }
   } else if (game === "brick") {
     if (!S.b || typeof S.b !== "object") S.b = { best: 0 };
     if (val > (S.b.best || 0)) { S.b.best = val; S.b.ts = now; improved = true; }
@@ -4296,7 +4328,6 @@ async function soloSubmit(token, game, val, diff, lang) {
   } else {
     if (!S.g || typeof S.g !== "object") S.g = { best: 0 };
     if (val > (S.g.best || 0)) { S.g.best = val; S.g.ts = now; improved = true; }
-    if (val >= 5000 && !S.day.g) { S.day.g = true; zp = zpAdd(user, val >= 20000 ? 40 : 20, "g2048", "g2048").gain; }
   }
   await saveUsers();
   return { ok: true, improved, zp };
@@ -4478,6 +4509,7 @@ async function saveUserStats(token, stats, lang) {
       galaxySt: (() => { const a = typeof cur.galaxySt === "string" ? cur.galaxySt : "", b = typeof f.galaxySt === "string" && /^[0-3]{0,3000}$/.test(f.galaxySt) ? f.galaxySt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
       fruitSlot: Math.max(cur.fruitSlot || 0, n(f.fruitSlot, 1)),
       jongLevel: Math.max(1, cur.jongLevel || 1, n(f.jongLevel, 9999)),
+      jongPts: Math.max(cur.jongPts || 0, n(f.jongPts, 1e9)),
       jongSt: (() => { const a = typeof cur.jongSt === "string" ? cur.jongSt : "", b = typeof f.jongSt === "string" && /^[0-3]{0,3000}$/.test(f.jongSt) ? f.jongSt : ""; let o = ""; for (let i = 0; i < Math.max(a.length, b.length); i++) o += Math.max(+(a[i] || 0), +(b[i] || 0)); return o; })(),
       jongHearts: (typeof f.jongHearts === "number" && Number.isFinite(f.jongHearts)) ? Math.max(0, Math.min(3, Math.round(f.jongHearts))) : (typeof cur.jongHearts === "number" ? cur.jongHearts : 3),
       jongHeartsT: (typeof f.jongHeartsT === "number" && Number.isFinite(f.jongHeartsT)) ? Math.max(0, Math.round(f.jongHeartsT)) : (cur.jongHeartsT || 0),
@@ -6314,6 +6346,7 @@ function dailyLocked(d, date, type, diff) {
   return i > 0 && !d.solved[date + ":" + type + ":" + ord[i - 1]];
 }
 // ---- Wort raten (Tagesraetsel): Wordle-Spiel, Wort des Tages je Stufe, Tipps nur bei leicht (3) und mittel (1) ----
+const WR_NEXT = { easy: 10, medium: 30, hard: 50 };
 const WR_TRIES = 6, WR_TIPS = { easy: 3, medium: 1, hard: 0 }, WR_LEN = { easy: [4, 5], medium: [5, 6], hard: [6, 9] };
 const WR_EN = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, "shared/wortratenEN.json"), "utf8")); } catch (e) { return []; } })();
 const wrPools = {}, wrGuest = new Map();
@@ -6327,14 +6360,14 @@ function wrPool(lg, diff) {
   for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
   return (wrPools[k] = list);
 }
-function wrCard(date, lg, diff) {
+function wrCard(date, lg, diff, off) {
   const pool = wrPool(lg, diff); if (!pool.length) return null;
-  const [y, m, dd] = date.split("-").map(Number), n = Math.round(Date.UTC(y, m - 1, dd) / 86400000);
+  const [y, m, dd] = date.split("-").map(Number), n = Math.round(Date.UTC(y, m - 1, dd) / 86400000) + (off | 0);
   return pool[((n % pool.length) + pool.length) % pool.length];
 }
 function wrView(st, card, diff, extra) {
   const tm = WR_TIPS[diff];
-  return Object.assign({ ok: true, len: card.w.length, rows: st.rows, max: WR_TRIES, tipsMax: tm, tips: card.t.slice(0, Math.min(st.hn, tm, card.t.length)), cat: diff === "hard" ? null : card.c, done: !!st.done, won: !!st.won, word: st.done ? card.w : undefined, wrLang: st.lang }, extra || {});
+  return Object.assign({ ok: true, len: card.w.length, rows: st.rows, max: WR_TRIES, tipsMax: tm, tips: card.t.slice(0, Math.min(st.hn, tm, card.t.length)), cat: diff === "hard" ? null : card.c, done: !!st.done, won: !!st.won, word: st.done ? card.w : undefined, wrLang: st.lang, nextCost: WR_NEXT[diff] }, extra || {});
 }
 // Abholbar = Tag der Loesung liegt vor heute; "pending" = erst morgen abholbar
 function dailyPayout(d, today) {
@@ -6480,10 +6513,22 @@ async function dailyApi(action, payload, lang) {
     if (user) st = d.wr[skey]; else { const gk = String(payload.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40) + skey; st = wrGuest.get(gk); if (!st) { st = null; } }
     const gk2 = user ? null : String(payload.sid || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40) + skey;
     if (!st) { st = { rows: [], hn: 0, done: false, won: false, lang: lang === "en" ? "en" : "de" }; if (user) d.wr[skey] = st; else { wrGuest.set(gk2, st); if (wrGuest.size > 3000) Array.from(wrGuest.keys()).slice(0, 800).forEach(k => wrGuest.delete(k)); } }
-    const card = wrCard(date, st.lang, diff); if (!card) return errObj("invalidInput", lang);
+    const card = wrCard(date, st.lang, diff, st.off); if (!card) return errObj("invalidInput", lang);
     const reward = date === today ? DAILY_REWARDS.wr[diff] : Math.floor(DAILY_REWARDS.wr[diff] / 2);
     const pub = { date, type, diff, reward, solved: !!d.solved[skey] };
     if (action === "puzzle") { if (user && !d.started[skey] && !st.done) d.started[skey] = Date.now(); if (user) await saveUsers(); return wrView(st, card, diff, pub); }
+    if (action === "next") {
+      if (!user) return errObj("notLoggedIn", lang);
+      if (!st.done || st.won) return wrView(st, card, diff, pub);
+      const cost = WR_NEXT[diff];
+      if ((user.stats.coins || 0) < cost) return { ok: false, error: lang === "en" ? "Not enough coins." : "Nicht genug Münzen.", cost };
+      user.stats.coins -= cost;
+      st.off = (st.off | 0) + 1; st.rows = []; st.hn = 0; st.done = false; st.won = false;
+      d.started[skey] = Date.now();
+      await saveUsers();
+      const card2 = wrCard(date, st.lang, diff, st.off) || card;
+      return wrView(st, card2, diff, Object.assign(pub, { balance: user.stats.coins }));
+    }
     if (action === "hint") {
       if (!st.done && st.hn < WR_TIPS[diff]) { st.hn++; if (user) await saveUsers(); }
       return wrView(st, card, diff, pub);
@@ -7401,6 +7446,7 @@ const GAME_DEFS = [
   { id: "boards", name: "Online-Bestenlisten", group: "Brainups", icon: "🏆" },
   { id: "chem", name: "Brainchimie", group: "Minigames", icon: "⚗️" },
   { id: "backgammon", name: "Backgammon", group: "Minigames", icon: "🎲" },
+  { id: "geo", name: "Erdkunde", group: "Modi", icon: "🌍" },
   { id: "fourups", name: "Fourups", group: "Minigames", icon: "🔴" },
   { id: "fourups_abilities", name: "Fourups Fähigkeiten", group: "Minigames", icon: "✨", sub: "fourups" },
   { id: "ordering", name: "Ordering", group: "Minigames", icon: "🔢" },
@@ -7587,7 +7633,7 @@ async function saveGameCfg() {
   try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 // Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
-const DEFAULT_LOCKED_NEW = new Set(["backgammon", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
+const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : ((LOCKED_FEATURES.has(id) || DEFAULT_LOCKED_NEW.has(id)) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
@@ -7960,7 +8006,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/klo/board") result = kloBoard(payload.token, payload.draw);
         else if (req.url === "/api/tf/submit") result = await tfSubmit(payload.token, payload.correct, payload.streak, lang);
         else if (req.url === "/api/tf/board") result = tfBoard(payload.token);
-        else if (req.url === "/api/solo/submit") result = await soloSubmit(payload.token, payload.game, payload.val, payload.diff, lang);
+        else if (req.url === "/api/solo/submit") result = await soloSubmit(payload.token, payload.game, payload.val, payload.diff, lang, { win: payload.win, solved: payload.solved });
         else if (req.url === "/api/solo/board") result = soloBoard(payload.token, payload.game, payload.diff);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);

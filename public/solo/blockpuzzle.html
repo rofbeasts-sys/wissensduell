@@ -10,7 +10,7 @@ body{display:flex;flex-direction:column}
 .back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer}
 h1{font-size:14px;margin:0;flex:1;color:#cdbfff;font-weight:700;letter-spacing:.02em}
 .pill{border:1px solid #ffffff26;background:#0004;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:800}
-.sc{text-align:center;margin-top:2px}.sc b{font-size:34px;color:#fff}.sc small{display:block;font-size:12px;color:#cdbfff}
+.sc{text-align:center;margin-top:2px}.sc b{font-size:34px;color:#fff}.sc small{display:block;font-size:12px;color:#cdbfff;height:18px;line-height:18px;overflow:hidden}
 #wrap{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;padding:6px 12px 14px;position:relative}
 #grid{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;background:#ffffff0d;padding:5px;border-radius:14px;touch-action:none;flex:none}
 #grid i{border-radius:5px;background:#ffffff12;aspect-ratio:1}
@@ -18,6 +18,9 @@ h1{font-size:14px;margin:0;flex:1;color:#cdbfff;font-weight:700;letter-spacing:.
 #grid i.ok{background:#ffffff55}#grid i.bad{background:#ff4d6d55}
 #grid i.clr{animation:cl .35s forwards}
 @keyframes cl{50%{transform:scale(1.15);filter:brightness(2)}100%{transform:scale(0);opacity:0}}
+#holdrow{width:100%;max-width:420px;display:flex;justify-content:flex-end;margin-top:8px;flex:none}
+#hold{display:flex;align-items:center;gap:8px;padding:5px 10px;border:2px dashed #ffffff44;border-radius:14px;min-width:150px;min-height:62px;background:#0003;color:#cdbfff;font-size:12px;font-weight:800;justify-content:center}
+#hold.over{border-color:#ffd45a;background:#ffd45a22}#hold .pc{padding:2px}
 #tray{display:flex;justify-content:space-around;align-items:center;width:100%;max-width:420px;margin-top:16px;min-height:130px;flex:none}
 .pc{display:grid;gap:2px;padding:8px;touch-action:none;cursor:grab}
 .pc i{border-radius:4px;display:block}
@@ -37,15 +40,15 @@ h1{font-size:14px;margin:0;flex:1;color:#cdbfff;font-weight:700;letter-spacing:.
 </style></head><body>
 <div class="top"><button class="back" id="back">←</button><h1 id="title"></h1><span class="pill" id="bst"></span><button class="back" id="lbb">🏆</button></div>
 <div class="sc"><b id="sc">0</b><small id="combo"></small></div>
-<div id="wrap"><div id="grid"></div><div id="tray"></div>
+<div id="wrap"><div id="grid"></div><div id="holdrow"><div id="hold"></div></div><div id="tray"></div>
 <div class="ov show" id="ov"><div class="box" id="box"></div></div></div>
 <div id="ghost"></div><div id="pop"></div>
 <script>
 (function(){
 var lang="de"; try{ lang=localStorage.getItem("wq_lang")==="en"?"en":"de"; }catch(e){}
 var EN=lang==="en";
-var T=EN?{title:"Block Puzzle",start:"START",tip:"Drag the shapes onto the grid. Full rows and columns disappear. Game over when nothing fits.",over:"No more space!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to earn Brainups and appear on the leaderboard.",empty:"No scores yet.",pts:"points",chain:"Chain"}
- :{title:"Block Puzzle",start:"START",tip:"Ziehe die Formen auf das Raster. Volle Reihen und Spalten lösen sich auf. Vorbei, wenn nichts mehr passt.",over:"Kein Platz mehr!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an für Brainups und die Bestenliste.",empty:"Noch keine Ergebnisse.",pts:"Punkte",chain:"Serie"};
+var T=EN?{title:"Block Puzzle",start:"START",tip:"Drag the shapes onto the grid. Full rows and columns disappear. Game over when nothing fits. Drop a shape on the storage box to keep it for later.",over:"No more space!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to earn Brainups and appear on the leaderboard.",empty:"No scores yet.",pts:"points",chain:"Chain",hold:"Storage"}
+ :{title:"Block Puzzle",start:"START",tip:"Ziehe die Formen auf das Raster. Volle Reihen und Spalten lösen sich auf. Vorbei, wenn nichts mehr passt. Ziehe eine Form in den Speicher, um sie für später aufzuheben.",over:"Kein Platz mehr!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an für Brainups und die Bestenliste.",empty:"Noch keine Ergebnisse.",pts:"Punkte",chain:"Serie",hold:"Speicher"};
 var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
 function $(i){ return document.getElementById(i); }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
@@ -65,13 +68,13 @@ var SH=[ // [Zellen als Zeilenstrings, Gewicht]
 var POOL=[]; SH.forEach(function(s,i){ for(var k=0;k<s[1];k++) POOL.push(i); });
 function parse(s){ return s.split("/").map(function(r){ return r.split("").map(function(c){ return c==="1"; }); }); }
 var SHAPES=SH.map(function(s){ return parse(s[0]); });
-var G,score,chain,pieces,over=false,state="idle";
+var G,score,chain,pieces,hold=null,over=false,state="idle";
 function newGame(){
-  G=[]; for(var r=0;r<N;r++){ G.push(Array(N).fill(0)); } score=0; chain=0; over=false; state="run"; $("sc").textContent="0"; $("combo").textContent="";
+  G=[]; for(var r=0;r<N;r++){ G.push(Array(N).fill(0)); } score=0; chain=0; hold=null; over=false; state="run"; $("sc").textContent="0"; $("combo").textContent="";
   buildGrid(); deal(); $("ov").classList.remove("show");
 }
 function buildGrid(){
-  var g=$("grid"), w=Math.min(window.innerWidth-24,420,window.innerHeight-300); g.style.width=w+"px"; g.innerHTML="";
+  var g=$("grid"), w=Math.min(window.innerWidth-24,420,window.innerHeight-380); g.style.width=w+"px"; g.innerHTML="";
   for(var i=0;i<N*N;i++){ var c=document.createElement("i"); g.appendChild(c); }
   paintGrid();
 }
@@ -90,12 +93,22 @@ function paintTray(){
     p.s.forEach(function(row){ row.forEach(function(v){ var i=document.createElement("i"); i.style.width=cell+"px"; i.style.height=cell+"px"; if(v) i.style.background=COLORS[(p.col-1)%COLORS.length]; else i.style.visibility="hidden"; d.appendChild(i); }); });
     d.addEventListener("pointerdown",function(e){ startDrag(e,idx); }); t.appendChild(d);
   });
+  paintHold();
 }
+function paintHold(){
+  var h=$("hold"); h.innerHTML=""; h.classList.remove("over");
+  if(!hold){ h.textContent="💾 "+T.hold; return; }
+  var cell=Math.max(10,Math.floor(Math.min(window.innerWidth-24,420)/N)-14), d=document.createElement("div"); d.className="pc"; d.style.gridTemplateColumns="repeat("+hold.s[0].length+","+cell+"px)";
+  hold.s.forEach(function(row){ row.forEach(function(v){ var i=document.createElement("i"); i.style.width=cell+"px"; i.style.height=cell+"px"; if(v) i.style.background=COLORS[(hold.col-1)%COLORS.length]; else i.style.visibility="hidden"; d.appendChild(i); }); });
+  d.addEventListener("pointerdown",function(e){ startDrag(e,-1); }); h.appendChild(d);
+  var sp=document.createElement("span"); sp.textContent="💾"; h.appendChild(sp);
+}
+function pieceAt(idx){ return idx<0?hold:pieces[idx]; }
 function fits(s,r0,c0){ for(var r=0;r<s.length;r++) for(var c=0;c<s[r].length;c++){ if(!s[r][c]) continue; var rr=r0+r, cc=c0+c; if(rr<0||cc<0||rr>=N||cc>=N||G[rr][cc]) return false; } return true; }
 function fitsAnywhere(s){ for(var r=0;r<N;r++) for(var c=0;c<N;c++) if(fits(s,r,c)) return true; return false; }
 var drag=null;
 function startDrag(e,idx){
-  if(over||state!=="run"||pieces[idx].used) return; e.preventDefault(); var p=pieces[idx], cell=gridCell();
+  var p=pieceAt(idx); if(over||state!=="run"||!p||p.used) return; e.preventDefault(); var cell=gridCell();
   var gh=$("ghost"); gh.innerHTML=""; gh.style.display="grid"; gh.style.gridTemplateColumns="repeat("+p.s[0].length+","+cell+"px)";
   p.s.forEach(function(row){ row.forEach(function(v){ var i=document.createElement("i"); i.style.width=cell+"px"; i.style.height=cell+"px"; if(v) i.style.background=COLORS[(p.col-1)%COLORS.length]; else i.style.visibility="hidden"; gh.appendChild(i); }); });
   drag={idx:idx,cell:cell,w:p.s[0].length*cell+(p.s[0].length-1)*3,h:p.s.length*cell+(p.s.length-1)*3,tr:null,tc:null};
@@ -105,9 +118,10 @@ function startDrag(e,idx){
 function gridCell(){ var g=$("grid"), r=g.getBoundingClientRect(); return Math.floor((r.width-10-27)/N); }
 function moveDrag(e){
   if(!drag) return; var gh=$("ghost"), x=e.clientX-drag.w/2, y=e.clientY-drag.h-48; gh.style.left=x+"px"; gh.style.top=y+"px";
-  var g=$("grid").getBoundingClientRect(), step=(g.width-10)/N, p=pieces[drag.idx];
+  var g=$("grid").getBoundingClientRect(), step=(g.width-10)/N, p=pieceAt(drag.idx);
   var c=Math.round((x-g.left-5)/step), r=Math.round((y-g.top-5)/step); drag.tr=r; drag.tc=c; drag.ok=fits(p.s,r,c);
   showPreview(p.s,r,c,drag.ok);
+  var hb=$("hold").getBoundingClientRect(); drag.onHold=(e.clientX>=hb.left&&e.clientX<=hb.right&&e.clientY>=hb.top-10&&e.clientY<=hb.bottom+10); $("hold").classList.toggle("over",drag.idx>=0&&drag.onHold);
 }
 function showPreview(s,r0,c0,ok){
   var cs=$("grid").children; for(var i=0;i<cs.length;i++){ cs[i].classList.remove("ok","bad"); }
@@ -115,9 +129,16 @@ function showPreview(s,r0,c0,ok){
 }
 function end(){ window.removeEventListener("pointermove",moveDrag); window.removeEventListener("pointerup",endDrag); window.removeEventListener("pointercancel",cancelDrag); $("ghost").style.display="none"; var cs=$("grid").children; for(var i=0;i<cs.length;i++) cs[i].classList.remove("ok","bad"); }
 function cancelDrag(){ end(); drag=null; }
-function endDrag(){ var d=drag; end(); drag=null; if(d&&d.ok) place(d.idx,d.tr,d.tc); else if(d) sfx("bad"); }
+function endDrag(){ var d=drag; end(); drag=null; $("hold").classList.remove("over");
+  if(d&&d.idx>=0&&d.onHold){ store(d.idx); return; }
+  if(d&&d.ok) place(d.idx,d.tr,d.tc); else if(d) sfx("bad"); }
+function store(idx){ // Teil im Speicher ablegen (tauscht, wenn schon eins drin ist)
+  var p=pieces[idx]; if(!p||p.used) return; var old=hold; hold={s:p.s,col:p.col}; sfx("tap");
+  if(old){ pieces[idx]={s:old.s,col:old.col,used:false}; } else { p.used=true; }
+  paintTray(); afterMove();
+}
 function place(idx,r0,c0){
-  var p=pieces[idx], n=0; p.s.forEach(function(row,r){ row.forEach(function(v,c){ if(v){ G[r0+r][c0+c]=p.col; n++; } }); }); p.used=true; sfx("tap");
+  var p=pieceAt(idx), n=0; p.s.forEach(function(row,r){ row.forEach(function(v,c){ if(v){ G[r0+r][c0+c]=p.col; n++; } }); }); if(idx<0) hold=null; else p.used=true; sfx("tap");
   var rows=[],cols=[],r,c; for(r=0;r<N;r++) if(G[r].every(function(v){ return v; })) rows.push(r);
   for(c=0;c<N;c++){ var f=true; for(r=0;r<N;r++) if(!G[r][c]){ f=false; break; } if(f) cols.push(c); }
   var lines=rows.length+cols.length, gain=n;
@@ -133,7 +154,7 @@ function place(idx,r0,c0){
 function pop(t){ var e=$("pop"); e.textContent=t; e.classList.remove("go"); void e.offsetWidth; e.classList.add("go"); }
 function afterMove(){
   if(pieces.every(function(p){ return p.used; })) deal();
-  if(!pieces.some(function(p){ return !p.used&&fitsAnywhere(p.s); })) gameOver();
+  if(!pieces.some(function(p){ return !p.used&&fitsAnywhere(p.s); })&&!(hold&&fitsAnywhere(hold.s))) gameOver();
 }
 function gameOver(){
   if(over) return; over=true; state="over"; sfx("bad"); var sc=score, nb=sc>best&&sc>0; if(nb){ best=sc; try{ localStorage.setItem("bp_block_best",String(best)); }catch(e){} $("bst").textContent="🏆 "+best; }

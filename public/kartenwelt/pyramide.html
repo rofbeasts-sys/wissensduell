@@ -114,7 +114,7 @@ function end(win){
     $("box").innerHTML='<h2>'+esc(win?T.won:T.over)+'</h2><div class="big">'+sc+'</div>'+(win?'':'<p>'+left+' / 28</p>')+(nb?'<div class="zp">🏆 '+esc(T.newB)+'</div>':'')+'<div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">'+esc(T.login)+'</div>')+'<div style="margin-top:14px"><button class="pri" id="go">'+esc(T.again)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';
     $("ov").classList.add("show"); $("go").onclick=play; $("lb").onclick=board;
   },win?600:900);
-  if(hasAcc()&&sc>=20) api("/api/solo/submit",{game:"pyramide",val:sc}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
+  if(hasAcc()&&sc>=20) api("/api/solo/submit",{game:"pyramide",val:sc,win:!!win}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" "+T.zp+" ⭐"; });
 }
 function home(){
   $("box").innerHTML='<div style="font-size:30px">🔺</div><h2>'+esc(T.title)+'</h2><p>'+esc(T.tip)+'</p><div class="row"><span>'+esc(T.rec)+'</span><b>'+best+'</b></div><div style="margin-top:14px"><button class="pri" id="go">'+esc(T.start)+'</button><button class="sec" id="lb">🏆 '+esc(T.board)+'</button></div>';

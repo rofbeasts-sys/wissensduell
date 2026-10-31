@@ -39,8 +39,8 @@ h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.
 (function(){
 var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
 var EN = lang==="en";
-var T = EN ? {title:"True or False Blitz",start:"START",rules:"60 seconds. As many statements as you can. A wrong answer costs 5 seconds.",rec:"Your record",today:"Today's best",rank:"Rank today",t:"TRUE",f:"FALSE",done:"Time is up!",right:"correct",bestS:"Best streak",again:"PLAY AGAIN",board:"Today's leaderboard",hide:"Back",newBest:"New personal record!",zp:"Brainups",login:"Log in to save your score and earn Brainups.",streak:"Streak",empty:"Nobody has played today yet.",keys:"Keys: ← true · → false"}
- : {title:"Wahr oder Falsch Blitz",start:"START",rules:"60 Sekunden. So viele Aussagen wie möglich. Eine falsche Antwort kostet 5 Sekunden.",rec:"Dein Rekord",today:"Heute bestes Ergebnis",rank:"Platz heute",t:"WAHR",f:"FALSCH",done:"Zeit abgelaufen!",right:"richtig",bestS:"Beste Serie",again:"NOCHMAL",board:"Tagesrangliste",hide:"Zurück",newBest:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an, um dein Ergebnis zu speichern und Brainups zu bekommen.",streak:"Serie",empty:"Heute hat noch niemand gespielt.",keys:"Tasten: ← wahr · → falsch"};
+var T = EN ? {title:"True or False Blitz",start:"START",rules:"3 minutes. As many statements as you can. A wrong answer costs 5 seconds.",rec:"Your record",today:"Today's best",rank:"Rank today",t:"TRUE",f:"FALSE",done:"Time is up!",right:"correct",bestS:"Best streak",again:"PLAY AGAIN",board:"Today's leaderboard",hide:"Back",newBest:"New personal record!",zp:"Brainups",login:"Log in to save your score and earn Brainups.",streak:"Streak",empty:"Nobody has played today yet.",keys:"Keys: ← true · → false"}
+ : {title:"Wahr oder Falsch Blitz",start:"START",rules:"3 Minuten. So viele Aussagen wie möglich. Eine falsche Antwort kostet 5 Sekunden.",rec:"Dein Rekord",today:"Heute bestes Ergebnis",rank:"Platz heute",t:"WAHR",f:"FALSCH",done:"Zeit abgelaufen!",right:"richtig",bestS:"Beste Serie",again:"NOCHMAL",board:"Tagesrangliste",hide:"Zurück",newBest:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an, um dein Ergebnis zu speichern und Brainups zu bekommen.",streak:"Serie",empty:"Heute hat noch niemand gespielt.",keys:"Tasten: ← wahr · → falsch"};
 var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
 function $(i){ return document.getElementById(i); }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
@@ -78,7 +78,7 @@ function board(){
 }
 function play(){
   var pool=shuffle(window.TFDATA.slice());
-  G={pool:pool,i:0,end:Date.now()+60000,c:0,st:0,bestSt:0,lock:false,pen:0};
+  G={pool:pool,i:0,end:Date.now()+180000,c:0,st:0,bestSt:0,lock:false,pen:0};
   var m=$("main");
   m.innerHTML='<div class="bar"><i id="bf"></i></div><div class="card" id="card"></div><div class="corr" id="corr"></div>'
    +'<div class="btns"><button class="w" id="bt">✔ '+esc(T.t)+'</button><button class="f" id="bf2">✘ '+esc(T.f)+'</button></div>';
@@ -95,7 +95,7 @@ function show(){
 function tick(){
   if(!G) return;
   var left=Math.max(0,G.end-Date.now()); $("tm").textContent="⏱ "+Math.ceil(left/1000)+"s";
-  var bf=$("bf"); if(bf) bf.style.width=Math.min(100,left/600)+"%";
+  var bf=$("bf"); if(bf) bf.style.width=Math.min(100,left/1800)+"%";
   if(left<=0) finish();
 }
 function ans(v){

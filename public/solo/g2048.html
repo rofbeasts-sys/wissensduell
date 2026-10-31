@@ -83,7 +83,7 @@ function move(dir){
   if(!moved) return; prev=snap; score+=gain; if(score>best){ best=score; try{ localStorage.setItem("bp_2048_best",String(best)); }catch(e){} }
   add(); sfx(gain?"good":"tap"); render();
   var mx=0; G.forEach(function(r){ r.forEach(function(t){ if(t&&t.v>mx) mx=t.v; }); });
-  if(mx>=2048&&!wonShown){ wonShown=true; setTimeout(winBox,250); return; }
+  if(mx>=2048&&!wonShown){ wonShown=true; if(hasAcc()) api("/api/solo/submit",{game:"t2048",val:mx}).then(function(r){ if(r&&r.ok&&r.zp>0) setTimeout(function(){ var b=$("box"); if(b) b.insertAdjacentHTML("beforeend",'<div class="zp" style="margin-top:10px">+'+r.zp+' ⭐</div>'); },700); }); setTimeout(winBox,250); return; }
   if(!canMove()){ over=true; setTimeout(endBox,350); }
 }
 function canMove(){ for(var r=0;r<N;r++)for(var c=0;c<N;c++){ if(!G[r][c]) return true; var v=G[r][c].v; if(c+1<N&&G[r][c+1]&&G[r][c+1].v===v) return true; if(r+1<N&&G[r+1][c]&&G[r+1][c].v===v) return true; } return false; }

@@ -28,8 +28,8 @@ canvas{background:#0e1320;border:1px solid #1d2536;border-radius:18px;max-width:
 (function(){
 var lang="de"; try{ lang = localStorage.getItem("wq_lang")==="en" ? "en" : "de"; }catch(e){}
 var EN=lang==="en";
-var T=EN?{title:"Flappy Flight",start:"START",tip:"Tap to flap. Fly through the gaps without touching the pipes.",over:"Crash!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to save your score and earn Brainups.",empty:"No scores yet.",unit:" m"}
- :{title:"Flappy-Flug",start:"START",tip:"Tippe zum Flattern. Fliege durch die Lücken, ohne die Röhren zu berühren.",over:"Crash!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an, um deinen Punktestand zu speichern und Brainups zu bekommen.",empty:"Noch keine Ergebnisse.",unit:" m"};
+var T=EN?{title:"Flappy Flight",start:"START",tip:"Tap to flap. Fly through the gaps. Some pipes move, spiky stars float around. Every 100 points the world changes!",over:"Crash!",again:"PLAY AGAIN",board:"Leaderboard",back:"Back",rec:"Best",newB:"New record!",zp:"Brainups",login:"Log in to save your score and earn Brainups.",empty:"No scores yet.",unit:" m"}
+ :{title:"Flappy-Flug",start:"START",tip:"Tippe zum Flattern. Fliege durch die Lücken. Manche Röhren bewegen sich, Stachelsterne schweben herum. Alle 100 Punkte wechselt die Welt!",over:"Crash!",again:"NOCHMAL",board:"Bestenliste",back:"Zurück",rec:"Rekord",newB:"Neuer Rekord!",zp:"Brainups",login:"Melde dich an, um deinen Punktestand zu speichern und Brainups zu bekommen.",empty:"Noch keine Ergebnisse.",unit:" m"};
 var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
 function $(i){ return document.getElementById(i); }
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
@@ -38,15 +38,22 @@ function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} r
 function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
 $("title").textContent="⚪ "+T.title;
 var best=0; try{ best=parseInt(localStorage.getItem("bp_flappy_best"),10)||0; }catch(e){}
+window.__flp=function(){ return S; }; window.__flpPlay=function(){ play(); };
 var cv=$("cv"), x=cv.getContext("2d"), W=360, H=600;
 function fit(){ var st=$("stage"), aw=st.clientWidth-24, ah=st.clientHeight-14; var r=W/H; var w=Math.min(aw,ah*r,420); cv.style.width=w+"px"; cv.style.height=(w/r)+"px"; }
 window.addEventListener("resize",fit); fit();
 var S=null, raf=0, last=0, state="idle";
 var GR=1500, FLAP=-440, SPD=135, PWD=58, R=13, BX=90;
 function gapSize(){ return Math.max(118,170-S.score*2); }
-function addPipe(xx){ var g=gapSize(), top=70+Math.random()*(H-g-140); S.pipes.push({x:xx,top:top,gap:g,passed:false}); }
+var THEMES=[["#0e1320","#0e1320","#2a3550"],["#2a1650","#5b2a86","#caa6ff"],["#5a1f2e","#e0703a","#ffe0a8"],["#06384a","#0f7a8a","#aaf3ff"],["#02010a","#14083a","#ffffff"],["#1b0836","#00606b","#7cff8c"]];
+function addPipe(xx){
+  var g=gapSize(), top=70+Math.random()*(H-g-140), sc=S.score|0;
+  var mv=(sc>=8&&Math.random()<Math.min(.75,.3+sc/80))?Math.min(70,22+sc*1.2):0;
+  S.pipes.push({x:xx,top:top,base:top,gap:g,passed:false,mv:mv,ph:Math.random()*6.28,os:1.3+Math.random()*1.2});
+  if(sc>=20&&Math.random()<Math.min(.55,.2+sc/200)) S.foes.push({x:xx-100,y:80+Math.random()*(H-160),base:0,r:11,ph:Math.random()*6.28,amp:50+Math.random()*60,os:1.6+Math.random()});
+}
 function play(){
-  S={y:H/2,vy:0,score:0,pipes:[],t:0,started:false}; addPipe(W+40); addPipe(W+40+200); addPipe(W+40+400);
+  S={y:H/2,vy:0,score:0,pipes:[],foes:[],t:0,started:false,banner:0,bannerTxt:''}; addPipe(W+40); addPipe(W+40+200); addPipe(W+40+400);
   $("sc").textContent="0"; state="run"; $("ov").classList.remove("show"); last=performance.now(); cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
 }
 function loop(t){ if(state!=="run") return; var dt=Math.min(.033,(t-last)/1000); last=t; step(dt); draw(); if(state==="run") raf=requestAnimationFrame(loop); }
@@ -56,17 +63,25 @@ function step(dt){
   if(!S.started){ S.y=H/2+Math.sin(S.t*5)*8; return; }
   S.vy+=GR*dt; S.y+=S.vy*dt;
   var sp=SPD+Math.min(60,S.score*2.5);
-  S.pipes.forEach(function(p){ p.x-=sp*dt; if(!p.passed&&p.x+PWD<BX-R){ p.passed=true; S.score++; $("sc").textContent=S.score; sfx("good"); } });
+  S.pipes.forEach(function(p){ p.x-=sp*dt; if(p.mv){ p.top=Math.max(24,Math.min(H-p.gap-24,p.base+Math.sin(S.t*p.os+p.ph)*p.mv)); }
+    if(!p.passed&&p.x+PWD<BX-R){ p.passed=true; S.score++; $("sc").textContent=S.score; sfx("good"); if(S.score%100===0){ S.banner=2.2; S.bannerTxt=(EN?"Level ":"Welt ")+(S.score/100+1); sfx("win"); } } });
+  S.foes.forEach(function(f){ f.x-=sp*dt; f.ph+=dt; f.cy=f.y+Math.sin(S.t*f.os+f.ph)*f.amp; });
+  S.foes=S.foes.filter(function(f){ return f.x>-40; });
+  if(S.banner>0) S.banner-=dt;
   if(S.pipes[0].x<-PWD-4){ S.pipes.shift(); addPipe(S.pipes[S.pipes.length-1].x+200); }
   if(S.y+R>H||S.y-R<0){ over(); return; }
+  for(var k=0;k<S.foes.length;k++){ var f=S.foes[k]; if(Math.hypot(f.x-BX,(f.cy||f.y)-S.y)<f.r+R-3){ over(); return; } }
   for(var i=0;i<S.pipes.length;i++){ var p=S.pipes[i]; if(BX+R>p.x&&BX-R<p.x+PWD&&(S.y-R<p.top||S.y+R>p.top+p.gap)){ over(); return; } }
 }
 function draw(){
-  x.clearRect(0,0,W,H);
+  var th=THEMES[Math.floor(S.score/100)%THEMES.length], g=x.createLinearGradient(0,0,0,H); g.addColorStop(0,th[0]); g.addColorStop(1,th[1]); x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.fillStyle=th[2]; x.globalAlpha=.55; for(var i=0;i<28;i++){ var gx=((i*97)-S.t*(10+(i%4)*8))%W; if(gx<0) gx+=W; x.fillRect(gx,(i*61)%H,2+(i%3),2+(i%3)); } x.globalAlpha=1;
   S.pipes.forEach(function(p){ x.fillStyle="#151c2b"; x.strokeStyle="#3ddc84"; x.lineWidth=2;
     x.beginPath(); x.roundRect(p.x,-10,PWD,p.top+10,[0,0,10,10]); x.fill(); x.stroke();
     x.beginPath(); x.roundRect(p.x,p.top+p.gap,PWD,H-p.top-p.gap+10,[10,10,0,0]); x.fill(); x.stroke(); });
+  S.foes.forEach(function(f){ var fy=f.cy||f.y; x.save(); x.translate(f.x,fy); x.rotate(S.t*3+f.ph); x.fillStyle="#ff5d6c"; x.beginPath(); for(var k=0;k<8;k++){ var a=k*Math.PI/4, r=k%2?f.r*.6:f.r+3; x.lineTo(Math.cos(a)*r,Math.sin(a)*r); } x.closePath(); x.fill(); x.restore(); });
   x.save(); x.shadowColor="#ffffff"; x.shadowBlur=14; x.fillStyle="#fff"; x.beginPath(); x.arc(BX,S.y,R,0,7); x.fill(); x.restore();
+  if(S.banner>0){ x.save(); x.globalAlpha=Math.min(1,S.banner); x.fillStyle="#c6ff3d"; x.font="800 34px system-ui"; x.textAlign="center"; x.fillText(S.bannerTxt,W/2,H*.3); x.restore(); }
   if(!S.started){ x.fillStyle="#8d97ad"; x.font="600 14px system-ui"; x.textAlign="center"; x.fillText(EN?"Tap to fly":"Tippen zum Fliegen",W/2,H*.7); }
 }
 function over(){

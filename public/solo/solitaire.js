@@ -51,13 +51,13 @@ function tap(r, c){
   if(!S) return; const g = S.g;
   if(S.sel){
     const m = movesFrom(g, S.sel[0], S.sel[1]).find(x => x[0] === r && x[1] === c);
-    if(m){ S.hist.push(JSON.stringify(g)); g[S.sel[0]][S.sel[1]] = 0; g[m[2]][m[3]] = 0; g[m[0]][m[1]] = 1; S.sel = null; paint(); return; }
+    if(m){ S.hist.push(JSON.stringify(g)); g[S.sel[0]][S.sel[1]] = 0; g[m[2]][m[3]] = 0; g[m[0]][m[1]] = 1; S.sel = null; paint(); if(cnt(g) === 1 && !S.sent){ S.sent = true; try{ if(typeof account !== 'undefined' && account && account.token) apiCall('/api/solo/submit', { token: account.token, game: 'sol', val: 1 }).then(r => { if(r && r.ok && r.zp > 0){ const e = document.getElementById('solMsg'); if(e) e.textContent += '  +' + r.zp + ' ⭐'; } }).catch(() => {}); }catch(e){} } return; }
   }
   if(g[r][c] === 1 && movesFrom(g, r, c).length){ S.sel = (S.sel && S.sel[0] === r && S.sel[1] === c) ? null : [r, c]; } else S.sel = null;
   paint();
 }
 function undo(){ if(!S || !S.hist.length) return; S.g = JSON.parse(S.hist.pop()); S.sel = null; paint(); }
-function restart(){ S.g = fresh(); S.hist = []; S.sel = null; paint(); }
+function restart(){ S.g = fresh(); S.hist = []; S.sent = false; S.sel = null; paint(); }
 function open(back){
   S = { g: fresh(), hist: [], sel: null, back: back || null };
   renderApp(CSS + `<div class="panel" id="solApp">

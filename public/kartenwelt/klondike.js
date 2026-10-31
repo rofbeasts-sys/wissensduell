@@ -210,7 +210,7 @@ let rzT = 0; function onResize(){ if(!document.getElementById('kloApp')){ window
 
 async function winSubmit(){
   const secs = Math.round((Date.now() - S.t0) / 1000), moves = S.g.moves;
-  try{ if(typeof account !== 'undefined' && account){ const r = await apiCall('/api/klo/submit', { token: account.token, draw: S.draw, moves, secs }); const m = document.getElementById('kloMsg'); if(m && r && r.ok) m.insertAdjacentHTML('beforeend', `<div style="margin-top:4px;font-size:12px;color:#7fe3ff">${r.improved ? '🏆 ' + L2('Neue Bestleistung in der Liste!', 'New personal best on the list!') : L2('Eingetragen – deine Bestleistung ist besser.', 'Logged – your best is still better.')}</div>`); if(boardOpen) boardLoad(); } }catch(e){}
+  try{ if(typeof account !== 'undefined' && account){ const r = await apiCall('/api/klo/submit', { token: account.token, draw: S.draw, moves, secs }); const m = document.getElementById('kloMsg'); if(m && r && r.ok) m.insertAdjacentHTML('beforeend', `<div style="margin-top:4px;font-size:12px;color:#7fe3ff">${r.zp > 0 ? '+' + r.zp + ' ⭐ · ' : ''}${r.improved ? '🏆 ' + L2('Neue Bestleistung in der Liste!', 'New personal best on the list!') : L2('Eingetragen – deine Bestleistung ist besser.', 'Logged – your best is still better.')}</div>`); if(boardOpen) boardLoad(); } }catch(e){}
 }
 const fmtT = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 async function boardLoad(){

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Erdkunde</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0f17;color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:14px 16px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:transparent;border:1px solid #232b3b;cursor:pointer}
+h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.02em}
+.pill{border:1px solid #232b3b;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:700;white-space:nowrap}
+.main{flex:1;display:flex;flex-direction:column;padding:4px 18px 20px;max-width:560px;width:100%;margin:0 auto;min-height:0;overflow:auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.tile{background:#121826;border:2px solid var(--c);border-radius:18px;padding:14px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;min-height:120px;box-shadow:0 0 14px color-mix(in srgb,var(--c) 22%,transparent)}
+.tile:active{transform:scale(.98)}
+.tile .ic{font-size:30px;line-height:34px}.tile b{font-size:16px}.tile small{color:#8d97ad;font-size:12px;line-height:1.3}
+.tile .st{margin-top:auto;font-size:15px;letter-spacing:2px}.tile .bs{font-size:11px;color:#8d97ad}
+.bar{height:4px;background:#1a2132;border-radius:3px;margin:4px 0 18px;overflow:hidden;flex:none}
+.bar i{display:block;height:100%;width:0;background:#c6ff3d;transition:width .25s}
+.q{background:#121826;border:1px solid #1d2536;border-radius:20px;padding:24px 20px;text-align:center;font-size:clamp(19px,5vw,25px);line-height:1.35;font-weight:700;min-height:130px;display:flex;align-items:center;justify-content:center;flex:none}
+.ans{display:flex;flex-direction:column;gap:10px;margin-top:14px;flex:none}
+.ans button{background:#121826;border:1.5px solid #232b3b;border-radius:14px;color:#eef1f7;padding:15px 14px;font-size:16px;font-weight:600;cursor:pointer;text-align:left;line-height:1.3}
+.ans button:active{background:#1a2234}
+.ans button.ok{border-color:#3ddc84;background:#10261a;color:#9bf0be}.ans button.no{border-color:#ff5d6c;background:#2a1318;color:#ffa4ae;animation:sh .3s}
+.ans button.dim{opacity:.45}
+@keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.ex{min-height:40px;margin-top:12px;font-size:13px;color:#9aa6bf;text-align:center;line-height:1.4}
+.pri{background:#c6ff3d;border:0;color:#0b0f17;border-radius:14px;padding:16px;font-size:16px;font-weight:800;cursor:pointer;width:100%}
+.sec{background:transparent;border:1px solid #232b3b;color:#eef1f7;border-radius:14px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.center{text-align:center}.big{font-size:72px;font-weight:800;color:#c6ff3d;line-height:1.1}
+.zp{color:#c6ff3d;font-weight:800;margin-top:8px}.hint{color:#6c768c;font-size:12px;margin-top:12px}
+.stars{font-size:34px;letter-spacing:6px;margin:6px 0}
+.mapwrap{background:#0e1320;border:1px solid #1d2536;border-radius:18px;padding:6px;margin-top:6px;flex:none}
+.mapwrap svg{display:block;width:100%;max-height:52vh;height:auto}
+.mapwrap path{stroke:#0b0f17;stroke-width:1.2;stroke-linejoin:round;cursor:pointer;transition:fill .15s}
+.mapwrap .lb{font-size:11px;font-weight:800;fill:#06220f;pointer-events:none;text-anchor:middle}
+.mapwrap .hit{fill:transparent;cursor:pointer}
+.mapwrap .pulse{animation:pu .9s infinite}
+@keyframes pu{50%{opacity:.55}}
+.mp{margin-top:10px;background:#121826;border:1px solid #1d2536;border-radius:16px;padding:12px;flex:none}
+.mp .lab{font-size:14px;font-weight:700;margin-bottom:8px;text-align:center;min-height:20px}
+.mp .row2{display:flex;gap:8px}
+.mp input{flex:1;min-width:0;background:#0b0f17;border:1.5px solid #232b3b;border-radius:12px;color:#eef1f7;padding:13px;font-size:16px;outline:none}
+.mp input:focus{border-color:#ffd45a}.mp input.bad{border-color:#ff5d6c;animation:sh .3s}
+.mp .bt{background:#c6ff3d;border:0;color:#0b0f17;border-radius:12px;padding:0 16px;font-weight:800;font-size:15px;cursor:pointer}
+.mp .bt.g{background:transparent;border:1px solid #232b3b;color:#eef1f7;font-weight:600;font-size:13px;padding:0 12px}
+.mp .acts{display:flex;gap:8px;margin-top:8px}
+.mp .msg{min-height:18px;font-size:13px;text-align:center;margin-top:8px;color:#9aa6bf}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">🌍 Erdkunde</h1><span class="pill" id="pg" style="display:none"></span></div>
+<div class="main" id="main"></div>
+<script src="data.js"></script>
+<script src="map-de.js"></script>
+<script src="map-world.js"></script>
+<script src="map-us.js"></script>
+<script src="map-en.js"></script>
+<script>
+(function(){
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+var ROUND=10, prog={}; try{ prog=JSON.parse(localStorage.getItem("bp_geo")||"{}")||{}; }catch(e){}
+function lockLeft(){ try{ var t=+localStorage.getItem("bp_geo_lock")||0; return Math.max(0,t-Date.now()); }catch(e){ return 0; } }
+function lockTxt(ms){ var h=Math.floor(ms/3600000), m=Math.ceil((ms%3600000)/60000); if(m===60){ h++; m=0; } return h+" Std. "+m+" Min."; }
+function save(){ try{ localStorage.setItem("bp_geo",JSON.stringify(prog)); }catch(e){} }
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function mstars(n){ return n>=3?"⭐⭐⭐":n==2?"⭐⭐☆":n==1?"⭐☆☆":"☆☆☆"; }
+function stars(n){ return n>=10?"⭐⭐⭐":n>=8?"⭐⭐☆":n>=5?"⭐☆☆":"☆☆☆"; }
+var G=null;
+$("back").onclick=function(){ if(G&&!G.end){ G=null; M=null; home(); return; } if(window.parent!==window) parent.postMessage({bpGeoBack:true},location.origin); else location.href="/"; };
+function home(){
+  G=null; $("pg").style.display="none"; var m=$("main");
+  var open_=window.GEO.some(function(t){ return t.k!=="de"&&(prog[t.k]|0)>=ROUND; });
+  var ll=lockLeft();
+  var tiles=(open_&&ll>0)?'<div class="tile" style="grid-column:1/-1;--c:#e0524d;opacity:.85" data-k="lock"><span class="ic">⏳</span><b>Karte gesperrt</b><small>3 Fehlversuche bei „Wo liegt Deutschland?". Nächster Versuch in '+lockTxt(ll)+'</small></div>':open_?'':'<div class="tile" style="grid-column:1/-1;--c:#5b6478;opacity:.75" data-k="lock"><span class="ic">🔒</span><b>Karte</b><small>Wird freigeschaltet, sobald du in einem Quiz-Thema alle '+ROUND+' Fragen richtig hast.</small></div>';
+  tiles+=(!open_||ll>0)?'':'<div class="tile" style="grid-column:1/-1;--c:#7cff8c" data-k="map:list"><span class="ic">🗺️</span><b>Karte</b><small>Finde ein Land auf der Weltkarte, dann tippe seine Gebiete an und schreibe die Namen</small><span class="st">🇩🇪 🇺🇸 🏴󠁧󠁢󠁥󠁮󠁧󠁿</span><span class="bs">'+(((prog.mapall|0)?1:0)+((prog.mapus|0)?1:0)+((prog.mapen|0)?1:0))+' / 3 Länder'+'</span></div>';
+  if(open_) tiles+='<div class="tile" style="--c:#ffb02e" data-k="map:cap"><span class="ic">🏛️</span><b>Karte: Hauptstädte</b><small>Tippe ein Land an und schreibe die Hauptstadt</small><span class="st">'+mstars(prog.mapcap|0)+'</span><span class="bs">'+((prog.mapcap|0)?'Bestwert':'16 Hauptstädte')+'</span></div>';
+  var tt=window.GEO.filter(function(t){ return t.k!=="de"; }).map(function(t){ var b=prog[t.k]|0; return '<div class="tile" style="--c:'+t.c+'" data-k="'+t.k+'"><span class="ic">'+t.ic+'</span><b>'+esc(t.de)+'</b><small>'+esc(t.sub)+'</small><span class="st">'+stars(b)+'</span><span class="bs">'+(b?('Bestwert '+b+' / '+ROUND):(t.q.length+' Fragen'))+'</span></div>'; }).join("");
+  tiles+=tt;
+  tiles+='<div class="tile" style="--c:#c6ff3d" data-k="mix"><span class="ic">🎲</span><b>Mix</b><small>Zufällig aus allen Themen</small><span class="st">'+stars(prog.mix|0)+'</span><span class="bs">'+((prog.mix|0)?('Bestwert '+prog.mix+' / '+ROUND):'Alle Themen')+'</span></div>';
+  m.innerHTML='<div class="center" style="margin-top:2px"><div style="font-size:13px;color:#8d97ad;line-height:1.4">Wähle ein Thema. Jede Runde hat '+ROUND+' Fragen.<br>Ab 8 Treffern gibt es beim ersten Mal Brainups, bei 10 von 10 noch mehr.</div></div><div class="grid">'+tiles+'</div>'+(hasAcc()?'':'<div class="hint center">Melde dich an, um Brainups zu bekommen.</div>');
+  Array.prototype.forEach.call(m.querySelectorAll(".tile"),function(el){ el.onclick=function(){ var k=el.getAttribute("data-k"); if(k==="lock") return; if(k==="map:list") mapList(); else if(k.indexOf("map:")===0) mapPlay(k.slice(4)); else play(k); }; });
+}
+function play(k){
+  var pool=[], name="Mix", c="#c6ff3d";
+  if(k==="mix"){ window.GEO.forEach(function(t){ if(t.k==="de") return; t.q.forEach(function(q){ pool.push(q); }); }); }
+  else { var t=window.GEO.filter(function(x){ return x.k===k; })[0]; pool=t.q.slice(); name=t.de; c=t.c; }
+  var qs=shuffle(pool.slice()).slice(0,ROUND);
+  G={k:k,name:name,c:c,qs:qs,i:0,ok:0,lock:false,end:false};
+  $("pg").style.display=""; show();
+}
+function show(){
+  var q=G.qs[G.i], m=$("main"); $("pg").textContent=(G.i+1)+" / "+ROUND; G.lock=false;
+  var order=shuffle([0,1,2,3]); var ans=[q[1],q[2],q[3],q[4]]; G.cur={right:0,order:order};
+  m.innerHTML='<div class="bar"><i id="bf" style="width:'+(G.i/ROUND*100)+'%"></i></div><div class="q">'+esc(q[0])+'</div><div class="ans">'+order.map(function(oi,pos){ return '<button data-p="'+pos+'">'+esc(ans[oi])+'</button>'; }).join("")+'</div><div class="ex" id="ex"></div>';
+  Array.prototype.forEach.call(m.querySelectorAll(".ans button"),function(b){ b.onclick=function(){ pick(+b.getAttribute("data-p")); }; });
+}
+function pick(pos){
+  if(!G||G.lock) return; G.lock=true; var q=G.qs[G.i], o=G.cur.order, ok=(o[pos]===0), btns=document.querySelectorAll(".ans button");
+  var rp=o.indexOf(0);
+  Array.prototype.forEach.call(btns,function(b,i){ if(i===rp) b.className="ok"; else if(i===pos) b.className="no"; else b.className="dim"; });
+  if(ok){ G.ok++; sfx("good"); } else sfx("bad");
+  var ex=$("ex"); ex.textContent=q[5]||(ok?"":"Richtig: "+q[1]); var wait=q[5]?2400:(ok?800:1500);
+  var done=false; function next(){ if(done||!G) return; done=true; G.i++; if(G.i>=ROUND) finish(); else show(); }
+  var t=setTimeout(next,wait); document.querySelector(".ans").onclick=function(){ if(G&&G.lock){ clearTimeout(t); next(); } }; ex.onclick=function(){ clearTimeout(t); next(); };
+}
+function finish(){
+  var g=G; g.end=true; $("pg").style.display="none";
+  if(g.ok>(prog[g.k]|0)){ prog[g.k]=g.ok; save(); }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(g.ok>=8,false); }catch(e){}
+  var m=$("main");
+  m.innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">'+esc(g.name)+'</div><div class="big">'+g.ok+' / '+ROUND+'</div><div class="stars">'+stars(g.ok)+'</div><div style="color:#8d97ad">'+(g.ok===ROUND?"Perfekt!":g.ok>=8?"Sehr stark!":g.ok>=5?"Gut gemacht!":"Übung macht den Meister.")+'</div><div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">Melde dich an, um Brainups zu bekommen.</div>')+'</div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="ag">Nochmal</button><button class="sec" id="hm">Themen</button></div>';
+  $("ag").onclick=function(){ play(g.k); }; $("hm").onclick=function(){ G=null; home(); };
+  if(hasAcc()&&g.k!=="mix"&&g.ok>=8) api("/api/solo/submit",{game:"geo",val:g.ok,diff:g.k}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" Brainups ⭐"; });
+}
+/* ---------- Karte Deutschland ---------- */
+var CAPS={"Baden-Württemberg":"Stuttgart","Bayern":"München","Berlin":"Berlin","Brandenburg":"Potsdam","Bremen":"Bremen","Hamburg":"Hamburg","Hessen":"Wiesbaden","Mecklenburg-Vorpommern":"Schwerin","Niedersachsen":"Hannover","Nordrhein-Westfalen":"Düsseldorf","Rheinland-Pfalz":"Mainz","Saarland":"Saarbrücken","Sachsen-Anhalt":"Magdeburg","Sachsen":"Dresden","Schleswig-Holstein":"Kiel","Thüringen":"Erfurt"};
+var ALIAS={"kalifornien":"california","neumexiko":"newmexico","nordkarolina":"northcarolina","suedkarolina":"southcarolina","nordakota":"northdakota","suedakota":"southdakota","pennsylvanien":"pennsylvania","neuhampshire":"newhampshire","neuyork":"newyork","newyorkstaat":"newyork","neujersey":"newjersey","westvirginia":"westvirginia","rhodeisland":"rhodeisland","nordosten":"northeast","nordwesten":"northwest","suedosten":"southeast","suedwesten":"southwest","yorkshire":"yorkshireandthehumber","ostengland":"eastofengland","londres":"london","nrw":"nordrheinwestfalen","bw":"badenwuerttemberg","mv":"mecklenburgvorpommern","rlp":"rheinlandpfalz","sh":"schleswigholstein","bln":"berlin"};
+function norm(t){ return String(t).toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z]/g,""); }
+function lev(a,b){ var m=a.length,n=b.length,d=[],i,j; for(i=0;i<=m;i++){ d[i]=[i]; } for(j=1;j<=n;j++) d[0][j]=j; for(i=1;i<=m;i++) for(j=1;j<=n;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[m][n]; }
+function matches(input,answer){ var a=norm(input), b=norm(answer); if(!a) return false; if(ALIAS[a]) a=ALIAS[a]; if(a===b) return true; var tol=b.length>=11?2:b.length>=6?1:0; return tol>0&&lev(a,b)<=tol; }
+var M=null;
+var CC={pol:{g:"GEOMAP",key:"mappol",srv:"kp",nn:"Pole",n:"Pole",fl:"🧊"},np:{g:"GEOMAP",key:"mapnp",srv:"kn",nn:"Nordpol",n:"der Nordpol",fl:"🧊"},sp:{g:"GEOMAP",key:"mapsp",srv:"ks",nn:"Südpol",n:"der Südpol",fl:"🐧"},ata:{g:"GEOMAP",key:"mapata",srv:"ka",nn:"Antarktis",n:"die Antarktis",fl:"❄️"},de:{g:"GEOMAP",id:"DEU",n:"Deutschland",fl:"🇩🇪",pt:[529,108],w:60,key:"all",srv:"kt"},us:{g:"GEOMAP_US",id:"USA",n:"die USA",nn:"USA",fl:"🇺🇸",pt:[228,142],w:320,key:"us",srv:"ku"},en:{g:"GEOMAP_EN",id:"GBR",n:"England",nn:"England",fl:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",pt:[494,103],w:50,key:"en",srv:"ke"}};
+function mapItems(mode,cc){
+  if(cc==="pol") return [{id:"pol0"},{id:"pol1"}]; if(POLT[cc]) return [{id:"pol0"}];
+  if(cc&&cc!=="de"){ return window[CC[cc].g].s.slice().sort(function(a,b){ return b.a-a.a; }).map(function(f){ f.kind="state"; return f; }); }
+  var g=window.GEOMAP, P=window.GEOPOI, st=g.s.slice().sort(function(a,b){ return b.a-a.a; }).map(function(f){ f.kind="state"; return f; });
+  if(mode==="cap") return st;
+  var o=st.slice(); P.peaks.forEach(function(f){ f.kind="peak"; o.push(f); }); P.ranges.forEach(function(f){ f.kind="range"; o.push(f); }); P.water.forEach(function(f){ f.kind=f.k==="Fluss"?"river":"water"; o.push(f); });
+  return o;
+}
+function mapPlay(mode,cc){
+  cc=cc||"de"; M={cc:cc,g:window[CC[cc].g],mode:mode,items:mapItems(mode,cc),solved:{},sel:null,wrong:0,hints:0,reveal:0,t0:Date.now(),tip:0,done:false,msg:""};
+  M.stage=mode==="all"||cc!=="de"?"world":"de"; M.V={x:0,y:0,w:window.GEOWORLD.w,h:window.GEOWORLD.h}; M.wtip=0; M.wmsg=""; M.step=0;
+  G={end:false,map:true}; $("pg").style.display=""; mapDraw();
+}
+function mapCount(){ return Object.keys(M.solved).length; }
+function mapAns(f){ return M.mode==="cap"?CAPS[f.n]:f.n; }
+function mapShort(f){ if(M.mode==="cap") return f.n; return f.n.length>10&&f.a<20000?f.n.replace("Nordrhein-Westfalen","NRW").replace("Mecklenburg-Vorpommern","MV").replace("Baden-Württemberg","BW").replace("Rheinland-Pfalz","RLP").replace("Schleswig-Holstein","SH").replace("Sachsen-Anhalt","S-Anhalt"):f.n; }
+function mapCol(f,base){ var st=M.solved[f.id]; return st?(st==="r"?"#1fa8d6":"#3ddc84"):(M.sel===f.id?"#ffd45a":base); }
+function mapMark(f){
+  var col=mapCol(f,"#fff"), sel=M.sel===f.id, st=M.solved[f.id], cl=sel?' class="pulse"':'', ns=' style="pointer-events:none"';
+  if(f.kind==="peak") return '<path d="M'+f.x+' '+(f.y-10)+'L'+(f.x+9)+' '+(f.y+6)+'L'+(f.x-9)+' '+(f.y+6)+'Z" fill="'+(st||sel?col:"#ff9f5a")+'" stroke="#0b0f17" stroke-width="1.5"'+cl+ns+'/>';
+  if(f.kind==="river") return '<circle cx="'+f.x+'" cy="'+f.y+'" r="'+(sel?10:8)+'" fill="'+(st||sel?col:"#4db8ff")+'" stroke="#fff" stroke-width="2"'+cl+ns+'/>';
+  var c=(st||sel)?col:(f.kind==="range"?"#c9a0ff":"#4db8ff"), r=f.kind==="range"?(sel?24:20):f.k==="Meer"?(sel?26:22):(sel?15:12);
+  return '<circle cx="'+f.x+'" cy="'+f.y+'" r="'+r+'" fill="'+c+'" fill-opacity="'+(st?".55":".22")+'" stroke="'+c+'" stroke-width="2" stroke-dasharray="4 3"'+cl+ns+'/>';
+}
+function mapDraw(){
+  if(M.stage==="world") return mapWorld();
+  var g=M.g, m=$("main"), tot=M.items.length; $("pg").textContent=mapCount()+" / "+tot;
+  var states=M.items.filter(function(f){ return f.kind==="state"; }), pois=M.items.filter(function(f){ return f.kind!=="state"; });
+  var paths=states.map(function(f){ return '<path data-id="'+f.id+'" class="'+(M.sel===f.id?"pulse":"")+'" d="'+f.d+'" fill="'+mapCol(f,"#25314d")+'"/>'; }).join("");
+  var marks=pois.map(mapMark).join("");
+  var hits=states.filter(function(f){ return f.a<2500; }).map(function(f){ return '<circle class="hit" data-id="'+f.id+'" cx="'+f.x+'" cy="'+f.y+'" r="15"/>'; }).join("")
+    +pois.map(function(f){ return '<circle class="hit" data-id="'+f.id+'" cx="'+f.x+'" cy="'+(f.y-2)+'" r="'+(f.kind==="range"||f.kind==="water"?19:15)+'"/>'; }).join("");
+  var labs=M.items.filter(function(f){ return M.solved[f.id]; }).map(function(f){
+    if(f.kind==="state") return '<text class="lb" x="'+f.x+'" y="'+(f.y+4)+'" style="font-size:'+(f.a<2500?8:f.a<13000?10:11)+'px">'+esc(M.mode==="cap"?CAPS[f.n]:mapShort(f))+'</text>';
+    var lx=Math.max(50,Math.min(510,f.x)); return '<text x="'+lx+'" y="'+(f.y-(f.kind==="peak"||f.kind==="river"?14:0))+'" style="font-size:10px;font-weight:800;fill:#fff;paint-order:stroke;stroke:#0b0f17;stroke-width:3px;text-anchor:middle;pointer-events:none">'+esc(f.n)+'</text>'; }).join("");
+  var sel=M.sel&&M.items.filter(function(f){ return f.id===M.sel; })[0], K={state:"Bundesland",peak:"Berg",range:"Gebirge",water:"Meer oder See",river:"Fluss"};
+  var lab=sel?(M.mode==="cap"?'Hauptstadt von <b style="color:#ffd45a">'+esc(sel.n)+'</b>?':(M.cc!=="de"?'Wie heißt dieses Gebiet?':'Wie heißt dieses Ziel? <span style="color:#8d97ad;font-weight:600">('+(sel.kind==="water"?(sel.k==="Meer"?"Meer":"See"):K[sel.kind])+')</span>'))
+    :(M.mode==="cap"?'Tippe ein Bundesland an und schreibe seine Hauptstadt.':M.cc==="us"?'Tippe einen Bundesstaat an und schreibe den Namen (englisch oder deutsch).':M.cc==="en"?'Tippe eine Region von England an und schreibe den Namen.':'Tippe etwas auf der Karte an (Land, ▲ Berg, ◌ Gebirge, ● Gewässer) und schreibe den Namen.');
+  m.innerHTML='<div class="mapwrap"><svg viewBox="0 0 '+g.w+' '+g.h+'" id="msvg">'+paths+marks+hits+labs+'</svg></div>'
+   +'<div class="mp"><div class="lab">'+lab+'</div>'+(sel?'<div class="row2"><input id="mi" type="text" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" placeholder="Name …"><button class="bt" id="mok">Prüfen</button></div><div class="acts"><button class="bt g" id="mtip">💡 Tipp</button><button class="bt g" id="mrev">👁 Auflösen</button></div>':'')+'<div class="msg" id="mmsg">'+esc(M.msg||"")+'</div></div>';
+  Array.prototype.forEach.call(m.querySelectorAll("[data-id]"),function(el){ el.onclick=function(){ mapTap(el.getAttribute("data-id")); }; });
+  if(sel){ $("mok").onclick=mapCheck; $("mtip").onclick=mapTip; $("mrev").onclick=mapReveal; $("mi").onkeydown=function(e){ if(e.key==="Enter") mapCheck(); }; try{ $("mi").focus({preventScroll:true}); }catch(e){} }
+}
+var POLT={np:{id:"NPOLE",n:"der Nordpol",nn:"Nordpol",pt:[500,2],w:420},sp:{id:"SPOLE",n:"der Südpol",nn:"Südpol",pt:[500,497],w:420},ata:{id:"ATA",n:"die Antarktis",nn:"Antarktis",pt:[500,455],w:300}};
+POLT.pol={id:"x"};
+function mapPC(){ return M.cc==="pol"?((M.step|0)?"sp":"np"):M.cc; }
+function mapT(){ return M.cc==="pol"?POLT[mapPC()]:(POLT[M.cc]||CC[M.cc]); }
+var WR=null, D2R=Math.PI/180;
+function mapRings(){ if(WR) return WR; WR=window.GEOWORLD.c.map(function(c){ var rs=[]; c.d.split("Z").forEach(function(seg){ if(!seg) return; var pts=seg.replace(/^M/,"").split("L").map(function(t){ var q=t.split(" "); return [+q[0]/(window.GEOWORLD.w/360)-180, 90-(+q[1])/(window.GEOWORLD.w/360)]; }); if(pts.length>2) rs.push(pts); }); return {id:c.id,n:c.n,rs:rs}; }); return WR; }
+function mapPip(lo,la,r){ var ins=false; for(var i=0,j=r.length-1;i<r.length;j=i++){ var xi=r[i][0],yi=r[i][1],xj=r[j][0],yj=r[j][1]; if(((yi>la)!==(yj>la))&&(lo<(xj-xi)*(la-yi)/(yj-yi)+xi)) ins=!ins; } return ins; }
+function mapGlobeGeo(){ var c=$("wcv"), w=c.clientWidth, g=M.gl; return {w:w,cx:w/2,cy:w/2,R:w*0.46*g.z}; }
+function mapGlobeDraw(){
+  var c=$("wcv"); if(!c||!M||M.stage!=="world") return; var dpr=window.devicePixelRatio||1, geo=mapGlobeGeo(), w=geo.w;
+  if(c.width!==Math.round(w*dpr)){ c.width=Math.round(w*dpr); c.height=Math.round(w*dpr); }
+  var x=c.getContext("2d"); x.setTransform(dpr,0,0,dpr,0,0); x.clearRect(0,0,w,w);
+  var g=M.gl, l0=g.lo*D2R, p0=g.la*D2R, sp=Math.sin(p0), cp=Math.cos(p0), R=geo.R, cx=geo.cx, cy=geo.cy;
+  x.fillStyle="#0e2038"; x.beginPath(); x.arc(cx,cy,R,0,6.2832); x.fill();
+  function P(lo,la){ var l=lo*D2R, f=la*D2R, dl=l-l0, cf=Math.cos(f), sf=Math.sin(f), cl=Math.cos(dl); var cc=sp*sf+cp*cf*cl; return [cx+R*cf*Math.sin(dl), cy-R*(cp*sf-sp*cf*cl), cc]; }
+  function path(r){ var any=false, out=[]; for(var i=0;i<r.length;i++){ var q=P(r[i][0],r[i][1]); if(q[2]>=0) any=true; else { var dx=q[0]-cx, dy=q[1]-cy, d=Math.sqrt(dx*dx+dy*dy)||1; q=[cx+dx/d*R,cy+dy/d*R,q[2]]; } out.push(q); } if(!any) return false; x.moveTo(out[0][0],out[0][1]); for(i=1;i<out.length;i++) x.lineTo(out[i][0],out[i][1]); x.closePath(); return true; }
+  x.save(); x.beginPath(); x.arc(cx,cy,R,0,6.2832); x.clip();
+  x.strokeStyle="rgba(120,150,200,.18)"; x.lineWidth=.6; var la,lo;
+  for(la=-60;la<=60;la+=30){ x.beginPath(); for(lo=-180;lo<=180;lo+=5){ var q=P(lo,la); if(q[2]>=0){ if(lo===-180||P(lo-5,la)[2]<0) x.moveTo(q[0],q[1]); else x.lineTo(q[0],q[1]); } } x.stroke(); }
+  for(lo=-180;lo<180;lo+=30){ x.beginPath(); var st=false; for(la=-90;la<=90;la+=5){ var q2=P(lo,la); if(q2[2]>=0){ if(!st){ x.moveTo(q2[0],q2[1]); st=true; } else x.lineTo(q2[0],q2[1]); } else st=false; } x.stroke(); }
+  mapRings().forEach(function(c2){ x.beginPath(); var ok=false; c2.rs.forEach(function(r){ if(path(r)) ok=true; }); if(!ok) return; x.fillStyle=M.wfill[c2.id]||"#2b3a5c"; x.fill(); x.strokeStyle="#0b0f17"; x.lineWidth=.6; x.stroke(); });
+  var pc_=mapPC(); if((pc_==="np"||pc_==="sp")&&(M.wtip>1||M.wfill.NPOLE||M.wfill.SPOLE)){ var cid=pc_==="np"?"NPOLE":"SPOLE", qq=P(0,pc_==="np"?90:-90); if(qq[2]>=0){ var dn=M.wfill[cid]; x.beginPath(); x.arc(qq[0],qq[1],dn?6:11,0,6.2832); if(dn){ x.fillStyle="#3ddc84"; x.fill(); x.strokeStyle="#fff"; x.lineWidth=1.5; x.stroke(); } else { x.strokeStyle="#ffd45a"; x.lineWidth=2; x.setLineDash([4,3]); x.stroke(); x.setLineDash([]); } } }
+  x.restore(); x.strokeStyle="#3a4a6e"; x.lineWidth=1.5; x.beginPath(); x.arc(cx,cy,R,0,6.2832); x.stroke();
+}
+var _gq=false; function mapGlobeQ(){ if(_gq) return; _gq=true; requestAnimationFrame(function(){ _gq=false; mapGlobeDraw(); }); }
+function mapHit(px,py){ var geo=mapGlobeGeo(), g=M.gl, X=(px-geo.cx)/geo.R, Y=(geo.cy-py)/geo.R, rho=Math.sqrt(X*X+Y*Y); if(rho>1) return null; var p0=g.la*D2R, c=Math.asin(rho), la, lo;
+  if(rho<1e-9){ la=g.la; lo=g.lo; } else { la=Math.asin(Math.cos(c)*Math.sin(p0)+Y*Math.sin(c)*Math.cos(p0)/rho)/D2R; lo=g.lo+Math.atan2(X*Math.sin(c),rho*Math.cos(p0)*Math.cos(c)-Y*Math.sin(p0)*Math.sin(c))/D2R; }
+  while(lo>180) lo-=360; while(lo<-180) lo+=360; var pc2=mapPC(); if(pc2==="np"&&la>=84) return "NPOLE"; if(pc2==="sp"&&la<=-84) return "SPOLE"; var R=mapRings(), best=null;
+  for(var i=0;i<R.length&&!best;i++) for(var j=0;j<R[i].rs.length;j++) if(mapPip(lo,la,R[i].rs[j])){ best=R[i].id; break; }
+  return best; }
+function mapZoom(f){ var g=M.gl; g.z=Math.max(.8,Math.min(30,g.z*(1/f))); mapGlobeQ(); }
+function mapGoto(x,y,w,ms){ var g=M.gl, W=window.GEOWORLD.w/360, lo=x/W-180, la=90-y/W, z=Math.max(1,Math.min(16,(window.GEOWORLD.w/w)*.7)), s0={lo:g.lo,la:g.la,z:g.z}, t0=Date.now(); ms=ms||800; var dl=((lo-s0.lo+540)%360)-180;
+  (function st(){ if(!M||M.stage!=="world") return; var k=Math.min(1,(Date.now()-t0)/ms); k=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2; g.lo=s0.lo+dl*k; g.la=s0.la+(la-s0.la)*k; g.z=s0.z+(z-s0.z)*k; mapGlobeDraw(); if(k<1) requestAnimationFrame(st); })(); }
+function mapWorld(){
+  var m=$("main"); $("pg").textContent="Welt"; if(!M.gl) M.gl={lo:10,la:25,z:1}; if(!M.wfill) M.wfill={};
+  m.innerHTML='<div class="mapwrap" style="position:relative;padding:4px"><canvas id="wcv" style="width:100%;aspect-ratio:1/1;display:block;touch-action:none;cursor:grab"></canvas><div style="position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:6px"><button class="bt" id="wzi" style="padding:6px 14px;font-size:20px">+</button><button class="bt g" id="wzo" style="padding:6px 14px;font-size:20px">−</button></div></div>'
+   +'<div class="mp"><div class="lab">Wo liegt <b style="color:#ffd45a">'+(POLT[M.cc]?mapT().n:(mapT().nn||mapT().n))+'</b>? Tippe auf den Globus.</div><div class="acts"><button class="bt g" id="mtip">💡 Tipp</button><button class="bt g" id="mrev">👁 Auflösen</button></div><div class="msg" id="mmsg">'+esc(M.wmsg||"Drehe den Globus mit dem Finger, zoome mit + / − oder zwei Fingern.")+'</div></div>';
+  var cv=$("wcv"), ptrs={}, moved=false, start=null;
+  cv.onpointerdown=function(e){ try{ cv.setPointerCapture(e.pointerId); }catch(_){} ptrs[e.pointerId]={x:e.clientX,y:e.clientY}; start={x:e.clientX,y:e.clientY}; moved=false; };
+  cv.onpointermove=function(e){ var p=ptrs[e.pointerId]; if(!p) return; var ids=Object.keys(ptrs);
+    if(ids.length===2){ var o=ptrs[ids.filter(function(i){ return +i!==e.pointerId; })[0]], d0=Math.hypot(p.x-o.x,p.y-o.y), d1=Math.hypot(e.clientX-o.x,e.clientY-o.y); p.x=e.clientX; p.y=e.clientY; if(d0>0) mapZoom(d0/d1); moved=true; return; }
+    if(!moved&&Math.hypot(e.clientX-start.x,e.clientY-start.y)<7) return; moved=true; var geo=mapGlobeGeo(), k=(1/geo.R)/D2R, g=M.gl;
+    g.lo-= (e.clientX-p.x)*k/Math.max(.2,Math.cos(g.la*D2R)*0+1); g.la+= (e.clientY-p.y)*k; g.la=Math.max(-90,Math.min(90,g.la)); while(g.lo>180) g.lo-=360; while(g.lo<-180) g.lo+=360; p.x=e.clientX; p.y=e.clientY; mapGlobeQ(); };
+  cv.onpointerup=cv.onpointercancel=function(e){ var n=Object.keys(ptrs).length; delete ptrs[e.pointerId]; if(!moved&&n===1&&start){ var r=cv.getBoundingClientRect(), id=mapHit(e.clientX-r.left,e.clientY-r.top); if(id) mapWorldTap(id); } if(!Object.keys(ptrs).length) start=null; };
+  cv.onwheel=function(e){ e.preventDefault(); mapZoom(e.deltaY<0?.85:1.18); };
+  $("wzi").onclick=function(){ mapZoom(.7); }; $("wzo").onclick=function(){ mapZoom(1/.7); };
+  $("mtip").onclick=function(){ M.wtip++; M.hints++; var T=mapT(); if(POLT[M.cc]){ M.wmsg=M.wtip===1?(mapPC()==="np"?"Ganz oben auf der Erde, mitten im Eis der Arktis.":mapPC()==="sp"?"Ganz unten auf der Erde, mitten in der Antarktis.":"Der Kontinent aus Eis ganz unten am Globus."):"Hier ist es. "+(M.cc==="ata"?"Der ganze Kontinent zählt.":"Tippe in den gelben Kreis."); if(M.wtip>1) mapGoto(T.pt[0],T.pt[1],T.w,900); } else if(M.wtip===1) M.wmsg=(M.cc==="us"?"Die USA liegen in Nordamerika.":M.cc==="en"?"England ist Teil der Insel Großbritannien.":"Deutschland liegt in Europa."); else { M.wmsg=M.cc==="us"?"Hier ist Nordamerika. Such die USA.":M.cc==="en"?"Hier ist Europa. Such die große Insel im Westen.":"Hier ist Europa. Such Deutschland in der Mitte."; if(M.cc==="us") mapGoto(220,137,480,900); else mapGoto(560,112,260,900); } $("mmsg").textContent=M.wmsg; };
+  $("mrev").onclick=function(){ M.reveal++; var T=mapT(); M.wmsg="Hier ist "+T.nn+"!"; M.wsol=T.id; M.wfill[T.id]="#1fa8d6"; mapGoto(T.pt[0],T.pt[1],T.w,900); setTimeout(function(){ if(M&&M.stage==="world") mapWorldDone(); },1500); $("mmsg").textContent=M.wmsg; };
+  mapGlobeDraw();
+}
+function mapWorldTap(id){
+  var T=mapT(); if(id===T.id){ M.wsol=T.id; M.wmsg="Richtig! Das ist "+(T.nn||T.n)+"."; sfx("good"); M.wfill[T.id]="#3ddc84"; $("mmsg").textContent=M.wmsg; mapGoto(T.pt[0],T.pt[1],T.w,900); setTimeout(function(){ if(M&&M.stage==="world") mapWorldDone(); },1500); return; }
+  var f=window.GEOWORLD.c.filter(function(c){ return c.id===id; })[0]; M.wrong+=0.5; M.wt=(M.wt|0)+1; M.wmsg="Das ist "+(id==="NPOLE"?"die Arktis":f?f.n:"ein anderes Land")+". Noch "+(3-M.wt)+" Versuch"+(3-M.wt===1?"":"e")+"."; sfx("bad"); $("mmsg").textContent=M.wmsg;
+  if(M.wt>=3){ try{ localStorage.setItem("bp_geo_lock",String(Date.now()+86400000)); }catch(e){} M=null; G=null; $("pg").style.display="none"; $("main").innerHTML='<div class="center" style="margin-top:8vh"><div style="font-size:56px">⏳</div><div class="big" style="font-size:26px">Drei Fehlversuche</div><div style="color:#8d97ad;margin-top:8px;line-height:1.5">Du hast dreimal daneben getippt (zuletzt: '+esc(f?f.n:"anderes Land")+').<br>Die Karte ist 24 Stunden gesperrt.<br>Übe in der Zwischenzeit mit den Quiz-Themen.</div></div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="hm">Zurück zu den Themen</button></div>'; $("hm").onclick=home; return; }
+  M.wfill[id]="#e0524d"; mapGlobeDraw(); setTimeout(function(){ if(M&&M.wfill&&M.wfill[id]==="#e0524d"){ delete M.wfill[id]; mapGlobeDraw(); } },500);
+}
+function mapWorldDone(){ if(M.cc==="pol"&&!(M.step|0)){ M.step=1; M.wsol=null; M.wtip=0; M.wfill={}; M.wmsg="Nordpol gefunden! Jetzt der Südpol."; M.gl={lo:10,la:-20,z:1}; mapDraw(); return; } if(POLT[M.cc]){ M.solved={a:1,b:1}; mapFinish(); return; } M.stage="de"; M.wmsg=""; M.msg="Jetzt "+(mapT().nn||mapT().n)+": Tippe etwas an."; mapDraw(); }
+function mapList(){
+  G={end:false,map:true}; M=null; $("pg").style.display="none"; var m=$("main");
+  var rows=[["de","mapall",null],["us","mapus","mapall"],["en","mapen","mapus"],["pol","mappol",null],["ata","mapata","mappol"]].map(function(r){ var c=CC[r[0]], done=prog[r[1]]|0, open=!r[2]||(prog[r[2]]|0)>0;
+    return '<div class="tile" style="--c:'+(open?(done?"#7cff8c":"#ffd45a"):"#5b6478")+';'+(open?"":"opacity:.7;")+'min-height:0;flex-direction:row;align-items:center;gap:12px" data-cc="'+r[0]+'" data-open="'+(open?1:0)+'"><span class="ic" style="font-size:34px">'+(open?c.fl:"🔒")+'</span><div style="flex:1"><b>'+esc(c.nn||c.n)+'</b><small style="display:block">'+(open?(r[0]==="de"?"16 Länder, Berge, Gebirge, Gewässer":r[0]==="us"?"50 Bundesstaaten + Washington D.C.":r[0]==="pol"?"Finde Nordpol und Südpol auf dem Globus":r[0]==="ata"?"Finde den Kontinent Antarktis (mit dem Südpol)":"9 Regionen"):(r[0]==="ata"?"Zuerst Nordpol und Südpol finden":"Zuerst "+(r[0]==="us"?"Deutschland":"die USA")+" komplett lösen"))+'</small></div><span class="st">'+(done?mstars(done):"")+'</span></div>'; }).join("");
+  m.innerHTML='<div class="center" style="margin-top:2px"><div style="font-size:13px;color:#8d97ad;line-height:1.4">Wähle ein Land. Finde es zuerst auf der Weltkarte, dann tippst du alle Gebiete an. Hast du ein Land geschafft, geht das nächste auf.</div></div><div class="grid" style="grid-template-columns:1fr">'+rows+'</div>';
+  Array.prototype.forEach.call(m.querySelectorAll("[data-cc]"),function(el){ el.onclick=function(){ if(el.getAttribute("data-open")!=="1"){ sfx("bad"); return; } var cc=el.getAttribute("data-cc"); mapPlay(cc==="de"?"all":"st",cc); }; });
+}
+function mapTap(id){ if(!M||M.done||M.solved[id]) return; M.sel=id; M.tip=0; M.msg=""; sfx("tap"); mapDraw(); }
+function mapTarget(){ var f=M.items.filter(function(x){ return x.id===M.sel; })[0]; return {f:f,ans:mapAns(f)}; }
+function mapInfo(f){ if(f.k) return f.n+" ("+f.k+")"; return f.h?(f.n+" · "+f.h.toLocaleString("de-DE")+" m · "+f.l):f.n; }
+function mapCheck(){
+  if(!M||!M.sel) return; var t=mapTarget(), v=$("mi").value;
+  if(matches(v,t.ans)){ M.solved[M.sel]="g"; M.msg="Richtig! "+((t.f.h||t.f.k)?mapInfo(t.f):""); M.sel=null; sfx("good"); mapAfter(); }
+  else { M.wrong++; M.msg="Nicht ganz. Versuch es nochmal oder nimm einen Tipp."; sfx("bad"); var i=$("mi"); i.className="bad"; $("mmsg").textContent=M.msg; setTimeout(function(){ if($("mi")) $("mi").className=""; },350); }
+}
+function mapTip(){ var t=mapTarget(); M.tip=(M.tip|0)+1; M.hints++; var n=Math.min(t.ans.length-1,M.tip); M.msg="Beginnt mit „"+t.ans.slice(0,n)+"“ ("+t.ans.length+" Buchstaben)"; $("mmsg").textContent=M.msg; }
+function mapReveal(){ var t=mapTarget(); M.reveal++; M.solved[M.sel]="r"; M.msg="Es war: "+((t.f.h||t.f.k)?mapInfo(t.f):t.ans); M.sel=null; sfx("tap"); mapAfter(); }
+function mapAfter(){ if(mapCount()>=M.items.length){ M.done=true; mapDraw(); setTimeout(mapFinish,900); } else mapDraw(); }
+var MAPKEY={all:["mapall","kt","Karte"],name:["mapname","blk","Bundesländer"],cap:["mapcap","hkp","Hauptstädte"],peak:["mappeak","pk","Berge"],range:["maprange","gb","Gebirge"],water:["mapwater","wg","Gewässer"]};
+function mapFinish(){
+  var tot=M.items.length, secs=Math.round((Date.now()-M.t0)/1000), bad=M.wrong+M.hints+M.reveal*2, st=bad<=(tot>20?4:1)?3:bad<=(tot>20?12:4)?2:1, K=M.cc!=="de"?[CC[M.cc].key,CC[M.cc].srv,CC[M.cc].nn]:MAPKEY[M.mode], cc=M.cc;
+  if(st>(prog[K[0]]|0)){ prog[K[0]]=st; save(); }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(true,false); }catch(e){}
+  var mm=Math.floor(secs/60), ss=("0"+(secs%60)).slice(-2), m=$("main"); $("pg").style.display="none";
+  m.innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">'+K[2]+' · Karte</div><div class="big" style="font-size:54px">'+tot+' / '+tot+'</div><div class="stars">'+mstars(st)+'</div><div style="color:#8d97ad">Zeit '+mm+':'+ss+' · Fehler '+M.wrong+' · Tipps '+M.hints+' · Aufgelöst '+M.reveal+'</div><div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">Melde dich an, um Brainups zu bekommen.</div>')+'</div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="ag">Nochmal</button><button class="sec" id="hm">Themen</button></div>';
+  var mode=M.mode, nxt=(M.mode!=="cap"&&cc!=="en"&&!POLT[cc])?(cc==="de"?"us":"en"):null; $("ag").onclick=function(){ mapPlay(mode,cc); }; if(nxt){ var nb=document.createElement("button"); nb.className="sec"; nb.textContent="Nächstes Land: "+(CC[nxt].nn)+" "+CC[nxt].fl; nb.onclick=function(){ mapPlay("st",nxt); }; $("ag").parentNode.insertBefore(nb,$("hm")); } $("hm").onclick=function(){ M=null; G=null; home(); };
+  if(hasAcc()) api("/api/solo/submit",{game:"geo",val:st===3?10:8,diff:K[1]}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" Brainups ⭐"; });
+}
+
+home();
+})();
+</script></body></html>

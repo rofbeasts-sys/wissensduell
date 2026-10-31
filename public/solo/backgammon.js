@@ -245,7 +245,7 @@ function intro(msg){
     ${seg([['wood', L('Holz','Wood')], ['pulse', 'Brain Pulse']], sk, 'BG.setSkin')}
     <button class="bggo" onclick="BG.start()">${L('SPIEL STARTEN','START GAME')}</button>
     <div class="settings-track" style="text-align:center;margin-top:8px">${L('Bot-Spiele zählen nicht für Brainups.','Bot games do not give Brainups.')}</div>
-    <button class="bgback" onclick="renderMainMenu()">← ${L('Zurück','Back')}</button>
+    <button class="bgback" onclick="startSoloWelt()">← ${L('Zurück','Back')}</button>
   </div>`);
 }
 function startGame(){
