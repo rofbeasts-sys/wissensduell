@@ -7592,6 +7592,7 @@ function startMake24(){ renderChessFrame('/kartenwelt/make24.html'); }
 function startPyramide(){ renderChessFrame('/kartenwelt/pyramide.html'); }
 window.tfApi = function(path, body){ return apiCall(path, Object.assign({ token: account ? account.token : undefined }, body || {})); };
 window.tfHasAccount = function(){ return !!account; };
+window.tfLang = function(){ try{ return currentLang; }catch(e){ return 'de'; } };
 function startKugelSolitaer(){ SOL.open(startSoloWelt); }
 function startKartenWelt(){
   setAudioZone("menu");
@@ -16095,7 +16096,7 @@ function renderPartyTaboo(msg){
     }
     const rules = msg.ffa
       ? L('Erraten: 3–10 Punkte (je schneller, desto mehr: alle 3 s ein Punkt weniger). Erklärer: die Hälfte davon. TABU: Erklärer −3 Punkte.','Guessed: 3–10 points (faster = more, −1 every 3 s). Explainer: half of that. TABU: explainer −3.')
-      : L('Erraten: +1 Punkt für das Team. TABU: −1 Punkt. Die Teams sind abwechselnd dran.','Guessed: +1 for the team. TABU: −1. Teams take turns.');
+      : L('Erraten: +1 Punkt für das Team. TABU: −3 Punkte. Pro Runde nur 3× überspringen. Die Teams sind abwechselnd dran.','Guessed: +1 for the team. TABU: −3. Only 3 skips per turn. Teams take turns.');
     const rbox = `<details class="d" style="margin-top:12px;font-size:13px"><summary style="cursor:pointer;font-weight:800">ℹ️ ${L('So zählen die Punkte','How scoring works')}</summary><div style="margin-top:6px;line-height:1.5">${rules}</div></details>`;
     renderApp(`<div class="panel tb" id="tbRoot">${header}${body}${rbox}</div>`);
   }
@@ -16125,7 +16126,7 @@ function tbUpdate(msg){
     if(msg.ffa) g('tbOk').innerHTML = `<div class="d" style="margin-top:10px">${L('Wer hat es erraten? Tippe auf den Namen:','Who got it? Tap the name:')}</div><div>${msg.board.filter(b => b.id !== msg.describerId).map(b => `<button class="btn btn-primary" style="margin:6px 6px 0 0" onclick="partySend({action:'tabooOk', by:'${b.id}', ci:${msg.ci}})">✔ ${esc(b.name)}</button>`).join('')}</div>`;
     else g('tbOk').innerHTML = `<button class="btn btn-primary big" onclick="partySend({action:'tabooOk', ci:${msg.ci}})">✔ ${L('RICHTIG ERRATEN','GUESSED RIGHT')}</button>`;
   }
-  if(g('tbSkip')) g('tbSkip').innerHTML = `<button class="btn btn-ghost big" ${msg.skips > 0 ? '' : 'disabled'} onclick="partySend({action:'tabooSkip'})">${msg.voice ? L('WEITER (anderes Wort)','NEXT (other word)') : L('ÜBERSPRINGEN','SKIP')} (${msg.skips} ${L('übrig','left')})</button>${msg.voice ? `<button class="btn big red" onclick="partySend({action:'tabooTabu'})">🚫 ${L('TABU / FALSCH','TABOO / WRONG')} (${msg.ffa ? '−3' : '−1'})</button>` : ''}<div style="margin-top:8px"><button class="btn btn-primary big" disabled style="display:none"></button></div>`;
+  if(g('tbSkip')) g('tbSkip').innerHTML = `<button class="btn btn-ghost big" ${msg.skips > 0 ? '' : 'disabled'} onclick="partySend({action:'tabooSkip'})">${msg.voice ? L('WEITER (anderes Wort)','NEXT (other word)') : L('ÜBERSPRINGEN','SKIP')} (${msg.skips} ${L('übrig','left')})</button>${msg.voice ? `<button class="btn big red" onclick="partySend({action:'tabooTabu'})">🚫 ${L('TABU / FALSCH','TABOO / WRONG')} (−3)</button>` : ''}<div style="margin-top:8px"><button class="btn btn-primary big" disabled style="display:none"></button></div>`;
   if(g('tbFeed')) g('tbFeed').innerHTML = `<div style="margin-top:12px">${(msg.feed || []).map(f => `<span class="chip ${f.ok ? 'ok' : f.tabu ? 'tabu' : ''}">${esc(f.name)}: ${esc(f.text)}</span>`).join('')}</div>`;
 }
 function tbGuess(){ const el = document.getElementById('tbIn'); if(!el) return; const v = el.value.trim(); if(!v) return; partySend({ action:'tabooGuess', text: v }); el.value = ''; el.focus(); }

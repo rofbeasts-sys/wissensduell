@@ -320,6 +320,7 @@ function initMeta(hero, name) {
   // Apply persistent shop bonuses
   maxHp += shopBonuses.hp;
   atk += shopBonuses.atk;
+  if (typeof cityBonus === 'function') { maxHp += cityBonus('hp'); atk += cityBonus('atk'); }
   // Apply class passives permanently (all active classes)
   var _activeCls = typeof playerClasses !== 'undefined' ? playerClasses : (playerClass ? [playerClass] : []);
   _activeCls.forEach(function(cls) {
@@ -775,6 +776,7 @@ function attack() {
       if (skills.includes('jamal4')) { killGold += 2; }
       // Schurke: +30% Gold
       killGold = Math.floor(killGold * getSchurkeGoldMult());
+      if (typeof cityBonus === 'function') killGold = Math.floor(killGold * cityBonus('gold'));
       // (Energie-Regen läuft am Ende von attack())
       // Reset hinterhaltAvailable after fight ends (set here too)
       log('\uD83D\uDC79 <span style="color:var(--gold)">' + _dname + ' besiegt! +' + killGold + ' Gold</span>');
@@ -2670,6 +2672,7 @@ async function saveStateToFirebase() {
       diamonds: String(globalDiamonds),
       shopPrices: JSON.parse(localStorage.getItem('robShopPrices') || '{}'),
       shopBonuses: JSON.parse(localStorage.getItem('robShopBonuses') || '{}'),
+      city: JSON.parse(localStorage.getItem('robCity') || '{}'),
       inventory: inventory,
       diaAttrs: JSON.parse(localStorage.getItem('robDiaAttrs') || '{}'),
       selectedAvatar: localStorage.getItem('robAvatar') || '',
@@ -2702,6 +2705,7 @@ async function loadStateFromFirebase() {
     if (state.diamonds) localStorage.setItem('robDiamonds', state.diamonds);
     if (state.shopPrices) localStorage.setItem('robShopPrices', JSON.stringify(state.shopPrices));
     if (state.shopBonuses) localStorage.setItem('robShopBonuses', JSON.stringify(state.shopBonuses));
+    if (state.city) localStorage.setItem('robCity', JSON.stringify(state.city));
     if (state.inventory) localStorage.setItem('robInventory', JSON.stringify(state.inventory));
     if (state.diaAttrs) localStorage.setItem('robDiaAttrs', JSON.stringify(state.diaAttrs));
     if (state.selectedAvatar) { localStorage.setItem('robAvatar', state.selectedAvatar); selectedAvatar = state.selectedAvatar; }

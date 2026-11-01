@@ -36,6 +36,8 @@
 
   <button class="btn btn-wide" onclick="closeMenu();showSpieleModal()" style="width:100%;margin-bottom:9px;font-size:0.8rem;padding:9px">&#128240; NEWS <span id="realmNewsDot" style="display:none;background:#ff3b5c;color:#fff;border-radius:10px;padding:0 6px;font-size:0.7rem">NEU</span></button>
 
+  <button class="btn btn-wide" onclick="showCity()" style="width:100%;margin-bottom:9px;font-size:0.8rem;padding:9px;background:linear-gradient(135deg,#1a3a0a,#3d6b1a);border-color:#9c6;color:#cfa">&#127961;&#65039; STADT</button>
+
   <!-- 2. KLASSE WAEHLEN + KLASSEN-LEVEL -->
   <button id="menuClassBtn" class="btn btn-wide" onclick="showClassModal()" style="width:100%;margin-bottom:4px;font-size:0.8rem;padding:9px;background:linear-gradient(135deg,#440000,#880000);border-color:var(--gold2);color:var(--gold)">KLASSE WAEHLEN</button>
   <div id="menuClassInfo" style="font-size:0.65rem;color:var(--gold2);text-align:center;margin-bottom:4px;min-height:14px;padding:0 4px"></div>
@@ -306,8 +308,10 @@
 }})();
 </script>
 <script src="realm-shim.js"></script>
+<script src="realm-i18n.js"></script>
 <script src="monsters-config.js"></script>
 <script src="game.js"></script>
+<script src="realm-city.js"></script>
 
 
 <!-- KLASSEN-MODAL -->

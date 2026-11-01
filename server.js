@@ -3218,7 +3218,7 @@ function handlePartyFourupsMove(room, playerId, col) {
 
 /* ------------------------------------------------------------------------ */
 /* TABOO (Party-Runde): 2 Teams, je 60 s. Erklaerer sieht Begriff + 5 verbotene Woerter, */
-/* Rater tippen, Gegner-Aufpasser druecken TABU. Richtig +1, Tabu -1.        */
+/* Rater tippen, Gegner-Aufpasser druecken TABU. Richtig +1, Tabu -3, 3 Ueberspringen.        */
 /* ------------------------------------------------------------------------ */
 /* TABOO_CARDS: siehe oben (frueh geladen, wird von buildRoundDefPool gebraucht) */
 const TABOO_TURN_MS = 90000, TABOO_SKIPS = 3, TABOO_BREAK_MS = 5000;
@@ -3355,7 +3355,7 @@ function handleTabooTabu(room, playerId) {
   const role = tabooRoleOf(room, rt, p); if (!(rt.voice && role === "describer") && role !== "watcher" && role !== "guesserWatcher") return;
   if (rt.lastTabuAt && Date.now() - rt.lastTabuAt < 800) return; rt.lastTabuAt = Date.now();
   if (rt.ffa) { rt.pts[rt.describerId] -= 3; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU! −3", tabu: true }); rt.card = tabooDrawCard(rt); rt.cardAt = Date.now(); return tabooBroadcast(room); }
-  const tid = rt.teams[rt.turn]; rt.scores[tid]--; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU!", tabu: true }); rt.card = tabooDrawCard(rt);
+  const tid = rt.teams[rt.turn]; rt.scores[tid] -= 3; rt.bad.push(rt.card.w); rt.feed.push({ name: p.name, text: "TABU! −3", tabu: true }); rt.card = tabooDrawCard(rt);
   tabooBroadcast(room);
 }
 function handleTabooOk(room, playerId, by, ci) {   // Nur-erklaeren-Modus: Erklaerer ODER ein Rater bestaetigt, dass das Wort laut erraten wurde
