@@ -393,6 +393,14 @@ function updateLoginLevels() {
 // ===== START =====
 function goBackBP() { if (window.parent !== window) { try { parent.postMessage({ bpRealmBack: true }, location.origin); } catch (e) { location.href = '/'; } } else location.href = '/'; }
 function startGame() {
+  try { startGameInner(); } catch (e) {
+    var box = document.getElementById('startErr');
+    if (!box) { box = document.createElement('div'); box.id = 'startErr'; box.style.cssText = 'color:#ff8a8a;font-size:.7rem;margin-top:10px;word-break:break-word'; var lb = document.getElementById('loginBox'); if (lb) lb.appendChild(box); }
+    box.textContent = 'Fehler beim Start: ' + (e && e.message ? e.message : e);
+    try { console.error(e); } catch (x) {}
+  }
+}
+function startGameInner() {
   const nameEl = document.getElementById('nameInput');
   const name = (window.bpUser || localStorage.getItem('robPlayerName') || nameEl.value.trim() || 'Spieler').slice(0,16);
   localStorage.setItem('robPlayerName', name);
