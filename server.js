@@ -4256,7 +4256,7 @@ function tfBoard(token) {
 // ---- Solo: Minesucher (schnellste Zeit je Stufe) + 2048 (hoechster Punktestand). Brainups nur fuer Siege/gute Ergebnisse, einmal pro Tag ----
 const soloLast = new Map();
 const MS_MIN_SECS = { e: 6, m: 14, h: 24 };
-const GEO_TOPICS = ["bl", "de", "mt", "wa", "eu", "wo", "blk", "hkp", "pk", "gb", "wg", "kt", "ku", "ke", "kp", "kn", "ks", "ka", "po"];
+const GEO_TOPICS = ["bl", "de", "mt", "wa", "eu", "wo", "blk", "hkp", "pk", "gb", "wg", "kt", "ku", "ke", "kp", "kn", "ks", "ka", "po", "wpl", "wmo", "wso", "wgr", "wko", "wra", "wsk", "wre", "pre", "ppa", "pka", "pwa", "pgg", "pge", "pro", "ure", "upa", "upr", "uwa", "uvf", "uge", "upro"];
 async function soloSubmit(token, game, val, diff, lang, extra) {
   extra = extra || {};
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -4414,7 +4414,7 @@ async function saveUserStats(token, stats, lang) {
   const oldCoins = user.stats.coins || 0, oldPrestige = user.stats.braintestPrestige || 0;
   const oldAnswers = (user.stats.correctAnswers || 0) + (user.stats.wrongAnswers || 0), oldWL = (user.stats.wins || 0) + (user.stats.losses || 0);
   const oldKlasse = user.stats.klasse || 0, oldTtt = user.stats.tttRank || 0;
-  const zpWas = { oosT: (user.stats.oosLast && user.stats.oosLast.t) || 0, synced: !!user.stats.syncedOnce, sm: user.stats.speedMathLevel || 1, fruit: (user.stats.fruit && user.stats.fruit.fruitLevel) || 1, galaxy: (user.stats.fruit && user.stats.fruit.galaxyLevel) || 1, bio: Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {}) };
+  const zpWas = { oosT: (user.stats.oosLast && user.stats.oosLast.t) || 0, synced: !!user.stats.syncedOnce, sm: user.stats.speedMathLevel || 1, fruit: (user.stats.fruit && user.stats.fruit.fruitLevel) || 1, jong: (user.stats.fruit && user.stats.fruit.jongLevel) || 1, galaxy: (user.stats.fruit && user.stats.fruit.galaxyLevel) || 1, bio: Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {}) };
   const oldCorrect = user.stats.correctAnswers || 0, oldWrong = user.stats.wrongAnswers || 0, oldWins = user.stats.wins || 0, oldLosses = user.stats.losses || 0, oldRounds = user.stats.roundsPlayed || 0;
   allowedKeys.forEach(k => {
     if (typeof stats[k] === "number" && Number.isFinite(stats[k])) {
@@ -4625,6 +4625,8 @@ async function saveUserStats(token, stats, lang) {
     for (let L = zpWas.fruit; L < Math.min(fl, zpWas.fruit + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
     const gl = (user.stats.fruit && user.stats.fruit.galaxyLevel) || 1;
     for (let L = zpWas.galaxy; L < Math.min(gl, zpWas.galaxy + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
+    const jl = (user.stats.fruit && user.stats.fruit.jongLevel) || 1;
+    for (let L = zpWas.jong; L < Math.min(jl, zpWas.jong + 20); L++) zpt += L % 10 === 0 ? 100 : 50; // Brain Jong (Mahjong): wie Fruit und Galaxy pro Level
     const bioNow = Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {});
     zpt += 250 * Math.min(3, Object.keys(bioNow).filter(k => !(k in zpWas.bio)).length);
     if (zpt > 0) zpAdd(user, zpt, "solo");
@@ -7407,6 +7409,7 @@ const GAME_DEFS = [
   { id: "braining_ms", name: "Minesucher", group: "Solo Games", icon: "💣" },
   { id: "braining_2048", name: "2048", group: "Solo Games", icon: "🔢" },
   { id: "braining_brick", name: "Brick Flieger", group: "Solo Games", icon: "✈️" },
+  { id: "braining_lane", name: "Pfadwächter", group: "Solo Games", icon: "🛡️" },
   { id: "braining_hopper", name: "Hüpfer", group: "Solo Games", icon: "⚪" },
   { id: "braining_flappy", name: "Flappy-Flug", group: "Solo Games", icon: "🕊️" },
   { id: "braining_block", name: "Block Puzzle", group: "Solo Games", icon: "🧩" },
@@ -7447,6 +7450,8 @@ const GAME_DEFS = [
   { id: "chem", name: "Brainchimie", group: "Minigames", icon: "⚗️" },
   { id: "backgammon", name: "Backgammon", group: "Minigames", icon: "🎲" },
   { id: "geo", name: "Erdkunde", group: "Modi", icon: "🌍" },
+  { id: "space", name: "Weltall", group: "Modi", icon: "🪐" },
+  { id: "politik", name: "Politik", group: "Modi", icon: "🏛️" },
   { id: "fourups", name: "Fourups", group: "Minigames", icon: "🔴" },
   { id: "fourups_abilities", name: "Fourups Fähigkeiten", group: "Minigames", icon: "✨", sub: "fourups" },
   { id: "ordering", name: "Ordering", group: "Minigames", icon: "🔢" },
@@ -7633,7 +7638,7 @@ async function saveGameCfg() {
   try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 // Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
-const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
+const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "space", "politik", "braining_lane", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : ((LOCKED_FEATURES.has(id) || DEFAULT_LOCKED_NEW.has(id)) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }

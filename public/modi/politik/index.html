@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Politik</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#0b0f17;color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:14px 16px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:transparent;border:1px solid #232b3b;cursor:pointer}
+h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.02em}
+.pill{border:1px solid #232b3b;border-radius:99px;padding:5px 11px;font-size:13px;font-weight:700;white-space:nowrap}
+.main{flex:1;display:flex;flex-direction:column;padding:4px 18px 20px;max-width:560px;width:100%;margin:0 auto;min-height:0;overflow:auto}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.tile{background:#121826;border:2px solid var(--c);border-radius:18px;padding:14px 12px;cursor:pointer;display:flex;flex-direction:column;gap:3px;min-height:120px;box-shadow:0 0 14px color-mix(in srgb,var(--c) 22%,transparent)}
+.tile:active{transform:scale(.98)}
+.tile .ic{font-size:30px;line-height:34px}.tile b{font-size:16px}.tile small{color:#8d97ad;font-size:12px;line-height:1.3}
+.tile .st{margin-top:auto;font-size:15px;letter-spacing:2px}.tile .bs{font-size:11px;color:#8d97ad}
+.bar{height:4px;background:#1a2132;border-radius:3px;margin:4px 0 18px;overflow:hidden;flex:none}
+.bar i{display:block;height:100%;width:0;background:#c6ff3d;transition:width .25s}
+.q{background:#121826;border:1px solid #1d2536;border-radius:20px;padding:24px 20px;text-align:center;font-size:clamp(19px,5vw,25px);line-height:1.35;font-weight:700;min-height:130px;display:flex;align-items:center;justify-content:center;flex:none}
+.ans{display:flex;flex-direction:column;gap:10px;margin-top:14px;flex:none}
+.ans button{background:#121826;border:1.5px solid #232b3b;border-radius:14px;color:#eef1f7;padding:15px 14px;font-size:16px;font-weight:600;cursor:pointer;text-align:left;line-height:1.3}
+.ans button:active{background:#1a2234}
+.ans button.ok{border-color:#3ddc84;background:#10261a;color:#9bf0be}.ans button.no{border-color:#ff5d6c;background:#2a1318;color:#ffa4ae;animation:sh .3s}
+.ans button.dim{opacity:.45}
+@keyframes sh{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.ex{min-height:40px;margin-top:12px;font-size:13px;color:#9aa6bf;text-align:center;line-height:1.4}
+.pri{background:#c6ff3d;border:0;color:#0b0f17;border-radius:14px;padding:16px;font-size:16px;font-weight:800;cursor:pointer;width:100%}
+.sec{background:transparent;border:1px solid #232b3b;color:#eef1f7;border-radius:14px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:10px}
+.center{text-align:center}.big{font-size:72px;font-weight:800;color:#c6ff3d;line-height:1.1}
+.zp{color:#c6ff3d;font-weight:800;margin-top:8px}.hint{color:#6c768c;font-size:12px;margin-top:12px}
+.stars{font-size:34px;letter-spacing:6px;margin:6px 0}
+.mapwrap{background:#0e1320;border:1px solid #1d2536;border-radius:18px;padding:6px;margin-top:6px;flex:none}
+.mapwrap svg{display:block;width:100%;max-height:52vh;height:auto}
+.mapwrap path{stroke:#0b0f17;stroke-width:1.2;stroke-linejoin:round;cursor:pointer;transition:fill .15s}
+.mapwrap .lb{font-size:11px;font-weight:800;fill:#06220f;pointer-events:none;text-anchor:middle}
+.mapwrap .hit{fill:transparent;cursor:pointer}
+.mapwrap .pulse{animation:pu .9s infinite}
+@keyframes pu{50%{opacity:.55}}
+.mp{margin-top:10px;background:#121826;border:1px solid #1d2536;border-radius:16px;padding:12px;flex:none}
+.mp .lab{font-size:14px;font-weight:700;margin-bottom:8px;text-align:center;min-height:20px}
+.mp .row2{display:flex;gap:8px}
+.mp input{flex:1;min-width:0;background:#0b0f17;border:1.5px solid #232b3b;border-radius:12px;color:#eef1f7;padding:13px;font-size:16px;outline:none}
+.mp input:focus{border-color:#ffd45a}.mp input.bad{border-color:#ff5d6c;animation:sh .3s}
+.mp .bt{background:#c6ff3d;border:0;color:#0b0f17;border-radius:12px;padding:0 16px;font-weight:800;font-size:15px;cursor:pointer}
+.mp .bt.g{background:transparent;border:1px solid #232b3b;color:#eef1f7;font-weight:600;font-size:13px;padding:0 12px}
+.mp .acts{display:flex;gap:8px;margin-top:8px}
+.mp .msg{min-height:18px;font-size:13px;text-align:center;margin-top:8px;color:#9aa6bf}
+.fact{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #1d2536;padding:9px 2px;font-size:14px}.fact span{color:#8d97ad}.fact b{text-align:right}
+.card{background:#0e1320;border:1px solid #1d2536;border-radius:18px;padding:12px 14px;margin-top:10px}
+.row{display:flex;gap:12px;align-items:center;background:#121826;border:1.5px solid #232b3b;border-radius:16px;padding:10px 14px;margin-top:8px;cursor:pointer}
+.row .sp{border-radius:50%;flex:none;position:relative}
+.ord{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 6px;margin-top:14px}
+.ord .o{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;font-size:12px;font-weight:700}
+.ord .o .sp{border-radius:50%;position:relative}.ord .o.d{opacity:.45}.ord .o .nr{position:absolute;right:-6px;top:-6px;background:#3ddc84;color:#06220f;border-radius:99px;min-width:22px;height:22px;display:grid;place-items:center;font-size:12px;font-weight:900}
+.ord .o.no{animation:sh .3s}.sp{border-radius:50%;position:relative;flex:none}.sp.rg::before{content:"";position:absolute;left:50%;top:50%;width:calc(100% + 28%);height:calc(10% + 6px);margin-left:calc(-50% - 14%);margin-top:calc(-5% - 1px);border:3px solid #d7bd88;border-radius:50%;transform:rotate(-18deg);opacity:.9;pointer-events:none}
+.sp{display:none}
+.cc{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:13px;flex:none;color:#fff}
+.ord .o{background:#121826;border:1.5px solid #232b3b;border-radius:14px;padding:10px 4px;text-align:center}
+.ord .o.d{opacity:.5;border-color:#3ddc84}.ord .o.no{animation:sh .3s}
+.ord{grid-template-columns:repeat(2,1fr)}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">🏛️ Politik</h1><span class="pill" id="pg" style="display:none"></span></div>
+<div class="main" id="main"></div>
+<script src="data.js"></script>
+<script src="data-us.js"></script>
+<script>
+(function(){
+var PP=null; try{ if(window.parent!==window&&typeof window.parent.fruitData==="function") PP=window.parent; }catch(e){}
+function $(i){ return document.getElementById(i); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+function sfx(n){ try{ PP&&PP.sfx&&PP.sfx(n); }catch(e){} }
+function api(p,b){ try{ if(PP&&PP.tfApi) return PP.tfApi(p,b||{}); }catch(e){} return Promise.resolve(null); }
+function hasAcc(){ try{ return !!(PP&&PP.tfHasAccount&&PP.tfHasAccount()); }catch(e){ return false; } }
+var CN="de"; try{ CN=localStorage.getItem("bp_pol_cn")==="us"?"us":"de"; }catch(e){}
+function US(){ return CN==="us"; }
+function TP(){ return US()?window.POLUS:window.POL; }
+function LST(){ return US()?window.PRESUS:window.KANZ; }
+function OL(){ return LST().slice(0,10); }
+function PAR(){ return US()?window.PARTIESUS:window.PARTIES; }
+function LW(){ return US()?"Präsidenten":"Kanzler"; }
+function PK(k){ return (US()?"u":"")+k; }
+var ROUND=10, prog={}; try{ prog=JSON.parse(localStorage.getItem("bp_pol")||"{}")||{}; }catch(e){}
+function save(){ try{ localStorage.setItem("bp_pol",JSON.stringify(prog)); }catch(e){} }
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function mstars(n){ return n>=3?"⭐⭐⭐":n==2?"⭐⭐☆":n==1?"⭐☆☆":"☆☆☆"; }
+function stars(n){ return n>=10?"⭐⭐⭐":n>=8?"⭐⭐☆":n>=5?"⭐☆☆":"☆☆☆"; }
+function norm(t){ return String(t).toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z]/g,""); }
+function lev(a,b){ var m=a.length,n=b.length,d=[],i,j; for(i=0;i<=m;i++){ d[i]=[i]; } for(j=1;j<=n;j++) d[0][j]=j; for(i=1;i<=m;i++) for(j=1;j<=n;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[m][n]; }
+var AL={"mercury":"merkur","earth":"erde","neptune":"neptun","erdball":"erde"};
+function matches(input,answer){ var a=norm(input), b=norm(answer); if(!a) return false; if(AL[a]) a=AL[a]; if(a===b) return true; var tol=b.length>=7?2:b.length>=5?1:0; return tol>0&&lev(a,b)<=tol; }
+var G=null, M=null, O=null;
+$("back").onclick=function(){ if(G&&!G.end||M||O){ G=null; M=null; O=null; home(); return; } if(window.parent!==window) parent.postMessage({bpPolBack:true},location.origin); else location.href="/"; };
+function home(){
+  G=null; M=null; O=null; $("pg").style.display="none"; $("title").textContent="🏛️ Politik"; var m=$("main"), t=TP(), okK=(prog["q"+PK(US()?"pr":"ka")]|0)>=8;
+  var tiles='<div class="tile" style="--c:#ffd45a" data-k="kanz"><span class="ic">👔</span><b>'+LW()+'-Galerie</b><small>'+(US()?'Washington bis Trump':'Alle 10 Bundeskanzler')+'</small><span class="bs">'+(US()?'13 Amtszeiten':'1949 bis heute')+'</span></div>';
+  tiles+='<div class="tile" style="--c:#ff5d6c" data-k="part"><span class="ic">🗳️</span><b>Parteien-Galerie</b><small>Wer ist wer?</small><span class="bs">'+PAR().length+' Parteien</span></div>';
+  tiles+=t.map(function(x){ var b=prog["q"+PK(x.k)]|0; return '<div class="tile" style="--c:'+x.c+'" data-k="'+x.k+'"><span class="ic">'+x.ic+'</span><b>'+esc(x.de)+'</b><small>'+esc(x.sub)+'</small><span class="st">'+stars(b)+'</span><span class="bs">'+(b?('Bestwert '+b+' / '+ROUND):(x.q.length+' Fragen'))+'</span></div>'; }).join("");
+  tiles+='<div class="tile" style="--c:#c6ff3d" data-k="mix"><span class="ic">🎲</span><b>Mix</b><small>Zufällig aus allen Themen</small><span class="st">'+stars(prog["q"+PK("mix")]|0)+'</span><span class="bs">Alle Themen</span></div>';
+  tiles+=okK?'<div class="tile" style="grid-column:1/-1;--c:#ffd45a;min-height:0;flex-direction:row;align-items:center;gap:12px" data-k="order"><span class="ic">🧮</span><div style="flex:1"><b>'+LW()+'-Reihenfolge</b><br><small>Tippe die '+LW()+' in der richtigen Reihenfolge an</small></div><span class="st" style="margin:0">'+mstars(prog[PK("pro")]|0)+'</span></div>'
+    :'<div class="tile" style="grid-column:1/-1;--c:#5b6478;opacity:.75;min-height:0;flex-direction:row;align-items:center;gap:12px" data-k="lock"><span class="ic">🔒</span><div style="flex:1"><b>'+LW()+'-Reihenfolge</b><br><small>Wird frei, sobald du das Thema „'+(US()?'Präsidenten':'Bundeskanzler')+'“ mit mindestens 8 von 10 geschafft hast.</small></div></div>';
+  m.innerHTML='<div style="display:flex;gap:8px;margin-bottom:10px"><button class="sec" id="cnde" style="margin:0;'+(US()?'':'border-color:#c6ff3d;color:#c6ff3d;')+'">🇩🇪 Deutschland</button><button class="sec" id="cnus" style="margin:0;'+(US()?'border-color:#c6ff3d;color:#c6ff3d;':'')+'">🇺🇸 USA</button></div><div class="center" style="margin-top:2px"><div style="font-size:13px;color:#8d97ad;line-height:1.4">'+(US()?'Wer regiert die USA, welche Parteien gibt es, wie wird gewählt?':'Wer regiert, welche Parteien gibt es, wie funktioniert die Demokratie?')+' Eine Runde hat '+ROUND+' Fragen.<br>Ab 8 Treffern gibt es beim ersten Mal Brainups.</div></div><div class="grid">'+tiles+'</div>'+(hasAcc()?'':'<div class="hint center">Melde dich an, um Brainups zu sammeln.</div>');
+  $("cnde").onclick=function(){ CN="de"; try{ localStorage.setItem("bp_pol_cn","de"); }catch(e){} home(); }; $("cnus").onclick=function(){ CN="us"; try{ localStorage.setItem("bp_pol_cn","us"); }catch(e){} home(); };
+  Array.prototype.forEach.call(m.querySelectorAll(".tile"),function(el){ el.onclick=function(){ var k=el.getAttribute("data-k"); if(k==="lock") return; if(k==="kanz") kList(); else if(k==="part") pList(); else if(k==="order") orderPlay(); else play(k); }; });
+}
+/* ---------- Quiz ---------- */
+function play(k){
+  var pool=[], name="Mix", c="#c6ff3d";
+  if(k==="mix"){ TP().forEach(function(t){ t.q.forEach(function(q){ pool.push(q); }); }); }
+  else { var t=TP().filter(function(x){ return x.k===k; })[0]; pool=t.q.slice(); name=t.de; c=t.c; }
+  G={k:k,name:name,c:c,qs:shuffle(pool.slice()).slice(0,ROUND),i:0,ok:0,lock:false,end:false};
+  $("pg").style.display=""; show();
+}
+function show(){
+  var q=G.qs[G.i], m=$("main"); $("pg").textContent=(G.i+1)+" / "+ROUND; G.lock=false;
+  var order=shuffle([0,1,2,3]); var ans=[q[1],q[2],q[3],q[4]]; G.cur={order:order};
+  m.innerHTML='<div class="bar"><i style="width:'+(G.i/ROUND*100)+'%"></i></div><div class="q">'+esc(q[0])+'</div><div class="ans">'+order.map(function(oi,pos){ return '<button data-p="'+pos+'">'+esc(ans[oi])+'</button>'; }).join("")+'</div><div class="ex" id="ex"></div>';
+  Array.prototype.forEach.call(m.querySelectorAll(".ans button"),function(b){ b.onclick=function(){ pick(+b.getAttribute("data-p")); }; });
+}
+function pick(pos){
+  if(!G||G.lock) return; G.lock=true; var q=G.qs[G.i], o=G.cur.order, ok=(o[pos]===0), btns=document.querySelectorAll(".ans button"), rp=o.indexOf(0);
+  Array.prototype.forEach.call(btns,function(b,i){ b.className=i===rp?"ok":i===pos?"no":"dim"; });
+  if(ok){ G.ok++; sfx("good"); } else sfx("bad");
+  var ex=$("ex"); ex.textContent=q[5]||(ok?"":"Richtig: "+q[1]); var wait=q[5]?2400:(ok?800:1500), done=false;
+  function next(){ if(done||!G) return; done=true; G.i++; if(G.i>=ROUND) finish(); else show(); }
+  var t=setTimeout(next,wait); document.querySelector(".ans").onclick=function(){ if(G&&G.lock){ clearTimeout(t); next(); } }; ex.onclick=function(){ clearTimeout(t); next(); };
+}
+var DIFFD={re:"pre",pa:"ppa",ka:"pka",wa:"pwa",gg:"pgg",ge:"pge"}, DIFFU={re:"ure",pa:"upa",pr:"upr",wa:"uwa",vf:"uvf",ge:"uge"};
+function DF(k){ return (US()?DIFFU:DIFFD)[k]; }
+function finish(){
+  var g=G; g.end=true; $("pg").style.display="none"; var pk="q"+PK(g.k);
+  if(g.ok>(prog[pk]|0)){ prog[pk]=g.ok; save(); }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(g.ok>=8,false); }catch(e){}
+  $("main").innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">'+esc(g.name)+'</div><div class="big">'+g.ok+' / '+ROUND+'</div><div class="stars">'+stars(g.ok)+'</div><div style="color:#8d97ad">'+(g.ok===ROUND?"Perfekt!":g.ok>=8?"Sehr stark!":g.ok>=5?"Gut gemacht!":"Übung macht den Meister.")+'</div><div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">Melde dich an, um Brainups zu bekommen.</div>')+'</div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="ag">Nochmal</button><button class="sec" id="hm">Themen</button></div>';
+  $("ag").onclick=function(){ play(g.k); }; $("hm").onclick=function(){ G=null; home(); };
+  if(hasAcc()&&DF(g.k)&&g.ok>=8) api("/api/solo/submit",{game:"geo",val:g.ok,diff:DF(g.k)}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" Brainups ⭐"; });
+}
+/* ---------- Galerien ---------- */
+function yrs(k){ return k.s+" – "+(k.e||"heute"); }
+function kList(){
+  O={}; $("title").textContent="👔 "+LW();
+  $("main").innerHTML=LST().map(function(k,i){ return '<div class="row" data-i="'+i+'"><div class="cc" style="background:'+k.bg+'">'+(i+1)+'</div><div style="flex:1"><b>'+esc(k.n)+'</b><br><small style="color:#8d97ad">'+esc(k.p)+' · '+yrs(k)+'</small></div><span style="color:#6c768c">›</span></div>'; }).join("");
+  Array.prototype.forEach.call($("main").querySelectorAll(".row"),function(el){ el.onclick=function(){ kDetail(+el.getAttribute("data-i")); }; });
+}
+function kDetail(i){
+  var k=LST()[i], n=LST().length; O={i:i}; $("title").textContent="👔 "+k.n;
+  $("main").innerHTML='<div style="display:grid;place-items:center;height:120px"><div class="cc" style="width:96px;height:96px;font-size:34px;background:'+k.bg+'">'+(i+1)+'.</div></div><div class="center"><div style="font-size:24px;font-weight:800">'+esc(k.n)+'</div><div style="color:#8d97ad;font-size:13px">'+esc(k.t)+'</div></div>'
+   +'<div class="card"><div class="fact"><span>Partei</span><b>'+esc(k.p)+'</b></div><div class="fact" style="border:0"><span>Amtszeit</span><b>'+yrs(k)+'</b></div></div><div class="card" style="font-size:14px;line-height:1.45">💡 '+esc(k.m)+'</div>'
+   +'<div style="display:flex;gap:10px;margin-top:14px"><button class="sec" id="fp" style="margin:0">← Zurück</button><button class="pri" id="fn" style="flex:1">Nächster →</button></div>';
+  $("fp").onclick=function(){ kDetail((i+n-1)%n); }; $("fn").onclick=function(){ kDetail((i+1)%n); };
+}
+function pList(){
+  O={}; $("title").textContent="🗳️ Parteien";
+  $("main").innerHTML=PAR().map(function(p,i){ return '<div class="row" data-i="'+i+'"><div class="cc" style="background:'+p.col+';color:'+p.tx+';font-size:11px">'+esc(p.n)+'</div><div style="flex:1"><b>'+esc(p.full)+'</b><br><small style="color:#8d97ad">gegründet '+p.gr+'</small></div><span style="color:#6c768c">›</span></div>'; }).join("");
+  Array.prototype.forEach.call($("main").querySelectorAll(".row"),function(el){ el.onclick=function(){ pDetail(+el.getAttribute("data-i")); }; });
+}
+function pDetail(i){
+  var p=PAR()[i], n=PAR().length; O={i:i}; $("title").textContent="🗳️ "+p.n;
+  $("main").innerHTML='<div style="display:grid;place-items:center;height:120px"><div class="cc" style="width:96px;height:96px;font-size:22px;background:'+p.col+';color:'+p.tx+'">'+esc(p.n)+'</div></div><div class="center"><div style="font-size:20px;font-weight:800">'+esc(p.full)+'</div></div>'
+   +'<div class="card"><div class="fact"><span>Gegründet</span><b>'+p.gr+'</b></div><div class="fact"><span>Besonderheit</span><b>'+esc(p.sp)+'</b></div><div class="fact" style="border:0"><span>Im Bundestag (2026)</span><b>'+esc(p.bt)+'</b></div></div><div class="card" style="font-size:14px;line-height:1.45">💡 '+esc(p.memo)+'</div>'
+   +'<div style="display:flex;gap:10px;margin-top:14px"><button class="sec" id="fp" style="margin:0">← Zurück</button><button class="pri" id="fn" style="flex:1">Nächste →</button></div>';
+  $("fp").onclick=function(){ pDetail((i+n-1)%n); }; $("fn").onclick=function(){ pDetail((i+1)%n); };
+}
+/* ---------- Kanzler-Reihenfolge ---------- */
+function orderPlay(){ O={order:shuffle([0,1,2,3,4,5,6,7,8,9]),next:0,wrong:0,t0:Date.now(),game:1}; $("pg").style.display=""; $("title").textContent="🧮 Reihenfolge"; orderDraw(); }
+function orderDraw(){
+  var K=OL(); $("pg").textContent=O.next+" / 10";
+  $("main").innerHTML='<div class="center" style="margin-top:4px;font-size:14px;color:#cfd6e6;line-height:1.4">Tippe die '+LW()+' <b style="color:#ffd45a">der Reihe nach</b> an.<br>Zuerst der erste '+(US()?'Präsident':'Bundeskanzler')+'.</div><div class="ord">'+O.order.map(function(ki){ var k=K[ki], d=ki<O.next; return '<div class="o'+(d?' d':'')+'" data-i="'+ki+'"><span>'+(d?(ki+1)+'. '+esc(k.n)+'<br><small style="color:#8d97ad">'+yrs(k)+'</small>':esc(k.n))+'</span></div>'; }).join("")+'</div><div class="msg center" id="omsg" style="margin-top:16px;color:#9aa6bf;font-size:13px">Fehler: '+O.wrong+'</div>';
+  Array.prototype.forEach.call($("main").querySelectorAll(".o"),function(el){ el.onclick=function(){ orderTap(+el.getAttribute("data-i"),el); }; });
+}
+function orderTap(ki,el){
+  if(!O||!O.game||ki<O.next) return;
+  if(ki===O.next){ O.next++; sfx("good"); if(O.next>=10){ orderDraw(); setTimeout(orderFinish,700); } else orderDraw(); }
+  else { O.wrong++; sfx("bad"); el.className="o no"; var ms=$("omsg"); if(ms) ms.textContent="Falsch, da war jemand früher dran. Fehler: "+O.wrong; setTimeout(function(){ if(el) el.className="o"; },400); }
+}
+function orderFinish(){
+  var st=O.wrong<=2?3:O.wrong<=6?2:1, secs=Math.round((Date.now()-O.t0)/1000), wr=O.wrong; O=null; $("pg").style.display="none";
+  if(st>(prog[PK("pro")]|0)){ prog[PK("pro")]=st; save(); }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(true,false); }catch(e){}
+  $("main").innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">'+LW()+'-Reihenfolge</div><div class="big" style="font-size:54px">10 / 10</div><div class="stars">'+mstars(st)+'</div><div style="color:#8d97ad">Zeit '+secs+' s · Fehler '+wr+'</div><div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">Melde dich an, um Brainups zu bekommen.</div>')+'</div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="ag">Nochmal</button><button class="sec" id="hm">Themen</button></div>';
+  $("ag").onclick=orderPlay; $("hm").onclick=home;
+  if(hasAcc()) api("/api/solo/submit",{game:"geo",val:st===3?10:8,diff:PK("pro")}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" Brainups ⭐"; });
+}
+home();
+})();
+</script></body></html>

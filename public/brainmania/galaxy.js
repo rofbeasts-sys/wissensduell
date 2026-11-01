@@ -283,17 +283,33 @@ function showHeroes(msg){
 }
 
 /* ---------- Sternenkarte (Level-Tabelle) ---------- */
-const ZN = [['Nebel', 'Nebula', '#4de1ff', '🌌'], ['Asteroidengürtel', 'Asteroid belt', '#ffb347', '☄️'], ['Schwarzes Loch', 'Black hole', '#b07aff', '🕳️'], ['Supernova', 'Supernova', '#ff5d6c', '💥'], ['Sternenhaufen', 'Star cluster', '#c6ff3d', '✨']];
+const ZN = [['Milchstraße', 'Milky Way', '#8f7bff', '🌌'], ['Asteroidengürtel', 'Asteroid belt', '#ffb347', '☄️'], ['Sonne', 'Sun', '#ffd45a', '☀️'], ['Kometen', 'Comets', '#4de1ff', '🌠'], ['Nebel', 'Nebula', '#ff7ad9', '🌫️'], ['Pulsar', 'Pulsar', '#7dff6a', '💫'], ['Supernova', 'Supernova', '#ff5d6c', '💥'], ['Andromeda', 'Andromeda', '#5aa8ff', '🌀'], ['Dunkle Materie', 'Dark matter', '#8a6bd6', '🔮'], ['Schwarzes Loch', 'Black hole', '#b07aff', '🕳️']];
+/* Welt 1 (Level 1-10): echte Planeten in dieser Reihenfolge, Name steht unter dem Planeten */
+const SH = 'radial-gradient(circle at 32% 28%,rgba(255,255,255,.28),transparent 45%,rgba(0,0,0,.5)),';
+const PLN = [
+  ['Merkur', 'Mercury', 'radial-gradient(circle at 32% 28%,#d6d0c6,#8a847b 55%,#3f3b36)', 46],
+  ['Venus', 'Venus', 'radial-gradient(circle at 32% 28%,#fff0c8,#d9a352 55%,#6d4416)', 54],
+  ['Erde', 'Earth', 'radial-gradient(circle at 40% 58%,#3ddc84 0 13%,transparent 14%),radial-gradient(circle at 68% 34%,#3ddc84 0 9%,transparent 10%),radial-gradient(circle at 32% 28%,#8fd0ff,#2a6fd6 50%,#0f2f66)', 56],
+  ['Mond', 'Moon', 'radial-gradient(circle at 32% 28%,#f4f4f4,#a9a9ac 55%,#4b4b50)', 42],
+  ['Mars', 'Mars', 'radial-gradient(circle at 32% 28%,#ffb08a,#c4502c 55%,#5a1d0c)', 50],
+  ['Jupiter', 'Jupiter', SH + 'repeating-linear-gradient(180deg,#d9b48a 0 6px,#b9824f 6px 11px,#ead2b0 11px 17px,#a8703f 17px 21px)', 76],
+  ['Saturn', 'Saturn', SH + 'linear-gradient(180deg,#e8d3a2,#c9a76a 55%,#e2cb98)', 62],
+  ['Uranus', 'Uranus', 'radial-gradient(circle at 32% 28%,#d5fffb,#58c1c9 55%,#1e6b73)', 54],
+  ['Neptun', 'Neptune', 'radial-gradient(circle at 32% 28%,#8fb0ff,#2d4fd1 55%,#101f66)', 54],
+  ['Pluto', 'Pluto', 'radial-gradient(circle at 32% 28%,#f0dcc4,#a98b6f 55%,#4c3a2c)', 40]
+];
 const PC = ['#5aa8ff', '#ff7ad9', '#ffb347', '#c6ff3d', '#b07aff', '#4de1ff', '#ff5d6c', '#7dff6a'];
 function closeMap(){ const m = document.getElementById('bgMap'); if(m) m.remove(); }
 function zoneHtml(z, best, st){
-  const zn = ZN[z % 5], col = zn[2], from = z * 10 + 1, to = from + 9, locked = from > best; let got = 0; for(let L = from; L <= to; L++) got += +(st[L - 1] || 0);
+  const zn = ZN[z % 10], col = zn[2], from = z * 10 + 1, to = from + 9, locked = from > best; let got = 0; for(let L = from; L <= to; L++) got += +(st[L - 1] || 0);
   const H = 10 * 92 + 40; let path = '', nodes = '';
   const xy = j => ({ x: j % 2 ? 76 : 24, y: 46 + j * 92 });
   for(let j = 0; j < 10; j++){ const p = xy(j); path += (j ? ` C ${p.x} ${p.y - 46}, ${xy(j - 1).x} ${xy(j - 1).y + 46}, ${p.x} ${p.y}` : `M ${p.x} ${p.y}`); }
   for(let j = 0; j < 10; j++){ const L = from + j, p = xy(j), lk = L > best, cur = L === best, s = +(st[L - 1] || 0), boss = j === 9, ring = j % 4 === 3;
+    const pl = (z % 10 === 0) ? PLN[j] : null;
+    if(pl){ const sz = pl[3]; nodes += `<div data-l="${L}" class="bgn pn${lk ? ' lk' : ''}${cur ? ' cur' : ''}${j === 6 ? ' rg' : ''}" style="--c:#e8d3a2;width:${sz}px;height:${sz}px;margin:${-sz / 2}px 0 0 ${-sz / 2}px;background:${pl[2]};box-shadow:0 0 16px rgba(160,180,255,.28);left:${p.x}%;top:${p.y}px"><span class="pnn">${L}</span>${lk ? '' : `<span class="bgs">${'★'.repeat(s)}${'☆'.repeat(3 - s)}</span>`}<span class="bgnm">${L2(pl[0], pl[1])}</span></div>`; continue; }
     nodes += `<div data-l="${L}" class="bgn${lk ? ' lk' : ''}${cur ? ' cur' : ''}${boss ? ' bo' : ''}${ring ? ' rg' : ''}" style="--c:${boss ? '#ff5d6c' : PC[(L * 3) % PC.length]};left:${p.x}%;top:${p.y}px">${L}${lk ? '' : `<span class="bgs">${'★'.repeat(s)}${'☆'.repeat(3 - s)}</span>`}</div>`; }
-  return `<div class="bgz" style="--c:${col}"><span style="font-size:26px">${zn[3]}</span><div><b>${L2(zn[0], zn[1])}${z >= 5 ? ' ' + (Math.floor(z / 5) + 1) : ''}</b><small>${L2('Level ', 'Level ')}${from}–${to}</small></div><span class="pr">${locked ? '🔒' : '★ ' + got + '/30'}</span></div>
+  return `<div class="bgz" style="--c:${col}"><span style="font-size:26px">${zn[3]}</span><div><b>${L2(zn[0], zn[1])}${z >= 10 ? ' ' + (Math.floor(z / 10) + 1) : ''}</b><small>${L2('Level ', 'Level ')}${from}–${to}</small></div><span class="pr">${locked ? '🔒' : '★ ' + got + '/30'}</span></div>
   <div class="bgp" style="height:${H}px;--c:${col};${locked ? 'opacity:.75' : ''}"><svg viewBox="0 0 100 ${H}" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><path d="${path}" fill="none" stroke="${col}" stroke-opacity="${locked ? .2 : .4}" stroke-width="5" stroke-dasharray="2 12" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>${nodes}</div>`;
 }
 function showMap(back){
@@ -305,7 +321,7 @@ function showMap(back){
 #bgMap .bgz{margin:10px 14px 0;padding:10px 14px;border-radius:16px;display:flex;align-items:center;gap:10px;border:1.5px solid var(--c);background:linear-gradient(90deg,color-mix(in srgb,var(--c) 22%,#0a1030),#0a1030)}#bgMap .bgz b{display:block;font-size:14px}#bgMap .bgz small{opacity:.7;font-size:11px}#bgMap .bgz .pr{margin-left:auto;font-weight:900;font-size:12px;color:var(--c)}
 #bgMap .bgp{position:relative;margin:0 14px}.bgn{position:absolute;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:17px;cursor:pointer;text-shadow:0 1px 3px #000a;background:radial-gradient(circle at 32% 26%,color-mix(in srgb,var(--c) 40%,#fff),var(--c) 55%,color-mix(in srgb,var(--c) 40%,#000));box-shadow:0 0 18px color-mix(in srgb,var(--c) 70%,transparent),inset -5px -6px 10px #0006}
 .bgn.lk{filter:grayscale(1) brightness(.45);box-shadow:none;cursor:default}.bgn.lk::after{content:"🔒";position:absolute;font-size:15px;bottom:-4px;right:-4px}.bgn.cur{outline:3px solid #ffd45a;outline-offset:4px;animation:bgp 1.4s infinite}@keyframes bgp{50%{outline-offset:8px;outline-color:#ffd45a66}}
-.bgn .bgs{position:absolute;bottom:-18px;font-size:11px;letter-spacing:1px;white-space:nowrap;color:#ffd45a}.bgn.bo{width:70px;height:70px;margin:-35px 0 0 -35px;font-size:22px}.bgn.rg::before{content:"";position:absolute;width:94px;height:22px;border:3px solid color-mix(in srgb,var(--c) 70%,#fff);border-radius:50%;transform:rotate(-18deg);clip-path:inset(50% 0 0 0);opacity:.9}
+.bgn .bgs{position:absolute;bottom:-18px;font-size:11px;letter-spacing:1px;white-space:nowrap;color:#ffd45a}.bgn.pn{font-size:13px}.bgn .pnn{font-size:12px;font-weight:900;opacity:.85;text-shadow:0 1px 3px #000}.bgn .bgnm{position:absolute;bottom:-34px;font-size:11px;font-weight:800;color:#fff;white-space:nowrap;text-shadow:0 1px 3px #000}.bgn.pn.lk .bgnm{opacity:.6}.bgn.pn.rg::before{width:calc(100% + 34px);height:20px;left:50%;margin-left:calc(-50% - 17px);top:calc(50% - 7px);border-color:#d7bd88}#bgMap .bgp{background:radial-gradient(ellipse at 50% 18%,color-mix(in srgb,var(--c) 15%,transparent),transparent 72%);border-radius:18px}.bgn.bo{width:70px;height:70px;margin:-35px 0 0 -35px;font-size:22px}.bgn.rg::before{content:"";position:absolute;width:94px;height:22px;border:3px solid color-mix(in srgb,var(--c) 70%,#fff);border-radius:50%;transform:rotate(-18deg);clip-path:inset(50% 0 0 0);opacity:.9}
 #bgMap .go{position:fixed;left:0;right:0;bottom:0;padding:12px 14px 16px;background:linear-gradient(transparent,#050818 40%)}#bgMap .go button{display:block;width:100%;max-width:432px;margin:0 auto;padding:14px;border:0;border-radius:16px;background:linear-gradient(90deg,#c6ff3d,#3de0ff);color:#0a1020;font-weight:900;font-size:16px}</style>
   <div class="in"><div class="hd"><button class="pill" id="bgMapBk">←</button><b>🪐 ${L2('Sternenkarte', 'Star map')}</b><span class="pill">${L2('Level', 'Level')} ${best}</span></div>${zones.join('')}</div>
   <div class="go"><button id="bgMapGo">▶ ${L2('Level ' + best + ' spielen', 'Play level ' + best)}</button></div>`;
