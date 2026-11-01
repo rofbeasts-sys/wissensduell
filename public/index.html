@@ -5883,6 +5883,7 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
     if(e.origin !== location.origin || !e.data) return;
     if(e.data.bpOpenShop === true){ startShopFlow(); return; }
     if(e.data.bpArrowBack === true){ startSoloWelt(); return; }
+    if(e.data.bpRealmBack === true){ renderMainMenu(); return; }
     if(e.data.bpGeoBack === true || e.data.bpSpaceBack === true || e.data.bpPolBack === true){ renderMainMenu(); return; }
     if(e.data.bpKartenBack === true){ startKartenWelt(); return; }
     if(e.data.bpFruitBack === true){ startBrainingHub(); return; }

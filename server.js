@@ -4378,7 +4378,9 @@ function realmBoard(token, n) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const me = token ? findUserByToken(token) : null;
   const all = users.filter(u => u.realm && u.realm.entry && u.realm.entry.score > 0).map(u => u.realm.entry).sort((a, b) => b.score - a.score);
-  return { ok: true, top: all.slice(0, Math.max(1, Math.min(100, Number(n) || 100))), mine: me && me.realm ? me.realm.entry || null : null };
+  const mine = me && me.realm ? me.realm.entry || null : null;
+  const idx = mine ? all.findIndex(e => e.name === mine.name) : -1;
+  return { ok: true, top: all.slice(0, Math.max(1, Math.min(100, Number(n) || 100))), mine, mineRank: idx >= 0 ? idx + 1 : 0, total: all.length };
 }
 function soloBoard(token, game, diff) {
   if (!usersLoaded) return { ok: false, unavailable: true };

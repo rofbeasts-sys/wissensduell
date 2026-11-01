@@ -254,8 +254,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Cinzel', serif; 
 #runHero img { width: 100%; display: block; border-radius: 14px; border: 3px solid #4a8cff; box-shadow: 0 8px 14px #000; transform-origin: 50% 100%; }
 #runHero .rh-ground { height: 6px; margin: 4px -6px 0; border-radius: 50%; background: rgba(0,0,0,.45); filter: blur(2px); }
 #runHero .rh-dust { position: absolute; left: -16px; bottom: 6px; font-size: 22px; opacity: 0; }
-#runHero.running img { animation: none; }
-#runHero.running .rh-dust { animation: none; }
+
 #runHero.swing img { animation: rhSwing .3s ease-out; }
 @keyframes rhRun { 0%,100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-9px) rotate(3deg); } }
 @keyframes rhDust { 0% { opacity: .8; transform: translateX(6px); } 100% { opacity: 0; transform: translateX(-12px); } }
@@ -283,3 +282,38 @@ body { background: var(--bg); color: var(--text); font-family: 'Cinzel', serif; 
 .fhb i { display: block; height: 100%; width: 100%; background: linear-gradient(#5dff9a, #1fae5a); transition: width .25s; }
 .fhb.red i { background: linear-gradient(#ff6a5a, #b01818); float: right; }
 #fightHud .fh-vs { font-family: 'Cinzel Decorative', serif; color: #ff5a3a; font-size: .8rem; text-shadow: 0 0 8px #f00; opacity: .85; }
+
+/* ===== Standbild: Held und Monster stehen still, nur Licht und Schatten ===== */
+#sceneWrap { background: radial-gradient(ellipse at 50% 0%, rgba(255,120,40,.18), transparent 60%), linear-gradient(#0a0610, #1a0a0a 70%, #000); }
+#runHero img { animation: none; filter: drop-shadow(0 0 8px rgba(80,150,255,.55)); }
+#runHero.swing img { animation: rhSwing .3s ease-out; }
+#runHero.hurt img { animation: heroHurt .35s; }
+#battleScene .monster-slot img { animation: none; filter: drop-shadow(0 0 10px rgba(255,60,30,.45)); }
+#battleScene .monster-slot { position: relative; }
+#battleScene .monster-slot:after { content: ""; position: absolute; left: 12%; right: 12%; bottom: -8px; height: 10px; border-radius: 50%; background: rgba(0,0,0,.55); filter: blur(3px); z-index: -1; }
+
+/* ===== Kampfbild wie im Video: Leiste oben, Bühne mit zwei Standbildern, Knöpfe unten ===== */
+#battlePanel { order: -4; padding: 6px; }
+#battlePanel .panel-title { display: none; }
+#autoRunBtn { order: -3; padding: 8px; font-size: .7rem; letter-spacing: 1px; margin: 0; }
+#classAbilityBar { order: -2; }
+#actionBtn { order: -1; }
+#sceneWrap { min-height: 52vh; display: flex; flex-direction: column; justify-content: flex-end; }
+#sceneWrap:after { height: 22%; }
+#battleScene { min-height: 0; padding: 0 7% 26px 0; justify-content: flex-end; align-items: flex-end; position: static; }
+#battleBg { opacity: .12 !important; }
+#battleScene .monster-slot, #battleScene .monster-slot.boss-monster { animation: none; margin: 0; }
+#battleScene .monster-slot.lunge { animation: monLunge .38s ease-out; }
+#battleScene .monster-slot .monster-name, #battleScene .monster-slot .monster-hp, #battleScene .monster-slot .monster-atk { display: none; }
+#battleScene .monster-slot img { width: 120px; height: 120px; border: 3px solid #ff3b3b; border-radius: 14px; margin: 0; }
+#battleScene .monster-slot:after { bottom: -10px; }
+#runHero { left: 7%; bottom: calc(22% + 4px); width: 120px; max-width: 120px; }
+#runHero img { height: 120px; object-fit: cover; }
+#runHero .rh-ground { display: none; }
+#battleMessage { position: absolute; left: 0; right: 0; top: 34%; text-align: center; }
+#gameWrapper { padding-top: 54px; }
+#runHero { bottom: calc(22% - 14px); }
+#battleScene { padding-bottom: 8%; }
+#sceneWrap:after { height: 62px; }
+#battleScene { padding-bottom: 22px; }
+#runHero { bottom: 22px; }

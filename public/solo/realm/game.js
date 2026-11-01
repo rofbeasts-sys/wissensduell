@@ -2127,41 +2127,57 @@ function renderLeaderboard(scores) {
   globalTop3 = scores.slice(0,3);
 }
 
+var lbData = null, lbTab = 'score';
+var LB_TABS = [['score', 'Punkte', 'P'], ['round', 'Runde', 'Rd.'], ['bossKills', 'Bosse', '☠'], ['kills', 'Kills', 'K']];
+function lbEsc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 async function showTop100() {
-  const modal = document.getElementById('top100Modal');
+  var modal = document.getElementById('top100Modal');
   if (!modal) return;
-  const list = document.getElementById('top100List');
-  list.innerHTML = '<div style="color:#446688;text-align:center;padding:20px">Lade...</div>';
+  document.getElementById('top100List').innerHTML = '<div style="color:#aa8844;text-align:center;padding:20px">Lade...</div>';
   modal.style.display = 'flex';
   try {
-    const snap = await db.ref('leaderboard').orderByChild('score').limitToLast(100).once('value');
-    const entries = [];
-    snap.forEach(child => entries.push(child.val()));
-    entries.sort((a,b) => b.score - a.score);
-    const myUid = onlineAccount ? onlineAccount.uid : null;
-    const medals = ['\uD83E\uDD47','\uD83E\uDD48','\uD83E\uDD49'];
-    list.innerHTML = entries.map((e,i) => {
-      const isMe = myUid && e.uid === myUid;
-      const rankColor = i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':(isMe?'var(--diamond)':'#446688');
-      const bg = isMe ? 'rgba(0,60,100,0.7)' : i<3 ? 'rgba(20,15,5,0.7)' : 'rgba(0,10,20,0.4)';
-      const border = isMe ? 'var(--diamond)' : i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'#112233';
-      const lv = e.heroLevel || 1;
-      const heroName = (e.hero||'?').toUpperCase();
-      const clsStr = (e.classNames && e.classNames.length) ? e.classNames.join('+') : (e.classIds && e.classIds.length ? e.classIds.join('+').toUpperCase() : '');
-      const detailId = 'lb100detail_' + i;
-      return '<div style="display:flex;align-items:center;gap:8px;padding:' + (i<3?'9px 12px':'5px 8px') + ';border-radius:8px;margin-bottom:4px;background:' + bg + ';border:' + (i<3?'2px':'1px') + ' solid ' + border + ';cursor:pointer" onclick="document.getElementById(\'' + detailId + '\').style.display=document.getElementById(\'' + detailId + '\').style.display===\'none\'?\'block\':\'none\'">'
-        + '<span style="font-size:' + (i<3?'1.1rem':'0.7rem') + ';min-width:28px;text-align:center;color:' + rankColor + '">' + (medals[i]||('#'+(i+1))) + '</span>'
-        + '<div style="flex:1">'
-        + '<div style="font-size:' + (i<3?'0.82rem':'0.7rem') + ';font-family:Cinzel,serif;color:' + (isMe?'var(--diamond)':'var(--gold)') + '">' + e.name + (isMe?' \u2605':'') + '</div>'
-        + '<div style="font-size:0.58rem;color:#446688">' + heroName + ' Lv.' + lv + (clsStr?' \u2022 '+clsStr:'') + ' \u2022 Rd.' + e.round + ' \u2022 ' + e.kills + 'K</div>'
-        + '<div id="' + detailId + '" style="display:none;font-size:0.56rem;color:#558899;margin-top:3px;border-top:1px solid #223344;padding-top:3px">Boss-Kills: ' + (e.bossKills||0) + ' \u2022 Prestige: ' + (e.prestige||0) + ' \u2022 ' + (e.date||'') + '</div>'
-        + '</div>'
-        + '<span style="font-size:' + (i<3?'0.82rem':'0.68rem') + ';font-weight:700;color:' + rankColor + '">' + e.score + 'P</span>'
-        + '</div>';
-    }).join('') || '<div style="color:#446688;text-align:center;padding:20px">Noch keine Eintraege</div>';
-  } catch(err) {
-    list.innerHTML = '<div style="color:#cc4444;text-align:center">Fehler beim Laden</div>';
+    var api = window.parent && window.parent.tfApi;
+    if (!api) throw new Error('noapi');
+    var r = await api('/api/realm/board', { n: 100 });
+    if (!r || !r.ok) throw new Error('fail');
+    lbData = r; lbTab = 'score';
+    lbRender();
+  } catch (err) {
+    document.getElementById('top100List').innerHTML = '<div style="color:#cc4444;text-align:center;padding:20px">Bestenliste nicht erreichbar.<br><span style="font-size:.65rem;color:#886644">Du brauchst ein Brain-Pulse-Konto und Internet.</span></div>';
   }
+}
+function lbSetTab(k) { lbTab = k; lbRender(); }
+function lbToggle(i) { var d = document.getElementById('lbd' + i); if (d) d.style.display = d.style.display === 'none' ? 'block' : 'none'; }
+function lbRender() {
+  var d = lbData; if (!d) return;
+  var me = window.bpUser || '';
+  var tab = LB_TABS.filter(function (t) { return t[0] === lbTab; })[0];
+  var list = d.top.slice().sort(function (a, b) { return (b[lbTab] || 0) - (a[lbTab] || 0) || b.score - a.score; });
+  document.getElementById('top100Sub').textContent = d.total + ' Helden im Ranking';
+  document.getElementById('top100Tabs').innerHTML = LB_TABS.map(function (t) {
+    var on = t[0] === lbTab;
+    return '<button onclick="lbSetTab(\'' + t[0] + '\')" style="flex:1;padding:7px 2px;border-radius:8px;font-size:.7rem;font-weight:700;cursor:pointer;border:1px solid ' + (on ? 'var(--gold)' : '#553') + ';background:' + (on ? 'linear-gradient(135deg,#663300,#aa4400)' : 'rgba(0,0,0,.4)') + ';color:' + (on ? '#fff' : '#aa8844') + '">' + t[1] + '</button>';
+  }).join('');
+  var m = d.mine;
+  document.getElementById('top100Me').innerHTML = m
+    ? '<div style="border:2px solid #ff5a1f;border-radius:12px;padding:10px 12px;background:rgba(80,25,0,.45);display:flex;align-items:center;gap:10px"><div style="font-size:1.4rem;font-weight:800;color:#ff8a3d;min-width:52px;text-align:center">#' + (d.mineRank || '?') + '</div><div style="flex:1"><div style="font-size:.8rem;color:var(--gold);font-family:Cinzel,serif">DEIN PLATZ</div><div style="font-size:.62rem;color:#cc9966">' + lbEsc((m.hero || '').toUpperCase()) + ' Lv.' + (m.heroLevel || 1) + ' • Rd.' + m.round + ' • ' + m.kills + ' Kills • ' + (m.bossKills || 0) + ' Bosse</div></div><div style="font-weight:800;color:#ff8a3d">' + m.score + ' P</div></div>'
+    : '<div style="text-align:center;font-size:.7rem;color:#aa8844;border:1px dashed #553;border-radius:10px;padding:10px">Du bist noch nicht in der Liste. Erreiche Runde 2 und du bist dabei.</div>';
+  var medals = ['🥇', '🥈', '🥉'];
+  document.getElementById('top100List').innerHTML = list.length ? list.map(function (e, i) {
+    var isMe = e.name === me;
+    var col = i === 0 ? '#ffd700' : i === 1 ? '#c0c0c0' : i === 2 ? '#cd7f32' : (isMe ? '#ff8a3d' : '#aa8844');
+    var bg = isMe ? 'rgba(80,25,0,.55)' : i < 3 ? 'rgba(40,25,5,.7)' : 'rgba(0,0,0,.35)';
+    var bd = isMe ? '#ff5a1f' : i < 3 ? col : '#2a1c10';
+    var img = (typeof IMGS !== 'undefined' && IMGS[e.hero]) ? '<img src="' + IMGS[e.hero] + '" style="width:' + (i < 3 ? 38 : 30) + 'px;height:' + (i < 3 ? 38 : 30) + 'px;border-radius:50%;object-fit:cover;border:1px solid ' + col + '">' : '';
+    var cls = (e.classNames && e.classNames.length) ? e.classNames.join('+') : '';
+    var val = tab[0] === 'score' ? e.score : (e[tab[0]] || 0);
+    return '<div onclick="lbToggle(' + i + ')" style="padding:' + (i < 3 ? '9px 10px' : '6px 8px') + ';border-radius:10px;margin-bottom:5px;background:' + bg + ';border:' + (i < 3 || isMe ? 2 : 1) + 'px solid ' + bd + ';cursor:pointer">'
+      + '<div style="display:flex;align-items:center;gap:8px"><span style="min-width:30px;text-align:center;font-size:' + (i < 3 ? '1.2rem' : '.72rem') + ';color:' + col + ';font-weight:700">' + (medals[i] || ('#' + (i + 1))) + '</span>' + img
+      + '<div style="flex:1;min-width:0"><div style="font-size:' + (i < 3 ? '.85rem' : '.74rem') + ';font-family:Cinzel,serif;color:' + (isMe ? '#ff8a3d' : 'var(--gold)') + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + lbEsc(e.name) + (isMe ? ' ★' : '') + '</div>'
+      + '<div style="font-size:.58rem;color:#aa8844">' + lbEsc((e.hero || '?').toUpperCase()) + ' Lv.' + (e.heroLevel || 1) + (cls ? ' • ' + lbEsc(cls) : '') + '</div></div>'
+      + '<span style="font-size:' + (i < 3 ? '.9rem' : '.74rem') + ';font-weight:800;color:' + col + '">' + val + ' ' + tab[2] + '</span></div>'
+      + '<div id="lbd' + i + '" style="display:none;font-size:.6rem;color:#cc9966;margin-top:5px;border-top:1px solid #3a2a18;padding-top:4px">Punkte: ' + e.score + ' • Runde ' + e.round + ' • Kills ' + e.kills + ' • Boss-Kills ' + (e.bossKills || 0) + ' • Prestige ' + (e.prestige || 0) + ' • ' + lbEsc(e.date || '') + '</div></div>';
+  }).join('') : '<div style="color:#aa8844;text-align:center;padding:20px">Noch keine Einträge. Sei der Erste!</div>';
 }
 function closeTop100() { document.getElementById('top100Modal').style.display = 'none'; openMenu(); }
 
@@ -3082,8 +3098,8 @@ function openRoulette() {
 /* ===== HELD ALS BILD + KAMPF-HUD (Seitenansicht wie bei Shadow Fight) ===== */
 (function(){
   var box=document.getElementById('runHero'), img=document.getElementById('runImg'); if(!box||!img) return;
-  var t1=0,t2=0,cur='',lastHp=null,lastMonHp=null;
-  window.runKick=function(){ box.classList.add('running'); clearTimeout(t1); t1=setTimeout(function(){ box.classList.remove('running'); },850); };
+  var t1=0,t2=0,cur='',lastHp=null,lastMonHp=null,lastMon=null;
+  window.runKick=function(){  };
   window.runSwing=function(){
     var wrap=document.getElementById('sceneWrap'), s=document.querySelector('#battleScene .monster-slot'); if(!wrap) return;
     var hb=box.getBoundingClientRect(), mb=s?s.getBoundingClientRect():null, dx=mb?Math.max(50,mb.left-hb.right+26):90;
