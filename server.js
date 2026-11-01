@@ -4374,6 +4374,26 @@ function realmScore(token, e) {
   saveUsers().catch(() => {});
   return { ok: true, score };
 }
+// ---- Realm of Brain: Diamanten mit Brain-Muenzen kaufen (im Brain-Shop), im Spiel abholen ----
+const REALM_DIA_PACKS = { s: { coins: 100, dias: 50 }, m: { coins: 400, dias: 200 }, l: { coins: 1000, dias: 500 } }; // fester Kurs: 2 Muenzen = 1 Diamant, ohne Bonus (mit 120 Muenzen/Euro ergibt das 1/5/10/20 Euro fuer die Kisten)
+async function realmBuyDias(token, pack, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  const p = REALM_DIA_PACKS[String(pack)]; if (!p) return { ok: false, error: "Unbekanntes Paket." };
+  if ((user.stats.coins || 0) < p.coins) return errObj("notEnoughCoins", lang);
+  user.stats.coins -= p.coins;
+  user.realm = user.realm || {};
+  user.realm.pendingDias = (user.realm.pendingDias | 0) + p.dias;
+  if (!(await saveUsers())) { user.stats.coins += p.coins; user.realm.pendingDias -= p.dias; return serviceDownMsg(lang); }
+  return { ok: true, coins: user.stats.coins, dias: p.dias, pending: user.realm.pendingDias };
+}
+async function realmClaimDias(token) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  const n = user.realm && user.realm.pendingDias | 0;
+  if (n > 0) { user.realm.pendingDias = 0; saveUsers().catch(() => {}); }
+  return { ok: true, dias: n > 0 ? n : 0 };
+}
 function realmBoard(token, n) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const me = token ? findUserByToken(token) : null;
@@ -5948,7 +5968,7 @@ function chatView(msgs, me, adminView) {
 }
 async function chatPublicList(since, room, token, adminKey, ip) {
   if (!(await ensureConversationsLoaded())) return { ok: false, error: "Chat nicht verfügbar." };
-  const isSol = room === "sol", KEY = isSol ? SOL_KEY : PUB_KEY;
+  const isSol = room === "sol", KEY = isSol ? SOL_KEY : room === "realm" ? "__realm__" : PUB_KEY;
   let solOnline = 0;
   if (isSol) { const u = token ? findUserByToken(token) : null; if (u) solSeen.set(u.username, Date.now()); const cut = Date.now() - 12000; for (const [k, t] of solSeen) { if (t < cut) solSeen.delete(k); } solOnline = solSeen.size; }
   const all = conversations[KEY] || [];
@@ -5973,7 +5993,7 @@ function chatBlocked(t) {
 let pubVer = 0;
 const chatBlockedLog = []; // nur im Speicher, fuer die Admin-Seite
 async function chatPublicSend(token, text, lang, room) {
-  const isSol = room === "sol", KEY = isSol ? SOL_KEY : PUB_KEY;
+  const isSol = room === "sol", KEY = isSol ? SOL_KEY : room === "realm" ? "__realm__" : PUB_KEY;
   if (!usersLoaded) return serviceDownMsg(lang);
   const me = findUserByToken(token);
   if (!me) return errObj("notLoggedIn", lang);
@@ -8140,6 +8160,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/stat-hit") result = statHitApi(payload, ip);
         else if (req.url === "/api/news") result = newsPublic(payload.token);
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
+        else if (req.url === "/api/realm/buy-dias" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/realm/buy-dias") result = await realmBuyDias(payload.token, payload.pack, lang);
+        else if (req.url === "/api/realm/claim-dias") result = await realmClaimDias(payload.token);
         else if (req.url === "/api/realm/news") result = realmNewsPublic();
         else if (req.url === "/api/admin-realm-news") result = await adminRealmNews(payload.key, ip, payload);
         else if (req.url === "/api/admin-news") result = await adminNews(payload.key, ip, payload);

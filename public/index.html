@@ -8297,6 +8297,8 @@ function renderShopScreen(){
 
       ${hiddenFeatures.indexOf('shop_coins') !== -1 ? '' : `<div class="bs-sec">${L('Münzen kaufen','Buy coins')}</div>` + (featureLocked('shop_coins') || !shopPackages.length || !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">🪙 ${featureLocked('shop_coins') ? gateText('shop_coins') : (profile.isAccount ? L('Gerade nicht verfügbar.','Currently unavailable.') : L('Zum Kaufen bitte anmelden.','Please log in to buy.'))}</p>` : `<label style="display:flex;gap:8px;font-size:12px;color:var(--text-dim);margin:6px 0"><input type="checkbox" id="shopConsent"> <span>${L('Ich stimme zu, dass die Münzen sofort bereitgestellt werden, und weiß, dass dadurch mein Widerrufsrecht erlischt.','I agree the coins are delivered immediately and understand my right of withdrawal expires.')}</span></label>` + shopPackages.map(k => `<div class="bs-card" style="--c:#ffd45a"><span class="ic">🪙</span><div class="info"><div class="nm">${esc(k.label)}</div><div class="ds">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</div></div><button class="bs-buy" onclick="shopBuyCoins('${esc(k.id)}')">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</button></div>`).join(''))}
 
+      ${hiddenFeatures.indexOf('braining_lane') !== -1 ? '' : `<div class="bs-sec">⚔️ Realm of Brain · ${L('Diamanten kaufen','Buy diamonds')}</div>` + (featureLocked('braining_lane') ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${gateText('braining_lane')}</p>` : !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto.','You need an account for this.')}</p>` : [['s',100,50],['m',400,200],['l',1000,500]].map(p => `<div class="bs-card" style="--c:#44ddff"><span class="ic">💎</span><div class="info"><div class="nm">${p[2]} ${L('Diamanten','Diamonds')}</div><div class="ds">${L('Für Realm of Brain. Du holst sie im Spiel ab.','For Realm of Brain. You collect them in the game.')}</div></div><button class="bs-buy" ${(profile.coins||0) < p[1] ? 'disabled' : ''} onclick="shopBuyRealmDias('${p[0]}')">🪙 ${p[1]}</button></div>`).join(''))}
+
       <div class="bs-sec">${L('Herzen','Hearts')}</div>
       ${shopGate('shop_speedmath','🧮',L('Speed-Math-Herz','Speed Math heart'),`
       <div class="bs-card" style="--c:#7be0ff">
@@ -8379,6 +8381,12 @@ async function shopBuyCoins(packageId){
   } else {
     renderShopScreen(); shopFeedback(result.error || L("Kauf konnte nicht gestartet werden.","The purchase could not be started."), true);
   }
+}
+async function shopBuyRealmDias(pack){
+  const result = await apiCall("/api/realm/buy-dias", { token: account.token, pack });
+  if(result.ok){ shopProfile.coins = result.coins; account.profile.coins = result.coins; }
+  renderShopScreen();
+  shopFeedback(result.ok ? L("✓ " + result.dias + " Diamanten gekauft! Du holst sie in Realm of Brain ab.","✓ " + result.dias + " diamonds bought! Collect them in Realm of Brain.") : (result.error || L("Kauf fehlgeschlagen.","Purchase failed.")), !result.ok);
 }
 async function shopBuyArenaHeart(){
   const result = await apiCall("/api/arena-buy-heart", { token: account.token });

@@ -136,13 +136,13 @@ function saveHeroData() {
   try { localStorage.setItem('robHeroes', JSON.stringify(heroData)); } catch(e) {}
 }
 function loadDiamonds() {
-  try { return parseInt(localStorage.getItem('robDiamonds') || '0'); } catch(e) { return 0; }
+  try { return parseInt(localStorage.getItem('robDiamonds') || '0') || 0; } catch(e) { return 0; }
 }
 function saveDiamonds(v) {
   try { localStorage.setItem('robDiamonds', String(v)); } catch(e) {}
 }
 function loadPersistentGold() {
-  try { return parseInt(localStorage.getItem('robGold') || '0'); } catch(e) { return 0; }
+  try { return parseInt(localStorage.getItem('robGold') || '0') || 0; } catch(e) { return 0; }
 }
 function savePersistentGold(v) {
   try { localStorage.setItem('robGold', String(v)); } catch(e) {}
@@ -185,76 +185,76 @@ let questTracking = loadQuestTracking();
 // ===== QUEST DEFINITIONEN =====
 const QUEST_LIST = [
   // Kampf - Monster töten
-  { id:'mk1', name:'Töte 100 Monster',    cat:'ÔÜö´©Å Kampf', target:100,    getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
-  { id:'mk2', name:'Töte 500 Monster',    cat:'ÔÜö´©Å Kampf', target:500,    getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
-  { id:'mk3', name:'Töte 1.000 Monster',  cat:'ÔÜö´©Å Kampf', target:1000,   getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
-  { id:'mk4', name:'Töte 5.000 Monster',  cat:'ÔÜö´©Å Kampf', target:5000,   getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
-  { id:'mk5', name:'Töte 10.000 Monster', cat:'ÔÜö´©Å Kampf', target:10000,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
-  { id:'mk6', name:'Töte 25.000 Monster', cat:'ÔÜö´©Å Kampf', target:25000,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
-  { id:'mk7', name:'Töte 50.000 Monster', cat:'ÔÜö´©Å Kampf', target:50000,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
+  { id:'mk1', name:'Töte 100 Monster',    cat:'⚔️ Kampf', target:100,    getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
+  { id:'mk2', name:'Töte 500 Monster',    cat:'⚔️ Kampf', target:500,    getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
+  { id:'mk3', name:'Töte 1.000 Monster',  cat:'⚔️ Kampf', target:1000,   getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
+  { id:'mk4', name:'Töte 5.000 Monster',  cat:'⚔️ Kampf', target:5000,   getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
+  { id:'mk5', name:'Töte 10.000 Monster', cat:'⚔️ Kampf', target:10000,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
+  { id:'mk6', name:'Töte 25.000 Monster', cat:'⚔️ Kampf', target:25000,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
+  { id:'mk7', name:'Töte 50.000 Monster', cat:'⚔️ Kampf', target:50000,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.kills,0) },
   // Kampf - Bosse
-  { id:'bk1', name:'Besiege 5 Bosse',   cat:'ÔÜö´©Å Kampf', target:5,   getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
-  { id:'bk2', name:'Besiege 20 Bosse',  cat:'ÔÜö´©Å Kampf', target:20,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
-  { id:'bk3', name:'Besiege 50 Bosse',  cat:'ÔÜö´©Å Kampf', target:50,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
-  { id:'bk4', name:'Besiege 100 Bosse', cat:'ÔÜö´©Å Kampf', target:100, getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
-  { id:'bk5', name:'Besiege 250 Bosse', cat:'ÔÜö´©Å Kampf', target:250, getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
+  { id:'bk1', name:'Besiege 5 Bosse',   cat:'⚔️ Kampf', target:5,   getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
+  { id:'bk2', name:'Besiege 20 Bosse',  cat:'⚔️ Kampf', target:20,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
+  { id:'bk3', name:'Besiege 50 Bosse',  cat:'⚔️ Kampf', target:50,  getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
+  { id:'bk4', name:'Besiege 100 Bosse', cat:'⚔️ Kampf', target:100, getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
+  { id:'bk5', name:'Besiege 250 Bosse', cat:'⚔️ Kampf', target:250, getValue:(qt,hd)=>Object.values(hd).reduce((s,h)=>s+h.bossKills,0) },
   // Kritische Treffer
-  { id:'ck1', name:'Erziele 50 krit. Treffer',    cat:'ÔÜö´©Å Kampf', target:50,   getValue:(qt)=>qt.critHits||0 },
-  { id:'ck2', name:'Erziele 250 krit. Treffer',   cat:'ÔÜö´©Å Kampf', target:250,  getValue:(qt)=>qt.critHits||0 },
-  { id:'ck3', name:'Erziele 1.000 krit. Treffer', cat:'ÔÜö´©Å Kampf', target:1000, getValue:(qt)=>qt.critHits||0 },
-  { id:'ck4', name:'Erziele 5.000 krit. Treffer', cat:'ÔÜö´©Å Kampf', target:5000, getValue:(qt)=>qt.critHits||0 },
+  { id:'ck1', name:'Erziele 50 krit. Treffer',    cat:'⚔️ Kampf', target:50,   getValue:(qt)=>qt.critHits||0 },
+  { id:'ck2', name:'Erziele 250 krit. Treffer',   cat:'⚔️ Kampf', target:250,  getValue:(qt)=>qt.critHits||0 },
+  { id:'ck3', name:'Erziele 1.000 krit. Treffer', cat:'⚔️ Kampf', target:1000, getValue:(qt)=>qt.critHits||0 },
+  { id:'ck4', name:'Erziele 5.000 krit. Treffer', cat:'⚔️ Kampf', target:5000, getValue:(qt)=>qt.critHits||0 },
   // Schaden
-  { id:'dd1', name:'Verursache 10.000 Schaden',     cat:'ÔÜö´©Å Kampf', target:10000,    getValue:(qt)=>qt.damageDone||0 },
-  { id:'dd2', name:'Verursache 100.000 Schaden',    cat:'ÔÜö´©Å Kampf', target:100000,   getValue:(qt)=>qt.damageDone||0 },
-  { id:'dd3', name:'Verursache 1.000.000 Schaden',  cat:'ÔÜö´©Å Kampf', target:1000000,  getValue:(qt)=>qt.damageDone||0 },
-  { id:'dd4', name:'Verursache 10.000.000 Schaden', cat:'ÔÜö´©Å Kampf', target:10000000, getValue:(qt)=>qt.damageDone||0 },
+  { id:'dd1', name:'Verursache 10.000 Schaden',     cat:'⚔️ Kampf', target:10000,    getValue:(qt)=>qt.damageDone||0 },
+  { id:'dd2', name:'Verursache 100.000 Schaden',    cat:'⚔️ Kampf', target:100000,   getValue:(qt)=>qt.damageDone||0 },
+  { id:'dd3', name:'Verursache 1.000.000 Schaden',  cat:'⚔️ Kampf', target:1000000,  getValue:(qt)=>qt.damageDone||0 },
+  { id:'dd4', name:'Verursache 10.000.000 Schaden', cat:'⚔️ Kampf', target:10000000, getValue:(qt)=>qt.damageDone||0 },
   // Gold ausgeben
-  { id:'gs1', name:'Gib 1.000 Gold aus',      cat:'­ƒÆ░ Wirtschaft', target:1000,     getValue:(qt)=>qt.goldSpent||0 },
-  { id:'gs2', name:'Gib 10.000 Gold aus',     cat:'­ƒÆ░ Wirtschaft', target:10000,    getValue:(qt)=>qt.goldSpent||0 },
-  { id:'gs3', name:'Gib 100.000 Gold aus',    cat:'­ƒÆ░ Wirtschaft', target:100000,   getValue:(qt)=>qt.goldSpent||0 },
-  { id:'gs4', name:'Gib 1.000.000 Gold aus',  cat:'­ƒÆ░ Wirtschaft', target:1000000,  getValue:(qt)=>qt.goldSpent||0 },
-  { id:'gs5', name:'Gib 10.000.000 Gold aus', cat:'­ƒÆ░ Wirtschaft', target:10000000, getValue:(qt)=>qt.goldSpent||0 },
+  { id:'gs1', name:'Gib 1.000 Gold aus',      cat:'💰 Wirtschaft', target:1000,     getValue:(qt)=>qt.goldSpent||0 },
+  { id:'gs2', name:'Gib 10.000 Gold aus',     cat:'💰 Wirtschaft', target:10000,    getValue:(qt)=>qt.goldSpent||0 },
+  { id:'gs3', name:'Gib 100.000 Gold aus',    cat:'💰 Wirtschaft', target:100000,   getValue:(qt)=>qt.goldSpent||0 },
+  { id:'gs4', name:'Gib 1.000.000 Gold aus',  cat:'💰 Wirtschaft', target:1000000,  getValue:(qt)=>qt.goldSpent||0 },
+  { id:'gs5', name:'Gib 10.000.000 Gold aus', cat:'💰 Wirtschaft', target:10000000, getValue:(qt)=>qt.goldSpent||0 },
   // Gold verdienen
-  { id:'ge1', name:'Verdiene 5.000 Gold',     cat:'­ƒÆ░ Wirtschaft', target:5000,    getValue:(qt)=>qt.goldEarned||0 },
-  { id:'ge2', name:'Verdiene 50.000 Gold',    cat:'­ƒÆ░ Wirtschaft', target:50000,   getValue:(qt)=>qt.goldEarned||0 },
-  { id:'ge3', name:'Verdiene 500.000 Gold',   cat:'­ƒÆ░ Wirtschaft', target:500000,  getValue:(qt)=>qt.goldEarned||0 },
-  { id:'ge4', name:'Verdiene 5.000.000 Gold', cat:'­ƒÆ░ Wirtschaft', target:5000000, getValue:(qt)=>qt.goldEarned||0 },
+  { id:'ge1', name:'Verdiene 5.000 Gold',     cat:'💰 Wirtschaft', target:5000,    getValue:(qt)=>qt.goldEarned||0 },
+  { id:'ge2', name:'Verdiene 50.000 Gold',    cat:'💰 Wirtschaft', target:50000,   getValue:(qt)=>qt.goldEarned||0 },
+  { id:'ge3', name:'Verdiene 500.000 Gold',   cat:'💰 Wirtschaft', target:500000,  getValue:(qt)=>qt.goldEarned||0 },
+  { id:'ge4', name:'Verdiene 5.000.000 Gold', cat:'💰 Wirtschaft', target:5000000, getValue:(qt)=>qt.goldEarned||0 },
   // Diamanten ausgeben
-  { id:'ds1', name:'Gib 10 Diamanten aus',  cat:'­ƒÆ░ Wirtschaft', target:10,  getValue:(qt)=>qt.diasSpent||0 },
-  { id:'ds2', name:'Gib 50 Diamanten aus',  cat:'­ƒÆ░ Wirtschaft', target:50,  getValue:(qt)=>qt.diasSpent||0 },
-  { id:'ds3', name:'Gib 100 Diamanten aus', cat:'­ƒÆ░ Wirtschaft', target:100, getValue:(qt)=>qt.diasSpent||0 },
-  { id:'ds4', name:'Gib 250 Diamanten aus', cat:'­ƒÆ░ Wirtschaft', target:250, getValue:(qt)=>qt.diasSpent||0 },
-  { id:'ds5', name:'Gib 500 Diamanten aus', cat:'­ƒÆ░ Wirtschaft', target:500, getValue:(qt)=>qt.diasSpent||0 },
+  { id:'ds1', name:'Gib 10 Diamanten aus',  cat:'💰 Wirtschaft', target:10,  getValue:(qt)=>qt.diasSpent||0 },
+  { id:'ds2', name:'Gib 50 Diamanten aus',  cat:'💰 Wirtschaft', target:50,  getValue:(qt)=>qt.diasSpent||0 },
+  { id:'ds3', name:'Gib 100 Diamanten aus', cat:'💰 Wirtschaft', target:100, getValue:(qt)=>qt.diasSpent||0 },
+  { id:'ds4', name:'Gib 250 Diamanten aus', cat:'💰 Wirtschaft', target:250, getValue:(qt)=>qt.diasSpent||0 },
+  { id:'ds5', name:'Gib 500 Diamanten aus', cat:'💰 Wirtschaft', target:500, getValue:(qt)=>qt.diasSpent||0 },
   // Shop Upgrades
-  { id:'su1', name:'Kaufe 5 Upgrades',   cat:'­ƒøÆ Shop', target:5,   getValue:(qt)=>qt.shopBuys||0 },
-  { id:'su2', name:'Kaufe 20 Upgrades',  cat:'­ƒøÆ Shop', target:20,  getValue:(qt)=>qt.shopBuys||0 },
-  { id:'su3', name:'Kaufe 50 Upgrades',  cat:'­ƒøÆ Shop', target:50,  getValue:(qt)=>qt.shopBuys||0 },
-  { id:'su4', name:'Kaufe 100 Upgrades', cat:'­ƒøÆ Shop', target:100, getValue:(qt)=>qt.shopBuys||0 },
-  { id:'su5', name:'Kaufe 250 Upgrades', cat:'­ƒøÆ Shop', target:250, getValue:(qt)=>qt.shopBuys||0 },
+  { id:'su1', name:'Kaufe 5 Upgrades',   cat:'🛒 Shop', target:5,   getValue:(qt)=>qt.shopBuys||0 },
+  { id:'su2', name:'Kaufe 20 Upgrades',  cat:'🛒 Shop', target:20,  getValue:(qt)=>qt.shopBuys||0 },
+  { id:'su3', name:'Kaufe 50 Upgrades',  cat:'🛒 Shop', target:50,  getValue:(qt)=>qt.shopBuys||0 },
+  { id:'su4', name:'Kaufe 100 Upgrades', cat:'🛒 Shop', target:100, getValue:(qt)=>qt.shopBuys||0 },
+  { id:'su5', name:'Kaufe 250 Upgrades', cat:'🛒 Shop', target:250, getValue:(qt)=>qt.shopBuys||0 },
   // Fähigkeiten
-  { id:'sk1', name:'Verbessere 5 Fähigkeiten',  cat:'­ƒøÆ Shop', target:5,  getValue:(qt)=>qt.skillsBought||0 },
-  { id:'sk2', name:'Verbessere 15 Fähigkeiten', cat:'­ƒøÆ Shop', target:15, getValue:(qt)=>qt.skillsBought||0 },
-  { id:'sk3', name:'Verbessere 30 Fähigkeiten', cat:'­ƒøÆ Shop', target:30, getValue:(qt)=>qt.skillsBought||0 },
-  { id:'sk4', name:'Verbessere 75 Fähigkeiten', cat:'­ƒøÆ Shop', target:75, getValue:(qt)=>qt.skillsBought||0 },
+  { id:'sk1', name:'Verbessere 5 Fähigkeiten',  cat:'🛒 Shop', target:5,  getValue:(qt)=>qt.skillsBought||0 },
+  { id:'sk2', name:'Verbessere 15 Fähigkeiten', cat:'🛒 Shop', target:15, getValue:(qt)=>qt.skillsBought||0 },
+  { id:'sk3', name:'Verbessere 30 Fähigkeiten', cat:'🛒 Shop', target:30, getValue:(qt)=>qt.skillsBought||0 },
+  { id:'sk4', name:'Verbessere 75 Fähigkeiten', cat:'🛒 Shop', target:75, getValue:(qt)=>qt.skillsBought||0 },
   // Spielzeit
-  { id:'pt1', name:'Spiele 30 Minuten',  cat:'­ƒôê Fortschritt', target:30,   getValue:(qt)=>qt.playMinutes||0 },
-  { id:'pt2', name:'Spiele 2 Stunden',   cat:'­ƒôê Fortschritt', target:120,  getValue:(qt)=>qt.playMinutes||0 },
-  { id:'pt3', name:'Spiele 10 Stunden',  cat:'­ƒôê Fortschritt', target:600,  getValue:(qt)=>qt.playMinutes||0 },
-  { id:'pt4', name:'Spiele 25 Stunden',  cat:'­ƒôê Fortschritt', target:1500, getValue:(qt)=>qt.playMinutes||0 },
+  { id:'pt1', name:'Spiele 30 Minuten',  cat:'📈 Fortschritt', target:30,   getValue:(qt)=>qt.playMinutes||0 },
+  { id:'pt2', name:'Spiele 2 Stunden',   cat:'📈 Fortschritt', target:120,  getValue:(qt)=>qt.playMinutes||0 },
+  { id:'pt3', name:'Spiele 10 Stunden',  cat:'📈 Fortschritt', target:600,  getValue:(qt)=>qt.playMinutes||0 },
+  { id:'pt4', name:'Spiele 25 Stunden',  cat:'📈 Fortschritt', target:1500, getValue:(qt)=>qt.playMinutes||0 },
   // Helden-Level
-  { id:'hl1', name:'Erreiche Heldenlevel 10',  cat:'­ƒôê Fortschritt', target:10,  getValue:(qt)=>qt.maxHeroLv||0 },
-  { id:'hl2', name:'Erreiche Heldenlevel 25',  cat:'­ƒôê Fortschritt', target:25,  getValue:(qt)=>qt.maxHeroLv||0 },
-  { id:'hl3', name:'Erreiche Heldenlevel 50',  cat:'­ƒôê Fortschritt', target:50,  getValue:(qt)=>qt.maxHeroLv||0 },
-  { id:'hl4', name:'Erreiche Heldenlevel 75',  cat:'­ƒôê Fortschritt', target:75,  getValue:(qt)=>qt.maxHeroLv||0 },
-  { id:'hl5', name:'Erreiche Heldenlevel 100', cat:'­ƒôê Fortschritt', target:100, getValue:(qt)=>qt.maxHeroLv||0 },
+  { id:'hl1', name:'Erreiche Heldenlevel 10',  cat:'📈 Fortschritt', target:10,  getValue:(qt)=>qt.maxHeroLv||0 },
+  { id:'hl2', name:'Erreiche Heldenlevel 25',  cat:'📈 Fortschritt', target:25,  getValue:(qt)=>qt.maxHeroLv||0 },
+  { id:'hl3', name:'Erreiche Heldenlevel 50',  cat:'📈 Fortschritt', target:50,  getValue:(qt)=>qt.maxHeroLv||0 },
+  { id:'hl4', name:'Erreiche Heldenlevel 75',  cat:'📈 Fortschritt', target:75,  getValue:(qt)=>qt.maxHeroLv||0 },
+  { id:'hl5', name:'Erreiche Heldenlevel 100', cat:'📈 Fortschritt', target:100, getValue:(qt)=>qt.maxHeroLv||0 },
   // Spezial - Ohne Schaden
-  { id:'nd1', name:'Töte 10 Monster ohne Schaden',  cat:'Ô¡É Spezial', target:10,  getValue:(qt)=>qt.monstersNoDmg||0 },
-  { id:'nd2', name:'Töte 50 Monster ohne Schaden',  cat:'Ô¡É Spezial', target:50,  getValue:(qt)=>qt.monstersNoDmg||0 },
-  { id:'nd3', name:'Töte 200 Monster ohne Schaden', cat:'Ô¡É Spezial', target:200, getValue:(qt)=>qt.monstersNoDmg||0 },
+  { id:'nd1', name:'Töte 10 Monster ohne Schaden',  cat:'⭐ Spezial', target:10,  getValue:(qt)=>qt.monstersNoDmg||0 },
+  { id:'nd2', name:'Töte 50 Monster ohne Schaden',  cat:'⭐ Spezial', target:50,  getValue:(qt)=>qt.monstersNoDmg||0 },
+  { id:'nd3', name:'Töte 200 Monster ohne Schaden', cat:'⭐ Spezial', target:200, getValue:(qt)=>qt.monstersNoDmg||0 },
   // Ausweichen
-  { id:'dg1', name:'Weiche 25 Angriffen aus',  cat:'Ô¡É Spezial', target:25,  getValue:(qt)=>qt.attacksDodged||0 },
-  { id:'dg2', name:'Weiche 100 Angriffen aus', cat:'Ô¡É Spezial', target:100, getValue:(qt)=>qt.attacksDodged||0 },
-  { id:'dg3', name:'Weiche 500 Angriffen aus', cat:'Ô¡É Spezial', target:500, getValue:(qt)=>qt.attacksDodged||0 },
+  { id:'dg1', name:'Weiche 25 Angriffen aus',  cat:'⭐ Spezial', target:25,  getValue:(qt)=>qt.attacksDodged||0 },
+  { id:'dg2', name:'Weiche 100 Angriffen aus', cat:'⭐ Spezial', target:100, getValue:(qt)=>qt.attacksDodged||0 },
+  { id:'dg3', name:'Weiche 500 Angriffen aus', cat:'⭐ Spezial', target:500, getValue:(qt)=>qt.attacksDodged||0 },
 ];
 
 function getCompletedQuestCount() {
@@ -693,12 +693,12 @@ function startFight(isBoss, forcedType) {
   }
   renderFight();
   const names = monstersInFight.map(m => MONSTER_NAMES[m.type]).join(' & ');
-  log('ÔÜö´©Å <span style="color:var(--red)">' + names + ' greift an!</span>');
+  log('⚔️ <span style="color:var(--red)">' + names + ' greift an!</span>');
 }
 
 function showBossAlert(name) {
   const el = document.getElementById('bossAlert');
-  document.getElementById('bossAlertTitle').textContent = '­ƒæ╣ ' + name + ' ERSCHEINT!';
+  document.getElementById('bossAlertTitle').textContent = '👹 ' + name + ' ERSCHEINT!';
   document.getElementById('bossAlertText').textContent = 'Besiege ihn für 💎 Diamanten!';
   el.style.display = 'block';
   setTimeout(() => el.style.display = 'none', 3000);
@@ -808,7 +808,7 @@ function attack() {
         const bs = getWorldBossStats(target.bossNum);
         // First kill bonus: 100 diamonds, then 5 per kill
         const isFirstBossKill = bossFirstKills.indexOf(target.bossNum) === -1;
-        const diamondReward = isFirstBossKill ? 100 : 5;
+        const diamondReward = isFirstBossKill ? 100 : 15;
         if (isFirstBossKill) { bossFirstKills.push(target.bossNum); saveBossFirstKills(); }
         let goldReward = bs.gold;
         // Champion-Beute (jeffry4): Boss-Gold +50%
@@ -2435,9 +2435,9 @@ function unequipItem(type) {
 // ===== KISTEN SYSTEM =====
 const CHEST_CONFIG = {
   wood:   { name:'Holzkiste',        color:'#cc8844', goldMin:15,  goldMax:40,   itemPool:['sword1','armor1','helm1','sword2'],          itemChance:0.5 },
-  dia:    { name:'Diamant-Kiste',    color:'#44ddff', goldMin:60,  goldMax:150,  itemPool:['sword2','armor2','helm2','ring1','sword3'],   itemChance:0.7, diaMin:5,  diaMax:15,  extraGoldMin:30, extraGoldMax:80 },
-  legend: { name:'Legendaere Kiste', color:'#ff8800', goldMin:200, goldMax:500,  itemPool:['sword3','armor3','ring2','sword4','armor4','ring3','sword5','armor5'], itemChance:0.9, diaMin:15, diaMax:40,  extraGoldMin:100,extraGoldMax:250 },
-  sin:    { name:'Todsuende-Kiste',  color:'#cc44ff', goldMin:500, goldMax:1500, itemPool:['sword4','armor4','ring3','sword5','armor5','ring4','sword6','armor6'], itemChance:1.0, diaMin:50, diaMax:150, extraGoldMin:250,extraGoldMax:500,
+  dia:    { name:'Diamant-Kiste',    color:'#44ddff', goldMin:60,  goldMax:150,  itemPool:['sword2','armor2','helm2','ring1','sword3','armor3','helm3','ring2'],   itemChance:0.85, diaMin:20, diaMax:60,  extraGoldMin:30, extraGoldMax:80 },
+  legend: { name:'Legendaere Kiste', color:'#ff8800', goldMin:200, goldMax:500,  itemPool:['sword3','armor3','ring2','sword4','armor4','ring3','sword5','armor5'], itemChance:0.9, diaMin:60, diaMax:150,  extraGoldMin:100,extraGoldMax:250 },
+  sin:    { name:'Todsuende-Kiste',  color:'#cc44ff', goldMin:500, goldMax:1500, itemPool:['sword4','armor4','ring3','sword5','armor5','ring4','sword6','armor6'], itemChance:1.0, diaMin:150, diaMax:400, extraGoldMin:250,extraGoldMax:500,
             alsoLowerItems:true },
 };
 function openChest(type) {
@@ -2489,11 +2489,11 @@ function openChest(type) {
 
 // ===== DIA SHOP =====
 const DIA_ATTRS = [
-  { id:'feuer',  name:'Feuerschaden',  icon:'🔥', maxLv:5, costs:[30,60,100,150,200], desc:'+8% ATK pro Level',        apply:function(lv){ if(meta) meta.attack = Math.floor(meta.attack * (1 + lv*0.08)); } },
-  { id:'leben',  name:'Lebensraub',    icon:'🩸', maxLv:5, costs:[40,80,120,180,250], desc:'+3% HP nach Kill pro Lv',   apply:function(lv){ /* handled in attack() */ } },
-  { id:'blitz',  name:'Blitzschlag',   icon:'?', maxLv:3, costs:[80,150,250],        desc:'10% Doppelschaden-Chance',  apply:function(lv){ /* handled in attack() */ } },
-  { id:'gift',   name:'Giftklinge',    icon:'?', maxLv:3, costs:[60,120,200],        desc:'15% Vergiftungs-Chance',    apply:function(lv){ /* handled in attack() */ } },
-  { id:'eis',    name:'Eisschutz',     icon:'?', maxLv:3, costs:[70,130,220],        desc:'5% Schaden-Reduktion/Lv',  apply:function(lv){ /* handled in attack() */ } },
+  { id:'feuer',  name:'Feuerschaden',  icon:'🔥', maxLv:5, costs:[60,120,200,300,400], desc:'+8% ATK pro Level',        apply:function(lv){ if(meta) meta.attack = Math.floor(meta.attack * (1 + lv*0.08)); } },
+  { id:'leben',  name:'Lebensraub',    icon:'🩸', maxLv:5, costs:[80,160,240,360,500], desc:'+3% HP nach Kill pro Lv',   apply:function(lv){ /* handled in attack() */ } },
+  { id:'blitz',  name:'Blitzschlag',   icon:'⚡', maxLv:3, costs:[160,300,500],        desc:'10% Doppelschaden-Chance',  apply:function(lv){ /* handled in attack() */ } },
+  { id:'gift',   name:'Giftklinge',    icon:'☠️', maxLv:3, costs:[120,240,400],        desc:'15% Vergiftungs-Chance',    apply:function(lv){ /* handled in attack() */ } },
+  { id:'eis',    name:'Eisschutz',     icon:'❄️', maxLv:3, costs:[140,260,440],        desc:'5% Schaden-Reduktion/Lv',  apply:function(lv){ /* handled in attack() */ } },
 ];
 function loadDiaAttrs() {
   try { return JSON.parse(localStorage.getItem('robDiaAttrs') || '{}'); } catch(e) { return {}; }
@@ -2505,6 +2505,7 @@ var diaAttrs = loadDiaAttrs();
 function getDiaAttrLevel(id) { return diaAttrs[id] || 0; }
 
 function showDiaShop() {
+  claimPendingDias();
   renderDiaShop();
   document.getElementById('diaShopModal').style.display = 'flex';
 }
@@ -2533,10 +2534,10 @@ function renderDiaShop() {
   var chestHtml = '<div style="border-top:1px solid #224;margin-top:10px;padding-top:10px">'
     + '<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px;text-align:center">KISTEN KAUFEN</div>'
     + [
-        { type:'wood',   icon:'📦', name:'Holzkiste',        color:'#cc8844', cost:5,    desc:'Gold + Item (50%)' },
-        { type:'dia',    icon:'💎', name:'Diamant-Kiste',    color:'#44ddff', cost:40,   desc:'Gold + Dias + Bonus-Gold + Item (70%)' },
-        { type:'legend', icon:'🏆', name:'Legendaere Kiste', color:'#ff8800', cost:250,  desc:'Viel Gold + Dias + seltenes Item' },
-        { type:'sin',    icon:'💀', name:'Todsuende-Kiste',  color:'#cc44ff', cost:1000, desc:'Maximum: 50-150 Dias + Gold + Epic Items' },
+        { type:'wood',   icon:'📦', name:'Holzkiste',        color:'#cc8844', cost:60,   desc:'Gold + Item (50%)' },
+        { type:'dia',    icon:'💎', name:'Diamant-Kiste',    color:'#44ddff', cost:300,  desc:'Gold + Dias + Item (85%, bis Blau)' },
+        { type:'legend', icon:'🏆', name:'Legendaere Kiste', color:'#ff8800', cost:600,  desc:'Viel Gold + Dias + seltenes Item' },
+        { type:'sin',    icon:'💀', name:'Todsuende-Kiste',  color:'#cc44ff', cost:1200, desc:'Maximum: 150-400 Dias + Gold + Epic Items' },
       ].map(function(c) {
         var canBuy = meta && meta.diamonds >= c.cost;
         return '<div style="display:flex;align-items:center;gap:8px;padding:7px;border:1px solid ' + (canBuy ? c.color : '#222') + ';border-radius:8px;margin-bottom:5px;background:rgba(0,5,15,0.5)">'
@@ -2911,7 +2912,7 @@ function _startGameFromSave() {
   initMeta(savedHero, savedName);
 
   // Gold und Diamanten aus gespeichertem Stand wiederherstellen
-  var savedGold = parseInt(localStorage.getItem('robGold') || '0');
+  var savedGold = parseInt(localStorage.getItem('robGold') || '0') || 0;
   meta.gold = savedGold;
   meta.diamonds = globalDiamonds;
 
@@ -3145,6 +3146,69 @@ function openRoulette() {
     var mon=(typeof monstersInFight!=='undefined'&&monstersInFight.length)?monstersInFight[0]:null;
     if(mon){ $('fhMon').textContent=(mon.isWorldBoss?'BOSS '+mon.bossNum:(MONSTER_NAMES[mon.type]||mon.type)); $('fhMonBar').style.width=Math.max(0,mon.hp/mon.maxHp*100)+'%'; $('fhMonTxt').textContent=mon.hp+' / '+mon.maxHp+' ❤'; }
     else { $('fhMon').textContent='—'; $('fhMonBar').style.width='100%'; $('fhMonTxt').textContent=''; }
+    var qm=meta; function q(i,v){ var e=$(i); if(e) e.textContent=v; } q('qsRound',qm.round||1); q('qsKills',qm.kills||0); q('qsGold',qm.gold||0); q('qsDia',qm.diamonds||0);
+    var sw=$('sceneWrap'); if(sw){ var key=(qm.round||1)<=5?'wald':'dungeon'; if(sw.dataset.bg!==key&&IMGS[key]){ sw.dataset.bg=key; sw.style.setProperty('--stage-img','url("'+IMGS[key]+'")'); } }
     var d=$('runDist'); if(d&&typeof board!=='undefined'&&board.length) d.textContent='🏃 '+pos+' / '+board.length+' m';
   },150);
 })();
+
+/* ===== CHAT: Allgemein (wie in Brain Pulse) und Realm-Chat ===== */
+var rcRoom = '', rcLast = 0, rcTimer = null, rcSeen = {};
+function rcApi() { return window.parent && window.parent !== window ? window.parent.tfApi : null; }
+function rcEsc(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function rcSetRoom(r) {
+  rcRoom = r; rcLast = 0; rcSeen = {};
+  var a = document.getElementById('ctAll'), b = document.getElementById('ctRealm');
+  if (a) a.style.opacity = r === '' ? '1' : '.5';
+  if (b) b.style.opacity = r === 'realm' ? '1' : '.5';
+  var box = document.getElementById('rcBox'); if (box) box.innerHTML = '';
+  rcPoll(true);
+}
+function rcAdd(list) {
+  var box = document.getElementById('rcBox'); if (!box) return;
+  var stick = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+  list.forEach(function (m) {
+    if (rcSeen[m.id]) return; rcSeen[m.id] = 1;
+    var d = document.createElement('div');
+    var nm = m.sys ? '' : '<b style="color:' + (m.me ? '#ff8a3d' : m.fr ? '#7fdcff' : m.adm ? '#ffd700' : '#c8a060') + '">' + rcEsc(m.u) + ':</b> ';
+    d.innerHTML = nm + '<span style="color:' + (m.sys ? '#88aacc' : '#ddd') + '">' + rcEsc(m.t) + '</span>';
+    box.appendChild(d);
+  });
+  while (box.children.length > 80) box.removeChild(box.firstChild);
+  if (stick) box.scrollTop = box.scrollHeight;
+}
+function rcPoll(first) {
+  var api = rcApi(), box = document.getElementById('rcBox'), msg = document.getElementById('rcMsg');
+  if (!api || !(window.parent.tfHasAccount && window.parent.tfHasAccount())) { if (box && first) box.innerHTML = '<div style="color:#aa8844">Melde dich in Brain Pulse an, um zu chatten.</div>'; return; }
+  var room = rcRoom;
+  api('/api/chat-public-list', Object.assign({ room: room }, rcLast ? { since: rcLast } : {})).then(function (r) {
+    if (room !== rcRoom || !r || !r.ok) return;
+    if (r.lastId) rcLast = r.lastId;
+    rcAdd(r.messages || []);
+    if (first && box && !box.children.length) box.innerHTML = '<div style="color:#aa8844">Noch keine Nachrichten. Schreib die erste!</div>';
+  }).catch(function () {});
+}
+function rcSend() {
+  var inp = document.getElementById('rcInput'), msg = document.getElementById('rcMsg'), api = rcApi();
+  if (!inp || !api) return;
+  var t = inp.value.trim(); if (!t) return;
+  api('/api/chat-public-send', { room: rcRoom, text: t }).then(function (r) {
+    if (r && r.ok) { inp.value = ''; if (msg) msg.textContent = ''; rcPoll(false); }
+    else if (msg) msg.textContent = (r && r.error) || 'Senden nicht möglich (Konto nötig).';
+  }).catch(function () { if (msg) msg.textContent = 'Senden nicht möglich.'; });
+}
+setTimeout(function () { rcSetRoom(''); rcTimer = setInterval(function () { if (!document.hidden) rcPoll(false); }, 4000); }, 1800);
+
+/* ===== Diamanten aus dem Brain-Shop abholen ===== */
+function claimPendingDias() {
+  var api = window.parent && window.parent !== window ? window.parent.tfApi : null;
+  if (!api || !(window.parent.tfHasAccount && window.parent.tfHasAccount())) return;
+  api('/api/realm/claim-dias', {}).then(function (r) {
+    if (!r || !r.ok || !(r.dias > 0)) return;
+    globalDiamonds += r.dias; saveDiamonds(globalDiamonds);
+    if (meta) { meta.diamonds += r.dias; try { updateUI(); } catch (e) {} try { log('<span style="color:#44ddff">💎 +' + r.dias + ' Diamanten aus dem Brain-Shop!</span>'); } catch (e) {} try { if (typeof saveStateToFirebase === 'function') saveStateToFirebase(); } catch (e) {} }
+    try { renderDiaShop(); } catch (e) {}
+  }).catch(function () {});
+}
+setTimeout(claimPendingDias, 3500);
+setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);

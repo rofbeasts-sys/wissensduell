@@ -252,10 +252,44 @@
       <div id="logBox"></div>
     </div>
 
+
+    <!-- CHAT -->
+    <div class="panel" id="chatPanel">
+      <div class="panel-title">CHAT</div>
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button id="ctAll" class="btn btn-sm" onclick="rcSetRoom('')" style="flex:1">&#127760; ALLGEMEIN</button>
+        <button id="ctRealm" class="btn btn-sm" onclick="rcSetRoom('realm')" style="flex:1">&#9876; REALM</button>
+      </div>
+      <div id="rcBox" style="height:210px;overflow-y:auto;background:rgba(0,0,0,.4);border:1px solid #3a2a18;border-radius:8px;padding:6px 8px;font-size:.72rem;line-height:1.45"></div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <input id="rcInput" maxlength="200" placeholder="Nachricht ..." style="flex:1;min-width:0;background:#0b0705;color:#eee;border:1px solid #553;border-radius:8px;padding:8px;font:inherit;font-size:.78rem" onkeydown="if(event.key==='Enter')rcSend()">
+        <button class="btn btn-sm" onclick="rcSend()">&#10148;</button>
+      </div>
+      <div id="rcMsg" style="font-size:.62rem;color:#cc8866;min-height:14px;margin-top:4px"></div>
+    </div>
+    <!-- SCHNELLZUGRIFF -->
+    <div class="panel" id="quickPanel">
+      <div class="panel-title">SCHNELLZUGRIFF</div>
+      <div id="quickStats" style="display:flex;gap:6px;margin-bottom:10px;font-size:.62rem;color:#a08060;text-align:center">
+        <div style="flex:1;background:rgba(0,0,0,.35);border:1px solid #3a2a18;border-radius:8px;padding:6px 2px">RUNDE<br><b id="qsRound" style="color:var(--gold);font-size:.9rem">1</b></div>
+        <div style="flex:1;background:rgba(0,0,0,.35);border:1px solid #3a2a18;border-radius:8px;padding:6px 2px">KILLS<br><b id="qsKills" style="color:#cc88aa;font-size:.9rem">0</b></div>
+        <div style="flex:1;background:rgba(0,0,0,.35);border:1px solid #3a2a18;border-radius:8px;padding:6px 2px">GOLD<br><b id="qsGold" style="color:var(--gold);font-size:.9rem">0</b></div>
+        <div style="flex:1;background:rgba(0,0,0,.35);border:1px solid #3a2a18;border-radius:8px;padding:6px 2px">DIAS<br><b id="qsDia" style="color:var(--diamond);font-size:.9rem">0</b></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="btn btn-sm" onclick="showTop100()">&#127942; BESTENLISTE</button>
+        <button class="btn btn-sm" onclick="showQuestModal()">&#128220; QUESTS</button>
+        <button class="btn btn-sm" onclick="showInventory()">&#127890; INVENTAR</button>
+        <button class="btn btn-sm" onclick="showClassModal()">&#9876; KLASSE</button>
+        <button class="btn btn-sm" onclick="showMonsterLexicon()">&#128218; LEXIKON</button>
+        <button class="btn btn-sm" onclick="showDiaShop()">&#128142; DIA-SHOP</button>
+      </div>
+    </div>
+
   </div><!-- /rechte Spalte -->
 
   <!-- BESTENLISTE (volle Breite) -->
-  <div class="panel" id="leaderboardPanel">
+  <div class="panel" id="leaderboardPanel" style="display:none">
     <div class="panel-title">BESTENLISTE – TOP 3</div>
     <div id="leaderboardList"><div class="lb-empty">Noch keine Eintraege...</div></div>
     <div id="myHighscoreBar" style="margin-top:8px;padding:8px 10px;background:rgba(0,20,40,0.5);border:1px solid #003355;border-radius:8px;font-size:0.7rem;color:#446688;display:none">
