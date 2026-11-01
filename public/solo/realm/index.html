@@ -32,12 +32,9 @@
 </div>
 <div id="menuPanel" style="position:fixed;top:54px;left:12px;z-index:200;display:none;background:linear-gradient(145deg,#0a0505,#1a0505);border:2px solid var(--gold2);border-radius:12px;padding:14px;min-width:200px;box-shadow:0 4px 20px rgba(0,0,0,0.9)">
   <div style="color:var(--gold);font-weight:700;font-size:0.75rem;letter-spacing:2px;margin-bottom:12px;text-align:center;border-bottom:1px solid var(--gold2);padding-bottom:7px">SPIEL-MENU</div>
-  <button class="btn btn-wide" onclick="if(window.parent!==window)parent.postMessage({bpRealmBack:true},location.origin);else location.href='/'" style="width:100%;margin-bottom:9px;font-size:0.8rem;padding:9px">&#8592; ZUR&Uuml;CK ZU BRAIN PULSE</button>
+  <button class="btn btn-wide" onclick="goBackBP()" style="width:100%;margin-bottom:9px;font-size:0.8rem;padding:9px">&#8592; ZUR&Uuml;CK ZU BRAIN PULSE</button>
 
   <button class="btn btn-wide" onclick="closeMenu();showSpieleModal()" style="width:100%;margin-bottom:9px;font-size:0.8rem;padding:9px">&#128240; NEWS <span id="realmNewsDot" style="display:none;background:#ff3b5c;color:#fff;border-radius:10px;padding:0 6px;font-size:0.7rem">NEU</span></button>
-
-  <!-- 1. LOGIN -->
-  <button id="menuLoginBtn" class="btn btn-wide" onclick="onlineAccount?(accountLogout(),closeMenu()):(showAccountModal())" style="width:100%;margin-bottom:7px;font-size:0.8rem;padding:9px">LOGIN</button>
 
   <!-- 2. KLASSE WAEHLEN + KLASSEN-LEVEL -->
   <button id="menuClassBtn" class="btn btn-wide" onclick="showClassModal()" style="width:100%;margin-bottom:4px;font-size:0.8rem;padding:9px;background:linear-gradient(135deg,#440000,#880000);border-color:var(--gold2);color:var(--gold)">KLASSE WAEHLEN</button>
@@ -93,6 +90,7 @@
 <!-- LOGIN -->
 <div id="loginOverlay">
   <div id="loginBox">
+    <button class="btn" onclick="goBackBP()" style="position:absolute;top:10px;left:10px;font-size:.7rem;padding:6px 10px">&#8592; ZUR&Uuml;CK</button>
     <h1>⚔ REALM OF BRAIN</h1>
     <p>WÄHLE DEINEN HELDEN</p>
     <div class="hero-select">

@@ -317,3 +317,4 @@ body { background: var(--bg); color: var(--text); font-family: 'Cinzel', serif; 
 #sceneWrap:after { height: 62px; }
 #battleScene { padding-bottom: 22px; }
 #runHero { bottom: 22px; }
+#loginBox { position: relative; }

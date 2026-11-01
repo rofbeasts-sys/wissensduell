@@ -391,16 +391,18 @@ function updateLoginLevels() {
 }
 
 // ===== START =====
+function goBackBP() { if (window.parent !== window) { try { parent.postMessage({ bpRealmBack: true }, location.origin); } catch (e) { location.href = '/'; } } else location.href = '/'; }
 function startGame() {
   const nameEl = document.getElementById('nameInput');
   const name = (window.bpUser || localStorage.getItem('robPlayerName') || nameEl.value.trim() || 'Spieler').slice(0,16);
   localStorage.setItem('robPlayerName', name);
   const heroEl = document.querySelector('.hero-card.selected');
-  const hero = heroEl ? heroEl.dataset.hero : 'ben';
+  const heroEl2 = heroEl || document.querySelector('.hero-card');
+  const hero = heroEl2 ? heroEl2.dataset.hero : 'ben';
   localStorage.setItem('robLastHero', hero);
   initMeta(hero, name);
   document.getElementById('heroPortrait').src = IMGS[hero];
-  document.getElementById('heroName').textContent = name.toUpperCase() + ' | ' + heroEl.querySelector('.hclass').textContent.toUpperCase();
+  document.getElementById('heroName').textContent = name.toUpperCase() + ' | ' + heroEl2.querySelector('.hclass').textContent.toUpperCase();
   document.getElementById('loginOverlay').style.display = 'none';
   generateBoard();
   updateUI();
