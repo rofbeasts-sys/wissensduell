@@ -84,6 +84,20 @@ window.SPACE=[
 ["Wie heißt das berühmte Weltraumteleskop?","Hubble","Kepler Tower","Galileo-Brille","Gerst-Skop"],
 ["Welche Sonde hat unser Sonnensystem als erste verlassen?","Voyager 1","Apollo 11","Hubble","Cassini"],
 ["Wie fühlt sich Schwerkraft in der ISS an?","Man schwebt (Schwerelosigkeit)","Wie auf der Erde","Doppelt so stark","Man klebt am Boden","Die Station fällt ständig um die Erde, deshalb schweben alle."]
+]},
+{k:"ex", ic:"🌌", c:"#8f7bff", de:"Mond, Pluto & Galaxien", sub:"Mond, Zwergplaneten, Milchstraße und unser Platz", q:[
+["Was ist Pluto seit 2006?","Ein Zwergplanet","Ein Mond","Ein Stern","Ein Komet","Er galt vorher als neunter Planet."],
+["Wie oft zeigt der Mond der Erde die gleiche Seite?","Immer","Nie","Nur im Sommer","Nur bei Vollmond"],
+["Wie lange braucht der Mond für eine Runde um die Erde?","Etwa 27 Tage","Ein Jahr","Einen Tag","Eine Woche"],
+["Wer betrat 1969 als Erster den Mond?","Neil Armstrong","Buzz Aldrin","Juri Gagarin","Michael Collins","Armstrong war bei Apollo 11 der Erste."],
+["Wie heißt unsere Galaxie?","Milchstraße","Andromeda","Orion","Sombrero"],
+["Welche Form hat die Milchstraße?","Spirale","Kugel","Würfel","Ring"],
+["Wie heißt die nächste große Nachbargalaxie?","Andromeda","Sombrero","Whirlpool","Triangulum-Nebel"],
+["Was ist ein Lichtjahr?","Die Strecke, die Licht in einem Jahr zurücklegt","Eine Zeitangabe","Ein Jahr auf der Sonne","Die Länge eines Tages im All"],
+["Welcher Stern ist uns nach der Sonne am nächsten?","Proxima Centauri","Sirius","Polarstern","Beteigeuze"],
+["Wo liegt Ceres?","Im Asteroidengürtel","Hinter Neptun","Auf dem Mond","Bei der Sonne"],
+["Wie oft kommt der Halleysche Komet ungefähr vorbei?","Alle 76 Jahre","Jedes Jahr","Alle 10 Jahre","Nie wieder"],
+["Was sitzt im Zentrum der Milchstraße?","Ein Schwarzes Loch","Die Sonne","Ein Planet","Ein Komet"]
 ]}
 ];
 /* Steckbriefe der 8 Planeten (Reihenfolge von der Sonne) */
@@ -96,4 +110,31 @@ window.PLANETS=[
 {n:"Saturn", sz:64, ring:1, tag:"Der Ringplanet", pos:"6. von der Sonne", dm:"116.500 km", mo:"über 140", day:"10,7 Stunden", yr:"29 Erdjahre", sp:"Ringe aus Eis und Gestein", memo:"Saturn ist so leicht, dass er auf Wasser schwimmen würde (wenn es ein Becken gäbe, das groß genug ist).", bg:"radial-gradient(circle at 32% 28%,rgba(255,255,255,.28),transparent 45%,rgba(0,0,0,.5)),linear-gradient(180deg,#e8d3a2,#c9a76a 55%,#e2cb98)", tip:"Er hat die auffälligsten Ringe."},
 {n:"Uranus", sz:54, tag:"Der gekippte Planet", pos:"7. von der Sonne", dm:"50.700 km", mo:"über 25", day:"17 Stunden", yr:"84 Erdjahre", sp:"Liegt auf der Seite", memo:"Uranus rollt wie eine Kugel um die Sonne, weil seine Achse fast waagrecht liegt.", bg:"radial-gradient(circle at 32% 28%,#d5fffb,#58c1c9 55%,#1e6b73)", tip:"Er liegt auf der Seite und ist hellblau."},
 {n:"Neptun", sz:54, tag:"Der sonnenfernste Planet", pos:"8. von der Sonne", dm:"49.200 km", mo:"über 14", day:"16 Stunden", yr:"165 Erdjahre", sp:"Stärkste Winde (über 2.000 km/h)", memo:"Neptun braucht 165 Jahre für eine Runde um die Sonne.", bg:"radial-gradient(circle at 32% 28%,#8fb0ff,#2d4fd1 55%,#101f66)", tip:"Er ist der sonnenfernste Planet und tiefblau."}
+];
+
+/* Mond und Pluto: auch auf der Karte */
+window.MOONPL=[
+{n:"Mond",sz:30,ring:0,tag:"Der Begleiter der Erde",pos:"Umkreist die Erde",dm:"3.474 km",mo:"0",day:"27,3 Tage",yr:"27,3 Tage um die Erde",sp:"Zeigt uns immer die gleiche Seite",memo:"1969 betraten die ersten Menschen den Mond (Apollo 11).",bg:"radial-gradient(circle at 35% 30%,#e8e8e8,#a9a9a9 55%,#6e6e6e),radial-gradient(circle at 60% 60%,#8a8a8a 0 10%,transparent 11%)",tip:"Er leuchtet nachts und kreist um die Erde."},
+{n:"Pluto",sz:26,ring:0,tag:"Zwergplanet am Rand",pos:"Kuipergürtel, hinter Neptun",dm:"2.377 km",mo:"5",day:"6,4 Tage",yr:"248 Jahre",sp:"Bis 2006 galt er als neunter Planet",memo:"Seit 2006 ist Pluto ein Zwergplanet, weil er seine Bahn nicht freiräumt.",bg:"radial-gradient(circle at 40% 35%,#f1dcc8,#c49a7a 55%,#7a5a44)",tip:"Früher der neunte Planet, heute ein Zwergplanet."}
+];
+/* Mehr im All: Steckbriefe mit freien Feldern */
+window.EXTRA=[
+{n:"Sonne",sz:60,tag:"Unser Stern",f:[["Art","Stern (Gelber Zwerg)"],["Durchmesser","1,39 Mio. km"],["Oberfläche","ca. 5.500 °C"],["Alter","ca. 4,6 Mrd. Jahre"],["Besonderheit","Enthält 99,8 % der Masse des Sonnensystems"]],memo:"Die Sonne ist ein Stern. Ohne sie gäbe es kein Leben auf der Erde.",bg:"radial-gradient(circle at 38% 34%,#fff6c2,#ffb02e 55%,#ff7a1a)"},
+{n:"Mond",sz:34,tag:"Der Begleiter der Erde",f:[["Art","Mond der Erde"],["Durchmesser","3.474 km"],["Umlauf","27,3 Tage"],["Entfernung","ca. 384.000 km"],["Besonderheit","Erzeugt Ebbe und Flut"]],memo:"1969 betraten die ersten Menschen den Mond.",bg:"radial-gradient(circle at 35% 30%,#e8e8e8,#a9a9a9 55%,#6e6e6e)"},
+{n:"Pluto",sz:30,tag:"Zwergplanet",f:[["Art","Zwergplanet"],["Durchmesser","2.377 km"],["Ein Jahr","248 Jahre"],["Monde","5 (größter: Charon)"],["Besonderheit","Bis 2006 der neunte Planet"]],memo:"Pluto ist kleiner als unser Mond.",bg:"radial-gradient(circle at 40% 35%,#f1dcc8,#c49a7a 55%,#7a5a44)"},
+{n:"Ceres",sz:26,tag:"Zwergplanet im Asteroidengürtel",f:[["Art","Zwergplanet"],["Durchmesser","ca. 940 km"],["Ort","Zwischen Mars und Jupiter"],["Ein Jahr","4,6 Jahre"],["Besonderheit","Größtes Objekt im Asteroidengürtel"]],memo:"Ceres ist der kleinste Zwergplanet und liegt mitten im Asteroidengürtel.",bg:"radial-gradient(circle at 38% 34%,#d6d6d6,#8d8d8d 55%,#555)"},
+{n:"Asteroidengürtel",sz:40,tag:"Felsbrocken zwischen Mars und Jupiter",f:[["Art","Ring aus Gesteinsbrocken"],["Ort","Zwischen Mars und Jupiter"],["Größtes Objekt","Ceres"],["Menge","Hunderttausende Asteroiden"],["Besonderheit","Alle zusammen wiegen weniger als der Mond"]],memo:"Der Gürtel ist viel leerer als in Filmen: Zwischen den Brocken ist viel Platz.",bg:"radial-gradient(circle at 20% 30%,#9a8a7a 0 8%,transparent 9%),radial-gradient(circle at 60% 20%,#8a7a6a 0 6%,transparent 7%),radial-gradient(circle at 70% 65%,#a89888 0 9%,transparent 10%),radial-gradient(circle at 30% 70%,#7a6a5a 0 7%,transparent 8%),#2a2a36"},
+{n:"Halleyscher Komet",sz:34,tag:"Besucher alle 76 Jahre",f:[["Art","Komet"],["Rückkehr","ca. alle 76 Jahre"],["Letztes Mal","1986"],["Nächstes Mal","2061"],["Besonderheit","Besteht aus Eis und Staub"]],memo:"Der Schweif eines Kometen zeigt immer von der Sonne weg.",bg:"radial-gradient(circle at 30% 50%,#fff,#9fd8ff 25%,transparent 60%),#0b1730"},
+{n:"Proxima Centauri",sz:28,tag:"Der nächste Stern",f:[["Art","Roter Zwerg"],["Entfernung","4,2 Lichtjahre"],["Besonderheit","Der Stern, der uns am nächsten ist (nach der Sonne)"],["Lichtreise","Das Licht braucht über 4 Jahre bis zu uns"]],memo:"Ein Lichtjahr ist die Strecke, die das Licht in einem Jahr zurücklegt.",bg:"radial-gradient(circle at 38% 34%,#ffd0b0,#ff6a3a 55%,#a02010)"},
+{n:"Milchstraße",sz:60,tag:"Unsere Galaxie",f:[["Art","Spiralgalaxie"],["Sterne","100 bis 400 Mrd."],["Durchmesser","ca. 100.000 Lichtjahre"],["Unser Platz","Orion-Arm, ca. 26.000 Lichtjahre vom Zentrum"],["Umlauf","Die Sonne braucht ca. 230 Mio. Jahre für eine Runde"],["Zentrum","Schwarzes Loch Sagittarius A*"]],memo:"Das Band der Milchstraße am Nachthimmel ist unsere Galaxie von innen gesehen.",bg:"radial-gradient(circle,#fff6d0 0 7%,#ffd98a 13%,transparent 38%),repeating-conic-gradient(from 0deg,#3a2a7a 0 25deg,#8a6ad0 25deg 50deg,#2a1f5a 50deg 90deg),#0b0f2a"},
+{n:"Andromeda",sz:50,tag:"Die Nachbargalaxie",f:[["Art","Spiralgalaxie"],["Entfernung","ca. 2,5 Mio. Lichtjahre"],["Sterne","ca. 1 Billion"],["Besonderheit","Sie kommt auf uns zu und stößt in ca. 4 Mrd. Jahren mit der Milchstraße zusammen"]],memo:"Andromeda ist mit bloßem Auge als schwacher Fleck zu sehen.",bg:"radial-gradient(circle,#fff0d0 0 9%,#d8b8ff 20%,transparent 50%),repeating-conic-gradient(from 20deg,#2a1f5a 0 30deg,#7a5ac0 30deg 55deg),#0b0f2a"}
+];
+/* Unsere kosmische Adresse: vom Kleinen zum Großen */
+window.ADDR=[
+{n:"Erde",sub:"Unser Planet"},
+{n:"Sonnensystem",sub:"Sonne mit ihren Planeten"},
+{n:"Milchstraße",sub:"Unsere Galaxie"},
+{n:"Lokale Gruppe",sub:"Milchstraße, Andromeda und Nachbarn"},
+{n:"Virgo-Superhaufen",sub:"Tausende Galaxien"},
+{n:"Universum",sub:"Alles zusammen"}
 ];

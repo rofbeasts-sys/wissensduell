@@ -4256,7 +4256,7 @@ function tfBoard(token) {
 // ---- Solo: Minesucher (schnellste Zeit je Stufe) + 2048 (hoechster Punktestand). Brainups nur fuer Siege/gute Ergebnisse, einmal pro Tag ----
 const soloLast = new Map();
 const MS_MIN_SECS = { e: 6, m: 14, h: 24 };
-const GEO_TOPICS = ["bl", "de", "mt", "wa", "eu", "wo", "blk", "hkp", "pk", "gb", "wg", "kt", "ku", "ke", "kp", "kn", "ks", "ka", "po", "wpl", "wmo", "wso", "wgr", "wko", "wra", "wsk", "wre", "pre", "ppa", "pka", "pwa", "pgg", "pge", "pro", "ure", "upa", "upr", "uwa", "uvf", "uge", "upro"];
+const GEO_TOPICS = ["bl", "de", "mt", "wa", "eu", "wo", "blk", "hkp", "pk", "gb", "wg", "kt", "ku", "ke", "kp", "kn", "ks", "ka", "po", "wpl", "wmo", "wso", "wgr", "wko", "wra", "wsk", "wre", "wex", "wad", "pre", "ppa", "pka", "pwa", "pgg", "pge", "pro", "ure", "upa", "upr", "uwa", "uvf", "uge", "upro"];
 async function soloSubmit(token, game, val, diff, lang, extra) {
   extra = extra || {};
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -4331,6 +4331,54 @@ async function soloSubmit(token, game, val, diff, lang, extra) {
   }
   await saveUsers();
   return { ok: true, improved, zp };
+}
+// ===== Realm of Brain: Spielstand und Bestenliste (statt Firebase) =====
+const REALM_MAX_STATE = 60000;
+function realmSave(token, state) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  if (!state || typeof state !== "object" || Array.isArray(state)) return { ok: false };
+  let str; try { str = JSON.stringify(state); } catch (e) { return { ok: false }; }
+  if (str.length > REALM_MAX_STATE) return { ok: false, tooBig: true };
+  user.realm = user.realm || {};
+  if (user.realm.state === str) return { ok: true, same: true };
+  if (Date.now() - (user.realm.at || 0) < 3000) return { ok: true, wait: true };
+  user.realm.state = str; user.realm.at = Date.now();
+  saveUsers().catch(() => {});
+  return { ok: true };
+}
+function realmLoad(token) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  let st = null; try { st = user.realm && user.realm.state ? JSON.parse(user.realm.state) : null; } catch (e) {}
+  return { ok: true, state: st, name: user.username };
+}
+function realmScore(token, e) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  if (!e || typeof e !== "object") return { ok: false };
+  const num = (v, max) => Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
+  const round = num(e.round, 100000), kills = num(e.kills, 10000000), bossKills = num(e.bossKills, 1000000), prestige = num(e.prestige, 10);
+  const score = round * 10 + kills * 5 + bossKills * 50 + prestige * 200;
+  if (score < 1) return { ok: false };
+  user.realm = user.realm || {};
+  const prev = user.realm.entry;
+  if (prev && prev.score >= score) return { ok: true, kept: true, score: prev.score };
+  const str = (v, n) => String(v == null ? "" : v).slice(0, n);
+  user.realm.entry = {
+    name: user.username, uid: user.username, avatar: str(e.avatar, 20), hero: str(e.hero, 20),
+    heroLevel: num(e.heroLevel, 100000), classIds: (Array.isArray(e.classIds) ? e.classIds : []).slice(0, 3).map(x => str(x, 20)),
+    classNames: (Array.isArray(e.classNames) ? e.classNames : []).slice(0, 3).map(x => str(x, 30)),
+    score, round, kills, bossKills, prestige, date: new Date().toLocaleDateString("de-DE")
+  };
+  saveUsers().catch(() => {});
+  return { ok: true, score };
+}
+function realmBoard(token, n) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const me = token ? findUserByToken(token) : null;
+  const all = users.filter(u => u.realm && u.realm.entry && u.realm.entry.score > 0).map(u => u.realm.entry).sort((a, b) => b.score - a.score);
+  return { ok: true, top: all.slice(0, Math.max(1, Math.min(100, Number(n) || 100))), mine: me && me.realm ? me.realm.entry || null : null };
 }
 function soloBoard(token, game, diff) {
   if (!usersLoaded) return { ok: false, unavailable: true };
@@ -7409,7 +7457,7 @@ const GAME_DEFS = [
   { id: "braining_ms", name: "Minesucher", group: "Solo Games", icon: "💣" },
   { id: "braining_2048", name: "2048", group: "Solo Games", icon: "🔢" },
   { id: "braining_brick", name: "Brick Flieger", group: "Solo Games", icon: "✈️" },
-  { id: "braining_lane", name: "Pfadwächter", group: "Solo Games", icon: "🛡️" },
+  { id: "braining_lane", name: "Realm of Brain", group: "Hauptmenü", icon: "🛡️" },
   { id: "braining_hopper", name: "Hüpfer", group: "Solo Games", icon: "⚪" },
   { id: "braining_flappy", name: "Flappy-Flug", group: "Solo Games", icon: "🕊️" },
   { id: "braining_block", name: "Block Puzzle", group: "Solo Games", icon: "🧩" },
@@ -7449,9 +7497,9 @@ const GAME_DEFS = [
   { id: "boards", name: "Online-Bestenlisten", group: "Brainups", icon: "🏆" },
   { id: "chem", name: "Brainchimie", group: "Minigames", icon: "⚗️" },
   { id: "backgammon", name: "Backgammon", group: "Minigames", icon: "🎲" },
-  { id: "geo", name: "Erdkunde", group: "Modi", icon: "🌍" },
-  { id: "space", name: "Weltall", group: "Modi", icon: "🪐" },
-  { id: "politik", name: "Politik", group: "Modi", icon: "🏛️" },
+  { id: "geo", name: "Geography", group: "Modi", icon: "🌍" },
+  { id: "space", name: "Planets", group: "Modi", icon: "🪐" },
+  { id: "politik", name: "Politics", group: "Modi", icon: "🏛️" },
   { id: "fourups", name: "Fourups", group: "Minigames", icon: "🔴" },
   { id: "fourups_abilities", name: "Fourups Fähigkeiten", group: "Minigames", icon: "✨", sub: "fourups" },
   { id: "ordering", name: "Ordering", group: "Minigames", icon: "🔢" },
@@ -7475,7 +7523,7 @@ async function loadGameCfg() {
       const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_games`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
       const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result);
     } else if (fs.existsSync(GAMES_FILE)) raw = JSON.parse(fs.readFileSync(GAMES_FILE, "utf8"));
-    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined, zp: raw.zp && typeof raw.zp === "object" ? raw.zp : undefined, stats: raw.stats && typeof raw.stats === "object" ? raw.stats : undefined, events: Array.isArray(raw.events) ? raw.events : undefined, feedback: Array.isArray(raw.feedback) ? raw.feedback : undefined }; try { zpApplyCfg(); } catch (e) {}
+    if (raw && typeof raw === "object") gameCfg = { modes: raw.modes || {}, classOff: raw.classOff || {}, news: Array.isArray(raw.news) ? raw.news : undefined, mania: raw.mania && typeof raw.mania === "object" ? raw.mania : undefined, hard: raw.hard && typeof raw.hard === "object" ? raw.hard : undefined, zp: raw.zp && typeof raw.zp === "object" ? raw.zp : undefined, stats: raw.stats && typeof raw.stats === "object" ? raw.stats : undefined, events: Array.isArray(raw.events) ? raw.events : undefined, feedback: Array.isArray(raw.feedback) ? raw.feedback : undefined, realmNews: Array.isArray(raw.realmNews) ? raw.realmNews : undefined }; try { zpApplyCfg(); } catch (e) {}
   } catch (e) { console.error("Spiele-Einstellungen nicht lesbar:", e.message); }
 }
 // ---- NEWS (steht mit in den Spiele-Einstellungen, bleibt also mit gespeichert) ----
@@ -7510,6 +7558,26 @@ async function adminNews(key, ip, payload) {
   }
   if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
   return newsPublic();
+}
+// ---- NEWS nur fuer Realm of Brain (eigene Liste, eigener Admin-Reiter) ----
+function realmNewsList() { return Array.isArray(gameCfg.realmNews) ? gameCfg.realmNews : []; }
+function realmNewsPublic() { const all = realmNewsList(); return { ok: true, news: all.slice(-30).reverse(), lastId: all.reduce((m, n) => Math.max(m, n.id), 0) }; }
+async function adminRealmNews(key, ip, payload) {
+  if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const clean = (x, n) => String(x == null ? "" : x).replace(/[\u0000-\u0008\u000b-\u001f]+/g, " ").trim().slice(0, n);
+  if (payload.action === "add") {
+    const title = clean(payload.title, 80), text = clean(payload.text, 1500);
+    if (!title || !text) return { ok: false, error: "Titel und Text fehlen." };
+    const list = realmNewsList().slice();
+    const en = clean(payload.titleEn, 80) && clean(payload.textEn, 1500) ? { title: clean(payload.titleEn, 80), text: clean(payload.textEn, 1500) } : null;
+    list.push({ id: list.reduce((m, n) => Math.max(m, n.id), 0) + 1, ts: Date.now(), de: { title, text }, en: en || { title, text } });
+    gameCfg.realmNews = list.slice(-50);
+  } else if (payload.action === "del") {
+    const id = parseInt(payload.id, 10);
+    gameCfg.realmNews = realmNewsList().filter(n => n.id !== id);
+  }
+  if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
+  return realmNewsPublic();
 }
 // ---- BRAINMANIA (Admin-Spiel, Bestenliste liegt mit in den Spiele-Einstellungen) ----
 const MANIA_TIERS = ["Stein", "Bronze", "Silber", "Gold", "Diamant"];
@@ -8013,6 +8081,10 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/tf/board") result = tfBoard(payload.token);
         else if (req.url === "/api/solo/submit") result = await soloSubmit(payload.token, payload.game, payload.val, payload.diff, lang, { win: payload.win, solved: payload.solved });
         else if (req.url === "/api/solo/board") result = soloBoard(payload.token, payload.game, payload.diff);
+        else if (req.url === "/api/realm/save") result = realmSave(payload.token, payload.state);
+        else if (req.url === "/api/realm/load") result = realmLoad(payload.token);
+        else if (req.url === "/api/realm/score") result = realmScore(payload.token, payload.entry);
+        else if (req.url === "/api/realm/board") result = realmBoard(payload.token, payload.n);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);
         else if (req.url === "/api/taboo-solo" && !(gateOk("taboo", payload.adminKey, ip) && gateOk("taboo_solo", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
@@ -8066,6 +8138,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/stat-hit") result = statHitApi(payload, ip);
         else if (req.url === "/api/news") result = newsPublic(payload.token);
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
+        else if (req.url === "/api/realm/news") result = realmNewsPublic();
+        else if (req.url === "/api/admin-realm-news") result = await adminRealmNews(payload.key, ip, payload);
         else if (req.url === "/api/admin-news") result = await adminNews(payload.key, ip, payload);
         else if (req.url === "/api/admin-mania") result = await adminManiaCall(payload.key, ip, payload);
         else if (req.url === "/api/hard" && !gateOk("hard", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;

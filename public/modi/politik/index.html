@@ -61,7 +61,7 @@ h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.
 .ord .o.d{opacity:.5;border-color:#3ddc84}.ord .o.no{animation:sh .3s}
 .ord{grid-template-columns:repeat(2,1fr)}
 </style></head><body>
-<div class="top"><button class="back" id="back">←</button><h1 id="title">🏛️ Politik</h1><span class="pill" id="pg" style="display:none"></span></div>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">🏛️ Politics</h1><span class="pill" id="pg" style="display:none"></span></div>
 <div class="main" id="main"></div>
 <script src="data.js"></script>
 <script src="data-us.js"></script>
@@ -93,7 +93,7 @@ function matches(input,answer){ var a=norm(input), b=norm(answer); if(!a) return
 var G=null, M=null, O=null;
 $("back").onclick=function(){ if(G&&!G.end||M||O){ G=null; M=null; O=null; home(); return; } if(window.parent!==window) parent.postMessage({bpPolBack:true},location.origin); else location.href="/"; };
 function home(){
-  G=null; M=null; O=null; $("pg").style.display="none"; $("title").textContent="🏛️ Politik"; var m=$("main"), t=TP(), okK=(prog["q"+PK(US()?"pr":"ka")]|0)>=8;
+  G=null; M=null; O=null; $("pg").style.display="none"; $("title").textContent="🏛️ Politics"; var m=$("main"), t=TP(), okK=(prog["q"+PK(US()?"pr":"ka")]|0)>=8;
   var tiles='<div class="tile" style="--c:#ffd45a" data-k="kanz"><span class="ic">👔</span><b>'+LW()+'-Galerie</b><small>'+(US()?'Washington bis Trump':'Alle 10 Bundeskanzler')+'</small><span class="bs">'+(US()?'13 Amtszeiten':'1949 bis heute')+'</span></div>';
   tiles+='<div class="tile" style="--c:#ff5d6c" data-k="part"><span class="ic">🗳️</span><b>Parteien-Galerie</b><small>Wer ist wer?</small><span class="bs">'+PAR().length+' Parteien</span></div>';
   tiles+=t.map(function(x){ var b=prog["q"+PK(x.k)]|0; return '<div class="tile" style="--c:'+x.c+'" data-k="'+x.k+'"><span class="ic">'+x.ic+'</span><b>'+esc(x.de)+'</b><small>'+esc(x.sub)+'</small><span class="st">'+stars(b)+'</span><span class="bs">'+(b?('Bestwert '+b+' / '+ROUND):(x.q.length+' Fragen'))+'</span></div>'; }).join("");

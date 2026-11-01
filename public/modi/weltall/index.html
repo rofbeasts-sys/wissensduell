@@ -66,7 +66,7 @@ h1{font-size:14px;margin:0;flex:1;color:#8d97ad;font-weight:600;letter-spacing:.
 .ord .o .sp{border-radius:50%;position:relative}.ord .o.d{opacity:.45}.ord .o .nr{position:absolute;right:-6px;top:-6px;background:#3ddc84;color:#06220f;border-radius:99px;min-width:22px;height:22px;display:grid;place-items:center;font-size:12px;font-weight:900}
 .ord .o.no{animation:sh .3s}.sp{border-radius:50%;position:relative;flex:none}.sp.rg::before{content:"";position:absolute;left:50%;top:50%;width:calc(100% + 28%);height:calc(10% + 6px);margin-left:calc(-50% - 14%);margin-top:calc(-5% - 1px);border:3px solid #d7bd88;border-radius:50%;transform:rotate(-18deg);opacity:.9;pointer-events:none}
 </style></head><body>
-<div class="top"><button class="back" id="back">←</button><h1 id="title">🪐 Weltall</h1><span class="pill" id="pg" style="display:none"></span></div>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">🪐 Planets</h1><span class="pill" id="pg" style="display:none"></span></div>
 <div class="main" id="main"></div>
 <script src="data.js"></script>
 <script>
@@ -84,21 +84,22 @@ function mstars(n){ return n>=3?"⭐⭐⭐":n==2?"⭐⭐☆":n==1?"⭐☆☆":"�
 function stars(n){ return n>=10?"⭐⭐⭐":n>=8?"⭐⭐☆":n>=5?"⭐☆☆":"☆☆☆"; }
 function norm(t){ return String(t).toLowerCase().replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss").replace(/[^a-z]/g,""); }
 function lev(a,b){ var m=a.length,n=b.length,d=[],i,j; for(i=0;i<=m;i++){ d[i]=[i]; } for(j=1;j<=n;j++) d[0][j]=j; for(i=1;i<=m;i++) for(j=1;j<=n;j++) d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1)); return d[m][n]; }
-var AL={"mercury":"merkur","earth":"erde","neptune":"neptun","erdball":"erde"};
+var AL={"moon":"mond","erdmond":"mond","luna":"mond","mercury":"merkur","earth":"erde","neptune":"neptun","erdball":"erde"};
 function matches(input,answer){ var a=norm(input), b=norm(answer); if(!a) return false; if(AL[a]) a=AL[a]; if(a===b) return true; var tol=b.length>=7?2:b.length>=5?1:0; return tol>0&&lev(a,b)<=tol; }
 var G=null, M=null, O=null;
 $("back").onclick=function(){ if(G&&!G.end||M||O){ G=null; M=null; O=null; home(); return; } if(window.parent!==window) parent.postMessage({bpSpaceBack:true},location.origin); else location.href="/"; };
 function sph(p,sz){ return '<div class="sp'+(p.ring?' rg':'')+'" style="width:'+sz+'px;height:'+sz+'px;background:'+p.bg+';box-shadow:0 0 14px rgba(160,180,255,.25)"></div>'; }
 function home(){
-  G=null; M=null; O=null; $("pg").style.display="none"; $("title").textContent="🪐 Weltall"; var m=$("main"), t=window.SPACE, mapDone=(prog.wsk|0)>0;
-  var tiles='<div class="tile" style="grid-column:1/-1;--c:#7cff8c;min-height:0;flex-direction:row;align-items:center;gap:12px" data-k="map"><span class="ic">🔭</span><div style="flex:1"><b>Sonnensystem-Karte</b><br><small>Tippe einen Planeten an und schreibe den Namen</small></div><span class="st" style="margin:0">'+mstars(prog.wsk|0)+'</span></div>';
-  tiles+='<div class="tile" style="--c:#b07aff" data-k="facts"><span class="ic">📖</span><b>Steckbriefe</b><small>Fakten zu allen 8 Planeten</small><span class="bs">8 Planeten</span></div>';
+  G=null; M=null; O=null; $("pg").style.display="none"; $("title").textContent="🪐 Planets"; var m=$("main"), t=window.SPACE, mapDone=(prog.wsk|0)>0;
+  var tiles='<div class="tile" style="grid-column:1/-1;--c:#7cff8c;min-height:0;flex-direction:row;align-items:center;gap:12px" data-k="map"><span class="ic">🔭</span><div style="flex:1"><b>Sonnensystem-Karte</b><br><small>Tippe einen Himmelskörper an und schreibe den Namen</small></div><span class="st" style="margin:0">'+mstars(prog.wsk|0)+'</span></div>';
+  tiles+='<div class="tile" style="--c:#b07aff" data-k="facts"><span class="ic">📖</span><b>Steckbriefe</b><small>Planeten, Mond, Pluto, Milchstraße und mehr</small><span class="bs">'+ALLF().length+' Steckbriefe</span></div>';
   tiles+=t.map(function(x){ var b=prog["q"+x.k]|0; return '<div class="tile" style="--c:'+x.c+'" data-k="'+x.k+'"><span class="ic">'+x.ic+'</span><b>'+esc(x.de)+'</b><small>'+esc(x.sub)+'</small><span class="st">'+stars(b)+'</span><span class="bs">'+(b?('Bestwert '+b+' / '+ROUND):(x.q.length+' Fragen'))+'</span></div>'; }).join("");
   tiles+='<div class="tile" style="--c:#c6ff3d" data-k="mix"><span class="ic">🎲</span><b>Mix</b><small>Zufällig aus allen Themen</small><span class="st">'+stars(prog.qmix|0)+'</span><span class="bs">Alle Themen</span></div>';
   tiles+=mapDone?'<div class="tile" style="grid-column:1/-1;--c:#ffd45a;min-height:0;flex-direction:row;align-items:center;gap:12px" data-k="order"><span class="ic">🧮</span><div style="flex:1"><b>Reihenfolge-Spiel</b><br><small>Ordne die Planeten nach Abstand zur Sonne</small></div><span class="st" style="margin:0">'+mstars(prog.wre|0)+'</span></div>'
     :'<div class="tile" style="grid-column:1/-1;--c:#5b6478;opacity:.75;min-height:0;flex-direction:row;align-items:center;gap:12px" data-k="lock"><span class="ic">🔒</span><div style="flex:1"><b>Reihenfolge-Spiel</b><br><small>Wird frei, sobald du die Sonnensystem-Karte geschafft hast.</small></div></div>';
+  tiles+=mapDone?'<div class="tile" style="grid-column:1/-1;--c:#8f7bff;min-height:0;flex-direction:row;align-items:center;gap:12px" data-k="addr"><span class="ic">🌌</span><div style="flex:1"><b>Kosmische Adresse</b><br><small>Von der Erde bis zum Universum ordnen</small></div><span class="st" style="margin:0">'+mstars(prog.wad|0)+'</span></div>':'';
   m.innerHTML='<div class="center" style="margin-top:2px"><div style="font-size:13px;color:#8d97ad;line-height:1.4">Lerne das Sonnensystem kennen. Eine Runde hat '+ROUND+' Fragen.<br>Ab 8 Treffern gibt es beim ersten Mal Brainups.</div></div><div class="grid">'+tiles+'</div>'+(hasAcc()?'':'<div class="hint center">Melde dich an, um Brainups zu sammeln.</div>');
-  Array.prototype.forEach.call(m.querySelectorAll(".tile"),function(el){ el.onclick=function(){ var k=el.getAttribute("data-k"); if(k==="lock") return; if(k==="map") mapPlay(); else if(k==="facts") factsList(); else if(k==="order") orderPlay(); else play(k); }; });
+  Array.prototype.forEach.call(m.querySelectorAll(".tile"),function(el){ el.onclick=function(){ var k=el.getAttribute("data-k"); if(k==="lock") return; if(k==="map") mapPlay(); else if(k==="facts") factsList(); else if(k==="order") orderPlay(); else if(k==="addr") addrPlay(); else play(k); }; });
 }
 /* ---------- Quiz ---------- */
 function play(k){
@@ -122,7 +123,7 @@ function pick(pos){
   function next(){ if(done||!G) return; done=true; G.i++; if(G.i>=ROUND) finish(); else show(); }
   var t=setTimeout(next,wait); document.querySelector(".ans").onclick=function(){ if(G&&G.lock){ clearTimeout(t); next(); } }; ex.onclick=function(){ clearTimeout(t); next(); };
 }
-var DIFF={pl:"wpl",mo:"wmo",so:"wso",gr:"wgr",ko:"wko",ra:"wra"};
+var DIFF={pl:"wpl",mo:"wmo",so:"wso",gr:"wgr",ko:"wko",ra:"wra",ex:"wex"};
 function finish(){
   var g=G; g.end=true; $("pg").style.display="none"; var pk="q"+g.k;
   if(g.ok>(prog[pk]|0)){ prog[pk]=g.ok; save(); }
@@ -132,46 +133,69 @@ function finish(){
   if(hasAcc()&&DIFF[g.k]&&g.ok>=8) api("/api/solo/submit",{game:"geo",val:g.ok,diff:DIFF[g.k]}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" Brainups ⭐"; });
 }
 /* ---------- Steckbriefe ---------- */
+function ALLF(){ return window.PLANETS.concat(window.EXTRA); }
 function factsList(){
-  O={}; $("title").textContent="📖 Steckbriefe";
-  $("main").innerHTML=window.PLANETS.map(function(p,i){ return '<div class="row" data-i="'+i+'">'+sph(p,Math.min(46,p.sz*.6))+'<div style="flex:1"><b>'+esc(p.n)+'</b><br><small style="color:#8d97ad">'+esc(p.tag)+'</small></div><span style="color:#6c768c">›</span></div>'; }).join("");
+  O={}; $("title").textContent="📖 Steckbriefe"; var A=ALLF();
+  $("main").innerHTML=A.map(function(p,i){ return (i===0?'<div class="hint" style="margin:4px 0 -2px">Die 8 Planeten</div>':i===8?'<div class="hint" style="margin:14px 0 -2px">Mehr im All</div>':'')+'<div class="row" data-i="'+i+'">'+sph(p,Math.min(46,p.sz*.6))+'<div style="flex:1"><b>'+esc(p.n)+'</b><br><small style="color:#8d97ad">'+esc(p.tag)+'</small></div><span style="color:#6c768c">›</span></div>'; }).join("");
   Array.prototype.forEach.call($("main").querySelectorAll(".row"),function(el){ el.onclick=function(){ factDetail(+el.getAttribute("data-i")); }; });
 }
 function factDetail(i){
-  var p=window.PLANETS[i]; O={i:i}; $("title").textContent="📖 "+p.n;
+  var A=ALLF(), n=A.length, p=A[i]; O={i:i}; $("title").textContent="📖 "+p.n;
   var big=Math.min(170,Math.round(p.sz*2.1));
+  var rows=p.f?p.f.map(function(r,k){ return '<div class="fact"'+(k===p.f.length-1?' style="border:0"':'')+'><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>'; }).join(""):'<div class="fact"><span>Position</span><b>'+esc(p.pos)+'</b></div><div class="fact"><span>Durchmesser</span><b>'+esc(p.dm)+'</b></div><div class="fact"><span>Monde</span><b>'+esc(p.mo)+'</b></div><div class="fact"><span>Ein Tag dauert</span><b>'+esc(p.day)+'</b></div><div class="fact"><span>Ein Jahr dauert</span><b>'+esc(p.yr)+'</b></div><div class="fact" style="border:0"><span>Besonderheit</span><b>'+esc(p.sp)+'</b></div>';
   $("main").innerHTML='<div style="display:grid;place-items:center;height:'+(big+50)+'px">'+sph(p,big)+'</div><div class="center"><div style="font-size:26px;font-weight:800">'+esc(p.n)+'</div><div style="color:#8d97ad;font-size:13px">'+esc(p.tag)+'</div></div>'
-   +'<div class="card"><div class="fact"><span>Position</span><b>'+esc(p.pos)+'</b></div><div class="fact"><span>Durchmesser</span><b>'+esc(p.dm)+'</b></div><div class="fact"><span>Monde</span><b>'+esc(p.mo)+'</b></div><div class="fact"><span>Ein Tag dauert</span><b>'+esc(p.day)+'</b></div><div class="fact"><span>Ein Jahr dauert</span><b>'+esc(p.yr)+'</b></div><div class="fact" style="border:0"><span>Besonderheit</span><b>'+esc(p.sp)+'</b></div></div>'
+   +'<div class="card">'+rows+'</div>'
    +'<div class="card" style="font-size:14px;line-height:1.45">💡 <b>Merke:</b> '+esc(p.memo)+'</div>'
    +'<div style="display:flex;gap:10px;margin-top:14px"><button class="sec" id="fp" style="margin:0">← Zurück</button><button class="pri" id="fn" style="flex:1">Nächster →</button></div>';
-  $("fp").onclick=function(){ factDetail((i+7)%8); }; $("fn").onclick=function(){ factDetail((i+1)%8); };
+  $("fp").onclick=function(){ factDetail((i+n-1)%n); }; $("fn").onclick=function(){ factDetail((i+1)%n); };
+}
+/* ---------- Kosmische Adresse ---------- */
+function addrPlay(){ O={ord:shuffle([0,1,2,3,4,5]),next:0,wrong:0,t0:Date.now(),addr:1}; $("pg").style.display=""; $("title").textContent="🌌 Kosmische Adresse"; addrDraw(); }
+function addrDraw(){
+  var A=window.ADDR; $("pg").textContent=O.next+" / "+A.length;
+  $("main").innerHTML='<div class="center" style="margin-top:4px;font-size:14px;color:#cfd6e6;line-height:1.4">Wo wohnen wir im All? Tippe der Reihe nach an, <b style="color:#ffd45a">vom Kleinsten zum Größten</b>.<br>Zuerst unser Planet.</div>'+O.ord.map(function(ai){ var a=A[ai], d=ai<O.next; return '<div class="row" data-i="'+ai+'" style="'+(d?'opacity:.55;border-color:#3ddc84':'')+'"><div style="flex:1"><b>'+(d?(ai+1)+". ":"")+(d?esc(a.n):"?")+'</b>'+(d?'<br><small style="color:#8d97ad">'+esc(a.sub)+'</small>':'')+'</div></div>'; }).join("")+'<div class="msg center" id="omsg" style="margin-top:16px;color:#9aa6bf;font-size:13px">Fehler: '+O.wrong+'</div>';
+  Array.prototype.forEach.call($("main").querySelectorAll(".row"),function(el){ el.onclick=function(){ addrTap(+el.getAttribute("data-i"),el); }; });
+}
+function addrTap(ai,el){
+  if(!O||!O.addr||ai<O.next) return;
+  if(ai===O.next){ O.next++; sfx("good"); if(O.next>=window.ADDR.length){ addrDraw(); setTimeout(addrFinish,700); } else addrDraw(); }
+  else { O.wrong++; sfx("bad"); el.style.borderColor="#ff5d6c"; var ms=$("omsg"); if(ms) ms.textContent="Nicht ganz, da kommt noch etwas Kleineres. Fehler: "+O.wrong; setTimeout(function(){ if(el) el.style.borderColor=""; },400); }
+}
+function addrFinish(){
+  var st=O.wrong<=1?3:O.wrong<=4?2:1, secs=Math.round((Date.now()-O.t0)/1000), wr=O.wrong; O=null; $("pg").style.display="none";
+  if(st>(prog.wad|0)){ prog.wad=st; save(); }
+  try{ PP&&PP.sfxResult&&PP.sfxResult(true,false); }catch(e){}
+  $("main").innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">Kosmische Adresse</div><div class="big" style="font-size:54px">6 / 6</div><div class="stars">'+mstars(st)+'</div><div style="color:#8d97ad">Zeit '+secs+' s · Fehler '+wr+'</div><div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">Melde dich an, um Brainups zu bekommen.</div>')+'</div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="ag">Nochmal</button><button class="sec" id="hm">Themen</button></div>';
+  $("ag").onclick=addrPlay; $("hm").onclick=home;
+  if(hasAcc()) api("/api/solo/submit",{game:"geo",val:st===3?10:8,diff:"wad"}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" Brainups ⭐"; });
 }
 /* ---------- Sonnensystem-Karte ---------- */
-var XP=[21,30,39,48,61,74,85,93], YP=[38,66,36,64,50,34,66,42];
+var XP=[19,27,35,43,55,66,76,85,44,94], YP=[38,66,36,64,50,34,66,42,18,62];
+function MT(){ return window.PLANETS.concat(window.MOONPL); }
 function mapPlay(){ M={solved:{},sel:null,wrong:0,hints:0,reveal:0,t0:Date.now(),tip:0,msg:"",done:false}; $("pg").style.display=""; $("title").textContent="🔭 Karte"; mapDraw(); }
 function mapDraw(){
-  var P=window.PLANETS, m=$("main"), n=Object.keys(M.solved).length; $("pg").textContent=n+" / 8";
-  m.innerHTML='<div class="stage sky" id="stg"><div class="sun"></div>'+P.map(function(p,i){ return '<div class="orb" style="width:'+(XP[i]*2)+'%;height:'+(XP[i]*2)+'%;padding-bottom:0"></div>'; }).join("")+P.map(function(p,i){ var st=M.solved[i], sel=M.sel===i, sz=Math.round(p.sz*.8);
+  var P=MT(), m=$("main"), n=Object.keys(M.solved).length; $("pg").textContent=n+" / "+P.length;
+  m.innerHTML='<div class="stage sky" id="stg"><div class="sun"></div>'+P.slice(0,8).map(function(p,i){ return '<div class="orb" style="width:'+(XP[i]*2)+'%;height:'+(XP[i]*2)+'%;padding-bottom:0"></div>'; }).join("")+P.map(function(p,i){ var st=M.solved[i], sel=M.sel===i, sz=Math.round(p.sz*(i>=8?1:.8));
     return '<div class="pb'+(p.ring?' rg':'')+(sel?' sel':'')+(st==="g"?' ok':st==="r"?' rv':'')+'" data-i="'+i+'" style="left:'+XP[i]+'%;top:'+YP[i]+'%;width:'+sz+'px;height:'+sz+'px;background:'+p.bg+'">'+(st?'<span class="pnm" style="color:'+(st==="g"?"#7cff9c":"#6fd0ff")+'">'+esc(p.n)+'</span>':'')+'</div>'; }).join("")+'</div>'
-   +'<div class="mp"><div class="lab">'+(M.sel!=null?'Wie heißt dieser Planet?':'Tippe einen Planeten an und schreibe seinen Namen.')+'</div>'+(M.sel!=null?'<div class="row2"><input id="mi" type="text" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" placeholder="Name …"><button class="bt" id="mok">Prüfen</button></div><div class="acts"><button class="bt g" id="mtip">💡 Tipp</button><button class="bt g" id="mrev">👁 Auflösen</button></div>':'')+'<div class="msg" id="mmsg">'+esc(M.msg||"")+'</div></div>';
-  var o=m.querySelectorAll(".orb"), w=$("stg").clientWidth, h=$("stg").clientHeight; Array.prototype.forEach.call(o,function(e,i){ e.style.width=(XP[i]/100*w*2)+"px"; e.style.height=(XP[i]/100*w*2)+"px"; });
+   +'<div class="mp"><div class="lab">'+(M.sel!=null?'Wie heißt dieser Himmelskörper?':'Tippe einen Himmelskörper an und schreibe seinen Namen.')+'</div>'+(M.sel!=null?'<div class="row2"><input id="mi" type="text" autocomplete="off" autocapitalize="words" autocorrect="off" spellcheck="false" placeholder="Name …"><button class="bt" id="mok">Prüfen</button></div><div class="acts"><button class="bt g" id="mtip">💡 Tipp</button><button class="bt g" id="mrev">👁 Auflösen</button></div>':'')+'<div class="msg" id="mmsg">'+esc(M.msg||"")+'</div></div>';
+  var o=m.querySelectorAll(".orb"), w=$("stg").clientWidth, h=$("stg").clientHeight; if(0)h=0; Array.prototype.forEach.call(o,function(e,i){ e.style.width=(XP[i]/100*w*2)+"px"; e.style.height=(XP[i]/100*w*2)+"px"; });
   Array.prototype.forEach.call(m.querySelectorAll(".pb"),function(el){ el.onclick=function(){ var i=+el.getAttribute("data-i"); if(M.solved[i]) return; M.sel=i; M.tip=0; M.msg=""; sfx("tap"); mapDraw(); }; });
   if(M.sel!=null){ $("mok").onclick=mapCheck; $("mtip").onclick=mapTip; $("mrev").onclick=mapReveal; $("mi").onkeydown=function(e){ if(e.key==="Enter") mapCheck(); }; try{ $("mi").focus({preventScroll:true}); }catch(e){} }
 }
 function mapCheck(){
-  var p=window.PLANETS[M.sel];
+  var p=MT()[M.sel];
   if(matches($("mi").value,p.n)){ M.solved[M.sel]="g"; M.msg="Richtig! "+p.n+" · "+p.tag; M.sel=null; sfx("good"); mapAfter(); }
   else { M.wrong++; M.msg="Nicht ganz. Versuch es nochmal oder nimm einen Tipp."; sfx("bad"); var i=$("mi"); i.className="bad"; $("mmsg").textContent=M.msg; setTimeout(function(){ if($("mi")) $("mi").className=""; },350); }
 }
-function mapTip(){ var p=window.PLANETS[M.sel]; M.tip++; M.hints++; M.msg=M.tip===1?p.tip:"Beginnt mit „"+p.n.slice(0,Math.min(p.n.length-1,M.tip-1))+"“ ("+p.n.length+" Buchstaben)"; $("mmsg").textContent=M.msg; }
-function mapReveal(){ var p=window.PLANETS[M.sel]; M.reveal++; M.solved[M.sel]="r"; M.msg="Es war: "+p.n+" · "+p.tag; M.sel=null; sfx("tap"); mapAfter(); }
-function mapAfter(){ if(Object.keys(M.solved).length>=8){ M.done=true; mapDraw(); setTimeout(mapFinish,900); } else mapDraw(); }
+function mapTip(){ var p=MT()[M.sel]; M.tip++; M.hints++; M.msg=M.tip===1?p.tip:"Beginnt mit „"+p.n.slice(0,Math.min(p.n.length-1,M.tip-1))+"“ ("+p.n.length+" Buchstaben)"; $("mmsg").textContent=M.msg; }
+function mapReveal(){ var p=MT()[M.sel]; M.reveal++; M.solved[M.sel]="r"; M.msg="Es war: "+p.n+" · "+p.tag; M.sel=null; sfx("tap"); mapAfter(); }
+function mapAfter(){ if(Object.keys(M.solved).length>=MT().length){ M.done=true; mapDraw(); setTimeout(mapFinish,900); } else mapDraw(); }
 function mapFinish(){
   var secs=Math.round((Date.now()-M.t0)/1000), bad=M.wrong+M.hints+M.reveal*2, st=bad<=1?3:bad<=4?2:1, mm=Math.floor(secs/60), ss=("0"+(secs%60)).slice(-2);
   if(st>(prog.wsk|0)){ prog.wsk=st; save(); }
   try{ PP&&PP.sfxResult&&PP.sfxResult(true,false); }catch(e){}
   var wr=M.wrong, h=M.hints, rv=M.reveal; M=null; $("pg").style.display="none";
-  $("main").innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">Sonnensystem-Karte</div><div class="big" style="font-size:54px">8 / 8</div><div class="stars">'+mstars(st)+'</div><div style="color:#8d97ad">Zeit '+mm+':'+ss+' · Fehler '+wr+' · Tipps '+h+' · Aufgelöst '+rv+'</div><div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">Melde dich an, um Brainups zu bekommen.</div>')+'<div class="hint" style="color:#ffd45a">🔓 Reihenfolge-Spiel freigeschaltet</div></div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="ag">Nochmal</button><button class="sec" id="hm">Themen</button></div>';
+  $("main").innerHTML='<div class="center" style="margin-top:4vh"><div style="color:#8d97ad">Sonnensystem-Karte</div><div class="big" style="font-size:54px">10 / 10</div><div class="stars">'+mstars(st)+'</div><div style="color:#8d97ad">Zeit '+mm+':'+ss+' · Fehler '+wr+' · Tipps '+h+' · Aufgelöst '+rv+'</div><div class="zp" id="zpl"></div>'+(hasAcc()?'':'<div class="hint">Melde dich an, um Brainups zu bekommen.</div>')+'<div class="hint" style="color:#ffd45a">🔓 Reihenfolge-Spiel freigeschaltet</div></div><div style="margin-top:auto;padding-top:20px"><button class="pri" id="ag">Nochmal</button><button class="sec" id="hm">Themen</button></div>';
   $("ag").onclick=mapPlay; $("hm").onclick=home;
   if(hasAcc()) api("/api/solo/submit",{game:"geo",val:st===3?10:8,diff:"wsk"}).then(function(r){ if(r&&r.ok&&r.zp>0&&$("zpl")) $("zpl").textContent="+"+r.zp+" Brainups ⭐"; });
 }

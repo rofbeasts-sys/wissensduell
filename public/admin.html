@@ -73,6 +73,7 @@ button.mini{padding:4px 8px;font-size:12px}
     <button data-t="req">Anfragen<span class="n hidden" id="nReq"></span></button>
     <button data-t="rep">Meldungen<span class="n hidden" id="nRep"></span></button>
     <button data-t="news">News</button>
+    <button data-t="rnews">Realm-News</button>
     <button data-t="fb">Feedback<span class="n hidden" id="nFb"></span></button>
     <button data-t="ev">Events</button>
     <button data-t="zp">Brainups</button>
@@ -206,6 +207,19 @@ button.mini{padding:4px 8px;font-size:12px}
     <div class="card"><h2>PASSWORT-ANFRAGEN</h2><div id="reqs">…</div></div>
   </div>
 
+  <div id="tab_rnews" class="hidden">
+    <div class="card"><h2>NEWS NUR FÜR REALM OF BRAIN</h2>
+      <div class="dim" style="font-size:12px;margin-bottom:6px">Erscheint nur im Spiel Realm of Brain (Menü → News), nicht in den allgemeinen Brain-Pulse-News.</div>
+      <div class="row"><input id="rnTitle" maxlength="80" placeholder="Titel Deutsch"></div>
+      <div class="row"><textarea id="rnText" maxlength="1500" rows="5" placeholder="Text Deutsch …" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
+      <div class="row"><input id="rnTitleEn" maxlength="80" placeholder="Title English (optional)"></div>
+      <div class="row"><textarea id="rnTextEn" maxlength="1500" rows="3" placeholder="Text English (optional, leer = Deutsch)" style="width:100%;background:#0b1020;color:var(--tx);border:1px solid #2a3560;border-radius:10px;padding:10px;font:inherit"></textarea></div>
+      <div class="row"><button onclick="rnAdd()">📰 Veröffentlichen</button></div>
+      <div id="rnMsg" class="dim" style="margin-top:6px"></div>
+    </div>
+    <div class="card"><h2>BISHERIGE REALM-NEWS</h2><div id="rnList">…</div></div>
+  </div>
+
   <div id="tab_news" class="hidden">
     <div class="card"><h2>NEUE NEWS VERÖFFENTLICHEN</h2>
       <div class="dim" style="font-size:12px;margin-bottom:6px">Alle Spieler bekommen eine rote 1 am Profil und einen Hinweis im Chat. Spieler sehen den Text in ihrer Sprache.</div>
@@ -296,8 +310,8 @@ let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['live','players','games','req','rep','news','zp','stats','ev','fb'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
+  ['live','players','games','req','rep','news','rnews','zp','stats','ev','fb'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
 }
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
@@ -414,6 +428,18 @@ async function newsAdd(){
   $('nMsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
   $('nMsg').textContent = r && r.ok ? '✓ Veröffentlicht.' : '✗ ' + ((r && r.error) || 'Fehler');
   if(r && r.ok){ ['nTitle','nText','nTitleEn','nTextEn'].forEach(i => $(i).value = ''); newsLang('de'); loadNews(); }
+}
+async function rnLoad(){
+  const r = await api('/api/admin-realm-news', { action: 'list' });
+  if(!r || !r.ok){ $('rnList').textContent = (r && r.error) || 'Fehler'; return; }
+  $('rnList').innerHTML = r.news.length ? r.news.map(n => `<div class="u"><div class="dim" style="font-size:12px">${fd(n.ts)} · Nr. ${n.id}</div><b>${esc(n.de.title)}</b><div style="white-space:pre-wrap;margin:4px 0;font-size:13px">${esc(n.de.text)}</div><button class="btn2 red" data-rnd="${n.id}">Löschen</button></div>`).join('') : '<span class="dim">Keine News.</span>';
+  document.querySelectorAll('[data-rnd]').forEach(b => b.onclick = async () => { if(!await bpConfirm('News löschen?')) return; await api('/api/admin-realm-news', { action: 'del', id: +b.dataset.rnd }); rnLoad(); });
+}
+async function rnAdd(){
+  const r = await api('/api/admin-realm-news', { action: 'add', title: $('rnTitle').value, text: $('rnText').value, titleEn: $('rnTitleEn').value, textEn: $('rnTextEn').value });
+  $('rnMsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
+  $('rnMsg').textContent = r && r.ok ? '✓ Veröffentlicht.' : '✗ ' + ((r && r.error) || 'Fehler');
+  if(r && r.ok){ ['rnTitle','rnText','rnTitleEn','rnTextEn'].forEach(i => $(i).value = ''); rnLoad(); }
 }
 async function loadReps(){
   const r = await api('/api/admin-reports');
