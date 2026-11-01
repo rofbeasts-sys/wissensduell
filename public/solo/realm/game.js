@@ -2283,7 +2283,13 @@ const MONSTER_POOL = ['sword1','armor1','helm1','sword2','armor1'];
 const BOSS_POOL = ['sword2','sword3','armor2','armor3','helm2','helm3','ring1','ring2','ring3','sword4','armor4','ring3','sword5','armor5','ring4'];
 
 function loadInventory() {
-  try { return JSON.parse(localStorage.getItem('robInventory') || '{"items":[],"equipped":{}}'); }
+  try {
+    var inv = JSON.parse(localStorage.getItem('robInventory') || 'null');
+    if (!inv || typeof inv !== 'object' || Array.isArray(inv)) inv = {};
+    if (!Array.isArray(inv.items)) inv.items = [];
+    if (!inv.equipped || typeof inv.equipped !== 'object') inv.equipped = {};
+    return inv;
+  }
   catch(e) { return {items:[], equipped:{}}; }
 }
 function saveInventory() {
@@ -2663,7 +2669,7 @@ async function saveStateToFirebase() {
       diamonds: String(globalDiamonds),
       shopPrices: JSON.parse(localStorage.getItem('robShopPrices') || '{}'),
       shopBonuses: JSON.parse(localStorage.getItem('robShopBonuses') || '{}'),
-      inventory: JSON.parse(localStorage.getItem('robInventory') || '[]'),
+      inventory: inventory,
       diaAttrs: JSON.parse(localStorage.getItem('robDiaAttrs') || '{}'),
       selectedAvatar: localStorage.getItem('robAvatar') || '',
       playerName: localStorage.getItem('robPlayerName') || '',
