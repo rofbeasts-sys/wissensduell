@@ -5,14 +5,24 @@
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 40%,#2a2250,#0d0a24 80%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-body{display:flex;flex-direction:column}
+body{display:flex;flex-direction:column;padding-right:40px}
+#opp{position:fixed;right:2px;top:50px;bottom:6px;width:38px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;z-index:20;scrollbar-width:none}
+#opp .o{flex:none;text-align:center;border-radius:10px;padding:2px 0;background:#0005;border:1px solid #ffffff22;cursor:pointer;color:#ffb3b3;font-size:9px;font-weight:800;line-height:1.1}#opp .o.cur{border-color:#c6ff3d;background:#c6ff3d22;box-shadow:0 0 8px #c6ff3d88}#opp .o.out{opacity:.3;filter:grayscale(1)}#opp .o>span{display:block}
+#logw{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 6px 0 0}#logw #log{flex:1}#hw{flex:none;text-align:center;font-size:10px;font-weight:900;color:#ffd45a;width:50px}#hero{width:46px;height:46px;object-fit:contain;display:block;margin:0 auto;transform:scaleX(1)}#hero.atk{animation:hk .35s}@keyframes hk{50%{transform:translateX(-26px) translateY(-10px) scale(1.2)}}
+.dg{position:fixed;z-index:99;pointer-events:none;opacity:.92;transform:rotate(4deg) scale(1.08);box-shadow:0 10px 22px #000a}
+.c.dr{opacity:.3}
+#stk{position:fixed;left:6px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:40;background:#1b1540f2;border:1px solid #ffffff44;border-radius:16px;padding:8px 8px 6px;box-shadow:0 8px 24px #000c;display:none;touch-action:none}#stk.show{display:block}
+#stk .th{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:800;color:#ffe9a0;margin-bottom:6px;gap:10px}#stk .th button{background:#ffffff22;border:0;color:#fff;border-radius:8px;width:24px;height:24px;font-weight:900}
+#stk .rw{display:flex;gap:6px;padding:4px 2px 6px}#stk .c{width:62px}#stk .pl{position:absolute;top:-17px;left:0;right:0;text-align:center;font-size:9px;font-weight:800;color:#cbbcff;pointer-events:none}#stk .tx{font-size:10px;color:#9fe3b0;line-height:1.35;max-width:220px}
+#br,#bn,#sr{touch-action:none}
+#kf{position:relative;height:56px;margin:2px 6px 0}.kh{position:absolute;bottom:0;width:62px;height:54px;object-fit:contain;transform:translateX(var(--dx,0px)) scaleX(var(--fx,1));will-change:transform;z-index:5}#kP{left:2px}#kE{right:2px}.kh.hurt{animation:hurt .4s}@keyframes hurt{0%,100%{filter:none}30%{filter:brightness(2.2) saturate(2) drop-shadow(0 0 6px #f33)}}.fxn{position:absolute;z-index:9;font-weight:900;font-size:17px;color:#ff5470;text-shadow:0 2px 4px #000;pointer-events:none;animation:fxu .9s forwards}@keyframes fxu{to{transform:translateY(-34px);opacity:0}}
 .top{display:flex;align-items:center;gap:6px;padding:8px 8px 4px}
 .ib{color:#eef1f7;font-size:18px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
 .st{flex:1;display:flex;justify-content:space-around;align-items:center;font-weight:800;font-size:13px}.st b{color:#ffd45a}
-.hp{display:flex;gap:10px;padding:0 12px;font-weight:900;font-size:14px;justify-content:space-between}
+.hp{display:flex;gap:6px;padding:0 8px;font-weight:900;font-size:10px;white-space:nowrap;justify-content:space-between}
 .lab{font-size:11px;font-weight:800;color:#cbbcff;padding:3px 12px 0}
 .row{display:flex;gap:5px;padding:5px 8px 4px;justify-content:center}
-.c{position:relative;width:calc((100vw - 16px - 20px)/5);max-width:78px;aspect-ratio:.76;border-radius:11px;border:2px solid #8f82ff;background-size:cover;background-position:center;box-shadow:0 3px 7px #0009;flex:none;cursor:pointer;background-color:#201a47}
+.c{position:relative;width:calc((100vw - 40px - 16px - 20px)/5);max-width:78px;aspect-ratio:.76;border-radius:11px;border:2px solid #8f82ff;background-size:cover;background-position:center;box-shadow:0 3px 7px #0009;flex:none;cursor:pointer;background-color:#201a47}
 .c.k2{box-shadow:0 -4px 0 -1px #5a4fb0,0 3px 7px #0009}.c.k3{box-shadow:0 -4px 0 -1px #5a4fb0,0 -8px 0 -2px #3d3578,0 3px 7px #0009}.kb{position:absolute;top:-9px;right:-6px;z-index:3;background:#ffd45a;color:#2b1700;font-size:11px;font-weight:900;border-radius:99px;padding:0 6px;border:2px solid #fff}
 .rem{position:absolute;top:-10px;left:50%;transform:translateX(-50%);z-index:3;background:#000c;border:1px solid #fff6;border-radius:99px;font-size:10px;font-weight:800;padding:0 5px;color:#cfe;white-space:nowrap}
 .c.e{background:#ffffff0d;border:2px dashed #ffffff33;display:grid;place-items:center;color:#ffffff55;font-size:10px;font-weight:700;box-shadow:none}
@@ -26,7 +36,7 @@ body{display:flex;flex-direction:column}
 .ci{position:absolute;top:15px;left:2px;font-size:11px;line-height:1.05;text-align:center;text-shadow:0 1px 2px #000}
 .tr{position:absolute;top:2px;right:3px;font-size:12px;text-shadow:0 1px 2px #000}
 .sr{position:absolute;top:-9px;left:0;right:0;text-align:center;font-size:12px;color:#ffd45a;text-shadow:0 1px 2px #000;pointer-events:none}
-.sell{width:calc((100vw - 16px - 20px)/5);max-width:78px;aspect-ratio:auto;height:auto;align-self:stretch;border:2px dashed #ff5a6e88;border-radius:11px;display:grid;place-items:center;text-align:center;font-size:11px;font-weight:800;color:#ff9aa8;cursor:pointer;line-height:1.3}
+.sell{width:calc((100vw - 40px - 16px - 20px)/5);max-width:78px;aspect-ratio:auto;height:auto;align-self:stretch;border:2px dashed #ff5a6e88;border-radius:11px;display:grid;place-items:center;text-align:center;font-size:11px;font-weight:800;color:#ff9aa8;cursor:pointer;line-height:1.3}
 .syn{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:0 8px;min-height:20px}.sy{font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:99px;background:#ffffff14;color:#aab}.sy.on{background:#2fa84f55;color:#d6ffd9;border:1px solid #7ae582}
 #pause{display:none;gap:8px;padding:4px 12px;justify-content:center}#pause button{flex:1;padding:11px 4px;border-radius:12px;font-weight:800;font-size:13px;background:#ffffff1a;border:1px solid #fff3;color:#fff;cursor:pointer}#pause button.go{background:linear-gradient(90deg,#c58bff,#ffd45a);color:#1d1440;border:0}#pause button:disabled{opacity:.4}
 #log{font-size:12.5px;color:#ffe9a0;font-weight:700;text-align:center;min-height:32px;padding:2px 12px;display:flex;align-items:center;justify-content:center}
@@ -42,40 +52,42 @@ body{display:flex;flex-direction:column}
 .lv{display:flex;gap:8px;margin:8px 0}.lv button{flex:1;padding:11px 4px;border-radius:14px;border:2px solid #ffffff2e;background:#0004;color:#fff;font-size:14px;font-weight:800;cursor:pointer}.lv button.on{border-color:#c6ff3d}
 </style></head><body>
 <div class="top"><button class="ib" id="back">←</button><div class="st"><span id="tR"></span><span id="tG"></span><span id="tL"></span></div><button class="ib" id="rankb">📊</button><button class="ib" id="spd">⏩</button><button class="ib" id="book">📖</button></div>
-<div class="hp"><span id="hE"></span><span id="hP"></span></div>
+<div id="kf"><img id="kP" class="kh" alt=""><img id="kE" class="kh" alt=""></div>
+<div class="hp"><span id="hP"></span><span id="hE"></span></div>
 <div class="lab" id="lE"></div><div class="row" id="er"></div>
 <div class="syn" id="syP"></div>
 <div class="lab" id="lB"></div><div class="row" id="br"></div>
 <div class="lab" id="lN"></div><div class="row" id="bn"></div>
-<div id="log"></div><div id="pause"></div>
+<div id="logw"><div id="log"></div></div>
+<div id="opp"></div><div id="stk"></div>
 <div class="shop" id="shop"><div class="row" id="sr"></div><div class="btns"><button id="rr"></button><button id="lu"></button><button class="go" id="go"></button></div></div>
 <div class="ov" id="ld" style="z-index:80;flex-direction:column;gap:14px;background:linear-gradient(#1a1650,#3b2a7a 60%,#2f6a35)"><div id="ldt" style="font-weight:800;font-size:17px;color:#ffe9a0"></div><div style="position:relative;width:100%;max-width:340px;height:150px;overflow:hidden"><img id="ldh" src="/kartenwelt/duell/h_run0.png" style="position:absolute;left:50%;margin-left:-45px;bottom:22px;height:110px"><div id="ldf" style="position:absolute;left:0;right:0;bottom:0;height:24px;background:#3a7a3a;border-top:5px solid #5cb85c"><div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 40px,#0003 40px 46px);animation:fl .5s linear infinite"></div></div></div><div id="ldp" style="display:flex;gap:6px 4px;flex-wrap:wrap;justify-content:center;max-width:330px"></div><div id="ldn" style="font-size:14px;font-weight:800;color:#cbbcff"></div></div>
 <div class="ov show" id="ov"><div class="box" id="box"></div></div>
 <script>
 (function(){
 var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
-var T=EN?{title:"Brain Royale",tip:"BATTLE ROYALE: you vs 9 computer players, last one standing wins! All 10 draw from the same card pool – every card exists only a limited number of times (×N = copies left), and only 3 of the 4 elements are in play. First 3 rounds are practice (no hearts lost). Each round you get gold and a random shop. Buy cards, place them on the 5 battle fields – each field can hold up to 3 stacked cards (top fights, next moves up when it dies). 3 bench slots. 3 identical cards merge into one with more stars ★ (★★, ★★★). Battle has 3 parts: 1) cards fight each other automatically (each vs. the one opposite; when one dies the line moves left) – the right number is your shield. 2) Short pause: cast your spell (heal, weaken …). 3) King phase: the right number of surviving cards becomes a weapon that hits the enemy king's hearts (max 4 per battle). You have 10 hearts. Same elements/classes give synergy bonuses (📖).",you:"You",cpu:"Enemy",phaseA:"Cards fight each other",pauseT:"Pause – cast your spell!",cont:"Continue",kingP:"King phase (shield = weapon)",practice:"practice",searching:"Searching for opponents…",lobby:"Lobby",full:"Lobby full! Starting in",startsIn:"Starts in",found:"All 10 players found!",elems:"Elements this game",rank:"Ranking",place:"Place",round:"Round",gold:"Gold",lvl:"Lv",enemy:"Enemy",field:"Battlefield (fights)",bench:"Bench (waits)",sell:"🗑 Sell\nselected card",roll:"🔄 Reroll",up:"⬆ Level",go:"⚔ Battle!",start:"START",diff:"Difficulty",easy:"Easy",norm:"Normal",hard:"Hard",back:"Back",again:"Play again",won:"Victory!",lost:"Defeated",draw:"Draw",reached:"Round reached",best:"Best",hint:"Tap a card, then a slot to move it – or sell it.",nogold:"Not enough gold",nospace:"No space (sell or merge)",merged:"Merged!",pickedFrom:"Shop",empty:"empty",bought:"Bought",lostH:"loses",hearts:"hearts",youWin:"You win the battle!",youLose:"You lose the battle!",drawb:"Draw – nobody loses hearts",free:"free",none:"none",sold:"Sold",need:"Place at least 1 card on the battlefield"}
-:{title:"Brain Royale",tip:"BATTLE ROYALE: du gegen 9 Computer-Spieler – wer zuletzt steht, gewinnt! Alle 10 ziehen aus demselben Kartenvorrat – jede Karte gibt es nur begrenzt oft (×N = noch übrig) und nur 3 der 4 Elemente sind im Spiel. Die ersten 3 Runden sind Übung (keine Herzen verloren). Jede Runde bekommst du Gold und einen zufälligen Laden. Kaufe Karten und lege sie auf die 5 Kampffelder – auf jedem Feld dürfen bis zu 3 Karten übereinander liegen (oben kämpft, rückt nach wenn sie stirbt). 3 Plätze auf der Bank. 3 gleiche Karten werden zu einer mit mehr Sternen ★ (★★, ★★★). Der Kampf hat 3 Teile: 1) Die Karten kämpfen automatisch gegeneinander (jede gegen die gegenüber, stirbt eine, rückt die Reihe nach links) – die rechte Zahl ist dabei dein Schild. 2) Kurze Pause: setze deinen Zauber ein (heilen, schwächen …). 3) König-Phase: Jetzt wird die rechte Zahl der überlebenden Karten zur Waffe und greift die Herzen des gegnerischen Königs an (max. 4 pro Kampf). Du hast 10 Herzen. Gleiche Elemente/Klassen geben Synergie-Boni (📖).",you:"Du",cpu:"Gegner",phaseA:"Karten kämpfen gegeneinander",pauseT:"Pause – setze deinen Zauber ein!",cont:"Weiter",kingP:"König-Phase (Schild = Waffe)",practice:"Übung",searching:"Suche Gegner …",lobby:"Lobby",full:"Lobby voll! Start in",startsIn:"Start in",found:"Alle 10 Spieler gefunden!",elems:"Elemente in diesem Spiel",rank:"Rangliste",place:"Platz",round:"Runde",gold:"Gold",lvl:"Stufe",enemy:"Gegner",field:"Kampffeld (kämpft)",bench:"Bank (wartet)",sell:"🗑 Verkaufen\nmarkierte Karte",roll:"🔄 Würfeln",up:"⬆ Stufe",go:"⚔ Kampf!",start:"START",diff:"Schwierigkeit",easy:"Leicht",norm:"Normal",hard:"Schwer",back:"Zurück",again:"Nochmal",won:"Sieg!",lost:"Besiegt",draw:"Unentschieden",reached:"Erreichte Runde",best:"Rekord",hint:"Tippe eine Karte, dann einen Platz zum Verschieben – oder verkaufe sie.",nogold:"Zu wenig Gold",nospace:"Kein Platz (verkaufen oder verschmelzen)",merged:"Verschmolzen!",pickedFrom:"Laden",empty:"leer",bought:"Gekauft",lostH:"verliert",hearts:"Herzen",youWin:"Du gewinnst den Kampf!",youLose:"Du verlierst den Kampf!",drawb:"Unentschieden – keiner verliert Herzen",free:"frei",none:"keine",sold:"Verkauft",need:"Lege mindestens 1 Karte aufs Kampffeld"};
+var T=EN?{title:"Brain Royale",tip:"BATTLE ROYALE: you vs 9 computer players, last one standing wins! All 10 draw from the same card pool – every card exists only a limited number of times (×N = copies left), and only 3 of the 4 elements are in play. First 3 rounds are practice (no hearts lost). Each round you get gold and a random shop. Buy cards, place them on the 5 battle fields – each field can hold up to 3 stacked cards (top fights, next moves up when it dies). 3 bench slots. 3 identical cards merge into one with more stars ★ (★★, ★★★). Battle has 3 parts: 1) cards fight each other automatically (each vs. the one opposite; when one dies the line moves left) – the right number is your shield. 2) Your spell (spell slot) is cast automatically at a random moment during the fight, e.g. Snowball hits a random enemy card. 3) King phase: the right number of surviving cards becomes a weapon that hits the enemy king's hearts (max 4 per battle). You have 10 hearts. Same elements/classes give synergy bonuses (📖).",you:"You",cpu:"Enemy",phaseA:"Cards fight each other",youWin:"You win the round",cpuWin:"Enemy wins the round",cont:"Continue",kingP:"King phase (shield = weapon)",practice:"practice",searching:"Searching for opponents…",lobby:"Lobby",full:"Lobby full! Starting in",startsIn:"Starts in",found:"All 10 players found!",elems:"Elements this game",rank:"Ranking",place:"Place",round:"Round",gold:"Gold",lvl:"Lv",enemy:"Enemy",field:"Battlefield (fights)",bench:"Bench (waits)",sell:"🗑 Sell\nselected card",roll:"🔄 Reroll",up:"⬆ Level",go:"⚔ Battle!",start:"START",diff:"Difficulty",easy:"Easy",norm:"Normal",hard:"Hard",back:"Back",again:"Play again",won:"Victory!",lost:"Defeated",draw:"Draw",reached:"Round reached",best:"Best",hint:"Tap a card, then a slot to move it – or sell it.",nogold:"Not enough gold",nospace:"No space (sell or merge)",merged:"Merged!",pickedFrom:"Shop",empty:"empty",bought:"Bought",lostH:"loses",hearts:"hearts",youWin:"You win the battle!",youLose:"You lose the battle!",drawb:"Draw – nobody loses hearts",free:"free",none:"none",sold:"Sold",need:"Place at least 1 card on the battlefield"}
+:{title:"Brain Royale",tip:"BATTLE ROYALE: du gegen 9 Computer-Spieler – wer zuletzt steht, gewinnt! Alle 10 ziehen aus demselben Kartenvorrat – jede Karte gibt es nur begrenzt oft (×N = noch übrig) und nur 3 der 4 Elemente sind im Spiel. Die ersten 3 Runden sind Übung (keine Herzen verloren). Jede Runde bekommst du Gold und einen zufälligen Laden. Kaufe Karten und lege sie auf die 5 Kampffelder – auf jedem Feld dürfen bis zu 3 Karten übereinander liegen (oben kämpft, rückt nach wenn sie stirbt). 3 Plätze auf der Bank. 3 gleiche Karten werden zu einer mit mehr Sternen ★ (★★, ★★★). Der Kampf hat 3 Teile: 1) Die Karten kämpfen automatisch gegeneinander (jede gegen die gegenüber, stirbt eine, rückt die Reihe nach links) – die rechte Zahl ist dabei dein Schild. 2) Dein Zauber (Zauberfeld) wird automatisch zu einem zufälligen Zeitpunkt im Kampf gewirkt, z. B. trifft der Schneeball eine zufällige Gegner-Karte. 3) König-Phase: Jetzt wird die rechte Zahl der überlebenden Karten zur Waffe und greift die Herzen des gegnerischen Königs an (max. 4 pro Kampf). Du hast 10 Herzen. Gleiche Elemente/Klassen geben Synergie-Boni (📖).",you:"Du",cpu:"Gegner",phaseA:"Karten kämpfen gegeneinander",youWin:"Du gewinnst die Runde",cpuWin:"Gegner gewinnt die Runde",cont:"Weiter",kingP:"König-Phase (Schild = Waffe)",practice:"Übung",searching:"Suche Gegner …",lobby:"Lobby",full:"Lobby voll! Start in",startsIn:"Start in",found:"Alle 10 Spieler gefunden!",elems:"Elemente in diesem Spiel",rank:"Rangliste",place:"Platz",round:"Runde",gold:"Gold",lvl:"Stufe",enemy:"Gegner",field:"Kampffeld (kämpft)",bench:"Bank (wartet)",sell:"🗑 Verkaufen\nmarkierte Karte",roll:"🔄 Würfeln",up:"⬆ Stufe",go:"⚔ Kampf!",start:"START",diff:"Schwierigkeit",easy:"Leicht",norm:"Normal",hard:"Schwer",back:"Zurück",again:"Nochmal",won:"Sieg!",lost:"Besiegt",draw:"Unentschieden",reached:"Erreichte Runde",best:"Rekord",hint:"Tippe eine Karte, dann einen Platz zum Verschieben – oder verkaufe sie.",nogold:"Zu wenig Gold",nospace:"Kein Platz (verkaufen oder verschmelzen)",merged:"Verschmolzen!",pickedFrom:"Laden",empty:"leer",bought:"Gekauft",lostH:"verliert",hearts:"Herzen",youWin:"Du gewinnst den Kampf!",youLose:"Du verlierst den Kampf!",drawb:"Unentschieden – keiner verliert Herzen",free:"frei",none:"keine",sold:"Verkauft",need:"Lege mindestens 1 Karte aufs Kampffeld"};
 var $=function(i){return document.getElementById(i)};
 var IMG={"Ratte":"rat","Holzwall":"wall","Goblin":"goblin","Wolf":"wolf","Steinwächter":"stone","Ritter":"knight","Bogenschütze":"archer","Eisgolem":"ice","Bär":"bear","Magier":"mage","Burgmauer":"castle","Phönix":"phoenix","Golem":"golem","Drache":"dragon","Riese":"giant","Feuerball":"fire","Blitzschlag":"zap","Heiltrank":"heal","Schlachtruf":"cry","Eisenhaut":"skin","Bauer":"farmer","Dieb":"thief","Heiler":"healer","Wachturm":"watch","Speerkämpfer":"spear","Schwertkämpfer":"sword","Schildträger":"shield","Schütze":"shooter","Steinturm":"stonet","Bogenturm":"bowt","Kanone":"cannon","König":"king"};
 var POOL=[
  {n:"Ratte",en:"Rat",e:"🐀",c:1,a:1,h:2},{n:"Holzwall",en:"Log wall",e:"🪵",c:1,a:0,h:3,t:"w"},
- {n:"Goblin",en:"Goblin",e:"👺",c:2,a:2,h:2,t:"r"},{n:"Wolf",en:"Wolf",e:"🐺",c:2,a:3,h:2},{n:"Steinwächter",en:"Stone guard",e:"🗿",c:2,a:1,h:4,t:"w"},
+ {n:"Goblin",en:"Goblin",e:"👺",c:2,a:2,h:2,t:"r"},{n:"Wolf",en:"Wolf",e:"🐺",c:2,a:3,h:2},{n:"Steinwächter",en:"Stone guard",e:"🗿",c:4,a:3,h:7,t:"wg"},
  {n:"Ritter",en:"Knight",e:"🛡️",c:3,a:3,h:4},{n:"Bogenschütze",en:"Archer",e:"🏹",c:3,a:4,h:2,t:"r"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:3,a:2,h:5,t:"w"},
- {n:"Bär",en:"Bear",e:"🐻",c:4,a:4,h:5},{n:"Magier",en:"Mage",e:"🧙",c:4,a:3,h:3},{n:"Burgmauer",en:"Castle wall",e:"🏰",c:4,a:1,h:7,t:"w"},
+ {n:"Bär",en:"Bear",e:"🐻",c:4,a:4,h:5},{n:"Magier",en:"Mage",e:"🧙",c:4,a:4,h:4},{n:"Burgmauer",en:"Castle wall",e:"🏰",c:4,a:1,h:7,t:"w"},
  {n:"Phönix",en:"Phoenix",e:"🔥",c:5,a:6,h:3,t:"r"},{n:"Golem",en:"Golem",e:"🤖",c:5,a:5,h:5},
  {n:"Drache",en:"Dragon",e:"🐉",c:6,a:7,h:6},{n:"Riese",en:"Giant",e:"🦣",c:7,a:8,h:8},
  {n:"Bauer",en:"Farmer",e:"🌾",c:1,a:1,h:2,t:"c"},{n:"Dieb",en:"Thief",e:"🗡",c:2,a:2,h:2,t:"d"},{n:"Heiler",en:"Healer",e:"💚",c:2,a:1,h:3,t:"h"},
  {n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:1,h:3,t:"ws"},{n:"Speerkämpfer",en:"Spearman",e:"🔱",c:3,a:3,h:3,t:"r"},{n:"Schwertkämpfer",en:"Swordsman",e:"⚔",c:3,a:4,h:3},
  {n:"Schildträger",en:"Shield bearer",e:"🛡",c:3,a:2,h:5,t:"w"},{n:"Schütze",en:"Gunner",e:"🔫",c:3,a:3,h:2,t:"s"},{n:"Steinturm",en:"Stone tower",e:"🗼",c:3,a:1,h:6,t:"w"},
- {n:"Bogenturm",en:"Archer tower",e:"🎯",c:4,a:3,h:4,t:"s"},{n:"Kanone",en:"Cannon",e:"💣",c:5,a:5,h:3,t:"s"},{n:"König",en:"King",e:"👑",c:6,a:4,h:6,t:"k"}];
+ {n:"Bogenturm",en:"Archer tower",e:"🎯",c:4,a:4,h:4,t:"s"},{n:"Kanone",en:"Cannon",e:"💣",c:5,a:5,h:4,t:"s"},{n:"König",en:"King",e:"👑",c:6,a:4,h:6,t:"k"}];
 var ICE=[
  {n:"Eisbaum",en:"Ice tree",e:"🌲",c:1,a:0,h:3,t:"w",img:"itree"},{n:"Schneemaus",en:"Snow mouse",e:"🐭",c:1,a:1,h:2,img:"imouse"},
  {n:"Eissoldat",en:"Ice soldier",e:"🥶",c:2,a:2,h:3,img:"isold"},{n:"Eiswolf",en:"Ice wolf",e:"🐺",c:2,a:3,h:2,t:"f",img:"iwolf"},{n:"Schneewall",en:"Snow wall",e:"🧱",c:2,a:1,h:5,t:"w",img:"iwall"},
  {n:"Eisritter",en:"Ice knight",e:"🗡",c:3,a:3,h:4,img:"iknight"},{n:"Schneeschütze",en:"Snow archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"iarch"},{n:"Eisgeist",en:"Ice ghost",e:"👻",c:3,a:2,h:3,t:"d",img:"ighost"},
  {n:"Frostwächter",en:"Frost guard",e:"🛡",c:3,a:2,h:5,t:"w",img:"iguard"},{n:"Eisturm",en:"Ice tower",e:"🗼",c:3,a:1,h:6,t:"w",img:"itower"},
  {n:"Eiszauberer",en:"Ice wizard",e:"🧙",c:4,a:3,h:4,t:"f",img:"image"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:4,a:4,h:5,img:"igolem"},
- {n:"Yeti",en:"Yeti",e:"🦍",c:5,a:5,h:6,img:"yeti"},{n:"Eiskanone",en:"Ice cannon",e:"💣",c:5,a:5,h:3,t:"s",img:"icannon"},{n:"Eisburg",en:"Ice castle",e:"🏰",c:5,a:2,h:9,t:"w",img:"icastle"},
+ {n:"Yeti",en:"Yeti",e:"🦍",c:5,a:5,h:6,img:"yeti"},{n:"Eiskanone",en:"Ice cannon",e:"💣",c:5,a:5,h:4,t:"s",img:"icannon"},{n:"Eisburg",en:"Ice castle",e:"🏰",c:5,a:2,h:9,t:"w",img:"icastle"},
  {n:"Eisdrache",en:"Ice dragon",e:"🐲",c:6,a:6,h:5,t:"f",img:"idragon"},{n:"Eiskönig",en:"Ice king",e:"👑",c:6,a:4,h:6,t:"k",img:"iking"}];
 var ICESP=[
  {n:"Schneeball",en:"Snowball",e:"⚪",c:1,sp:"ball",img:"iball"},{n:"Eisfalle",en:"Ice trap",e:"🧊",c:2,sp:"trap",img:"itrap"},{n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,sp:"storm",img:"istorm"}];
@@ -90,7 +102,7 @@ var FIRE=[{n:"Feuergeist",en:"Fire spirit",e:"🔥",c:1,a:2,h:1,img:"f01"},
  {n:"Feuerspeerträger",en:"Fire spearman",e:"🔱",c:3,a:3,h:3,t:"r",img:"f09"},
  {n:"Feuerbogenschütze",en:"Fire archer",e:"🏹",c:3,a:3,h:2,t:"sb",img:"f07"},
  {n:"Feuerturm",en:"Fire tower",e:"🗼",c:3,a:2,h:4,t:"s",img:"f16"},
- {n:"Feuermagier",en:"Fire mage",e:"🧙",c:4,a:4,h:3,t:"b",img:"f08"},
+ {n:"Feuermagier",en:"Fire mage",e:"🧙",c:4,a:4,h:4,t:"b",img:"f08"},
  {n:"Feuerbär",en:"Fire bear",e:"🐻",c:4,a:5,h:4,img:"f06"},
  {n:"Feuerdämon",en:"Fire demon",e:"😈",c:4,a:4,h:3,t:"d",img:"f10"},
  {n:"Feuerkanone",en:"Fire cannon",e:"💣",c:5,a:6,h:3,t:"s",img:"f17"},
@@ -101,7 +113,7 @@ var FIRE=[{n:"Feuergeist",en:"Fire spirit",e:"🔥",c:1,a:2,h:1,img:"f01"},
 var FIRESP=[{n:"Feuerball",en:"Fireball",e:"☄️",c:3,sp:"fire",img:"f19"},{n:"Feuerball",en:"Fireball",e:"☄️",c:3,sp:"fire",img:"f19"}];
 var EARTH=[{n:"Maus",en:"Mouse",e:"🐭",c:1,a:1,h:2,img:"e01"},
  {n:"Holzwall",en:"Log wall",e:"🪵",c:1,a:0,h:3,t:"w",img:"e03"},
- {n:"Steinwächter",en:"Stone guard",e:"🗿",c:2,a:1,h:4,t:"w",img:"e05"},
+ {n:"Steinwächter",en:"Stone guard",e:"🗿",c:4,a:3,h:7,t:"wg",img:"e05"},
  {n:"Späher",en:"Scout",e:"🗡",c:2,a:2,h:2,t:"d",img:"e14"},
  {n:"Erdheiler",en:"Earth healer",e:"💚",c:2,a:1,h:3,t:"h",img:"e13"},
  {n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:1,h:3,t:"ws",img:"e16"},
@@ -114,7 +126,7 @@ var EARTH=[{n:"Maus",en:"Mouse",e:"🐭",c:1,a:1,h:2,img:"e01"},
  {n:"Erdgolem",en:"Earth golem",e:"🤖",c:4,a:4,h:5,img:"e04"},
  {n:"Erdbär",en:"Earth bear",e:"🐻",c:4,a:4,h:5,img:"e06"},
  {n:"Baumgeist",en:"Tree spirit",e:"🌳",c:5,a:4,h:7,t:"g",img:"e09"},
- {n:"Katapult",en:"Catapult",e:"💣",c:5,a:6,h:2,t:"s",img:"e18"},
+ {n:"Katapult",en:"Catapult",e:"💣",c:5,a:6,h:3,t:"s",img:"e18"},
  {n:"Erdrachen",en:"Earth dragon",e:"🐉",c:6,a:6,h:6,img:"e10"},
  {n:"Erdriese",en:"Earth giant",e:"🦣",c:6,a:7,h:7,img:"e15"},
  {n:"Erdkönig",en:"Earth king",e:"👑",c:6,a:4,h:6,t:"k",img:"e19"}];
@@ -123,12 +135,12 @@ var EARTHSP=[{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"},{n:"F
 function cls(c){ if(c.t&&c.t.indexOf("s")>=0||/schütz|bogen|kanone|katapult/i.test(c.n)) return "S"; if(c.t&&c.t.indexOf("h")>=0||/magier|zauberer|druide|heiler|geist/i.test(c.n)) return "M"; if(/ratte|maus|wolf|bär|drache|rachen|phönix|yeti/i.test(c.n)) return "B"; if(c.t&&c.t.indexOf("w")>=0) return "G"; return "K"; }
 var CARDS=[]; [[POOL,0],[ICE,1],[FIRE,2],[EARTH,3]].forEach(function(d){ d[0].forEach(function(c){ if(d[1]===0&&c.n==="Eisgolem") return; var o={}; for(var k in c) o[k]=c[k]; o.el=d[1]; o.cl=cls(c); o.key=d[1]+":"+c.n; o.img=c.img||IMG[c.n]; CARDS.push(o); }); });
 var SPD=[
- {n:"Schneeball",en:"Snowball",e:"⚪",c:1,k:"dmg1",v:2,el:1,img:"iball",d:"Schaden an die erste Gegner-Karte",de:"damage to the first enemy card"},
+ {n:"Schneeball",en:"Snowball",e:"⚪",c:1,k:"dmg1",v:2,el:1,img:"iball",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
  {n:"Blitzschlag",en:"Lightning",e:"⚡",c:2,k:"dmgAll",v:1,el:1,img:"zap",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"},
  {n:"Eisfalle",en:"Ice trap",e:"🧊",c:2,k:"ward",v:1,el:1,img:"itrap",d:"Schutz: du erleidest weniger Herzschaden",de:"ward: you take less heart damage"},
  {n:"Heiltrank",en:"Potion",e:"🧪",c:2,k:"heal",v:3,el:3,img:"heal",d:"Schild für alle deine Karten (heilt)",de:"shield for all your cards (heals)"},
  {n:"Schlachtruf",en:"War cry",e:"📣",c:2,k:"cry",v:1,el:0,img:"cry",d:"Extra-Schaden am König",de:"extra damage to the king"},
- {n:"Feuerball",en:"Fireball",e:"☄️",c:3,k:"dmg1",v:3,el:2,img:"fire",d:"Schaden an die erste Gegner-Karte",de:"damage to the first enemy card"},
+ {n:"Feuerball",en:"Fireball",e:"☄️",c:3,k:"dmg1",v:3,el:2,img:"fire",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
  {n:"Eisenhaut",en:"Iron skin",e:"🛡",c:3,k:"skin",v:2,el:3,img:"skin",d:"Leben für alle deine Karten",de:"health for all your cards"},
  {n:"Felsblock",en:"Boulder",e:"🪨",c:3,k:"rock",v:4,el:3,img:"e20",d:"Schaden an die stärkste Gegner-Karte",de:"damage to the strongest enemy card"},
  {n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,k:"dmgAll",v:2,el:1,img:"istorm",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"}];
@@ -148,6 +160,17 @@ function avh(a,px){ px=px||22; a=a||"🙂"; var st='width:'+px+'px;height:'+px+'
   if(a.indexOf("img:")===0) return '<img src="/avatars/'+a.slice(4)+'.webp" style="'+st+'" alt="">';
   if(a.indexOf("king:")===0) return '<img src="/brainmania/king'+a.slice(5)+'.png" style="'+st+';object-fit:contain" alt="">';
   return '<span style="font-size:'+Math.round(px*0.8)+'px;line-height:1">'+a+'</span>'; }
+function pf(b,n,o){ var a=[]; for(var i=(o||0);i<n;i++) a.push(b+i+".png"); return a; }
+var RUN={h1:{r:pf("/kartenwelt/duell/h_run",5),a:pf("/kartenwelt/duell/h_atk",3)},h2:{r:pf("/solo/realm/run",8),a:pf("/solo/realm/atk",4)},
+ frog:{r:pf("/solo/realm/frog",4),a:pf("/solo/realm/frog",9,4),f:1}};
+[["slime",3],["goblin",3],["skel",3],["zombie",3],["mage",3],["orc",2],["bat",2],["devil",2],["ghost",2,1],["boar",2]].forEach(function(m){ var fr=pf("/kartenwelt/duell/m_"+m[0],m[1]); RUN[m[0]]={r:fr,a:fr,f:m[2]||0}; });
+var MYRUN="h1"; try{ MYRUN=localStorage.getItem("bp_royale_run")||"h1"; }catch(e){} if(!RUN[MYRUN]) MYRUN="h1";
+var busy=false, idleI=0;
+function flipOf(run,side){ var b=side==="E"?-1:1; return (RUN[run]&&RUN[run].f)?-b:b; }
+function setImg(id,run,side,arr,i){ var el=$(id),R=RUN[run]||RUN.h1,a=R[arr]; el.src=a[i%a.length]; el.style.setProperty("--fx",flipOf(run,side)); }
+setInterval(function(){ if(!S||busy) return; idleI++; setImg("kP",S.P.run||MYRUN,"P","r",idleI); setImg("kE",(S.E&&S.E.run)||"h1","E","r",idleI); },170);
+function pwr(P){ var w=0; P.board.forEach(function(st){ st.forEach(function(u){ w+=eff(u).hp; }); }); return w; }
+function heartsUp(){ if(!S) return; $("hE").innerHTML=avh(S.E.av||"🧟",20)+" "+heartsStr(S.E.hearts); $("hP").innerHTML=avh(S.P.av||MYAV,20)+" "+heartsStr(S.P.hearts)+' <b style="color:#ffd45a">🛡'+pwr(S.P)+'</b>'; }
 var NAMES=[["","Lena"],["","Max"],["","Mia"],["","Ben"],["","Zoe"],["","Finn"],["","Emma"],["","Leo"],["","Nico"]];
 function copies(c){ if(c.sp) return 6; return {1:20,2:16,3:13,4:10,5:8,6:6,7:6}[c.c]||6; }
 function buildPool(){ var drop=rnd(4); ELS=[0,1,2,3].filter(function(x){ return x!==drop; }); BYT=[[],[],[],[],[],[],[]]; POOLC={};
@@ -195,7 +218,7 @@ function synOf(us){ var e={},c={}; us.forEach(function(u){ (e[u.el]=e[u.el]||{})
   r.e.forEach(function(v,i){ r.te[i]=v>=4?2:v>=2?1:0; }); for(var q in r.c){ var v2=r.c[q]; r.tc[q]=v2>=3?2:v2>=2?1:0; } return r; }
 function spVal(u,P){ var m=u.stars===1?1:u.stars===2?1.5:2, base=Math.round(u.v*m), t=synOf(bu(P)).te[u.el]; return {base:base,bonus:t,total:base+t}; }
 function cast(P,A,B,ctx,side){ var u=P.sp[0]; if(!u) return ""; var v=spVal(u,P), t=v.total, k=u.k, txt="";
-  if(k==="dmg1"&&B[0]){ B[0].hp-=t; txt="-"+t; } else if(k==="dmgAll"){ B.forEach(function(f){ f.hp-=t; }); txt="-"+t; }
+  if(k==="dmg1"&&B.length){ B[rnd(B.length)].hp-=t; txt="-"+t; } else if(k==="dmgAll"){ B.forEach(function(f){ f.hp-=t; }); txt="-"+t; }
   else if(k==="rock"&&B.length){ var w=B[0]; B.forEach(function(f){ if(f.ak>w.ak) w=f; }); w.hp-=t; txt="-"+t; }
   else if(k==="heal"){ allF(A).forEach(function(f){ f.hp=Math.min(f.mx,f.hp+t); }); txt="+"+t+"🛡"; }
   else if(k==="skin"){ allF(A).forEach(function(f){ f.hp+=t; f.mx+=t; }); txt="+"+t+"🛡"; }
@@ -206,7 +229,6 @@ function income(P,round){ var base=Math.min(8,5+Math.floor((round-1)/3)), inter=
 // ---------- CPU ----------
 function cpuPlay(E,round){
   E.gold+=income(E,round)+(diff===0?-1:diff===2?1:0)+(E.skill||0);
-  if(round>=3) while(E.level<5&&E.gold>=LUP[E.level]+2&&Math.random()<.55){ E.gold-=LUP[E.level]; E.level++; }
   var fav=[0,0,0,0]; allU(E).forEach(function(x){ fav[x.u.el]++; }); var fe=fav.indexOf(Math.max.apply(null,fav));
   for(var t=0;t<4;t++){
     var shop=roll(E.level), best=-1, bs=-99;
@@ -218,16 +240,20 @@ function cpuPlay(E,round){
   front.forEach(function(u,i){ E.board[i].push(u); }); var extra=us.slice(5); extra.forEach(function(u,i){ var f=i%5; if(E.board[f].length<3) E.board[f].push(u); else rest.push(u); }); rest.slice(0,3).forEach(function(u,i){ E.bench[i]=u; });
 }
 // ---------- Kampf ----------
+function stackB(st,u){ var ne=0,nk=0,nc=0; st.forEach(function(o){ if(o===u) return; if(o.el===u.el) ne++; if(o.key===u.key) nk++; if(o.cl===u.cl) nc++; }); return {h:ne+nk,a:u.a>0?nc:0,ne:ne,nk:nk,nc:nc}; }
 function fighters(P){ var us=bu(P), sy=synOf(us), king=us.some(function(u){ return hv(u,"k"); });
-  function mkF(u){ var e=eff(u), a=e.ak, h=e.hp, fl={f:hv(u,"f"),b:hv(u,"b"),g:hv(u,"g")}; var te=sy.te[u.el], tc=sy.tc[u.cl];
+  function mkF(u,st){ var e=eff(u), a=e.ak, h=e.hp, fl={f:hv(u,"f"),b:hv(u,"b"),g:hv(u,"g")}; var te=sy.te[u.el], tc=sy.tc[u.cl];
     [te>0?SE[u.el][te-1]:null, tc>0&&(SC[u.cl][tc-1].a!==undefined||SC[u.cl][tc-1].h!==undefined)?SC[u.cl][tc-1]:null].forEach(function(x){ if(!x) return; a+=x.a||0; h+=x.h||0; if(x.f) fl.f=true; if(x.b) fl.b=true; if(x.g) fl.g=true; });
     if(king&&!hv(u,"k")){ a+=u.stars; h+=u.stars; }
+    if(st){ var sb=stackB(st,u); a+=sb.a; h+=sb.h; }
     return {u:u,ak:a,hp:h,mx:h,fl:fl,fz:false,nf:false,hit:false,res:[]}; }
-  var out=[]; P.board.forEach(function(st){ if(!st.length) return; var fs=st.map(mkF), top=fs[0]; top.res=fs.slice(1); out.push(top); }); return out; }
+  var out=[]; P.board.forEach(function(st){ if(!st.length) return; var fs=st.map(function(u){ return mkF(u,st); }), top=fs[0]; top.res=fs.slice(1); out.push(top); }); return out; }
 function red(f,d){ if(d<=0) return 0; if(hv(f.u,"w")) d=Math.max(1,d-1); return d; }
+var ADV={2:1,1:3,3:2};
+function adv(x,y){ return ADV[x.u.el]===y.u.el; }
 function tick(A,B,n){
   var m=Math.min(A.length,B.length), dA=A.map(function(){return 0}), dB=B.map(function(){return 0}), hA=[], hB=[];
-  for(var i=0;i<m;i++){ var a=A[i], b=B[i], aa=a.fz?0:a.ak+(a.fl.b?1:0), ba=b.fz?0:b.ak+(b.fl.b?1:0); a.fz=false; b.fz=false;
+  for(var i=0;i<m;i++){ var a=A[i], b=B[i], aa=a.fz?0:a.ak+(a.fl.b?1:0), ba=b.fz?0:b.ak+(b.fl.b?1:0); if(aa>0&&adv(a,b)) aa++; if(ba>0&&adv(b,a)) ba++; a.fz=false; b.fz=false;
     var toB=red(b,aa), toA=red(a,ba);
     var af=hv(a.u,"r")&&!hv(b.u,"r"), bf=hv(b.u,"r")&&!hv(a.u,"r");
     if(af&&b.hp-toB<=0) toA=0; if(bf&&a.hp-toA<=0) toB=0;
@@ -249,39 +275,46 @@ function synHtml(us){ var f=synOf(us), D=EN?SDE:SD, out=[];
   for(var k in f.c){ var v=f.c[k]; if(v>0) out.push('<span class="sy'+(f.tc[k]?' on':'')+'">'+CL[k].i+v+(f.tc[k]?' '+D.c[k][f.tc[k]-1]:'/2')+'</span>'); } return out.join(""); }
 function log(t){ $("log").textContent=t||""; }
 function heartsStr(h){ var s=""; for(var i=0;i<10;i++) s+=i<h?"❤":"🖤"; return s; }
+function favEl(Q){ var f=[0,0,0,0]; allU(Q).forEach(function(x){ if(!x.u.sp) f[x.u.el]++; }); var m=Math.max.apply(null,f); return m>0?f.indexOf(m):-1; }
+function advTxt(P,E){ var a=favEl(P), b=favEl(E); if(a<0||b<0) return ""; if(ADV[a]===b) return "  ·  "+EL[a].i+">"+EL[b].i+" "+(EN?"advantage":"Vorteil"); if(ADV[b]===a) return "  ·  "+EL[b].i+">"+EL[a].i+" "+(EN?"disadvantage":"Nachteil"); return ""; }
 function paint(){
   var P=S.P, E=S.E;
   $("tR").textContent=T.round+" "+S.round; $("tG").innerHTML="🪙 <b>"+P.gold+"</b>"; $("tL").textContent=T.lvl+" "+P.level;
-  $("hE").innerHTML=avh(E.av||"🧟",20)+" "+heartsStr(E.hearts); $("hP").innerHTML=avh(P.av||MYAV,20)+" "+heartsStr(P.hearts);
-  $("lE").textContent=T.enemy+": "+(E.name||"")+" · "+T.lvl+" "+E.level+(E.sp[0]?" · ✨ "+nm(E.sp[0]):""); $("lB").textContent="🟢 "+T.field; $("lN").textContent="📦 "+T.bench;
+  heartsUp();
+  $("lE").textContent=T.enemy+": "+(E.name||"")+" · "+T.lvl+" "+E.level+(E.sp[0]?" · ✨ "+nm(E.sp[0]):"")+advTxt(P,E); $("lB").textContent="🟢 "+T.field; $("lN").textContent="📦 "+T.bench;
+  oppPanel();
   if(!fighting){
     $("er").innerHTML=E.board.filter(function(st){return st.length}).map(function(st){ return cardHtml(st[0],{z:"e",n:st.length}); }).join("");
     $("br").innerHTML=P.board.map(function(st,i){ return st.length?cardHtml(st[0],{z:"n",i:i,n:st.length,sel:sel&&sel.z==="n"&&sel.i===i}):emptyHtml("n",i); }).join("");
     $("bn").innerHTML=P.bench.map(function(u,i){ return u?cardHtml(u,{z:"b",i:i,sel:sel&&sel.z==="b"&&sel.i===i}):emptyHtml("b",i); }).join("")+(P.sp[0]?cardHtml(P.sp[0],{z:"p",i:0,sel:sel&&sel.z==="p"}):'<div class="c e" data-z="p" data-i="0" style="border-color:#ffd45a88"><span style="color:#ffd45a">✨ '+(EN?'spell':'Zauber')+'</span></div>')+'<div class="sell" id="sellz">'+T.sell.replace("\n","<br>")+'</div>';
     $("syP").innerHTML=synHtml(bu(P));
     $("sr").innerHTML=S.shop.map(function(c,i){ if(!c) return '<div class="c e" data-z="s" data-i="'+i+'"><span>'+T.empty+'</span></div>'; var u=mk(c,1); return cardHtml(u,{z:"s",i:i,rem:POOLC[c.key]}); }).join("");
-    $("rr").textContent=T.roll+" ("+rollCost()+")"; $("lu").textContent=P.level<5?T.up+" "+(P.level+1)+" ("+LUP[P.level]+")":T.lvl+" MAX"; $("lu").disabled=P.level>=5; $("go").textContent=T.go;
+    $("rr").textContent=T.roll+" ("+rollCost()+")"; $("lu").textContent=(S.lock?"🔓 ":"🔒 ")+(EN?(S.lock?"Locked":"Lock shop"):(S.lock?"Gesperrt":"Shop sperren")); $("lu").style.borderColor=S.lock?"#c6ff3d":""; $("go").textContent=T.go;
   }
-  $("shop").style.display=fighting?"none":""; $("bn").style.display=fighting?"none":""; $("lN").style.display=fighting?"none":"";
+  stkPaint(); $("shop").style.display=fighting?"none":""; $("bn").style.display=fighting?"none":""; $("lN").style.display=fighting?"none":"";
 }
 function rollCost(){ return 2; }
 function newShop(){ S.shop=roll(S.P.level); }
 function aliveList(){ return [S.P].concat(S.bots).filter(function(x){ return x.hearts>0; }); }
 function shuf(a){ for(var i=a.length-1;i>0;i--){ var j=rnd(i+1),t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
-function ghostOf(g){ var o=newP(); o.board=g.board.map(function(st){ return st.slice(); }); o.bench=g.bench.slice(); o.sp=g.sp.slice(); o.hearts=g.hearts; o.level=g.level; o.name=g.name+" 👻"; o.av=g.av; o.ghost=true; return o; }
+function ghostOf(g){ var o=newP(); o.board=g.board.map(function(st){ return st.slice(); }); o.bench=g.bench.slice(); o.sp=g.sp.slice(); o.hearts=g.hearts; o.level=g.level; o.name=g.name+" 👻"; o.av=g.av; o.run=g.run; o.av=g.av; o.ghost=true; return o; }
+function tieFix(dB,dA,pA,pB){ if(dB!==dA) return [dB,dA]; var aw=pA!==pB?pA>pB:rnd(2)===0; return aw?[dB,dA+1]:[dB+1,dA]; }
 function simBattle(X,Y){ if(S.round<=3) return {toA:0,toB:0};
   var A=fighters(X),B=fighters(Y),n=0,ctx={kingA:0,kingB:0,wardA:0,wardB:0}; while(A.length&&B.length&&n<LIMA){ var r=tick(A,B,n++); A=r.A; B=r.B; }
   cast(X,A,B,ctx,"A"); cast(Y,B,A,ctx,"B"); A=nxt(A); B=nxt(B); var sA=0,sB=0; allF(A).forEach(function(f){ sA+=f.hp; }); allF(B).forEach(function(f){ sB+=f.hp; });
-  return {toB:Math.max(0,A.length?Math.min(CAPK,sA+ctx.kingA-ctx.wardB):0),toA:Math.max(0,B.length?Math.min(CAPK,sB+ctx.kingB-ctx.wardA):0)}; }
+  var dB=Math.max(0,A.length?Math.min(CAPK,sA+ctx.kingA-ctx.wardB):0), dA=Math.max(0,B.length?Math.min(CAPK,sB+ctx.kingB-ctx.wardA):0), tf=tieFix(dB,dA,sA+ctx.kingA,sB+ctx.kingB); return {toB:tf[0],toA:tf[1]}; }
+function autoLv(r){ return r<3?1:r<5?2:r<8?3:r<11?4:5; }
 function startRound(){
-  S.round++; S.P.gold+=income(S.P,S.round);
+  S.round++; S.P.level=autoLv(S.round); S.bots.forEach(function(b){ b.level=S.P.level; }); S.P.gold+=income(S.P,S.round);
   S.bots.forEach(function(b){ if(b.hearts>0) cpuPlay(b,S.round); });
-  var all=aliveList(), arr=shuf(all.slice()), odd=null; S.pending=[]; S.opp=null; S.ghost=false;
+  var all=aliveList(), odd=null; S.pending=[]; S.opp=null; S.ghost=false;
   var ghostFor=function(x){ var o=all.filter(function(y){ return y!==x; }); return ghostOf(o[rnd(o.length)]); };
-  while(arr.length>1){ var a=arr.pop(), b2=arr.pop();
-    if(a===S.P||b2===S.P) S.opp=(a===S.P?b2:a); else { var r=simBattle(a,b2); S.pending.push([a,r.toA],[b2,r.toB]); } }
-  if(arr.length){ odd=arr[0]; if(odd===S.P){ S.opp=ghostFor(odd); S.ghost=true; } else { var r2=simBattle(odd,ghostFor(odd)); S.pending.push([odd,r2.toA]); } }
-  S.E=S.opp; newShop(); sel=null; fighting=false; log(T.hint); paint(); }
+  var others=all.filter(function(x){ return x!==S.P; }), cand=others.filter(function(x){ return x!==S.last; }); if(!cand.length) cand=others;
+  if(cand.length){ S.opp=cand[rnd(cand.length)]; S.last=S.opp; } else { S.opp=ghostFor(S.P); S.ghost=true; }
+  var arr=shuf(others.filter(function(x){ return x!==S.opp; }));
+  while(arr.length>1){ var a=arr.pop(), b2=arr.pop(); var r=simBattle(a,b2); S.pending.push([a,r.toA],[b2,r.toB]); }
+  if(arr.length){ odd=arr[0]; var r2=simBattle(odd,ghostFor(odd)); S.pending.push([odd,r2.toA]); }
+  S.E=S.opp; if(S.lock&&S.shop&&S.shop.length){ S.lock=false; } else newShop(); sel=null; fighting=false; log(T.hint); paint(); }
 var LOBAV=BOTAV.slice().sort(function(){ return Math.random()-.5; }).slice(0,9);
 var ldT=null,ldI=null,ldC=null;
 function lobbyHtml(n){ var pl=[[ MYAV,MYNAME||T.you ]].concat(NAMES.map(function(x,i){ return [LOBAV[i],x[1]]; })), h="";
@@ -295,8 +328,8 @@ function searchThenStart(){
     if(k>=10){ clearInterval(ldT); var c=5; $("ldt").textContent="✅ "+T.full+" "+c; $("ldn").textContent=T.startsIn+" "+c+" s";
       clearInterval(ldC); ldC=setInterval(function(){ c--; if(c<=0){ clearInterval(ldC); clearInterval(ldI); $("ld").classList.remove("show"); newGame(); } else { $("ldt").textContent="✅ "+T.full+" "+c; $("ldn").textContent=T.startsIn+" "+c+" s"; } },1000); } },380); }
 function newGame(){
-  buildPool(); var bots=NAMES.map(function(n,i){ var b=newP(); b.name=n[1]; b.av=LOBAV[i]; b.skill=rnd(3)-1; return b; });
-  S={round:0,P:newP(),bots:bots,shop:[],E:newP()}; S.P.name=MYNAME||T.you; S.P.av=MYAV; startRound(); log(T.elems+": "+ELS.map(function(i){ return EL[i].i+" "+(EN?EL[i].en:EL[i].de); }).join(" · ")); }
+  buildPool(); var bots=NAMES.map(function(n,i){ var b=newP(); b.name=n[1]; b.av=LOBAV[i]; b.run=rnd(2)?"h1":"h2"; b.skill=rnd(3)-1; return b; });
+  S={round:0,P:newP(),bots:bots,shop:[],E:newP()}; S.P.name=MYNAME||T.you; S.P.av=MYAV; S.P.run=MYRUN; startRound(); log(T.elems+": "+ELS.map(function(i){ return EL[i].i+" "+(EN?EL[i].en:EL[i].de); }).join(" · ")); }
 function roundEnd(msg){
   var P=S.P, notes=[];
   S.pending.forEach(function(x){ x[0].hearts=Math.max(0,x[0].hearts-x[1]); });
@@ -312,12 +345,14 @@ function toast(t){ log(t); }
 function buy(i){ if(fighting) return; var c=S.shop[i]; if(!c) return; if(S.P.gold<c.c){ toast(T.nogold); return; } if(!canAdd(S.P,c)){ toast(T.nospace); return; }
   S.P.gold-=c.c; takeCopy(c); S.merged=false; merge(S.P,mk(c,1)); S.shop[i]=null; if(S.merged) toast("✨ "+T.merged); sel=null; paint(); }
 function reroll(){ if(fighting||S.P.gold<2){ toast(T.nogold); return; } S.P.gold-=2; newShop(); paint(); }
-function levelUp(){ if(fighting||S.P.level>=5) return; var c=LUP[S.P.level]; if(S.P.gold<c){ toast(T.nogold); return; } S.P.gold-=c; S.P.level++; paint(); }
+function lockShop(){ if(fighting) return; S.lock=!S.lock; paint(); }
+function levelUp(){ lockShop(); }
+function _oldLevelUp(){ if(fighting||S.P.level>=5) return; var c=LUP[S.P.level]; if(S.P.gold<c){ toast(T.nogold); return; } S.P.gold-=c; S.P.level++; paint(); }
 function peek(z,i){ if(z==="n") return S.P.board[i][0]||null; return z==="p"?S.P.sp[i]:S.P.bench[i]; }
 function takeU(z,i){ if(z==="n") return S.P.board[i].shift()||null; var u=peek(z,i); if(z==="p") S.P.sp[i]=null; else S.P.bench[i]=null; return u; }
 function putU(z,i,u,under){ if(z==="n"){ if(under) S.P.board[i].push(u); else S.P.board[i].unshift(u); } else if(z==="p") S.P.sp[i]=u; else S.P.bench[i]=u; }
 function okZ(z,u){ return !u||(z==="n"?!u.sp:z==="p"?!!u.sp:true); }
-function stackInfo(){ if(sel&&sel.z==="n"&&S.P.board[sel.i].length>1) return (EN?"Stack: ":"Stapel: ")+S.P.board[sel.i].map(nm).join(" › ")+(EN?"  (tap again = rotate)":"  (nochmal tippen = drehen)"); return T.hint; }
+function stackInfo(){ return T.hint; }
 function tapSlot(z,i){ if(fighting) return; var u=peek(z,i);
   if(!sel){ if(u){ sel={z:z,i:i}; paint(); log(stackInfo()); } return; }
   if(sel.z===z&&sel.i===i){ if(z==="n"&&S.P.board[i].length>1){ S.P.board[i].push(S.P.board[i].shift()); paint(); log(stackInfo()); return; } sel=null; paint(); return; }
@@ -327,40 +362,60 @@ function tapSlot(z,i){ if(fighting) return; var u=peek(z,i);
   else if(z==="n"&&S.P.board[i].length<3&&!a.sp){ takeU(sel.z,sel.i); putU(z,i,a,true); toast("📚 "+(EN?"stacked":"gestapelt")); }
   else { takeU(sel.z,sel.i); takeU(z,i); putU(z,i,a); putU(sel.z,sel.i,u); }
   var m=false; S.merged=false; merge(S.P,null); if(S.merged) toast("✨ "+T.merged); sel=null; paint(); }
-function sellSel(){ if(fighting||!sel) return; var u=peek(sel.z,sel.i); if(!u) return; S.P.gold+=sellVal(u); giveBack(u); takeU(sel.z,sel.i); toast(T.sold+" +"+sellVal(u)+" 🪙"); sel=null; paint(); }
+var openF=-1;
+function stkTxt(st){ if(st.length<2) return EN?"Put up to 3 cards behind each other. Same element/card/class behind = bonus.":"Bis zu 3 Karten hintereinander. Gleiches Element / gleiche Karte / gleiche Klasse im Stapel = Bonus."; var out=[]; st.forEach(function(u){ var b=stackB(st,u); var t=[]; if(b.h) t.push("+"+b.h+"🛡"); if(b.a) t.push("+"+b.a+"⚔"); if(t.length) out.push(nm(u)+": "+t.join(" ")); }); return out.length?out.join(" · "):(EN?"No bonus – combine same element, card or class.":"Kein Bonus – kombiniere gleiches Element, Karte oder Klasse."); }
+function stkPaint(){ var el=$("stk"); if(openF<0||fighting||!S||!S.P.board[openF]||!S.P.board[openF].length){ el.classList.remove("show"); openF=-1; return; }
+  var st=S.P.board[openF], lab=EN?["Front","Middle","Back"]:["Vorne","Mitte","Hinten"], h='<div class="th"><span>'+(EN?"Field ":"Feld ")+(openF+1)+' · '+(EN?"Stack":"Stapel")+' '+st.length+'/3</span><button id="stkx">✕</button></div><div class="rw">';
+  for(var j=0;j<3;j++){ var u=st[j]; h+='<div style="position:relative"><span class="pl" style="display:none"></span>'+(u?cardHtml(u,{z:"n",i:openF}).replace('data-z="n"','data-z="n" data-j="'+j+'"'):'<div class="c e" data-z="n" data-i="'+openF+'" data-j="'+j+'"><span>'+lab[j]+'</span></div>')+'</div>'; }
+  h+='</div><div class="tx">'+stkTxt(st)+'</div>'; el.innerHTML=h; el.classList.add("show"); $("stkx").onclick=function(){ openF=-1; stkPaint(); }; }
+function peekJ(z,i,j){ if(z==="n") return S.P.board[i][j===undefined?0:j]||null; return peek(z,i); }
+function moveCard(src,tg){ var P=S.P, u=peekJ(src.z,src.i,src.j); if(!u) return;
+  if(!okZ(tg.z,u)){ toast(EN?"Spells only go in the spell slot, creatures on the field/bench":"Zauber gehören ins Zauberfeld, Kreaturen aufs Kampffeld/Bank"); return; }
+  if(tg.z==="n"){ var F=P.board[tg.i], same=src.z==="n"&&src.i===tg.i;
+    if(same){ var fr=F.splice(src.j===undefined?0:src.j,1)[0]; F.splice(Math.min(tg.j===undefined?F.length:tg.j,F.length),0,fr); }
+    else if(F.length<3){ if(src.z==="n") P.board[src.i].splice(src.j===undefined?0:src.j,1); else takeU(src.z,src.i); var pos=tg.j===undefined?F.length:Math.min(tg.j,F.length); F.splice(pos,0,u); }
+    else { var tj=tg.j===undefined?0:tg.j, other=F[tj]; if(src.z==="n"){ var sj=src.j===undefined?0:src.j; P.board[src.i][sj]=other; } else { if(src.z==="p") return; P.bench[src.i]=other; } F[tj]=u; } }
+  else { var o=peek(tg.z,tg.i); if(o&&!okZ(src.z,o)){ toast(EN?"Not possible":"Nicht möglich"); return; }
+    if(src.z==="n") P.board[src.i].splice(src.j===undefined?0:src.j,1); else takeU(src.z,src.i); if(tg.z==="p") P.sp[tg.i]=u; else P.bench[tg.i]=u;
+    if(o){ if(src.z==="n") P.board[src.i].splice(src.j===undefined?0:src.j,0,o); else putU(src.z,src.i,o); } }
+  S.merged=false; merge(P,null); if(S.merged) toast("✨ "+T.merged); sel=null; paint(); }
+function sellSel(){ if(fighting||!sel) return; var u=peekJ(sel.z,sel.i,sel.j); if(!u) return; S.P.gold+=sellVal(u); giveBack(u); if(sel.z==="n"&&sel.j!==undefined) S.P.board[sel.i].splice(sel.j,1); else takeU(sel.z,sel.i); toast(T.sold+" +"+sellVal(u)+" 🪙"); sel=null; paint(); }
 var LIMA=48, CAPK=4, turbo=false;
 function battle(){
   if(fighting) return; if(!S.P.board.some(function(st){return st.length})){ toast(T.need); return; }
   fighting=true; sel=null; var A=fighters(S.P), B=fighters(S.E), n=0, ctx={kingA:0,kingB:0,wardA:0,wardB:0}; paint();
   function draw(){ $("er").innerHTML=B.map(function(f){ return cardHtml(f.u,{f:f,n:1+(f.res?f.res.length:0)}); }).join(""); $("br").innerHTML=A.map(function(f){ return cardHtml(f.u,{f:f,n:1+(f.res?f.res.length:0)}); }).join(""); }
   draw(); log("⚔ "+T.phaseA);
+  var castN=1+rnd(4), cast0=false, smsg="";
+  function doCast(){ if(cast0||!A.length||!B.length) return; cast0=true; var a=cast(S.P,A,B,ctx,"A"), b=cast(S.E,B,A,ctx,"B"); A=nxt(A); B=nxt(B); draw(); smsg=(a?"✨ "+a:"")+(a&&b?"  |  ":"")+(b?"🧟 "+b:""); }
   (function step(){ var d=turbo?3:fast?260:700; setTimeout(function(){
-    if(!A.length||!B.length||n>=LIMA){ return pause(); }
-    var r=tick(A,B,n++); A=r.A; B=r.B; draw(); log("⚔ "+T.phaseA+" · ⏱ "+Math.max(0,Math.round((LIMA-n)*d/1000))+"s"); step(); }, d); })();
-  function pause(){
-    var m2=cast(S.E,B,A,ctx,"B"); B=nxt(B); A=nxt(A); draw();
-    var sp=S.P.sp[0], done=false, secs=turbo?1:fast?4:15, pz=$("pause");
-    function go(){ if(done) return; done=true; clearInterval(iv); pz.style.display="none"; pz.innerHTML=""; king(); }
-    var iv=null;
-    if(!A.length||!sp){ log((m2?"🧟 "+m2+" · ":"")+"👑"); return setTimeout(king,fast?500:1200); }
-    log("⏸ "+T.pauseT+(m2?"  |  🧟 "+m2:""));
-    pz.style.display="flex"; pz.innerHTML=(sp?'<button class="go" id="pcast">✨ '+nm(sp)+'</button>':'')+'<button id="pgo"></button>';
-    function lab(){ $("pgo").textContent="▶ "+T.cont+" ("+secs+"s)"; }
-    lab(); $("pgo").onclick=go;
-    if(sp) $("pcast").onclick=function(){ var m=cast(S.P,A,B,ctx,"A"); A=nxt(A); B=nxt(B); draw(); log("✨ "+m); $("pcast").disabled=true; };
-    iv=setInterval(function(){ secs--; if(secs<=0) go(); else lab(); },1000);
-  }
+    if(!A.length||!B.length||n>=LIMA){ doCast(); return setTimeout(king,turbo?5:fast?500:1000); }
+    var r=tick(A,B,n++); A=r.A; B=r.B; draw(); if(n===castN) doCast(); log("⚔ "+T.phaseA+(smsg?"  "+smsg:"")); step(); }, d); })();
   function king(){
     var P=S.P,E=S.E, sA=0,sB=0; allF(A).forEach(function(f){ sA+=f.hp; }); allF(B).forEach(function(f){ sB+=f.hp; });
     var practice=S.round<=3, toE=A.length?Math.min(CAPK,sA+ctx.kingA-ctx.wardB):0, toP=B.length?Math.min(CAPK,sB+ctx.kingB-ctx.wardA):0;
-    toE=Math.max(0,toE); toP=Math.max(0,toP); if(practice){ toE=0; toP=0; }
-    E.hearts=Math.max(0,E.hearts-toE); P.hearts=Math.max(0,P.hearts-toP);
-    var msg="👑 "+T.kingP+": "+(toE?T.you+" −"+toE+" 🧟":(A.length?(practice?T.practice:"0"):"–"))+"  |  "+(toP?T.cpu+" −"+toP+" 🧑‍🌾":(B.length?(practice?T.practice:"0"):"–"));
-    log(msg); fighting=false;
-    $("hE").innerHTML=avh(E.av||"🧟",20)+" "+heartsStr(E.hearts); $("hP").innerHTML=avh(P.av||MYAV,20)+" "+heartsStr(P.hearts);
-    setTimeout(function(){ roundEnd(msg); }, turbo?10:fast?1400:2600);
+    toE=Math.max(0,toE); toP=Math.max(0,toP); var tf=tieFix(toE,toP,sA+ctx.kingA,sB+ctx.kingB); toE=tf[0]; toP=tf[1]; var youWin=toE>toP; if(practice){ toE=0; toP=0; }
+    var seq=[]; if(practice) seq.push([youWin?"P":"E",0]); else { if(toE>0) seq.push(["P",toE]); if(toP>0) seq.push(["E",toP]); }
+    var msg="👑 "+T.kingP+": "+(toE?T.you+" −"+toE+" 🧟":(practice?T.practice:"0"))+"  |  "+(toP?T.cpu+" −"+toP+" 🧑‍🌾":(practice?T.practice:"0"))+"  ·  "+(youWin?"🏆 "+T.youWin:"💥 "+T.cpuWin);
+    log("👑 "+T.kingP+" – "+(youWin?"🏆 "+T.youWin:"💥 "+T.cpuWin));
+    (function nextS(){ var q=seq.shift(); if(!q){ log(msg); setTimeout(function(){ fighting=false; roundEnd(msg); }, turbo?10:fast?500:1100); return; }
+      strike(q[0],q[1],function(){ if(q[0]==="P") E.hearts=Math.max(0,E.hearts-q[1]); else P.hearts=Math.max(0,P.hearts-q[1]); heartsUp(); },nextS); })();
   }
 }
+function strike(side,dmg,onHit,cb){
+  var an=$(side==="P"?"kP":"kE"), dn=$(side==="P"?"kE":"kP"), R=RUN[(side==="P"?S.P:S.E).run||"h1"]||RUN.h1, run=(side==="P"?S.P:S.E).run||"h1", k=turbo?0.02:fast?0.35:1;
+  var dx=dn.getBoundingClientRect().left-an.getBoundingClientRect().left+(side==="P"?-30:30); busy=true;
+  an.style.transition="transform "+(0.5*k)+"s linear"; an.style.setProperty("--dx",dx+"px"); var f=0, ri=setInterval(function(){ f++; setImg(an.id,run,side,"r",f); },70);
+  setTimeout(function(){ clearInterval(ri); var af=0; setImg(an.id,run,side,"a",0); var ai=setInterval(function(){ af++; setImg(an.id,run,side,"a",af); },110);
+    setTimeout(function(){ dn.classList.remove("hurt"); void dn.offsetWidth; dn.classList.add("hurt"); var fx=document.createElement("div"); fx.className="fxn"; fx.textContent=dmg?"−"+dmg+" ❤":"🏆"; var r=dn.getBoundingClientRect(); fx.style.left=(r.left+r.width/2-14)+"px"; fx.style.top=(r.top-4)+"px"; document.body.appendChild(fx); setTimeout(function(){ fx.remove(); },950); onHit(); },160*k);
+    setTimeout(function(){ clearInterval(ai); an.style.transition="transform "+(0.4*k)+"s linear"; an.style.setProperty("--dx","0px"); var g=0, bi=setInterval(function(){ g++; setImg(an.id,run,side,"r",g); },70);
+      setTimeout(function(){ clearInterval(bi); busy=false; cb(); },420*k); },560*k); },520*k); }
+function oppPanel(){ var h="", bs=S?S.bots:[]; bs.forEach(function(b,i){ h+='<div class="o'+(b===S.opp?' cur':'')+(b.hearts<=0?' out':'')+'" data-b="'+i+'">'+avh(b.av,26)+'<span>❤'+b.hearts+'</span></div>'; }); $("opp").innerHTML=h; }
+function showOpp(i){ var b=S.bots[i]; if(!b) return;
+  var h='<h2>'+avh(b.av,30)+' '+b.name+'</h2><p style="text-align:center">'+T.lvl+' '+b.level+' · ❤ '+b.hearts+(b.hearts<=0?' ☠':'')+(b.sp[0]?' · ✨ '+nm(b.sp[0]):'')+'</p><div class="row" style="padding:2px 0;flex-wrap:wrap">';
+  var any=false; b.board.forEach(function(st){ if(st.length){ any=true; h+=cardHtml(st[0],{n:st.length}); } }); if(!any) h+='<p>–</p>';
+  h+='</div><div class="syn">'+synHtml(bu(b))+'</div>';
+  $("box").innerHTML=h+'<button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); }
 function finish(place){
   var best=99; try{ best=+localStorage.getItem("bp_arena_place")||99; if(place<best){ best=place; localStorage.setItem("bp_arena_place",String(best)); } }catch(e){}
   $("box").innerHTML='<div style="font-size:54px">'+(place===1?'🏆':place<=3?'🥈':'💀')+'</div><h2>'+(place===1?T.won:T.place+' '+place+' / 10')+'</h2><p style="text-align:center">'+T.reached+': '+S.round+' · '+T.best+': '+T.place+' '+best+'</p><button class="pri" id="ag">'+T.again+'</button><button class="sec" id="bk">'+T.back+'</button>';
@@ -375,13 +430,34 @@ function goBack(){ if(window.parent!==window) parent.postMessage({bpRealmBack:tr
 $("book").onclick=function(){ var D=EN?SDE:SD, h='<h2>📖 '+(EN?'Synergies':'Synergien')+'</h2><p>'+(EN?'Different cards of the same type on your battlefield give bonuses. Stars: ★★ = ×1.8, ★★★ = ×3.3 stats.':'Verschiedene Karten derselben Art auf deinem Kampffeld geben Boni. Sterne: ★★ = ×1,8, ★★★ = ×3,3 Werte.')+'</p><div style="text-align:left;font-size:12.5px;line-height:1.5">';
   h+='<b>'+(EN?'Elements (2 / 4)':'Elemente (2 / 4)')+'</b><br>'; EL.forEach(function(x,i){ h+=x.i+' '+(EN?x.en:x.de)+': 2 → '+D.e[i][0]+' · 4 → '+D.e[i][1]+'<br>'; });
   h+='<br><b>'+(EN?'Classes (2 / 3)':'Klassen (2 / 3)')+'</b><br>'; for(var k in CL) h+=CL[k].i+' '+(EN?CL[k].en:CL[k].de)+': 2 → '+D.c[k][0]+' · 3 → '+D.c[k][1]+'<br>';
-  h+='<br><b>'+(EN?'Traits':'Eigenschaften')+'</b><br><br>✨ '+(EN?'Spell slot: you cast the spell in the pause after the card fight. Damage/effect = base + your synergy tier of its element (e.g. Fireball 3 + fire bonus). Spells can merge to ★ too.':'Zauberfeld: du setzt den Zauber in der Pause nach dem Kartenkampf ein. Schaden/Wirkung = Basis + deine Synergie-Stufe seines Elements (z. B. Feuerball 3 + Feuer-Bonus). Zauber können auch zu ★ verschmelzen.')+'<br><br>🛡 '+(EN?'takes 1 less damage':'erleidet 1 Schaden weniger')+'<br>⚡ '+(EN?'strikes first':'schlägt zuerst')+'<br>🏹 '+(EN?'also hits the card behind for 1':'trifft zusätzlich die Karte dahinter (1)')+'<br>🗡 '+(EN?'+1 heart damage if it survives':'+1 Herzschaden wenn sie überlebt')+'<br>💚 '+(EN?'heals the weakest ally each tick':'heilt jeden Schlag den schwächsten Verbündeten')+'<br>🌾 '+(EN?'+1 gold per round':'+1 Gold pro Runde')+'<br>👑 '+(EN?'allies +1/+1':'Verbündete +1/+1')+'<br>❄ '+(EN?'hit card skips its next attack':'getroffene Karte setzt den nächsten Schlag aus')+'<br>🔥 '+(EN?'+1 damage':'+1 Schaden')+'<br>🌿 '+(EN?'regrows 1 health per tick':'wächst jeden Schlag +1 Leben nach');
+  h+='<br><b>'+(EN?'Element advantage':'Elementvorteil')+'</b><br>🔥 → ❄ → 🌿 → 🔥 ('+(EN?'+1 damage per hit against the weaker element; 🌲 forest is neutral':'+1 Schaden pro Treffer gegen das schwächere Element; 🌲 Wald ist neutral')+')<br>'+(EN?'Fire beats Ice, Ice beats Earth, Earth beats Fire.':'Feuer schlägt Eis, Eis schlägt Erde, Erde schlägt Feuer.')+'<br><br><b>'+(EN?'Traits':'Eigenschaften')+'</b><br><br>✨ '+(EN?'Spell slot: the spell is cast automatically at a random moment during the card fight. Damage/effect = base + your synergy tier of its element (e.g. Fireball 3 + fire bonus). Spells can merge to ★ too.':'Zauberfeld: der Zauber wird automatisch zu einem zufälligen Zeitpunkt im Kartenkampf gewirkt. Schaden/Wirkung = Basis + deine Synergie-Stufe seines Elements (z. B. Feuerball 3 + Feuer-Bonus). Zauber können auch zu ★ verschmelzen.')+'<br><br>🛡 '+(EN?'takes 1 less damage':'erleidet 1 Schaden weniger')+'<br>⚡ '+(EN?'strikes first':'schlägt zuerst')+'<br>🏹 '+(EN?'also hits the card behind for 1':'trifft zusätzlich die Karte dahinter (1)')+'<br>🗡 '+(EN?'+1 heart damage if it survives':'+1 Herzschaden wenn sie überlebt')+'<br>💚 '+(EN?'heals the weakest ally each tick':'heilt jeden Schlag den schwächsten Verbündeten')+'<br>🌾 '+(EN?'+1 gold per round':'+1 Gold pro Runde')+'<br>👑 '+(EN?'allies +1/+1':'Verbündete +1/+1')+'<br>❄ '+(EN?'hit card skips its next attack':'getroffene Karte setzt den nächsten Schlag aus')+'<br>🔥 '+(EN?'+1 damage':'+1 Schaden')+'<br>🌿 '+(EN?'regrows 1 health per tick':'wächst jeden Schlag +1 Leben nach');
   $("box").innerHTML=h+'</div><button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); };
 $("rankb").onclick=function(){ if(S) showRank(); };
 $("back").onclick=goBack; $("spd").onclick=function(){ fast=!fast; $("spd").style.background=fast?"#2fa84f88":""; };
 $("rr").onclick=reroll; $("lu").onclick=levelUp; $("go").onclick=battle;
-function onTap(e){ var t=e.target.closest(".c,.sell"); if(!t) return; if(t.id==="sellz"){ sellSel(); return; } var z=t.dataset.z,i=+t.dataset.i; if(z==="s") buy(i); else if(z==="n"||z==="b"||z==="p") tapSlot(z,i); }
-["br","bn","sr"].forEach(function(id){ $(id).addEventListener("pointerdown",onTap); });
+function tapEl(t){ if(t.id==="sellz"){ sellSel(); return; } var z=t.dataset.z,i=+t.dataset.i;
+  if(t.closest("#stk")) return;
+  if(z==="s") buy(i);
+  else if(z==="n"){ if(sel){ tapSlot(z,i); } else if(S.P.board[i].length){ openF=i; paint(); log(EN?"Drag cards in the stack window to reorder or move them.":"Im Stapel-Fenster Karten ziehen zum Umsortieren oder Verschieben."); } else tapSlot(z,i); }
+  else if(z==="b"||z==="p") tapSlot(z,i); }
+var drag=null;
+function dragZone(t){ return t&&t.dataset&&(t.dataset.z==="n"||t.dataset.z==="b"||t.dataset.z==="p"); }
+function jOf(t){ return t.dataset.j===undefined?undefined:+t.dataset.j; }
+function onDown(e){ if(fighting) return; var t=e.target.closest(".c,.sell"); if(!t) return; drag={t:t,x:e.clientX,y:e.clientY,on:false,g:null}; }
+function onMove(e){ if(!drag) return; if(!drag.on){ if(Math.abs(e.clientX-drag.x)+Math.abs(e.clientY-drag.y)<10||!dragZone(drag.t)||drag.t.classList.contains("e")) return;
+    drag.on=true; var t=drag.t, g=t.cloneNode(true); g.className=t.className.replace("sel","")+" dg"; g.style.width=t.offsetWidth+"px"; g.style.height=t.offsetHeight+"px"; document.body.appendChild(g); drag.g=g; drag.w=t.offsetWidth; drag.h=t.offsetHeight; t.classList.add("dr"); }
+  drag.g.style.left=(e.clientX-drag.w/2)+"px"; drag.g.style.top=(e.clientY-drag.h/2)+"px"; e.preventDefault(); }
+function onUp(e){ if(!drag) return; var d=drag; drag=null;
+  if(!d.on){ if(!fighting) tapEl(d.t); return; }
+  d.g.remove(); d.t.classList.remove("dr");
+  var el=document.elementFromPoint(e.clientX,e.clientY), tg=el&&el.closest(".c,.sell"), z=d.t.dataset.z, i=+d.t.dataset.i, sj=jOf(d.t);
+  if(!tg||fighting){ paint(); return; }
+  if(tg.id==="sellz"){ sel={z:z,i:i,j:sj}; sellSel(); return; }
+  if(!dragZone(tg)||(tg.dataset.z===z&&+tg.dataset.i===i&&jOf(tg)===sj)){ paint(); return; }
+  moveCard({z:z,i:i,j:sj},{z:tg.dataset.z,i:+tg.dataset.i,j:jOf(tg)}); }
+["br","bn","sr","stk"].forEach(function(id){ $(id).addEventListener("pointerdown",onDown); });
+document.addEventListener("pointermove",onMove,{passive:false}); document.addEventListener("pointerup",onUp); document.addEventListener("pointercancel",function(){ if(drag){ if(drag.g) drag.g.remove(); drag=null; paint(); } });
+$("opp").addEventListener("click",function(e){ var o=e.target.closest(".o"); if(o&&S) showOpp(+o.dataset.b); });
 startMenu();
 window.__ar={S:function(){return S},buy:buy,reroll:reroll,lvl:levelUp,go:battle,tap:tapSlot,sell:sellSel,sel:function(z,i){sel={z:z,i:i}},fast:function(){fast=true},turbo:function(){turbo=true},rank:showRank,CARDS:CARDS,fighters:fighters,tick:tick,mk:mk};
 })();
