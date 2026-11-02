@@ -4,7 +4,8 @@
   var F=[],k; for(k=0;k<9;k++){ var p=new Image(); p.src='frog'+k+'.png'; F.push(p.src); }
   var atkAt=0, hurtAt=0, ATK=[0,110,230,360,520];
   function isFrog(img){ try{ return img.getAttribute('src')===getMonsterImg('frog'); }catch(e){ return /frog/.test(img.getAttribute('src')||''); } }
-  function mark(){
+  var ok=false, pr=new Image(); pr.onload=function(){ ok=true; mark(); }; pr.src='frog0.png';
+  function mark(){ if(!ok) return;
     var im=scene.querySelectorAll('.monster-slot img'); 
     for(var i=0;i<im.length;i++){ if(!im[i].dataset.fk && isFrog(im[i])){ im[i].dataset.fk='1'; im[i].classList.add('fk'); im[i].src=F[0]; } }
   }
