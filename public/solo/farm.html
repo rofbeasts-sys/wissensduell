@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Brain Farm</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation;background:#7ac35a}
+#sky{position:fixed;inset:0;z-index:0;background:linear-gradient(#8fd3ff,#cdeeff 28%,#8bd05f 28.1%,#5aa43c)}
+#sky.night{background:linear-gradient(#0b1030,#1d2a5e 28%,#2c5a2e 28.1%,#1b3b1e)}
+#sky.dusk{background:linear-gradient(#ff9a6b,#ffd9a0 28%,#78b350 28.1%,#4a8a33)}
+#app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:10px 10px 6px}
+.back{color:#fff;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0006;border:1px solid #ffffff44;cursor:pointer;flex:none}
+.pill{border:1px solid #ffffff44;background:#0006;border-radius:99px;padding:6px 11px;font-size:14px;font-weight:800;white-space:nowrap;text-shadow:0 1px 2px #000a}
+.lvl{flex:1;min-width:0}.lvl b{font-size:13px;text-shadow:0 1px 3px #000a}.bar{height:8px;border-radius:99px;background:#0006;overflow:hidden;margin-top:3px}.bar i{display:block;height:100%;background:linear-gradient(90deg,#ffd45a,#7ae582);width:0}
+#world{flex:1;min-height:0;overflow-y:auto;padding:6px 10px 10px}
+.sec{font-size:12px;font-weight:800;opacity:.95;margin:10px 2px 6px;text-shadow:0 1px 3px #000a}
+#field{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.plot{position:relative;aspect-ratio:1;border-radius:14px;background:radial-gradient(circle at 50% 40%,#9c6b3d,#6b4423);border:2px solid #4a2d14;box-shadow:inset 0 3px 8px #0006,0 3px 6px #0005;display:flex;align-items:center;justify-content:center;font-size:clamp(26px,9vw,40px);cursor:pointer;overflow:hidden}
+.plot.wet{background:radial-gradient(circle at 50% 40%,#7c5230,#4f3118)}
+.plot.rdy{box-shadow:0 0 0 3px #ffd45a,0 0 16px #ffd45a}
+@keyframes bnc{50%{transform:translateY(-3px)}}
+.plot .pg{position:absolute;left:6px;right:6px;bottom:5px;height:6px;border-radius:99px;background:#0007;overflow:hidden}.plot .pg i{display:block;height:100%;background:#7ae582}
+.plot .tm{position:absolute;top:3px;right:6px;font-size:10px;font-weight:800;text-shadow:0 1px 2px #000}
+.plot.lock{background:#0004;border:2px dashed #ffffff66;box-shadow:none;font-size:15px;font-weight:800;flex-direction:column;gap:2px;text-align:center}
+.plot.lock small{font-size:11px;opacity:.9}
+#pens{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.pen{position:relative;aspect-ratio:1;border-radius:14px;background:radial-gradient(circle at 50% 40%,#d9c28a,#b79a5a);border:2px solid #7a5f2a;display:flex;align-items:center;justify-content:center;font-size:clamp(26px,9vw,38px);cursor:pointer;box-shadow:0 3px 6px #0005}
+.pen .bd{position:absolute;top:-4px;right:-4px;background:#ff3d6e;border-radius:99px;min-width:22px;height:22px;display:grid;place-items:center;font-size:12px;font-weight:900;padding:0 5px;box-shadow:0 2px 4px #0008}
+.pen .sm{position:absolute;bottom:3px;left:0;right:0;text-align:center;font-size:10px;font-weight:800;text-shadow:0 1px 2px #000}
+.dock{display:flex;align-items:center;gap:6px;padding:8px 8px calc(10px + env(safe-area-inset-bottom));background:#0008;border-top:1px solid #ffffff22;overflow-x:auto}
+.seed{flex:none;min-width:64px;padding:6px 6px;border-radius:14px;background:#ffffff14;border:2px solid #ffffff22;text-align:center;font-size:24px;line-height:1.1;cursor:pointer}
+.seed small{display:block;font-size:10.5px;font-weight:800;opacity:.95}
+.seed.on{border-color:#c6ff3d;background:#c6ff3d22}.seed.lk{opacity:.4}
+.shopb{flex:none;height:56px;padding:0 14px;border-radius:14px;background:linear-gradient(90deg,#ffd45a,#7ae582);color:#13310f;font-weight:900;font-size:14px;border:0;cursor:pointer}
+#pop{position:fixed;z-index:90;pointer-events:none;font-weight:900;font-size:17px;text-shadow:0 2px 4px #000;animation:up 1s forwards}
+@keyframes up{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-44px)}}
+.sh{position:fixed;inset:0;z-index:70;display:none;background:rgba(0,0,0,.5);align-items:flex-end}.sh.on{display:flex}
+.sp{width:100%;max-width:640px;margin:0 auto;background:#17361d;border:1px solid #ffffff33;border-bottom:0;border-radius:22px 22px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom));max-height:80vh;overflow:auto}
+.sp h3{margin:0 0 10px;font-size:17px;display:flex;justify-content:space-between;align-items:center}
+.it{display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:#ffffff12;margin-bottom:8px}
+.it .ic{font-size:30px;width:40px;text-align:center}.it .tx{flex:1;min-width:0;font-size:13px}.it .tx b{font-size:14px;display:block}.it .tx span{opacity:.75;font-size:12px}
+.it button{border:0;border-radius:12px;padding:10px 12px;background:linear-gradient(90deg,#ffd45a,#7ae582);color:#13310f;font-weight:900;font-size:13px;cursor:pointer;flex:none}.it button:disabled{opacity:.35}
+.x{background:#0006;border:1px solid #fff4;color:#fff;border-radius:10px;width:34px;height:34px;font-size:16px;cursor:pointer}
+#toast{position:fixed;left:50%;top:64px;transform:translateX(-50%);background:#000b;padding:8px 14px;border-radius:99px;font-size:13px;font-weight:800;z-index:95;display:none}
+</style></head><body>
+<div id="sky"></div>
+<div id="app">
+  <div class="top"><button class="back" id="back">←</button><div class="lvl"><b id="lv">Lv 1</b><div class="bar"><i id="xp"></i></div></div><span class="pill">🪙 <b id="coins">0</b></span></div>
+  <div id="world"><div class="sec" id="s1">🌾</div><div id="field"></div><div class="sec" id="s2">🐔</div><div id="pens"></div><div style="height:20px"></div></div>
+  <div class="dock" id="dock"></div>
+</div>
+<div class="sh" id="sh" onclick="if(event.target===this)closeShop()"><div class="sp" id="sp"></div></div>
+<div id="toast"></div>
+<script>
+(function(){
+var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
+var T=EN?{field:"🌾 Fields – tap a field to plant, water or harvest",pens:"🐔 Animals – tap to collect",shop:"🏪 Shop",plant:"Plant",lvl:"Lv",need:"Not enough coins",locked:"Reach level",buy:"Buy",field_:"New field",max:"Max reached",fieldd:"One more field for your crops",chicken:"Chicken",chickend:"Lays an egg every 3 min",cow:"Cow",cowd:"Gives milk every 8 min",sheep:"Sheep",sheepd:"Gives wool every 15 min",water:"Watered! Grows faster",ready:"ready",lvup:"Level up!",coins:"coins",no:"Nothing to collect yet",close:"Close",owned:"owned",first:"Tap a field to plant your first seeds!",sel:"Pick a seed below first",wheat:"Wheat",carrot:"Carrot",tomato:"Tomato",pumpkin:"Pumpkin",berry:"Strawberry",corn:"Corn"}
+:{field:"🌾 Felder – tippen zum Pflanzen, Gießen und Ernten",pens:"🐔 Tiere – tippen zum Einsammeln",shop:"🏪 Laden",plant:"Pflanzen",lvl:"Lv",need:"Zu wenig Münzen",locked:"Ab Level",buy:"Kaufen",field_:"Neues Feld",max:"Maximum erreicht",fieldd:"Ein weiteres Feld für deine Pflanzen",chicken:"Huhn",chickend:"Legt alle 3 Min ein Ei",cow:"Kuh",cowd:"Gibt alle 8 Min Milch",sheep:"Schaf",sheepd:"Gibt alle 15 Min Wolle",water:"Gegossen! Wächst schneller",ready:"fertig",lvup:"Level geschafft!",coins:"Münzen",no:"Noch nichts zum Einsammeln",close:"Schließen",owned:"vorhanden",first:"Tippe ein Feld an und pflanze deine ersten Samen!",sel:"Wähle unten erst eine Saat",wheat:"Weizen",carrot:"Karotte",tomato:"Tomate",pumpkin:"Kürbis",berry:"Erdbeere",corn:"Mais"};
+// Pflanzen: sek bis reif, Samenpreis, Verkauf, XP, ab Level
+var CROPS=[
+ {k:"wheat",e:"🌾",s:30,cost:2,sell:6,xp:1,lv:1},
+ {k:"carrot",e:"🥕",s:90,cost:8,sell:20,xp:3,lv:2},
+ {k:"corn",e:"🌽",s:180,cost:16,sell:42,xp:5,lv:3},
+ {k:"tomato",e:"🍅",s:300,cost:28,sell:75,xp:8,lv:4},
+ {k:"pumpkin",e:"🎃",s:600,cost:60,sell:170,xp:16,lv:6},
+ {k:"berry",e:"🍓",s:1200,cost:130,sell:380,xp:30,lv:8}];
+var ANI=[
+ {k:"chicken",e:"🐔",icon:"🥚",every:180,cap:3,sell:9,cost:120,lv:1,max:4},
+ {k:"cow",e:"🐄",icon:"🥛",every:480,cap:2,sell:45,cost:700,lv:5,max:4},
+ {k:"sheep",e:"🐑",icon:"🧶",every:900,cap:2,sell:110,cost:2000,lv:9,max:4}];
+var KEY="bp_farm_v1", MAXP=20;
+var $=function(i){return document.getElementById(i)};
+var S=load();
+function def(){ return {coins:30,xp:0,lv:1,plots:[null,null,null,null,null,null,null,null],cnt:{chicken:0,cow:0,sheep:0},ap:{},sel:"wheat",t:Date.now()}; }
+function load(){ try{ var o=JSON.parse(localStorage.getItem(KEY)); if(o&&o.plots) return o; }catch(e){} return def(); }
+function save(){ try{ localStorage.setItem(KEY,JSON.stringify(S)); }catch(e){} }
+function now(){ return Date.now()/1000; }
+function crop(k){ return CROPS.filter(function(c){return c.k===k})[0]; }
+function need(){ return 12+S.lv*10; }
+function toast(t){ var e=$("toast"); e.textContent=t; e.style.display="block"; clearTimeout(toast.t); toast.t=setTimeout(function(){ e.style.display="none"; },1800); }
+function pop(txt,x,y,col){ var e=document.createElement("div"); e.id="pop"; e.textContent=txt; e.style.left=(x-30)+"px"; e.style.top=(y-20)+"px"; e.style.color=col||"#ffd45a"; document.body.appendChild(e); setTimeout(function(){ e.remove(); },1000); }
+function gain(c,x,y){ S.coins+=c; pop("+"+c+" 🪙",x,y); }
+function addXp(n){ S.xp+=n; while(S.xp>=need()){ S.xp-=need(); S.lv++; var b=50*S.lv; S.coins+=b; toast("⭐ "+T.lvup+" "+T.lvl+" "+S.lv+" (+"+b+" 🪙)"); } }
+function plotInfo(p){ if(!p) return null; var c=crop(p.k), total=c.s*(p.w?0.7:1), el=now()-p.t, f=Math.min(1,el/total); return {c:c,f:f,left:Math.max(0,total-el),rdy:f>=1}; }
+function aniStock(a){ var n=S.cnt[a.k]||0; if(!n) return 0; var st=S.ap[a.k]||{t:now(),n:0}; var cap=a.cap*n; var ex=Math.floor((now()-st.t)/a.every)*n; return Math.min(cap,(st.n||0)+ex); }
+function aniCollect(a,ev){ var n=aniStock(a); if(!n){ toast(T.no); return; } var st=S.ap[a.k]||{t:now(),n:0}; S.ap[a.k]={t:now(),n:0}; gain(n*a.sell,ev.clientX,ev.clientY); addXp(n); save(); paint(); }
+function fmt(s){ s=Math.ceil(s); if(s<60) return s+"s"; if(s<3600) return Math.floor(s/60)+"m"+(s%60?(" "+(s%60)+"s"):""); return Math.floor(s/3600)+"h"; }
+function paint(){
+  $("coins").textContent=S.coins.toLocaleString(); $("lv").textContent=T.lvl+" "+S.lv+" · "+S.xp+"/"+need(); $("xp").style.width=(S.xp/need()*100)+"%";
+  $("s1").textContent=T.field; $("s2").textContent=T.pens;
+  var h=""; S.plots.forEach(function(p,i){ var inf=plotInfo(p);
+    if(!inf) h+='<div class="plot" data-i="'+i+'"></div>';
+    else { var stage=inf.rdy?inf.c.e:(inf.f<.34?"🌱":inf.f<.7?"🌿":"🪴"); h+='<div class="plot'+(p.w?' wet':'')+(inf.rdy?' rdy':'')+'" data-i="'+i+'">'+stage+(inf.rdy?'':'<span class="tm">'+fmt(inf.left)+'</span><div class="pg"><i style="width:'+(inf.f*100)+'%"></i></div>')+'</div>'; } });
+  if(S.plots.length<MAXP){ var cost=fieldCost(); h+='<div class="plot lock" data-new="1">＋<small>🪙 '+cost+'</small></div>'; }
+  $("field").innerHTML=h;
+  var ph=""; ANI.forEach(function(a){ var n=S.cnt[a.k]||0; for(var k=0;k<n;k++){ var st=k===0?aniStock(a):0; ph+='<div class="pen" data-a="'+a.k+'">'+a.e+(k===0&&st>0?'<span class="bd">'+a.icon+' '+st+'</span>':'')+'</div>'; } });
+  if(!ph) ph='<div style="grid-column:1/-1;font-size:12px;opacity:.9;text-shadow:0 1px 2px #000">'+(EN?"No animals yet – visit the shop.":"Noch keine Tiere – schau im Laden vorbei.")+'</div>';
+  $("pens").innerHTML=ph;
+  var dk=""; CROPS.forEach(function(c){ var lk=S.lv<c.lv; dk+='<div class="seed'+(S.sel===c.k?' on':'')+(lk?' lk':'')+'" data-s="'+c.k+'">'+c.e+'<small>'+(lk?'🔒 '+T.lvl+' '+c.lv:'🪙 '+c.cost)+'</small></div>'; });
+  dk+='<button class="shopb" id="shopb">'+T.shop+'</button>'; var sl=$("dock").scrollLeft; $("dock").innerHTML=dk; $("dock").scrollLeft=sl; $("shopb").onclick=openShop;
+  var d=new Date().getHours(); $("sky").className=(d>=21||d<6)?"night":(d>=18||d<8)?"dusk":"";
+}
+function fieldCost(){ return Math.round(60*Math.pow(1.45,S.plots.length-8)); }
+function tapPlot(i,ev){
+  var p=S.plots[i], inf=plotInfo(p), x=ev.clientX, y=ev.clientY;
+  if(!p){ var c=crop(S.sel); if(!c){ toast(T.sel); return; } if(S.lv<c.lv){ toast(T.locked+" "+c.lv); return; } if(S.coins<c.cost){ toast(T.need); return; } S.coins-=c.cost; S.plots[i]={k:c.k,t:now(),w:0}; pop("-"+c.cost,x,y,"#ff9aa8"); }
+  else if(inf.rdy){ gain(inf.c.sell,x,y); addXp(inf.c.xp); S.plots[i]=null; }
+  else if(!p.w){ p.w=1; toast("💧 "+T.water); }
+  else return;
+  save(); paint();
+}
+function buyField(){ var c=fieldCost(); if(S.coins<c){ toast(T.need); return; } S.coins-=c; S.plots.push(null); save(); paint(); }
+function buyAni(a){ if((S.cnt[a.k]||0)>=a.max) return; if(S.lv<a.lv){ toast(T.locked+" "+a.lv); return; } var c=aniCost(a); if(S.coins<c){ toast(T.need); return; } if(!(S.cnt[a.k])) S.ap[a.k]={t:now(),n:0}; else S.ap[a.k]={t:now(),n:aniStock(a)}; S.coins-=c; S.cnt[a.k]=(S.cnt[a.k]||0)+1; save(); paint(); openShop(); }
+function aniCost(a){ return Math.round(a.cost*Math.pow(1.6,S.cnt[a.k]||0)); }
+function openShop(){
+  var h='<h3>'+T.shop+'<button class="x" onclick="closeShop()">✕</button></h3>';
+  var fc=fieldCost(), fm=S.plots.length>=MAXP;
+  h+='<div class="it"><div class="ic">🟫</div><div class="tx"><b>'+T.field_+' ('+S.plots.length+'/'+MAXP+')</b><span>'+T.fieldd+'</span></div><button data-f="1" '+(fm||S.coins<fc?'disabled':'')+'>'+(fm?T.max:'🪙 '+fc)+'</button></div>';
+  ANI.forEach(function(a){ var n=S.cnt[a.k]||0, c=aniCost(a), lk=S.lv<a.lv, mx=n>=a.max;
+    h+='<div class="it"><div class="ic">'+a.e+'</div><div class="tx"><b>'+T[a.k]+' ('+n+'/'+a.max+')</b><span>'+T[a.k+"d"]+' · '+a.icon+' = '+a.sell+' 🪙</span></div><button data-a="'+a.k+'" '+(mx||lk||S.coins<c?'disabled':'')+'>'+(mx?T.max:lk?'🔒 '+T.lvl+' '+a.lv:'🪙 '+c)+'</button></div>'; });
+  $("sp").innerHTML=h; $("sh").classList.add("on");
+  Array.prototype.forEach.call($("sp").querySelectorAll("button[data-f]"),function(b){ b.onclick=function(){ buyField(); openShop(); }; });
+  Array.prototype.forEach.call($("sp").querySelectorAll("button[data-a]"),function(b){ b.onclick=function(){ buyAni(ANI.filter(function(a){return a.k===b.dataset.a})[0]); }; });
+}
+window.closeShop=function(){ $("sh").classList.remove("on"); };
+$("field").addEventListener("pointerdown",function(e){ var t=e.target.closest("[data-i],[data-new]"); if(!t) return; if(t.dataset.new) return buyField(); tapPlot(+t.dataset.i,e); });
+$("pens").addEventListener("pointerdown",function(e){ var t=e.target.closest("[data-a]"); if(!t) return; aniCollect(ANI.filter(function(a){return a.k===t.dataset.a})[0],e); });
+$("dock").addEventListener("click",function(e){ var t=e.target.closest("[data-s]"); if(!t) return; var c=crop(t.dataset.s); if(S.lv<c.lv){ toast(T.locked+" "+c.lv); return; } S.sel=c.k; save(); paint(); });
+$("back").onclick=function(){ if(window.parent!==window) parent.postMessage({bpArrowBack:true},location.origin); else location.href="/"; };
+setInterval(paint,1000); paint(); if(!S.plots.some(Boolean)&&S.coins<=30) toast(T.first);
+window.__farm={state:function(){return S},tapPlot:tapPlot,save:save,paint:paint};
+})();
+</script></body></html>

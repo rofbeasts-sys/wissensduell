@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>TriPeaks</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 20%,#1d5a48,#0a2a20 78%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:10px 10px 6px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
+h1{font-size:14px;margin:0;flex:1;color:#bfe6d6;font-weight:700}
+.pill{border:1px solid #ffffff26;background:#0004;border-radius:99px;padding:5px 10px;font-size:12.5px;font-weight:800;white-space:nowrap}
+#main{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;align-items:center;--cw:calc((100vw - 16px)/10.4)}
+#field{position:relative;flex:none;margin-top:14px}
+.c{position:absolute;width:var(--cw);height:calc(var(--cw)*1.4);border-radius:calc(var(--cw)*.14);background:linear-gradient(#fff,#e9edf5);color:#151a2e;font-weight:900;box-shadow:0 2px 5px #0009;box-sizing:border-box;overflow:hidden;cursor:pointer;transition:transform .25s,opacity .25s}
+.c.rd{color:#d3213f}
+.c .a{position:absolute;left:calc(var(--cw)*.07);top:calc(var(--cw)*.03);font-size:calc(var(--cw)*.4);line-height:1.05;text-align:left}
+.c .b{position:absolute;right:calc(var(--cw)*.07);bottom:calc(var(--cw)*.0);font-size:calc(var(--cw)*.5);line-height:1}
+.c.dn{background:repeating-linear-gradient(45deg,#2b3d8f 0 5px,#1f2d6e 5px 10px);border:2px solid #dfe6ff;cursor:default}
+.c.pl{box-shadow:0 0 0 3px #7ae58299,0 2px 5px #0009}
+.c.gone{opacity:0;transform:scale(.4) translateY(30px);pointer-events:none}
+.c.hn{outline:3px solid #ffd45a;box-shadow:0 0 14px #ffd45a;animation:pu .7s infinite}@keyframes pu{50%{transform:translateY(-4px)}}
+#bottom{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center;gap:30px}
+.stk{position:relative;cursor:pointer;width:var(--cw);height:calc(var(--cw)*1.4)}
+.stk b{position:absolute;right:-8px;bottom:-8px;background:#ff3d6e;border-radius:99px;font-size:12px;min-width:20px;height:20px;display:grid;place-items:center;padding:0 5px}
+#streak{position:absolute;left:0;right:0;text-align:center;font-size:20px;font-weight:900;color:#ffd45a;text-shadow:0 2px 8px #000;opacity:0;pointer-events:none}
+#streak.go{animation:pp 1s forwards}@keyframes pp{0%{opacity:0;transform:scale(.6)}20%{opacity:1;transform:scale(1.1)}100%{opacity:0;transform:translateY(-26px)}}
+.btnx{padding:0 14px;height:44px;border-radius:14px;background:#0008;border:1px solid #fff3;font-size:15px;font-weight:800;color:#fff;cursor:pointer}.btnx:disabled{opacity:.35}
+.ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(3,20,14,.82);z-index:60}.ov.show{display:flex}
+.box{background:#0f3328;border:1px solid #ffffff26;border-radius:22px;padding:24px 20px;text-align:center;max-width:340px;width:100%}
+.box h2{margin:0 0 6px;font-size:23px}.box p{color:#bfe6d6;margin:0 0 14px;font-size:13px}
+.big{font-size:50px;font-weight:800;color:#ffd45a;line-height:1.1}
+.pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#0a2a20;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
+.sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">TriPeaks</h1><span class="pill">⭐ <b id="sc">0</b></span><span class="pill">🔥 <b id="st">0</b></span><span class="pill">R <b id="rd">1</b></span></div>
+<div id="main"><div id="field"></div><div id="streak"></div><div id="bottom"></div>
+<div class="ov show" id="ov"><div class="box" id="box"></div></div></div>
+<script>
+(function(){
+var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
+var T=EN?{title:"TriPeaks",tip:"Clear the three peaks. Tap a free card that is one higher or lower than the open card (Ace and King connect). Tap the pile when nothing fits. Chain cards for streak points!",start:"START",won:"Cleared!",over:"No moves left",again:"Next round",retry:"New game",back:"Back",pts:"points",best:"Best",hint:"💡 Hint",round:"Round"}
+:{title:"TriPeaks",tip:"Räume die drei Gipfel ab. Tippe eine freie Karte, die eins höher oder niedriger als die offene Karte ist (Ass und König gehören zusammen). Passt nichts, tippe den Stapel. Je länger die Kette, desto mehr Punkte!",start:"START",won:"Geschafft!",over:"Kein Zug mehr",again:"Nächste Runde",retry:"Neues Spiel",back:"Zurück",pts:"Punkte",best:"Rekord",hint:"💡 Tipp",round:"Runde"};
+var SU=["♠","♥","♦","♣"], RK=["","A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+var $=function(i){return document.getElementById(i)}, red=function(c){return c.s===1||c.s===2};
+var ROWS=[[1.5,4.5,7.5],[1,2,4,5,7,8],[.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5],[0,1,2,3,4,5,6,7,8,9]];
+var G=null, best=0, round=1, total=0; try{ best=+localStorage.getItem("bp_tp_best")||0; }catch(e){}
+var pos=[]; ROWS.forEach(function(r,ri){ r.forEach(function(x){ pos.push({r:ri,x:x}); }); }); // 28
+var cover=pos.map(function(p){ if(p.r===3) return []; var out=[]; pos.forEach(function(q,j){ if(q.r===p.r+1&&Math.abs(q.x-p.x)===.5) out.push(j); }); return out; });
+function newRound(keep){
+  var d=[]; for(var s=0;s<4;s++) for(var r=1;r<=13;r++) d.push({s:s,r:r});
+  for(var i=d.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), x=d[i]; d[i]=d[j]; d[j]=x; }
+  var cards=d.splice(0,28).map(function(c){ c.gone=false; return c; }), waste=[d.pop()];
+  G={cards:cards,stock:d,waste:waste,streak:0,score:keep?G.score:0,over:false,won:false,hn:-1}; if(!keep) round=1;
+  paint(); layout();
+}
+function free(i){ return !G.cards[i].gone&&cover[i].every(function(j){ return G.cards[j].gone; }); }
+function fits(c){ var t=G.waste[G.waste.length-1], d=Math.abs(c.r-t.r); return d===1||d===12; }
+function layout(){
+  var f=$("field"), W=window.innerWidth-16, cw=W/10.4; f.style.width=W+"px"; f.style.height=(cw*1.4+3*cw*.72+cw*.4)+"px";
+  $("bottom").style.top=(parseFloat(f.style.height)+cw*.8+60)+"px";
+}
+function paint(){
+  var f=$("field"), W=window.innerWidth-16, cw=W/10.4, ox=cw*.2, h="";
+  G.cards.forEach(function(c,i){ var p=pos[i], fr=free(i); var x=ox+p.x*cw*1.0+cw*.0, y=p.r*cw*.72;
+    h+='<div class="c'+(red(c)?' rd':'')+(c.gone?' gone':'')+(fr?' pl':(c.gone?'':' dn'))+(G.hn===i?' hn':'')+'" data-i="'+i+'" style="left:'+x.toFixed(1)+'px;top:'+y.toFixed(1)+'px">'+((fr||c.gone)?'<span class="a">'+RK[c.r]+'<br>'+SU[c.s]+'</span><span class="b">'+SU[c.s]+'</span>':'')+'</div>'; });
+  f.innerHTML=h;
+  var bt=$("bottom"), t=G.waste[G.waste.length-1];
+  bt.innerHTML='<div class="stk" id="stk">'+(G.stock.length?'<div class="c dn" style="position:relative;width:100%;height:100%"></div><b>'+G.stock.length+'</b>':'<div style="opacity:.3;font-size:30px;text-align:center;line-height:'+(cw*1.4)+'px">✕</div>')+'</div><div style="position:relative;width:'+cw+'px;height:'+(cw*1.4)+'px"><div class="c'+(red(t)?' rd':'')+'" style="position:relative;width:100%;height:100%"><span class="a">'+RK[t.r]+'<br>'+SU[t.s]+'</span><span class="b">'+SU[t.s]+'</span></div></div><button class="btnx" id="hintb">'+T.hint+'</button>';
+  $("stk").onclick=drawCard; $("hintb").onclick=hint;
+  $("sc").textContent=G.score; $("st").textContent=G.streak; $("rd").textContent=round;
+}
+function pop(msg){ var e=$("streak"); e.textContent=msg; e.style.top=(parseFloat($("field").style.height)+20)+"px"; e.classList.remove("go"); void e.offsetWidth; e.classList.add("go"); }
+function tapCard(i){
+  if(G.over||G.won) return; if(!free(i)) return; var c=G.cards[i]; if(!fits(c)) return;
+  G.hn=-1; c.gone=true; G.waste.push({s:c.s,r:c.r}); G.streak++; var pts=G.streak*10; G.score+=pts; pop("+"+pts+(G.streak>=3?" 🔥":""));
+  if(G.cards.every(function(x){return x.gone})){ var bonus=G.stock.length*20; G.score+=bonus; G.won=true; return finish(); }
+  paint(); check();
+}
+function drawCard(){
+  if(G.over||G.won||!G.stock.length) return; G.hn=-1; G.waste.push(G.stock.pop()); G.streak=0; G.score=Math.max(0,G.score-5); paint(); check();
+}
+function anyMove(){ for(var i=0;i<28;i++) if(free(i)&&fits(G.cards[i])) return i; return -1; }
+function check(){ if(!G.stock.length&&anyMove()<0){ G.over=true; finish(); } }
+function hint(){ if(G.over||G.won) return; var i=anyMove(); if(i<0){ G.hn=-1; if(G.stock.length) pop("→ ⬇"); return; } G.hn=i; paint(); setTimeout(function(){ if(G&&G.hn===i){ G.hn=-1; paint(); } },3000); }
+function finish(){
+  paint(); total=G.score; if(G.score>best){ best=G.score; try{ localStorage.setItem("bp_tp_best",String(best)); }catch(e){} }
+  setTimeout(function(){
+    $("box").innerHTML='<div style="font-size:48px">'+(G.won?'🏔️🎉':'😵')+'</div><h2>'+(G.won?T.won:T.over)+'</h2><div class="big">'+G.score+'</div><p>'+T.pts+' · '+T.best+': '+best+'</p>'+(G.won?'<button class="pri" id="nx">'+T.again+'</button>':'<button class="pri" id="rt">'+T.retry+'</button>')+'<button class="sec" id="bk">'+T.back+'</button>';
+    $("ov").classList.add("show"); if(G.won) $("nx").onclick=function(){ round++; $("ov").classList.remove("show"); newRound(true); }; else $("rt").onclick=function(){ $("ov").classList.remove("show"); newRound(false); }; $("bk").onclick=goBack; },G.won?600:500);
+}
+function startMenu(){
+  $("box").innerHTML='<div style="font-size:44px">🏔️</div><h2>'+T.title+'</h2><p>'+T.tip+'</p><button class="pri" id="go">'+T.start+'</button><button class="sec" id="bk2">'+T.back+'</button>';
+  $("go").onclick=function(){ $("ov").classList.remove("show"); newRound(false); }; $("bk2").onclick=goBack; $("ov").classList.add("show"); }
+function goBack(){ if(window.parent!==window) parent.postMessage({bpKartenBack:true},location.origin); else location.href="/"; }
+$("back").onclick=goBack;
+$("field").addEventListener("click",function(e){ var t=e.target.closest("[data-i]"); if(t) tapCard(+t.dataset.i); });
+window.addEventListener("resize",function(){ if(G){ layout(); paint(); } });
+newRound(false); startMenu();
+window.__tp={state:function(){return G},tap:tapCard,draw:drawCard,free:free,fits:fits,anyMove:anyMove};
+})();
+</script></body></html>

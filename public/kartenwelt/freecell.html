@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FreeCell</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 20%,#1d5a48,#0a2a20 78%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:10px 10px 6px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
+h1{font-size:14px;margin:0;flex:1;color:#bfe6d6;font-weight:700}
+.pill{border:1px solid #ffffff26;background:#0004;border-radius:99px;padding:5px 10px;font-size:12.5px;font-weight:800;white-space:nowrap}
+#bd{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:2px 4px 6px;--cw:calc((100vw - 8px - 21px)/8)}
+.row{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.slot{position:relative;height:calc(var(--cw)*1.4);border-radius:calc(var(--cw)*.14);border:1.5px dashed #ffffff30;display:grid;place-items:center;font-size:calc(var(--cw)*.5);color:#ffffff40}
+.slot.f{border-style:solid;border-color:#ffd45a55}
+.slot.tg{border-color:#c6ff3d;box-shadow:0 0 10px #c6ff3d88}
+.col{position:relative;min-height:calc(var(--cw)*1.4);margin-top:10px;border-radius:6px}
+.col.tg{box-shadow:0 0 10px #c6ff3d88;outline:2px solid #c6ff3d66}
+.c{position:absolute;left:0;right:0;height:calc(var(--cw)*1.4);border-radius:calc(var(--cw)*.14);background:linear-gradient(#fff,#e9edf5);color:#151a2e;font-weight:900;box-shadow:0 2px 4px #0008;box-sizing:border-box;overflow:hidden}
+.slot .c{top:0}
+.c.rd{color:#d3213f}
+.c .a{position:absolute;left:calc(var(--cw)*.07);top:calc(var(--cw)*.02);font-size:calc(var(--cw)*.4);line-height:1.05}
+.c .b{position:absolute;right:calc(var(--cw)*.07);bottom:calc(var(--cw)*.0);font-size:calc(var(--cw)*.5);line-height:1}
+.c.sel{outline:3px solid #c6ff3d;box-shadow:0 0 12px #c6ff3d;z-index:50}
+.c.hn{outline:3px solid #ffd45a;box-shadow:0 0 14px #ffd45a}
+.foot{display:flex;align-items:center;gap:8px;padding:6px 10px calc(8px + env(safe-area-inset-bottom));justify-content:center}
+.btnx{padding:0 16px;height:44px;border-radius:14px;background:#0008;border:1px solid #fff3;font-size:15px;font-weight:800;color:#fff;cursor:pointer}.btnx:disabled{opacity:.35}
+#msg{min-height:18px;text-align:center;font-size:12px;padding:0 8px;color:#bfe6d6}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(3,20,14,.82);z-index:60}.ov.show{display:flex}
+.box{background:#0f3328;border:1px solid #ffffff26;border-radius:22px;padding:24px 20px;text-align:center;max-width:340px;width:100%}
+.box h2{margin:0 0 6px;font-size:23px}.box p{color:#bfe6d6;margin:0 0 14px;font-size:13px}
+.pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#0a2a20;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
+.sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">FreeCell</h1><span class="pill">👆 <b id="mv">0</b></span><span class="pill">⏱ <b id="tm">0:00</b></span><button class="back" id="menu">⚙</button></div>
+<div id="bd"><div class="row" id="top"></div><div class="row" id="cols"></div></div>
+<div id="msg"></div>
+<div class="foot"><button class="btnx" id="undo">↶</button><button class="btnx" id="hint">💡</button><button class="btnx" id="auto">✨</button></div>
+<div class="ov show" id="ov"><div class="box" id="box"></div></div>
+<script>
+(function(){
+var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
+var T=EN?{title:"FreeCell",tip:"Move all cards to the four piles at the top, Ace to King by suit. Build columns downward in alternating colors. The 4 free cells hold single cards. Tap a card, then the target. Tap it twice to move it up automatically.",start:"START",won:"You won!",moves:"moves",again:"New game",back:"Back",resume:"Continue",hint:"Move this card here",none:"No move found – try undo.",newg:"New game"}
+:{title:"FreeCell",tip:"Bringe alle Karten auf die vier Stapel oben, aufsteigend von Ass bis König je Farbe. Unten legst du absteigend in wechselnden Farben ab. Die 4 freien Felder halten einzelne Karten. Tippe eine Karte an, dann das Ziel. Zweimal tippen legt sie automatisch nach oben.",start:"START",won:"Geschafft!",moves:"Züge",again:"Neues Spiel",back:"Zurück",resume:"Weiter",hint:"Diese Karte hierhin legen",none:"Kein Zug gefunden – versuch Rückgängig.",newg:"Neues Spiel"};
+var SU=["♠","♥","♦","♣"], RK=["","A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+var $=function(i){return document.getElementById(i)}, red=function(c){return c.s===1||c.s===2};
+var G=null, sel=null, hist=[], hintM=null, t0=0, tEnd=0;
+function newGame(){
+  var d=[]; for(var s=0;s<4;s++) for(var r=1;r<=13;r++) d.push({s:s,r:r});
+  for(var i=d.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), x=d[i]; d[i]=d[j]; d[j]=x; }
+  var tab=[[],[],[],[],[],[],[],[]]; d.forEach(function(c,i){ tab[i%8].push(c); });
+  G={tab:tab,cells:[null,null,null,null],fnd:[[],[],[],[]],moves:0}; sel=null; hist=[]; hintM=null; t0=Date.now(); tEnd=0; paint();
+}
+function snap(){ return JSON.stringify(G); } function push(){ hist.push(snap()); if(hist.length>500) hist.shift(); }
+function undo(){ if(!hist.length||G.won) return; G=JSON.parse(hist.pop()); sel=null; hintM=null; paint(); }
+function emptyCols(except){ var n=0; G.tab.forEach(function(c,i){ if(!c.length&&i!==except) n++; }); return n; }
+function freeCells(){ return G.cells.filter(function(c){return !c}).length; }
+function maxRun(toEmpty,fromCol){ var ec=emptyCols(toEmpty?-1:-1); var e=0; G.tab.forEach(function(c,i){ if(!c.length&&i!==fromCol) e++; }); if(toEmpty) e=Math.max(0,e-1); return (freeCells()+1)*Math.pow(2,e); }
+function ordered(col,i){ var c=G.tab[col]; for(var k=i;k<c.length-1;k++){ if(red(c[k])===red(c[k+1])||c[k].r!==c[k+1].r+1) return false; } return true; }
+function canFnd(card,f){ var p=G.fnd[f],t=p[p.length-1]; return t?(t.s===card.s&&card.r===t.r+1):(card.r===1&&card.s===f); }
+function fndIdx(card){ return card.s; }
+function selCards(){ if(!sel) return []; if(sel.k==="c") return G.tab[sel.i].slice(sel.j); return G.cells[sel.i]?[G.cells[sel.i]]:[]; }
+function doMove(dest){ // dest: {k:'c'|'f'|'x', i}
+  var cs=selCards(); if(!cs.length) return false; var first=cs[0];
+  if(dest.k==="f"){ if(cs.length!==1||dest.i!==first.s||!canFnd(first,dest.i)) return false; push(); take(); G.fnd[dest.i].push(first); }
+  else if(dest.k==="x"){ if(cs.length!==1||G.cells[dest.i]) return false; if(sel.k==="x"&&sel.i===dest.i) return false; push(); take(); G.cells[dest.i]=first; }
+  else { var col=G.tab[dest.i]; if(sel.k==="c"&&sel.i===dest.i) return false; var t=col[col.length-1];
+    if(t&&(red(t)===red(first)||t.r!==first.r+1)) return false;
+    if(cs.length>maxRun(!t,sel.k==="c"?sel.i:-1)) return false;
+    push(); var m=take(); G.tab[dest.i]=G.tab[dest.i].concat(m); }
+  G.moves++; sel=null; hintM=null; autoClean(); paint(); return true;
+}
+function take(){ if(sel.k==="c") return G.tab[sel.i].splice(sel.j); var c=G.cells[sel.i]; G.cells[sel.i]=null; return [c]; }
+function autoClean(){ if(G.fnd.every(function(p){return p.length===13})){ G.won=true; tEnd=Date.now(); } }
+function autoUp(){ // eine Karte nach oben, wenn moeglich
+  for(var c=0;c<8;c++){ var col=G.tab[c],t=col[col.length-1]; if(t&&canFnd(t,t.s)){ push(); col.pop(); G.fnd[t.s].push(t); G.moves++; return true; } }
+  for(var x=0;x<4;x++){ var t2=G.cells[x]; if(t2&&canFnd(t2,t2.s)){ push(); G.cells[x]=null; G.fnd[t2.s].push(t2); G.moves++; return true; } }
+  return false;
+}
+var autoT=0;
+function runAuto(){ if(autoT||G.won) return; autoT=setInterval(function(){ sel=null; if(!autoUp()||G.won){ clearInterval(autoT); autoT=0; autoClean(); } paint(); },90); }
+function tap(k,i,j){
+  if(G.won||autoT) return; hintM=null;
+  if(sel){
+    if(sel.k===k&&sel.i===i&&(k==="x"||sel.j===j)){ // gleiche Karte nochmal: automatisch
+      var cs=selCards(); if(cs.length===1){ if(doMove({k:"f",i:cs[0].s})) return; for(var x=0;x<8;x++){ if(!(sel.k==="c"&&sel.i===x)&&G.tab[x].length&&doMove({k:"c",i:x})) return; } for(var y=0;y<4;y++){ if(!G.cells[y]&&doMove({k:"x",i:y})) return; } }
+      sel=null; return paint(); }
+    if(k==="c"&&j!=null&&sel.k==="c"&&sel.i===i&&j!==sel.j){ /* andere Karte derselben Spalte */ }
+    else if(doMove({k:k,i:i})) return;
+    sel=null;
+  }
+  if(k==="c"){ var col=G.tab[i]; if(j!=null&&col[j]&&ordered(i,j)) sel={k:"c",i:i,j:j}; }
+  else if(k==="x"){ if(G.cells[i]) sel={k:"x",i:i}; }
+  paint();
+}
+function hint(){
+  if(G.won) return; var sels=[];
+  for(var x=0;x<4;x++) if(G.cells[x]) sels.push({k:"x",i:x,j:0});
+  for(var c=0;c<8;c++){ var col=G.tab[c]; for(var j=col.length-1;j>=0;j--){ if(!ordered(c,j)) break; sels.push({k:"c",i:c,j:j}); } }
+  var old=sel, best=null, sc=-1;
+  for(var n=0;n<sels.length;n++){ sel=sels[n]; var cs=selCards(); if(!cs.length) continue; var f=cs[0];
+    if(cs.length===1&&canFnd(f,f.s)){ best={s:sels[n],d:{k:"f",i:f.s}}; break; }
+    for(var d=0;d<8;d++){ if(sel.k==="c"&&sel.i===d) continue; var t=G.tab[d][G.tab[d].length-1];
+      if(t&&!(red(t)===red(f))&&t.r===f.r+1&&cs.length<=maxRun(false,sel.k==="c"?sel.i:-1)){ var s2=(sel.k==="x"?3:1)+(sel.k==="c"&&sel.j>0&&!(red(G.tab[sel.i][sel.j-1])!==red(f)&&G.tab[sel.i][sel.j-1].r===f.r+1)?2:0); if(s2>sc){ sc=s2; best={s:sels[n],d:{k:"c",i:d}}; } } } }
+  if(!best){ for(var m=0;m<sels.length;m++){ sel=sels[m]; if(sel.k==="c"&&G.tab[sel.i].length===1) continue; var cs2=selCards(); if(cs2.length!==1) continue; for(var e=0;e<8;e++){ if(!G.tab[e].length&&!(sel.k==="c"&&sel.i===e)){ best={s:sels[m],d:{k:"c",i:e}}; break; } } if(best) break; } }
+  sel=old; if(!best){ for(var y=0;y<4&&!best;y++) if(!G.cells[y]) { var last=null; for(var c2=0;c2<8;c2++){ if(G.tab[c2].length) last=c2; } if(last!==null) best={s:{k:"c",i:last,j:G.tab[last].length-1},d:{k:"x",i:y}}; } }
+  if(!best){ $("msg").textContent=T.none; return; }
+  hintM=best; $("msg").textContent="💡 "+T.hint; paint(); setTimeout(function(){ if(hintM===best){ hintM=null; $("msg").textContent=""; paint(); } },3500);
+}
+function cardEl(c,top,cls,attrs){ return '<div class="c'+(red(c)?' rd':'')+(cls||'')+'" '+(attrs||'')+' style="top:'+top+'"><span class="a">'+RK[c.r]+'<br>'+SU[c.s]+'</span><span class="b">'+SU[c.s]+'</span></div>'; }
+function paint(){
+  var tg=sel?function(d){ var cs=selCards(); if(!cs.length) return false; var f=cs[0]; if(d.k==="f") return cs.length===1&&d.i===f.s&&canFnd(f,d.i); if(d.k==="x") return cs.length===1&&!G.cells[d.i]; if(sel.k==="c"&&sel.i===d.i) return false; var t=G.tab[d.i][G.tab[d.i].length-1]; return (!t||(!(red(t)===red(f))&&t.r===f.r+1))&&cs.length<=maxRun(!t,sel.k==="c"?sel.i:-1); }:function(){return false};
+  var h="";
+  for(var x=0;x<4;x++){ var c=G.cells[x], s=sel&&sel.k==="x"&&sel.i===x, hh=hintM&&hintM.s.k==="x"&&hintM.s.i===x; h+='<div class="slot'+(tg({k:"x",i:x})?' tg':'')+'" data-k="x" data-i="'+x+'">'+(c?cardEl(c,0,(s?' sel':'')+(hh?' hn':''),'data-k="x" data-i="'+x+'"'):'')+'</div>'; }
+  for(var f=0;f<4;f++){ var p=G.fnd[f], t=p[p.length-1]; h+='<div class="slot f'+(tg({k:"f",i:f})||(hintM&&hintM.d.k==="f"&&hintM.d.i===f)?' tg':'')+'" data-k="f" data-i="'+f+'">'+(t?cardEl(t,0,'','data-k="f" data-i="'+f+'"'):SU[f])+'</div>'; }
+  $("top").innerHTML=h;
+  var bd=$("bd"), cwPx=Math.max(20,(window.innerWidth-8-21)/8), avail=Math.max(200,bd.clientHeight-cwPx*1.4-30), ch="";
+  for(var c2=0;c2<8;c2++){ var col=G.tab[c2], f2=col.length>1?Math.max(.25,Math.min(.42,((avail/cwPx)-1.4)/(col.length-1))):.4, y=0, parts="";
+    col.forEach(function(cd,j){ var s3=sel&&sel.k==="c"&&sel.i===c2&&j>=sel.j, hh2=hintM&&hintM.s.k==="c"&&hintM.s.i===c2&&j>=hintM.s.j; parts+=cardEl(cd,'calc(var(--cw)*'+y.toFixed(3)+')',(s3?' sel':'')+(hh2?' hn':''),'data-k="c" data-i="'+c2+'" data-j="'+j+'"'); y+=f2; });
+    var hgt=col.length?(y-f2+1.4):1.4;
+    ch+='<div class="col'+(tg({k:"c",i:c2})||(hintM&&hintM.d.k==="c"&&hintM.d.i===c2)?' tg':'')+'" data-k="c" data-i="'+c2+'" style="height:calc(var(--cw)*'+(hgt+.1).toFixed(3)+')">'+parts+'</div>'; }
+  $("cols").innerHTML=ch; $("mv").textContent=G.moves; $("undo").disabled=!hist.length;
+  var canA=!G.won&&(G.cells.some(function(c){return c&&canFnd(c,c.s)})||G.tab.some(function(c){var t=c[c.length-1];return t&&canFnd(t,t.s)})); $("auto").disabled=!canA;
+  if(G.won&&!$("ov").classList.contains("show")) showWin();
+}
+function fmt(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function showWin(){ var secs=Math.round((tEnd-t0)/1000);
+  $("box").innerHTML='<div style="font-size:54px">🃏🎉</div><h2>'+T.won+'</h2><p>'+G.moves+' '+T.moves+' · '+fmt(secs)+'</p><button class="pri" id="ag">'+T.again+'</button><button class="sec" id="bk">'+T.back+'</button>';
+  $("ov").classList.add("show"); $("ag").onclick=function(){ $("ov").classList.remove("show"); newGame(); }; $("bk").onclick=goBack; }
+function startMenu(first){
+  $("box").innerHTML='<div style="font-size:44px">🃏</div><h2>'+T.title+'</h2><p>'+T.tip+'</p><button class="pri" id="go">'+(first?T.start:T.newg)+'</button>'+(first?'':'<button class="sec" id="rs">'+T.resume+'</button>')+'<button class="sec" id="bk2">'+T.back+'</button>';
+  $("go").onclick=function(){ $("ov").classList.remove("show"); newGame(); }; if(!first) $("rs").onclick=function(){ $("ov").classList.remove("show"); }; $("bk2").onclick=goBack; $("ov").classList.add("show"); }
+function goBack(){ if(window.parent!==window) parent.postMessage({bpKartenBack:true},location.origin); else location.href="/"; }
+$("back").onclick=goBack; $("menu").onclick=function(){ startMenu(false); }; $("undo").onclick=undo; $("hint").onclick=hint; $("auto").onclick=runAuto;
+$("bd").addEventListener("click",function(e){ var t=e.target.closest("[data-k]"); if(!t) return; tap(t.dataset.k,+t.dataset.i,t.dataset.j!=null?+t.dataset.j:null); });
+window.addEventListener("resize",function(){ if(G) paint(); });
+setInterval(function(){ if(G&&!G.won) $("tm").textContent=fmt(Math.floor((Date.now()-t0)/1000)); },1000);
+newGame(); startMenu(true);
+window.__fc={state:function(){return G},tap:tap,set:function(g){G=g;paint()}};
+})();
+</script></body></html>

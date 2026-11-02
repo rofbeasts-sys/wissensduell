@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Mau-Mau</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 35%,#1d5a48,#0a2a20 78%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:10px 10px 6px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
+h1{font-size:14px;margin:0;flex:1;color:#bfe6d6;font-weight:700}
+.pill{border:1px solid #ffffff26;background:#0004;border-radius:99px;padding:5px 10px;font-size:12.5px;font-weight:800;white-space:nowrap}
+#opps{display:flex;justify-content:space-around;padding:4px 6px;gap:6px}
+.opp{flex:1;text-align:center;border-radius:14px;padding:6px 4px;background:#0003;border:2px solid transparent;min-width:0}
+.opp.turn{border-color:#ffd45a;box-shadow:0 0 12px #ffd45a77}
+.opp .nm{font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.opp .bk{display:flex;justify-content:center;height:34px;margin-top:4px}
+.opp .bk i{width:16px;height:30px;margin-left:-9px;border-radius:4px;background:repeating-linear-gradient(45deg,#2b3d8f 0 4px,#1f2d6e 4px 8px);border:1.5px solid #dfe6ff;display:block}
+.opp .bk i:first-child{margin-left:0}
+.opp .ct{font-size:11px;opacity:.8}
+#mid{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:26px;position:relative}
+.card{width:64px;height:90px;border-radius:9px;background:linear-gradient(#fff,#e9edf5);color:#151a2e;font-weight:900;box-shadow:0 3px 7px #000a;position:relative;flex:none;box-sizing:border-box;overflow:hidden}
+.card.rd{color:#d3213f}
+.card .a{position:absolute;left:6px;top:4px;font-size:20px;line-height:1.05}
+.card .b{position:absolute;right:6px;bottom:2px;font-size:32px;line-height:1}
+.card.dn{background:repeating-linear-gradient(45deg,#2b3d8f 0 6px,#1f2d6e 6px 12px);border:2px solid #dfe6ff}
+#pile{cursor:default}#deck{cursor:pointer}
+#deck .n{position:absolute;right:-6px;bottom:-6px;background:#ff3d6e;border-radius:99px;font-size:12px;min-width:20px;height:20px;display:grid;place-items:center;padding:0 5px;color:#fff}
+#want{position:absolute;top:-4px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:800;background:#000a;padding:3px 10px;border-radius:99px;white-space:nowrap}
+#info{text-align:center;font-size:13px;min-height:20px;padding:2px 10px;color:#ffe9a0;font-weight:700}
+#hand{display:flex;flex-wrap:wrap;justify-content:center;gap:0;padding:26px 8px calc(10px + env(safe-area-inset-bottom));min-height:130px;align-content:flex-start}
+#hand .card{margin:0 -8px 4px;transition:transform .12s;cursor:pointer}
+#hand .card.ok{transform:translateY(-14px);box-shadow:0 0 0 3px #7ae582,0 3px 7px #000a}
+#hand .card.no{opacity:.62}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(3,20,14,.84);z-index:60}.ov.show{display:flex}
+.box{background:#0f3328;border:1px solid #ffffff26;border-radius:22px;padding:24px 20px;text-align:center;max-width:340px;width:100%}
+.box h2{margin:0 0 6px;font-size:23px}.box p{color:#bfe6d6;margin:0 0 14px;font-size:13px}
+.pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#0a2a20;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
+.sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
+.suitb{display:flex;gap:10px;justify-content:center;margin:8px 0}
+.suitb button{width:60px;height:60px;border-radius:16px;border:2px solid #ffffff33;background:#fff;font-size:34px;cursor:pointer}
+.suitb button.r{color:#d3213f}
+.lv{display:flex;gap:8px;margin:8px 0}.lv button{flex:1;padding:12px 4px;border-radius:14px;border:2px solid #ffffff2e;background:#0004;color:#fff;font-size:15px;font-weight:800;cursor:pointer}.lv button.on{border-color:#c6ff3d}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">Mau-Mau</h1><span class="pill" id="wins">0 : 0</span><button class="back" id="menu">⚙</button></div>
+<div id="opps"></div>
+<div id="mid"><div id="deck" class="card dn"></div><div id="pile" class="card"></div><div id="want"></div></div>
+<div id="info"></div>
+<div id="hand"></div>
+<div class="ov show" id="ov"><div class="box" id="box"></div></div>
+<script>
+(function(){
+var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
+var T=EN?{title:"Mau-Mau",tip:"Play a card with the same suit or the same rank. 7 = next player draws 2 (can be stacked with another 7). 8 = next player skips. Jack = wish a suit. First to empty their hand wins. If you cannot play, tap the deck.",start:"START",you:"You",cpu:"CPU",opps:"Opponents",your:"Your turn – play a card or draw.",draw:"You draw",wish:"Choose a suit",won:"You win!",lost:"wins",again:"Next round",back:"Back",resume:"Continue",newg:"New game",skip:"skips a turn",d2:"draws",must:"You must play a 7 or draw",wishes:"wishes",cannot:"That card doesn't fit.",mau:"Mau!",last:"Mau-Mau!"}
+:{title:"Mau-Mau",tip:"Lege eine Karte mit gleicher Farbe oder gleichem Wert. 7 = der Nächste zieht 2 (mit einer weiteren 7 weitergeben). 8 = der Nächste setzt aus. Bube = Farbe wünschen. Wer zuerst keine Karten mehr hat, gewinnt. Passt nichts, tippe den Stapel.",start:"START",you:"Du",cpu:"CPU",opps:"Gegner",your:"Du bist dran – lege eine Karte oder ziehe.",draw:"Du ziehst",wish:"Farbe wünschen",won:"Du hast gewonnen!",lost:"gewinnt",again:"Nächste Runde",back:"Zurück",resume:"Weiter",newg:"Neues Spiel",skip:"setzt aus",d2:"zieht",must:"Du musst eine 7 legen oder ziehen",wishes:"wünscht sich",cannot:"Die Karte passt nicht.",mau:"Mau!",last:"Mau-Mau!"};
+var SU=["♠","♥","♦","♣"], RK={7:"7",8:"8",9:"9",10:"10",11:"B",12:"D",13:"K",14:"A"}; if(EN) RK={7:"7",8:"8",9:"9",10:"10",11:"J",12:"Q",13:"K",14:"A"};
+var NAMES=["Max","Lena","Tom","Mia"];
+var $=function(i){return document.getElementById(i)}, red=function(c){return c.s===1||c.s===2};
+var G=null, nOpp=1, score=[0,0,0,0], busy=false;
+try{ var sv=+localStorage.getItem("bp_mau_opp"); if(sv>=1&&sv<=3) nOpp=sv; }catch(e){}
+function mk(){ var d=[]; for(var s=0;s<4;s++) for(var r=7;r<=14;r++) d.push({s:s,r:r}); for(var i=d.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)),x=d[i];d[i]=d[j];d[j]=x; } return d; }
+function newRound(){
+  var d=mk(), n=nOpp+1, hands=[]; for(var p=0;p<n;p++){ hands.push([]); for(var k=0;k<5;k++) hands[p].push(d.pop()); }
+  var top=d.pop(); while(top.r===11||top.r===7||top.r===8){ d.unshift(top); top=d.pop(); }
+  G={hands:hands,deck:d,pile:[top],turn:0,dir:1,wish:null,pend:0,over:false,n:n,drew:false,wait:false}; busy=false; paint(); info(T.your); if(G.turn!==0) cpuTurn();
+}
+function topC(){ return G.pile[G.pile.length-1]; }
+function fits(c){ var t=topC();
+  if(G.pend>0) return c.r===7;
+  if(c.r===11) return t.r!==11||true;
+  if(G.wish!==null) return c.s===G.wish;
+  return c.s===t.s||c.r===t.r;
+}
+function drawOne(p){ if(!G.deck.length){ var t=G.pile.pop(); G.deck=G.pile; G.pile=[t]; for(var i=G.deck.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)),x=G.deck[i];G.deck[i]=G.deck[j];G.deck[j]=x; } } if(!G.deck.length) return null; var c=G.deck.pop(); G.hands[p].push(c); return c; }
+function nextP(skip){ var p=G.turn; for(var k=0;k<(skip?2:1);k++) p=(p+G.dir+G.n)%G.n; return p; }
+function info(t){ $("info").textContent=t||""; }
+function who(p){ return p===0?T.you:NAMES[p-1]; }
+function play(p,i,wishS){
+  var c=G.hands[p].splice(i,1)[0]; G.pile.push(c); G.wish=null; var skip=false;
+  if(c.r===7) G.pend+=2; else if(c.r===8) skip=true; else if(c.r===11){ G.wish=wishS; }
+  if(!G.hands[p].length){ G.over=true; score[p]++; paint(); return end(p); }
+  var msg=""; if(G.hands[p].length===1) msg=who(p)+": "+T.last+" ";
+  if(c.r===8){ var sp=nextP(false); msg+=who(sp)+" "+T.skip; }
+  if(c.r===11) msg+=who(p)+" "+T.wishes+" "+SU[wishS];
+  G.turn=nextP(skip); G.drew=false; paint(); info(msg||"");
+  return true;
+}
+function takePenalty(p){ var n=G.pend; for(var k=0;k<n;k++) drawOne(p); G.pend=0; info(who(p)+" "+T.d2+" "+n); G.turn=nextP(false); G.drew=false; paint(); }
+function human(i){
+  if(!G||G.over||busy||G.turn!==0) return; var c=G.hands[0][i]; if(!c) return;
+  if(!fits(c)){ info(G.pend>0?T.must:T.cannot); return; }
+  if(c.r===11){ pickSuit(function(s){ if(play(0,i,s)===true&&!G.over) after(); }); return; }
+  if(play(0,i)===true&&!G.over) after();
+}
+function pickSuit(cb){ $("box").innerHTML='<h2>'+T.wish+'</h2><div class="suitb">'+SU.map(function(s,k){return '<button class="'+((k===1||k===2)?'r':'')+'" data-s="'+k+'">'+s+'</button>'}).join("")+'</div>'; $("ov").classList.add("show"); Array.prototype.forEach.call($("box").querySelectorAll("button"),function(b){ b.onclick=function(){ $("ov").classList.remove("show"); cb(+b.dataset.s); }; }); }
+function drawHuman(){
+  if(!G||G.over||busy||G.turn!==0) return;
+  if(G.pend>0){ takePenalty(0); return after(); }
+  var any=G.hands[0].some(fits); if(G.drew){ // schon gezogen -> passen
+    G.turn=nextP(false); G.drew=false; paint(); return after(); }
+  var c=drawOne(0); G.drew=true; paint(); info(T.draw+" "+(c?RK[c.r]+SU[c.s]:"")+(fits(c)?"":" – "+(EN?"tap the deck to pass":"Stapel antippen = passen")));
+}
+function after(){ if(G.over) return; if(G.turn!==0) cpuTurn(); else info(T.your); }
+function cpuTurn(){
+  busy=true;
+  setTimeout(function(){
+    if(G.over){ busy=false; return; } var p=G.turn; if(p===0){ busy=false; return; }
+    var h=G.hands[p];
+    if(G.pend>0){ var i7=h.findIndex(function(c){return c.r===7}); if(i7>=0){ play(p,i7); } else takePenalty(p); }
+    else {
+      var idx=[]; h.forEach(function(c,i){ if(fits(c)) idx.push(i); });
+      if(!idx.length){ var c=drawOne(p); if(c&&fits(c)){ paint(); var ii=G.hands[p].length-1; info(who(p)+" "+(EN?"draws":"zieht")); setTimeout(function(){ cpuPlay(p,ii); },650); return; } info(who(p)+" "+(EN?"draws and passes":"zieht und passt")); G.turn=nextP(false); paint(); }
+      else { // bevorzugt: keine Buben, Aktionskarten wenn Gegner wenig Karten
+        idx.sort(function(a,b){ return score2(h[b],p)-score2(h[a],p); }); play(p,idx[0],bestSuit(h)); }
+    }
+    cpuDone();
+  },900);
+}
+function cpuPlay(p,i){ if(G.over) return; if(fits(G.hands[p][i])) play(p,i,bestSuit(G.hands[p])); cpuDone(); }
+function cpuDone(){ if(G.over){ busy=false; return; } busy=false; if(G.turn!==0){ cpuTurn(); } else info(T.your+(G.pend>0?" ("+(EN?"draw ":"zieh ")+G.pend+")":"")); paint(); }
+function score2(c,p){ var s=Math.random(); if(c.r===11) s-=3; if(c.r===7||c.r===8) s+=1.5; return s; }
+function bestSuit(h){ var cnt=[0,0,0,0]; h.forEach(function(c){ if(c.r!==11) cnt[c.s]++; }); var b=0; for(var i=1;i<4;i++) if(cnt[i]>cnt[b]) b=i; return b; }
+function end(p){ busy=false;
+  $("box").innerHTML='<div style="font-size:50px">'+(p===0?'🏆':'😅')+'</div><h2>'+(p===0?T.won:who(p)+" "+T.lost)+'</h2><p>'+T.you+' '+score[0]+' : '+score.slice(1,1+nOpp).join(" : ")+'</p><button class="pri" id="ag">'+T.again+'</button><button class="sec" id="bk">'+T.back+'</button>';
+  setTimeout(function(){ $("ov").classList.add("show"); $("ag").onclick=function(){ $("ov").classList.remove("show"); newRound(); }; $("bk").onclick=goBack; },700); }
+function cardHtml(c,cls){ return '<div class="card'+(red(c)?' rd':'')+(cls?' '+cls:'')+'"><span class="a">'+RK[c.r]+'<br>'+SU[c.s]+'</span><span class="b">'+SU[c.s]+'</span></div>'; }
+function paint(){
+  var o=""; for(var p=1;p<G.n;p++){ var n=G.hands[p].length, bk=""; for(var k=0;k<Math.min(n,9);k++) bk+="<i></i>"; o+='<div class="opp'+(G.turn===p&&!G.over?' turn':'')+'"><div class="nm">'+NAMES[p-1]+'</div><div class="bk">'+bk+'</div><div class="ct">'+n+'</div></div>'; }
+  $("opps").innerHTML=o;
+  var t=topC(); $("pile").className="card"+(red(t)?" rd":""); $("pile").innerHTML='<span class="a">'+RK[t.r]+'<br>'+SU[t.s]+'</span><span class="b">'+SU[t.s]+'</span>';
+  $("deck").innerHTML='<span class="n">'+G.deck.length+'</span>';
+  $("want").style.display=G.wish!==null?"":"none"; $("want").innerHTML=(EN?"Wish: ":"Wunsch: ")+'<span style="color:'+((G.wish===1||G.wish===2)?"#ff6b8b":"#fff")+'">'+(G.wish!==null?SU[G.wish]:"")+'</span>';
+  var h=G.hands[0].slice().map(function(c,i){return {c:c,i:i}}); h.sort(function(a,b){ return a.c.s-b.c.s||a.c.r-b.c.r; });
+  $("hand").innerHTML=h.map(function(x){ var ok=G.turn===0&&!G.over&&fits(x.c); return '<div data-i="'+x.i+'">'+cardHtml(x.c,ok?'ok':'no')+'</div>'; }).join("");
+  $("wins").textContent=score[0]+" : "+score.slice(1,1+nOpp).reduce(function(a,b){return a+b},0);
+}
+function startMenu(first){
+  var cur=nOpp;
+  $("box").innerHTML='<div style="font-size:44px">🃏</div><h2>'+T.title+'</h2><p>'+T.tip+'</p><div style="font-weight:800;font-size:13px">'+T.opps+'</div><div class="lv"><button data-n="1">1</button><button data-n="2">2</button><button data-n="3">3</button></div><button class="pri" id="go">'+(first?T.start:T.newg)+'</button>'+(first?'':'<button class="sec" id="rs">'+T.resume+'</button>')+'<button class="sec" id="bk2">'+T.back+'</button>';
+  var bs=$("box").querySelectorAll(".lv button"); function mark(){ for(var i=0;i<bs.length;i++) bs[i].classList.toggle("on",+bs[i].dataset.n===cur); } mark();
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ cur=+this.dataset.n; mark(); };
+  $("go").onclick=function(){ nOpp=cur; try{ localStorage.setItem("bp_mau_opp",String(cur)); }catch(e){} score=[0,0,0,0]; $("ov").classList.remove("show"); newRound(); };
+  if(!first) $("rs").onclick=function(){ $("ov").classList.remove("show"); }; $("bk2").onclick=goBack; $("ov").classList.add("show"); }
+function goBack(){ if(window.parent!==window) parent.postMessage({bpKartenBack:true},location.origin); else location.href="/"; }
+$("back").onclick=goBack; $("menu").onclick=function(){ startMenu(false); }; $("deck").onclick=drawHuman;
+$("hand").addEventListener("click",function(e){ var t=e.target.closest("[data-i]"); if(t) human(+t.dataset.i); });
+newRound(); startMenu(true);
+window.__mm={state:function(){return G},human:human,drawHuman:drawHuman,fits:fits};
+})();
+</script></body></html>

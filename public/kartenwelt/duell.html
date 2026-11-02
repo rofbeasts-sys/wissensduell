@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Karten-Duell</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 50%,#2a2250,#0d0a24 80%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:8px 10px 4px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
+h1{font-size:14px;margin:0;flex:1;color:#cbbcff;font-weight:700}
+.hero{display:flex;align-items:center;gap:10px;padding:6px 12px;margin:0 10px;border-radius:14px;background:#0005;border:2px solid transparent}
+.hero.tg{border-color:#ff5a6e;box-shadow:0 0 14px #ff5a6e88;cursor:pointer}
+.hero .av{font-size:26px}.hero .hp{font-weight:900;font-size:18px;color:#ff7b8f}.hero .mn{font-weight:900;font-size:15px;color:#7fd0ff}.hero .nm{flex:1;font-size:12px;font-weight:800;opacity:.9}
+.board{display:flex;justify-content:center;gap:5px;padding:6px 8px;min-height:104px;align-items:center}
+.card{position:relative;width:calc((100vw - 16px - 20px)/5);max-width:78px;aspect-ratio:.72;border-radius:11px;background:linear-gradient(160deg,#3a3270,#201a47);border:2px solid #8f82ff;box-shadow:0 3px 7px #0009;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:clamp(24px,8vw,34px);flex:none;cursor:pointer;overflow:visible}
+.syn{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:0 8px;min-height:18px}.sy{font-size:10.5px;font-weight:700;padding:2px 6px;border-radius:99px;background:#ffffff14;color:#aab}.sy.on{background:#2fa84f55;color:#d6ffd9;border:1px solid #7ae582}.card .ci{position:absolute;top:15px;left:2px;font-size:11px;line-height:1.05;text-align:center;text-shadow:0 1px 2px #000}
+.card .nm{position:absolute;left:0;right:0;bottom:15px;font-size:9px;white-space:nowrap;font-weight:800;text-shadow:0 1px 3px #000;opacity:.95;text-align:center;line-height:1}
+.card .co{position:absolute;top:-8px;left:-8px;width:22px;height:22px;border-radius:99px;background:#2a7bff;font-size:12px;font-weight:900;display:grid;place-items:center;border:2px solid #fff}
+.card .at{position:absolute;bottom:-7px;left:-6px;min-width:24px;height:24px;border-radius:99px;background:#ff9a2e;color:#2b1700;font-size:13px;font-weight:900;display:grid;place-items:center;border:2px solid #fff;padding:0 3px}
+.card .lf{position:absolute;bottom:-7px;right:-6px;min-width:24px;height:24px;border-radius:99px;background:#e23b55;font-size:13px;font-weight:900;display:grid;place-items:center;border:2px solid #fff;padding:0 3px}
+.card .tr{position:absolute;top:2px;right:3px;font-size:13px}
+.card.wall{border-color:#7aa0ff}
+.card.sp{border-color:#ffd45a}
+.card.rdy{box-shadow:0 0 0 3px #7ae582,0 3px 7px #0009}
+.card.sel{box-shadow:0 0 0 3px #c6ff3d,0 0 16px #c6ff3d;transform:translateY(-6px)}
+.card.tg{box-shadow:0 0 0 3px #ff5a6e,0 0 14px #ff5a6e}
+.card.frz{filter:saturate(.5) brightness(1.15);outline:2px dashed #9fe3ff}.card.dim{opacity:.5}
+.card.hit{animation:hit .35s}@keyframes hit{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.card.dead{animation:dead .45s forwards}@keyframes dead{to{opacity:0;transform:scale(.4) rotate(10deg)}}
+.mid{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px}
+#log{font-size:12.5px;color:#ffe9a0;font-weight:700;text-align:center;min-height:34px;padding:0 12px;display:flex;align-items:center}
+#end{border:0;border-radius:14px;padding:11px 22px;font-size:15px;font-weight:900;background:linear-gradient(90deg,#ffd45a,#7ae582);color:#1d1440;cursor:pointer}#end:disabled{opacity:.4}
+#hand{display:flex;gap:7px;padding:14px 10px calc(12px + env(safe-area-inset-bottom));overflow-x:auto;justify-content:flex-start;min-height:128px;align-items:flex-end}
+#hand .card{width:76px;max-width:none}
+#hand .card.can{box-shadow:0 0 0 3px #7ae582,0 3px 7px #0009;transform:translateY(-8px)}
+#hand .card.no{opacity:.55}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(8,4,24,.86);z-index:60}.ov.show{display:flex}
+.box{background:#1b1540;border:1px solid #ffffff26;border-radius:22px;padding:24px 20px;text-align:center;max-width:340px;width:100%}
+.box h2{margin:0 0 6px;font-size:23px}.box p{color:#cbbcff;margin:0 0 12px;font-size:13px}
+.pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#1d1440;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
+.sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
+.lv{display:flex;gap:8px;margin:8px 0}.lv button{flex:1;padding:12px 4px;border-radius:14px;border:2px solid #ffffff2e;background:#0004;color:#fff;font-size:14px;font-weight:800;cursor:pointer}.lv button.on{border-color:#c6ff3d}
+.info{position:fixed;left:10px;right:10px;bottom:150px;z-index:40;background:#000c;border:1px solid #fff4;border-radius:14px;padding:10px 12px;font-size:13px;display:none}
+
+#aov{position:fixed;inset:0;z-index:70;display:none;flex-direction:column;background:linear-gradient(#1a1650,#3b2a7a 55%,#5a3d8f)}#aov.show{display:flex}
+#aov .bar{display:flex;align-items:center;gap:8px;padding:10px}#aov h2{margin:0;font-size:15px;flex:1;color:#ffe9a0}
+#dots{display:flex;gap:5px;justify-content:center;padding:4px 10px;flex-wrap:wrap}.dt{width:26px;height:26px;border-radius:99px;background:#0005;border:2px solid #ffffff44;display:grid;place-items:center;font-size:13px}.dt.done{background:#2fa84f;border-color:#9fffb2}.dt.cur{border-color:#ffd45a;box-shadow:0 0 10px #ffd45a}
+#scene{position:relative;flex:1;overflow:hidden}
+#ground{position:absolute;left:0;right:0;bottom:0;height:34%;background:#3a7a3a;border-top:6px solid #5cb85c}
+#floor{position:absolute;left:0;right:0;bottom:0;height:34%;background:repeating-linear-gradient(90deg,transparent 0 46px,#0003 46px 52px)}#scene.run #floor{animation:fl .5s linear infinite}@keyframes fl{to{background-position:-98px 0}}
+#hh{position:absolute;left:3%;bottom:30%;height:34%;image-rendering:auto}
+#mon{position:absolute;right:-40%;bottom:30%;height:26%;transition:right 1.1s ease-out;display:none}#mon.in{right:2%;display:block}#mon.pre{display:block}
+#msg{position:absolute;left:0;right:0;top:12px;text-align:center;font-weight:800;color:#fff;text-shadow:0 2px 6px #000;font-size:17px;padding:0 14px}
+#aov .bt{padding:12px 14px calc(14px + env(safe-area-inset-bottom))}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">Karten-Duell</h1><button class="back" id="menu">⚙</button><button class="back" id="book">📖</button></div>
+<div class="hero" id="eh"></div>
+<div class="board" id="eb"></div>
+<div class="mid"><div class="syn" id="syE"></div><div id="log"></div><div class="syn" id="syP"></div><button id="end">…</button></div>
+<div class="board" id="pb"></div>
+<div class="hero" id="ph"></div>
+<div id="hand"></div>
+<div class="info" id="info"></div>
+<div id="aov"><div class="bar"><button class="back" id="aback">←</button><h2 id="ahd"></h2></div><div id="dots"></div><div id="scene"><div id="msg"></div><div id="ground"></div><div id="floor"></div><img id="hh" src="/kartenwelt/duell/h_run0.png"><img id="mon"></div><div class="bt"><button class="pri" id="agoB" style="margin:0"></button></div></div>
+<div class="ov show" id="ov"><div class="box" id="box"></div></div>
+<script>
+(function(){
+var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
+var T=EN?{title:"Card Duel",tip:"Bring the enemy hero's life to 0! Each turn you get more mana. Tap a card in your hand to play it. Tap one of your ready creatures, then an enemy to attack. 🛡 Guard (must be attacked first) · ⚡ Rush · 🏹 Ranged (no counter-damage) · 🗡 Thief (can hit the hero past guards) · 💚 Healer (+2 hero health each turn) · 🌾 draws a card · 👑 gives your creatures +1/+1 · ❄ Frost (hit creature skips its next attack) · 🔥 Burn (+1 damage) · 🌿 Regrowth (heals itself each turn). Pick a deck: Forest, Ice, Fire or Earth. Creatures defend by fighting back.",start:"START",deck:"Deck",forest:"🌲 Forest",ice:"❄ Ice",fire:"🔥 Fire",earth:"🌿 Earth",adv:"Adventure",advDone:"Adventure complete!",bonus:"+2 hero health for the next fights!",onward:"Continue",retry:"Try again",walk:"Run ▶",fight:"Fight!",appears:"appears!",diff:"Difficulty",easy:"Easy",norm:"Normal",hard:"Hard",you:"You",cpu:"Enemy",end:"End turn",won:"Victory!",lost:"Defeated",again:"Play again",back:"Back",resume:"Continue",newg:"New game",your:"Your turn – play cards and attack.",cpuT:"Enemy turn…",mana:"Not enough mana",full:"Your board is full",first:"Guard must be attacked first",pick:"Pick a ready creature first",fat:"Deck empty – fatigue",played:"plays",att:"attacks",heal:"heals",dmg:"takes",drew:"draws",guard:"Guard",rush:"Rush",wall:"Must be attacked first",rush_:"Can attack right away"}
+:{title:"Karten-Duell",tip:"Bringe das Leben des gegnerischen Helden auf 0! Jede Runde bekommst du mehr Mana. Tippe eine Karte auf der Hand, um sie auszuspielen. Tippe eine bereite Kreatur und dann einen Gegner, um anzugreifen. 🛡 Wächter (müssen zuerst angegriffen werden) · ⚡ Eile · 🏹 Fernkampf (kein Rückschaden) · 🗡 Dieb (greift den Helden an Wächtern vorbei an) · 💚 Heiler (+2 Helden-Leben pro Zug) · 🌾 zieht eine Karte · 👑 gibt deinen Kreaturen +1/+1 · ❄ Frost (getroffene Kreatur setzt den nächsten Angriff aus) · 🔥 Brand (+1 Schaden) · 🌿 Nachwachsen (heilt sich jeden Zug). Wähle ein Deck: Wald, Eis, Feuer oder Erde. Verteidigen heißt: Die Kreatur wehrt sich beim Angriff.",start:"START",deck:"Deck",forest:"🌲 Wald",ice:"❄ Eis",fire:"🔥 Feuer",earth:"🌿 Erde",adv:"Abenteuer",advDone:"Abenteuer geschafft!",bonus:"+2 Helden-Leben für die nächsten Kämpfe!",onward:"Weiter",retry:"Nochmal versuchen",walk:"Laufen ▶",fight:"Kämpfen!",appears:"erscheint!",diff:"Schwierigkeit",easy:"Leicht",norm:"Normal",hard:"Schwer",you:"Du",cpu:"Gegner",end:"Zug beenden",won:"Sieg!",lost:"Besiegt",again:"Nochmal",back:"Zurück",resume:"Weiter",newg:"Neues Spiel",your:"Du bist dran – spiele Karten und greife an.",cpuT:"Gegner ist dran…",mana:"Zu wenig Mana",full:"Dein Feld ist voll",first:"Erst den Wächter angreifen",pick:"Wähle erst eine bereite Kreatur",fat:"Stapel leer – Erschöpfung",played:"spielt",att:"greift an",heal:"heilt",dmg:"erleidet",drew:"zieht",guard:"Wächter",rush:"Eile",wall:"Muss zuerst angegriffen werden",rush_:"Greift sofort an"};
+var $=function(i){return document.getElementById(i)};
+// Karten: n=Name, e=Emoji, c=Kosten, a=Angriff, h=Leben, t=Eigenschaft (w=Waechter, r=Eile)
+var POOL=[
+ {n:"Ratte",en:"Rat",e:"🐀",c:1,a:1,h:2},{n:"Holzwall",en:"Log wall",e:"🪵",c:1,a:0,h:3,t:"w"},
+ {n:"Goblin",en:"Goblin",e:"👺",c:2,a:2,h:2,t:"r"},{n:"Wolf",en:"Wolf",e:"🐺",c:2,a:3,h:2},{n:"Steinwächter",en:"Stone guard",e:"🗿",c:2,a:1,h:4,t:"w"},
+ {n:"Ritter",en:"Knight",e:"🛡️",c:3,a:3,h:4},{n:"Bogenschütze",en:"Archer",e:"🏹",c:3,a:4,h:2,t:"r"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:3,a:2,h:5,t:"w"},
+ {n:"Bär",en:"Bear",e:"🐻",c:4,a:4,h:5},{n:"Magier",en:"Mage",e:"🧙",c:4,a:3,h:3},{n:"Burgmauer",en:"Castle wall",e:"🏰",c:4,a:1,h:7,t:"w"},
+ {n:"Phönix",en:"Phoenix",e:"🔥",c:5,a:6,h:3,t:"r"},{n:"Golem",en:"Golem",e:"🤖",c:5,a:5,h:5},
+ {n:"Drache",en:"Dragon",e:"🐉",c:6,a:7,h:6},{n:"Riese",en:"Giant",e:"🦣",c:7,a:8,h:8},
+ {n:"Bauer",en:"Farmer",e:"🌾",c:1,a:1,h:2,t:"c"},{n:"Dieb",en:"Thief",e:"🗡",c:2,a:2,h:2,t:"d"},{n:"Heiler",en:"Healer",e:"💚",c:2,a:1,h:3,t:"h"},
+ {n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:1,h:3,t:"ws"},{n:"Speerkämpfer",en:"Spearman",e:"🔱",c:3,a:3,h:3,t:"r"},{n:"Schwertkämpfer",en:"Swordsman",e:"⚔",c:3,a:4,h:3},
+ {n:"Schildträger",en:"Shield bearer",e:"🛡",c:3,a:2,h:5,t:"w"},{n:"Schütze",en:"Gunner",e:"🔫",c:3,a:3,h:2,t:"s"},{n:"Steinturm",en:"Stone tower",e:"🗼",c:3,a:1,h:6,t:"w"},
+ {n:"Bogenturm",en:"Archer tower",e:"🎯",c:4,a:3,h:4,t:"s"},{n:"Kanone",en:"Cannon",e:"💣",c:5,a:5,h:3,t:"s"},{n:"König",en:"King",e:"👑",c:6,a:4,h:6,t:"k"}];
+var ICE=[
+ {n:"Eisbaum",en:"Ice tree",e:"🌲",c:1,a:0,h:3,t:"w",img:"itree"},{n:"Schneemaus",en:"Snow mouse",e:"🐭",c:1,a:1,h:2,img:"imouse"},
+ {n:"Eissoldat",en:"Ice soldier",e:"🥶",c:2,a:2,h:3,img:"isold"},{n:"Eiswolf",en:"Ice wolf",e:"🐺",c:2,a:3,h:2,t:"f",img:"iwolf"},{n:"Schneewall",en:"Snow wall",e:"🧱",c:2,a:1,h:5,t:"w",img:"iwall"},
+ {n:"Eisritter",en:"Ice knight",e:"🗡",c:3,a:3,h:4,img:"iknight"},{n:"Schneeschütze",en:"Snow archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"iarch"},{n:"Eisgeist",en:"Ice ghost",e:"👻",c:3,a:2,h:3,t:"d",img:"ighost"},
+ {n:"Frostwächter",en:"Frost guard",e:"🛡",c:3,a:2,h:5,t:"w",img:"iguard"},{n:"Eisturm",en:"Ice tower",e:"🗼",c:3,a:1,h:6,t:"w",img:"itower"},
+ {n:"Eiszauberer",en:"Ice wizard",e:"🧙",c:4,a:3,h:4,t:"f",img:"image"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:4,a:4,h:5,img:"igolem"},
+ {n:"Yeti",en:"Yeti",e:"🦍",c:5,a:5,h:6,img:"yeti"},{n:"Eiskanone",en:"Ice cannon",e:"💣",c:5,a:5,h:3,t:"s",img:"icannon"},{n:"Eisburg",en:"Ice castle",e:"🏰",c:5,a:2,h:9,t:"w",img:"icastle"},
+ {n:"Eisdrache",en:"Ice dragon",e:"🐲",c:6,a:6,h:5,t:"f",img:"idragon"},{n:"Eiskönig",en:"Ice king",e:"👑",c:6,a:4,h:6,t:"k",img:"iking"}];
+var ICESP=[
+ {n:"Schneeball",en:"Snowball",e:"⚪",c:1,sp:"ball",img:"iball"},{n:"Eisfalle",en:"Ice trap",e:"🧊",c:2,sp:"trap",img:"itrap"},{n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,sp:"storm",img:"istorm"}];
+var FIRE=[{n:"Feuergeist",en:"Fire spirit",e:"🔥",c:1,a:2,h:1,img:"f01"},
+ {n:"Feuerholzwall",en:"Fire log wall",e:"🪵",c:1,a:0,h:3,t:"w",img:"f03"},
+ {n:"Feuergoblin",en:"Fire goblin",e:"👺",c:2,a:2,h:2,t:"r",img:"f04"},
+ {n:"Feuerwolf",en:"Fire wolf",e:"🐺",c:2,a:3,h:2,t:"b",img:"f05"},
+ {n:"Feuerschütze",en:"Fire gunner",e:"🔫",c:2,a:2,h:2,t:"s",img:"f11"},
+ {n:"Feuerheiler",en:"Fire healer",e:"💚",c:2,a:1,h:3,t:"h",img:"f14"},
+ {n:"Feuerwächter",en:"Fire guard",e:"🛡",c:3,a:2,h:4,t:"w",img:"f12"},
+ {n:"Feuerritter",en:"Fire knight",e:"⚔",c:3,a:3,h:4,img:"f02"},
+ {n:"Feuerspeerträger",en:"Fire spearman",e:"🔱",c:3,a:3,h:3,t:"r",img:"f09"},
+ {n:"Feuerbogenschütze",en:"Fire archer",e:"🏹",c:3,a:3,h:2,t:"sb",img:"f07"},
+ {n:"Feuerturm",en:"Fire tower",e:"🗼",c:3,a:2,h:4,t:"s",img:"f16"},
+ {n:"Feuermagier",en:"Fire mage",e:"🧙",c:4,a:4,h:3,t:"b",img:"f08"},
+ {n:"Feuerbär",en:"Fire bear",e:"🐻",c:4,a:5,h:4,img:"f06"},
+ {n:"Feuerdämon",en:"Fire demon",e:"😈",c:4,a:4,h:3,t:"d",img:"f10"},
+ {n:"Feuerkanone",en:"Fire cannon",e:"💣",c:5,a:6,h:3,t:"s",img:"f17"},
+ {n:"Feuerburg",en:"Fire castle",e:"🏰",c:5,a:2,h:8,t:"w",img:"f18"},
+ {n:"Feuerdrache",en:"Fire dragon",e:"🐉",c:6,a:7,h:5,t:"b",img:"f13"},
+ {n:"Feuerriese",en:"Fire giant",e:"🦣",c:6,a:7,h:6,img:"f15"},
+ {n:"Feuerkönig",en:"Fire king",e:"👑",c:6,a:4,h:5,t:"k",img:"f20"}];
+var FIRESP=[{n:"Feuerball",en:"Fireball",e:"☄️",c:3,sp:"fire",img:"f19"},{n:"Feuerball",en:"Fireball",e:"☄️",c:3,sp:"fire",img:"f19"}];
+var EARTH=[{n:"Maus",en:"Mouse",e:"🐭",c:1,a:1,h:2,img:"e01"},
+ {n:"Holzwall",en:"Log wall",e:"🪵",c:1,a:0,h:3,t:"w",img:"e03"},
+ {n:"Steinwächter",en:"Stone guard",e:"🗿",c:2,a:1,h:4,t:"w",img:"e05"},
+ {n:"Späher",en:"Scout",e:"🗡",c:2,a:2,h:2,t:"d",img:"e14"},
+ {n:"Erdheiler",en:"Earth healer",e:"💚",c:2,a:1,h:3,t:"h",img:"e13"},
+ {n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:1,h:3,t:"ws",img:"e16"},
+ {n:"Erdritter",en:"Earth knight",e:"⚔",c:3,a:3,h:4,img:"e02"},
+ {n:"Schildträger",en:"Shield bearer",e:"🛡",c:3,a:2,h:5,t:"w",img:"e12"},
+ {n:"Waldschütze",en:"Forest archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"e07"},
+ {n:"Steinturm",en:"Stone tower",e:"🗼",c:3,a:1,h:6,t:"w",img:"e17"},
+ {n:"Schwertkämpfer",en:"Swordsman",e:"🗡",c:3,a:4,h:3,img:"e11"},
+ {n:"Druide",en:"Druid",e:"🧙",c:3,a:2,h:4,t:"g",img:"e08"},
+ {n:"Erdgolem",en:"Earth golem",e:"🤖",c:4,a:4,h:5,img:"e04"},
+ {n:"Erdbär",en:"Earth bear",e:"🐻",c:4,a:4,h:5,img:"e06"},
+ {n:"Baumgeist",en:"Tree spirit",e:"🌳",c:5,a:4,h:7,t:"g",img:"e09"},
+ {n:"Katapult",en:"Catapult",e:"💣",c:5,a:6,h:2,t:"s",img:"e18"},
+ {n:"Erdrachen",en:"Earth dragon",e:"🐉",c:6,a:6,h:6,img:"e10"},
+ {n:"Erdriese",en:"Earth giant",e:"🦣",c:6,a:7,h:7,img:"e15"},
+ {n:"Erdkönig",en:"Earth king",e:"👑",c:6,a:4,h:6,t:"k",img:"e19"}];
+var EARTHSP=[{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"},{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"}];
+var SPELLS=[
+ {n:"Feuerball",en:"Fireball",e:"☄️",c:3,sp:"fire",d:"4 Schaden an den Helden",de:"4 damage to the hero"},
+ {n:"Blitzschlag",en:"Lightning",e:"⚡",c:2,sp:"zap",d:"2 Schaden an alle Gegner",de:"2 damage to all enemies"},
+ {n:"Heiltrank",en:"Potion",e:"🧪",c:2,sp:"heal",d:"+5 Leben für dich",de:"+5 health for you"},
+ {n:"Schlachtruf",en:"War cry",e:"📣",c:2,sp:"cry",d:"Deine Kreaturen +1 Angriff",de:"Your creatures +1 attack"},
+ {n:"Eisenhaut",en:"Iron skin",e:"🛡",c:3,sp:"skin",d:"Deine Kreaturen +2 Leben",de:"Your creatures +2 health"}];
+var IMG={"Ratte":"rat","Holzwall":"wall","Goblin":"goblin","Wolf":"wolf","Steinwächter":"stone","Ritter":"knight","Bogenschütze":"archer","Eisgolem":"ice","Bär":"bear","Magier":"mage","Burgmauer":"castle","Phönix":"phoenix","Golem":"golem","Drache":"dragon","Riese":"giant","Feuerball":"fire","Blitzschlag":"zap","Heiltrank":"heal","Schlachtruf":"cry","Eisenhaut":"skin","Bauer":"farmer","Dieb":"thief","Heiler":"healer","Wachturm":"watch","Speerkämpfer":"spear","Schwertkämpfer":"sword","Schildträger":"shield","Schütze":"shooter","Steinturm":"stonet","Bogenturm":"bowt","Kanone":"cannon","König":"king"};
+var D="/kartenwelt/duell/";
+var ST=[{e:"🟢",k:"slime",f:3,n:"Schleim",en:"Slime",hp:14,d:0},{e:"👺",k:"goblin",f:3,n:"Goblin",en:"Goblin",hp:16,d:0},{e:"🦇",k:"bat",f:2,n:"Fledermaus",en:"Bat",hp:18,d:0},{e:"🧟",k:"zombie",f:3,n:"Zombie",en:"Zombie",hp:20,d:1},{e:"💀",k:"skel",f:3,n:"Skelett-Krieger",en:"Skeleton warrior",hp:22,d:1},{e:"🐗",k:"boar",f:2,n:"Wildschwein",en:"Wild boar",hp:24,d:1},{e:"🧙",k:"mage",f:3,n:"Dunkler Magier",en:"Dark mage",hp:26,d:1},{e:"👻",k:"ghost",f:2,n:"Geist",en:"Ghost",hp:28,d:2},{e:"👹",k:"orc",f:2,n:"Ork-Häuptling",en:"Orc chief",hp:31,d:2},{e:"😈",k:"devil",f:2,n:"Teufel-Boss",en:"Devil boss",hp:36,d:2}];
+var DECK=0; try{ DECK=Math.max(0,Math.min(3,+localStorage.getItem("bp_duell_deck")||0)); }catch(e){}
+var ADV=null, cd=1, EAV="🧟", prog=0;
+try{ prog=Math.min(ST.length,+localStorage.getItem("bp_duell_adv")||0); }catch(e){}
+var G=null, diff=1, sel=-1, busy=false;
+try{ var sv=+localStorage.getItem("bp_duell_diff"); if(sv>=0&&sv<=2) diff=sv; }catch(e){}
+function hv(c,x){ return (!!c.t&&c.t.indexOf(x)>=0)||(x==="f"&&!!c.sf)||(x==="b"&&!!c.sb)||(x==="g"&&!!c.sg); }
+var EL=[{i:"🌲",de:"Wald",en:"Forest"},{i:"❄",de:"Eis",en:"Ice"},{i:"🔥",de:"Feuer",en:"Fire"},{i:"🌿",de:"Erde",en:"Earth"}];
+var CL={S:{i:"🏹",de:"Schützen",en:"Shooters"},K:{i:"⚔",de:"Krieger",en:"Warriors"},G:{i:"🛡",de:"Wächter",en:"Guards"},M:{i:"🔮",de:"Magier",en:"Mages"},B:{i:"🐾",de:"Bestien",en:"Beasts"}};
+// Schwellen: Element 2/4, Klasse 2/3 -> Effekte {a,h,f,b,g,heal,disc}
+var SE=[[{a:1},{a:2,h:2}],[{f:1},{f:1,h:2}],[{a:1},{a:2,b:1}],[{h:2},{h:4,g:1}]];
+var SC={S:[{a:1},{a:2}],K:[{h:1},{a:1,h:2}],G:[{h:2},{h:4}],B:[{a:1},{a:2,h:1}],M:[{heal:1},{heal:1,disc:1}]};
+var SD={e:[["+1 Angriff","+2 Angriff, +2 Leben"],["Frost bei Treffer","Frost + 2 Leben"],["+1 Angriff","+2 Angriff + Brand"],["+2 Leben","+4 Leben + Nachwachsen"]],
+ c:{S:["+1 Angriff","+2 Angriff"],K:["+1 Leben","+1 Angriff, +2 Leben"],G:["+2 Leben","+4 Leben"],B:["+1 Angriff","+2 Angriff, +1 Leben"],M:["Held +1 Leben/Runde","+ Zauber kosten 1 weniger"]}};
+var SDE={e:[["+1 attack","+2 attack, +2 health"],["Frost on hit","Frost + 2 health"],["+1 attack","+2 attack + Burn"],["+2 health","+4 health + Regrowth"]],
+ c:{S:["+1 attack","+2 attack"],K:["+1 health","+1 attack, +2 health"],G:["+2 health","+4 health"],B:["+1 attack","+2 attack, +1 health"],M:["Hero +1 health/turn","+ spells cost 1 less"]}};
+function synCount(p){ var B=G.P[p].board, e={}, c={}; B.forEach(function(x){ (e[x.el]=e[x.el]||{})[x.n]=1; (c[x.cl]=c[x.cl]||{})[x.n]=1; });
+  var r={e:[0,0,0,0],c:{S:0,K:0,G:0,M:0,B:0}}; for(var k in e) r.e[k]=Object.keys(e[k]).length; for(var k2 in c) r.c[k2]=Object.keys(c[k2]).length; return r; }
+function synTier(n,t2,t3){ return n>=t3?2:n>=t2?1:0; }
+function synEff(p){ var n=synCount(p); return {n:n,e:n.e.map(function(v){ return synTier(v,2,4); }),c:{S:synTier(n.c.S,2,3),K:synTier(n.c.K,2,3),G:synTier(n.c.G,2,3),M:synTier(n.c.M,2,3),B:synTier(n.c.B,2,3)}}; }
+function sync(){ [0,1].forEach(function(p){ var P=G.P[p], f=synEff(p); P.syn=f;
+  P.board.forEach(function(c){ var a=0,h=0,fl=0,b=0,g=0, te=f.e[c.el], tc=f.c[c.cl];
+    [te>0?SE[c.el][te-1]:null, tc>0?SC[c.cl][tc-1]:null].forEach(function(x){ if(!x) return; a+=x.a||0; h+=x.h||0; fl|=x.f||0; b|=x.b||0; g|=x.g||0; });
+    c.ak+=a-(c.ba||0); c.hp+=h-(c.bh||0); if(h<(c.bh||0)&&c.hp<1) c.hp=1; c.ba=a; c.bh=h; c.sf=!!fl; c.sb=!!b; c.sg=!!g; });
+  P.hand.forEach(function(c){ if(c.sp) c.c=Math.max(0,c.c0-(f.c.M>=2?1:0)); }); }); }
+function synHtml(p){ var f=G.P[p].syn||synEff(p), out=[]; f.n.e.forEach(function(v,i){ if(v>0) out.push('<span class="sy'+(f.e[i]?' on':'')+'">'+EL[i].i+v+(f.e[i]?'':'/2')+(f.e[i]?' '+(EN?SDE:SD).e[i][f.e[i]-1]:'')+'</span>'); });
+  for(var k in f.n.c){ var v=f.n.c[k]; if(v>0) out.push('<span class="sy'+(f.c[k]?' on':'')+'">'+CL[k].i+v+(f.c[k]?'':'/2')+(f.c[k]?' '+(EN?SDE:SD).c[k][f.c[k]-1]:'')+'</span>'); }
+  return out.join(""); }
+function nm(c){ return EN?c.en:c.n; }
+function cls(c){ if(c.sp) return ""; if(c.t&&c.t.indexOf("s")>=0||/schütz|bogen|kanone|katapult/i.test(c.n)) return "S"; if(c.t&&c.t.indexOf("h")>=0||/magier|zauberer|druide|heiler|geist/i.test(c.n)) return "M"; if(/ratte|maus|wolf|bär|drache|rachen|phönix|yeti/i.test(c.n)) return "B"; if(c.t&&c.t.indexOf("w")>=0) return "G"; return "K"; }
+function clone(c,el){ var o={}; for(var k in c) o[k]=c[k]; o.c0=c.c; o.cl=cls(c); o.el=el; o.hp=c.h; o.ak=c.a; o.ba=0; o.bh=0; o.ready=false; o.id=Math.random(); return o; }
+function mkDeck(k){ var d=[], DK=[[POOL,SPELLS],[ICE,ICESP],[FIRE,FIRESP],[EARTH,EARTHSP]][k]; DK[0].forEach(function(c){ d.push(c,c); }); DK[1].forEach(function(c){ d.push(c,c); }); d=d.map(function(c){ return clone(c,k); }); for(var i=d.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)),x=d[i];d[i]=d[j];d[j]=x; } return d.slice(0,30); }
+function newGame(){
+  var hp=ADV?[Math.min(40,20+2*prog),ADV.hp]:[20,[16,20,25][diff]]; cd=ADV?ADV.d:diff; EAV=ADV?'<img src="'+D+'m_'+ADV.k+'0.png" style="height:34px">':"🧟";
+  G={P:[{hp:hp[0],mana:0,max:0,deck:mkDeck(DECK),hand:[],board:[],fat:0},{hp:hp[1],mana:0,max:0,deck:mkDeck(ADV?[0,0,3,3,2,2,1,1,2,2][ST.indexOf(ADV)]:(function(){ var o=[0,1,2,3].filter(function(x){return x!==DECK}); return o[Math.floor(Math.random()*3)]; })()),hand:[],board:[],fat:0}],turn:0,over:false,t:0}; sel=-1; busy=false;
+  for(var i=0;i<4;i++){ draw(0,true); draw(1,true); } draw(1,true);
+  startTurn(0);
+}
+function draw(p,silent){ var P=G.P[p]; if(!P.deck.length){ P.fat++; P.hp-=P.fat; if(!silent) log((p?T.cpu:T.you)+": "+T.fat+" ("+P.fat+")"); return; } var c=P.deck.pop(); if(P.hand.length<7) P.hand.push(c); }
+function startTurn(p){ var P=G.P[p]; G.turn=p; G.t++; if(p===0||G.t>1) P.max=Math.min(8,P.max+1); P.mana=P.max; if(p===1&&cd===2&&P.max<8) { P.max++; P.mana=P.max; } P.board.forEach(function(c){ c.ready=!c.fr; c.fr=false; if(hv(c,"h")) P.hp=Math.min(30,P.hp+2); if(hv(c,"g")) c.hp=Math.min(c.h+3,c.hp+2); }); draw(p); sel=-1; if(P.syn&&P.syn.c.M>=1) P.hp=Math.min(30,P.hp+1);
+  checkEnd(); if(G.over) return; paint(); if(p===0){ log(T.your); busy=false; } else { log(T.cpuT); busy=true; setTimeout(cpuTurn,700); } }
+function log(t){ $("log").textContent=t||""; }
+function guards(p){ return G.P[p].board.some(function(c){return hv(c,"w")}); }
+function dmgHero(p,n){ G.P[p].hp-=n; flash(p?"eh":"ph"); }
+function flash(id){ var e=$(id); e.style.transition="none"; e.style.background="#ff3d6e88"; setTimeout(function(){ e.style.transition="background .5s"; e.style.background=""; },60); }
+function cleanup(){ [0,1].forEach(function(p){ G.P[p].board=G.P[p].board.filter(function(c){return c.hp>0}); }); }
+function checkEnd(){ if(G.over) return; if(G.P[0].hp<=0||G.P[1].hp<=0){ G.over=true; var win=G.P[1].hp<=0&&G.P[0].hp>0; paint(); setTimeout(function(){ finish(win); },700); } }
+function cast(p,c){ var me=G.P[p], op=G.P[1-p];
+  if(c.sp==="fire") dmgHero(1-p,4); else if(c.sp==="zap"){ op.board.forEach(function(x){ x.hp-=2; }); }
+  else if(c.sp==="ball") dmgHero(1-p,2); else if(c.sp==="trap"){ op.board.forEach(function(x){ x.fr=true; x.ready=false; }); } else if(c.sp==="storm"){ op.board.forEach(function(x){ x.hp-=3; }); }
+  else if(c.sp==="rock"){ var bi=-1; op.board.forEach(function(x,j){ if(bi<0||x.ak>op.board[bi].ak) bi=j; }); if(bi>=0) op.board[bi].hp-=5; else dmgHero(1-p,3); }
+  else if(c.sp==="heal") me.hp=Math.min(30,me.hp+5); else if(c.sp==="cry") me.board.forEach(function(x){ x.ak+=1; }); else if(c.sp==="skin") me.board.forEach(function(x){ x.hp+=2; });
+  cleanup(); }
+function playCard(p,i){ var P=G.P[p], c=P.hand[i]; if(!c||c.c>P.mana) return false; if(!c.sp&&P.board.length>=5) return false;
+  P.mana-=c.c; P.hand.splice(i,1); if(c.sp){ cast(p,c); log((p?T.cpu:T.you)+" "+T.played+" "+c.e+" "+nm(c)); } else { c.ready=hv(c,"r"); if(hv(c,"k")) P.board.forEach(function(x){ x.ak+=1; x.hp+=1; }); P.board.push(c); if(hv(c,"c")) draw(p); log((p?T.cpu:T.you)+" "+T.played+" "+c.e+" "+nm(c)); }
+  paint(); checkEnd(); return true; }
+function attack(p,ai,target){ // target: -1 = Held, sonst Index
+  var A=G.P[p].board[ai], D=G.P[1-p]; if(!A||!A.ready) return false;
+  if(target===-1){ if(guards(1-p)&&!hv(A,"d")) return false; dmgHero(1-p,A.ak+(hv(A,"b")?1:0)); log(A.e+" "+nm(A)+" "+T.att+" ("+A.ak+")"); }
+  else { var B=D.board[target]; if(!B) return false; if(guards(1-p)&&!hv(B,"w")) return false; B.hp-=A.ak+(hv(A,"b")?1:0); if(!hv(A,"s")) A.hp-=B.ak; if(hv(A,"f")&&B.hp>0){ B.fr=true; } log(A.e+" "+nm(A)+" ⚔ "+B.e+" "+nm(B)); }
+  A.ready=false; hitAnim(p,ai,target,1-p); cleanup(); sel=-1; paint(); checkEnd(); return true; }
+function hitAnim(p,ai,target,dp){ }
+function cpuTurn(){
+  if(G.over) return; var P=G.P[1], H=G.P[0], steps=[];
+  function step(){
+    if(G.over) return;
+    // 1. Karten spielen: teuerste zuerst die bezahlbar sind (Zauber klug)
+    var best=-1; P.hand.forEach(function(c,i){ if(c.c>P.mana) return; if(!c.sp&&P.board.length>=5) return;
+      if(c.sp==="heal"&&P.hp>15) return; if(c.sp==="zap"&&H.board.length<2) return; if((c.sp==="cry"||c.sp==="skin")&&P.board.length<2) return;
+      if(best<0||c.c>P.hand[best].c) best=i; });
+    if(best>=0){ playCard(1,best); return setTimeout(step,850); }
+    // 2. Angreifen
+    for(var i=0;i<P.board.length;i++){ var A=P.board[i]; if(!A.ready||A.ak<=0) continue;
+      var g=guards(0), t=-2;
+      if(g&&hv(A,"d")&&Math.random()<.6){ t=-1; } else if(g){ var bi=-1; H.board.forEach(function(x,j){ if(hv(x,"w")&&(bi<0||x.hp<H.board[bi].hp)) bi=j; }); t=bi; }
+      else {
+        var lethal=P.board.reduce(function(s,x){return s+(x.ready?x.ak:0)},0)>=H.hp;
+        if(lethal||!H.board.length){ t=-1; }
+        else { var bt=-2,sc=-99; H.board.forEach(function(x,j){ var kill=x.hp<=A.ak, surv=A.hp>x.ak, s=(kill?3:0)+(surv?2:0)+x.ak*.2; if(s>sc){ sc=s; bt=j; } });
+          t=(sc>=3||cd===2&&sc>=2)?bt:(Math.random()<.5?-1:bt); if(t===-1&&H.board.length&&H.board.some(function(x){return x.ak>=A.hp})&&A.hp<=3&&!lethal) t=bt; } }
+      if(t===-2) continue; if(attack(1,i,t)) return setTimeout(step,850); }
+    // 3. Ende
+    setTimeout(function(){ endTurn(1); },500);
+  }
+  step();
+}
+function endTurn(p){ if(G.over) return; if(p===0){ if(busy||G.turn!==0) return; busy=true; } startTurn(1-p); }
+function cardHtml(c,cls,idx){ var x=c.sp?'':'<span class="at">'+c.ak+'</span><span class="lf">'+c.hp+'</span>'+(c.t?'<span class="tr">'+c.t.split('').map(function(k){return {w:'🛡',r:'⚡',s:'🏹',d:'🗡',h:'💚',c:'🌾',k:'👑',f:'❄',b:'🔥',g:'🌿'}[k]}).join('')+'</span>':'');
+  return '<div class="card'+(c.sp?' sp':hv(c,"w")?' wall':'')+(c.fr?' frz':'')+(cls?' '+cls:'')+'" data-i="'+idx+'" style="background-image:linear-gradient(transparent 55%,#000b),url(/kartenwelt/duell/'+(c.img||IMG[c.n])+'.jpg);background-size:cover;background-position:center"><span class="co">'+c.c+'</span>'+(c.sp?'':'<span class="ci">'+EL[c.el].i+'<br>'+CL[c.cl].i+'</span>')+'<span class="nm">'+nm(c)+'</span>'+x+'</div>'; }
+function paint(){ sync(); $("syE").innerHTML=synHtml(1); $("syP").innerHTML=synHtml(0);
+  var E=G.P[1],M=G.P[0], g=guards(1), selC=sel>=0?M.board[sel]:null;
+  $("eh").innerHTML='<span class="av">'+EAV+'</span><span class="nm">'+(ADV?(EN?ADV.en:ADV.n):T.cpu)+' · 🃏'+E.hand.length+' · 📚'+E.deck.length+'</span><span class="mn">💧'+E.mana+'/'+E.max+'</span><span class="hp">❤ '+E.hp+'</span>';
+  $("eh").className="hero"+(selC&&(!g||hv(selC,"d"))?" tg":"");
+  $("ph").innerHTML='<span class="av">🧑‍🌾</span><span class="nm">'+T.you+' · 📚'+M.deck.length+'</span><span class="mn">💧'+M.mana+'/'+M.max+'</span><span class="hp">❤ '+M.hp+'</span>';
+  $("eb").innerHTML=E.board.map(function(c,i){ return cardHtml(c,selC&&(!g||hv(c,"w"))?"tg":"",i); }).join("");
+  $("pb").innerHTML=M.board.map(function(c,i){ return cardHtml(c,(sel===i?"sel":(c.ready&&G.turn===0&&!busy?"rdy":"")),i); }).join("");
+  $("hand").innerHTML=M.hand.map(function(c,i){ return cardHtml(c,G.turn===0&&!busy&&c.c<=M.mana&&(c.sp||M.board.length<5)?"can":"no",i); }).join("");
+  $("end").textContent=T.end; $("end").disabled=G.turn!==0||busy||G.over;
+}
+function tapHand(i){ if(G.over||busy||G.turn!==0) return; var c=G.P[0].hand[i]; if(!c) return; if(c.c>G.P[0].mana){ log(T.mana); return; } if(!c.sp&&G.P[0].board.length>=5){ log(T.full); return; } sel=-1; playCard(0,i); }
+function tapMine(i){ if(G.over||busy||G.turn!==0) return; var c=G.P[0].board[i]; if(!c) return; if(!c.ready){ sel=-1; paint(); return; } sel=(sel===i?-1:i); paint(); }
+function tapEnemy(i){ if(G.over||busy||G.turn!==0) return; if(sel<0){ log(T.pick); return; } if(!attack(0,sel,i)) log(T.first); }
+function tapEnemyHero(){ if(G.over||busy||G.turn!==0||sel<0) return; if(!attack(0,sel,-1)) log(T.first); }
+function finish(win){
+  if(ADV){ var last=ADV===ST[ST.length-1];
+    if(win&&prog<ST.indexOf(ADV)+1){ prog=ST.indexOf(ADV)+1; try{ localStorage.setItem("bp_duell_adv",String(prog)); }catch(e){} }
+    $("box").innerHTML='<div style="font-size:54px">'+(win?(last?'👑':'🏆'):'💀')+'</div><h2>'+(win?(last?T.advDone:T.won):T.lost)+'</h2>'+(win&&!last?'<p>'+T.bonus+'</p>':'')+'<button class="pri" id="ag">'+(win?T.onward:T.retry)+'</button>';
+    $("ov").classList.add("show"); $("ag").onclick=function(){ $("ov").classList.remove("show"); openAdv(); }; return; }
+  $("box").innerHTML='<div style="font-size:54px">'+(win?'🏆':'💀')+'</div><h2>'+(win?T.won:T.lost)+'</h2><p>'+T.diff+': '+[T.easy,T.norm,T.hard][diff]+'</p><button class="pri" id="ag">'+T.again+'</button><button class="sec" id="bk">'+T.back+'</button>';
+  $("ov").classList.add("show"); $("ag").onclick=function(){ $("ov").classList.remove("show"); newGame(); }; $("bk").onclick=goBack; }
+function startMenu(first){
+  var cur=diff; ADV=null;
+  $("box").innerHTML='<div style="font-size:44px">⚔️</div><h2>'+T.title+'</h2><p style="font-size:12.5px">'+T.tip+'</p><div style="font-weight:800;font-size:13px">'+T.diff+'</div><div class="lv"><button data-n="0">'+T.easy+'</button><button data-n="1">'+T.norm+'</button><button data-n="2">'+T.hard+'</button></div><div style="font-weight:800;font-size:13px">'+T.deck+'</div><div class="lv" id="dk"><button data-d="0">'+T.forest+'</button><button data-d="1">'+T.ice+'</button><button data-d="2">'+T.fire+'</button><button data-d="3">'+T.earth+'</button></div><button class="pri" id="go">'+(first?T.start:T.newg)+'</button>'+(first?'':'<button class="sec" id="rs">'+T.resume+'</button>')+'<button class="sec" id="adB">🏃 '+T.adv+'</button><button class="sec" id="bk2">'+T.back+'</button>';
+  var bs=$("box").querySelectorAll(".lv button"); function mark(){ for(var i=0;i<bs.length;i++) bs[i].classList.toggle("on",+bs[i].dataset.n===cur); } mark();
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ cur=+this.dataset.n; mark(); };
+  var dks=$("dk").querySelectorAll("button"); function dmark(){ for(var i=0;i<dks.length;i++) dks[i].classList.toggle("on",+dks[i].dataset.d===DECK); } dmark(); for(var i=0;i<dks.length;i++) dks[i].onclick=function(){ DECK=+this.dataset.d; try{ localStorage.setItem("bp_duell_deck",String(DECK)); }catch(e){} dmark(); };
+  $("go").onclick=function(){ ADV=null; diff=cur; try{ localStorage.setItem("bp_duell_diff",String(cur)); }catch(e){} $("ov").classList.remove("show"); newGame(); };
+  if(!first) $("rs").onclick=function(){ $("ov").classList.remove("show"); }; $("bk2").onclick=goBack; $("adB").onclick=function(){ $("ov").classList.remove("show"); openAdv(); }; $("ov").classList.add("show"); }
+var runT=null,rf=0,pend=false,monT=null;
+function openAdv(){ $("aov").classList.add("show"); $("ov").classList.remove("show"); drawAdv(); }
+function drawAdv(){
+  var d=""; ST.forEach(function(x,i){ d+='<div class="dt'+(i<prog?' done':i===prog?' cur':'')+'">'+(i<prog?'✓':x.e)+'</div>'; }); $("dots").innerHTML=d;
+  $("ahd").textContent="🏃 "+T.adv+" · "+Math.min(prog+1,ST.length)+"/"+ST.length; $("mon").className=""; clearInterval(monT); $("msg").textContent="";
+  if(prog>=ST.length){ $("msg").textContent="👑 "+T.advDone; $("agoB").textContent=T.newg; $("agoB").onclick=function(){ prog=0; try{localStorage.setItem("bp_duell_adv","0");}catch(e){} drawAdv(); }; }
+  else { $("agoB").textContent=T.walk; $("agoB").disabled=false; $("agoB").onclick=runStep; } }
+function runStep(){ if(pend||prog>=ST.length) return; pend=true; $("agoB").disabled=true; var st=ST[prog]; $("scene").classList.add("run"); clearInterval(runT);
+  runT=setInterval(function(){ rf=(rf+1)%5; $("hh").src=D+"h_run"+rf+".png"; },90);
+  setTimeout(function(){ clearInterval(runT); $("scene").classList.remove("run"); $("hh").src=D+"h_run0.png"; var mf=0; $("mon").src=D+"m_"+st.k+"0.png"; $("mon").className="pre"; setTimeout(function(){ $("mon").className="in"; },30); clearInterval(monT); monT=setInterval(function(){ mf=(mf+1)%st.f; $("mon").src=D+"m_"+st.k+mf+".png"; },300); $("msg").textContent=(EN?st.en:st.n)+" "+T.appears;
+    setTimeout(function(){ pend=false; $("agoB").disabled=false; $("agoB").textContent="⚔️ "+T.fight; $("agoB").onclick=function(){ $("agoB").disabled=true; var i=0; clearInterval(monT); var at=setInterval(function(){ if(i<3){ $("hh").src=D+"h_atk"+i+".png"; i++; } else { clearInterval(at); $("hh").src=D+"h_run0.png"; $("aov").classList.remove("show"); ADV=st; newGame(); } },230); }; },900); },2200); }
+$("aback").onclick=function(){ $("aov").classList.remove("show"); startMenu(true); };
+function goBack(){ if(window.parent!==window) parent.postMessage({bpKartenBack:true},location.origin); else location.href="/"; }
+$("book").onclick=function(){ var D=EN?SDE:SD,h='<h2>📖 '+(EN?'Synergies':'Synergien')+'</h2><p>'+(EN?'Different cards of the same type on your board give bonuses (like in TFT). Same card twice counts once.':'Verschiedene Karten derselben Art auf deinem Feld geben Boni (wie bei TFT). Dieselbe Karte doppelt zählt nur einmal.')+'</p><div style="text-align:left;font-size:12.5px;line-height:1.5">';
+  h+='<b>'+(EN?'Elements (2 / 4 cards)':'Elemente (2 / 4 Karten)')+'</b><br>'; EL.forEach(function(x,i){ h+=x.i+' '+(EN?x.en:x.de)+': 2 → '+D.e[i][0]+' · 4 → '+D.e[i][1]+'<br>'; });
+  h+='<br><b>'+(EN?'Classes (2 / 3 cards)':'Klassen (2 / 3 Karten)')+'</b><br>'; for(var k in CL) h+=CL[k].i+' '+(EN?CL[k].en:CL[k].de)+': 2 → '+D.c[k][0]+' · 3 → '+D.c[k][1]+'<br>';
+  $("box").innerHTML=h+'</div><button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); };
+$("back").onclick=goBack; $("menu").onclick=function(){ startMenu(false); }; $("end").onclick=function(){ endTurn(0); };
+$("hand").addEventListener("pointerdown",function(e){ var t=e.target.closest(".card"); if(t) tapHand(+t.dataset.i); });
+$("pb").addEventListener("pointerdown",function(e){ var t=e.target.closest(".card"); if(t) tapMine(+t.dataset.i); });
+$("eb").addEventListener("pointerdown",function(e){ var t=e.target.closest(".card"); if(t) tapEnemy(+t.dataset.i); });
+$("eh").addEventListener("pointerdown",tapEnemyHero);
+$("title").textContent=T.title; newGame(); startMenu(true);
+window.__dl={state:function(){return G},hand:tapHand,mine:tapMine,enemy:tapEnemy,hero:tapEnemyHero,end:function(){endTurn(0)}};
+})();
+</script></body></html>

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Spider</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(circle at 50% 20%,#1d5a48,#0a2a20 78%);color:#eef1f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+body{display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:8px;padding:10px 10px 6px}
+.back{color:#eef1f7;font-size:20px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:#0004;border:1px solid #ffffff22;cursor:pointer;flex:none}
+h1{font-size:14px;margin:0;flex:1;color:#bfe6d6;font-weight:700}
+.pill{border:1px solid #ffffff26;background:#0004;border-radius:99px;padding:5px 10px;font-size:12.5px;font-weight:800;white-space:nowrap}
+#bd{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:2px 4px 6px}
+#cols{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;--cw:calc((100vw - 8px - 27px)/10)}
+.col{position:relative;min-height:calc(var(--cw)*1.45);border-radius:6px;border:1px dashed #ffffff22}
+.col.tg{border-color:#c6ff3d;box-shadow:0 0 10px #c6ff3d88}
+.c{position:absolute;left:0;right:0;height:calc(var(--cw)*1.45);border-radius:calc(var(--cw)*.14);background:linear-gradient(#fff,#e9edf5);color:#151a2e;font-weight:900;box-shadow:0 2px 4px #0008;box-sizing:border-box;overflow:hidden}
+.c.rd{color:#d3213f}
+.c .a{position:absolute;left:calc(var(--cw)*.06);top:calc(var(--cw)*.01);font-size:calc(var(--cw)*.42);line-height:1.05}
+.c .b{position:absolute;right:calc(var(--cw)*.06);bottom:calc(var(--cw)*.0);font-size:calc(var(--cw)*.5);line-height:1}
+.c.dn{background:repeating-linear-gradient(45deg,#2b3d8f 0 5px,#1f2d6e 5px 10px);border:2px solid #dfe6ff}
+.c.sel{outline:3px solid #c6ff3d;box-shadow:0 0 12px #c6ff3d;z-index:50}
+.c.hn{outline:3px solid #ffd45a;box-shadow:0 0 14px #ffd45a;animation:pu .8s infinite}@keyframes pu{50%{outline-color:#ffd45a44}}
+.foot{display:flex;align-items:center;gap:8px;padding:6px 10px calc(8px + env(safe-area-inset-bottom))}
+.fnd{display:flex;gap:3px;flex:1;min-height:34px;align-items:center}
+.fc{width:24px;height:33px;border-radius:5px;background:#fff;color:#151a2e;font-weight:900;font-size:13px;display:grid;place-items:center;box-shadow:0 1px 3px #0008}
+.fc.rd{color:#d3213f}.fe{width:24px;height:33px;border-radius:5px;border:1px dashed #ffffff33}
+.btnx{padding:0 12px;height:44px;border-radius:14px;background:#0008;border:1px solid #fff3;font-size:15px;font-weight:800;color:#fff;cursor:pointer;display:flex;align-items:center;gap:5px}.btnx:disabled{opacity:.35}
+.stk{position:relative;width:46px;height:44px;cursor:pointer}
+.stk i{position:absolute;top:2px;width:26px;height:38px;border-radius:5px;background:repeating-linear-gradient(45deg,#2b3d8f 0 5px,#1f2d6e 5px 10px);border:2px solid #dfe6ff}
+.stk b{position:absolute;right:-2px;bottom:-4px;background:#ff3d6e;border-radius:99px;font-size:11px;min-width:18px;height:18px;display:grid;place-items:center;padding:0 4px}
+#msg{min-height:18px;text-align:center;font-size:12px;padding:0 8px;color:#bfe6d6}
+.ov{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(3,20,14,.82);z-index:60}.ov.show{display:flex}
+.box{background:#0f3328;border:1px solid #ffffff26;border-radius:22px;padding:24px 20px;text-align:center;max-width:340px;width:100%}
+.box h2{margin:0 0 6px;font-size:23px}.box p{color:#bfe6d6;margin:0 0 14px;font-size:14px}
+.pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#0a2a20;border-radius:14px;padding:14px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
+.sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:12px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
+.lv{display:flex;gap:8px;margin:6px 0 4px}.lv button{flex:1;padding:12px 4px;border-radius:14px;border:2px solid #ffffff2e;background:#0004;color:#fff;font-size:15px;font-weight:800;cursor:pointer}.lv button small{display:block;font-size:11px;opacity:.7;font-weight:600;margin-top:2px}.lv button.on{border-color:#c6ff3d}
+</style></head><body>
+<div class="top"><button class="back" id="back">←</button><h1 id="title">Spider</h1><span class="pill">👆 <b id="mv">0</b></span><span class="pill">⏱ <b id="tm">0:00</b></span><button class="back" id="menu">⚙</button></div>
+<div id="bd"><div id="cols"></div></div>
+<div id="msg"></div>
+<div class="foot"><div class="fnd" id="fnd"></div><button class="btnx" id="undo">↶</button><button class="btnx" id="hint">💡</button><div class="stk" id="stk"></div></div>
+<div class="ov show" id="ov"><div class="box" id="box"></div></div>
+<script>
+(function(){
+var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
+var T=EN?{title:"Spider Solitaire",new_:"New game",one:"1 suit",two:"2 suits",four:"4 suits",easy:"easy",mid:"medium",hard:"hard",start:"START",tip:"Build sequences from King down to Ace in the same suit to clear them. Move a card or a same-suit run onto a card that is one higher. Tap the pile for a new row (all columns need a card).",won:"You won!",moves:"moves",again:"Play again",back:"Back",resume:"Continue",noMove:"No more moves – deal from the pile or undo.",nodeal:"Fill all empty columns before dealing.",hint:"Move this card here",deal:"Deal from the pile",suits:"Suits"}
+:{title:"Spider-Solitär",new_:"Neues Spiel",one:"1 Farbe",two:"2 Farben",four:"4 Farben",easy:"leicht",mid:"mittel",hard:"schwer",start:"START",tip:"Baue Reihen von König bis Ass in einer Farbe, dann verschwinden sie. Du kannst eine Karte oder eine gleichfarbige Reihe auf eine um eins höhere Karte legen. Tippe auf den Stapel für neue Karten (alle Spalten brauchen eine Karte).",won:"Geschafft!",moves:"Züge",again:"Nochmal",back:"Zurück",resume:"Weiter",noMove:"Kein Zug mehr – vom Stapel geben oder zurück.",nodeal:"Erst alle leeren Spalten füllen.",hint:"Diese Karte hierhin legen",deal:"Vom Stapel geben",suits:"Farben"};
+var SU=["♠","♥","♦","♣"], RK=["","A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+var $=function(i){return document.getElementById(i)};
+var G=null, sel=null, hist=[], hintM=null, nSuits=1, t0=0, tEnd=0, tmr=0;
+try{ var sv=parseInt(localStorage.getItem("bp_spider_suits"),10); if(sv===1||sv===2||sv===4) nSuits=sv; }catch(e){}
+function deck(){
+  var suits=nSuits===1?[0,0,0,0,0,0,0,0]:nSuits===2?[0,0,0,0,1,1,1,1]:[0,1,2,3,0,1,2,3], d=[];
+  suits.forEach(function(s){ for(var r=1;r<=13;r++) d.push({s:s,r:r,up:false}); });
+  for(var i=d.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)), x=d[i]; d[i]=d[j]; d[j]=x; }
+  return d;
+}
+function newGame(){
+  var d=deck(), tab=[]; for(var c=0;c<10;c++){ tab.push([]); var n=c<4?6:5; for(var k=0;k<n;k++){ var x=d.pop(); x.up=(k===n-1); tab[c].push(x); } }
+  G={tab:tab,stock:d,done:0,moves:0,fnd:[]}; sel=null; hist=[]; hintM=null; t0=Date.now(); tEnd=0; paint();
+}
+function snap(){ return JSON.stringify(G); }
+function push(){ hist.push(snap()); if(hist.length>400) hist.shift(); }
+function undo(){ if(!hist.length||G.won) return; G=JSON.parse(hist.pop()); sel=null; hintM=null; paint(); }
+function runFrom(col,i){ // gleichfarbige, absteigende Reihe ab Index i bis Ende?
+  var c=G.tab[col]; if(!c[i]||!c[i].up) return false;
+  for(var k=i;k<c.length-1;k++){ if(!c[k+1].up||c[k+1].s!==c[k].s||c[k+1].r!==c[k].r-1) return false; }
+  return true;
+}
+function canDrop(card,col){ var t=G.tab[col][G.tab[col].length-1]; return !t||t.r===card.r+1; }
+function clearRuns(){
+  var any=false;
+  for(var c=0;c<10;c++){ var col=G.tab[c], n=col.length; if(n>=13){ var ok=true; for(var k=0;k<13;k++){ var x=col[n-1-k]; if(!x.up||x.s!==col[n-1].s||x.r!==k+1){ ok=false; break; } } if(ok){ var s=col[n-1].s; col.splice(n-13,13); G.fnd.push(s); G.done++; any=true; } } }
+  G.tab.forEach(function(col){ var t=col[col.length-1]; if(t&&!t.up) t.up=true; });
+  if(G.done===8){ G.won=true; tEnd=Date.now(); }
+  return any;
+}
+function move(from,i,to){
+  var col=G.tab[from], card=col[i]; if(!canDrop(card,to)||from===to) return false;
+  push(); var m=col.splice(i); G.tab[to]=G.tab[to].concat(m); G.moves++; sel=null; hintM=null; clearRuns(); paint(); return true;
+}
+function deal(){
+  if(G.won||!G.stock.length) return;
+  if(G.tab.some(function(c){return !c.length})){ msg(T.nodeal); return; }
+  push(); for(var c=0;c<10;c++){ var x=G.stock.pop(); x.up=true; G.tab[c].push(x); } G.moves++; sel=null; hintM=null; clearRuns(); paint();
+}
+function tap(col,i){
+  if(G.won) return; hintM=null;
+  if(sel){
+    if(sel.col===col){ if(i===sel.i){ var bt=bestTarget(col,i); if(bt>=0&&move(col,i,bt)) return; } sel=null; return paint(); }
+    if(move(sel.col,sel.i,col)) return;
+    sel=null;
+  }
+  var c=G.tab[col]; if(i==null){ return paint(); }
+  if(c[i]&&c[i].up&&runFrom(col,i)){ sel={col:col,i:i}; }
+  paint();
+}
+function bestTarget(col,i){ // beste Spalte fuer Karte: bevorzugt gleiche Farbe, dann nicht-leer
+  var card=G.tab[col][i], best=-1,score=-1;
+  for(var j=0;j<10;j++){ if(j===col) continue; var t=G.tab[j][G.tab[j].length-1]; if(!canDrop(card,j)) continue;
+    var sc=t?(t.s===card.s?3:2):1; if(i===0&&!t) sc=0; if(sc>score){ score=sc; best=j; } }
+  return best;
+}
+function hint(){
+  if(G.won) return; var best=null,sc=-1;
+  for(var c=0;c<10;c++){ var col=G.tab[c]; for(var i=0;i<col.length;i++){ if(!col[i].up||!runFrom(c,i)) continue;
+    var j=bestTarget(c,i); if(j<0) continue; var t=G.tab[j][G.tab[j].length-1], s=0;
+    if(t&&t.s===col[i].s) s+=5; if(i>0&&!col[i-1].up) s+=4; if(i===0) s+=(t?1:-3); else if(col[i-1].up&&col[i-1].s===col[i].s&&col[i-1].r===col[i].r+1) s-=6; if(!t) s-=2;
+    if(s>sc){ sc=s; best={col:c,i:i,to:j}; } } }
+  if(!best){ if(G.stock.length){ msg(T.deal); hintM={stock:true}; paint(); } else msg(T.noMove); return; }
+  hintM=best; msg("💡 "+T.hint); paint(); setTimeout(function(){ if(hintM===best){ hintM=null; paint(); } },3500);
+}
+function msg(t){ $("msg").textContent=t||""; if(t) setTimeout(function(){ if($("msg").textContent===t) $("msg").textContent=""; },2600); }
+function paint(){
+  var bd=$("bd"), cwPx=Math.max(20,(window.innerWidth-8-27)/10), avail=Math.max(200,bd.clientHeight-8);
+  var html="";
+  for(var c=0;c<10;c++){
+    var col=G.tab[c], raw=0; col.forEach(function(x,i){ if(i<col.length-1) raw+=x.up?.36:.14; });
+    var maxRaw=(avail/cwPx)-1.5, f=raw>0?Math.max(.45,Math.min(1,maxRaw/raw)):1, y=0, parts="";
+    col.forEach(function(x,i){
+      var s=sel&&sel.col===c&&i>=sel.i, h=hintM&&hintM.col===c&&i>=hintM.i;
+      var cls="c"+(x.up?((x.s===1||x.s===2)?" rd":""):" dn")+(s?" sel":"")+(h?" hn":"");
+      parts+='<div class="'+cls+'" data-c="'+c+'" data-i="'+i+'" style="top:calc(var(--cw)*'+y.toFixed(3)+')">'+(x.up?'<span class="a">'+RK[x.r]+'<br>'+SU[x.s]+'</span><span class="b">'+SU[x.s]+'</span>':'')+'</div>';
+      y+=(x.up?.36:.14)*f;
+    });
+    var hgt=col.length?(y+1.45-(col[col.length-1].up?.36:.14)*f):1.45;
+    var tg=(sel&&sel.col!==c&&canDrop(G.tab[sel.col][sel.i],c))||(hintM&&hintM.to===c);
+    html+='<div class="col'+(tg?' tg':'')+'" data-c="'+c+'" style="height:calc(var(--cw)*'+(Math.max(hgt,1.45)+.1).toFixed(3)+')">'+parts+'</div>';
+  }
+  $("cols").innerHTML=html;
+  var fh=""; for(var k=0;k<8;k++){ if(k<G.fnd.length){ var s=G.fnd[k]; fh+='<div class="fc'+((s===1||s===2)?' rd':'')+'">'+SU[s]+'</div>'; } else fh+='<div class="fe"></div>'; }
+  $("fnd").innerHTML=fh;
+  var left=Math.floor(G.stock.length/10), sh=""; for(var q=0;q<Math.min(left,5);q++) sh+='<i style="left:'+(q*4)+'px"></i>'; if(left) sh+='<b>'+left+'</b>';
+  $("stk").innerHTML=sh; $("stk").style.opacity=left?1:.3; if(hintM&&hintM.stock) $("stk").style.outline="3px solid #ffd45a"; else $("stk").style.outline="";
+  $("mv").textContent=G.moves; $("undo").disabled=!hist.length;
+  if(G.won&&!$("ov").classList.contains("show")){ var secs=Math.round((tEnd-t0)/1000); showWin(secs); }
+}
+function fmt(s){ return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); }
+function showWin(secs){
+  $("box").innerHTML='<div style="font-size:54px">🕷️🎉</div><h2>'+T.won+'</h2><p>'+G.moves+' '+T.moves+' · '+fmt(secs)+'</p><button class="pri" id="ag">'+T.again+'</button><button class="sec" id="bk">'+T.back+'</button>';
+  $("ov").classList.add("show"); $("ag").onclick=function(){ $("ov").classList.remove("show"); newGame(); }; $("bk").onclick=goBack;
+}
+function startMenu(first){
+  var cur=nSuits;
+  $("box").innerHTML='<div style="font-size:44px">🕷️</div><h2>'+T.title+'</h2><p style="font-size:12.5px">'+T.tip+'</p><div class="lv"><button data-n="1">'+T.one+'<small>'+T.easy+'</small></button><button data-n="2">'+T.two+'<small>'+T.mid+'</small></button><button data-n="4">'+T.four+'<small>'+T.hard+'</small></button></div><button class="pri" id="go">'+(first?T.start:T.new_)+'</button>'+(first?'':'<button class="sec" id="rs">'+T.resume+'</button>')+'<button class="sec" id="bk2">'+T.back+'</button>';
+  var bs=$("box").querySelectorAll(".lv button"); function mark(){ for(var i=0;i<bs.length;i++) bs[i].classList.toggle("on",+bs[i].dataset.n===cur); } mark();
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ cur=+this.dataset.n; mark(); };
+  $("go").onclick=function(){ nSuits=cur; try{ localStorage.setItem("bp_spider_suits",String(cur)); }catch(e){} $("ov").classList.remove("show"); newGame(); };
+  if(!first) $("rs").onclick=function(){ $("ov").classList.remove("show"); };
+  $("bk2").onclick=goBack; $("ov").classList.add("show");
+}
+function goBack(){ if(window.parent!==window) parent.postMessage({bpKartenBack:true},location.origin); else location.href="/"; }
+$("back").onclick=goBack; $("menu").onclick=function(){ startMenu(false); }; $("undo").onclick=undo; $("hint").onclick=hint; $("stk").onclick=deal;
+$("cols").addEventListener("click",function(e){ var t=e.target.closest("[data-c]"); if(!t) return; tap(+t.dataset.c,t.dataset.i!=null?+t.dataset.i:null); });
+window.addEventListener("resize",function(){ if(G) paint(); });
+tmr=setInterval(function(){ if(G&&!G.won) $("tm").textContent=fmt(Math.floor((Date.now()-t0)/1000)); },1000);
+$("title").textContent=T.title;
+newGame(); startMenu(true);
+window.__spider={state:function(){return G},tap:tap,deal:deal,newGame:newGame,set:function(g){G=g;paint()},hint:hint};
+})();
+</script></body></html>
