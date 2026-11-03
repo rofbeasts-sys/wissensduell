@@ -26,7 +26,7 @@ body{display:flex;flex-direction:column;--pl:0px;--pr:0px;padding-right:var(--pr
 .hp>span{flex:1;display:block;min-width:0}
 .hp{display:flex;gap:12px;padding:0 8px;font-weight:900;font-size:10px;white-space:nowrap;justify-content:space-between}
 .lab{font-size:11px;font-weight:800;color:#cbbcff;padding:3px 12px 0}
-.row{display:flex;gap:5px;padding:5px 8px 4px;justify-content:center}
+#sr .c{width:calc((100vw - var(--pl) - var(--pr) - 16px - 25px)/6)}#sr{gap:4px}.arw{display:flex;align-items:center;gap:6px;margin:2px 0 6px;font-size:11px;font-weight:800;color:#cbbcff}.axs{width:40px;height:46px;border-radius:8px;border:1px dashed #ffd45a99;background:#0006 center/cover;color:#ffd45a;font-size:20px;font-weight:900;padding:0}.axs.f{border:2px solid #ffd45a}.ab{position:absolute;left:1px;bottom:30px;z-index:4;background:#7b3fe4;color:#fff;border-radius:6px;font-size:9px;font-weight:900;padding:0 3px;box-shadow:0 0 6px #b98cff}.ac{border-color:#b98cff!important}.arl{display:flex;gap:8px;align-items:center;text-align:left;background:#ffffff14;border:1px solid #ffffff33;border-radius:10px;padding:6px;margin:5px 0;width:100%;color:#fff;font-size:12.5px}.arl img{width:38px;height:44px;border-radius:6px;object-fit:cover;flex:none}.arl b{color:#ffe9a0}.row{display:flex;gap:5px;padding:5px 8px 4px;justify-content:center}
 .c{position:relative;width:calc((100vw - var(--pl) - var(--pr) - 16px - 20px)/5);max-width:78px;aspect-ratio:.76;border-radius:11px;border:2px solid #8f82ff;background-size:cover;background-position:center;box-shadow:0 3px 7px #0009;flex:none;cursor:pointer;background-color:#201a47}
 .c.k2{box-shadow:0 -4px 0 -1px #5a4fb0,0 3px 7px #0009}.c.k3{box-shadow:0 -4px 0 -1px #5a4fb0,0 -8px 0 -2px #3d3578,0 3px 7px #0009}.kb{position:absolute;top:-9px;right:-6px;z-index:3;background:#ffd45a;color:#2b1700;font-size:11px;font-weight:900;border-radius:99px;padding:0 6px;border:2px solid #fff}
 .rem{position:absolute;top:-10px;left:50%;transform:translateX(-50%);z-index:3;background:#000c;border:1px solid #fff6;border-radius:99px;font-size:10px;font-weight:800;padding:0 5px;color:#cfe;white-space:nowrap}
@@ -62,7 +62,7 @@ body{display:flex;flex-direction:column;--pl:0px;--pr:0px;padding-right:var(--pr
 <div class="lab"><span id="lE"></span><button class="mb" id="oppb"></button></div><div class="row" id="er"></div>
 <div id="syc"></div>
 <div class="lab"><button class="mb" id="sygb">✨</button><span id="lB"></span></div><div class="row" id="br"></div>
-<div class="lab" id="lN"></div><div class="row" id="bn"></div>
+<div class="lab" id="lN"></div><div class="row" id="bn"></div><div class="lab" id="lI"></div><div class="row" id="iv"></div>
 <div id="logw"><div id="log"></div></div>
 <div id="opp"></div><div id="stk"></div>
 <div class="shop" id="shop"><div class="row" id="sr"></div><div class="btns"><button id="rr"></button><button id="lu"></button><button class="go" id="go"></button></div></div>
@@ -71,37 +71,53 @@ body{display:flex;flex-direction:column;--pl:0px;--pr:0px;padding-right:var(--pr
 <script>
 (function(){
 var EN=false; try{ EN=localStorage.getItem("wq_lang")==="en"; }catch(e){}
-var T=EN?{title:"Brain Royale",tip:"BATTLE ROYALE: you vs 9 computer players, last one standing wins! All 10 draw from the same card pool (each card exists only a limited number of times, ×N = copies left), and only 3 of the 4 elements are in play. Each round you get gold and a random shop: buy cards and drag them onto the 5 battle fields (behind each card are 3 stack slots for bonuses) or onto the 3 bench slots. 3 identical cards merge into one with a star (★★, ★★★). A different opponent every round: your cards fight automatically (each against the one opposite, the row shifts left) until only one side is left. Your spell is cast at a random moment. The loser loses hearts (out of 50): as many as the health numbers of the winner\'s surviving cards added up. The first 3 rounds are practice (no hearts lost). Elements have advantages and weaknesses (🔥 beats ❄ beats 🌿 beats 🔥). Synergies start at 3 cards of the same element, class or kind (📖).",you:"You",cpu:"Enemy",phaseA:"Cards fight each other",youWin:"You win the round",cpuWin:"Enemy wins the round",cont:"Continue",kingP:"King phase (shield = weapon)",practice:"practice",searching:"Searching for opponents…",lobby:"Lobby",full:"Lobby full! Starting in",startsIn:"Starts in",found:"All 10 players found!",elems:"Elements this game",rank:"Ranking",place:"Place",round:"Round",gold:"Gold",lvl:"Lv",enemy:"Enemy",field:"Battlefield (fights)",bench:"Bench (waits)",sell:"🗑 Sell\nselected card",roll:"🔄 Reroll",up:"⬆ Level",go:"⚔ Battle!",start:"START",diff:"Difficulty",easy:"Easy",norm:"Normal",hard:"Hard",back:"Back",again:"Play again",won:"Victory!",lost:"Defeated",draw:"Draw",reached:"Round reached",best:"Best",hint:"Tap a card for info · drag to move/stack",nogold:"Not enough gold",nospace:"No space (sell or merge)",merged:"Merged!",pickedFrom:"Shop",empty:"empty",bought:"Bought",lostH:"loses",hearts:"hearts",youWin:"You win the battle!",youLose:"You lose the battle!",drawb:"Draw – nobody loses hearts",free:"free",none:"none",sold:"Sold",need:"Place at least 1 card on the battlefield"}
-:{title:"Brain Royale",tip:"BATTLE ROYALE: du gegen 9 Computer-Spieler – wer zuletzt steht, gewinnt! Alle 10 ziehen aus demselben Kartenvorrat (jede Karte gibt es nur begrenzt oft, ×N = noch übrig), nur 3 der 4 Elemente sind im Spiel. Jede Runde bekommst du Gold und einen zufälligen Laden: kaufe Karten und ziehe sie auf die 5 Kampffelder (hinter jeder Karte gibt es 3 Stapel-Felder für Boni) oder auf die 3 Bankplätze. 3 gleiche Karten werden zu einer mit Stern (★★, ★★★). Jede Runde ein anderer Gegner: Eure Karten kämpfen automatisch gegeneinander (jede gegen die gegenüber, die Reihe rückt nach links) – bis nur noch einer übrig ist. Dein Zauber wird zufällig im Kampf gewirkt. Der Verlierer verliert Herzen (von 50): so viele, wie die Lebenszahlen der überlebenden Karten des Siegers zusammen. Die ersten 3 Runden sind Übung (keine Herzen). Elemente haben Vor- und Nachteile (🔥 schlägt ❄ schlägt 🌿 schlägt 🔥). Synergien gibt es ab 3 Karten gleichen Elements, gleicher Klasse oder Art (📖).",you:"Du",cpu:"Gegner",phaseA:"Karten kämpfen gegeneinander",youWin:"Du gewinnst die Runde",cpuWin:"Gegner gewinnt die Runde",cont:"Weiter",kingP:"König-Phase (Schild = Waffe)",practice:"Übung",searching:"Suche Gegner …",lobby:"Lobby",full:"Lobby voll! Start in",startsIn:"Start in",found:"Alle 10 Spieler gefunden!",elems:"Elemente in diesem Spiel",rank:"Rangliste",place:"Platz",round:"Runde",gold:"Gold",lvl:"Stufe",enemy:"Gegner",field:"Kampffeld (kämpft)",bench:"Bank (wartet)",sell:"🗑 Verkaufen\nmarkierte Karte",roll:"🔄 Würfeln",up:"⬆ Stufe",go:"⚔ Kampf!",start:"START",diff:"Schwierigkeit",easy:"Leicht",norm:"Normal",hard:"Schwer",back:"Zurück",again:"Nochmal",won:"Sieg!",lost:"Besiegt",draw:"Unentschieden",reached:"Erreichte Runde",best:"Rekord",hint:"Tippe eine Karte für Infos · Ziehen zum Verschieben/Stapeln",nogold:"Zu wenig Gold",nospace:"Kein Platz (verkaufen oder verschmelzen)",merged:"Verschmolzen!",pickedFrom:"Laden",empty:"leer",bought:"Gekauft",lostH:"verliert",hearts:"Herzen",youWin:"Du gewinnst den Kampf!",youLose:"Du verlierst den Kampf!",drawb:"Unentschieden – keiner verliert Herzen",free:"frei",none:"keine",sold:"Verkauft",need:"Lege mindestens 1 Karte aufs Kampffeld"};
+var T=EN?{title:"Brain Royale",tip:"BATTLE ROYALE: you vs 9 computer players, last one standing wins! All 10 draw from the same card pool (each card exists only a limited number of times – whoever hoards an element leaves less for the others), and only 4 of the 6 elements are in play. Each round you get gold and a random shop: buy cards and drag them onto the 5 battle fields (behind each card are 3 stack slots for bonuses) or onto the 3 bench slots. 3 identical cards merge into one with a star (★★, ★★★). A different opponent every round: your cards fight automatically (each against the one opposite, the row shifts left) until only one side is left. Your spell is cast at a random moment. The loser loses hearts (out of 50): as many as the health numbers of the winner\'s surviving cards added up. The first 3 rounds are practice (no hearts lost). Elements have advantages and weaknesses (🔥 beats ❄ beats 🌿 beats 🔥). Synergies trigger at 3, 4 and 5 different cards: elements count only cards on the battle field (not stacks), classes (mages, knights, walls, monsters …) also count stacks – a card can belong to several classes (📖).",you:"You",cpu:"Enemy",phaseA:"Cards fight each other",youWin:"You win the round",cpuWin:"Enemy wins the round",cont:"Continue",kingP:"King phase (shield = weapon)",practice:"practice",searching:"Searching for opponents…",lobby:"Lobby",full:"Lobby full! Starting in",startsIn:"Starts in",found:"All 10 players found!",elems:"Elements this game",rank:"Ranking",place:"Place",round:"Round",gold:"Gold",lvl:"Lv",enemy:"Enemy",field:"Battlefield (fights)",bench:"Bench (waits)",sell:"🗑 Sell\nselected card",roll:"🔄 Reroll",up:"⬆ Level",go:"⚔ Battle!",start:"START",diff:"Difficulty",easy:"Easy",norm:"Normal",hard:"Hard",back:"Back",again:"Play again",won:"Victory!",lost:"Defeated",draw:"Draw",reached:"Round reached",best:"Best",hint:"Tap a card for info · drag to move/stack",nogold:"Not enough gold",nospace:"No space (sell or merge)",merged:"Merged!",pickedFrom:"Shop",empty:"empty",bought:"Bought",lostH:"loses",hearts:"hearts",youWin:"You win the battle!",youLose:"You lose the battle!",drawb:"Draw – nobody loses hearts",free:"free",none:"none",sold:"Sold",need:"Place at least 1 card on the battlefield"}
+:{title:"Brain Royale",tip:"BATTLE ROYALE: du gegen 9 Computer-Spieler – wer zuletzt steht, gewinnt! Alle 10 ziehen aus demselben Kartenvorrat (jede Karte gibt es nur begrenzt oft – wer ein Element aufkauft, lässt den anderen weniger davon), nur 4 der 6 Elemente sind im Spiel. Jede Runde bekommst du Gold und einen zufälligen Laden: kaufe Karten und ziehe sie auf die 5 Kampffelder (hinter jeder Karte gibt es 3 Stapel-Felder für Boni) oder auf die 3 Bankplätze. 3 gleiche Karten werden zu einer mit Stern (★★, ★★★). Jede Runde ein anderer Gegner: Eure Karten kämpfen automatisch gegeneinander (jede gegen die gegenüber, die Reihe rückt nach links) – bis nur noch einer übrig ist. Dein Zauber wird zufällig im Kampf gewirkt. Der Verlierer verliert Herzen (von 50): so viele, wie die Lebenszahlen der überlebenden Karten des Siegers zusammen. Die ersten 3 Runden sind Übung (keine Herzen). Elemente haben Vor- und Nachteile (🔥 schlägt ❄ schlägt 🌿 schlägt 🔥). Synergien gibt es bei 3, 4 und 5 verschiedenen Karten: Elemente zählen nur die Karten auf dem Kampffeld (nicht im Stapel), Klassen (Magier, Ritter, Mauern, Monster …) zählen auch die Stapel – eine Karte kann mehreren Klassen angehören (📖).",you:"Du",cpu:"Gegner",phaseA:"Karten kämpfen gegeneinander",youWin:"Du gewinnst die Runde",cpuWin:"Gegner gewinnt die Runde",cont:"Weiter",kingP:"König-Phase (Schild = Waffe)",practice:"Übung",searching:"Suche Gegner …",lobby:"Lobby",full:"Lobby voll! Start in",startsIn:"Start in",found:"Alle 10 Spieler gefunden!",elems:"Elemente in diesem Spiel",rank:"Rangliste",place:"Platz",round:"Runde",gold:"Gold",lvl:"Stufe",enemy:"Gegner",field:"Kampffeld (kämpft)",bench:"Bank (wartet)",sell:"🗑 Verkaufen\nmarkierte Karte",roll:"🔄 Würfeln",up:"⬆ Stufe",go:"⚔ Kampf!",start:"START",diff:"Schwierigkeit",easy:"Leicht",norm:"Normal",hard:"Schwer",back:"Zurück",again:"Nochmal",won:"Sieg!",lost:"Besiegt",draw:"Unentschieden",reached:"Erreichte Runde",best:"Rekord",hint:"Tippe eine Karte für Infos · Ziehen zum Verschieben/Stapeln",nogold:"Zu wenig Gold",nospace:"Kein Platz (verkaufen oder verschmelzen)",merged:"Verschmolzen!",pickedFrom:"Laden",empty:"leer",bought:"Gekauft",lostH:"verliert",hearts:"Herzen",youWin:"Du gewinnst den Kampf!",youLose:"Du verlierst den Kampf!",drawb:"Unentschieden – keiner verliert Herzen",free:"frei",none:"keine",sold:"Verkauft",need:"Lege mindestens 1 Karte aufs Kampffeld"};
 var $=function(i){return document.getElementById(i)};
 var IMG={"Ratte":"rat","Holzwall":"wall","Goblin":"goblin","Wolf":"wolf","Steinwächter":"stone","Ritter":"knight","Bogenschütze":"archer","Eisgolem":"ice","Bär":"bear","Magier":"mage","Burgmauer":"castle","Phönix":"phoenix","Golem":"golem","Drache":"dragon","Riese":"giant","Feuerball":"fire","Blitzschlag":"zap","Heiltrank":"heal","Schlachtruf":"cry","Eisenhaut":"skin","Bauer":"farmer","Dieb":"thief","Heiler":"healer","Wachturm":"watch","Speerkämpfer":"spear","Schwertkämpfer":"sword","Schildträger":"shield","Schütze":"shooter","Steinturm":"stonet","Bogenturm":"bowt","Kanone":"cannon","König":"king"};
 var POOL=[
- {n:"Ratte",en:"Rat",e:"🐀",c:1,a:1,h:2},{n:"Holzwall",en:"Log wall",e:"🪵",c:1,a:0,h:3,t:"w"},
- {n:"Goblin",en:"Goblin",e:"👺",c:2,a:2,h:2,t:"r"},{n:"Wolf",en:"Wolf",e:"🐺",c:2,a:3,h:2},{n:"Steinwächter",en:"Stone guard",e:"🗿",c:4,a:3,h:7,t:"wg"},
- {n:"Ritter",en:"Knight",e:"🛡️",c:3,a:3,h:4},{n:"Bogenschütze",en:"Archer",e:"🏹",c:3,a:4,h:2,t:"r"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:3,a:2,h:5,t:"w"},
- {n:"Bär",en:"Bear",e:"🐻",c:4,a:4,h:5},{n:"Magier",en:"Mage",e:"🧙",c:4,a:4,h:4},{n:"Burgmauer",en:"Castle wall",e:"🏰",c:4,a:1,h:7,t:"w"},
- {n:"Phönix",en:"Phoenix",e:"🔥",c:5,a:6,h:3,t:"r"},{n:"Golem",en:"Golem",e:"🤖",c:5,a:5,h:5},
+ {n:"Waldläufer",en:"Ranger",e:"🏹",c:1,a:2,h:2,t:"r",img:"g01"},{n:"Waldspäher",en:"Forest scout",e:"🗡",c:2,a:2,h:3,t:"d",img:"g02"},
+ {n:"Bogenschützin",en:"Archeress",e:"🏹",c:3,a:3,h:2,t:"r",img:"g03"},{n:"Walddruide",en:"Forest druid",e:"🧙",c:3,a:2,h:4,t:"g",img:"g04"},
+ {n:"Wolf",en:"Wolf",e:"🐺",c:2,a:3,h:2,img:"g05"},{n:"Hirsch",en:"Stag",e:"🦌",c:3,a:3,h:4,img:"g06"},{n:"Waldgeist",en:"Forest spirit",e:"🌳",c:5,a:4,h:7,t:"g",img:"g07"},
+ {n:"Fährtenleser",en:"Tracker",e:"🔭",c:3,a:3,h:3,t:"r",img:"g08"},{n:"Bär",en:"Bear",e:"🐻",c:4,a:4,h:5,img:"g09"},{n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:2,h:3,t:"ws",img:"g11"},{n:"Waldwall",en:"Forest wall",e:"🪵",c:1,a:0,h:4,t:"w",img:"g12"},
+ {n:"Ratte",en:"Rat",e:"🐀",c:1,a:1,h:2},
+ 
+ {n:"Ritter",en:"Knight",e:"🛡️",c:3,a:3,h:4},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:3,a:2,h:5,t:"w"},
+ 
+ 
  {n:"Drache",en:"Dragon",e:"🐉",c:6,a:7,h:6},{n:"Riese",en:"Giant",e:"🦣",c:7,a:8,h:8},
- {n:"Bauer",en:"Farmer",e:"🌾",c:1,a:1,h:2,t:"c"},{n:"Dieb",en:"Thief",e:"🗡",c:2,a:2,h:2,t:"d"},{n:"Heiler",en:"Healer",e:"💚",c:2,a:1,h:3,t:"h"},
- {n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:1,h:3,t:"ws"},{n:"Speerkämpfer",en:"Spearman",e:"🔱",c:3,a:3,h:3,t:"r"},{n:"Schwertkämpfer",en:"Swordsman",e:"⚔",c:3,a:4,h:3},
- {n:"Schildträger",en:"Shield bearer",e:"🛡",c:3,a:2,h:5,t:"w"},{n:"Schütze",en:"Gunner",e:"🔫",c:3,a:3,h:2,t:"s"},{n:"Steinturm",en:"Stone tower",e:"🗼",c:3,a:1,h:6,t:"w"},
- {n:"Bogenturm",en:"Archer tower",e:"🎯",c:4,a:4,h:4,t:"s"},{n:"Kanone",en:"Cannon",e:"💣",c:5,a:5,h:4,t:"s"},{n:"König",en:"King",e:"👑",c:6,a:4,h:6,t:"k"}];
+ {n:"Bauer",en:"Farmer",e:"🌾",c:1,a:1,h:2,t:"c"},
+ {n:"Speerkämpfer",en:"Spearman",e:"🔱",c:3,a:3,h:3,t:"r"},{n:"Schwertkämpfer",en:"Swordsman",e:"⚔",c:3,a:4,h:3},
+ 
+ {n:"König",en:"King",e:"👑",c:6,a:4,h:6,t:"k"}];
+var UND=[{n:"Skelettkrieger",en:"Skeleton warrior",e:"💀",c:1,a:2,h:2,img:"u01"},{n:"Skelett-Falle",en:"Skeleton trap",e:"🕸",c:1,a:0,h:4,t:"w",img:"u12"},
+ {n:"Bogenschütze",en:"Skeleton archer",e:"🏹",c:2,a:3,h:2,t:"r",img:"u02"},{n:"Skelett-Ninja",en:"Skeleton ninja",e:"🥷",c:2,a:2,h:2,t:"d",img:"u14"},
+ {n:"Magier-Skelett",en:"Skeleton mage",e:"🧙",c:3,a:3,h:3,img:"u03"},{n:"Skelett-Reiter",en:"Skeleton rider",e:"🐴",c:3,a:3,h:4,img:"u05"},{n:"Skelett-Bomber",en:"Skeleton bomber",e:"💣",c:3,a:4,h:2,t:"s",img:"u15"},{n:"Skelett-Turm",en:"Skeleton tower",e:"🗼",c:3,a:1,h:6,t:"w",img:"u09"},
+ {n:"Skelett-Hexe",en:"Skeleton witch",e:"🧹",c:4,a:4,h:4,img:"u06"},{n:"Skelett-Golem",en:"Skeleton golem",e:"🤖",c:4,a:4,h:5,img:"u13"},{n:"Skelett-Armee",en:"Skeleton army",e:"☠",c:4,a:3,h:5,img:"u08"},
+ {n:"Todesfürst",en:"Death lord",e:"😈",c:5,a:5,h:5,img:"u10"},{n:"Skelett-Katapult",en:"Skeleton catapult",e:"💣",c:5,a:6,h:3,t:"s",img:"u11"},
+ {n:"Skelett-Drache",en:"Skeleton dragon",e:"🐲",c:6,a:6,h:5,img:"u07"},{n:"Riese",en:"Skeleton giant",e:"🦣",c:6,a:7,h:6,img:"u04"},{n:"Untoter König",en:"Undead king",e:"👑",c:6,a:4,h:6,t:"k",img:"u16"}];
+var WAT=[{n:"Wasser-Schild",en:"Water shield",e:"🛡",c:1,a:0,h:4,t:"w",img:"a16"},
+ {n:"Wasser-Assassine",en:"Water assassin",e:"🗡",c:2,a:3,h:2,t:"d",img:"a03"},{n:"Wasserbogenschütze",en:"Water archer",e:"🏹",c:2,a:3,h:2,t:"s",img:"a05"},{n:"Heilquelle",en:"Healing spring",e:"⛲",c:2,a:1,h:4,t:"h",img:"a14"},
+ {n:"Wasserkrieger",en:"Water warrior",e:"⚔",c:3,a:3,h:5,img:"a01"},{n:"Wasserspeerkämpfer",en:"Water spearman",e:"🔱",c:3,a:3,h:3,t:"r",img:"a02"},{n:"Meerjungfrau",en:"Mermaid",e:"🧜",c:3,a:2,h:4,t:"h",img:"a08"},{n:"Wasserturm",en:"Water tower",e:"🗼",c:3,a:1,h:6,t:"w",img:"a10"},
+ {n:"Wassermagier",en:"Water mage",e:"🧙",c:4,a:3,h:5,img:"a04"},{n:"Eis-Magier",en:"Frost mage",e:"❄",c:4,a:3,h:4,t:"f",img:"a15"},{n:"Wassergolem",en:"Water golem",e:"🤖",c:4,a:3,h:6,img:"a07"},
+ {n:"Wasserkanone",en:"Water cannon",e:"💣",c:5,a:5,h:4,t:"s",img:"a09"},{n:"Wasserschiff",en:"Water ship",e:"⛵",c:5,a:2,h:8,t:"w",img:"a11"},{n:"Wasserelementar",en:"Water elemental",e:"🌊",c:5,a:5,h:5,img:"a12"},
+ {n:"Meereskönig",en:"Sea king",e:"🔱",c:6,a:4,h:7,t:"k",img:"a06"}];
 var ICE=[
  {n:"Eisbaum",en:"Ice tree",e:"🌲",c:1,a:0,h:3,t:"w",img:"itree"},{n:"Schneemaus",en:"Snow mouse",e:"🐭",c:1,a:1,h:2,img:"imouse"},
  {n:"Eissoldat",en:"Ice soldier",e:"🥶",c:2,a:2,h:3,img:"isold"},{n:"Eiswolf",en:"Ice wolf",e:"🐺",c:2,a:3,h:2,t:"f",img:"iwolf"},{n:"Schneewall",en:"Snow wall",e:"🧱",c:2,a:1,h:5,t:"w",img:"iwall"},
  {n:"Eisritter",en:"Ice knight",e:"🗡",c:3,a:3,h:4,img:"iknight"},{n:"Schneeschütze",en:"Snow archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"iarch"},{n:"Eisgeist",en:"Ice ghost",e:"👻",c:3,a:2,h:3,t:"d",img:"ighost"},
- {n:"Frostwächter",en:"Frost guard",e:"🛡",c:3,a:2,h:5,t:"w",img:"iguard"},{n:"Eisturm",en:"Ice tower",e:"🗼",c:3,a:1,h:6,t:"w",img:"itower"},
+ {n:"Frostwächter",en:"Frost guard",e:"🛡",c:3,a:2,h:4,t:"w",img:"iguard"},{n:"Eisturm",en:"Ice tower",e:"🗼",c:3,a:1,h:5,t:"w",img:"itower"},
  {n:"Eiszauberer",en:"Ice wizard",e:"🧙",c:4,a:3,h:4,t:"f",img:"image"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:4,a:4,h:5,img:"igolem"},
- {n:"Yeti",en:"Yeti",e:"🦍",c:5,a:5,h:6,img:"yeti"},{n:"Eiskanone",en:"Ice cannon",e:"💣",c:5,a:5,h:4,t:"s",img:"icannon"},{n:"Eisburg",en:"Ice castle",e:"🏰",c:5,a:2,h:9,t:"w",img:"icastle"},
+ {n:"Yeti",en:"Yeti",e:"🦍",c:5,a:5,h:5,img:"yeti"},{n:"Eiskanone",en:"Ice cannon",e:"💣",c:5,a:5,h:3,t:"s",img:"icannon"},{n:"Eisburg",en:"Ice castle",e:"🏰",c:5,a:2,h:7,t:"w",img:"icastle"},
  {n:"Eisdrache",en:"Ice dragon",e:"🐲",c:6,a:6,h:5,t:"f",img:"idragon"},{n:"Eiskönig",en:"Ice king",e:"👑",c:6,a:4,h:6,t:"k",img:"iking"}];
 var ICESP=[
  {n:"Schneeball",en:"Snowball",e:"⚪",c:1,sp:"ball",img:"iball"},{n:"Eisfalle",en:"Ice trap",e:"🧊",c:2,sp:"trap",img:"itrap"},{n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,sp:"storm",img:"istorm"}];
-var FIRE=[{n:"Feuergeist",en:"Fire spirit",e:"🔥",c:1,a:2,h:1,img:"f01"},
- {n:"Feuerholzwall",en:"Fire log wall",e:"🪵",c:1,a:0,h:3,t:"w",img:"f03"},
+var FIRE=[{n:"Feuergeist",en:"Fire spirit",e:"🔥",c:1,a:2,h:2,img:"f01"},
+ {n:"Feuerholzwall",en:"Fire log wall",e:"🪵",c:1,a:0,h:4,t:"w",img:"f03"},
  {n:"Feuergoblin",en:"Fire goblin",e:"👺",c:2,a:2,h:2,t:"r",img:"f04"},
- {n:"Feuerwolf",en:"Fire wolf",e:"🐺",c:2,a:3,h:2,t:"b",img:"f05"},
- {n:"Feuerschütze",en:"Fire gunner",e:"🔫",c:2,a:2,h:2,t:"s",img:"f11"},
- {n:"Feuerheiler",en:"Fire healer",e:"💚",c:2,a:1,h:3,t:"h",img:"f14"},
+ {n:"Feuerwolf",en:"Fire wolf",e:"🐺",c:2,a:3,h:3,t:"b",img:"f05"},
+ {n:"Feuerschütze",en:"Fire gunner",e:"🔫",c:2,a:3,h:2,t:"s",img:"f11"},
+ {n:"Feuerheiler",en:"Fire healer",e:"💚",c:2,a:1,h:4,t:"h",img:"f14"},
  {n:"Feuerwächter",en:"Fire guard",e:"🛡",c:3,a:2,h:4,t:"w",img:"f12"},
  {n:"Feuerritter",en:"Fire knight",e:"⚔",c:3,a:3,h:4,img:"f02"},
  {n:"Feuerspeerträger",en:"Fire spearman",e:"🔱",c:3,a:3,h:3,t:"r",img:"f09"},
@@ -116,12 +132,12 @@ var FIRE=[{n:"Feuergeist",en:"Fire spirit",e:"🔥",c:1,a:2,h:1,img:"f01"},
  {n:"Feuerriese",en:"Fire giant",e:"🦣",c:6,a:7,h:6,img:"f15"},
  {n:"Feuerkönig",en:"Fire king",e:"👑",c:6,a:4,h:5,t:"k",img:"f20"}];
 var FIRESP=[{n:"Feuerball",en:"Fireball",e:"☄️",c:3,sp:"fire",img:"f19"},{n:"Feuerball",en:"Fireball",e:"☄️",c:3,sp:"fire",img:"f19"}];
-var EARTH=[{n:"Maus",en:"Mouse",e:"🐭",c:1,a:1,h:2,img:"e01"},
- {n:"Holzwall",en:"Log wall",e:"🪵",c:1,a:0,h:3,t:"w",img:"e03"},
+var EARTH=[{n:"Maus",en:"Mouse",e:"🐭",c:1,a:1,h:3,img:"e01"},
+ {n:"Holzwall",en:"Log wall",e:"🪵",c:1,a:0,h:4,t:"w",img:"e03"},
  {n:"Steinwächter",en:"Stone guard",e:"🗿",c:4,a:3,h:7,t:"wg",img:"e05"},
- {n:"Späher",en:"Scout",e:"🗡",c:2,a:2,h:2,t:"d",img:"e14"},
- {n:"Erdheiler",en:"Earth healer",e:"💚",c:2,a:1,h:3,t:"h",img:"e13"},
- {n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:1,h:3,t:"ws",img:"e16"},
+ {n:"Späher",en:"Scout",e:"🗡",c:2,a:2,h:3,t:"d",img:"e14"},
+ {n:"Erdheiler",en:"Earth healer",e:"💚",c:2,a:1,h:4,t:"h",img:"e13"},
+ {n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:2,h:3,t:"ws",img:"e16"},
  {n:"Erdritter",en:"Earth knight",e:"⚔",c:3,a:3,h:4,img:"e02"},
  {n:"Schildträger",en:"Shield bearer",e:"🛡",c:3,a:2,h:5,t:"w",img:"e12"},
  {n:"Waldschütze",en:"Forest archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"e07"},
@@ -137,9 +153,12 @@ var EARTH=[{n:"Maus",en:"Mouse",e:"🐭",c:1,a:1,h:2,img:"e01"},
  {n:"Erdkönig",en:"Earth king",e:"👑",c:6,a:4,h:6,t:"k",img:"e19"}];
 var EARTHSP=[{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"},{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"}];
 
-function cls(c){ if(c.t&&c.t.indexOf("s")>=0||/schütz|bogen|kanone|katapult/i.test(c.n)) return "S"; if(c.t&&c.t.indexOf("h")>=0||/magier|zauberer|druide|heiler|geist/i.test(c.n)) return "M"; if(/ratte|maus|wolf|bär|drache|rachen|phönix|yeti/i.test(c.n)) return "B"; if(c.t&&c.t.indexOf("w")>=0) return "G"; return "K"; }
-var CARDS=[]; [[POOL,0],[ICE,1],[FIRE,2],[EARTH,3]].forEach(function(d){ d[0].forEach(function(c){ if(d[1]===0&&c.n==="Eisgolem") return; var o={}; for(var k in c) o[k]=c[k]; o.el=d[1]; o.cl=cls(c); o.key=d[1]+":"+c.n; o.img=c.img||IMG[c.n]; CARDS.push(o); }); });
+function cls(c){ if(c.t&&c.t.indexOf("s")>=0||/schütz|bogen|kanone|katapult/i.test(c.n)) return "S"; if(c.t&&c.t.indexOf("h")>=0||/magier|zauberer|druide|heiler|geist/i.test(c.n)) return "M"; if(/ratte|maus|wolf|bär|drache|rachen|phönix|yeti|hirsch/i.test(c.n)) return "B"; if(c.t&&c.t.indexOf("w")>=0) return "G"; return "K"; }
+var CARDS=[]; [[POOL,0],[ICE,1],[FIRE,2],[EARTH,3],[UND,4],[WAT,5]].forEach(function(d){ d[0].forEach(function(c){ if(d[1]===0&&c.n==="Eisgolem") return; var o={}; for(var k in c) o[k]=c[k]; o.el=d[1]; o.cl=cls(c); o.key=d[1]+":"+c.n; o.img=c.img||IMG[c.n]; CARDS.push(o); }); });
 var SPD=[
+ {n:"Tsunami",en:"Tsunami",e:"🌊",c:4,k:"dmgAll",v:2,el:5,img:"a13",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"},
+ {n:"Giftpfeil",en:"Poison arrow",e:"🏹",c:2,k:"dmg1",v:2,el:0,img:"g15",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
+ {n:"Waldfalle",en:"Forest trap",e:"🪤",c:2,k:"ward",v:1,el:0,img:"g10",d:"Schutz: du erleidest weniger Herzschaden",de:"ward: you take less heart damage"},
  {n:"Schneeball",en:"Snowball",e:"⚪",c:1,k:"dmg1",v:2,el:1,img:"iball",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
  {n:"Blitzschlag",en:"Lightning",e:"⚡",c:2,k:"dmgAll",v:1,el:1,img:"zap",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"},
  {n:"Eisfalle",en:"Ice trap",e:"🧊",c:2,k:"ward",v:1,el:1,img:"itrap",d:"Schutz: du erleidest weniger Herzschaden",de:"ward: you take less heart damage"},
@@ -150,15 +169,16 @@ var SPD=[
  {n:"Felsblock",en:"Boulder",e:"🪨",c:3,k:"rock",v:4,el:3,img:"e20",d:"Schaden an die stärkste Gegner-Karte",de:"damage to the strongest enemy card"},
  {n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,k:"dmgAll",v:2,el:1,img:"istorm",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"}];
 SPD.forEach(function(x){ var o={}; for(var k in x) o[k]=x[k]; o.sp=true; o.cl="Z"; o.key="S:"+x.n; CARDS.push(o); });
-var EL=[{i:"🌲",de:"Wald",en:"Forest"},{i:"❄",de:"Eis",en:"Ice"},{i:"🔥",de:"Feuer",en:"Fire"},{i:"🌿",de:"Erde",en:"Earth"}];
+var EL=[{i:"🌲",de:"Wald",en:"Forest"},{i:"❄",de:"Eis",en:"Ice"},{i:"🔥",de:"Feuer",en:"Fire"},{i:"🌿",de:"Erde",en:"Earth"},{i:"💀",de:"Untote",en:"Undead"},{i:"💧",de:"Wasser",en:"Water"}];
 var CL={S:{i:"🏹",de:"Schützen",en:"Shooters"},K:{i:"⚔",de:"Krieger",en:"Warriors"},G:{i:"🛡",de:"Wächter",en:"Guards"},M:{i:"🔮",de:"Magier",en:"Mages"},B:{i:"🐾",de:"Bestien",en:"Beasts"}};
-var SE=[[{a:1},{a:2,h:2}],[{f:1},{f:1,h:2}],[{a:1},{a:2,b:1}],[{h:2},{h:4,g:1}]];
-var SC={S:[{a:1},{a:2}],K:[{h:1},{a:1,h:2}],G:[{h:2},{h:4}],B:[{a:1},{a:2,h:1}],M:[{gold:1},{gold:2}]};
-var SD={e:[["+1 Angriff","+2 Angriff, +2 Leben"],["Frost bei Treffer","Frost + 2 Leben"],["+1 Angriff","+2 Angriff + Brand"],["+2 Leben","+4 Leben + Nachwachsen"]],c:{S:["+1 Angriff","+2 Angriff"],K:["+1 Leben","+1 Angriff, +2 Leben"],G:["+2 Leben","+4 Leben"],B:["+1 Angriff","+2 Angriff, +1 Leben"],M:["+1 Gold/Runde","+2 Gold/Runde"]}};
-var SDE={e:[["+1 attack","+2 attack, +2 health"],["Frost on hit","Frost + 2 health"],["+1 attack","+2 attack + Burn"],["+2 health","+4 health + Regrowth"]],c:{S:["+1 attack","+2 attack"],K:["+1 health","+1 attack, +2 health"],G:["+2 health","+4 health"],B:["+1 attack","+2 attack, +1 health"],M:["+1 gold/round","+2 gold/round"]}};
+var SE=[[{a:1},{a:1,h:1},{a:2,h:2}],[{h:2},{f:1,h:2},{f:1,h:3,a:1}],[{a:1,h:1},{a:2,h:2},{a:3,h:3,b:1}],[{h:3,a:1},{h:4,a:1},{h:6,a:2,g:1}],[{a:1,h:1},{a:2,h:1},{a:2,h:3,g:1}],[{a:1,h:2},{a:2,h:3,rs:1},{a:3,h:4,rs:1,g:1}]];
+var SC={S:[{a:1},{a:2},{a:3}],K:[{h:1},{h:2,a:1},{h:3,a:2}],G:[{h:2},{h:3},{h:5}],B:[{a:1},{a:1,h:1},{a:2,h:2}],M:[{gold:1},{gold:1,h:1},{gold:2,h:2}]};
+function dscO(o,en){ var r=[]; if(o.a) r.push("+"+o.a+(en?" attack":" Angriff")); if(o.h) r.push("+"+o.h+(en?" health":" Leben")); if(o.f) r.push(en?"Frost on hit":"Frost bei Treffer"); if(o.b) r.push(en?"Burn":"Brand"); if(o.g) r.push(en?"Regrowth":"Nachwachsen"); if(o.gold) r.push("+"+o.gold+(en?" gold/round":" Gold/Runde")); if(o.rs) r.push(en?"resist "+o.rs:"Resistenz "+o.rs); return r.join(", "); }
+function mkSD(en){ var d={e:SE.map(function(r){ return r.map(function(o){ return dscO(o,en); }); }),c:{}}; for(var k in SC) d.c[k]=SC[k].map(function(o){ return dscO(o,en); }); return d; }
+var SD=mkSD(false), SDE=mkSD(true);
 var ODDS=[0,[75,25,0,0,0,0],[55,30,15,0,0,0],[35,35,25,5,0,0],[20,30,30,17,3,0],[10,20,30,25,13,2]];
-var LUP=[0,4,6,8,10], MULT=[0,1,1.8,3.3];
-var BYT=[[],[],[],[],[],[],[]], POOLC={}, ELS=[0,1,2,3];
+var LUP=[0,4,6,8,10], MULT=[0,1,2,3.8];
+var BYT=[[],[],[],[],[],[],[]], POOLC={}, ELS=[0,1,2,3,4,5];
 var QS=new URLSearchParams(location.search), MYAV=QS.get("av")||"🧑‍🌾", MYNAME=QS.get("n")||"";
 var BOTAV=["img:cat","img:lady","img:dog","img:girl","img:man","img:prof","img:robo","img:rb_gob","img:rb_ske","img:rb_zom","img:rb_sli","img:rb_mag","img:rb_orc","img:rb_bat","img:rb_dev","img:rb_gho","img:rb_boa","img:rb_fro","img:rb_h1","img:rb_h2","king:1","king:3","king:5","img:man2","img:robo2"];
 function avh(a,px){ px=px||22; a=a||"🙂"; var st='width:'+px+'px;height:'+px+'px;border-radius:50%;object-fit:cover;vertical-align:middle;background:#2a1f55';
@@ -178,21 +198,33 @@ function pwr(P){ var w=0; fighters(P).forEach(function(f){ w+=f.hp; }); return w
 function hbar(h,rev){ var pc=Math.max(0,Math.min(100,h/HMAX*100)); return '<div class="hb'+(rev?' r':'')+'"><span class="hn">❤ '+h+'</span><div class="bar"><i style="width:'+pc+'%;'+(pc<=25?'background:linear-gradient(90deg,#ff2a4a,#a30f2a)':'')+'"></i></div></div>'; }
 function heartsUp(){ if(!S) return; $("hE").innerHTML=hbar(S.E.hearts,true); $("hP").innerHTML=hbar(S.P.hearts,false); }
 var NAMES=[["","Lena"],["","Max"],["","Mia"],["","Ben"],["","Zoe"],["","Finn"],["","Emma"],["","Leo"],["","Nico"]];
-function copies(c){ if(c.sp) return 6; return {1:20,2:16,3:13,4:10,5:8,6:6,7:6}[c.c]||6; }
-function buildPool(){ var drop=rnd(4); ELS=[0,1,2,3].filter(function(x){ return x!==drop; }); BYT=[[],[],[],[],[],[],[]]; POOLC={};
+function copies(c){ if(c.sp) return 5; return {1:14,2:11,3:9,4:7,5:6,6:5,7:4}[c.c]||5; }
+function buildPool(){ var d1=rnd(6), d2=(d1+1+rnd(5))%6; ELS=[0,1,2,3,4,5].filter(function(x){ return x!==d1&&x!==d2; }); BYT=[[],[],[],[],[],[],[]]; POOLC={};
   CARDS.forEach(function(c){ if(ELS.indexOf(c.el)<0) return; BYT[Math.min(6,c.c)].push(c); POOLC[c.key]=copies(c); }); }
 function takeCopy(c){ POOLC[c.key]=Math.max(0,(POOLC[c.key]||0)-1); }
-function giveBack(u){ POOLC[u.key]=(POOLC[u.key]||0)+(u.stars===1?1:u.stars===2?3:9); }
+function giveBack(u){ if(u.nf) return; POOLC[u.key]=(POOLC[u.key]||0)+(u.stars===1?1:u.stars===2?3:9); }
 var S=null, diff=1, sel=null, fighting=false, fast=false, uid=1;
 try{ var sv=+localStorage.getItem("bp_arena_diff"); if(sv>=0&&sv<=2) diff=sv; }catch(e){}
 function nm(u){ return EN?u.en:u.n; }
 function hv(u,x){ return !!u.t&&u.t.indexOf(x)>=0; }
-function mk(c,stars){ var o={}; for(var k in c) o[k]=c[k]; o.stars=stars||1; o.uid=uid++; return o; }
+function mk(c,stars){ var o={}; for(var k in c) o[k]=c[k]; o.stars=stars||1; o.uid=uid++; o.ar=(c.ar||[]).slice(); return o; }
 function eff(u){ var m=MULT[u.stars]; return {ak:Math.round(u.a*m),hp:Math.round(u.h*m)}; }
 function rnd(n){ return Math.floor(Math.random()*n); }
 function pickW(L){ var tot=0; L.forEach(function(c){ tot+=POOLC[c.key]||0; }); if(!tot) return null; var r=rnd(tot); for(var i=0;i<L.length;i++){ r-=POOLC[L[i].key]||0; if(r<0) return L[i]; } return null; }
 function roll(level){ var out=[],od=ODDS[level]; for(var i=0;i<5;i++){ var r=rnd(100),t=0,acc=0; for(t=0;t<6;t++){ acc+=od[t]; if(r<acc) break; } var c=null,tt; for(tt=t+1;tt>=1&&!c;tt--) c=pickW(BYT[tt]); for(tt=t+2;tt<=6&&!c;tt++) c=pickW(BYT[tt]); out.push(c); } return out; }
-function newP(){ return {board:[[],[],[],[],[]],bench:[null,null,null],sp:[null],gold:0,level:1,hearts:HMAX}; }
+var ARTD=[
+ {id:0,n:"Magisches Szepter",en:"Magic scepter",img:"x01",c:3,k:"g",a:2,f:1},{id:1,n:"Drachenamulett",en:"Dragon amulet",img:"x02",c:3,k:"g",a:1,b:1},
+ {id:2,n:"Kriegs-Helm",en:"War helm",img:"x03",c:2,k:"g",h:3},{id:3,n:"Elfen-Bogen",en:"Elven bow",img:"x04",c:3,k:"g",a:2,h:1},
+ {id:4,n:"Zauberring",en:"Magic ring",img:"x05",c:2,k:"g",a:1,h:1},{id:5,n:"Phantomumhang",en:"Phantom cloak",img:"x06",c:3,k:"g",rs:2},
+ {id:6,n:"Blutdolch",en:"Blood dagger",img:"x07",c:4,k:"g",a:4},{id:7,n:"Lebensamulett",en:"Life amulet",img:"x08",c:3,k:"g",h:2,g:1},
+ {id:8,n:"Schattenrüstung",en:"Shadow armor",img:"x09",c:4,k:"g",h:5,rs:1},{id:9,n:"Drachenschild",en:"Dragon shield",img:"x10",c:4,k:"g",h:3,rs:2},
+ {id:10,n:"Kriegshelm",en:"Battle helmet",img:"x11",c:3,k:"g",a:1,h:2},{id:11,n:"Elementarwandler",en:"Element converter",img:"x12",c:4,k:"u",u:"el",d:"Sofort: eine Feldkarte bekommt das gerade aktive Element",de:"Instant: one field card gets the currently active element"},
+ {id:12,n:"Dämonenherz",en:"Demon heart",img:"x13",c:4,k:"g",a:3,h:2},{id:13,n:"Wiedergeburtsstein",en:"Rebirth stone",img:"x14",c:4,k:"g",h:4,g:1},
+ {id:14,n:"Vampiramulett",en:"Vampire amulet",img:"x15",c:4,k:"g",a:2,h:1,g:1},{id:15,n:"Klonkristall",en:"Clone crystal",img:"x16",c:6,k:"u",u:"clone",d:"Sofort: kopiert eine deiner Karten auf die Bank",de:"Instant: copies one of your cards to the bench"},
+ {id:16,n:"Münzkelch",en:"Coin chalice",img:"x17",c:3,k:"u",u:"coin",d:"Sofort: +5 Gold",de:"Instant: +5 gold"}];
+function adsc(A){ return A.k==="u"?(EN?A.de:A.d):(dscO(A,EN)||""); }
+function artHtml(A,z,i){ return '<div class="c ac" data-z="'+z+'" data-i="'+i+'" style="background-image:linear-gradient(transparent 50%,#000c),url(/kartenwelt/duell/'+A.img+'.jpg)"><span class="co">'+A.c+'</span><span class="ci">'+(A.k==="u"?"⚡":"💎")+'</span><span class="nm" style="bottom:20px">'+(EN?A.en:A.n)+'</span></div>'; }
+function newP(){ return {board:[[],[],[],[],[]],bench:[null,null,null],sp:[null],inv:[],gold:0,level:1,hearts:HMAX}; }
 function bu(P){ var r=[]; P.board.forEach(function(st){ st.forEach(function(u){ r.push(u); }); }); return r; }
 function allF(L){ var r=[]; L.forEach(function(f){ r.push(f); (f.res||[]).forEach(function(x){ r.push(x); }); }); return r; }
 function nxt(L){ var o=[]; L.forEach(function(f){ if(f.hp>0) o.push(f); else if(f.res&&f.res.length){ var n=f.res.shift(); n.res=f.res; o.push(n); } }); return o; }
@@ -213,24 +245,33 @@ function merge(P,extra){
       var ord={n:0,p:1,b:2,x:3}; L.sort(function(a,b){ return ord[a.z]-ord[b.z]; });
       var tri=L.slice(0,3), keep=tri[0];
       tri.forEach(function(x){ if(x.z==="n") P.board[x.i][x.j]=null; else if(x.z==="p") P.sp[x.i]=null; else if(x.z==="b") P.bench[x.i]=null; else extra=null; });
-      var up=mk(keep.u,keep.u.stars+1); put(P,{z:keep.z,i:keep.i,j:keep.j},up); P.board=P.board.map(function(st){ return st.filter(Boolean); }); changed=true; S&&(S.merged=true); break; } } }
+      var up=mk(keep.u,keep.u.stars+1); up.ar=[]; tri.forEach(function(x){ (x.u.ar||[]).forEach(function(id){ if(up.ar.length<3) up.ar.push(id); else P.inv.push(id); }); }); put(P,{z:keep.z,i:keep.i,j:keep.j},up); P.board=P.board.map(function(st){ return st.filter(Boolean); }); changed=true; S&&(S.merged=true); break; } } }
   if(extra){ var f=freeSlot(P,extra); if(!f) return false; put(P,f,extra); }
   return true; }
 function addCard(P,c){ if(!canAdd(P,c)) return false; return merge(P,mk(c,1)); }
 function sellVal(u){ var b=u.c*(u.stars===1?1:u.stars===2?3:9); return u.stars>1?b-1:b; }
-var TH=[3,5], HMAX=50;
-var FAM=[{id:"tower",re:/turm/i,ic:"🏯",de:"Türme",en:"Towers",t:[{h:2},{h:4,a:1}]},{id:"knight",re:/ritter/i,ic:"🐎",de:"Ritter",en:"Knights",t:[{a:1,h:1},{a:2,h:2}]},
- {id:"wall",re:/wall|mauer|burg/i,ic:"🧱",de:"Mauern",en:"Walls",t:[{h:3,rs:1},{h:6,rs:2}]},{id:"golem",re:/golem/i,ic:"🗿",de:"Golems",en:"Golems",t:[{a:2},{a:4,h:2}]},
- {id:"wolf",re:/wolf/i,ic:"🐺",de:"Wölfe",en:"Wolves",t:[{a:1},{a:2,h:1}]},{id:"dragon",re:/drache|rachen/i,ic:"🐲",de:"Drachen",en:"Dragons",t:[{a:2,h:2},{a:4,h:4}]}];
-function famOfName(n){ for(var i=0;i<FAM.length;i++) if(FAM[i].re.test(n)) return FAM[i]; return null; }
-function famCounts(us){ var c={},seen={}; us.forEach(function(u){ if(u.sp||seen[u.key]) return; seen[u.key]=1; var f=famOfName(u.n); if(f) c[f.id]=(c[f.id]||0)+1; }); return c; }
-function famTier(n){ return n>=TH[1]?2:n>=TH[0]?1:0; }
-function famTxt(x){ var o=[]; if(x.a) o.push("+"+x.a+" ⚔"); if(x.h) o.push("+"+x.h+" ❤"); if(x.rs) o.push(EN?"resist "+x.rs+" vs strong element":"Resistenz "+x.rs+" gegen starkes Element"); return o.join(", "); }
-function synOf(us){ var e={},c={}; us.forEach(function(u){ (e[u.el]=e[u.el]||{})[u.key]=1; (c[u.cl]=c[u.cl]||{})[u.key]=1; });
-  var r={e:[0,0,0,0],c:{S:0,K:0,G:0,M:0,B:0},te:[0,0,0,0],tc:{S:0,K:0,G:0,M:0,B:0}};
+var TH=[3,4,5], HMAX=50;
+function tierOf(v){ return v>=TH[2]?3:v>=TH[1]?2:v>=TH[0]?1:0; }
+var FAM=[{id:"tower",re:/turm/i,ic:"🏯",de:"Türme",en:"Towers",t:[{h:2},{h:3,a:1},{h:5,a:1}]},{id:"knight",re:/ritter|schwertkämpfer|speerk|speerträger/i,ic:"🐎",de:"Ritter",en:"Knights",t:[{a:1},{a:1,h:1},{a:2,h:2}]},
+ {id:"wall",re:/wall|mauer|burg/i,ic:"🧱",de:"Mauern",en:"Walls",t:[{h:2,rs:1},{h:3,rs:1},{h:4,rs:2}]},{id:"golem",re:/golem/i,ic:"🗿",de:"Golems",en:"Golems",t:[{a:1},{a:2},{a:3,h:2}]},
+ {id:"wolf",re:/wolf/i,ic:"🐺",de:"Wölfe",en:"Wolves",t:[{a:1},{a:1,h:1},{a:2,h:1}]},{id:"dragon",re:/drache|rachen|phönix/i,ic:"🐲",de:"Drachen",en:"Dragons",t:[{a:1,h:1},{a:2,h:2},{a:3,h:3}]}];
+var FAM_MON={id:"monster",re:/goblin|geist|dämon|riese|yeti/i,ic:"👹",de:"Monster",en:"Monsters",t:[{a:1,h:1},{a:1,h:2},{a:2,h:3}]};
+FAM.push(FAM_MON);
+FAM.push({id:"human",fn:function(u){ return u.el!==4&&this.re.test(u.n); },re:/bauer|ritter|schwertkämpfer|speerk|speerträger|bogenschütze|^schütze|schneeschütze|feuerschütze|feuerbogenschütze|magier|zauberer|dieb|feuerheiler|schildträger|steinwächter|könig/i,ic:"🧑",de:"Menschen",en:"Humans",t:[{h:1},{h:1,a:1},{h:2,a:1}]});
+FAM.push({id:"elf",re:/druide|waldschütze|späher|erdheiler|^heiler|waldläufer|bogenschützin|fährtenleser/i,ic:"🧝",de:"Elfen",en:"Elves",t:[{a:1},{a:2},{a:3,h:1}]});
+FAM.push({id:"assassin",fn:function(u){ return hv(u,"d"); },ic:"🗡",de:"Assassinen",en:"Assassins",t:[{a:1},{a:2},{a:3}]});
+function tagsOf(u){ var r=FAM.filter(function(f){ return f.fn?f.fn(u):f.re.test(u.n); }); (u.xt||[]).forEach(function(id){ var f=FAM.filter(function(x){ return x.id===id; })[0]; if(f&&r.indexOf(f)<0) r.push(f); }); return r; }
+function famsOf(n){ return tagsOf({n:n,t:""}); }
+function famOfName(n){ var r=famsOf(n); return r[0]||null; }
+function mains(P){ var r=[]; P.board.forEach(function(st){ if(st[0]) r.push(st[0]); }); return r; }
+function famCounts(us){ var c={},seen={}; us.forEach(function(u){ if(u.sp||seen[u.key]) return; seen[u.key]=1; tagsOf(u).forEach(function(f){ c[f.id]=(c[f.id]||0)+1; }); }); return c; }
+function famTier(n){ return tierOf(n); }
+function famTxt(x){ return dscO(x,EN); }
+function synOf(us,all){ all=all||us; var e={},c={}; us.forEach(function(u){ (e[u.el]=e[u.el]||{})[u.key]=1; }); all.forEach(function(u){ if(u.sp) return; (c[u.cl]=c[u.cl]||{})[u.key]=1; });
+  var r={e:[0,0,0,0,0,0],c:{S:0,K:0,G:0,M:0,B:0},te:[0,0,0,0,0,0],tc:{S:0,K:0,G:0,M:0,B:0}};
   for(var k in e) r.e[k]=Object.keys(e[k]).length; for(var k2 in c) r.c[k2]=Object.keys(c[k2]).length;
-  r.e.forEach(function(v,i){ r.te[i]=v>=TH[1]?2:v>=TH[0]?1:0; }); for(var q in r.c){ var v2=r.c[q]; r.tc[q]=v2>=TH[1]?2:v2>=TH[0]?1:0; } return r; }
-function spVal(u,P){ var m=u.stars===1?1:u.stars===2?1.5:2, base=Math.round(u.v*m), t=synOf(bu(P)).te[u.el]; return {base:base,bonus:t,total:base+t}; }
+  r.e.forEach(function(v,i){ r.te[i]=tierOf(v); }); for(var q in r.c){ r.tc[q]=tierOf(r.c[q]); } return r; }
+function spVal(u,P){ var m=u.stars===1?1:u.stars===2?1.5:2, base=Math.round(u.v*m), t=synOf(mains(P)).te[u.el]; return {base:base,bonus:t,total:base+t}; }
 function cast(P,A,B,ctx,side){ var u=P.sp[0]; if(!u) return ""; var v=spVal(u,P), t=v.total, k=u.k, txt="";
   if(k==="dmg1"&&B.length){ B[rnd(B.length)].hp-=t; txt="-"+t; } else if(k==="dmgAll"){ B.forEach(function(f){ f.hp-=t; }); txt="-"+t; }
   else if(k==="rock"&&B.length){ var w=B[0]; B.forEach(function(f){ if(f.ak>w.ak) w=f; }); w.hp-=t; txt="-"+t; }
@@ -238,34 +279,45 @@ function cast(P,A,B,ctx,side){ var u=P.sp[0]; if(!u) return ""; var v=spVal(u,P)
   else if(k==="skin"){ allF(A).forEach(function(f){ f.hp+=t; f.mx+=t; }); txt="+"+t+"🛡"; }
   else if(k==="cry"){ ctx["king"+side]+=t; txt="+"+t+"👑"; } else if(k==="ward"){ ctx["ward"+side]+=t; txt="-"+t+"❤"; }
   return u.e+" "+nm(u)+" "+txt; }
-function income(P,round){ var base=Math.min(8,5+Math.floor((round-1)/3)), inter=Math.min(2,Math.floor(P.gold/5)), f=0, us=bu(P);
-  us.forEach(function(u){ if(hv(u,"c")) f+=u.stars; }); var sy=synOf(us), mg=sy.tc.M>0?SC.M[sy.tc.M-1].gold:0; return base+inter+f+mg; }
+function income(P,round){ var base=Math.min(8,5+Math.floor((round-1)/3)), inter=Math.min(2,Math.floor(P.gold/5)), f=0, us=mains(P);
+  us.forEach(function(u){ if(hv(u,"c")) f+=u.stars; }); var sy=synOf(us,bu(P)), mg=sy.tc.M>0?SC.M[sy.tc.M-1].gold:0; return base+inter+f+mg; }
 // ---------- CPU ----------
 function cpuPlay(E,round){
   E.gold+=income(E,round)+(diff===0?-1:diff===2?1:0)+(E.skill||0);
-  var fav=[0,0,0,0]; allU(E).forEach(function(x){ fav[x.u.el]++; }); var fe=fav.indexOf(Math.max.apply(null,fav));
+  var mode=E.mode||"base";
   for(var t=0;t<4;t++){
+    var fav=[0,0,0,0,0,0], fcl={}, us0=allU(E).map(function(x){ return x.u; }).filter(function(u){ return !u.sp; }); us0.forEach(function(u){ fav[u.el]++; fcl[u.cl]=(fcl[u.cl]||0)+1; });
+    var fe=fav.indexOf(Math.max.apply(null,fav)), fc=null, fcm=0; for(var kk in fcl) if(fcl[kk]>fcm){ fcm=fcl[kk]; fc=kk; }
+    var ff=famCounts(us0), fid=null, fm0=0; for(var k3 in ff) if(ff[k3]>fm0){ fm0=ff[k3]; fid=k3; }
     var shop=roll(E.level), best=-1, bs=-99;
-    shop.forEach(function(c,i){ if(!c||c.c>E.gold||!canAdd(E,c)) return; var own=allU(E).filter(function(x){ return x.u.key===c.key; }).length; var s=own*8+(c.el===fe?3:0)+c.c*.7+Math.random()*2; if(round>=3&&E.gold-c.c<1) s-=3; if(s>bs){ bs=s; best=i; } });
+    shop.forEach(function(c,i){ if(!c||c.c>E.gold||!canAdd(E,c)) return; var own=allU(E).filter(function(x){ return x.u.key===c.key; }).length, r=Math.random(), fx=famOfName(c.n), sc;
+      if(mode==="rand") sc=r*10; else if(mode==="el") sc=own*4+(c.el===fe?9:0)+c.c*.3+r*2; else if(mode==="cls") sc=own*4+(c.cl===fc?9:0)+c.c*.3+r*2; else if(mode==="fam") sc=own*4+(fx&&fx.id===fid?9:0)+(fx?3:0)+c.c*.3+r*2;
+      else if(mode==="stars") sc=own*16+c.c*.2+r*2; else if(mode==="cost") sc=c.c*3+own*2+r*2; else if(mode==="cheap") sc=own*6-c.c*1.5+r*2; else if(mode==="div") sc=(own===0?5:-3)+(c.el===fe?2:0)+c.c*.5+r*2;
+      else sc=own*8+(c.el===fe?3:0)+c.c*.7+r*2;
+      if(round>=3&&E.gold-c.c<1) sc-=3; if(sc>bs){ bs=sc; best=i; } });
     if(best<0) break; var c=shop[best]; E.gold-=c.c; takeCopy(c); merge(E,mk(c,1)); }
   // aufstellen: stärkste 5 aufs Feld, hohe HP nach vorn(links)
-  var all=allU(E).map(function(x){ return x.u; }), sps=all.filter(function(u){ return u.sp; }).sort(function(a,b){ return b.c*b.stars-a.c*a.stars; }), us=all.filter(function(u){ return !u.sp; }); us.sort(function(a,b){ var A=eff(a),B=eff(b); return (B.ak+B.hp)-(A.ak+A.hp); });
+  var all=allU(E).map(function(x){ return x.u; }), sps=all.filter(function(u){ return u.sp; }).sort(function(a,b){ return b.c*b.stars-a.c*a.stars; }), us=all.filter(function(u){ return !u.sp; }); var fav2=[0,0,0,0,0,0]; us.forEach(function(u){ fav2[u.el]++; }); var fe2=fav2.indexOf(Math.max.apply(null,fav2)); function pw(u){ var e=eff(u); return e.ak+e.hp+(u.el===fe2?2.5:0); }
+  us.sort(function(a,b){ return pw(b)-pw(a); });
   E.board=[[],[],[],[],[]]; E.bench=[null,null,null]; E.sp=[sps[0]||null]; var rest=sps.slice(1); var front=us.slice(0,5).sort(function(a,b){ return eff(b).hp-eff(a).hp; });
   front.forEach(function(u,i){ E.board[i].push(u); }); var extra=us.slice(5); extra.forEach(function(u,i){ var f=i%5; if(E.board[f].length<4) E.board[f].push(u); else rest.push(u); }); rest.slice(0,3).forEach(function(u,i){ E.bench[i]=u; });
+  if(round>=2&&Math.random()<.45){ var A0=ARTD[rnd(ARTD.length)]; if(A0.k==='g'&&E.gold>=A0.c+1){ var ms=mains(E).filter(function(u){ return (u.ar||[]).length<3&&u.a>0; }).sort(function(a,b){ return eff(b).ak-eff(a).ak; }); if(ms[0]){ E.gold-=A0.c; ms[0].ar=(ms[0].ar||[]).concat([A0.id]); } } }
 }
 // ---------- Kampf ----------
 function stackB(st,u){ var ne=0,nk=0,nc=0; st.forEach(function(o){ if(o===u) return; if(o.el===u.el) ne++; if(o.key===u.key) nk++; if(o.cl===u.cl) nc++; }); return {h:ne+nk,a:u.a>0?nc:0,ne:ne,nk:nk,nc:nc}; }
-function fighters(P){ var us=bu(P), fcnt=famCounts(us), sy=synOf(us), king=us.some(function(u){ return hv(u,"k"); });
-  function mkF(u,st){ var fm0=famOfName(u.n); var e=eff(u), a=e.ak, h=e.hp, fl={f:hv(u,"f"),b:hv(u,"b"),g:hv(u,"g")}; var te=sy.te[u.el], tc=sy.tc[u.cl];
-    [te>0?SE[u.el][te-1]:null, tc>0&&(SC[u.cl][tc-1].a!==undefined||SC[u.cl][tc-1].h!==undefined)?SC[u.cl][tc-1]:null].forEach(function(x){ if(!x) return; a+=x.a||0; h+=x.h||0; if(x.f) fl.f=true; if(x.b) fl.b=true; if(x.g) fl.g=true; });
+function fighters(P){ var us=bu(P), fcnt=famCounts(us), mn=mains(P), sy=synOf(mn,us), king=mn.some(function(u){ return hv(u,"k"); });
+  function mkF(u,st){ var fms=tagsOf(u); var e=eff(u), a=e.ak, h=e.hp, fl={f:hv(u,"f"),b:hv(u,"b"),g:hv(u,"g")}; var te=sy.te[u.el], tc=sy.tc[u.cl];
+    [te>0?SE[u.el][te-1]:null, tc>0&&(SC[u.cl][tc-1].a!==undefined||SC[u.cl][tc-1].h!==undefined)?SC[u.cl][tc-1]:null].forEach(function(x){ if(!x) return; a+=x.a||0; h+=x.h||0; if(x.rs) fl.rs=Math.max(fl.rs||0,x.rs); if(x.f) fl.f=true; if(x.b) fl.b=true; if(x.g) fl.g=true; });
     if(king&&!hv(u,"k")){ a+=u.stars; h+=u.stars; }
     if(st){ var sb=stackB(st,u); a+=sb.a; h+=sb.h; }
-    if(fm0){ var ft=famTier(fcnt[fm0.id]||0); if(ft>0){ var fx=fm0.t[ft-1]; a+=fx.a||0; h+=fx.h||0; if(fx.rs) fl.rs=fx.rs; } }
+    (u.ar||[]).forEach(function(id){ var A=ARTD[id]; if(!A) return; a+=A.a||0; h+=A.h||0; if(A.rs) fl.rs=Math.max(fl.rs||0,A.rs); if(A.f) fl.f=true; if(A.b) fl.b=true; if(A.g) fl.g=true; });
+    fms.forEach(function(fm0){ var ft=famTier(fcnt[fm0.id]||0); if(ft>0){ var fx=fm0.t[ft-1]; a+=fx.a||0; h+=fx.h||0; if(fx.rs) fl.rs=Math.max(fl.rs||0,fx.rs); } });
     return {u:u,ak:a,hp:h,mx:h,fl:fl,fz:false,nf:false,hit:false,res:[]}; }
   var out=[]; P.board.forEach(function(st){ if(!st.length) return; var top=mkF(st[0],st); top.res=[]; out.push(top); }); return out; }
 function red(f,d){ if(d<=0) return 0; if(hv(f.u,"w")) d=Math.max(1,d-1); return d; }
-var ADV={2:1,1:3,3:2};
-function adv(x,y){ return ADV[x.u.el]===y.u.el; }
+var ADV={2:[1,4],1:[3,5],3:[2],5:[2],4:[0],0:[5]};
+function advO(a,b){ return (ADV[a]||[]).indexOf(b)>=0; }
+function adv(x,y){ return advO(x.u.el,y.u.el); }
 function tick(A,B,n){
   var m=Math.min(A.length,B.length), dA=A.map(function(){return 0}), dB=B.map(function(){return 0}), hA=[], hB=[];
   for(var i=0;i<m;i++){ var a=A[i], b=B[i], aa=a.fz?0:a.ak+(a.fl.b?1:0), ba=b.fz?0:b.ak+(b.fl.b?1:0); if(aa>0&&adv(a,b)) aa=Math.max(1,aa+1-(b.fl.rs||0)); if(ba>0&&adv(b,a)) ba=Math.max(1,ba+1-(a.fl.rs||0)); a.fz=false; b.fz=false;
@@ -290,15 +342,15 @@ function decor(h,u,o){ var z=o.z; if(!(z==="s"||z==="n"||z==="b"||z==="p")||o.f)
   if(!tag) return h; return h.replace('<div class="c','<div class="c mg').replace(/<\/div>$/,'<span class="pc">'+(z==="s"?"✨ "+tag:tag)+'</span></div>'); }
 function cardHtml(u,o){ o=o||{}; return decor(cardHtml0(u,o),u,o); }
 function cardHtml0(u,o){ o=o||{}; if(u.sp) return spHtml(u,o); var e=o.f?{ak:o.f.ak,hp:o.f.hp}:eff(u), tr=u.t?u.t.split("").map(function(k){ return {w:"🛡",r:"⚡",s:"🏹",d:"🗡",h:"💚",c:"🌾",k:"👑",f:"❄",b:"🔥",g:"🌿"}[k]; }).join(""):"";
-  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.n>1?' k'+o.n:'')+(o.sel?' sel':'')+(o.f&&o.f.hit?' hit':'')+(o.f&&o.f.fz?' fz':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 55%,#000b),url(/kartenwelt/duell/'+u.img+'.jpg)">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+'<span class="co">'+u.c+'</span><span class="ci">'+EL[u.el].i+'<br>'+CL[u.cl].i+'</span>'+(tr?'<span class="tr">'+tr+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+(o.n>1?'<span class="kb">+'+(o.n-1)+'</span>':'')+'<span class="nm">'+nm(u)+'</span><span class="at">'+e.ak+'</span><span class="lf">'+e.hp+'</span></div>'; }
+  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.n>1?' k'+o.n:'')+(o.sel?' sel':'')+(o.f&&o.f.hit?' hit':'')+(o.f&&o.f.fz?' fz':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 55%,#000b),url(/kartenwelt/duell/'+u.img+'.jpg)">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+'<span class="co">'+u.c+'</span><span class="ci">'+EL[u.el].i+'<br>'+CL[u.cl].i+'</span>'+(tr?'<span class="tr">'+tr+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+(o.n>1?'<span class="kb">+'+(o.n-1)+'</span>':'')+(u.ar&&u.ar.length?'<span class="ab">💎'+u.ar.length+'</span>':'')+'<span class="nm">'+nm(u)+'</span><span class="at">'+e.ak+'</span><span class="lf">'+e.hp+'</span></div>'; }
 function emptyHtml(z,i){ return '<div class="c e" data-z="'+z+'" data-i="'+i+'"><span>'+T.free+'</span></div>'; }
-function synHtml(us){ var f=synOf(us), D=EN?SDE:SD, out=[];
+function synHtml(us,all){ var f=synOf(us,all), D=EN?SDE:SD, out=[];
   f.e.forEach(function(v,i){ if(v>0) out.push('<span class="sy'+(f.te[i]?' on':'')+'">'+EL[i].i+v+(f.te[i]?' '+D.e[i][f.te[i]-1]:'/2')+'</span>'); });
   for(var k in f.c){ var v=f.c[k]; if(v>0) out.push('<span class="sy'+(f.tc[k]?' on':'')+'">'+CL[k].i+v+(f.tc[k]?' '+D.c[k][f.tc[k]-1]:'/2')+'</span>'); } return out.join(""); }
 function log(t){ $("log").textContent=t||""; }
 function heartsStr(h){ return "❤"; }
-function favEl(Q){ var f=[0,0,0,0]; allU(Q).forEach(function(x){ if(!x.u.sp) f[x.u.el]++; }); var m=Math.max.apply(null,f); return m>0?f.indexOf(m):-1; }
-function advTxt(P,E){ var a=favEl(P), b=favEl(E); if(a<0||b<0) return ""; if(ADV[a]===b) return "  ·  "+EL[a].i+">"+EL[b].i+" "+(EN?"advantage":"Vorteil"); if(ADV[b]===a) return "  ·  "+EL[b].i+">"+EL[a].i+" "+(EN?"disadvantage":"Nachteil"); return ""; }
+function favEl(Q){ var f=[0,0,0,0,0,0]; allU(Q).forEach(function(x){ if(!x.u.sp) f[x.u.el]++; }); var m=Math.max.apply(null,f); return m>0?f.indexOf(m):-1; }
+function advTxt(P,E){ var a=favEl(P), b=favEl(E); if(a<0||b<0) return ""; if(advO(a,b)) return "  ·  "+EL[a].i+">"+EL[b].i+" "+(EN?"advantage":"Vorteil"); if(advO(b,a)) return "  ·  "+EL[b].i+">"+EL[a].i+" "+(EN?"disadvantage":"Nachteil"); return ""; }
 function paint(){
   var P=S.P, E=S.E; fuseMaps();
   $("tR").textContent=T.round+" "+S.round; $("tG").innerHTML="🪙 <b>"+P.gold+"</b>"; $("tL").textContent=T.lvl+" "+P.level;
@@ -310,13 +362,14 @@ function paint(){
     $("br").innerHTML=P.board.map(function(st,i){ return st.length?cardHtml(st[0],{z:"n",i:i,n:st.length,sel:sel&&sel.z==="n"&&sel.i===i}):emptyHtml("n",i); }).join("");
     $("bn").innerHTML=P.bench.map(function(u,i){ return u?cardHtml(u,{z:"b",i:i,sel:sel&&sel.z==="b"&&sel.i===i}):emptyHtml("b",i); }).join("")+(P.sp[0]?cardHtml(P.sp[0],{z:"p",i:0,sel:sel&&sel.z==="p"}):'<div class="c e" data-z="p" data-i="0" style="border-color:#ffd45a88"><span style="color:#ffd45a">✨ '+(EN?'spell':'Zauber')+'</span></div>')+'<div class="sell" id="sellz">'+T.sell.replace("\n","<br>")+'</div>';
     synCol();
-    $("sr").innerHTML=S.shop.map(function(c,i){ if(!c) return '<div class="c e" data-z="s" data-i="'+i+'"><span>'+T.empty+'</span></div>'; var u=mk(c,1); return cardHtml(u,{z:"s",i:i,rem:POOLC[c.key]}); }).join("");
+    $("sr").innerHTML=S.shop.map(function(c,i){ if(!c) return '<div class="c e" data-z="s" data-i="'+i+'"><span>'+T.empty+'</span></div>'; var u=mk(c,1); return cardHtml(u,{z:"s",i:i}); }).join("")+(S.art?artHtml(S.art,"a",0):'<div class="c e" data-z="a" data-i="0"><span>'+T.empty+'</span></div>');
+    $("lI").textContent="💎 "+(EN?"Artifacts (tap = use / equip)":"Artefakte (antippen = nutzen / anlegen)"); $("lI").style.display=P.inv.length?"":"none"; $("iv").style.display=P.inv.length?"":"none"; $("iv").innerHTML=P.inv.map(function(id,i){ return artHtml(ARTD[id],"v",i); }).join("");
     $("rr").textContent=T.roll+" ("+rollCost()+")"; $("lu").textContent=(S.lock?"🔓 ":"🔒 ")+(EN?(S.lock?"Locked":"Lock shop"):(S.lock?"Gesperrt":"Shop sperren")); $("lu").style.borderColor=S.lock?"#c6ff3d":""; $("go").textContent=T.go;
   }
-  stkPaint(); $("shop").style.display=fighting?"none":""; $("bn").style.display=fighting?"none":""; $("lN").style.display=fighting?"none":"";
+  stkPaint(); $("shop").style.display=fighting?"none":""; $("bn").style.display=fighting?"none":""; if(fighting){ $("iv").style.display="none"; $("lI").style.display="none"; } $("lN").style.display=fighting?"none":"";
 }
 function rollCost(){ return 2; }
-function newShop(){ S.shop=roll(S.P.level); }
+function newShop(){ S.shop=roll(S.P.level); S.art=ARTD[rnd(ARTD.length)]; }
 function aliveList(){ return [S.P].concat(S.bots).filter(function(x){ return x.hearts>0; }); }
 function shuf(a){ for(var i=a.length-1;i>0;i--){ var j=rnd(i+1),t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function ghostOf(g){ var o=newP(); o.board=g.board.map(function(st){ return st.slice(); }); o.bench=g.bench.slice(); o.sp=g.sp.slice(); o.hearts=g.hearts; o.level=g.level; o.name=g.name+" 👻"; o.av=g.av; o.run=g.run; o.av=g.av; o.ghost=true; return o; }
@@ -353,7 +406,7 @@ function searchThenStart(){
     if(k>=10){ clearInterval(ldT); var c=5; $("ldt").textContent="✅ "+T.full+" "+c; $("ldn").textContent=T.startsIn+" "+c+" s";
       clearInterval(ldC); ldC=setInterval(function(){ c--; if(c<=0){ clearInterval(ldC); clearInterval(ldI); $("ld").classList.remove("show"); newGame(); } else { $("ldt").textContent="✅ "+T.full+" "+c; $("ldn").textContent=T.startsIn+" "+c+" s"; } },1000); } },380); }
 function newGame(){
-  buildPool(); var bots=NAMES.map(function(n,i){ var b=newP(); b.name=n[1]; b.av=LOBAV[i]; b.run=rnd(2)?"h1":"h2"; b.skill=rnd(3)-1; return b; });
+  buildPool(); var bots=NAMES.map(function(n,i){ var b=newP(); b.name=n[1]; b.av=LOBAV[i]; b.run=rnd(2)?"h1":"h2"; b.mode=["base","el","cls","div","cost"][rnd(5)]; b.skill=rnd(3)-1; return b; });
   S={round:0,P:newP(),bots:bots,shop:[],E:newP()}; S.P.name=MYNAME||T.you; S.P.av=MYAV; S.P.run=MYRUN; startRound(); log(T.elems+": "+ELS.map(function(i){ return EL[i].i+" "+(EN?EL[i].en:EL[i].de); }).join(" · ")); }
 function roundEnd(msg){
   var P=S.P, notes=[];
@@ -391,7 +444,7 @@ var infoSel=null;
 var TRD={de:{w:"🛡 Rüstung: erleidet 1 Schaden weniger",r:"⚡ Schnell: schlägt zuerst",s:"🏹 Fernkampf: trifft zusätzlich die Karte dahinter (1)",d:"🗡 Dieb: +1 Herzschaden wenn sie überlebt",h:"💚 Heiler: heilt jeden Schlag den schwächsten Verbündeten",c:"🌾 Bauer: +1 Gold pro Runde",k:"👑 König: Verbündete +1/+1",f:"❄ Frost: getroffene Karte setzt den nächsten Schlag aus",b:"🔥 Brand: +1 Schaden",g:"🌿 Wachstum: wächst jeden Schlag +1 Leben nach"},
  en:{w:"🛡 Armor: takes 1 less damage",r:"⚡ Fast: strikes first",s:"🏹 Ranged: also hits the card behind (1)",d:"🗡 Thief: +1 heart damage if it survives",h:"💚 Healer: heals the weakest ally each tick",c:"🌾 Farmer: +1 gold per round",k:"👑 King: allies +1/+1",f:"❄ Frost: hit card skips its next attack",b:"🔥 Burn: +1 damage",g:"🌿 Growth: regrows 1 health per tick"}};
 function sdesc(o,tier){ return o?Object.keys(o).map(function(k){ var v=o[k]; return ({a:"+"+v+" "+(EN?"attack":"Angriff"),h:"+"+v+" "+(EN?"health":"Leben"),f:(EN?"Frost":"Frost"),b:(EN?"Burn":"Brand"),g:(EN?"Regrowth":"Nachwachsen"),gold:"+"+v+" Gold"})[k]; }).join(", "):""; }
-function infoHtml(u,z,i,j){ var P=S.P, D=EN?SDE:SD, sy=synOf(bu(P)), h="";
+function infoHtml(u,z,i,j){ var P=S.P, D=EN?SDE:SD, sy=synOf(mains(P),bu(P)), h="";
   var st=z==="n"?P.board[i]:null, isMain=z==="n"&&(j||0)===0;
   h+='<div class="ih"><b>'+nm(u)+'</b> '+(u.stars>1?(u.stars===2?'★★':'★★★')+' ':'')+'· 🪙'+u.c+' · '+EL[u.el].i+' '+(EN?EL[u.el].en:EL[u.el].de)+(u.sp?'':' · '+CL[u.cl].i+' '+(EN?CL[u.cl].en:CL[u.cl].de))+'</div>';
   if(u.sp){ var v=spVal(u,P); h+='<div>✨ '+(EN?u.de:u.d)+': <b>'+v.base+(v.bonus?'+'+v.bonus:'')+'</b> '+(EN?'(base + element bonus)':'(Basis + Element-Bonus)')+'</div><div class="mu">'+(EN?'Cast automatically at a random moment during the fight.':'Wird automatisch zu einem zufälligen Zeitpunkt im Kampf gewirkt.')+'</div>'; return h; }
@@ -399,14 +452,14 @@ function infoHtml(u,z,i,j){ var P=S.P, D=EN?SDE:SD, sy=synOf(bu(P)), h="";
   if(isMain&&st){ var f=null; fighters(P).forEach(function(q){ if(q.u===u) f=q; }); if(f) h+='<div class="g">▶ '+(EN?'In the fight: ':'Im Kampf: ')+'⚔ <b>'+f.ak+'</b> · ❤ <b>'+f.hp+'</b> <span class="mu">('+(EN?'with synergies & stack':'mit Synergien & Stapel')+')</span></div>';
     var sb=stackB(st,u); if(sb.h||sb.a) h+='<div class="g">📚 '+(EN?'Stack bonus: ':'Stapel-Bonus: ')+(sb.h?'+'+sb.h+' ❤ ':'')+(sb.a?'+'+sb.a+' ⚔':'')+'</div>'; }
   else if(z==="n"){ var m=st[0], c2=[]; if(m){ if(u.el===m.el) c2.push("+1 ❤ ("+(EN?"same element":"gleiches Element")+")"); if(u.key===m.key) c2.push("+1 ❤ ("+(EN?"same card":"gleiche Karte")+")"); if(u.cl===m.cl&&m.a>0) c2.push("+1 ⚔ ("+(EN?"same class":"gleiche Klasse")+")"); }
-    h+='<div class="g">📚 '+(EN?'Support card – does not fight, counts for synergies. Gives ':'Stapel-Karte – kämpft nicht, zählt aber für Synergien. Gibt ')+nm(m)+': '+(c2.length?c2.join(', '):(EN?'no bonus':'keinen Bonus'))+'</div>'; }
+    h+='<div class="g">📚 '+(EN?'Support card – does not fight, counts for classes (knights, walls, mages …), not for elements. Gives ':'Stapel-Karte – kämpft nicht, zählt für Klassen (Ritter, Mauern, Magier …), nicht für Elemente. Gibt ')+nm(m)+': '+(c2.length?c2.join(', '):(EN?'no bonus':'keinen Bonus'))+'</div>'; }
   else h+='<div class="mu">'+(z==="b"?(EN?'On the bench – not counted. Place on the field/stack.':'Auf der Bank – zählt noch nicht. Leg sie aufs Feld oder in den Stapel.'):'')+'</div>';
   (u.t||"").split("").forEach(function(k){ var t=(EN?TRD.en:TRD.de)[k]; if(t) h+='<div>'+t+'</div>'; });
   var ec=sy.e[u.el], cc=sy.c[u.cl], te=sy.te[u.el], tc=sy.tc[u.cl];
-  h+='<div class="sgx"><b>'+EL[u.el].i+' '+(EN?EL[u.el].en:EL[u.el].de)+'</b> '+ec+' '+(EN?'different cards':'verschiedene Karten')+'<br>'+[0,1].map(function(t){ return '<span class="'+(te>t?'ok':'')+'">'+(te>t?'✓ ':'')+(EN?'from ':'ab ')+TH[t]+': '+D.e[u.el][t]+'</span>'; }).join('<br>')+'</div>';
-  h+='<div class="sgx"><b>'+CL[u.cl].i+' '+(EN?CL[u.cl].en:CL[u.cl].de)+'</b> '+cc+' '+(EN?'different cards':'verschiedene Karten')+'<br>'+[0,1].map(function(t){ return '<span class="'+(tc>t?'ok':'')+'">'+(tc>t?'✓ ':'')+(EN?'from ':'ab ')+TH[t]+': '+D.c[u.cl][t]+'</span>'; }).join('<br>')+'</div>';
-  var fm1=famOfName(u.n); if(fm1){ var fn=famCounts(bu(P))[fm1.id]||0, ft1=famTier(fn); h+='<div class="sgx"><b>'+fm1.ic+' '+(EN?fm1.en:fm1.de)+'</b> '+fn+' '+(EN?'different cards':'verschiedene Karten')+'<br>'+[0,1].map(function(t){ return '<span class="'+(ft1>t?'ok':'')+'">'+(ft1>t?'✓ ':'')+(EN?'from ':'ab ')+TH[t]+': '+famTxt(fm1.t[t])+'</span>'; }).join('<br>')+'</div>'; }
-  var beats=-1; for(var q in ADV) if(+q===u.el) beats=ADV[q]; var weak=-1; for(var q2 in ADV) if(ADV[q2]===u.el) weak=+q2;
+  h+='<div class="sgx"><b>'+EL[u.el].i+' '+(EN?EL[u.el].en:EL[u.el].de)+'</b> '+ec+' '+(EN?'different cards on the field':'verschiedene Karten auf dem Kampffeld')+'<br>'+[0,1,2].map(function(t){ return '<span class="'+(te>t?'ok':'')+'">'+(te>t?'✓ ':'')+(EN?'from ':'ab ')+TH[t]+': '+D.e[u.el][t]+'</span>'; }).join('<br>')+'</div>';
+  h+='<div class="sgx"><b>'+CL[u.cl].i+' '+(EN?CL[u.cl].en:CL[u.cl].de)+'</b> '+cc+' '+(EN?'different cards (field + stack)':'verschiedene Karten (Feld + Stapel)')+'<br>'+[0,1,2].map(function(t){ return '<span class="'+(tc>t?'ok':'')+'">'+(tc>t?'✓ ':'')+(EN?'from ':'ab ')+TH[t]+': '+D.c[u.cl][t]+'</span>'; }).join('<br>')+'</div>';
+  tagsOf(u).forEach(function(fm1){ var fn=famCounts(bu(P))[fm1.id]||0, ft1=famTier(fn); h+='<div class="sgx"><b>'+fm1.ic+' '+(EN?fm1.en:fm1.de)+'</b> '+fn+' '+(EN?'different cards (field + stack)':'verschiedene Karten (Feld + Stapel)')+'<br>'+[0,1,2].map(function(t){ return '<span class="'+(ft1>t?'ok':'')+'">'+(ft1>t?'✓ ':'')+(EN?'from ':'ab ')+TH[t]+': '+famTxt(fm1.t[t])+'</span>'; }).join('<br>')+'</div>'; });
+  var beats=(ADV[u.el]||[-1])[0]; var weak=-1; for(var q2 in ADV) if(ADV[q2].indexOf(u.el)>=0) weak=+q2;
   if(beats>=0||weak>=0) h+='<div class="mu">'+(beats>=0?'+1 ⚔ '+(EN?'vs ':'gegen ')+EL[beats].i+' ':'')+(weak>=0?' · '+(EN?'weak vs ':'schwach gegen ')+EL[weak].i:'')+'</div>';
   return h; }
 function stkTxt(){ return ""; }
@@ -416,9 +469,10 @@ function stkPaint(){ var el=$("stk"), u=infoSel&&!fighting&&S&&peekJ(infoSel.z,i
   var h='<div class="th"><span>'+(isN?(EN?"Field ":"Feld ")+(infoSel.i+1):(infoSel.z==="b"?(EN?"Bench":"Bank"):(EN?"Spell":"Zauber")))+'</span><button id="stkx">✕</button></div>';
   if(isN){ h+='<div class="rw"><div style="position:relative"><div class="mini">'+(EN?"on field":"Feld")+'</div>'+cardHtml(st[0],{z:"n",i:infoSel.i,sel:cur===0}).replace('data-z="n"','data-z="n" data-j="0"')+'</div><div class="vs">+</div>';
     for(var k=1;k<=3;k++){ var q=st[k]; h+='<div style="position:relative">'+(q?cardHtml(q,{z:"n",i:infoSel.i,sel:cur===k}).replace('data-z="n"','data-z="n" data-j="'+k+'"'):'<div class="c e" data-z="n" data-i="'+infoSel.i+'" data-j="'+k+'"><span>'+lab+'</span></div>')+'</div>'; }
-    h+='</div>'; }
+    h+='</div>';
+    if(cur===0){ h+='<div class="arw"><span>💎 '+(EN?"Artifacts":"Artefakte")+'</span>'; for(var ak=0;ak<3;ak++){ var aid=(st[0].ar||[])[ak]; h+=aid!==undefined?'<button class="axs f" data-k="'+ak+'" style="background-image:url(/kartenwelt/duell/'+ARTD[aid].img+'.jpg)"></button>':'<button class="axs" data-k="'+ak+'">+</button>'; } h+='</div>'; } }
   h+='<div class="ib2">'+infoHtml(u,infoSel.z,infoSel.i,cur)+'</div><button id="stks" class="pri" style="margin-top:6px;padding:8px;font-size:13px">💰 '+(EN?"Sell":"Verkaufen")+' +'+sellVal(u)+'</button>';
-  el.innerHTML=h; el.classList.add("show"); $("stkx").onclick=function(){ infoSel=null; stkPaint(); }; $("stks").onclick=function(){ sel={z:infoSel.z,i:infoSel.i,j:infoSel.z==="n"?cur:undefined}; infoSel=null; sellSel(); }; }
+  el.innerHTML=h; el.classList.add("show"); $("stkx").onclick=function(){ infoSel=null; stkPaint(); }; Array.prototype.forEach.call(el.querySelectorAll(".axs"),function(b){ b.onclick=function(){ slotWin(infoSel.i,+b.dataset.k); }; }); $("stks").onclick=function(){ sel={z:infoSel.z,i:infoSel.i,j:infoSel.z==="n"?cur:undefined}; infoSel=null; sellSel(); }; }
 function peekJ(z,i,j){ if(z==="n") return S.P.board[i][j===undefined?0:j]||null; return peek(z,i); }
 function moveCard(src,tg){ var P=S.P, u=peekJ(src.z,src.i,src.j); if(!u) return; var sj=src.z==="n"?(src.j===undefined?0:src.j):0;
   if(!okZ(tg.z,u)){ toast(EN?"Spells only go in the spell slot, creatures on the field/bench":"Zauber gehören ins Zauberfeld, Kreaturen aufs Kampffeld/Bank"); return; }
@@ -433,7 +487,34 @@ function moveCard(src,tg){ var P=S.P, u=peekJ(src.z,src.i,src.j); if(!u) return;
     removeSrc(); if(tg.z==="p") P.sp[tg.i]=u; else P.bench[tg.i]=u;
     if(o){ if(src.z==="n") P.board[src.i].splice(sj,0,o); else putU(src.z,src.i,o); } }
   S.merged=false; merge(P,null); if(S.merged) toast("✨ "+T.merged); sel=null; paint(); }
-function sellSel(){ if(fighting||!sel) return; var u=peekJ(sel.z,sel.i,sel.j); if(!u) return; S.P.gold+=sellVal(u); giveBack(u); if(sel.z==="n"&&sel.j!==undefined) S.P.board[sel.i].splice(sel.j,1); else takeU(sel.z,sel.i); toast(T.sold+" +"+sellVal(u)+" 🪙"); sel=null; paint(); }
+
+function retArts(P,u){ (u.ar||[]).forEach(function(id){ P.inv.push(id); }); u.ar=[]; }
+function showBox(h){ $("box").innerHTML=h+'<button class="pri" id="bkc">'+(EN?"Close":"Schließen")+'</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); }
+function artRow(A,extra,att){ return '<button class="arl" '+att+'><img src="/kartenwelt/duell/'+A.img+'.jpg" alt=""><span><b>'+(EN?A.en:A.n)+'</b><br>'+adsc(A)+(extra?'<br><span class="mu">'+extra+'</span>':'')+'</span></button>'; }
+function buyArt(ok){ if(fighting||!S.art) return; var A=S.art; if(!ok){ showBox('<h2>💎 '+(EN?A.en:A.n)+'</h2>'+artRow(A,A.k==='u'?(EN?'instant use':'sofort nutzbar'):(EN?'equip on a field card':'an eine Feldkarte anlegen'),'')+'<button class="pri" id="bya" style="margin-top:6px">🪙 '+A.c+' '+(EN?'Buy':'Kaufen')+'</button>'); $('bya').onclick=function(){ $('ov').classList.remove('show'); buyArt(true); }; return; }
+  if(S.P.gold<A.c){ toast(T.nogold); return; } if(S.P.inv.length>=5){ toast(EN?"Bag is full (5)":"Beutel voll (max. 5)"); return; }
+  S.P.gold-=A.c; S.P.inv.push(A.id); S.art=null; toast("💎 "+(EN?A.en:A.n)); paint(); }
+function equipArt(i,invIdx){ var P=S.P, u=P.board[i]&&P.board[i][0]; if(!u||P.inv[invIdx]===undefined) return; u.ar=u.ar||[]; if(u.ar.length>=3){ toast(EN?"Max. 3 artifacts":"Maximal 3 Artefakte"); return; }
+  var id=P.inv.splice(invIdx,1)[0]; u.ar.push(id); $("ov").classList.remove("show"); toast("💎 "+(EN?ARTD[id].en:ARTD[id].n)+" → "+nm(u)); paint(); }
+function slotWin(i,k){ var P=S.P, u=P.board[i]&&P.board[i][0]; if(!u||fighting) return; u.ar=u.ar||[]; var h='<h2>💎 '+(EN?"Artifacts of ":"Artefakte von ")+nm(u)+'</h2><p class="mu" style="text-align:center">'+(EN?"Only apply to this card (max. 3).":"Gelten nur für diese Karte (max. 3).")+'</p>';
+  if(u.ar[k]!==undefined){ var A=ARTD[u.ar[k]]; h+=artRow(A,EN?"tap = take off":"antippen = ablegen",'data-off="1"'); }
+  else { var any=false; P.inv.forEach(function(id,ix){ if(ARTD[id].k==="g"){ any=true; h+=artRow(ARTD[id],EN?"tap = equip":"antippen = anlegen",'data-eq="'+ix+'"'); } }); if(!any) h+='<p style="text-align:center">'+(EN?"No artifact in your bag. Buy one in the shop (💎 card on the right).":"Kein Artefakt im Beutel. Kauf eins im Shop (💎-Karte ganz rechts).")+'</p>'; }
+  showBox(h); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ if(b.dataset.off){ var id=u.ar.splice(k,1)[0]; P.inv.push(id); $("ov").classList.remove("show"); paint(); } else equipArt(i,+b.dataset.eq); }; }); }
+function activeEl(){ var P=S.P, sy=synOf(mains(P),bu(P)), best=-1; for(var e=0;e<6;e++){ if(sy.te[e]>0&&(best<0||sy.te[e]>sy.te[best]||(sy.te[e]===sy.te[best]&&sy.e[e]>sy.e[best]))) best=e; } return best; }
+function useArt(ix,ok){ if(fighting) return; var P=S.P, id=P.inv[ix], A=ARTD[id]; if(!A) return;
+  if(A.k==='u'&&!ok){ showBox('<h2>⚡ '+(EN?A.en:A.n)+'</h2>'+artRow(A,'','')+'<button class="pri" id="uza" style="margin-top:6px">⚡ '+(EN?'Activate':'Aktivieren')+'</button>'); $('uza').onclick=function(){ $('ov').classList.remove('show'); useArt(ix,true); }; return; }
+  if(A.k==="g"){ var h='<h2>💎 '+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+adsc(A)+'</p><p class="mu" style="text-align:center">'+(EN?"Equip on a field card:":"Lege es an eine Kampffeld-Karte an:")+'</p>'; P.board.forEach(function(st,i){ if(st[0]&&(st[0].ar||[]).length<3) h+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+st[0].img+'.jpg" alt=""><span><b>'+nm(st[0])+'</b> '+EL[st[0].el].i+'<br><span class="mu">💎 '+(st[0].ar||[]).length+'/3</span></span></button>'; });
+    showBox(h); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ equipArt(+b.dataset.i,ix); }; }); return; }
+  if(A.u==="coin"){ P.inv.splice(ix,1); P.gold+=5; toast("🪙 +5"); paint(); return; }
+  if(A.u==="el"){ var be=activeEl(); if(be<0){ toast(EN?"No element is active yet.":"Noch kein Element aktiv."); return; }
+    var h2='<h2>'+EL[be].i+' '+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"Which field card becomes ":"Welche Feldkarte wird ")+EL[be].i+' '+(EN?EL[be].en:EL[be].de)+'?</p>', n2=0; P.board.forEach(function(st,i){ if(st[0]&&st[0].el!==be){ n2++; h2+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+st[0].img+'.jpg" alt=""><span><b>'+nm(st[0])+'</b><br>'+EL[st[0].el].i+' → '+EL[be].i+'</span></button>'; } });
+    if(!n2){ toast(EN?"All field cards already have it.":"Alle Feldkarten haben es schon."); return; }
+    showBox(h2); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var u=P.board[+b.dataset.i][0]; u.el=be; u.cl=u.cl; P.inv.splice(ix,1); $("ov").classList.remove("show"); toast(EL[be].i+" "+nm(u)); paint(); }; }); return; }
+  if(A.u==="clone"){ var fb=-1; P.bench.forEach(function(x,q){ if(!x&&fb<0) fb=q; }); if(fb<0){ toast(T.nospace); return; }
+    var h3='<h2>'+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"Which card to copy?":"Welche Karte kopieren?")+'</p>'; var L=allU(P).filter(function(x){ return !x.u.sp; });
+    L.forEach(function(x,q){ h3+='<button class="arl" data-q="'+q+'"><img src="/kartenwelt/duell/'+x.u.img+'.jpg" alt=""><span><b>'+nm(x.u)+'</b> '+(x.u.stars>1?"★".repeat(x.u.stars):"")+'<br>'+x.u.a+'/'+x.u.h+'</span></button>'; });
+    showBox(h3); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var src=L[+b.dataset.q].u, o=mk(src,src.stars); o.ar=[]; o.nf=true; P.bench[fb]=o; P.inv.splice(ix,1); $("ov").classList.remove("show"); S.merged=false; merge(P,null); if(S.merged) toast("✨ "+T.merged); else toast("🧬 "+nm(o)); paint(); }; }); } }
+function sellSel(){ if(fighting||!sel) return; var u=peekJ(sel.z,sel.i,sel.j); if(!u) return; S.P.gold+=sellVal(u); retArts(S.P,u); giveBack(u); if(sel.z==="n"&&sel.j!==undefined) S.P.board[sel.i].splice(sel.j,1); else takeU(sel.z,sel.i); toast(T.sold+" +"+sellVal(u)+" 🪙"); sel=null; paint(); }
 var LIMA=120, turbo=false;
 function battle(){
   if(fighting) return; if(!S.P.board.some(function(st){return st.length})){ toast(T.need); return; }
@@ -460,17 +541,17 @@ function strike(side,dmg,onHit,cb){
     setTimeout(function(){ dn.classList.remove("hurt"); void dn.offsetWidth; dn.classList.add("hurt"); var fx=document.createElement("div"); fx.className="fxn"; fx.textContent=dmg?"−"+dmg+" ❤":"🏆"; var r=dn.getBoundingClientRect(); fx.style.left=(r.left+r.width/2-14)+"px"; fx.style.top=(r.top-4)+"px"; document.body.appendChild(fx); setTimeout(function(){ fx.remove(); },950); onHit(); },160*k);
     setTimeout(function(){ clearInterval(ai); an.style.transition="transform "+(0.4*k)+"s linear"; an.style.setProperty("--dx","0px"); var g=0, bi=setInterval(function(){ g++; setImg(an.id,run,side,"r",g); },70);
       setTimeout(function(){ clearInterval(bi); busy=false; cb(); },420*k); },560*k); },520*k); }
-function synCol(){ var f=synOf(bu(S.P)), h="";
+function synCol(){ var f=synOf(mains(S.P),bu(S.P)), h="";
   f.e.forEach(function(v,i){ if(v>0) h+=sgItem("e"+i,EL[i].i,v,f.te[i]); }); for(var k in f.c){ if(f.c[k]>0) h+=sgItem("c"+k,CL[k].i,f.c[k],f.tc[k]); }
   var fc=famCounts(bu(S.P)); FAM.forEach(function(fm){ if(fc[fm.id]>0) h+=sgItem("f"+fm.id,fm.ic,fc[fm.id],famTier(fc[fm.id])); }); $("sygb").textContent="✨ "+(h.match(/sg on/g)||[]).length+(document.body.classList.contains("csy")?" ◂":" ▸"); $("syc").innerHTML=h||'<div class="sg"><span class="si">ℹ</span></div>'; }
-function sgItem(key,ic,v,t){ var nx=t>=2?"MAX":v<TH[0]?TH[0]:TH[1]; return '<div class="sg'+(t?' on':'')+'" data-k="'+key+'"><span class="si">'+ic+'</span><span class="sn">'+v+(t>=2?'':'/'+nx)+'</span><span class="pp">'+(t?"●":"")+(t>1?"●":"")+'</span></div>'; }
-function synDetail(key){ if(key[0]==="f"){ var fm=FAM.filter(function(x){ return x.id===key.slice(1); })[0], us0=bu(S.P).filter(function(u){ return !u.sp&&famOfName(u.n)===fm; }), seen={}, us=us0.filter(function(u){ if(seen[u.key]) return false; seen[u.key]=1; return true; }), n=us.length, t=famTier(n);
+function sgItem(key,ic,v,t){ var nx=t>=3?"MAX":v<TH[0]?TH[0]:v<TH[1]?TH[1]:v<TH[2]?TH[2]:TH[2]; return '<div class="sg'+(t?' on':'')+'" data-k="'+key+'"><span class="si">'+ic+'</span><span class="sn">'+v+(t>=3?'':'/'+nx)+'</span><span class="pp">'+(new Array(t+1).join("●"))+'</span></div>'; }
+function synDetail(key){ if(key[0]==="f"){ var fm=FAM.filter(function(x){ return x.id===key.slice(1); })[0], us0=bu(S.P).filter(function(u){ return !u.sp&&tagsOf(u).indexOf(fm)>=0; }), seen={}, us=us0.filter(function(u){ if(seen[u.key]) return false; seen[u.key]=1; return true; }), n=us.length, t=famTier(n);
     var h='<h2>'+fm.ic+' '+(EN?fm.en:fm.de)+'</h2><p style="text-align:left">'+(EN?'Different cards of this kind on your field and in your stacks: ':'Verschiedene Karten dieser Art auf Feld und in Stapeln: ')+'<b>'+n+'</b><br>'+us.map(nm).join(", ")+'</p><div style="text-align:left;font-size:13px;line-height:1.7">';
-    [0,1].forEach(function(q){ h+='<div style="'+(t>q?'color:#9fe3b0;font-weight:800':'color:#cbbcff')+'">'+(t>q?'✓ ':'')+(EN?'from ':'ab ')+TH[q]+': '+famTxt(fm.t[q])+'</div>'; }); h+='<div style="color:#9a93c8;font-size:11.5px;margin-top:6px">'+(EN?'Applies to every card of this kind on the field.':'Gilt für jede Karte dieser Art auf dem Kampffeld.')+'</div>';
-    $("box").innerHTML=h+'</div><button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); return; } var D=EN?SDE:SD, f=synOf(bu(S.P)), isE=key[0]==="e", id=isE?+key.slice(1):key.slice(1), v=isE?f.e[id]:f.c[id], t=isE?f.te[id]:f.tc[id], nm0=isE?EL[id]:CL[id], d=isE?D.e[id]:D.c[id];
-  var cards={}; allU(S.P).forEach(function(x){ var u=x.u; if(u.sp) return; if((isE&&u.el===id)||(!isE&&u.cl===id)) cards[nm(u)]=1; });
-  var h='<h2>'+nm0.i+' '+(EN?nm0.en:nm0.de)+'</h2><p style="text-align:left">'+(EN?'Different cards of this type on your field and in your stacks: ':'Verschiedene Karten dieser Art auf Feld und in Stapeln: ')+'<b>'+v+'</b><br>'+Object.keys(cards).join(", ")+'</p><div style="text-align:left;font-size:13px;line-height:1.7">';
-  [0,1].forEach(function(q){ h+='<div style="'+(t>q?'color:#9fe3b0;font-weight:800':'color:#cbbcff')+'">'+(t>q?'✓ ':'')+(EN?'from ':'ab ')+TH[q]+': '+d[q]+'</div>'; });
+    [0,1,2].forEach(function(q){ h+='<div style="'+(t>q?'color:#9fe3b0;font-weight:800':'color:#cbbcff')+'">'+(t>q?'✓ ':'')+(EN?'from ':'ab ')+TH[q]+': '+famTxt(fm.t[q])+'</div>'; }); h+='<div style="color:#9a93c8;font-size:11.5px;margin-top:6px">'+(EN?'Applies to every card of this kind on the field.':'Gilt für jede Karte dieser Art auf dem Kampffeld.')+'</div>';
+    $("box").innerHTML=h+'</div><button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); return; } var D=EN?SDE:SD, f=synOf(mains(S.P),bu(S.P)), isE=key[0]==="e", id=isE?+key.slice(1):key.slice(1), v=isE?f.e[id]:f.c[id], t=isE?f.te[id]:f.tc[id], nm0=isE?EL[id]:CL[id], d=isE?D.e[id]:D.c[id];
+  var cards={}; (isE?mains(S.P):bu(S.P)).forEach(function(u){ if(u.sp) return; if((isE&&u.el===id)||(!isE&&u.cl===id)) cards[nm(u)]=1; });
+  var h='<h2>'+nm0.i+' '+(EN?nm0.en:nm0.de)+'</h2><p style="text-align:left">'+(isE?(EN?'Different cards of this element on your battle field (stacks do not count): ':'Verschiedene Karten dieses Elements auf dem Kampffeld (Stapel zählen nicht): '):(EN?'Different cards of this class on your field and in your stacks: ':'Verschiedene Karten dieser Klasse auf Feld und in Stapeln: '))+'<b>'+v+'</b><br>'+Object.keys(cards).join(", ")+'</p><div style="text-align:left;font-size:13px;line-height:1.7">';
+  [0,1,2].forEach(function(q){ h+='<div style="'+(t>q?'color:#9fe3b0;font-weight:800':'color:#cbbcff')+'">'+(t>q?'✓ ':'')+(EN?'from ':'ab ')+TH[q]+': '+d[q]+'</div>'; });
   $("box").innerHTML=h+'</div><button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); }
 function alive10(){ return 1+S.bots.filter(function(b){ return b.hearts>0; }).length; }
 function colSet(){ var op=document.body.classList.contains("cop"), sy=document.body.classList.contains("csy"); document.body.style.setProperty("--pr",op?"40px":"0px"); document.body.style.setProperty("--pl",sy?"40px":"0px"); $("oppb").classList.toggle("on",op); $("sygb").classList.toggle("on",sy); try{ localStorage.setItem("bp_royale_cols",(op?"o":"")+(sy?"s":"")); }catch(e){} }
@@ -478,7 +559,7 @@ function oppPanel(){ $("oppb").textContent="👥 "+alive10()+(document.body.clas
 function showOpp(i){ var b=S.bots[i]; if(!b) return;
   var h='<h2>'+avh(b.av,30)+' '+b.name+'</h2><p style="text-align:center">'+T.lvl+' '+b.level+' · ❤ '+b.hearts+(b.hearts<=0?' ☠':'')+(b.sp[0]?' · ✨ '+nm(b.sp[0]):'')+'</p><div class="row" style="padding:2px 0;flex-wrap:wrap">';
   var any=false; b.board.forEach(function(st){ if(st.length){ any=true; h+=cardHtml(st[0],{n:st.length}); } }); if(!any) h+='<p>–</p>';
-  h+='</div><div class="syn">'+synHtml(bu(b))+'</div>';
+  h+='</div><div class="syn">'+synHtml(mains(b),bu(b))+'</div>';
   $("box").innerHTML=h+'<button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); }
 function finish(place){
   var best=99; try{ best=+localStorage.getItem("bp_arena_place")||99; if(place<best){ best=place; localStorage.setItem("bp_arena_place",String(best)); } }catch(e){}
@@ -492,9 +573,9 @@ function startMenu(){
   $("go2").onclick=function(){ diff=cur; try{ localStorage.setItem("bp_arena_diff",String(cur)); }catch(e){} $("ov").classList.remove("show"); searchThenStart(); }; $("bk2").onclick=goBack; $("ov").classList.add("show"); }
 function goBack(){ if(window.parent!==window) parent.postMessage({bpRealmBack:true},location.origin); else location.href="/"; }
 $("book").onclick=function(){ var D=EN?SDE:SD, h='<h2>📖 '+(EN?'Synergies':'Synergien')+'</h2><p>'+(EN?'Different cards of the same type on your battlefield give bonuses. Stars: ★★ = ×1.8, ★★★ = ×3.3 stats.':'Verschiedene Karten derselben Art auf deinem Kampffeld geben Boni. Sterne: ★★ = ×1,8, ★★★ = ×3,3 Werte.')+'</p><div style="text-align:left;font-size:12.5px;line-height:1.5">';
-  h+='<b>'+(EN?'Elements (3 / 5)':'Elemente (3 / 5)')+'</b><br>'; EL.forEach(function(x,i){ h+=x.i+' '+(EN?x.en:x.de)+': 3 → '+D.e[i][0]+' · 5 → '+D.e[i][1]+'<br>'; });
-  h+='<br><b>'+(EN?'Classes (3 / 5)':'Klassen (3 / 5)')+'</b><br>'; for(var k in CL) h+=CL[k].i+' '+(EN?CL[k].en:CL[k].de)+': 3 → '+D.c[k][0]+' · 5 → '+D.c[k][1]+'<br>';
-  h+='<br><b>'+(EN?'Kinds (3 / 5 different cards)':'Arten (3 / 5 verschiedene Karten)')+'</b><br>'+FAM.map(function(f){ return f.ic+' '+(EN?f.en:f.de)+': 3 → '+famTxt(f.t[0])+' · 5 → '+famTxt(f.t[1]); }).join('<br>')+'<br>'+''+'<br><b>'+(EN?'Element advantage':'Elementvorteil')+'</b><br>🔥 → ❄ → 🌿 → 🔥 ('+(EN?'+1 damage per hit against the weaker element; 🌲 forest is neutral':'+1 Schaden pro Treffer gegen das schwächere Element; 🌲 Wald ist neutral')+')<br>'+(EN?'Fire beats Ice, Ice beats Earth, Earth beats Fire.':'Feuer schlägt Eis, Eis schlägt Erde, Erde schlägt Feuer.')+'<br><br><b>'+(EN?'Traits':'Eigenschaften')+'</b><br><br>✨ '+(EN?'Spell slot: the spell is cast automatically at a random moment during the card fight. Damage/effect = base + your synergy tier of its element (e.g. Fireball 3 + fire bonus). Spells can merge to ★ too.':'Zauberfeld: der Zauber wird automatisch zu einem zufälligen Zeitpunkt im Kartenkampf gewirkt. Schaden/Wirkung = Basis + deine Synergie-Stufe seines Elements (z. B. Feuerball 3 + Feuer-Bonus). Zauber können auch zu ★ verschmelzen.')+'<br><br>🛡 '+(EN?'takes 1 less damage':'erleidet 1 Schaden weniger')+'<br>⚡ '+(EN?'strikes first':'schlägt zuerst')+'<br>🏹 '+(EN?'also hits the card behind for 1':'trifft zusätzlich die Karte dahinter (1)')+'<br>🗡 '+(EN?'+1 heart damage if it survives':'+1 Herzschaden wenn sie überlebt')+'<br>💚 '+(EN?'heals the weakest ally each tick':'heilt jeden Schlag den schwächsten Verbündeten')+'<br>🌾 '+(EN?'+1 gold per round':'+1 Gold pro Runde')+'<br>👑 '+(EN?'allies +1/+1':'Verbündete +1/+1')+'<br>❄ '+(EN?'hit card skips its next attack':'getroffene Karte setzt den nächsten Schlag aus')+'<br>🔥 '+(EN?'+1 damage':'+1 Schaden')+'<br>🌿 '+(EN?'regrows 1 health per tick':'wächst jeden Schlag +1 Leben nach');
+  h+='<b>'+(EN?'Elements (3 / 4 / 5)':'Elemente (3 / 4 / 5)')+'</b><br>'; EL.forEach(function(x,i){ h+=x.i+' '+(EN?x.en:x.de)+': 3 → '+D.e[i][0]+' · 4 → '+D.e[i][1]+' · 5 → '+D.e[i][2]+'<br>'; });
+  h+='<br><b>'+(EN?'Classes (3 / 4 / 5)':'Klassen (3 / 4 / 5)')+'</b><br>'; for(var k in CL) h+=CL[k].i+' '+(EN?CL[k].en:CL[k].de)+': 3 → '+D.c[k][0]+' · 4 → '+D.c[k][1]+' · 5 → '+D.c[k][2]+'<br>';
+  h+='<br><b>'+(EN?'Kinds (3 / 4 / 5 different cards)':'Arten (3 / 4 / 5 verschiedene Karten)')+'</b><br>'+FAM.map(function(f){ return f.ic+' '+(EN?f.en:f.de)+': 3 → '+famTxt(f.t[0])+' · 4 → '+famTxt(f.t[1])+' · 5 → '+famTxt(f.t[2]); }).join('<br>')+'<br>'+''+'<br><b>'+(EN?'Element advantage':'Elementvorteil')+'</b><br>🔥 → ❄ / 💀 · ❄ → 🌿 / 💧 · 🌿 → 🔥 · 💧 → 🔥 · 💀 → 🌲 · 🌲 → 💧 ('+(EN?'+1 damage per hit against the weaker element':'+1 Schaden pro Treffer gegen das schwächere Element')+')<br>'+(EN?'Fire beats Ice, Ice beats Earth, Earth beats Fire.':'Feuer schlägt Eis, Eis schlägt Erde, Erde schlägt Feuer.')+'<br><br><b>'+(EN?'Traits':'Eigenschaften')+'</b><br><br>✨ '+(EN?'Spell slot: the spell is cast automatically at a random moment during the card fight. Damage/effect = base + your synergy tier of its element (e.g. Fireball 3 + fire bonus). Spells can merge to ★ too.':'Zauberfeld: der Zauber wird automatisch zu einem zufälligen Zeitpunkt im Kartenkampf gewirkt. Schaden/Wirkung = Basis + deine Synergie-Stufe seines Elements (z. B. Feuerball 3 + Feuer-Bonus). Zauber können auch zu ★ verschmelzen.')+'<br><br>🛡 '+(EN?'takes 1 less damage':'erleidet 1 Schaden weniger')+'<br>⚡ '+(EN?'strikes first':'schlägt zuerst')+'<br>🏹 '+(EN?'also hits the card behind for 1':'trifft zusätzlich die Karte dahinter (1)')+'<br>🗡 '+(EN?'+1 heart damage if it survives':'+1 Herzschaden wenn sie überlebt')+'<br>💚 '+(EN?'heals the weakest ally each tick':'heilt jeden Schlag den schwächsten Verbündeten')+'<br>🌾 '+(EN?'+1 gold per round':'+1 Gold pro Runde')+'<br>👑 '+(EN?'allies +1/+1':'Verbündete +1/+1')+'<br>❄ '+(EN?'hit card skips its next attack':'getroffene Karte setzt den nächsten Schlag aus')+'<br>🔥 '+(EN?'+1 damage':'+1 Schaden')+'<br>🌿 '+(EN?'regrows 1 health per tick':'wächst jeden Schlag +1 Leben nach');
   $("box").innerHTML=h+'</div><button class="pri" id="bkc">OK</button>'; $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; $("ov").classList.add("show"); };
 $("rankb").onclick=function(){ if(S) showRank(); };
 $("back").onclick=goBack; $("spd").onclick=function(){ fast=!fast; $("spd").style.background=fast?"#2fa84f88":""; };
@@ -502,6 +583,7 @@ $("rr").onclick=reroll; $("lu").onclick=levelUp; $("go").onclick=battle;
 function tapEl(t){ if(t.id==="sellz"){ sellSel(); return; } var z=t.dataset.z,i=+t.dataset.i;
   if(t.closest("#stk")){ if(t.dataset.j!==undefined&&!t.classList.contains("e")){ infoSel={z:"n",i:i,j:+t.dataset.j}; stkPaint(); } return; }
   if(z==="s"){ buy(i); return; }
+  if(z==="a"){ buyArt(); return; } if(z==="v"){ useArt(i); return; }
   if(sel){ tapSlot(z,i); return; }
   if(z==="n"){ if(S.P.board[i].length){ infoSel={z:"n",i:i,j:0}; paint(); log(T.hint); } }
   else if((z==="b"||z==="p")&&peek(z,i)){ infoSel={z:z,i:i}; paint(); } }
@@ -529,7 +611,7 @@ function onUp(e){ if(!drag) return; var d=drag; drag=null;
   if(tg.id==="sellz"){ sel={z:z,i:i,j:sj}; sellSel(); return; }
   if(!dragZone(tg)||(tg.dataset.z===z&&+tg.dataset.i===i&&jOf(tg)===sj)){ paint(); return; }
   moveCard({z:z,i:i,j:sj},{z:tg.dataset.z,i:+tg.dataset.i,j:jOf(tg)}); }
-["br","bn","sr","stk"].forEach(function(id){ $(id).addEventListener("pointerdown",onDown); });
+["br","bn","sr","stk","iv"].forEach(function(id){ $(id).addEventListener("pointerdown",onDown); });
 document.addEventListener("pointermove",onMove,{passive:false}); document.addEventListener("pointerup",onUp); document.addEventListener("pointercancel",function(){ if(drag){ if(drag.g) drag.g.remove(); drag=null; paint(); } });
 $("oppb").onclick=function(){ document.body.classList.toggle("cop"); colSet(); };
 $("sygb").onclick=function(){ document.body.classList.toggle("csy"); colSet(); };
@@ -537,6 +619,25 @@ try{ var cs=localStorage.getItem("bp_royale_cols")||""; if(cs.indexOf("o")>=0) d
 $("syc").addEventListener("click",function(e){ var o=e.target.closest(".sg"); if(o&&o.dataset.k&&S) synDetail(o.dataset.k); });
 $("opp").addEventListener("click",function(e){ var o=e.target.closest(".o"); if(o&&S) showOpp(+o.dataset.b); });
 startMenu();
+window.__sim=function(N,modes,opt){ opt=opt||{}; var agg={}, cards={}, rounds=0, tiers={}, t0=Date.now();
+  for(var g=0;g<N;g++){ buildPool(); var ms=typeof modes==="function"?modes(g):modes; var pl=ms.map(function(m,i){ var p=newP(); p.mode=m; p.name="p"+i; p.av="x"; return p; });
+    S={round:0,P:pl[0],bots:pl.slice(1),shop:[],E:pl[0],lock:false}; var alive=pl.slice(), order=[], r=0;
+    while(alive.length>1&&r<80){ r++; S.round=r; alive.forEach(function(p){ p.level=autoLv(r); cpuPlay(p,r); });
+      var arr=shuf(alive.slice()), dmg=[]; while(arr.length>1){ var a=arr.pop(), b=arr.pop(), q=simBattle(a,b); dmg.push([a,q.toA],[b,q.toB]); }
+      if(arr.length){ var o=arr[0], oth=alive.filter(function(x){ return x!==o; }), q2=simBattle(o,ghostOf(oth[rnd(oth.length)])); dmg.push([o,q2.toA]); }
+      dmg.forEach(function(d){ d[0].hearts=Math.max(0,d[0].hearts-d[1]); });
+      alive.forEach(function(p){ p.snap=allU(p).map(function(x){ return x.u; }); p.snapM=mains(p); });
+      var dead=alive.filter(function(p){ return p.hearts<=0; }); dead.sort(function(a,b){ return 0; }); dead.forEach(function(p){ p.rank=alive.length-dead.indexOf(p)-(dead.length-1-dead.indexOf(p))*0; });
+      if(dead.length){ var pos=alive.length; dead.forEach(function(p){ p.rank=pos; }); alive=alive.filter(function(p){ return p.hearts>0; }); dead.forEach(function(p){ allU(p).forEach(function(x){ giveBack(x.u); }); }); } }
+    alive.forEach(function(p){ p.rank=1; }); rounds+=r;
+    pl.forEach(function(p){ var m=p.mode; var A=agg[m]=agg[m]||{n:0,rank:0,win:0,top3:0}; A.n++; A.rank+=p.rank; if(p.rank===1) A.win++; if(p.rank<=3) A.top3++;
+      var us=(p.snap||[]).filter(function(u){ return !u.sp; }), sy=synOf(p.snapM||[],us), fc=famCounts(us);
+      var seen={}; us.forEach(function(u){ var k=u.n+"|"+EL[u.el].i+"|★"+u.stars; if(seen[u.n+u.el]) return; seen[u.n+u.el]=1; var C=cards[u.n+" "+EL[u.el].i]=cards[u.n+" "+EL[u.el].i]||{n:0,rank:0,c:u.c,a:u.a,h:u.h,t:u.t||""}; C.n++; C.rank+=p.rank; });
+      var mx=Math.max.apply(null,sy.e), de=sy.e.indexOf(mx); if(sy.e.filter(function(v){ return v===mx; }).length>1) de=-1; var DK="DOM "+(de<0?"tie":EL[de].i); var DD=tiers[DK]=tiers[DK]||{n:0,rank:0,win:0}; DD.n++; DD.rank+=p.rank; if(p.rank===1) DD.win=(DD.win||0)+1;
+      sy.e.forEach(function(v,i){ var k="E"+EL[i].i+"t"+sy.te[i]; var T=tiers[k]=tiers[k]||{n:0,rank:0}; if(sy.te[i]>0){ T.n++; T.rank+=p.rank; } });
+      for(var c in sy.c){ var k2="C"+c+"t"+sy.tc[c]; var T2=tiers[k2]=tiers[k2]||{n:0,rank:0}; if(sy.tc[c]>0){ T2.n++; T2.rank+=p.rank; } }
+      for(var f in fc){ var k3="F"+f+"t"+famTier(fc[f]); var T3=tiers[k3]=tiers[k3]||{n:0,rank:0}; if(famTier(fc[f])>0){ T3.n++; T3.rank+=p.rank; } } }); }
+  return {agg:agg,cards:cards,tiers:tiers,avgRounds:rounds/N,ms:Date.now()-t0}; };
 window.__ar={paint:function(){paint()},S:function(){return S},buy:buy,reroll:reroll,lvl:levelUp,go:battle,tap:tapSlot,sell:sellSel,sel:function(z,i){sel={z:z,i:i}},fast:function(){fast=true},turbo:function(){turbo=true},rank:showRank,CARDS:CARDS,fighters:fighters,tick:tick,mk:mk};
 })();
 </script></body></html>
