@@ -38,7 +38,7 @@ body{display:flex;flex-direction:column;--pl:0px;--pr:0px;padding-right:var(--pr
 .c.s2{border-color:#7ae6ff}.c.s3{border-color:#ffd45a;box-shadow:0 0 12px #ffd45acc,0 3px 7px #0009}
 .c.hit{animation:hit .3s}@keyframes hit{25%{transform:translateX(-5px);filter:brightness(2)}75%{transform:translateX(5px)}}
 .c.fz{outline:2px dashed #9fe3ff;filter:saturate(.5) brightness(1.2)}
-.co{position:absolute;top:-7px;left:-7px;min-width:19px;height:19px;border-radius:99px;background:#ffb020;color:#2b1700;font-size:11px;font-weight:900;display:grid;place-items:center;border:2px solid #fff;padding:0 3px}
+.co.r1{background:#35c46a;color:#04210f}.co.r2{background:#3f8cff;color:#fff}.co.r3{background:linear-gradient(135deg,#ffe27a,#ff9d1a);color:#2b1700;box-shadow:0 0 8px #ffc83c}.c.lg:not(.e){box-shadow:0 0 0 2px #ffcf4d,0 0 12px #ffb020aa}.co{position:absolute;top:-7px;left:-7px;min-width:19px;height:19px;border-radius:99px;background:#ffb020;color:#2b1700;font-size:11px;font-weight:900;display:grid;place-items:center;border:2px solid #fff;padding:0 3px}
 .nm{position:absolute;left:0;right:0;bottom:15px;text-align:center;font-size:9px;font-weight:800;text-shadow:0 1px 3px #000;white-space:nowrap}
 .at,.lf{position:absolute;bottom:-7px;min-width:24px;height:24px;border-radius:99px;font-size:13px;font-weight:900;display:grid;place-items:center;border:2px solid #fff;padding:0 3px}.at,.lf,.rs2{color:#fff!important;text-shadow:0 0 3px #000,0 1px 2px #000,0 0 2px #000;border:0!important;border-radius:0!important;background-color:transparent!important;background-repeat:no-repeat!important;background-position:center!important;background-size:contain!important;width:24px;height:23px;min-width:24px!important;padding:0!important;bottom:-7px!important;font-size:11px!important}.at{left:-6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg stroke='%23fff' stroke-width='1.3' stroke-linejoin='round'%3E%3Cpath d='M21 2.5l.5 5.2L10.5 18.7 5.3 13.5 16.3 2.5z' fill='%23ff9a2e'/%3E%3Cpath d='M4 12.6l7.4 7.4-2.3 1.9-6.9-6.9z' fill='%23b86a14'/%3E%3Cpath d='M2.2 21.8l3-3' fill='none' stroke-width='2.4' stroke-linecap='round'/%3E%3C/g%3E%3C/svg%3E")!important}.lf{right:-6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 22S2.5 15.6 2.5 9.2A5.2 5.2 0 0 1 12 6.4a5.2 5.2 0 0 1 9.5 2.8C21.5 15.6 12 22 12 22z' fill='%23e23b55' stroke='%23fff' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E")!important;padding-top:2px!important}.rs2{position:absolute;right:-6px;bottom:12px!important;z-index:4;display:grid;place-items:center;font-size:10px;font-weight:900;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2l8.5 3v6.5c0 5-3.6 8.7-8.5 10.5C7.1 20.2 3.5 16.5 3.5 11.5V5z' fill='%234a8dff' stroke='%23fff' stroke-width='1.6' stroke-linejoin='round'/%3E%3C/svg%3E")!important;width:21px;height:21px;min-width:21px!important}.at{padding-left:3px!important;padding-top:3px!important}
 .ci{position:absolute;top:15px;left:2px;font-size:11px;line-height:1.05;text-align:center;text-shadow:0 1px 2px #000}
@@ -82,14 +82,14 @@ var POOL=[
  {n:"Waldläufer",en:"Ranger",e:"🏹",c:1,a:2,h:2,t:"r",img:"g01"},{n:"Waldspäher",en:"Forest scout",e:"🗡",c:2,a:2,h:3,t:"d",img:"g02"},
  {n:"Bogenschützin",en:"Archeress",e:"🏹",c:3,a:3,h:2,t:"r",img:"g03"},{n:"Walddruide",en:"Forest druid",e:"🧙",c:3,a:2,h:4,t:"g",img:"g04"},
  {n:"Wolf",en:"Wolf",e:"🐺",c:2,a:3,h:2,img:"g05"},{n:"Hirsch",en:"Stag",e:"🦌",c:3,a:3,h:4,img:"g06"},{n:"Waldgeist",en:"Forest spirit",e:"🌳",c:5,a:4,h:7,t:"g",img:"g07"},
- {n:"Fährtenleser",en:"Tracker",e:"🔭",c:3,a:3,h:3,t:"r",img:"g08"},{n:"Bär",en:"Bear",e:"🐻",c:4,a:4,h:5,img:"g09"},{n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:2,h:3,t:"ws",img:"g11"},{n:"Waldwall",en:"Forest wall",e:"🪵",c:1,a:0,h:4,t:"wn",img:"g12"},{n:"Waldfalle",en:"Forest trap",e:"🪤",c:2,a:0,h:4,t:"x",img:"g10"},
+ {n:"Fährtenleser",en:"Tracker",e:"🔭",c:3,a:3,h:3,t:"r",img:"g08"},{n:"Bär",en:"Bear",e:"🐻",c:4,a:4,h:5,img:"g09"},{n:"Wachturm",en:"Watchtower",e:"🛖",c:2,a:1,h:4,t:"ws",img:"g11"},{n:"Waldwall",en:"Forest wall",e:"🪵",c:1,a:0,h:4,t:"wn",img:"g12"},{n:"Waldfalle",en:"Forest trap",e:"🪤",c:2,a:0,h:4,t:"x",img:"g10"},
  {n:"Ratte",en:"Rat",e:"🐀",c:1,a:1,h:2,t:"o"},
  
  {n:"Ritter",en:"Knight",e:"🛡️",c:3,a:3,h:4},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:3,a:2,h:5,t:"w"},
  
  
  {n:"Drache",en:"Dragon",e:"🐉",c:6,a:7,h:6},{n:"Riese",en:"Giant",e:"🦣",c:7,a:8,h:8},
- {n:"Bauer",en:"Farmer",e:"🌾",c:1,a:1,h:2,t:"co"},
+ {n:"Bauer",en:"Farmer",e:"🌾",c:1,a:0,h:0,t:"c"},
  {n:"Speerkämpfer",en:"Spearman",e:"🔱",c:3,a:3,h:3,t:"r"},{n:"Schwertkämpfer",en:"Swordsman",e:"⚔",c:3,a:4,h:3},
  
  {n:"König",en:"King",e:"👑",c:6,a:4,h:6,t:"k"}];
@@ -159,6 +159,7 @@ var EARTHSP=[{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"},{n:"F
 
 function cls(c){ if(/^bauer$/i.test(c.n)) return "V"; if(c.t&&c.t.indexOf("s")>=0||/schütz|bogen|kanone|katapult|waldläufer|fährtenleser/i.test(c.n)) return "S"; if(c.t&&/[hlq]/.test(c.t)||/magier|zauberer|druide|heiler|geist/i.test(c.n)) return "M"; if(/ratte|maus|wolf|bär|drache|rachen|phönix|yeti|hirsch/i.test(c.n)) return "B"; if(c.t&&c.t.indexOf("w")>=0) return "G"; return "K"; }
 var CARDS=[]; [[POOL,0],[ICE,1],[FIRE,2],[EARTH,3],[UND,4],[WAT,5]].forEach(function(d){ d[0].forEach(function(c){ if(d[1]===0&&c.n==="Eisgolem") return; var o={}; for(var k in c) o[k]=c[k]; o.el=d[1]; o.cl=cls(c); o.key=d[1]+":"+c.n; o.img=c.img||IMG[c.n]; CARDS.push(o); }); });
+var CLO={"0:Ritter":"G","0:Riese":"G","0:Wachturm":"G","1:Eissoldat":"L","1:Eisgeist":"M","1:Eisgolem":"G","2:Feuerdämon":"D","2:Feuerdrache":"G","2:Feuerriese":"G","3:Erdgolem":"O","3:Erdriese":"G","4:Skelettkrieger":"H","4:Skelett-Golem":"O","4:Todesfürst":"G","4:Riese":"G","5:Wassergolem":"O","5:Wasserelementar":"B","5:Wasserschiff":"G"}, LEG={"5:Wasserelementar":1,"5:Wasserschiff":1,"4:Skelett-Drache":1,"4:Riese":1,"3:Baumgeist":1,"3:Erdrachen":1,"3:Erdriese":1,"1:Yeti":1,"1:Eisdrache":1,"2:Feuerdrache":1,"2:Feuerriese":1}, OFF={"1:Eisburg":1,"2:Feuerburg":1,"3:Steinturm":1,"4:Skelett-Armee":1}; CARDS.forEach(function(c){ if(LEG[c.key]||(c.t||"").indexOf("k")>=0) c.leg=1; if(OFF[c.key]) c.off=1; if(c.sp) return; var t=c.t||""; if(CLO[c.key]) c.cl=CLO[c.key]; else if(t.indexOf("x")>=0) c.cl="F"; else if(t.indexOf("k")>=0) c.cl="Z"; else if(t.indexOf("d")>=0) c.cl="A"; else if(/speerk|speerträger/i.test(c.n)) c.cl="L"; });
 var SPD=[
  {n:"Tsunami",en:"Tsunami",e:"🌊",c:4,k:"dmgAll",v:2,el:5,img:"a13",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"},
  {n:"Giftpfeil",en:"Poison arrow",e:"🏹",c:2,k:"dmg1",v:2,el:0,img:"g15",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
@@ -172,9 +173,9 @@ var SPD=[
  {n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,k:"dmgAll",v:2,el:1,img:"istorm",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"}];
 SPD.forEach(function(x){ var o={}; for(var k in x) o[k]=x[k]; o.sp=true; o.cl="Z"; o.key="S:"+x.n; CARDS.push(o); });
 var EL=[{i:"🌲",de:"Wald",en:"Forest"},{i:"❄",de:"Eis",en:"Ice"},{i:"🔥",de:"Feuer",en:"Fire"},{i:"🌿",de:"Erde",en:"Earth"},{i:"💀",de:"Untote",en:"Undead"},{i:"💧",de:"Wasser",en:"Water"}];
-var CL={S:{i:"🏹",de:"Schützen",en:"Shooters"},K:{i:"⚔",de:"Krieger",en:"Warriors"},G:{i:"🛡",de:"Wächter",en:"Guards"},M:{i:"🔮",de:"Magier",en:"Mages"},B:{i:"🐾",de:"Bestien",en:"Beasts"},V:{i:"🌾",de:"Bauer",en:"Farmer"}};
+var CL={S:{i:"🏹",de:"Schützen",en:"Shooters"},K:{i:"⚔",de:"Krieger",en:"Warriors"},G:{i:"🛡",de:"Wächter",en:"Guards"},M:{i:"🔮",de:"Magier",en:"Mages"},B:{i:"🐾",de:"Bestien",en:"Beasts"},V:{i:"🌾",de:"Bauer",en:"Farmer"},A:{i:"🗡",de:"Assassinen",en:"Assassins"},F:{i:"🪤",de:"Fallen",en:"Traps"},Z:{i:"👑",de:"Meister",en:"Masters"},L:{i:"🔱",de:"Speer",en:"Spear"},D:{i:"👹",de:"Dämon",en:"Demon"},O:{i:"🗿",de:"Golem",en:"Golem"},H:{i:"👻",de:"Skelettgeist",en:"Skeleton ghost"}};
 var SE=[[{a:1},{a:1,h:1},{a:2,h:2}],[{h:2},{f:1,h:2},{f:1,h:3,a:1}],[{a:1,h:1},{a:2,h:2},{a:3,h:3,b:1}],[{h:3,a:1},{h:4,a:1},{h:6,a:2,g:1}],[{a:1,h:1},{a:2,h:1},{a:2,h:3,g:1}],[{a:1,h:2},{a:2,h:3,rs:1},{a:3,h:4,rs:1,g:1}]];
-var SC={S:[{a:1},{a:2},{a:3}],K:[{h:1},{h:2,a:1},{h:3,a:2}],G:[{h:2},{h:3},{h:5}],B:[{a:1},{a:1,h:1},{a:2,h:2}],M:[{gold:1},{gold:1,h:1},{gold:2,h:2}],V:[{},{},{}]};
+var SC={S:[{a:1},{a:2},{a:3}],K:[{h:1},{h:2,a:1},{h:3,a:2}],G:[{h:2},{h:3},{h:5}],B:[{a:1},{a:1,h:1},{a:2,h:2}],M:[{gold:1},{gold:1,h:1},{gold:2,h:2}],V:[{},{},{}],A:[{a:1},{a:2},{a:3}],F:[{h:1},{h:2},{h:3}],Z:[{a:1,h:1},{a:2,h:2},{a:3,h:3}],L:[{a:1},{a:2},{a:3,h:1}],D:[{a:1,h:1},{a:2,h:1},{a:3,h:2}],O:[{a:1,h:1},{a:2,h:2},{a:3,h:3}],H:[{a:1,h:1},{a:2,h:1},{a:3,h:2}]};
 function dscO(o,en){ var r=[]; if(o.a) r.push("+"+o.a+(en?" attack":" Angriff")); if(o.r) r.push("+"+o.r+(en?" armor":" Rüstung")); if(o.h) r.push("+"+o.h+(en?" health":" Leben")); if(o.f) r.push(en?"Frost on hit":"Frost bei Treffer"); if(o.b) r.push(en?"Burn":"Brand"); if(o.g) r.push(en?"Regrowth":"Nachwachsen"); if(o.gold) r.push("+"+o.gold+(en?" gold/round":" Gold/Runde")); if(o.rs) r.push(en?"resist "+o.rs:"Resistenz "+o.rs); return r.join(", "); }
 function mkSD(en){ var d={e:SE.map(function(r){ return r.map(function(o){ return dscO(o,en); }); }),c:{}}; for(var k in SC) d.c[k]=SC[k].map(function(o){ return dscO(o,en); }); return d; }
 var SD=mkSD(false), SDE=mkSD(true);
@@ -202,7 +203,7 @@ function heartsUp(){ if(!S) return; $("hE").innerHTML=hbar(S.E.hearts,true); $("
 var NAMES=[["","Lena"],["","Max"],["","Mia"],["","Ben"],["","Zoe"],["","Finn"],["","Emma"],["","Leo"],["","Nico"]];
 function copies(c){ if(c.sp) return 5; return {1:14,2:11,3:9,4:7,5:6,6:5,7:4}[c.c]||5; }
 function buildPool(){ var d1=rnd(6), d2=(d1+1+rnd(5))%6; ELS=[0,1,2,3,4,5].filter(function(x){ return x!==d1&&x!==d2; }); BYT=[[],[],[],[],[],[],[]]; POOLC={};
-  CARDS.forEach(function(c){ if(ELS.indexOf(c.el)<0) return; BYT[Math.min(6,c.c)].push(c); POOLC[c.key]=copies(c); }); }
+  CARDS.forEach(function(c){ if(ELS.indexOf(c.el)<0||c.off) return; BYT[Math.min(6,c.c)].push(c); POOLC[c.key]=copies(c); }); }
 function takeCopy(c){ POOLC[c.key]=Math.max(0,(POOLC[c.key]||0)-1); }
 function giveBack(u){ if(u.nf) return; POOLC[u.key]=(POOLC[u.key]||0)+(u.stars===1?1:u.stars===2?3:9); }
 var S=null, diff=1, sel=null, fighting=false, fast=false, uid=1;
@@ -261,12 +262,12 @@ var TH=[3,4,5], HMAX=50;
 function tierOf(v){ return v>=TH[2]?3:v>=TH[1]?2:v>=TH[0]?1:0; }
 var FAM=[{id:"tower",re:/turm/i,ic:"🏯",de:"Türme",en:"Towers",t:[{h:2},{h:3,a:1},{h:5,a:1}]},{id:"knight",re:/ritter|schwertkämpfer|speerk|speerträger/i,ic:"🐎",de:"Ritter",en:"Knights",t:[{a:1},{a:1,h:1},{a:2,h:2}]},
  {id:"wall",re:/wall|mauer|burg/i,ic:"🧱",de:"Mauern",en:"Walls",t:[{h:2,rs:1},{h:3,rs:1},{h:4,rs:2}]},{id:"golem",re:/golem/i,ic:"🗿",de:"Golems",en:"Golems",t:[{a:1},{a:2},{a:3,h:2}]},
- {id:"animal",re:/wolf|bär|hirsch|ratte|maus/i,ic:"🐺",de:"Tiere",en:"Animals",t:[{a:1},{a:1,h:1},{a:2,h:1}]},{id:"dragon",re:/drache|rachen|phönix/i,ic:"🐲",de:"Drachen",en:"Dragons",t:[{a:1,h:1},{a:2,h:2},{a:3,h:3}]}];
+ {id:"animal",re:/wolf|bär|hirsch|ratte|maus/i,ic:"🐺",de:"Tiere",en:"Animals",t:[{a:1},{a:1,h:1},{a:2,h:1}]},{id:"dragon",re:/drache|rachen|phönix|wasserelementar/i,ic:"🐲",de:"Drachen",en:"Dragons",t:[{a:1,h:1},{a:2,h:2},{a:3,h:3}]}];
 var FAM_MON={id:"monster",re:/goblin|geist|dämon|riese|yeti/i,ic:"👹",de:"Monster",en:"Monsters",t:[{a:1,h:1},{a:1,h:2},{a:2,h:3}]};
 FAM.push(FAM_MON);
 FAM.push({id:"human",fn:function(u){ return u.el!==4&&this.re.test(u.n); },re:/bauer|ritter|schwertkämpfer|speerk|speerträger|bogenschütze|^schütze|schneeschütze|feuerschütze|feuerbogenschütze|magier|zauberer|dieb|feuerheiler|schildträger|steinwächter|könig/i,ic:"🧑",de:"Menschen",en:"Humans",t:[{h:1},{h:1,a:1},{h:2,a:1}]});
 FAM.push({id:"elf",re:/druide|waldschütze|späher|erdheiler|^heiler|waldläufer|bogenschützin|fährtenleser/i,ic:"🧝",de:"Elfen",en:"Elves",t:[{a:1},{a:2},{a:3,h:1}]});
-FAM.push({id:"assassin",fn:function(u){ return hv(u,"d"); },ic:"🗡",de:"Assassinen",en:"Assassins",t:[{a:1},{a:2},{a:3}]});
+
 function tagsOf(u){ var r=FAM.filter(function(f){ return f.fn?f.fn(u):f.re.test(u.n); }); (u.xt||[]).forEach(function(id){ var f=FAM.filter(function(x){ return x.id===id; })[0]; if(f&&r.indexOf(f)<0) r.push(f); }); return r; }
 function famsOf(n){ return tagsOf({n:n,t:""}); }
 function famOfName(n){ var r=famsOf(n); return r[0]||null; }
@@ -275,7 +276,7 @@ function famCounts(us){ var c={},seen={}; us.forEach(function(u){ if(u.sp||seen[
 function famTier(n){ return tierOf(n); }
 function famTxt(x){ return dscO(x,EN); }
 function synOf(us,all){ all=all||us; var e={},c={}; us.forEach(function(u){ (e[u.el]=e[u.el]||{})[u.key]=1; }); all.forEach(function(u){ if(u.sp) return; (c[u.cl]=c[u.cl]||{})[u.key]=1; });
-  var r={e:[0,0,0,0,0,0],c:{S:0,K:0,G:0,M:0,B:0,V:0},te:[0,0,0,0,0,0],tc:{S:0,K:0,G:0,M:0,B:0,V:0}};
+  var r={e:[0,0,0,0,0,0],c:{S:0,K:0,G:0,M:0,B:0,V:0,A:0,F:0,Z:0,L:0,D:0,O:0,H:0},te:[0,0,0,0,0,0],tc:{S:0,K:0,G:0,M:0,B:0,V:0,A:0,F:0,Z:0,L:0,D:0,O:0,H:0}};
   for(var k in e) r.e[k]=Object.keys(e[k]).length; for(var k2 in c) r.c[k2]=Object.keys(c[k2]).length;
   r.e.forEach(function(v,i){ r.te[i]=tierOf(v); }); for(var q in r.c){ r.tc[q]=tierOf(r.c[q]); } return r; }
 function spVal(u,P){ var m=u.stars===1?1:u.stars===2?1.5:2, base=Math.round(u.v*m), t=synOf(mains(P)).te[u.el]; return {base:base,bonus:t,total:base+t}; }
@@ -345,7 +346,7 @@ function tick(A,B,n){
 }
 // ---------- UI ----------
 function spHtml(u,o){ var P=o.owner||S.P, v=spVal(u,P);
-  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.sel?' sel':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 50%,#000c),url(/kartenwelt/duell/'+u.img+'.jpg);border-color:#ffd45a">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+'<span class="co">'+u.c+'</span><span class="ci">'+EL[u.el].i+'<br>✨</span><span class="nm" style="bottom:20px">'+nm(u)+'</span><span class="at" style="left:50%;transform:translateX(-50%);bottom:-8px;background:#ffd45a;color:#2b1700;padding:0 7px">'+v.base+(v.bonus?'+'+v.bonus:'')+'</span></div>'; }
+  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.sel?' sel':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 50%,#000c),url(/kartenwelt/duell/'+u.img+'.jpg);border-color:#ffd45a">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+'<span class="co r'+rar(u)+'">'+u.c+'</span><span class="ci">'+EL[u.el].i+'<br>✨</span><span class="nm" style="bottom:20px">'+nm(u)+'</span><span class="at" style="left:50%;transform:translateX(-50%);bottom:-8px;background:#ffd45a;color:#2b1700;padding:0 7px">'+v.base+(v.bonus?'+'+v.bonus:'')+'</span></div>'; }
 var MC={},SHC={};
 function fuseMaps(){ MC={}; SHC={}; if(!S) return; allU(S.P).forEach(function(x){ var k=x.u.key+"|"+x.u.stars; MC[k]=(MC[k]||0)+1; }); (S.shop||[]).forEach(function(c){ if(c) SHC[c.key]=(SHC[c.key]||0)+1; }); }
 function decor(h,u,o){ var z=o.z; if(!(z==="s"||z==="n"||z==="b"||z==="p")||o.f) return h; var tag="";
@@ -354,8 +355,10 @@ function decor(h,u,o){ var z=o.z; if(!(z==="s"||z==="n"||z==="b"||z==="p")||o.f)
   if(!tag) return h; return h.replace('<div class="c','<div class="c mg').replace(/<\/div>$/,'<span class="pc">'+(z==="s"?"✨ "+tag:tag)+'</span></div>'); }
 function cardHtml(u,o){ o=o||{}; return decor(cardHtml0(u,o),u,o); }
 function armorOf(u){ var r=0; (u.ar||[]).forEach(function(id){ r+=(ARTD[id]&&ARTD[id].r)||0; }); return r; }
+function rar(u){ return u.leg?3:(u.c>=4?2:1); }
+function rarT(u){ var r=rar(u); return r===3?(EN?"🟡 Legendary":"🟡 Legendär"):r===2?(EN?"🔵 Rare":"🔵 Blau"):(EN?"🟢 Common":"🟢 Normal"); }
 function cardHtml0(u,o){ o=o||{}; if(u.sp) return spHtml(u,o); var shv=o.f?(o.f.sh||0):armorOf(u); var e=o.f?{ak:o.f.ak,hp:o.f.hp}:eff(u), tr=u.t?u.t.split("").map(function(k){ return {w:"🛡",r:"⚡",s:"🏹",d:"🗡",h:"💚",c:"🌾",k:"👑",f:"❄",b:"🔥",g:"🌿",x:"🪤",o:"💨",n:"🌵",j:"🧊",a:"🔰",l:"💞",q:"🌊"}[k]; }).join(""):"";
-  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.n>1?' k'+o.n:'')+(o.sel?' sel':'')+(o.f&&o.f.hit?' hit':'')+(o.f&&o.f.fz?' fz':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 55%,#000b),url(/kartenwelt/duell/'+u.img+'.jpg)">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+'<span class="co">'+u.c+'</span><span class="ci">'+EL[u.el].i+'<br>'+CL[u.cl].i+'</span>'+(tr?'<span class="tr">'+tr+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+(o.n>1?'<span class="kb">+'+(o.n-1)+'</span>':'')+(u.ar&&u.ar.length?'<span class="ab">💎'+u.ar.length+'</span>':'')+'<span class="nm">'+nm(u)+'</span><span class="at">'+e.ak+'</span><span class="lf">'+e.hp+'</span>'+(shv>0?'<span class="rs2">'+shv+'</span>':'')+'</div>'; }
+  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.n>1?' k'+o.n:'')+(o.sel?' sel':'')+(u.leg?' lg':'')+(o.f&&o.f.hit?' hit':'')+(o.f&&o.f.fz?' fz':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 55%,#000b),url(/kartenwelt/duell/'+u.img+'.jpg)">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+'<span class="co">'+u.c+'</span><span class="ci">'+EL[u.el].i+'<br>'+CL[u.cl].i+'</span>'+(tr?'<span class="tr">'+tr+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+(o.n>1?'<span class="kb">+'+(o.n-1)+'</span>':'')+(u.ar&&u.ar.length?'<span class="ab">💎'+u.ar.length+'</span>':'')+'<span class="nm">'+nm(u)+'</span><span class="at">'+e.ak+'</span><span class="lf">'+e.hp+'</span>'+(shv>0?'<span class="rs2">'+shv+'</span>':'')+'</div>'; }
 function emptyHtml(z,i){ return '<div class="c e" data-z="'+z+'" data-i="'+i+'"><span>'+T.free+'</span></div>'; }
 function synHtml(us,all){ var f=synOf(us,all), D=EN?SDE:SD, out=[];
   f.e.forEach(function(v,i){ if(v>0) out.push('<span class="sy'+(f.te[i]?' on':'')+'">'+EL[i].i+v+(f.te[i]?' '+D.e[i][f.te[i]-1]:'/2')+'</span>'); });
@@ -479,7 +482,7 @@ var TRD={de:{w:"🛡 Rüstung: erleidet 1 Schaden weniger",r:"⚡ Schnell: schl�
 function sdesc(o,tier){ return o?Object.keys(o).map(function(k){ var v=o[k]; return ({a:"+"+v+" "+(EN?"attack":"Angriff"),h:"+"+v+" "+(EN?"health":"Leben"),f:(EN?"Frost":"Frost"),b:(EN?"Burn":"Brand"),g:(EN?"Regrowth":"Nachwachsen"),gold:"+"+v+" Gold"})[k]; }).join(", "):""; }
 function infoHtml(u,z,i,j){ var P=S.P, D=EN?SDE:SD, sy=synOf(mains(P),bu(P)), h="";
   var st=z==="n"?P.board[i]:null, isMain=z==="n"&&(j||0)===0;
-  h+='<div class="ih"><b>'+nm(u)+'</b> '+(u.stars>1?(u.stars===2?'★★':'★★★')+' ':'')+'· 🪙'+u.c+' · '+EL[u.el].i+' '+(EN?EL[u.el].en:EL[u.el].de)+(u.sp?'':' · '+CL[u.cl].i+' '+(EN?CL[u.cl].en:CL[u.cl].de))+'</div>';
+  h+='<div class="ih"><b>'+nm(u)+'</b> '+(u.stars>1?(u.stars===2?'★★':'★★★')+' ':'')+'· 🪙'+u.c+' · '+EL[u.el].i+' '+(EN?EL[u.el].en:EL[u.el].de)+(u.sp?'':' · '+CL[u.cl].i+' '+(EN?CL[u.cl].en:CL[u.cl].de)+' · '+rarT(u))+'</div>';
   if(u.sp){ var v=spVal(u,P); h+='<div>✨ '+(EN?u.de:u.d)+': <b>'+v.base+(v.bonus?'+'+v.bonus:'')+'</b> '+(EN?'(base + element bonus)':'(Basis + Element-Bonus)')+'</div><div class="mu">'+(EN?'Cast automatically at a random moment during the fight.':'Wird automatisch zu einem zufälligen Zeitpunkt im Kampf gewirkt.')+'</div>'; return h; }
   var e=eff(u); h+='<div>⚔ '+(EN?'Attack':'Angriff')+' <b>'+e.ak+'</b> · ❤ '+(EN?'Health':'Leben')+' <b>'+e.hp+'</b> <span class="mu">('+(EN?'base':'Basis')+' '+u.a+'/'+u.h+(u.stars>1?' ×'+MULT[u.stars]:'')+')</span></div>';
   if(isMain&&st){ var f=null; fighters(P).forEach(function(q){ if(q.u===u) f=q; }); if(f) h+='<div class="g">▶ '+(EN?'In the fight: ':'Im Kampf: ')+'⚔ <b>'+f.ak+'</b> · ❤ <b>'+f.hp+'</b> <span class="mu">('+(EN?'with synergies & stack':'mit Synergien & Stapel')+')</span></div>';
@@ -630,9 +633,9 @@ function finish(place){
   $("ov").classList.add("show"); fighting=false; $("ag").onclick=function(){ $("ov").classList.remove("show"); searchThenStart(); }; $("bk").onclick=goBack; }
 
 function catalog(el){ var sv=S; if(!S) S={round:0,P:newP(),bots:[],shop:[],E:newP()}; try{ catalog0(el); }finally{ S=sv; } }
-function catalog0(el){ var C=CARDS.filter(function(c){ return c.el===el; }).sort(function(a,b){ return (a.sp?1:0)-(b.sp?1:0)||a.c-b.c; }), h='<h2>📚 '+(EN?'All cards':'Alle Karten')+'</h2><div class="lv" style="flex-wrap:wrap">'+EL.map(function(x,i){ return '<button data-e="'+i+'" class="'+(i===el?'on':'')+'">'+x.i+'</button>'; }).join('')+'</div><p class="mu" style="text-align:center">'+EL[el].i+' '+(EN?EL[el].en:EL[el].de)+' · '+C.length+' '+(EN?'cards':'Karten')+'</p><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;text-align:center;font-size:11px">';
+function catalog0(el){ var C=CARDS.filter(function(c){ return c.el===el&&!c.off; }).sort(function(a,b){ return (a.sp?1:0)-(b.sp?1:0)||a.c-b.c; }), h='<h2>📚 '+(EN?'All cards':'Alle Karten')+'</h2><div class="lv" style="flex-wrap:wrap">'+EL.map(function(x,i){ return '<button data-e="'+i+'" class="'+(i===el?'on':'')+'">'+x.i+'</button>'; }).join('')+'</div><p class="mu" style="text-align:center">'+EL[el].i+' '+(EN?EL[el].en:EL[el].de)+' · '+C.length+' '+(EN?'cards':'Karten')+'</p><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;text-align:center;font-size:11px">';
   C.forEach(function(c){ var u=mk(c,1), tx=(u.t||"").split("").map(function(k){ var t=(EN?TRD.en:TRD.de)[k]; return t?'<div>'+t+'</div>':''; }).join('');
-    h+='<div style="width:104px"><div style="display:flex;justify-content:center">'+cardHtml(u,{})+'</div><div><b>'+nm(u)+'</b></div><div class="mu">🪙'+c.c+(c.sp?'':' · '+CL[c.cl].i+' '+(EN?CL[c.cl].en:CL[c.cl].de))+'</div>'+(c.sp?'<div class="mu">✨ '+(EN?c.de:c.d)+' '+c.v+'</div>':'<div class="mu">⚔'+c.a+' ❤'+c.h+'</div>')+'<div class="mu" style="font-size:10px;text-align:left">'+tx+'</div></div>'; });
+    h+='<div style="width:104px"><div style="display:flex;justify-content:center">'+cardHtml(u,{})+'</div><div><b>'+nm(u)+'</b></div><div class="mu">🪙'+c.c+(c.sp?'':' · '+CL[c.cl].i+' '+(EN?CL[c.cl].en:CL[c.cl].de)+' · '+rarT(c))+'</div>'+(c.sp?'<div class="mu">✨ '+(EN?c.de:c.d)+' '+c.v+'</div>':'<div class="mu">⚔'+c.a+' ❤'+c.h+'</div>')+'<div class="mu" style="font-size:10px;text-align:left">'+tx+'</div></div>'; });
   $("box").innerHTML=h+'</div><button class="pri" id="bkc">'+(EN?'Back':'Zurück')+'</button>'; $("box").scrollTop=0;
   Array.prototype.forEach.call($("box").querySelectorAll("[data-e]"),function(b){ b.onclick=function(){ catalog(+b.dataset.e); }; });
   $("bkc").onclick=startMenu; $("ov").classList.add("show"); }
