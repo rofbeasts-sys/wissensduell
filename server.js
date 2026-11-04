@@ -7540,7 +7540,8 @@ const GAME_DEFS = [
   { id: "shop_fruit", name: "Brain-Fruit-Booster + Speicher", group: "Shop", icon: "🍓" },
   { id: "shop_chess", name: "Chess-Shop", group: "Shop", icon: "♞" },
   { id: "shop_fourups", name: "Fourups-Kisten", group: "Shop", icon: "✨" },
-  { id: "shop_coins", name: "Münzen kaufen (Echtgeld)", group: "Shop", icon: "💶" }
+  { id: "shop_coins", name: "Münzen kaufen (Echtgeld)", group: "Shop", icon: "💶" },
+  { id: "shop_dias", name: "Realm-Diamanten kaufen", group: "Shop", icon: "💎" }
 ];
 const GAME_MODES = ["offline", "locked", "test", "open"];
 let gameCfg = { modes: {}, classOff: {} };
@@ -7735,7 +7736,7 @@ async function saveGameCfg() {
   try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 // Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
-const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "space", "politik", "braining_lane", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
+const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "space", "politik", "braining_lane", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups", "shop_dias"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : ((LOCKED_FEATURES.has(id) || DEFAULT_LOCKED_NEW.has(id)) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
@@ -8167,7 +8168,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/stat-hit") result = statHitApi(payload, ip);
         else if (req.url === "/api/news") result = newsPublic(payload.token);
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
-        else if (req.url === "/api/realm/buy-dias" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/realm/buy-dias" && !(gateOk("braining_lane", payload.adminKey, ip) && gateOk("shop_dias", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/realm/buy-dias") result = await realmBuyDias(payload.token, payload.pack, lang);
         else if (req.url === "/api/realm/claim-dias") result = await realmClaimDias(payload.token);
         else if (req.url === "/api/realm/news") result = realmNewsPublic();

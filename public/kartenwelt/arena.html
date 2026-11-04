@@ -195,6 +195,10 @@ var SPD=[
  {n:"Donnerkugel",en:"Thunder orb",e:"🔵",c:1,k:"dmg1",v:2,el:7,img:"t09",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
  {n:"Donnersturm",en:"Thunderstorm",e:"🌩",c:4,k:"dmgAll",v:2,el:7,img:"t15",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"}];
 SPD.forEach(function(x){ var o={}; for(var k in x) o[k]=x[k]; o.sp=true; o.cl="Z"; o.key="S:"+x.n; CARDS.push(o); });
+function isWallN(c){ return !c.sp&&/(wall|baum|schild)$/i.test(c.n); }
+CARDS.forEach(function(c){ if(isWallN(c)) c.a=0; });
+var WRX=["Dornen: der Angreifer verliert 1 Leben pro ★","Frost: der Angreifer setzt den nächsten Schlag aus","Brand: der Angreifer brennt 2 Runden lang (1 Schaden pro ★)","Fels: erleidet 2 Schaden weniger statt 1","Nachwachsen: heilt sich jede Runde","Nässe: der nächste Schlag des Angreifers ist 1 schwächer","Gift: der Angreifer ist vergiftet","Blitz: der Angreifer erleidet 1 Schaden pro ★"], WRXE=["Thorns: attacker loses 1 health per ★","Frost: attacker skips its next strike","Burn: attacker burns for 2 rounds (1 damage per ★)","Rock: takes 2 less damage instead of 1","Regrowth: heals every round","Wet: the attacker next strike is 1 weaker","Poison: the attacker is poisoned","Lightning: attacker takes 1 damage per ★"];
+function wallTxt(c){ return "🧱 "+(EN?"No attack. ":"Greift nicht an. ")+(EN?WRXE:WRX)[c.el]; }
 var EL=[{i:"🌲",de:"Wald",en:"Forest"},{i:"❄",de:"Eis",en:"Ice"},{i:"🔥",de:"Feuer",en:"Fire"},{i:"🌿",de:"Erde",en:"Earth"},{i:"💀",de:"Untote",en:"Undead"},{i:"💧",de:"Wasser",en:"Water"},{i:"☣",de:"Gift",en:"Venom"},{i:"⚡",de:"Donner",en:"Thunder"}];
 var CL={S:{i:"🏹",de:"Schützen",en:"Shooters"},K:{i:"⚔",de:"Krieger",en:"Warriors"},G:{i:"🛡",de:"Wächter",en:"Guards"},M:{i:"🔮",de:"Magier",en:"Mages"},B:{i:"🐾",de:"Bestien",en:"Beasts"},V:{i:"🌾",de:"Bauer",en:"Farmer"},A:{i:"🗡",de:"Assassinen",en:"Assassins"},F:{i:"🪤",de:"Fallen",en:"Traps"},Z:{i:"👑",de:"Meister",en:"Masters"},L:{i:"🔱",de:"Speer",en:"Spear"},D:{i:"👹",de:"Dämon",en:"Demon"},O:{i:"🗿",de:"Golem",en:"Golem"},H:{i:"👻",de:"Geist",en:"Spirit"},R:{i:"💢",de:"Berserker",en:"Berserkers"},W:{i:"🧙",de:"Zauberer",en:"Sorcerers"}};
 var SE=[[{a:1},{a:1,h:1},{a:2,h:2}],[{h:2},{f:1,h:2},{f:1,h:3,a:1}],[{a:1,h:1},{a:2,h:2},{a:3,h:3,b:1}],[{h:3,a:1},{h:4,a:1},{h:6,a:2,g:1}],[{a:1,h:1},{a:2,h:1},{a:2,h:3,g:1}],[{a:1,h:2},{a:2,h:3,rs:1},{a:3,h:4,rs:1,g:1}],[{p:1},{p:1,a:1,h:1},{p:1,a:2,h:2}],[{a:1},{z:1,a:1},{z:1,a:2,h:1}]];
@@ -237,7 +241,7 @@ function mk(c,stars){ var o={}; for(var k in c) o[k]=c[k]; o.stars=stars||1; o.u
 function eff(u){ var m=MULT[u.stars]; return {ak:Math.round(u.a*m),hp:Math.round(u.h*m)}; }
 function rnd(n){ return Math.floor(Math.random()*n); }
 function pickW(L){ var tot=0; L.forEach(function(c){ tot+=POOLC[c.key]||0; }); if(!tot) return null; var r=rnd(tot); for(var i=0;i<L.length;i++){ r-=POOLC[L[i].key]||0; if(r<0) return L[i]; } return null; }
-function roll(level){ var out=[],od=ODDS[level]; for(var i=0;i<5;i++){ var r=rnd(100),t=0,acc=0; for(t=0;t<6;t++){ acc+=od[t]; if(r<acc) break; } var c=null,tt; for(tt=t+1;tt>=1&&!c;tt--) c=pickW(BYT[tt]); for(tt=t+2;tt<=6&&!c;tt++) c=pickW(BYT[tt]); out.push(c); } return out; }
+function roll(level){ var out=[],od=ODDS[level], cap=6; for(var i=0;i<5;i++){ var r=rnd(100),t=0,acc=0; for(t=0;t<6;t++){ acc+=od[t]; if(r<acc) break; } var c=null,tt; for(tt=Math.min(t+1,cap);tt>=1&&!c;tt--) c=pickW(BYT[tt]); for(tt=Math.min(t+1,cap)+1;tt<=cap&&!c;tt++) c=pickW(BYT[tt]); out.push(c); } return out; }
 var ARTD=[
  {id:0,n:"Magisches Szepter",en:"Magic scepter",img:"x01",c:3,k:"g",a:2,f:1},{id:1,n:"Drachenamulett",en:"Dragon amulet",img:"x02",c:3,k:"g",a:1,b:1},
  {id:2,n:"Kriegs-Helm",en:"War helm",img:"x03",c:2,k:"g",r:2},{id:3,n:"Elfen-Bogen",en:"Elven bow",img:"x04",c:3,k:"g",a:2,h:1},
@@ -357,12 +361,12 @@ function fighters(P){ var us=bu(P), fcnt=famCounts(us), mn=mains(P), sy=synOf(mn
     if(fxx){ sh+=fxx.r||0; if(fxx.n) fl.n=true; if(fxx.nh) fl.nh=true; if(fxx.w) fl.w=true; if(fxx.ld) fl.ld=true; if(fxx.gr) fl.gr=true; }
     var ex={mit:[],shot:false,trapS:false,wut:false,rg:false}, wl=0, am=0;
     if(u.cl==="O") sh+=u.stars; if(u.cl==="R"){ if(/wolf/i.test(u.n)) ex.rg=true; else ex.wut=true; }
-    (st||[]).forEach(function(o){ if(o===u||o.sp) return; var w=o.stars||1; if(o.el===u.el) ex.mit.push(Math.max(1,Math.floor(eff(o).ak/2))); if(o.cl==="S") ex.shot=true; if(o.cl==="F") ex.trapS=true; if(o.cl==="R") ex.wut=true; if(o.cl==="G"||hv(o,"w")) wl+=w; if(o.cl==="Z"||hv(o,"k")) am+=w; });
+    (st||[]).forEach(function(o){ if(o===u||o.sp) return; var w=o.stars||1; if(o.el===u.el&&eff(o).ak>0) ex.mit.push(Math.max(1,Math.floor(eff(o).ak/2))); if(o.cl==="S") ex.shot=true; if(o.cl==="F") ex.trapS=true; if(o.cl==="R") ex.wut=true; if(o.cl==="G"||hv(o,"w")) wl+=w; if(o.cl==="Z"||hv(o,"k")) am+=w; });
     sh+=Math.min(3,wl); a+=am; h+=am;
-    var ff={u:u,heal:heal,ak:a,hp:h,mx:h,sh:sh,dg:hv(u,"o")||u.cl==="H"||!!(fxx&&fxx.dg),fzc:0,fl:fl,fz:false,nf:false,hit:false,res:[],k:0,mit:ex.mit,shot:ex.shot,trapS:ex.trapS,wut:ex.wut,rg:ex.rg}; return ff; }
+    var iw=isWallN(u); if(iw){ a=0; if(u.el===4) fl.g=true; } var ff={wl:iw,rx:iw?u.el:-1,rxs:u.stars,u:u,heal:heal,ak:a,hp:h,mx:h,sh:sh,dg:hv(u,"o")||u.cl==="H"||!!(fxx&&fxx.dg),fzc:0,fl:fl,fz:false,nf:false,hit:false,res:[],k:0,mit:ex.mit,shot:ex.shot,trapS:ex.trapS,wut:ex.wut,rg:ex.rg}; return ff; }
   var out=[]; P.board.forEach(function(st){ if(!st.length) return; var top=mkF(st[0],st); top.res=[]; out.push(top); }); return out; }
 function hurt(f,d){ var t=Math.min(f.sh||0,d); if(t>0){ f.sh-=t; } f.hp-=d-t; }
-function red(f,d){ if(d<=0) return 0; if(hv(f.u,"w")||f.fl.w) d=Math.max(1,d-1); return d; }
+function red(f,d){ if(d<=0) return 0; if(hv(f.u,"w")||f.fl.w) d=Math.max(1,d-(f.rx===3?2:1)); return d; }
 var ADV={2:[1,4,6],1:[3,5],3:[2,7],5:[2],4:[0],0:[5],6:[0,3],7:[5,1]};
 function advO(a,b){ return (ADV[a]||[]).indexOf(b)>=0; }
 function adv(x,y){ if(y.fl.gr&&x.u.el===7) return false; return advO(x.u.el,y.u.el); }
@@ -374,9 +378,9 @@ function tick(A,B,n,first){
   all.forEach(function(f){ f.hit=false; f.sk=f.fz; if(f.fzc>0){ f.fzc--; f.fz=true; } else f.fz=false; });
   if(n===0){ A.forEach(function(f,i){ if(hv(f.u,"x")&&B[i]){ B[i].fz=true; B[i].fzc=1; B[i].sk=true; } }); B.forEach(function(f,i){ if(hv(f.u,"x")&&A[i]){ A[i].fz=true; A[i].fzc=1; A[i].sk=true; } }); }
   function hit(a,b,d,pen){ if(!b||b.hp<=0||d<=0) return 0; if(adv(a,b)) d=Math.max(1,d+1-(b.fl.rs||0)); if(!pen) d=red(b,d); if(b.dg){ b.dg=false; return 0; }
-    if(pen) b.hp-=d; else hurt(b,d); b.hit=true; if((hv(b.u,"n")||b.fl.n)&&a.hp>0) hurt(a,1); if(hv(b.u,"j")) a.nf=true; if(a.fl.f) b.nf=true; if(a.fl.p) b.pz=true; return d; }
+    if(pen) b.hp-=d; else hurt(b,d); b.hit=true; if(!b.wl){ if((hv(b.u,"n")||b.fl.n)&&a.hp>0) hurt(a,1); if(hv(b.u,"j")) a.nf=true; } else if(a.hp>0){ var q=b.rx; if(q===0) a.hp-=b.rxs; else if(q===1) a.nf=true; else if(q===2){ a.bn=2; a.bnd=b.rxs; } else if(q===5) a.sl=1; else if(q===6) a.pz=true; else if(q===7) a.hp-=b.rxs; } if(a.fl.f) b.nf=true; if(a.fl.p) b.pz=true; return d; }
   function act(X,Y,i){ var a=X[i]; if(!a||a.hp<=0||a.sk) return; var u=a.u, pen=pierces(u), base=a.ak+(a.fl.b?1:0)+(n===0&&a.fl.z?2:0); if(base<=0) return;
-    if(a.wut&&a.k>=2) base*=2; a.k++;
+    if(a.wut&&a.k>=2) base*=2; if(a.sl>0){ base=Math.max(1,base-1); a.sl--; } a.k++;
     var main=u.cl==="A"?lastAlive(Y):(Y[i]&&Y[i].hp>0?Y[i]:null), sh=u.cl==="S"||hv(u,"s");
     if(main){ hit(a,main,base,pen); if(n===0&&a.trapS&&main.hp>0) main.nf=true; }
     if(u.cl==="L"&&Y[i+1]) hit(a,Y[i+1],base,true);
@@ -387,7 +391,8 @@ function tick(A,B,n,first){
   var order=first?[[B,A],[A,B]]:[[A,B],[B,A]], mx=Math.max(A.length,B.length);
   for(var i=0;i<mx;i++){ var o=order.slice(); var f1=o[0][0][i], f2=o[1][0][i]; if(f1&&f2&&hv(f2.u,"r")&&!hv(f1.u,"r")) o.reverse(); o.forEach(function(p){ act(p[0],p[1],i); }); }
   A.forEach(function(f,i){ if(f.hit) hA.push(i); if(f.nf){ f.fz=true; f.nf=false; } }); B.forEach(function(f,i){ if(f.hit) hB.push(i); if(f.nf){ f.fz=true; f.nf=false; } });
-  [A,B].forEach(function(L){ L.forEach(function(f){ if(f.pz&&f.hp>0) f.hp-=1; }); });
+  [A,B].forEach(function(L){ L.forEach(function(f){ if(f.pz&&f.hp>0) f.hp-=1; if(f.bn>0&&f.hp>0){ f.hp-=f.bnd; f.bn--; } }); });
+  if(n>=20){ var sd=Math.floor((n-20)/4)+1; all.forEach(function(f){ if(f.hp>0) f.hp-=sd; }); }
   [A,B].forEach(function(L){ L.forEach(function(f){ if(f.hp>0&&f.fl.g) f.hp=Math.min(f.mx+3,f.hp+1); });
     L.forEach(function(f){ if(f.hp>0&&hv(f.u,"h")){ var w=null; L.forEach(function(x){ if(x!==f&&x.hp>0&&x.hp<x.mx&&(!w||x.hp<w.hp)) w=x; }); if(w) w.hp=Math.min(w.mx,w.hp+f.u.stars); } });
     L.forEach(function(f){ if(f.hp>0&&f.heal) f.hp=Math.min(f.mx,f.hp+f.heal); });
@@ -697,7 +702,7 @@ function cardDetail0(c,back){ var D=EN?SDE:SD, T2=EN?TRD.en:TRD.de, h='<h2>'+nm(
   [1,2,3].forEach(function(st){ var u=mk(c,st), e=c.sp?null:eff(u); h+='<div style="text-align:center;font-size:12px"><div style="display:flex;justify-content:center">'+cardHtml(u,{})+'</div><b>'+['★','★★','★★★'][st-1]+'</b><br>'+(c.sp?'✨ '+Math.round(c.v*(st===1?1:st===2?1.5:2)):'⚔ <b>'+e.ak+'</b> · ❤ <b>'+e.hp+'</b>')+'</div>'; });
   h+='</div><div style="text-align:left;font-size:13px;line-height:1.5;max-width:560px">';
   if(c.sp){ h+='<div>✨ '+(EN?c.de:c.d)+'</div><div class="mu">'+(EN?'Cast at a random moment in the fight. Value ×1 / ×1.5 / ×2 by stars, plus the element bonus.':'Wird zu einem zufälligen Zeitpunkt im Kampf gewirkt. Wert ×1 / ×1,5 / ×2 je nach Stern, dazu der Element-Bonus.')+'</div>'; }
-  else { var tr=(c.t||"").split("").map(function(k){ return T2[k]?'<div>'+T2[k]+'</div>':''; }).join(''); h+=tr;
+  else { var tr=(c.t||"").split("").map(function(k){ return T2[k]&&!(isWallN(c)&&(k==="n"||k==="j"))?'<div>'+T2[k]+'</div>':''; }).join(''); h+=tr; if(isWallN(c)) h+='<div>'+wallTxt(c)+'</div>';
     h+='<div style="margin-top:6px"><b>'+(EN?'What the stars change':'Was die Sterne ändern')+'</b></div><div class="mu">'+(EN?'★★ = ×1.8 and ★★★ = ×3.3 attack & health. ':'★★ = ×1,8 und ★★★ = ×3,3 auf Angriff und Leben. ')+'</div>';
     if((c.t||"").indexOf("c")>=0) h+='<div>🌾 '+(EN?'Gold per round: +2 / +4 / +6':'Gold pro Runde: +2 / +4 / +6')+'</div>';
     if((c.t||"").indexOf("a")>=0) h+='<div>🔰 '+(EN?'Start armor: 2 / 4 / 6':'Start-Rüstung: 2 / 4 / 6')+'</div>';
@@ -709,7 +714,7 @@ function cardDetail0(c,back){ var D=EN?SDE:SD, T2=EN?TRD.en:TRD.de, h='<h2>'+nm(
   $("box").innerHTML=h+'<button class="pri" id="bkc">'+(EN?'Back':'Zurück')+'</button>'; wideBox(); $("box").scrollTop=0; $("bkc").onclick=function(){ catalog(back); }; $("ov").classList.add("show"); }
 function catalog(el){ var sv=S; if(!S) S={round:0,P:newP(),bots:[],shop:[],E:newP()}; try{ catalog0(el); }finally{ S=sv; } }
 function catalog0(el){ var C=CARDS.filter(function(c){ return c.el===el&&!c.off; }).sort(function(a,b){ return (a.sp?1:0)-(b.sp?1:0)||a.c-b.c; }), h='<h2>📚 '+(EN?'All cards':'Alle Karten')+'</h2><div class="lv" style="flex-wrap:wrap">'+EL.map(function(x,i){ return '<button data-e="'+i+'" class="'+(i===el?'on':'')+'">'+x.i+'</button>'; }).join('')+'</div><p class="mu" style="text-align:center">'+EL[el].i+' '+(EN?EL[el].en:EL[el].de)+' · '+C.length+' '+(EN?'cards':'Karten')+'</p><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;text-align:center;font-size:11px">';
-  C.forEach(function(c){ var u=mk(c,1), tx=(u.t||"").split("").map(function(k){ var t=(EN?TRD.en:TRD.de)[k]; return t?'<div>'+t+'</div>':''; }).join('');
+  C.forEach(function(c){ var u=mk(c,1), tx=(u.t||"").split("").map(function(k){ var t=(EN?TRD.en:TRD.de)[k]; return t&&!(isWallN(c)&&(k==="n"||k==="j"))?'<div>'+t+'</div>':''; }).join('')+(isWallN(c)?'<div>'+wallTxt(c)+'</div>':'');
     h+='<div class="cw" data-k="'+c.key+'" style="width:104px"><div style="display:flex;justify-content:center">'+cardHtml(u,{})+'</div><div><b>'+nm(u)+'</b></div><div class="mu">🪙'+c.c+(c.sp?'':' · '+CL[c.cl].i+' '+(EN?CL[c.cl].en:CL[c.cl].de)+' · '+rarT(c))+'</div>'+(c.sp?'<div class="mu">✨ '+(EN?c.de:c.d)+' '+c.v+'</div>':'<div class="mu">⚔'+c.a+' ❤'+c.h+'</div>')+'<div class="mu" style="font-size:10px;text-align:left">'+tx+'</div></div>'; });
   $("box").innerHTML=h+'</div><button class="pri" id="bkc">'+(EN?'Back':'Zurück')+'</button>'; $("box").scrollTop=0;
   Array.prototype.forEach.call($("box").querySelectorAll("[data-e]"),function(b){ b.onclick=function(){ catalog(+b.dataset.e); }; });
