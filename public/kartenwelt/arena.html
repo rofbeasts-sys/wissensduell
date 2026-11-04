@@ -59,8 +59,8 @@ body .c.dg,.dg{position:fixed!important;margin:0!important;max-width:none;}.dg{p
 .pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#1d1440;border-radius:14px;padding:13px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
 .sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
 .lv{display:flex;gap:8px;margin:8px 0}.lv button{flex:1;padding:11px 4px;border-radius:14px;border:2px solid #ffffff2e;background:#0004;color:#fff;font-size:14px;font-weight:800;cursor:pointer}.lv button.on{border-color:#c6ff3d}
-.av{position:absolute;top:21px;left:4px;font-size:15px;font-weight:900;text-shadow:0 0 3px #000,0 0 3px #000;z-index:3;pointer-events:none}.av.up{color:#5dff8a}.av.dn{color:#ff4d4d}.info p,.info li{text-align:left;font-size:13px;line-height:1.5}.info h3{margin:10px 0 2px;color:#ffd45a;font-size:14px}.fxi{display:block;position:static}.fxl{display:block;position:static;font-size:12px;color:#cbbcff;text-align:left;line-height:1.8;padding:1px 6px}.fzb{border:1px solid #6f63c9;background:#2a2457;color:#fff;border-radius:8px}</style></head><body>
-<div class="top"><button class="ib" id="back">←</button><div class="st"><span id="tR"></span><span id="tG"></span><span id="tL"></span></div><button class="ib" id="rankb">📊</button><button class="ib" id="spd">⏩</button><button class="ib" id="book">📖</button></div>
+.av{position:absolute;top:21px;left:4px;font-size:15px;font-weight:900;text-shadow:0 0 3px #000,0 0 3px #000;z-index:3;pointer-events:none}.av.up{color:#5dff8a}.av.dn{color:#ff4d4d}.info p,.info li{text-align:left;font-size:13px;line-height:1.5}.info h3{margin:10px 0 2px;color:#ffd45a;font-size:14px}.fxi{display:block;position:static}.fxl{display:block;position:static;font-size:12px;color:#cbbcff;text-align:left;line-height:1.8;padding:1px 6px}.fzb{border:1px solid #6f63c9;background:#2a2457;color:#fff;border-radius:8px}#musb.on{box-shadow:0 0 0 2px #ffd45a inset}</style></head><body>
+<div class="top"><button class="ib" id="back">←</button><div class="st"><span id="tR"></span><span id="tG"></span><span id="tL"></span></div><button class="ib" id="rankb">📊</button><button class="ib" id="spd">⏩</button><button class="ib" id="book">📖</button><button class="ib" id="musb">🎵</button></div>
 <div id="kf"><img id="kP" class="kh" alt=""><img id="kE" class="kh" alt=""></div>
 <div class="hp"><span id="hP"></span><span id="hE"></span></div>
 <div class="lab"><span id="lE"></span><button class="mb" id="oppb"></button></div><div class="row" id="er"></div>
@@ -830,6 +830,23 @@ window.__sim=function(N,modes,opt){ opt=opt||{}; var agg={}, cards={}, rounds=0,
       for(var c in sy.c){ var k2="C"+c+"t"+sy.tc[c]; var T2=tiers[k2]=tiers[k2]||{n:0,rank:0}; if(sy.tc[c]>0){ T2.n++; T2.rank+=p.rank; } }
       for(var f in fc){ var k3="F"+f+"t"+famTier(fc[f]); var T3=tiers[k3]=tiers[k3]||{n:0,rank:0}; if(famTier(fc[f])>0){ T3.n++; T3.rank+=p.rank; } } }); }
   return {agg:agg,cards:cards,tiers:tiers,P0:P0,avgRounds:rounds/N,ms:Date.now()-t0}; };
+var MUS={a:new Audio(),on:false,mute:false,vol:0.35,ord:[],i:0};
+try{ var mv=localStorage.getItem("bp_royale_mvol"); if(mv!==null) MUS.vol=Math.max(0,Math.min(1,+mv)); MUS.mute=localStorage.getItem("bp_royale_mmute")==="1"; MUS.pref=localStorage.getItem("bp_royale_music")==="1"; }catch(e){}
+MUS.a.volume=MUS.mute?0:MUS.vol;
+function musShuf(){ MUS.ord=[1,2,3,4,5,6].sort(function(){ return Math.random()-.5; }); MUS.i=0; }
+function musNext(){ if(MUS.i>=MUS.ord.length) musShuf(); MUS.a.src="/solo/realm/music/"+MUS.ord[MUS.i++]+".mp3"; MUS.a.play().then(function(){ MUS.on=true; musUi(); }).catch(function(){ MUS.on=false; musUi(); }); }
+MUS.a.addEventListener("ended",musNext);
+function musSave(){ try{ localStorage.setItem("bp_royale_mvol",String(MUS.vol)); localStorage.setItem("bp_royale_mmute",MUS.mute?"1":"0"); localStorage.setItem("bp_royale_music",MUS.on?"1":"0"); }catch(e){} }
+function musUi(){ var b=$("mplay"); if(b) b.textContent=MUS.on?"⏸":"▶"; var m=$("mmute"); if(m) m.textContent=(MUS.mute||MUS.vol===0)?"🔇":"🔊"; $("musb").classList.toggle("on",MUS.on); musSave(); }
+function musToggle(){ if(MUS.on){ MUS.a.pause(); MUS.on=false; musUi(); return; } if(!MUS.ord.length) musShuf(); if(!MUS.a.src||MUS.a.src===location.href) musNext(); else MUS.a.play().then(function(){ MUS.on=true; musUi(); }).catch(function(){}); }
+function musOpen(){ var h='<h2>🎵 '+(EN?"Music":"Musik")+'</h2><div style="display:flex;align-items:center;gap:10px;justify-content:center;margin:10px 0"><button class="sec" id="mplay" style="width:56px;font-size:20px">▶</button><button class="sec" id="mnext" style="width:56px;font-size:18px" title="'+(EN?"Next":"Nächstes")+'">⏭</button><button class="sec" id="mmute" style="width:56px;font-size:18px">🔊</button></div><div style="display:flex;align-items:center;gap:8px;padding:0 6px"><span>🔈</span><input type="range" id="mvol" min="0" max="100" style="flex:1;accent-color:#ffd45a"><span>🔊</span></div><button class="pri" id="bkc" style="margin-top:14px">'+(EN?"Close":"Schließen")+'</button>';
+  $("box").innerHTML=h; $("ov").classList.add("show"); $("mvol").value=Math.round(MUS.vol*100); musUi();
+  $("mplay").onclick=musToggle; $("mnext").onclick=function(){ if(!MUS.ord.length) musShuf(); musNext(); };
+  $("mmute").onclick=function(){ MUS.mute=!MUS.mute; MUS.a.volume=MUS.mute?0:MUS.vol; musUi(); };
+  $("mvol").oninput=function(){ MUS.vol=this.value/100; MUS.mute=false; MUS.a.volume=MUS.vol; musUi(); };
+  $("bkc").onclick=function(){ $("ov").classList.remove("show"); }; }
+$("musb").onclick=musOpen;
+if(MUS.pref){ var musFirst=function(){ document.removeEventListener("pointerdown",musFirst); if(!MUS.on){ if(!MUS.ord.length) musShuf(); musNext(); } }; document.addEventListener("pointerdown",musFirst); }
 window.__ar={info:function(z,i,j){infoSel={z:z,i:i,j:j};paint();},paint:function(){paint()},S:function(){return S},buy:buy,reroll:reroll,lvl:levelUp,go:battle,tap:tapSlot,sell:sellSel,sel:function(z,i){sel={z:z,i:i}},fast:function(){fast=true},turbo:function(){turbo=true},rank:showRank,CARDS:CARDS,fighters:fighters,tick:tick,mk:mk,nxt:nxt,resolve:resolve,newP:newP,LIMA:function(){return LIMA}};
 })();
 </script></body></html>
