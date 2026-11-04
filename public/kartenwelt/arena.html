@@ -59,7 +59,7 @@ body .c.dg,.dg{position:fixed!important;margin:0!important;max-width:none;}.dg{p
 .pri{background:linear-gradient(90deg,#ffd45a,#7ae582);border:0;color:#1d1440;border-radius:14px;padding:13px;font-size:16px;font-weight:800;cursor:pointer;width:100%;margin-top:8px}
 .sec{background:transparent;border:1px solid #ffffff2e;color:#eef1f7;border-radius:14px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;width:100%;margin-top:8px}
 .lv{display:flex;gap:8px;margin:8px 0}.lv button{flex:1;padding:11px 4px;border-radius:14px;border:2px solid #ffffff2e;background:#0004;color:#fff;font-size:14px;font-weight:800;cursor:pointer}.lv button.on{border-color:#c6ff3d}
-</style></head><body>
+.av{position:absolute;top:21px;left:4px;font-size:15px;font-weight:900;text-shadow:0 0 3px #000,0 0 3px #000;z-index:3;pointer-events:none}.av.up{color:#5dff8a}.av.dn{color:#ff4d4d}.info p,.info li{text-align:left;font-size:13px;line-height:1.5}.info h3{margin:10px 0 2px;color:#ffd45a;font-size:14px}</style></head><body>
 <div class="top"><button class="ib" id="back">←</button><div class="st"><span id="tR"></span><span id="tG"></span><span id="tL"></span></div><button class="ib" id="rankb">📊</button><button class="ib" id="spd">⏩</button><button class="ib" id="book">📖</button></div>
 <div id="kf"><img id="kP" class="kh" alt=""><img id="kE" class="kh" alt=""></div>
 <div class="hp"><span id="hP"></span><span id="hE"></span></div>
@@ -112,11 +112,29 @@ var ICE=[
  {n:"Eissoldat",en:"Ice soldier",e:"🥶",c:2,a:2,h:3,img:"isold"},{n:"Eiswolf",en:"Ice wolf",e:"🐺",c:2,a:3,h:2,t:"f",img:"iwolf"},{n:"Schneewall",en:"Snow wall",e:"🧱",c:2,a:1,h:5,t:"wj",img:"iwall"},
  {n:"Eisritter",en:"Ice knight",e:"🗡",c:3,a:3,h:4,img:"iknight"},{n:"Schneeschütze",en:"Snow archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"iarch"},{n:"Eisgeist",en:"Ice ghost",e:"👻",c:3,a:2,h:3,t:"d",img:"ighost"},
  {n:"Frostwächter",en:"Frost guard",e:"🛡",c:3,a:2,h:4,t:"w",img:"iguard"},{n:"Eisturm",en:"Ice tower",e:"🗼",c:3,a:1,h:5,t:"w",img:"itower"},
- {n:"Eiszauberer",en:"Ice wizard",e:"🧙",c:4,a:3,h:4,t:"f",img:"image"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:4,a:4,h:5,img:"igolem"},
+ {n:"Eismagier",en:"Ice mage",e:"🧙",c:4,a:3,h:4,t:"f",img:"image"},{n:"Eisgolem",en:"Ice golem",e:"🧊",c:4,a:4,h:5,img:"igolem"},
  {n:"Yeti",en:"Yeti",e:"🦍",c:5,a:5,h:5,img:"yeti"},{n:"Eiskanone",en:"Ice cannon",e:"💣",c:5,a:5,h:3,t:"s",img:"icannon"},{n:"Eisburg",en:"Ice castle",e:"🏰",c:5,a:2,h:7,t:"w",img:"icastle"},
  {n:"Eisdrache",en:"Ice dragon",e:"🐲",c:6,a:6,h:5,t:"f",img:"idragon"},{n:"Eiskönig",en:"Ice king",e:"👑",c:6,a:4,h:6,t:"k",img:"iking"}];
 var ICESP=[
  {n:"Schneeball",en:"Snowball",e:"⚪",c:1,sp:"ball",img:"iball"},{n:"Eisfalle",en:"Ice trap",e:"🧊",c:2,sp:"trap",img:"itrap"},{n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,sp:"storm",img:"istorm"}];
+var VEN=[
+ {n:"Giftfalle",en:"Venom trap",e:"🪤",c:2,a:0,h:4,t:"x",img:"v14"},
+ {n:"Giftbaum",en:"Venom tree",e:"🌲",c:1,a:0,h:3,t:"wn",img:"v16"},{n:"Giftmaus",en:"Venom mouse",e:"🐭",c:1,a:1,h:2,t:"o",img:"v01"},
+ {n:"Giftsoldat",en:"Venom soldier",e:"🥷",c:2,a:2,h:3,img:"v03"},{n:"Giftwolf",en:"Venom wolf",e:"🐺",c:2,a:3,h:2,t:"p",img:"v04"},{n:"Giftwall",en:"Venom wall",e:"🧱",c:2,a:1,h:5,t:"wn",img:"v08"},
+ {n:"Giftritter",en:"Venom knight",e:"🗡",c:3,a:3,h:4,img:"v02"},{n:"Giftschütze",en:"Venom archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"v06"},{n:"Giftgeist",en:"Venom ghost",e:"👻",c:3,a:2,h:3,t:"d",img:"v11"},
+ {n:"Giftwächter",en:"Venom guard",e:"🛡",c:3,a:2,h:4,t:"w",img:"v13"},{n:"Giftturm",en:"Venom tower",e:"🗼",c:3,a:1,h:5,t:"w",img:"v17"},
+ {n:"Giftmagier",en:"Venom mage",e:"🧙",c:4,a:3,h:4,t:"p",img:"v07"},{n:"Giftgolem",en:"Venom golem",e:"🧪",c:4,a:4,h:5,img:"v05"},
+ {n:"Giftyeti",en:"Venom yeti",e:"🦍",c:5,a:5,h:5,img:"v12"},{n:"Giftkanone",en:"Venom cannon",e:"💣",c:5,a:5,h:3,t:"s",img:"v19"},{n:"Giftburg",en:"Venom castle",e:"🏰",c:5,a:2,h:7,t:"w",img:"v18"},
+ {n:"Giftdrache",en:"Venom dragon",e:"🐲",c:6,a:6,h:5,t:"p",img:"v10"},{n:"Giftkönig",en:"Venom king",e:"👑",c:6,a:4,h:6,t:"k",img:"v20"}];
+var THU=[
+ {n:"Donnerfalle",en:"Thunder trap",e:"🪤",c:2,a:0,h:4,t:"x",img:"t14"},
+ {n:"Donnerbaum",en:"Thunder tree",e:"🌲",c:1,a:0,h:3,t:"wn",img:"t16"},{n:"Donnermaus",en:"Thunder mouse",e:"🐭",c:1,a:1,h:2,t:"o",img:"t01"},
+ {n:"Donnersoldat",en:"Thunder soldier",e:"⚡",c:2,a:2,h:3,img:"t03"},{n:"Donnerwolf",en:"Thunder wolf",e:"🐺",c:2,a:3,h:2,t:"z",img:"t04"},{n:"Donnerwall",en:"Thunder wall",e:"🧱",c:2,a:1,h:5,t:"wn",img:"t08"},
+ {n:"Donnerritter",en:"Thunder knight",e:"🗡",c:3,a:3,h:4,img:"t02"},{n:"Donnerschütze",en:"Thunder archer",e:"🏹",c:3,a:3,h:2,t:"s",img:"t06"},{n:"Donnergeist",en:"Thunder ghost",e:"👻",c:3,a:2,h:3,t:"d",img:"t11"},
+ {n:"Donnerwächter",en:"Thunder guard",e:"🛡",c:3,a:2,h:4,t:"w",img:"t13"},{n:"Donnerturm",en:"Thunder tower",e:"🗼",c:3,a:1,h:5,t:"w",img:"t17"},
+ {n:"Donnermagier",en:"Thunder mage",e:"🧙",c:4,a:3,h:4,t:"z",img:"t07"},{n:"Donnergolem",en:"Thunder golem",e:"🗿",c:4,a:4,h:5,img:"t05"},
+ {n:"Donneryeti",en:"Thunder yeti",e:"🦍",c:5,a:5,h:5,img:"t12"},{n:"Donnerkanone",en:"Thunder cannon",e:"💣",c:5,a:5,h:3,t:"s",img:"t19"},{n:"Donnerburg",en:"Thunder castle",e:"🏰",c:5,a:2,h:7,t:"w",img:"t18"},
+ {n:"Donnerdrache",en:"Thunder dragon",e:"🐲",c:6,a:6,h:5,t:"z",img:"t10"},{n:"Donnerkönig",en:"Thunder king",e:"👑",c:6,a:4,h:6,t:"k",img:"t20"}];
 var FIRE=[{n:"Feuergeist",en:"Fire spirit",e:"🔥",c:1,a:2,h:2,img:"f01"},
  {n:"Feuerholzwall",en:"Fire log wall",e:"🪵",c:1,a:0,h:4,t:"wn",img:"f03"},
  {n:"Feuergoblin",en:"Fire goblin",e:"👺",c:2,a:2,h:2,t:"r",img:"f04"},
@@ -158,9 +176,9 @@ var EARTH=[{n:"Maus",en:"Mouse",e:"🐭",c:1,a:1,h:3,t:"o",img:"e01"},
  {n:"Erdkönig",en:"Earth king",e:"👑",c:6,a:4,h:6,t:"k",img:"e19"}];
 var EARTHSP=[{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"},{n:"Felsblock",en:"Boulder",e:"🪨",c:3,sp:"rock",img:"e20"}];
 
-function cls(c){ if(/^bauer$/i.test(c.n)) return "V"; if(c.t&&c.t.indexOf("s")>=0||/schütz|bogen|kanone|katapult|waldläufer|fährtenleser/i.test(c.n)) return "S"; if(c.t&&/[hlq]/.test(c.t)||/magier|zauberer|druide|heiler|geist/i.test(c.n)) return "M"; if(/ratte|maus|wolf|bär|drache|rachen|phönix|yeti|hirsch/i.test(c.n)) return "B"; if(c.t&&c.t.indexOf("w")>=0) return "G"; return "K"; }
-var CARDS=[]; [[POOL,0],[ICE,1],[FIRE,2],[EARTH,3],[UND,4],[WAT,5]].forEach(function(d){ d[0].forEach(function(c){ if(d[1]===0&&c.n==="Eisgolem") return; var o={}; for(var k in c) o[k]=c[k]; o.el=d[1]; o.cl=cls(c); o.key=d[1]+":"+c.n; o.img=c.img||IMG[c.n]; CARDS.push(o); }); });
-var CLO={"0:Ritter":"G","0:Riese":"G","0:Wachturm":"G","1:Eissoldat":"L","1:Eisgeist":"H","2:Feuergeist":"H","0:Waldgeist":"H","3:Baumgeist":"H","1:Eisgolem":"G","2:Feuerdämon":"D","2:Feuerdrache":"G","2:Feuerriese":"G","3:Erdgolem":"O","3:Erdriese":"G","4:Skelettkrieger":"H","4:Skelett-Golem":"O","4:Todesfürst":"G","4:Riese":"G","5:Wassergolem":"O","5:Wassergeist":"H","5:Wasserschiff":"G"}, LEG={"5:Wassergeist":1,"5:Wasserschiff":1,"4:Skelett-Drache":1,"4:Riese":1,"3:Baumgeist":1,"3:Erdrachen":1,"3:Erdriese":1,"1:Yeti":1,"1:Eisdrache":1,"2:Feuerdrache":1,"2:Feuerriese":1}, OFF={"1:Eisburg":1,"2:Feuerburg":1,"3:Steinturm":1,"4:Skelett-Armee":1}; CARDS.forEach(function(c){ if(LEG[c.key]||c.key==="0:Waldgeist"||(c.t||"").indexOf("k")>=0||(!c.sp&&/drache|rachen|riese/i.test(c.n))) c.leg=1; if(OFF[c.key]) c.off=1; if(c.sp) return; var t=c.t||""; if(CLO[c.key]) c.cl=CLO[c.key]; else if(t.indexOf("x")>=0) c.cl="F"; else if(t.indexOf("k")>=0) c.cl="Z"; else if(t.indexOf("d")>=0) c.cl="A"; else if(/speerk|speerträger/i.test(c.n)) c.cl="L"; });
+function cls(c){ if(/^bauer$/i.test(c.n)) return "V"; if(c.t&&c.t.indexOf("s")>=0||/schütz|bogen|kanone|katapult|waldläufer|fährtenleser/i.test(c.n)) return "S"; if(c.t&&/[hlq]/.test(c.t)||/heiler|druide|meerjungfrau|heilquelle/i.test(c.n)) return "W"; if(/magier|zauberer|geist/i.test(c.n)) return "M"; if(/wolf|bär|yeti/i.test(c.n)) return "R"; if(/ratte|maus|drache|rachen|phönix|hirsch/i.test(c.n)) return "B"; if(c.t&&c.t.indexOf("w")>=0) return "G"; return "K"; }
+var CARDS=[]; [[POOL,0],[ICE,1],[FIRE,2],[EARTH,3],[UND,4],[WAT,5],[VEN,6],[THU,7]].forEach(function(d){ d[0].forEach(function(c){ if(d[1]===0&&c.n==="Eisgolem") return; var o={}; for(var k in c) o[k]=c[k]; o.el=d[1]; o.cl=cls(c); o.key=d[1]+":"+c.n; o.img=c.img||IMG[c.n]; CARDS.push(o); }); });
+var CLO={"0:Ritter":"G","0:Riese":"G","0:Wachturm":"G","1:Eissoldat":"L","1:Eisgeist":"H","2:Feuergeist":"H","0:Waldgeist":"H","3:Baumgeist":"H","1:Eisgolem":"G","6:Giftsoldat":"L","7:Donnersoldat":"L","7:Donnergeist":"H","7:Donnergolem":"O","6:Giftgeist":"H","6:Giftgolem":"O","2:Feuerdämon":"D","2:Feuerdrache":"G","2:Feuerriese":"G","3:Erdgolem":"O","3:Erdriese":"G","4:Skelettkrieger":"H","4:Skelett-Golem":"O","4:Todesfürst":"G","4:Riese":"G","5:Wassergolem":"O","5:Wassergeist":"H","5:Wasserschiff":"G"}, LEG={"7:Donneryeti":1,"7:Donnerdrache":1,"6:Giftyeti":1,"6:Giftdrache":1,"5:Wassergeist":1,"5:Wasserschiff":1,"4:Skelett-Drache":1,"4:Riese":1,"3:Baumgeist":1,"3:Erdrachen":1,"3:Erdriese":1,"1:Yeti":1,"1:Eisdrache":1,"2:Feuerdrache":1,"2:Feuerriese":1}, OFF={"7:Donnerburg":1,"6:Giftburg":1,"1:Eisburg":1,"2:Feuerburg":1,"3:Steinturm":1,"4:Skelett-Armee":1}; CARDS.forEach(function(c){ if(LEG[c.key]||c.key==="0:Waldgeist"||(c.t||"").indexOf("k")>=0||(!c.sp&&/drache|rachen|riese/i.test(c.n))) c.leg=1; if(OFF[c.key]) c.off=1; if(c.sp) return; var t=c.t||""; if(CLO[c.key]) c.cl=CLO[c.key]; else if(t.indexOf("x")>=0) c.cl="F"; else if(t.indexOf("k")>=0) c.cl="Z"; else if(t.indexOf("d")>=0) c.cl="A"; else if(/speerk|speerträger/i.test(c.n)) c.cl="L"; });
 var SPD=[
  {n:"Tsunami",en:"Tsunami",e:"🌊",c:4,k:"dmgAll",v:2,el:5,img:"a13",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"},
  {n:"Giftpfeil",en:"Poison arrow",e:"🏹",c:2,k:"dmg1",v:2,el:0,img:"g15",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
@@ -171,18 +189,22 @@ var SPD=[
  {n:"Feuerball",en:"Fireball",e:"☄️",c:3,k:"dmg1",v:3,el:2,img:"fire",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
  {n:"Eisenhaut",en:"Iron skin",e:"🛡",c:3,k:"skin",v:2,el:3,img:"skin",d:"Leben für alle deine Karten",de:"health for all your cards"},
  {n:"Felsblock",en:"Boulder",e:"🪨",c:3,k:"rock",v:4,el:3,img:"e20",d:"Schaden an die stärkste Gegner-Karte",de:"damage to the strongest enemy card"},
- {n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,k:"dmgAll",v:2,el:1,img:"istorm",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"}];
+ {n:"Schneesturm",en:"Blizzard",e:"🌪",c:4,k:"dmgAll",v:2,el:1,img:"istorm",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"},
+ {n:"Giftkugel",en:"Venom orb",e:"🟢",c:1,k:"dmg1",v:2,el:6,img:"v09",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
+ {n:"Giftsturm",en:"Venom storm",e:"🌪",c:4,k:"dmgAll",v:2,el:6,img:"v15",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"},
+ {n:"Donnerkugel",en:"Thunder orb",e:"🔵",c:1,k:"dmg1",v:2,el:7,img:"t09",d:"Schaden an eine zufällige Gegner-Karte",de:"damage to a random enemy card"},
+ {n:"Donnersturm",en:"Thunderstorm",e:"🌩",c:4,k:"dmgAll",v:2,el:7,img:"t15",d:"Schaden an alle Gegner-Karten",de:"damage to all enemy cards"}];
 SPD.forEach(function(x){ var o={}; for(var k in x) o[k]=x[k]; o.sp=true; o.cl="Z"; o.key="S:"+x.n; CARDS.push(o); });
-var EL=[{i:"🌲",de:"Wald",en:"Forest"},{i:"❄",de:"Eis",en:"Ice"},{i:"🔥",de:"Feuer",en:"Fire"},{i:"🌿",de:"Erde",en:"Earth"},{i:"💀",de:"Untote",en:"Undead"},{i:"💧",de:"Wasser",en:"Water"}];
-var CL={S:{i:"🏹",de:"Schützen",en:"Shooters"},K:{i:"⚔",de:"Krieger",en:"Warriors"},G:{i:"🛡",de:"Wächter",en:"Guards"},M:{i:"🔮",de:"Magier",en:"Mages"},B:{i:"🐾",de:"Bestien",en:"Beasts"},V:{i:"🌾",de:"Bauer",en:"Farmer"},A:{i:"🗡",de:"Assassinen",en:"Assassins"},F:{i:"🪤",de:"Fallen",en:"Traps"},Z:{i:"👑",de:"Meister",en:"Masters"},L:{i:"🔱",de:"Speer",en:"Spear"},D:{i:"👹",de:"Dämon",en:"Demon"},O:{i:"🗿",de:"Golem",en:"Golem"},H:{i:"👻",de:"Geist",en:"Spirit"}};
-var SE=[[{a:1},{a:1,h:1},{a:2,h:2}],[{h:2},{f:1,h:2},{f:1,h:3,a:1}],[{a:1,h:1},{a:2,h:2},{a:3,h:3,b:1}],[{h:3,a:1},{h:4,a:1},{h:6,a:2,g:1}],[{a:1,h:1},{a:2,h:1},{a:2,h:3,g:1}],[{a:1,h:2},{a:2,h:3,rs:1},{a:3,h:4,rs:1,g:1}]];
-var SC={S:[{a:1},{a:2},{a:3}],K:[{h:1},{h:2,a:1},{h:3,a:2}],G:[{h:2},{h:3},{h:5}],B:[{a:1},{a:1,h:1},{a:2,h:2}],M:[{gold:1},{gold:1,h:1},{gold:2,h:2}],V:[{},{},{}],A:[{a:1},{a:2},{a:3}],F:[{h:1},{h:2},{h:3}],Z:[{a:1,h:1},{a:2,h:2},{a:3,h:3}],L:[{a:1},{a:2},{a:3,h:1}],D:[{a:1,h:1},{a:2,h:1},{a:3,h:2}],O:[{a:1,h:1},{a:2,h:2},{a:3,h:3}],H:[{a:1,h:1},{a:2,h:1},{a:3,h:2}]};
-function dscO(o,en){ var r=[]; if(o.a) r.push("+"+o.a+(en?" attack":" Angriff")); if(o.r) r.push("+"+o.r+(en?" armor":" Rüstung")); if(o.h) r.push("+"+o.h+(en?" health":" Leben")); if(o.f) r.push(en?"Frost on hit":"Frost bei Treffer"); if(o.b) r.push(en?"Burn":"Brand"); if(o.g) r.push(en?"Regrowth":"Nachwachsen"); if(o.gold) r.push("+"+o.gold+(en?" gold/round":" Gold/Runde")); if(o.rs) r.push(en?"resist "+o.rs:"Resistenz "+o.rs); return r.join(", "); }
+var EL=[{i:"🌲",de:"Wald",en:"Forest"},{i:"❄",de:"Eis",en:"Ice"},{i:"🔥",de:"Feuer",en:"Fire"},{i:"🌿",de:"Erde",en:"Earth"},{i:"💀",de:"Untote",en:"Undead"},{i:"💧",de:"Wasser",en:"Water"},{i:"☣",de:"Gift",en:"Venom"},{i:"⚡",de:"Donner",en:"Thunder"}];
+var CL={S:{i:"🏹",de:"Schützen",en:"Shooters"},K:{i:"⚔",de:"Krieger",en:"Warriors"},G:{i:"🛡",de:"Wächter",en:"Guards"},M:{i:"🔮",de:"Magier",en:"Mages"},B:{i:"🐾",de:"Bestien",en:"Beasts"},V:{i:"🌾",de:"Bauer",en:"Farmer"},A:{i:"🗡",de:"Assassinen",en:"Assassins"},F:{i:"🪤",de:"Fallen",en:"Traps"},Z:{i:"👑",de:"Meister",en:"Masters"},L:{i:"🔱",de:"Speer",en:"Spear"},D:{i:"👹",de:"Dämon",en:"Demon"},O:{i:"🗿",de:"Golem",en:"Golem"},H:{i:"👻",de:"Geist",en:"Spirit"},R:{i:"💢",de:"Berserker",en:"Berserkers"},W:{i:"🧙",de:"Zauberer",en:"Sorcerers"}};
+var SE=[[{a:1},{a:1,h:1},{a:2,h:2}],[{h:2},{f:1,h:2},{f:1,h:3,a:1}],[{a:1,h:1},{a:2,h:2},{a:3,h:3,b:1}],[{h:3,a:1},{h:4,a:1},{h:6,a:2,g:1}],[{a:1,h:1},{a:2,h:1},{a:2,h:3,g:1}],[{a:1,h:2},{a:2,h:3,rs:1},{a:3,h:4,rs:1,g:1}],[{p:1},{p:1,a:1,h:1},{p:1,a:2,h:2}],[{a:1},{z:1,a:1},{z:1,a:2,h:1}]];
+var SC={S:[{a:1},{a:2},{a:3}],K:[{h:1},{h:2,a:1},{h:3,a:2}],G:[{h:2},{h:3},{h:5}],B:[{a:1},{a:1,h:1},{a:2,h:2}],M:[{gold:1},{gold:1,h:1},{gold:2,h:2}],V:[{},{},{}],A:[{a:1},{a:2},{a:3}],F:[{h:1},{h:2},{h:3}],Z:[{a:1,h:1},{a:2,h:2},{a:3,h:3}],L:[{a:1},{a:2},{a:3,h:1}],D:[{a:1,h:1},{a:2,h:1},{a:3,h:2}],O:[{a:1,h:1},{a:2,h:2},{a:3,h:3}],H:[{a:1,h:1},{a:2,h:1},{a:3,h:2}],R:[{a:1},{a:1,h:1},{a:2,h:2}],W:[{h:1},{h:2},{h:3}]};
+function dscO(o,en){ var r=[]; if(o.a) r.push("+"+o.a+(en?" attack":" Angriff")); if(o.r) r.push("+"+o.r+(en?" armor":" Rüstung")); if(o.h) r.push("+"+o.h+(en?" health":" Leben")); if(o.f) r.push(en?"Frost on hit":"Frost bei Treffer"); if(o.p) r.push(en?"Poison on hit":"Gift bei Treffer"); if(o.z) r.push(en?"first strike +2":"erster Schlag +2"); if(o.b) r.push(en?"Burn":"Brand"); if(o.g) r.push(en?"Regrowth":"Nachwachsen"); if(o.gold) r.push("+"+o.gold+(en?" gold/round":" Gold/Runde")); if(o.rs) r.push(en?"resist "+o.rs:"Resistenz "+o.rs); return r.join(", "); }
 function mkSD(en){ var d={e:SE.map(function(r){ return r.map(function(o){ return dscO(o,en); }); }),c:{}}; for(var k in SC) d.c[k]=SC[k].map(function(o){ return dscO(o,en); }); return d; }
 var SD=mkSD(false), SDE=mkSD(true);
 var ODDS=[0,[75,25,0,0,0,0],[55,30,15,0,0,0],[35,35,25,5,0,0],[20,30,30,17,3,0],[10,20,30,25,13,2]];
 var LUP=[0,4,6,8,10], MULT=[0,1,2,3.8];
-var BYT=[[],[],[],[],[],[],[]], POOLC={}, ELS=[0,1,2,3,4,5];
+var BYT=[[],[],[],[],[],[],[]], POOLC={}, ELS=[0,1,2,3,4,5,6,7];
 var QS=new URLSearchParams(location.search), MYAV=QS.get("av")||"🧑‍🌾", MYNAME=QS.get("n")||"";
 var BOTAV=["img:cat","img:lady","img:dog","img:girl","img:man","img:prof","img:robo","img:rb_gob","img:rb_ske","img:rb_zom","img:rb_sli","img:rb_mag","img:rb_orc","img:rb_bat","img:rb_dev","img:rb_gho","img:rb_boa","img:rb_fro","img:rb_h1","img:rb_h2","king:1","king:3","king:5","img:man2","img:robo2"];
 function avh(a,px){ px=px||22; a=a||"🙂"; var st='width:'+px+'px;height:'+px+'px;border-radius:50%;object-fit:cover;vertical-align:middle;background:#2a1f55';
@@ -203,7 +225,7 @@ function hbar(h,rev){ var pc=Math.max(0,Math.min(100,h/HMAX*100)); return '<div 
 function heartsUp(){ if(!S) return; $("hE").innerHTML=hbar(S.E.hearts,true); $("hP").innerHTML=hbar(S.P.hearts,false); }
 var NAMES=[["","Lena"],["","Max"],["","Mia"],["","Ben"],["","Zoe"],["","Finn"],["","Emma"],["","Leo"],["","Nico"]];
 function copies(c){ if(c.sp) return 5; return {1:14,2:11,3:9,4:7,5:6,6:5,7:4}[c.c]||5; }
-function buildPool(){ var d1=rnd(6), d2=(d1+1+rnd(5))%6; ELS=[0,1,2,3,4,5].filter(function(x){ return x!==d1&&x!==d2; }); BYT=[[],[],[],[],[],[],[]]; POOLC={};
+function buildPool(){ ELS=shuf([0,1,2,3,4,5,6,7]).slice(0,4).sort(function(p,q){ return p-q; }); BYT=[[],[],[],[],[],[],[]]; POOLC={};
   CARDS.forEach(function(c){ if(ELS.indexOf(c.el)<0||c.off) return; BYT[Math.min(6,c.c)].push(c); POOLC[c.key]=copies(c); }); }
 function takeCopy(c){ POOLC[c.key]=Math.max(0,(POOLC[c.key]||0)-1); }
 function giveBack(u){ if(u.nf) return; POOLC[u.key]=(POOLC[u.key]||0)+(u.stars===1?1:u.stars===2?3:9); }
@@ -227,6 +249,16 @@ var ARTD=[
  {id:14,n:"Vampiramulett",en:"Vampire amulet",img:"x15",c:4,k:"g",a:2,h:1,g:1},{id:15,n:"Klonkristall",en:"Clone crystal",img:"x16",c:6,k:"u",u:"clone",d:"Sofort: kopiert eine deiner Karten auf die Bank",de:"Instant: copies one of your cards to the bench"},
  {id:16,n:"Münzkelch",en:"Coin chalice",img:"x17",c:3,k:"u",u:"coin",d:"Sofort: +5 Gold",de:"Instant: +5 gold"},
  {id:17,n:"Artefakt-Zange",en:"Artifact tongs",img:"x18",c:2,k:"u",u:"pull",d:"Sofort: holt die Artefakte einer Feldkarte zurück in den Beutel (so wie sie sind)",de:"Instant: pulls the artifacts of a field card back to your bag (as they are)"}];
+var FUS={
+ "0,1":{n:"Frostwald",en:"Frost forest",x:{n:1,h:1}},"0,2":{n:"Waldbrand",en:"Wildfire",x:{b:1,a:1}},"0,3":{n:"Urwald",en:"Jungle",x:{g:1,h:2}},"0,4":{n:"Moder",en:"Rot",x:{n:1,a:1}},"0,5":{n:"Dschungel",en:"Rainforest",x:{g:1,nh:1}},"0,6":{n:"Giftpflanze",en:"Toxic plant",x:{n:1,p:1}},"0,7":{n:"Blitzeiche",en:"Lightning oak",x:{z:1,h:1}},
+ "1,2":{n:"Dampf",en:"Steam",x:{dg:1,h:1}},"1,3":{n:"Permafrost",en:"Permafrost",x:{r:2,f:1}},"1,4":{n:"Totenfrost",en:"Death frost",x:{f:1,a:1}},"1,5":{n:"Gletscher",en:"Glacier",x:{h:2,rs:1}},"1,6":{n:"Eisgift",en:"Ice venom",x:{p:1,h:1}},"1,7":{n:"Sturm",en:"Storm",x:{f:1,a:1}},
+ "2,3":{n:"Lava",en:"Lava",x:{b:1,a:1}},"2,4":{n:"Höllenfeuer",en:"Hellfire",x:{b:1,a:1,h:1}},"2,5":{n:"Siedend",en:"Scalding",x:{w:1,a:1}},"2,6":{n:"Giftflamme",en:"Venom flame",x:{b:1,p:1}},"2,7":{n:"Plasma",en:"Plasma",x:{z:1,b:1}},
+ "3,4":{n:"Gruft",en:"Crypt",x:{g:1,h:2}},"3,5":{n:"Sumpf",en:"Swamp",x:{g:1,h:2}},"3,6":{n:"Giftmoor",en:"Venom moor",x:{p:1,h:2}},"3,7":{n:"Erdung",en:"Grounding",x:{a:1,r:1,gr:1}},
+ "4,5":{n:"Ertrunkene",en:"Drowned",x:{g:1,dg:1}},"4,6":{n:"Seuche",en:"Plague",x:{p:1,a:1}},"4,7":{n:"Galvani",en:"Galvani",x:{z:1,h:1}},
+ "5,6":{n:"Giftwasser",en:"Toxic water",x:{p:1,h:1}},"5,7":{n:"Leitung",en:"Conduction",x:{a:1,z:1,ld:1}},"6,7":{n:"Giftgewitter",en:"Venom storm",x:{p:1,z:1}}};
+function fusOf(u){ if(u.e2===undefined||u.e2===u.el) return null; var k=Math.min(u.el,u.e2)+","+Math.max(u.el,u.e2); return FUS[k]||null; }
+EL.forEach(function(x,i){ ARTD.push({id:ARTD.length,n:"Fusions-Kristall "+x.de,en:"Fusion crystal "+x.en,img:"x12",c:5,k:"u",u:"fuse",fe:i,d:"Sofort: eine Feldkarte bekommt zusätzlich das Element "+x.i+" "+x.de+" (nur eine Fusion pro Karte)",de:"Instant: a field card also gets the element "+x.i+" "+x.en+" (one fusion per card)"}); });
+ARTD.push({id:ARTD.length,n:"Trennklinge",en:"Splitting blade",img:"x07",c:3,k:"u",u:"unfuse",d:"Sofort: entfernt die Fusion einer Feldkarte",de:"Instant: removes the fusion of a field card"});
 var ABASE=ARTD.slice();
 function mkCombo(A,B,reg){ var o={cb:1,k:"g",c:A.c+B.c,img:A.img,parts:(A.parts||[A.id]).concat(B.parts||[B.id])}; ["a","h","r","rs"].forEach(function(k){ if(A[k]||B[k]) o[k]=Math.min(k==="rs"?3:99,(A[k]||0)+(B[k]||0)+1); }); ["f","b","g"].forEach(function(k){ if(A[k]||B[k]) o[k]=1; });
   o.n=A.n+" + "+B.n; o.en=A.en+" + "+B.en; if(!reg) return o; var key=o.parts.slice().sort().join(); for(var i=0;i<ARTD.length;i++) if(ARTD[i].cb&&ARTD[i].parts.slice().sort().join()===key&&ARTD[i].n===o.n) return ARTD[i]; o.id=ARTD.length; ARTD.push(o); return o; }
@@ -276,8 +308,8 @@ function mains(P){ var r=[]; P.board.forEach(function(st){ if(st[0]) r.push(st[0
 function famCounts(us){ var c={},seen={}; us.forEach(function(u){ if(u.sp||seen[u.key]) return; seen[u.key]=1; tagsOf(u).forEach(function(f){ c[f.id]=(c[f.id]||0)+1; }); }); return c; }
 function famTier(n){ return tierOf(n); }
 function famTxt(x){ return dscO(x,EN); }
-function synOf(us,all){ all=all||us; var e={},c={}; us.forEach(function(u){ (e[u.el]=e[u.el]||{})[u.key]=1; }); all.forEach(function(u){ if(u.sp) return; (c[u.cl]=c[u.cl]||{})[u.key]=1; });
-  var r={e:[0,0,0,0,0,0],c:{S:0,K:0,G:0,M:0,B:0,V:0,A:0,F:0,Z:0,L:0,D:0,O:0,H:0},te:[0,0,0,0,0,0],tc:{S:0,K:0,G:0,M:0,B:0,V:0,A:0,F:0,Z:0,L:0,D:0,O:0,H:0}};
+function synOf(us,all){ all=all||us; var e={},c={}; us.forEach(function(u){ (e[u.el]=e[u.el]||{})[u.key]=1; if(u.e2!==undefined&&!u.sp) (e[u.e2]=e[u.e2]||{})[u.key]=1; }); all.forEach(function(u){ if(u.sp) return; (c[u.cl]=c[u.cl]||{})[u.key]=1; });
+  var r={e:[0,0,0,0,0,0,0,0],c:{S:0,K:0,G:0,M:0,B:0,V:0,A:0,F:0,Z:0,L:0,D:0,O:0,H:0,R:0,W:0},te:[0,0,0,0,0,0,0,0],tc:{S:0,K:0,G:0,M:0,B:0,V:0,A:0,F:0,Z:0,L:0,D:0,O:0,H:0,R:0,W:0}};
   for(var k in e) r.e[k]=Object.keys(e[k]).length; for(var k2 in c) r.c[k2]=Object.keys(c[k2]).length;
   r.e.forEach(function(v,i){ r.te[i]=tierOf(v); }); for(var q in r.c){ r.tc[q]=tierOf(r.c[q]); } return r; }
 function spVal(u,P){ var m=u.stars===1?1:u.stars===2?1.5:2, base=Math.round(u.v*m), t=synOf(mains(P)).te[u.el]; return {base:base,bonus:t,total:base+t}; }
@@ -312,36 +344,54 @@ function cpuPlay(E,round){
   front.forEach(function(u,i){ E.board[i].push(u); }); var extra=us.slice(5); extra.forEach(function(u,i){ var f=i%5; if(E.board[f].length<4) E.board[f].push(u); else rest.push(u); }); rest.slice(0,3).forEach(function(u,i){ E.bench[i]=u; });
 }
 // ---------- Kampf ----------
-function stackB(st,u){ var ne=0,nk=0,nc=0; st.forEach(function(o){ if(o===u) return; var w=o.stars||1; if(o.el===u.el) ne+=w; if(o.key===u.key) nk+=w; if(o.cl===u.cl) nc+=w; }); return {h:ne+nk,a:u.a>0?nc:0,ne:ne,nk:nk,nc:nc}; }
+function stackB(st,u){ var ne=0,nk=0,nc=0; st.forEach(function(o){ if(o===u) return; var w=o.stars||1; if(o.el===u.el||(o.e2!==undefined&&o.e2===u.el)||(u.e2!==undefined&&(u.e2===o.el||u.e2===o.e2))) ne+=w; if(o.key===u.key) nk+=w; if(o.cl===u.cl) nc+=w; }); return {h:ne+nk,a:u.a>0?nc:0,ne:ne,nk:nk,nc:nc}; }
 function fighters(P){ var us=bu(P), fcnt=famCounts(us), mn=mains(P), sy=synOf(mn,us), king=mn.some(function(u){ return hv(u,"k"); });
-  function mkF(u,st){ var sh=hv(u,"a")?2*u.stars:0, fms=tagsOf(u); var e=eff(u), a=e.ak, h=e.hp, fl={f:hv(u,"f"),b:hv(u,"b"),g:hv(u,"g")}; var te=sy.te[u.el], tc=sy.tc[u.cl];
-    [te>0?SE[u.el][te-1]:null, tc>0&&(SC[u.cl][tc-1].a!==undefined||SC[u.cl][tc-1].h!==undefined)?SC[u.cl][tc-1]:null].forEach(function(x){ if(!x) return; a+=x.a||0; h+=x.h||0; if(x.rs) fl.rs=Math.max(fl.rs||0,x.rs); if(x.f) fl.f=true; if(x.b) fl.b=true; if(x.g) fl.g=true; });
+  function mkF(u,st){ var sh=hv(u,"a")?2*u.stars:0, fms=tagsOf(u); var e=eff(u), a=e.ak, h=e.hp, fl={f:hv(u,"f"),b:hv(u,"b"),g:hv(u,"g"),p:hv(u,"p"),z:hv(u,"z")}; var te=sy.te[u.el], tc=sy.tc[u.cl];
+    var te2=u.e2!==undefined?sy.te[u.e2]:0, fxp=fusOf(u), fxx=fxp?fxp.x:null;
+    [te2>0?SE[u.e2][te2-1]:null, fxx?{a:fxx.a,h:fxx.h,rs:fxx.rs,f:fxx.f,b:fxx.b,g:fxx.g,p:fxx.p,z:fxx.z}:null, te>0?SE[u.el][te-1]:null, tc>0&&(SC[u.cl][tc-1].a!==undefined||SC[u.cl][tc-1].h!==undefined)?SC[u.cl][tc-1]:null].forEach(function(x){ if(!x) return; a+=x.a||0; h+=x.h||0; if(x.rs) fl.rs=Math.max(fl.rs||0,x.rs); if(x.f) fl.f=true; if(x.p) fl.p=true; if(x.z) fl.z=true; if(x.b) fl.b=true; if(x.g) fl.g=true; });
     if(king&&!hv(u,"k")){ a+=u.stars; h+=u.stars; }
     if(st){ var sb=stackB(st,u); a+=sb.a; h+=sb.h; }
     (u.ar||[]).forEach(function(id){ var A=ARTD[id]; if(!A) return; a+=A.a||0; h+=A.h||0; sh+=A.r||0; if(A.rs) fl.rs=Math.max(fl.rs||0,A.rs); if(A.f) fl.f=true; if(A.b) fl.b=true; if(A.g) fl.g=true; });
     fms.forEach(function(fm0){ var ft=famTier(fcnt[fm0.id]||0); if(ft>0){ var fx=fm0.t[ft-1]; a+=fx.a||0; h+=fx.h||0; if(fx.rs) fl.rs=Math.max(fl.rs||0,fx.rs); } });
     var heal=0; if(st) st.forEach(function(o){ if(o!==u&&o.el===u.el&&(hv(o,"h")||hv(o,"l")||hv(o,"q"))) heal+=o.stars; });
-    return {u:u,heal:heal,ak:a,hp:h,mx:h,sh:sh,dg:hv(u,"o"),fzc:0,fl:fl,fz:false,nf:false,hit:false,res:[]}; }
+    if(fxx){ sh+=fxx.r||0; if(fxx.n) fl.n=true; if(fxx.nh) fl.nh=true; if(fxx.w) fl.w=true; if(fxx.ld) fl.ld=true; if(fxx.gr) fl.gr=true; }
+    var ex={mit:[],shot:false,trapS:false,wut:false,rg:false}, wl=0, am=0;
+    if(u.cl==="O") sh+=u.stars; if(u.cl==="R"){ if(/wolf/i.test(u.n)) ex.rg=true; else ex.wut=true; }
+    (st||[]).forEach(function(o){ if(o===u||o.sp) return; var w=o.stars||1; if(o.el===u.el) ex.mit.push(Math.max(1,Math.floor(eff(o).ak/2))); if(o.cl==="S") ex.shot=true; if(o.cl==="F") ex.trapS=true; if(o.cl==="R") ex.wut=true; if(o.cl==="G"||hv(o,"w")) wl+=w; if(o.cl==="Z"||hv(o,"k")) am+=w; });
+    sh+=Math.min(3,wl); a+=am; h+=am;
+    var ff={u:u,heal:heal,ak:a,hp:h,mx:h,sh:sh,dg:hv(u,"o")||u.cl==="H"||!!(fxx&&fxx.dg),fzc:0,fl:fl,fz:false,nf:false,hit:false,res:[],k:0,mit:ex.mit,shot:ex.shot,trapS:ex.trapS,wut:ex.wut,rg:ex.rg}; return ff; }
   var out=[]; P.board.forEach(function(st){ if(!st.length) return; var top=mkF(st[0],st); top.res=[]; out.push(top); }); return out; }
 function hurt(f,d){ var t=Math.min(f.sh||0,d); if(t>0){ f.sh-=t; } f.hp-=d-t; }
-function red(f,d){ if(d<=0) return 0; if(hv(f.u,"w")) d=Math.max(1,d-1); return d; }
-var ADV={2:[1,4],1:[3,5],3:[2],5:[2],4:[0],0:[5]};
+function red(f,d){ if(d<=0) return 0; if(hv(f.u,"w")||f.fl.w) d=Math.max(1,d-1); return d; }
+var ADV={2:[1,4,6],1:[3,5],3:[2,7],5:[2],4:[0],0:[5],6:[0,3],7:[5,1]};
 function advO(a,b){ return (ADV[a]||[]).indexOf(b)>=0; }
-function adv(x,y){ return advO(x.u.el,y.u.el); }
-function tick(A,B,n){
-  var m=Math.min(A.length,B.length), dA=A.map(function(){return 0}), dB=B.map(function(){return 0}), hA=[], hB=[];
-  if(n===0){ A.forEach(function(f,i){ if(hv(f.u,"x")&&B[i]){ B[i].fz=true; B[i].fzc=1; } }); B.forEach(function(f,i){ if(hv(f.u,"x")&&A[i]){ A[i].fz=true; A[i].fzc=1; } }); }
-  for(var i=0;i<m;i++){ var a=A[i], b=B[i], aa=a.fz?0:a.ak+(a.fl.b?1:0), ba=b.fz?0:b.ak+(b.fl.b?1:0); if(aa>0&&adv(a,b)) aa=Math.max(1,aa+1-(b.fl.rs||0)); if(ba>0&&adv(b,a)) ba=Math.max(1,ba+1-(a.fl.rs||0)); if(a.fzc>0){ a.fzc--; a.fz=true; } else a.fz=false; if(b.fzc>0){ b.fzc--; b.fz=true; } else b.fz=false;
-    var toB=red(b,aa), toA=red(a,ba);
-    if(toB>0&&b.dg){ toB=0; b.dg=false; } if(toA>0&&a.dg){ toA=0; a.dg=false; }
-    var af=hv(a.u,"r")&&!hv(b.u,"r"), bf=hv(b.u,"r")&&!hv(a.u,"r");
-    if(af&&b.hp+(b.sh||0)-toB<=0) toA=0; if(bf&&a.hp+(a.sh||0)-toA<=0) toB=0;
-    dB[i]+=toB; dA[i]+=toA; if(toB>0&&hv(b.u,"n")) dA[i]+=1; if(toA>0&&hv(a.u,"n")) dB[i]+=1; if(toB>0&&hv(b.u,"j")) a.nf=true; if(toA>0&&hv(a.u,"j")) b.nf=true; if(toB>0){ hB.push(i); if(a.fl.f) b.nf=true; } if(toA>0){ hA.push(i); if(b.fl.f) a.nf=true; }
-    if(aa>0&&hv(a.u,"s")&&B[i+1]){ dB[i+1]+=1; } if(ba>0&&hv(b.u,"s")&&A[i+1]){ dA[i+1]+=1; } }
-  A.forEach(function(f,i){ hurt(f,dA[i]); f.hit=dA[i]>0; if(f.nf){ f.fz=true; f.nf=false; } }); B.forEach(function(f,i){ hurt(f,dB[i]); f.hit=dB[i]>0; if(f.nf){ f.fz=true; f.nf=false; } });
+function adv(x,y){ if(y.fl.gr&&x.u.el===7) return false; return advO(x.u.el,y.u.el); }
+function lastAlive(L){ for(var q=L.length-1;q>=0;q--) if(L[q].hp>0) return L[q]; return null; }
+function isDragon(u){ return /drache|rachen/i.test(u.n); }
+function pierces(u){ return u.cl==="L"||u.cl==="R"||u.cl==="Z"||hv(u,"k")||isDragon(u); }
+function tick(A,B,n,first){
+  var all=A.concat(B), hA=[], hB=[];
+  all.forEach(function(f){ f.hit=false; f.sk=f.fz; if(f.fzc>0){ f.fzc--; f.fz=true; } else f.fz=false; });
+  if(n===0){ A.forEach(function(f,i){ if(hv(f.u,"x")&&B[i]){ B[i].fz=true; B[i].fzc=1; B[i].sk=true; } }); B.forEach(function(f,i){ if(hv(f.u,"x")&&A[i]){ A[i].fz=true; A[i].fzc=1; A[i].sk=true; } }); }
+  function hit(a,b,d,pen){ if(!b||b.hp<=0||d<=0) return 0; if(adv(a,b)) d=Math.max(1,d+1-(b.fl.rs||0)); if(!pen) d=red(b,d); if(b.dg){ b.dg=false; return 0; }
+    if(pen) b.hp-=d; else hurt(b,d); b.hit=true; if((hv(b.u,"n")||b.fl.n)&&a.hp>0) hurt(a,1); if(hv(b.u,"j")) a.nf=true; if(a.fl.f) b.nf=true; if(a.fl.p) b.pz=true; return d; }
+  function act(X,Y,i){ var a=X[i]; if(!a||a.hp<=0||a.sk) return; var u=a.u, pen=pierces(u), base=a.ak+(a.fl.b?1:0)+(n===0&&a.fl.z?2:0); if(base<=0) return;
+    if(a.wut&&a.k>=2) base*=2; a.k++;
+    var main=u.cl==="A"?lastAlive(Y):(Y[i]&&Y[i].hp>0?Y[i]:null), sh=u.cl==="S"||hv(u,"s");
+    if(main){ hit(a,main,base,pen); if(n===0&&a.trapS&&main.hp>0) main.nf=true; }
+    if(u.cl==="L"&&Y[i+1]) hit(a,Y[i+1],base,true);
+    if(u.cl==="R"){ [Y[i-1],Y[i+1]].forEach(function(t){ if(t) hit(a,t,Math.max(1,base-2),true); }); if(a.rg&&a.hp>0) a.hp=Math.min(a.mx+3,a.hp+1); }
+    if(sh) Y.forEach(function(t){ if(t!==main) hit(a,t,1+(a.fl.ld?1:0),false); });
+    if(isDragon(u)&&n===0) Y.forEach(function(t){ if(t!==main) hit(a,t,1,false); });
+    if(main){ if(a.mit&&a.mit.length) hit(a,main,a.mit[n%a.mit.length],false); if(a.shot) hit(a,main,Math.max(1,(n%2?Math.ceil(a.ak/2):Math.floor(a.ak/2))),false); } }
+  var order=first?[[B,A],[A,B]]:[[A,B],[B,A]], mx=Math.max(A.length,B.length);
+  for(var i=0;i<mx;i++){ var o=order.slice(); var f1=o[0][0][i], f2=o[1][0][i]; if(f1&&f2&&hv(f2.u,"r")&&!hv(f1.u,"r")) o.reverse(); o.forEach(function(p){ act(p[0],p[1],i); }); }
+  A.forEach(function(f,i){ if(f.hit) hA.push(i); if(f.nf){ f.fz=true; f.nf=false; } }); B.forEach(function(f,i){ if(f.hit) hB.push(i); if(f.nf){ f.fz=true; f.nf=false; } });
+  [A,B].forEach(function(L){ L.forEach(function(f){ if(f.pz&&f.hp>0) f.hp-=1; }); });
   [A,B].forEach(function(L){ L.forEach(function(f){ if(f.hp>0&&f.fl.g) f.hp=Math.min(f.mx+3,f.hp+1); });
     L.forEach(function(f){ if(f.hp>0&&hv(f.u,"h")){ var w=null; L.forEach(function(x){ if(x!==f&&x.hp>0&&x.hp<x.mx&&(!w||x.hp<w.hp)) w=x; }); if(w) w.hp=Math.min(w.mx,w.hp+f.u.stars); } });
     L.forEach(function(f){ if(f.hp>0&&f.heal) f.hp=Math.min(f.mx,f.hp+f.heal); });
+    L.forEach(function(f,i){ if(f.hp>0&&f.fl.nh) [L[i-1],L[i+1]].forEach(function(x){ if(x&&x.hp>0) x.hp=Math.min(x.mx,x.hp+1); }); });
     L.forEach(function(f,i){ if(f.hp<=0||!(hv(f.u,"l")||hv(f.u,"q"))) return; var hl=f.u.stars; [L[i-1],L[i+1]].forEach(function(x){ if(x&&x.hp>0) x.hp=Math.min(x.mx,x.hp+hl); }); if(hv(f.u,"q")&&i===L.length-1&&i>0&&L[0].hp>0) L[0].hp=Math.min(L[0].mx,L[0].hp+hl); }); });
   return {A:nxt(A),B:nxt(B),hA:hA,hB:hB};
 }
@@ -358,8 +408,8 @@ function cardHtml(u,o){ o=o||{}; return decor(cardHtml0(u,o),u,o); }
 function armorOf(u){ var r=0; (u.ar||[]).forEach(function(id){ r+=(ARTD[id]&&ARTD[id].r)||0; }); return r; }
 function rar(u){ return u.leg?3:(u.c>=4?2:1); }
 function rarT(u){ var r=rar(u); return r===3?(EN?"🟡 Legendary":"🟡 Legendär"):r===2?(EN?"🔵 Rare":"🔵 Blau"):(EN?"🟢 Common":"🟢 Normal"); }
-function cardHtml0(u,o){ o=o||{}; if(u.sp) return spHtml(u,o); var shv=o.f?(o.f.sh||0):armorOf(u); var e=o.f?{ak:o.f.ak,hp:o.f.hp}:eff(u), tr=u.t?u.t.split("").map(function(k){ return {w:"🛡",r:"⚡",s:"🏹",d:"🗡",h:"💚",c:"🌾",k:"👑",f:"❄",b:"🔥",g:"🌿",x:"🪤",o:"💨",n:"🌵",j:"🧊",a:"🔰",l:"💞",q:"🌊"}[k]; }).join(""):"";
-  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.n>1?' k'+o.n:'')+(o.sel?' sel':'')+(u.leg?' lg':'')+(o.f&&o.f.hit?' hit':'')+(o.f&&o.f.fz?' fz':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 55%,#000b),url(/kartenwelt/duell/'+u.img+'.jpg)">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+'<span class="co">'+u.c+'</span><span class="ci">'+EL[u.el].i+'<br>'+CL[u.cl].i+'</span>'+(tr?'<span class="tr">'+tr+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+(o.n>1?'<span class="kb">+'+(o.n-1)+'</span>':'')+(u.ar&&u.ar.length?'<span class="ab">💎'+u.ar.length+'</span>':'')+'<span class="nm">'+nm(u)+'</span><span class="at">'+e.ak+'</span><span class="lf">'+e.hp+'</span>'+(shv>0?'<span class="rs2">'+shv+'</span>':'')+'</div>'; }
+function cardHtml0(u,o){ o=o||{}; if(u.sp) return spHtml(u,o); var shv=o.f?(o.f.sh||0):armorOf(u); var e=o.f?{ak:o.f.ak,hp:o.f.hp}:eff(u), tr=u.t?u.t.split("").map(function(k){ return {w:"🛡",r:"⚡",s:"🏹",d:"🗡",h:"💚",c:"🌾",k:"👑",f:"❄",b:"🔥",g:"🌿",x:"🪤",o:"💨",n:"🌵",j:"🧊",a:"🔰",l:"💞",q:"🌊",p:"☣",z:"⚡"}[k]; }).join(""):"";
+  return '<div class="c'+(u.stars===2?' s2':u.stars===3?' s3':'')+(o.n>1?' k'+o.n:'')+(o.sel?' sel':'')+(u.leg?' lg':'')+(o.f&&o.f.hit?' hit':'')+(o.f&&o.f.fz?' fz':'')+'" data-z="'+(o.z||"")+'" data-i="'+(o.i===undefined?"":o.i)+'" style="background-image:linear-gradient(transparent 55%,#000b),url(/kartenwelt/duell/'+u.img+'.jpg)">'+(u.stars>1?'<span class="sr">'+(u.stars===2?'★★':'★★★')+'</span>':'')+'<span class="co">'+u.c+'</span><span class="ci">'+EL[u.el].i+(u.e2!==undefined?EL[u.e2].i:'')+'<br>'+CL[u.cl].i+'</span>'+(tr?'<span class="tr">'+tr+'</span>':'')+(o.rem!==undefined?'<span class="rem">×'+o.rem+'</span>':'')+(o.n>1?'<span class="kb">+'+(o.n-1)+'</span>':'')+(u.ar&&u.ar.length?'<span class="ab">💎'+u.ar.length+'</span>':'')+'<span class="nm">'+nm(u)+'</span><span class="at">'+e.ak+'</span><span class="lf">'+e.hp+'</span>'+(shv>0?'<span class="rs2">'+shv+'</span>':'')+(o.av?'<span class="av '+o.av+'">'+(o.av==='up'?'▲':'▼')+'</span>':'')+'</div>'; }
 function emptyHtml(z,i){ return '<div class="c e" data-z="'+z+'" data-i="'+i+'"><span>'+T.free+'</span></div>'; }
 function synHtml(us,all){ var f=synOf(us,all), D=EN?SDE:SD, out=[];
   f.e.forEach(function(v,i){ if(v>0) out.push('<span class="sy'+(f.te[i]?' on':'')+'">'+EL[i].i+v+(f.te[i]?' '+D.e[i][f.te[i]-1]:'/2')+'</span>'); });
@@ -367,7 +417,7 @@ function synHtml(us,all){ var f=synOf(us,all), D=EN?SDE:SD, out=[];
 function log(t){ $("log").textContent=t||""; }
 function heartsStr(h){ return "❤"; }
 function favEl(Q){ var f=[0,0,0,0,0,0]; allU(Q).forEach(function(x){ if(!x.u.sp) f[x.u.el]++; }); var m=Math.max.apply(null,f); return m>0?f.indexOf(m):-1; }
-function advTxt(P,E){ var a=favEl(P), b=favEl(E); if(a<0||b<0) return ""; if(advO(a,b)) return "  ·  "+EL[a].i+">"+EL[b].i+" "+(EN?"advantage":"Vorteil"); if(advO(b,a)) return "  ·  "+EL[b].i+">"+EL[a].i+" "+(EN?"disadvantage":"Nachteil"); return ""; }
+function advTxt(P,E){ var a=favEl(P), b=favEl(E); if(a<0||b<0) return ""; if(advO(a,b)) return "  ·  "+EL[a].i+" 🟢▲"; if(advO(b,a)) return "  ·  "+EL[a].i+" 🔴▼"; return ""; }
 function paint(){
   var P=S.P, E=S.E; fuseMaps();
   $("tR").textContent=T.round+" "+S.round+(S.boss?" 🧱":""); $("tG").innerHTML="🪙 <b>"+P.gold+"</b>"+(P.blue?" 🔵 <b>"+P.blue+"</b>":""); $("tL").textContent=T.lvl+" "+P.level;
@@ -398,8 +448,8 @@ function resolve(A,B,ctx){ var sA=0,sB=0; allF(A).forEach(function(f){ sA+=f.hp;
 
 var BWALL={n:"Steinmauer",en:"Stone wall",e:"🧱",c:1,a:2,h:7,t:"w",img:"wall",el:0,cl:"G",key:"B:wall"};
 function bossP(k){ var o=newP(), n=k<=1?2:k===2?3:5, st=k<=3?1:k===4?2:k===5?2:3; if(k>=6) st=3; for(var i=0;i<n;i++) o.board[i]=[mk(BWALL,st)]; o.name=(EN?"Wall boss ":"Mauer-Boss ")+"🧱"; o.av="🧱"; o.hearts=HMAX; o.level=S.P.level; o.run="h2"; o.boss=true; return o; }
-function bossWin(X,Y){ var A=fighters(X),B=fighters(Y),n=0,ctx={kingA:0,kingB:0,wardA:0,wardB:0}, cn=1+rnd(4), c0=false;
-  while(A.length&&B.length&&n<LIMA){ ctx.pa=hsum(A); ctx.pb=hsum(B); var r=tick(A,B,n++); A=r.A; B=r.B; if(n===cn&&!c0&&A.length&&B.length){ c0=true; cast(X,A,B,ctx,"A"); A=nxt(A); B=nxt(B); } }
+function bossWin(X,Y){ var A=fighters(X),B=fighters(Y),n=0,ctx={kingA:0,kingB:0,wardA:0,wardB:0,first:rnd(2)}, cn=1+rnd(4), c0=false;
+  while(A.length&&B.length&&n<LIMA){ ctx.pa=hsum(A); ctx.pb=hsum(B); var r=tick(A,B,n++,ctx.first); A=r.A; B=r.B; if(n===cn&&!c0&&A.length&&B.length){ c0=true; cast(X,A,B,ctx,"A"); A=nxt(A); B=nxt(B); } }
   return resolve(A,B,ctx).w==="A"; }
 var BOT2=.2, FREEA=.15;
 function botGear(E){ var L=ABASE.filter(function(a){ return a.k==="g"; }), A0=L[rnd(L.length)], ms=mains(E).filter(function(u){ return (u.ar||[]).length<3&&u.a>0; }).sort(function(a,b){ return eff(b).ak-eff(a).ak; }); if(ms[0]) ms[0].ar=(ms[0].ar||[]).concat([A0.id]); }
@@ -414,8 +464,8 @@ function artShop(){ var P=S.P; if(fighting) return; if(!S.aoff) S.aoff=genOff();
   showBox(h); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var ix=+b.dataset.b, A=ARTD[S.aoff[ix]]; if(P.blue<bluePrice(A)){ toast(EN?"Not enough blue coins":"Zu wenig blaue Münzen"); return; } if(P.inv.length>=5){ toast(EN?"Bag is full (5)":"Beutel voll (max. 5)"); return; } P.blue-=bluePrice(A); P.inv.push(A.id); S.aoff[ix]=null; paint(); artShop(); }; });
   $("arr").onclick=function(){ if(P.gold<2){ toast(T.nogold); return; } P.gold-=2; S.aoff=genOff(); paint(); artShop(); }; }
 function simBattle(X,Y){
-  var A=fighters(X),B=fighters(Y),n=0,ctx={kingA:0,kingB:0,wardA:0,wardB:0}, cn=1+rnd(4), c0=false;
-  while(A.length&&B.length&&n<LIMA){ ctx.pa=hsum(A); ctx.pb=hsum(B); var r=tick(A,B,n++); A=r.A; B=r.B; if(n===cn&&!c0&&A.length&&B.length){ c0=true; cast(X,A,B,ctx,"A"); cast(Y,B,A,ctx,"B"); A=nxt(A); B=nxt(B); } }
+  var A=fighters(X),B=fighters(Y),n=0,ctx={kingA:0,kingB:0,wardA:0,wardB:0,first:rnd(2)}, cn=1+rnd(4), c0=false;
+  while(A.length&&B.length&&n<LIMA){ ctx.pa=hsum(A); ctx.pb=hsum(B); var r=tick(A,B,n++,ctx.first); A=r.A; B=r.B; if(n===cn&&!c0&&A.length&&B.length){ c0=true; cast(X,A,B,ctx,"A"); cast(Y,B,A,ctx,"B"); A=nxt(A); B=nxt(B); } }
   var q=resolve(A,B,ctx); return q.w==="A"?{toA:0,toB:q.d}:{toA:q.d,toB:0}; }
 function autoLv(r){ return r<3?1:r<5?2:r<8?3:r<11?4:5; }
 function startRound(){
@@ -478,8 +528,8 @@ function tapSlot(z,i){ if(fighting) return; var u=peek(z,i);
   else { takeU(sel.z,sel.i); takeU(z,i); putU(z,i,a); putU(sel.z,sel.i,u); }
   var m=false; S.merged=false; merge(S.P,null); if(S.merged) toast("✨ "+T.merged); sel=null; paint(); }
 var infoSel=null;
-var TRD={de:{w:"🛡 Rüstung: erleidet 1 Schaden weniger",r:"⚡ Schnell: schlägt zuerst",s:"🏹 Fernkampf: trifft zusätzlich die Karte dahinter (1)",d:"🗡 Dieb: +1 Herzschaden wenn sie überlebt",h:"💚 Heiler: heilt jeden Schlag den schwächsten Verbündeten",c:"🌾 Bauer: +2 Gold pro Runde (×Sterne)",k:"👑 König: Verbündete +1/+1",f:"❄ Frost: getroffene Karte setzt den nächsten Schlag aus",b:"🔥 Brand: +1 Schaden",g:"🌿 Wachstum: wächst jeden Schlag +1 Leben nach",x:"🪤 Falle: der Gegner GEGENÜBER (gleiche Position) kann die ersten 2 Schläge nicht angreifen",o:"💨 Ausweichen: weicht dem ersten Treffer aus",n:"🌵 Dornen: wer sie trifft, erleidet 1 Schaden",j:"🧊 Eisig: wer sie trifft, setzt den nächsten Schlag aus",a:"🔰 Schild: startet mit 2 Rüstung (Rüstung nimmt zuerst den Schaden)",l:"💞 Pfleger: heilt jeden Schlag die Nachbarn links und rechts",q:"🌊 Quellheiler: heilt die Nachbarn – steht sie GANZ HINTEN, heilt sie zusätzlich die vorderste Karte"},
- en:{w:"🛡 Armor: takes 1 less damage",r:"⚡ Fast: strikes first",s:"🏹 Ranged: also hits the card behind (1)",d:"🗡 Thief: +1 heart damage if it survives",h:"💚 Healer: heals the weakest ally each tick",c:"🌾 Farmer: +2 gold per round (× stars)",k:"👑 King: allies +1/+1",f:"❄ Frost: hit card skips its next attack",b:"🔥 Burn: +1 damage",g:"🌿 Growth: regrows 1 health per tick",x:"🪤 Trap: the enemy OPPOSITE (same position) cannot attack for the first 2 strikes",o:"💨 Dodge: avoids the first hit",n:"🌵 Thorns: whoever hits it takes 1 damage",j:"🧊 Icy: whoever hits it skips the next attack",a:"🔰 Shield: starts with 2 armor (armor absorbs damage first)",l:"💞 Nurse: heals both neighbors each tick",q:"🌊 Spring healer: heals neighbors – at the very BACK she also heals the front card"}};
+var TRD={de:{w:"🛡 Rüstung: erleidet 1 Schaden weniger",r:"⚡ Schnell: schlägt zuerst",s:"🏹 Fernkampf: trifft zusätzlich die Karte dahinter (1)",d:"🗡 Dieb: +1 Herzschaden wenn sie überlebt",h:"💚 Heiler: heilt jeden Schlag den schwächsten Verbündeten",c:"🌾 Bauer: +2 Gold pro Runde (×Sterne)",k:"👑 König: Verbündete +1/+1",f:"❄ Frost: getroffene Karte setzt den nächsten Schlag aus",b:"🔥 Brand: +1 Schaden",g:"🌿 Wachstum: wächst jeden Schlag +1 Leben nach",x:"🪤 Falle: der Gegner GEGENÜBER (gleiche Position) kann die ersten 2 Schläge nicht angreifen",o:"💨 Ausweichen: weicht dem ersten Treffer aus",n:"🌵 Dornen: wer sie trifft, erleidet 1 Schaden",j:"🧊 Eisig: wer sie trifft, setzt den nächsten Schlag aus",a:"🔰 Schild: startet mit 2 Rüstung (Rüstung nimmt zuerst den Schaden)",l:"💞 Pfleger: heilt jeden Schlag die Nachbarn links und rechts",z:"⚡ Überladung: der erste Schlag im Kampf macht +2 Schaden",p:"☣ Gift: die getroffene Karte verliert danach bei jedem Schlag 1 Leben",q:"🌊 Quellheiler: heilt die Nachbarn – steht sie GANZ HINTEN, heilt sie zusätzlich die vorderste Karte"},
+ en:{w:"🛡 Armor: takes 1 less damage",r:"⚡ Fast: strikes first",s:"🏹 Ranged: also hits the card behind (1)",d:"🗡 Thief: +1 heart damage if it survives",h:"💚 Healer: heals the weakest ally each tick",c:"🌾 Farmer: +2 gold per round (× stars)",k:"👑 King: allies +1/+1",f:"❄ Frost: hit card skips its next attack",b:"🔥 Burn: +1 damage",g:"🌿 Growth: regrows 1 health per tick",x:"🪤 Trap: the enemy OPPOSITE (same position) cannot attack for the first 2 strikes",o:"💨 Dodge: avoids the first hit",n:"🌵 Thorns: whoever hits it takes 1 damage",j:"🧊 Icy: whoever hits it skips the next attack",a:"🔰 Shield: starts with 2 armor (armor absorbs damage first)",l:"💞 Nurse: heals both neighbors each tick",z:"⚡ Overcharge: the first strike of the fight deals +2 damage",p:"☣ Venom: the hit card loses 1 health after every strike",q:"🌊 Spring healer: heals neighbors – at the very BACK she also heals the front card"}};
 function sdesc(o,tier){ return o?Object.keys(o).map(function(k){ var v=o[k]; return ({a:"+"+v+" "+(EN?"attack":"Angriff"),h:"+"+v+" "+(EN?"health":"Leben"),f:(EN?"Frost":"Frost"),b:(EN?"Burn":"Brand"),g:(EN?"Regrowth":"Nachwachsen"),gold:"+"+v+" Gold"})[k]; }).join(", "):""; }
 function infoHtml(u,z,i,j){ var P=S.P, D=EN?SDE:SD, sy=synOf(mains(P),bu(P)), h="";
   var st=z==="n"?P.board[i]:null, isMain=z==="n"&&(j||0)===0;
@@ -558,7 +608,7 @@ function slotWin(i,k){ var P=S.P, u=P.board[i]&&P.board[i][0]; if(!u||fighting) 
   showBox(h); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ if(b.dataset.cb!==undefined){ var ix2=+b.dataset.cb, B=ARTD[P.inv[ix2]], C=mkCombo(ARTD[u.ar[k]],B,true); P.inv.splice(ix2,1); u.ar[k]=C.id; $("ov").classList.remove("show"); toast("🔗 "+(EN?C.en:C.n)); paint(); } else if(b.dataset.eq!==undefined) equipArt(i,+b.dataset.eq); }; }); }
 function sellArt(ix){ var P=S.P, A=ARTD[P.inv[ix]]; if(!A) return; var v=Math.max(1,A.c-1); P.inv.splice(ix,1); P.gold+=v; $("ov").classList.remove("show"); toast("💰 +"+v+" 🪙"); paint(); }
 function sellBtn(A){ return '<button class="arl" data-sell="1" style="justify-content:center"><span>💰 '+(EN?"Sell":"Verkaufen")+' +'+Math.max(1,A.c-1)+' 🪙</span></button>'; }
-function activeEl(){ var P=S.P, sy=synOf(mains(P),bu(P)), best=-1; for(var e=0;e<6;e++){ if(sy.te[e]>0&&(best<0||sy.te[e]>sy.te[best]||(sy.te[e]===sy.te[best]&&sy.e[e]>sy.e[best]))) best=e; } return best; }
+function activeEl(){ var P=S.P, sy=synOf(mains(P),bu(P)), best=-1; for(var e=0;e<8;e++){ if(sy.te[e]>0&&(best<0||sy.te[e]>sy.te[best]||(sy.te[e]===sy.te[best]&&sy.e[e]>sy.e[best]))) best=e; } return best; }
 function useArt(ix,ok){ if(fighting) return; var P=S.P, id=P.inv[ix], A=ARTD[id]; if(!A) return;
   if(A.k==='u'&&!ok){ showBox('<h2>⚡ '+(EN?A.en:A.n)+'</h2>'+artRow(A,'','')+'<button class="pri" id="uza" style="margin-top:6px">⚡ '+(EN?'Activate':'Aktivieren')+'</button>'+sellBtn(A)); $('uza').onclick=function(){ $('ov').classList.remove('show'); useArt(ix,true); }; $('box').querySelector('[data-sell]').onclick=function(){ sellArt(ix); }; return; }
   if(A.k==="g"){ var h='<h2>💎 '+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+adsc(A)+'</p><p class="mu" style="text-align:center">'+(EN?"Equip on a field card:":"Lege es an eine Kampffeld-Karte an:")+'</p>'; P.board.forEach(function(st,i){ if(st[0]&&(st[0].ar||[]).length<3) h+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+st[0].img+'.jpg" alt=""><span><b>'+nm(st[0])+'</b> '+EL[st[0].el].i+'<br><span class="mu">💎 '+(st[0].ar||[]).length+'/3</span></span></button>'; });
@@ -568,6 +618,12 @@ function useArt(ix,ok){ if(fighting) return; var P=S.P, id=P.inv[ix], A=ARTD[id]
   if(A.u==="pull"){ var h4='<h2>'+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"From which field card?":"Von welcher Feldkarte?")+'</p>', n4=0; P.board.forEach(function(st,i){ if(st[0]&&(st[0].ar||[]).length){ n4++; h4+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+st[0].img+'.jpg" alt=""><span><b>'+nm(st[0])+'</b><br>💎 '+st[0].ar.map(function(id){ return EN?ARTD[id].en:ARTD[id].n; }).join(", ")+'</span></button>'; } });
     if(!n4){ toast(EN?"No field card has artifacts.":"Keine Feldkarte hat Artefakte."); return; }
     showBox(h4); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var u=P.board[+b.dataset.i][0]; if(P.inv.length-1+u.ar.length>6){ toast(EN?"Bag too full":"Beutel zu voll"); return; } P.inv.splice(ix,1); u.ar.forEach(function(id){ P.inv.push(id); }); u.ar=[]; $("ov").classList.remove("show"); toast("💎 → 🎒"); paint(); }; }); return; }
+  if(A.u==="fuse"){ var hf='<h2>'+EL[A.fe].i+' '+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"Which field card gets the second element?":"Welche Feldkarte bekommt das zweite Element?")+'</p>', nf=0; P.board.forEach(function(st,i){ var c0=st[0]; if(c0&&!c0.sp&&c0.e2===undefined&&c0.el!==A.fe){ nf++; var fp=FUS[Math.min(c0.el,A.fe)+","+Math.max(c0.el,A.fe)]; hf+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+c0.img+'.jpg" alt=""><span><b>'+nm(c0)+'</b> '+EL[c0.el].i+'+'+EL[A.fe].i+'<br><span class="mu">'+(fp?(EN?fp.en:fp.n):'')+'</span></span></button>'; } });
+    if(!nf){ toast(EN?"No field card can be fused.":"Keine Feldkarte kann fusioniert werden."); return; }
+    showBox(hf); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var u=P.board[+b.dataset.i][0]; u.e2=A.fe; P.inv.splice(ix,1); $("ov").classList.remove("show"); var fp=fusOf(u); toast("🧬 "+nm(u)+" · "+(fp?(EN?fp.en:fp.n):"")); paint(); }; }); return; }
+  if(A.u==="unfuse"){ var hu='<h2>'+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"Remove the fusion of which card?":"Von welcher Karte die Fusion entfernen?")+'</p>', nu=0; P.board.forEach(function(st,i){ var c0=st[0]; if(c0&&c0.e2!==undefined){ nu++; hu+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+c0.img+'.jpg" alt=""><span><b>'+nm(c0)+'</b> '+EL[c0.el].i+EL[c0.e2].i+'</span></button>'; } });
+    if(!nu){ toast(EN?"No field card is fused.":"Keine Feldkarte ist fusioniert."); return; }
+    showBox(hu); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var u=P.board[+b.dataset.i][0]; u.e2=undefined; P.inv.splice(ix,1); $("ov").classList.remove("show"); toast("✂ "+nm(u)); paint(); }; }); return; }
   if(A.u==="coin"){ P.inv.splice(ix,1); P.gold+=5; toast("🪙 +5"); paint(); return; }
   if(A.u==="el"){ var be=activeEl(); if(be<0){ toast(EN?"No element is active yet.":"Noch kein Element aktiv."); return; }
     var h2='<h2>'+EL[be].i+' '+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"Which field card becomes ":"Welche Feldkarte wird ")+EL[be].i+' '+(EN?EL[be].en:EL[be].de)+'?</p>', n2=0; P.board.forEach(function(st,i){ if(st[0]&&st[0].el!==be){ n2++; h2+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+st[0].img+'.jpg" alt=""><span><b>'+nm(st[0])+'</b><br>'+EL[st[0].el].i+' → '+EL[be].i+'</span></button>'; } });
@@ -581,14 +637,15 @@ function sellSel(){ if(fighting||!sel) return; var u=peekJ(sel.z,sel.i,sel.j); i
 var LIMA=120, turbo=false;
 function battle(){
   if(fighting) return; if(!S.P.board.some(function(st){return st.length})){ toast(T.need); return; }
-  fighting=true; sel=null; var A=fighters(S.P), B=fighters(S.E), n=0, ctx={kingA:0,kingB:0,wardA:0,wardB:0}; paint();
-  function draw(){ $("er").innerHTML=B.map(function(f){ return cardHtml(f.u,{f:f,n:1+(f.res?f.res.length:0)}); }).join(""); $("br").innerHTML=A.map(function(f){ return cardHtml(f.u,{f:f,n:1+(f.res?f.res.length:0)}); }).join(""); }
-  draw(); log("⚔ "+T.phaseA);
+  fighting=true; sel=null; var A=fighters(S.P), B=fighters(S.E), n=0, ctx={kingA:0,kingB:0,wardA:0,wardB:0,first:rnd(2)}; paint();
+  function avm(f,g){ if(!g) return ""; return adv(g,f)?"dn":adv(f,g)?"up":""; }
+  function draw(){ $("er").innerHTML=B.map(function(f,i){ return cardHtml(f.u,{f:f,n:1+(f.res?f.res.length:0),av:avm(f,A[i])}); }).join(""); $("br").innerHTML=A.map(function(f,i){ return cardHtml(f.u,{f:f,n:1+(f.res?f.res.length:0),av:avm(f,B[i])}); }).join(""); }
+  draw(); log("🪙 "+(ctx.first?(EN?"Opponent strikes first":"Gegner greift zuerst an"):(EN?"You strike first":"Du greifst zuerst an")));
   var castN=1+rnd(4), cast0=false, smsg="";
   function doCast(){ if(cast0||!A.length||!B.length) return; cast0=true; var a=cast(S.P,A,B,ctx,"A"), b=cast(S.E,B,A,ctx,"B"); A=nxt(A); B=nxt(B); draw(); smsg=(a?"✨ "+a:"")+(a&&b?"  |  ":"")+(b?"🧟 "+b:""); }
   (function step(){ var d=turbo?3:fast?260:700; setTimeout(function(){
     if(!A.length||!B.length||n>=LIMA){ return setTimeout(king,turbo?5:fast?500:1000); }
-    ctx.pa=hsum(A); ctx.pb=hsum(B); var r=tick(A,B,n++); A=r.A; B=r.B; draw(); if(n===castN) doCast(); log("⚔ "+T.phaseA+(smsg?"  "+smsg:"")); step(); }, d); })();
+    ctx.pa=hsum(A); ctx.pb=hsum(B); var r=tick(A,B,n++,ctx.first); A=r.A; B=r.B; draw(); if(n===castN) doCast(); log("⚔ "+T.phaseA+(smsg?"  "+smsg:"")); step(); }, d); })();
   function king(){
     var P=S.P,E=S.E, q=resolve(A,B,ctx), youWin=q.w==="A", practice=!!S.boss, dmg=practice?0:q.d;
     var det=(q.wipe?(EN?"both teams down – the stronger one before the last hit wins; ":"beide Teams besiegt – gewonnen hat, wer vor dem letzten Treffer mehr Leben hatte; "):"")+(EN?"remaining health ":"übrige Leben ")+Math.max(0,q.base)+(q.kg?" + "+(EN?"king ":"König ")+q.kg:"")+(q.wd?" − "+(EN?"ward ":"Schutz ")+q.wd:"");
@@ -670,10 +727,24 @@ function overview(){ var C=CARDS.filter(function(c){ return !c.sp&&!c.off; }), U
   $("box").innerHTML=h+'</div><button class="pri" id="bkc">'+(EN?'Back':'Zurück')+'</button>'; $("box").scrollTop=0; wideBox(); $("bkc").onclick=startMenu; $("ov").classList.add("show"); }
 function startMenu(){
   var cur=diff, best=0; try{ best=+localStorage.getItem("bp_arena_place")||0; }catch(e){}
-  $("box").innerHTML='<div style="font-size:44px">🏟️</div><h2>'+T.title+'</h2><p>'+T.tip+'</p>'+(best?'<p style="text-align:center">'+T.best+': '+T.place+' '+best+' / 10</p>':'')+'<div style="font-weight:800;font-size:13px">'+T.diff+'</div><div class="lv"><button data-n="0">'+T.easy+'</button><button data-n="1">'+T.norm+'</button><button data-n="2">'+T.hard+'</button></div><button class="pri" id="go2">'+T.start+'</button><button class="sec" id="cat">📚 '+(EN?'All cards':'Alle Karten')+'</button><button class="sec" id="ovw">📋 '+(EN?'Card analysis':'Karten-Auswertung')+'</button><button class="sec" id="bk2">'+T.back+'</button>';
+  $("box").innerHTML='<div style="font-size:44px">🏟️</div><h2>'+T.title+'</h2><p>'+T.tip+'</p>'+(best?'<p style="text-align:center">'+T.best+': '+T.place+' '+best+' / 10</p>':'')+'<div style="font-weight:800;font-size:13px">'+T.diff+'</div><div class="lv"><button data-n="0">'+T.easy+'</button><button data-n="1">'+T.norm+'</button><button data-n="2">'+T.hard+'</button></div><button class="pri" id="go2">'+T.start+'</button><button class="sec" id="cat">📚 '+(EN?'All cards':'Alle Karten')+'</button><button class="sec" id="inf">ℹ️ '+(EN?"Rules / How it works":"Spielregeln / Info")+'</button><button class="sec" id="ovw">📋 '+(EN?'Card analysis':'Karten-Auswertung')+'</button><button class="sec" id="bk2">'+T.back+'</button>';
   var bs=$("box").querySelectorAll(".lv button"); function mark(){ for(var i=0;i<bs.length;i++) bs[i].classList.toggle("on",+bs[i].dataset.n===cur); } mark();
   for(var i=0;i<bs.length;i++) bs[i].onclick=function(){ cur=+this.dataset.n; mark(); };
-  wideBox(); $("go2").onclick=function(){ diff=cur; try{ localStorage.setItem("bp_arena_diff",String(cur)); }catch(e){} $("ov").classList.remove("show"); searchThenStart(); }; $("bk2").onclick=goBack; $("cat").onclick=function(){ catalog(0); }; $("ovw").onclick=overview; $("ov").classList.add("show"); }
+  wideBox(); $("go2").onclick=function(){ diff=cur; try{ localStorage.setItem("bp_arena_diff",String(cur)); }catch(e){} $("ov").classList.remove("show"); searchThenStart(); }; $("bk2").onclick=goBack; $("cat").onclick=function(){ catalog(0); }; $("ovw").onclick=overview; $("inf").onclick=info; $("ov").classList.add("show"); }
+function info(){ var d=EN?0:1;
+  function S(a,b){ return d?a:b; }
+  var h='<div class="info"><h2>ℹ️ '+S("Spielregeln","How it works")+'</h2>'
+  +'<h3>'+S("🏟 Ziel","🏟 Goal")+'</h3><p>'+S("Du spielst gegen 9 Gegner. Verliert ein Team einen Kampf, verliert es Herzen. Wer als Letzter übrig ist, gewinnt.","You play against 9 opponents. The losing team of a fight loses hearts. Last one standing wins.")+'</p>'
+  +'<h3>'+S("🔁 Eine Runde","🔁 A round")+'</h3><ol><li>'+S("Einkauf: Karten im Shop antippen, ansehen und kaufen (🪙). Gold gibt es jede Runde neu, dazu Zinsen und Bauern.","Shopping: tap shop cards, look, then buy (🪙). Gold refills each round, plus interest and farmers.")+'</li><li>'+S("Aufstellen: 5 Felder, jedes mit einer Hauptkarte und bis zu 3 Stapel-Karten. Weitere Karten warten auf der Bank.","Placement: 5 fields, each with a main card and up to 3 stack cards. More cards wait on the bench.")+'</li><li>'+S("Kampf: läuft automatisch.","Fight: runs automatically.")+'</li><li>'+S("Ergebnis: Herzverlust, nächste Runde. Alle 4 Runden kommt ein Mauer-Boss (blaue Münzen 🔵).","Result: hearts lost, next round. Every 4th round a wall boss appears (blue coins 🔵).")+'</li></ol>'
+  +'<h3>'+S("⭐ Stufen","⭐ Stars")+'</h3><p>'+S("3 gleiche Karten werden zu ★★ (×1,8), 3× ★★ zu ★★★ (×3,3). Verkaufen: ★ = Preis, ★★ = 3×, ★★★ = 9× + 1.","3 equal cards become ★★ (×1.8), 3× ★★ become ★★★ (×3.3). Selling: ★ = cost, ★★ = 3×, ★★★ = 9× + 1.")+'</p>'
+  +'<h3>'+S("📚 Stapel","📚 Stacks")+'</h3><p>'+S("Die Karten unter der Hauptkarte machen sie stärker: gleiches Element, gleiche Karte oder gleiche Klasse geben Leben und Angriff (mal ihre Sterne). Außerdem helfen sie im Kampf:","Cards under the main card strengthen it: same element, same card or same class give health and attack (times their stars). They also help in the fight:")+'</p><ul><li>'+S("Gleiches Element: schlägt mit halber Kraft mit.","Same element: joins in with half strength.")+'</li><li>'+S("🏹 Schütze: schießt mit (halber Angriff der Hauptkarte).","🏹 Shooter: shoots along (half of the main card attack).")+'</li><li>'+S("🛡 Wächter/Wall: +1 Rüstung pro ★ (max. 3).","🛡 Guard/wall: +1 armor per ★ (max 3).")+'</li><li>'+S("👑 Meister: +1 Angriff und Leben pro ★.","👑 Master: +1 attack and health per ★.")+'</li><li>'+S("🪤 Falle: friert das Gegenüber beim ersten Schlag ein.","🪤 Trap: freezes the opponent on the first strike.")+'</li><li>'+S("💢 Berserker: Wut, ab dem 3. Schlag doppelter Schaden.","💢 Berserker: rage, double damage from the 3rd strike.")+'</li><li>'+S("🧙 Zauberer/Heiler: heilt die Hauptkarte bei jedem Schlag.","🧙 Sorcerer/healer: heals the main card each strike.")+'</li></ul>'
+  +'<h3>'+S("⚔ Kampf","⚔ Fight")+'</h3><p>'+S("Vor dem Kampf wird eine Münze geworfen: wer anfängt, schlägt zuerst. Danach greifen die Karten abwechselnd von links nach rechts an, immer gegen die Karte gegenüber. Besiegte Karten rücken nach.","A coin toss decides who strikes first. Then the cards attack alternately from left to right, each against the card opposite. Fallen cards are replaced.")+'</p><ul><li>'+S("⚔ Krieger: nur das Gegenüber.","⚔ Warrior: only the opponent opposite.")+'</li><li>'+S("🏹 Schütze: Gegenüber voll, alle anderen Gegner 1 Schaden.","🏹 Shooter: opposite full, all other enemies 1 damage.")+'</li><li>'+S("🔱 Speer: Gegenüber und die Karte dahinter.","🔱 Spear: opposite and the card behind it.")+'</li><li>'+S("💢 Berserker: Gegenüber voll, Nachbarn mit −2.","💢 Berserker: opposite full, neighbors with −2.")+'</li><li>'+S("🗡 Assassine: springt zur letzten gegnerischen Karte.","🗡 Assassin: jumps to the last enemy card.")+'</li><li>'+S("🛡 Wächter: erleiden 1 Schaden weniger. 🗿 Golem: Rüstung. 👻 Geist: weicht dem ersten Treffer aus.","🛡 Guards take 1 less damage. 🗿 Golem: armor. 👻 Spirit: dodges the first hit.")+'</li><li>'+S("🐉 Drache: Atem, 1 Schaden auf alle beim ersten Schlag.","🐉 Dragon: breath, 1 damage to all on the first strike.")+'</li><li>'+S("Durchschlag: Speer, Berserker, Drache und Meister ignorieren Rüstung.","Piercing: spear, berserker, dragon and master ignore armor.")+'</li><li>'+S("🔮 Magier: greift an und bringt den Effekt seines Elements mit. 🧙 Zauberer heilen.","🔮 Mage: attacks with the effect of its element. 🧙 Sorcerers heal.")+'</li></ul>'
+  +'<h3>'+S("🌍 Elemente","🌍 Elements")+'</h3><p>'+S("Pro Spiel sind 4 von 8 Elementen dabei. Ab 3 / 4 / 5 verschiedenen Karten eines Elements gibt es Boni. Spezialwirkungen: Nachwachsen, Frost, Brand, viel Leben, Resistenz, Gift ☣, Überladung ⚡.","Each game has 4 of 8 elements. At 3 / 4 / 5 different cards of an element you get bonuses. Effects: regrowth, frost, burn, health, resistance, poison ☣, overcharge ⚡.")+'</p>'
+  +'<h3>'+S("🔴▼ / 🟢▲ Vor- und Nachteil","🔴▼ / 🟢▲ Advantage")+'</h3><p>'+S("Im Kampf zeigt ein rotes ▼ an der Karte: Das Gegenüber hat Element-Vorteil gegen sie. Ein grünes ▲: Sie hat Vorteil. Der Vorteil gibt +1 Schaden.","In a fight a red ▼ on a card means the opposite card has an element advantage over it, a green ▲ means it has the advantage. Advantage gives +1 damage.")+'</p>'
+  +'<h3>'+S("🧬 Fusionen","🧬 Fusions")+'</h3><p>'+Object.keys(FUS).map(function(k){ var q=k.split(","); return EL[q[0]].i+EL[q[1]].i+' '+(EN?FUS[k].en:FUS[k].n); }).join(' · ')+'</p>'
+  +'<h3>'+S("💎 Artefakte und Fusion","💎 Artifacts and fusion")+'</h3><p>'+S("Artefakte (Blaue Münzen 🔵 im Artefakt-Shop) legen Boni an eine Feldkarte. Ein Fusions-Kristall gibt einer Karte ein zweites Element: sie zählt dann für beide Elemente und bekommt die Wirkung des Paars. Die Trennklinge entfernt eine Fusion wieder.","Artifacts (blue coins 🔵 in the artifact shop) add bonuses to a field card. A fusion crystal gives a card a second element: it counts for both and gets the pair effect. The splitting blade removes a fusion.")+'</p>'
+  +'</div><button class="pri" id="bkc">'+S("Zurück","Back")+'</button>';
+  $("box").innerHTML=h; $("box").scrollTop=0; wideBox(); $("bkc").onclick=startMenu; $("ov").classList.add("show"); }
 function goBack(){ if(window.parent!==window) parent.postMessage({bpRealmBack:true},location.origin); else location.href="/"; }
 $("book").onclick=function(){ var D=EN?SDE:SD, h='<h2>📖 '+(EN?'Synergies':'Synergien')+'</h2><p>'+(EN?'Different cards of the same type on your battlefield give bonuses. Stars: ★★ = ×1.8, ★★★ = ×3.3 stats.':'Verschiedene Karten derselben Art auf deinem Kampffeld geben Boni. Sterne: ★★ = ×1,8, ★★★ = ×3,3 Werte.')+'</p><div style="text-align:left;font-size:12.5px;line-height:1.5">';
   h+='<b>'+(EN?'Elements (3 / 4 / 5)':'Elemente (3 / 4 / 5)')+'</b><br>'; EL.forEach(function(x,i){ h+=x.i+' '+(EN?x.en:x.de)+': 3 → '+D.e[i][0]+' · 4 → '+D.e[i][1]+' · 5 → '+D.e[i][2]+'<br>'; });
