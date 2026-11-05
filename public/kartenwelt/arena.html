@@ -66,7 +66,7 @@ body .c.dg,.dg{position:fixed!important;margin:0!important;max-width:none;}.dg{p
 .hb .bar{position:relative;height:20px;border-radius:12px;background:linear-gradient(#0009,#0004);border:2px solid #ffffff55;box-shadow:0 0 12px #ff3a5e44,inset 0 2px 5px #0009;overflow:hidden}
 .hb .bar b{position:absolute;left:0;top:0;height:100%;background:#fff;opacity:.85;transition:width .9s ease .35s}.hb .bar i{position:absolute;left:0;top:0;height:100%;background:linear-gradient(180deg,#ff9aae,#ff3a5e 55%,#d11a40);transition:width .35s ease;box-shadow:0 0 10px #ff3a5eaa}.hb .bar i.low{background:linear-gradient(180deg,#ff6a5a,#c8102e 55%,#7d0a1e);animation:lowp 1s infinite}@keyframes lowp{50%{filter:brightness(1.5)}}
 .hb .bar em{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),#0006 calc(10% - 1px),#0006 10%),linear-gradient(180deg,#fff5 0,#fff0 45%);pointer-events:none}.hb.r .bar b,.hb.r .bar i{left:auto;right:0}
-.mini.hlp{color:#ffd45a}.hlpl{font-size:9px;font-weight:800;text-align:center;margin-top:2px;line-height:1.1}.hlpl.on{color:#7dffa0}.hlpl.off{color:#ff8c8c}.c.e[data-j="98"]{border-color:#ffd45a88}</style></head><body>
+.mini.hlp{color:#ffd45a}.mini.fzm{color:#d9a8ff}#stk .rw.r6{gap:4px}#stk .rw.r6 .c{width:46px}.c.e[data-j="97"]{border-color:#d9a8ff99}.hlpl{font-size:9px;font-weight:800;text-align:center;margin-top:2px;line-height:1.1}.hlpl.on{color:#7dffa0}.hlpl.off{color:#ff8c8c}.c.e[data-j="98"]{border-color:#ffd45a88}</style></head><body>
 <div class="top"><button class="ib" id="back">←</button><div class="st"><span id="tR"></span><span id="tG"></span><span id="tL"></span></div><button class="ib" id="rankb">📊</button><button class="ib" id="spd">⏩</button><button class="ib" id="book">📖</button><button class="ib" id="musb">⚙</button></div>
 <div id="kf"><img id="kP" class="kh" alt=""><span class="nmt" id="nP"></span><span class="nmt" id="nE"></span><img id="kE" class="kh" alt=""></div>
 <div class="hp"><span id="hP"></span><span id="hE"></span></div>
@@ -268,9 +268,9 @@ var FUS={
  "3,4":{n:"Gruft",en:"Crypt",x:{g:1,h:2}},"3,5":{n:"Sumpf",en:"Swamp",x:{g:1,h:2}},"3,6":{n:"Giftmoor",en:"Venom moor",x:{p:1,h:2}},"3,7":{n:"Erdung",en:"Grounding",x:{a:1,r:1,gr:1}},
  "4,5":{n:"Ertrunkene",en:"Drowned",x:{g:1,dg:1}},"4,6":{n:"Seuche",en:"Plague",x:{p:1,a:1}},"4,7":{n:"Galvani",en:"Galvani",x:{z:1,h:1}},
  "5,6":{n:"Giftwasser",en:"Toxic water",x:{p:1,h:1}},"5,7":{n:"Leitung",en:"Conduction",x:{a:1,z:1,ld:1}},"6,7":{n:"Giftgewitter",en:"Venom storm",x:{p:1,z:1}}};
-var HJ=98;
+var HJ=98, FJ=97;
 function canFuse(m,u){ return !!(m&&u&&m!==u&&!m.sp&&!u.sp&&m.e2===undefined&&u.e2===undefined&&u.el!==m.el&&fuseOk(m,u)); }
-function fuseInto(P,m,u){ m.e2=u.el; retArts(P,u); var fp=fusOf(m); toast("🧬 "+nm(m)+" · "+(fp?(EN?fp.en:fp.n):"")); }
+function fuseInto(P,m,u){ m.e2=u.el; m.fu=u; retArts(P,u); var fp=fusOf(m); toast("🧬 "+nm(m)+" · "+(fp?(EN?fp.en:fp.n):"")); }
 function isH(o){ return !!o.hlp; }
 function normS(F){ if(!F||!F.length) return; if(F[0]) F[0].hlp=false; var hs=F.slice(1).filter(isH), ns=F.slice(1).filter(function(o){ return !o.hlp; }); if(hs.length>1){ hs.slice(1).forEach(function(o){ o.hlp=false; ns.push(o); }); hs=[hs[0]]; } F.length=1; ns.concat(hs).forEach(function(o){ F.push(o); }); }
 function nNorm(F){ return F.slice(1).filter(function(o){ return !o.hlp; }).length; }
@@ -579,7 +579,6 @@ function tapSlot(z,i){ if(fighting) return; var u=peek(z,i);
   var a=peek(sel.z,sel.i);
   if(!okZ(z,a)||(u&&!okZ(sel.z,u))){ toast(EN?"Spells only go in the spell slot, creatures on the field/bench":"Zauber gehören ins Zauberfeld, Kreaturen aufs Kampffeld/Bank"); sel=null; paint(); return; }
   if(!u){ takeU(sel.z,sel.i); putU(z,i,a); }
-  else if(z==="n"&&canFuse(S.P.board[i][0],a)){ takeU(sel.z,sel.i); fuseInto(S.P,S.P.board[i][0],a); }
   else if(z==="n"&&S.P.board[i].length<4&&!a.sp){ takeU(sel.z,sel.i); stkAdd(S.P.board[i],a,"auto"); toast("📚 "+(EN?"stacked":"gestapelt")); }
   else { takeU(sel.z,sel.i); takeU(z,i); putU(z,i,a); putU(sel.z,sel.i,u); }
   var m=false; S.merged=false; merge(S.P,null); if(S.merged) toast("✨ "+T.merged); sel=null; paint(); }
@@ -617,9 +616,10 @@ function stkPaint(){ fstCalc(); var el=$("stk"), u=infoSel&&!fighting&&S&&(infoS
   var h='<div class="th"><span>'+(isN?(EN?"Field ":"Feld ")+(infoSel.i+1):(infoSel.z==="b"?(EN?"Bench":"Bank"):infoSel.z==="s"?(EN?"Shop":"Laden"):(EN?"Spell":"Zauber")))+'</span>';
   if(isN&&cur===0){ h+='<span class="arw">💎'; for(var ak=0;ak<3;ak++){ var aid=(st[0].ar||[])[ak]; h+=aid!==undefined?'<button class="axs f" data-k="'+ak+'" style="background-image:url(/kartenwelt/duell/'+ARTD[aid].img+'.jpg)"></button>':'<button class="axs" data-k="'+ak+'">+</button>'; } h+='</span>'; }
   h+='<span class="tb">'+(infoSel.z==="s"?'':'<button id="stks" title="'+(EN?"Sell":"Verkaufen")+'">💰'+sellVal(u)+'</button><button id="stki">'+(infoOpen?"▴":"ℹ")+'</button>')+'<button id="stkx">✕</button></span></div>';//+(infoOpen?"▴":"ℹ")+'</button><button id="stkx">✕</button></span></div>';
-  if(isN){ h+='<div class="rw"><div style="position:relative"><div class="mini">'+(EN?"on field":"Feld")+'</div>'+cardHtml(st[0],{z:"n",i:infoSel.i,sel:cur===0}).replace('data-z="n"','data-z="n" data-j="0"')+'</div><div class="vs">+</div>';
+  if(isN){ h+='<div class="rw r6"><div style="position:relative"><div class="mini">'+(EN?"on field":"Feld")+'</div>'+cardHtml(st[0],{z:"n",i:infoSel.i,sel:cur===0}).replace('data-z="n"','data-z="n" data-j="0"')+'</div><div class="vs">+</div>';
     var nl=st.slice(1).filter(function(o){ return !o.hlp; }), hc=st.slice(1).filter(isH)[0];
     for(var k=1;k<=3;k++){ var q=k<3?nl[k-1]:hc, qj=q?st.indexOf(q):(k===3?HJ:k); h+='<div style="position:relative">'+(k===3?'<div class="mini hlp">'+(EN?"helper":"Hilfsstapel")+'</div>':'')+(q?cardHtml(q,{z:"n",i:infoSel.i,sel:cur===qj}).replace('data-z="n"','data-z="n" data-j="'+qj+'"')+(k===3?(hlpOk(q,st[0])?'<div class="hlpl on">✓ '+(EN?"Helper effect active":"Hilfseffekt aktiv")+(hlpAbil(q).length?' '+hlpAbil(q).join(""):'')+'</div>':'<div class="hlpl off">✗ '+(EN?"no effect (other element/kind)":"wirkt nicht (anderes Element/Art)")+'</div>'):''):'<div class="c e" data-z="n" data-i="'+infoSel.i+'" data-j="'+qj+'"><span>'+(k===3?(EN?"Helper":"Hilfs-stapel"):lab)+'</span></div>')+'</div>'; }
+    var m1=st[0]; if(m1&&!m1.sp){ h+='<div style="position:relative"><div class="mini fzm">'+(EN?"Fusion":"Fusion")+'</div>'+(m1.fu?cardHtml(m1.fu,{}).replace('data-z=""','data-lock="1"')+'<div class="hlpl on">🔒 '+EL[m1.fu.el].i+'</div>':'<div class="c e" data-z="n" data-i="'+infoSel.i+'" data-j="97"><span>'+(EN?"Fusion":"Fusion")+'</span></div>')+'</div>'; }
     h+='</div>'; }
   else h+='<div class="rw">'+cardHtml(u,{z:infoSel.z,i:infoSel.i,sel:true})+'</div>';
   var isS=infoSel.z==="s", P0=S.P;
@@ -643,7 +643,7 @@ function stkPaint(){ fstCalc(); var el=$("stk"), u=infoSel&&!fighting&&S&&(infoS
       if(sv.z==="s") buyTo(sv.i,{dataset:{z:"b",i:fb}}); else moveCard({z:sv.z,i:sv.i,j:sv.j},{z:"b",i:fb}); return; }
     var k=+d, ln=S.P.board[k].length, tj=ln?99:undefined;
     if(sv.z==="s") buyTo(sv.i,{dataset:{z:"n",i:k,j:tj}}); else moveCard({z:sv.z,i:sv.i,j:sv.j},{z:"n",i:k,j:tj}); }; });
-  Array.prototype.forEach.call(el.querySelectorAll(".fzb"),function(b){ b.onclick=function(){ var m=S.P.board[+b.dataset.k][0], tu=peekJ(infoSel.z,infoSel.i,infoSel.j); if(!m||!tu||m.e2!==undefined||tu===m) return; m.e2=tu.el; retArts(S.P,tu); if(infoSel.z==="n"&&infoSel.j>0) S.P.board[infoSel.i].splice(infoSel.j,1); else takeU(infoSel.z,infoSel.i); var fp=fusOf(m); infoSel=null; toast("🧬 "+nm(m)+" · "+(fp?(EN?fp.en:fp.n):"")); paint(); }; });
+  Array.prototype.forEach.call(el.querySelectorAll(".fzb"),function(b){ b.onclick=function(){ var m=S.P.board[+b.dataset.k][0], tu=peekJ(infoSel.z,infoSel.i,infoSel.j); if(!m||!tu||m.e2!==undefined||tu===m) return; fuseInto(S.P,m,tu); if(infoSel.z==="n"&&infoSel.j>0) S.P.board[infoSel.i].splice(infoSel.j,1); else takeU(infoSel.z,infoSel.i); var fp=fusOf(m); infoSel=null; toast("🧬 "+nm(m)+" · "+(fp?(EN?fp.en:fp.n):"")); paint(); }; });
   Array.prototype.forEach.call(el.querySelectorAll(".axs"),function(b){ b.onclick=function(){ slotWin(infoSel.i,+b.dataset.k); }; });
   if($("stks")) $("stks").onclick=function(){ sel={z:infoSel.z,i:infoSel.i,j:infoSel.z==="n"?cur:undefined}; infoSel=null; sellSel(); }; }
 function peekJ(z,i,j){ if(z==="n") return S.P.board[i][j===undefined?0:j]||null; return peek(z,i); }
@@ -652,7 +652,7 @@ function moveCard(src,tg){ var P=S.P, u=peekJ(src.z,src.i,src.j); if(!u) return;
   function removeSrc(){ if(src.z==="n") P.board[src.i].splice(sj,1); else takeU(src.z,src.i); }
   function putBack(o){ if(src.z==="n") P.board[src.i][sj]=o; else P.bench[src.i]=o; }
   if(tg.z==="n"){ var F=P.board[tg.i], tj=tg.j===undefined?0:tg.j, same=src.z==="n"&&src.i===tg.i;
-    if(!same&&tj===0&&F.length>0&&canFuse(F[0],u)){ removeSrc(); fuseInto(P,F[0],u); }
+    if(tj===FJ){ var m0=F[0]; if(!m0||src.z==="p"||!canFuse(m0,u)||(same&&sj===0)){ toast(EN?"Fusion slot: only the same kind of card with a different element":"Fusionsfeld: nur gleiche Art mit anderem Element"); return; } removeSrc(); fuseInto(P,m0,u); }
     else if(same){ if(tj===sj) return; var fr=F[sj]; if(tj===HJ){ if(sj===0) return; F.splice(sj,1); var oh0=F.slice(1).filter(isH)[0]; if(oh0) oh0.hlp=false; fr.hlp=true; F.push(fr); } else { F.splice(sj,1); fr.hlp=false; F.splice(Math.min(tj,F.length),0,fr); } }
     else if(tj===0||F.length===0){ if(F.length===0){ removeSrc(); F.push(u); } else { if(src.z==="p") return; putBack(F[0]); F[0]=u; } }
     else if(tj===HJ){ if(src.z==="p") return; var oh=F.slice(1).filter(isH)[0]; if(oh){ putBack(oh); oh.hlp=false; F.splice(F.indexOf(oh),1); u.hlp=true; F.push(u); } else if(F.length<4){ removeSrc(); u.hlp=true; F.push(u); } else { toast(EN?"Stack full":"Stapel voll"); return; } }
@@ -695,7 +695,7 @@ function useArt(ix,ok){ if(fighting) return; var P=S.P, id=P.inv[ix], A=ARTD[id]
   if(A.u==="unfuse"){ var hu='<h2>'+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"Remove the fusion of which card?":"Von welcher Karte die Fusion entfernen?")+'</p>', LU=allU(P).filter(function(x){ return !x.u.sp&&x.u.e2!==undefined; });
     LU.forEach(function(x,q){ hu+='<button class="arl" data-q="'+q+'"><img src="/kartenwelt/duell/'+x.u.img+'.jpg" alt=""><span><b>'+nm(x.u)+'</b> '+EL[x.u.el].i+'+'+EL[x.u.e2].i+'</span></button>'; });
     if(!LU.length){ toast(EN?"No card is fused.":"Keine Karte ist fusioniert."); return; }
-    showBox(hu); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var u=LU[+b.dataset.q].u; u.e2=undefined; P.inv.splice(ix,1); $("ov").classList.remove("show"); toast("✂ "+nm(u)); paint(); }; }); return; }
+    showBox(hu); Array.prototype.forEach.call($("box").querySelectorAll(".arl"),function(b){ b.onclick=function(){ var u=LU[+b.dataset.q].u; u.e2=undefined; var fc=u.fu; u.fu=undefined; if(fc){ var fb2=P.bench.indexOf(null); if(fb2<0) fb2=P.bench.findIndex(function(x){ return !x; }); if(fb2>=0){ fc.hlp=false; P.bench[fb2]=fc; } else { P.gold+=sellVal(fc); } } P.inv.splice(ix,1); $("ov").classList.remove("show"); toast("✂ "+nm(u)); paint(); }; }); return; }
   if(A.u==="coin"){ P.inv.splice(ix,1); P.gold+=5; toast("🪙 +5"); paint(); return; }
   if(A.u==="el"){ var be=activeEl(); if(be<0){ toast(EN?"No element is active yet.":"Noch kein Element aktiv."); return; }
     var h2='<h2>'+EL[be].i+' '+(EN?A.en:A.n)+'</h2><p style="text-align:center">'+(EN?"Which field card becomes ":"Welche Feldkarte wird ")+EL[be].i+' '+(EN?EL[be].en:EL[be].de)+'?</p>', n2=0; P.board.forEach(function(st,i){ if(st[0]&&st[0].el!==be){ n2++; h2+='<button class="arl" data-i="'+i+'"><img src="/kartenwelt/duell/'+st[0].img+'.jpg" alt=""><span><b>'+nm(st[0])+'</b><br>'+EL[st[0].el].i+' → '+EL[be].i+'</span></button>'; } });
@@ -814,7 +814,7 @@ function info(){ var d=EN?0:1;
   +'<h3>'+S("🌍 Elemente","🌍 Elements")+'</h3><p>'+S("Pro Spiel sind 4 von 8 Elementen dabei. Ab 3 / 4 / 5 verschiedenen Karten eines Elements gibt es Boni. Spezialwirkungen: Nachwachsen, Frost, Brand, viel Leben, Resistenz, Gift ☣, Überladung ⚡.","Each game has 4 of 8 elements. At 3 / 4 / 5 different cards of an element you get bonuses. Effects: regrowth, frost, burn, health, resistance, poison ☣, overcharge ⚡.")+'</p>'
   +'<h3>'+S("🔴▼ / 🟢▲ Vor- und Nachteil","🔴▼ / 🟢▲ Advantage")+'</h3><p>'+S("Im Kampf zeigt ein rotes ▼ an der Karte: Das Gegenüber hat Element-Vorteil gegen sie. Ein grünes ▲: Sie hat Vorteil. Der Vorteil gibt +1 Schaden.","In a fight a red ▼ on a card means the opposite card has an element advantage over it, a green ▲ means it has the advantage. Advantage gives +1 damage.")+'</p>'
   +'<h3>'+S("🧬 Fusionen","🧬 Fusions")+'</h3><p>'+Object.keys(FUS).map(function(k){ var q=k.split(","); return EL[q[0]].i+EL[q[1]].i+' '+(EN?FUS[k].en:FUS[k].n); }).join(' · ')+'</p>'
-  +'<h3>'+S("💎 Artefakte und Fusion","💎 Artifacts and fusion")+'</h3><p>'+S("Artefakte (Blaue Münzen 🔵 im Artefakt-Shop) legen Boni an eine Feldkarte. Fusion: Lege eine Karte der gleichen Art (z. B. Ritter + Eisritter, Wolf + Feuerwolf) mit anderem Element auf eine Feldkarte: Karte direkt auf die Feldkarte ziehen (oder antippen und dann die Feldkarte antippen) – oder im Info-Fenster „Fusionieren in“ wählen. Die Feldkarte bekommt das zweite Element, zählt für beide Elemente und bekommt die Wirkung des Paars (die andere Karte wird verbraucht). Die Trennklinge (Artefakt) löst eine Fusion wieder.","Artifacts (blue coins 🔵 in the artifact shop) add bonuses to a field card. Fusion: put a card of the same kind (e.g. knight + ice knight, wolf + fire wolf) with another element onto a field card: tap a bench or stack card, then pick \"Fuse into\". The field card gets the second element, counts for both and gets the pair effect (the other card is used up). The splitting blade (artifact) removes a fusion.")+'</p>'
+  +'<h3>'+S("💎 Artefakte und Fusion","💎 Artifacts and fusion")+'</h3><p>'+S("Artefakte (Blaue Münzen 🔵 im Artefakt-Shop) legen Boni an eine Feldkarte. Fusion: Lege eine Karte der gleichen Art (z. B. Ritter + Eisritter, Wolf + Feuerwolf) mit anderem Element auf eine Feldkarte: Öffne die Feldkarte (antippen) und lege die Karte ins Fusionsfeld (lila, ganz rechts) – oder im Info-Fenster „Fusionieren in“ wählen. Die Karte bleibt dort fest. Die Feldkarte bekommt das zweite Element, zählt für beide Elemente und bekommt die Wirkung des Paars (die andere Karte wird verbraucht). Die Trennklinge (Artefakt) löst eine Fusion wieder.","Artifacts (blue coins 🔵 in the artifact shop) add bonuses to a field card. Fusion: put a card of the same kind (e.g. knight + ice knight, wolf + fire wolf) with another element onto a field card: tap a bench or stack card, then pick \"Fuse into\". The field card gets the second element, counts for both and gets the pair effect (the other card is used up). The splitting blade (artifact) removes a fusion.")+'</p>'
   +'</div><button class="pri" id="bkc">'+S("Zurück","Back")+'</button>';
   $("box").innerHTML=h; $("box").scrollTop=0; wideBox(); $("bkc").onclick=startMenu; $("ov").classList.add("show"); }
 function goBack(){ if(window.parent!==window) parent.postMessage({bpRealmBack:true},location.origin); else location.href="/"; }
@@ -839,10 +839,10 @@ function dragZone(t){ return t&&t.dataset&&(t.dataset.z==="n"||t.dataset.z==="b"
 function buyTo(i,tg){ var c=S.shop[i]; if(!c) return; var P=S.P; if(P.gold<c.c){ toast(T.nogold); paint(); return; }
   var z=tg&&tg.dataset.z, ti=tg?+tg.dataset.i:-1, tj=tg?jOf(tg):undefined, ok=false;
   if(!canAdd(P,c)){ toast(T.nospace); paint(); return; }
-  if(c.sp){ ok=z==="p"&&!P.sp[ti]; } else if(z==="b") ok=!P.bench[ti]; else if(z==="n") ok=(P.board[ti].length<4||(tj===0&&canFuse(P.board[ti][0],mk(c,1))))&&!(tj===HJ&&hasH(P.board[ti])&&P.board[ti].length>0); else ok=false;
+  if(c.sp){ ok=z==="p"&&!P.sp[ti]; } else if(z==="b") ok=!P.bench[ti]; else if(z==="n"){ if(tj===FJ){ if(!(P.board[ti][0]&&canFuse(P.board[ti][0],mk(c,1)))){ toast(EN?"Fusion slot: only the same kind of card with a different element":"Fusionsfeld: nur gleiche Art mit anderem Element"); paint(); return; } ok=true; } else ok=P.board[ti].length<4&&!(tj===HJ&&hasH(P.board[ti])&&P.board[ti].length>0); } else ok=false;
   if(!ok){ buy(i); return; }
   P.gold-=c.c; takeCopy(c); S.shop[i]=null; var u=mk(c,1);
-  if(z==="p") P.sp[ti]=u; else if(z==="b") P.bench[ti]=u; else { var Fq=P.board[ti]; if(!Fq.length) Fq.push(u); else if(tj===0&&canFuse(Fq[0],u)) fuseInto(P,Fq[0],u); else stkAdd(Fq,u,tj===HJ?true:"auto"); }
+  if(z==="p") P.sp[ti]=u; else if(z==="b") P.bench[ti]=u; else { var Fq=P.board[ti]; if(!Fq.length) Fq.push(u); else if(tj===FJ) fuseInto(P,Fq[0],u); else stkAdd(Fq,u,tj===HJ?true:"auto"); }
   P.board.forEach(normS);
   S.merged=false; merge(P,null); if(S.merged) toast("✨ "+T.merged); sel=null; paint(); }
 function jOf(t){ return t.dataset.j===undefined?undefined:+t.dataset.j; }
