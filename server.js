@@ -28,6 +28,7 @@ const { WebSocketServer } = require("./lib/miniws");
 // Erfolge: gleiche Datei wie im Browser (public/core/achievements.js) - eine Definition, ein Regelwerk
 const Achv = require("./public/core/achievements.js");
 const DailyPz = require("./lib/dailyPuzzles.js");
+const LNP = require("./public/core/linePuzzles.js");
 const DailyWords = require("./lib/dailyWords.js");
 
 /* ------------------------------------------------------------------------ */
@@ -6350,11 +6351,11 @@ async function fourupsApi(action, payload, lang) {
 // ---------------------------------------------------------------------------
 // Belohnung = hoechste geloeste Stufe des Tages (NICHT addiert): Sudoku 25/50/75, Kreuzwort klein 25 / mittel 50 / gross 75.
 // Muenzen werden erst am NAECHSTEN Tag abgeholt. Stufen muessen der Reihe nach geloest werden.
-const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 }, wr: { easy: 25, medium: 50, hard: 75 } };
+const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 }, wr: { easy: 25, medium: 50, hard: 75 }, ln: { easy: 25, medium: 50, hard: 75 } };
 // Hilfen kosten Muenzen (vom Guthaben, sofort). Preise liegen nur hier; der Client bekommt sie mit dem Raetsel.
-const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 }, wr: {} };
-const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"], wr: ["easy", "medium", "hard"] };
-const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55 };
+const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 }, wr: {}, ln: {} };
+const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"], wr: ["easy", "medium", "hard"], ln: ["easy", "medium", "hard"] };
+const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55, "ln:easy": 8, "ln:medium": 15, "ln:hard": 25 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
 const dailyCache = new Map();
 let CW_SCHEDULE = null; try { CW_SCHEDULE = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "shared/crosswordSchedule.json"), "utf8")); } catch (e) { console.error("Kreuzwort-Plan nicht geladen:", e.message); }
@@ -6367,7 +6368,10 @@ function dailyWeekDates(today) { // Montag bis heute
 }
 function dailyAllowedDates(today) { return dailyDow(today) === 0 ? dailyWeekDates(today) : [today]; } // nachholen nur sonntags
 const DAILY_CATCH_MAX = 3; // Nachholen: so viele verpasste Tage pro Woche (frei waehlbar), nachgeholt = halbe Muenzen
-const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"], ["wr", "easy"], ["wr", "medium"], ["wr", "hard"]];
+const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"], ["wr", "easy"], ["wr", "medium"], ["wr", "hard"], ["ln", "easy"], ["ln", "medium"], ["ln", "hard"]];
+// Linienraetsel: zunaechst nur fuer Admin sichtbar (LN_PUBLIC=1 in den Render-Umgebungsvariablen schaltet es fuer alle frei)
+const LN_PUBLIC = process.env.LN_PUBLIC === "1";
+function lnAllowed(payload) { return LN_PUBLIC || !!(payload && payload.adminKey && adminOk(payload.adminKey, String(payload.__ip || ""))); }
 function dailyState(user) {
   if (!user.stats.daily || typeof user.stats.daily !== "object") user.stats.daily = { solved: {}, started: {} };
   const d = user.stats.daily; if (!d.solved) d.solved = {}; if (!d.started) d.started = {};
@@ -6454,6 +6458,7 @@ function dailyGet(date, type, diff, lang) {
   let v;
   if (type === "sudoku") { const s = DailyPz.makeSudoku(date, diff); v = { pub: { puzzle: s.puzzle }, solution: s.solution }; }
   else if (type === "ws") { const w = DailyWords.makeWordSearch(date, diff, lang === "en" ? "en" : "de"); v = { pub: w.pub, solution: w.solution }; }
+  else if (type === "ln") { const pool = LNP.byDiff(diff), dn = Math.round(Date.parse(date + "T00:00:00Z") / 86400000), sh = pool[((dn + (diff === "easy" ? 0 : diff === "medium" ? 1 : 2)) % pool.length + pool.length) % pool.length]; v = { pub: { id: sh.id, name: sh.name, en: sh.en, icon: sh.icon, polys: sh.polys }, shape: sh }; }
   else if (type === "wv") { const w = DailyWords.makeBoggle(date, diff, lang === "en" ? "en" : "de"); v = { pub: w.pub, solution: w.solution }; }
   else {
     // Fester Plan (shared/crosswordSchedule.json): jedes Wort kommt pro Zyklus nur einmal vor. Ohne Plan: alte Zufallserzeugung.
@@ -6519,12 +6524,12 @@ async function dailyApi(action, payload, lang) {
   const today = dailyToday(), allowed = dailyAllowedDates(today);
   const d = user ? dailyState(user) : { solved: {}, started: {} };
   if (action === "state") {
-    const catchUsed = (user ? (d.catchDays[dailyWeekStart(today)] || []) : []), catchLeft = Math.max(0, DAILY_CATCH_MAX - catchUsed.length), days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date) && (date === today || !user || catchUsed.includes(date) || catchLeft > 0), items: DAILY_KINDS.map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], failed: t === "wr" ? !!(d.wr && d.wr[date + ":wr:" + df] && d.wr[date + ":wr:" + df].done && !d.solved[date + ":wr:" + df]) : undefined, locked: !!user && dailyLocked(d, date, t, df) })) }));
+    const catchUsed = (user ? (d.catchDays[dailyWeekStart(today)] || []) : []), catchLeft = Math.max(0, DAILY_CATCH_MAX - catchUsed.length), days = dailyWeekDates(today).map(date => ({ date, open: allowed.includes(date) && (date === today || !user || catchUsed.includes(date) || catchLeft > 0), items: DAILY_KINDS.filter(([t]) => t !== "ln" || lnAllowed(payload)).map(([t, df]) => ({ type: t, diff: df, reward: DAILY_REWARDS[t][df], cat: t === "ws" ? (c => ({ icon: c.icon, name: c.name[lang === "en" ? "en" : "de"] }))(DailyWords.categoryFor(date, t, df, lang === "en" ? "en" : "de")) : undefined, solved: !!d.solved[date + ":" + t + ":" + df], failed: t === "wr" ? !!(d.wr && d.wr[date + ":wr:" + df] && d.wr[date + ":wr:" + df].done && !d.solved[date + ":wr:" + df]) : undefined, locked: !!user && dailyLocked(d, date, t, df) })) }));
     const po = user ? dailyPayout(d, today) : { claimable: 0, pending: 0 };
     const ws0 = dailyWeekStart(today), wval = weeklyProgress(d, ws0), wev = weeklyEval(wval), due = user ? weeklyDue(d, today) : { keys: 0, coins: 0 };
     const weekly = { start: ws0, daysLeft: 7 - (dailyDow(today) === 0 ? 6 : dailyDow(today) - 1), types: {}, total: { pct: wev.pct, tiers: WEEKLY_TOTAL_PCT, tier: wev.tier.total }, rewards: WEEKLY_REWARD, due: { keys: due.keys, coins: due.coins } };
     WEEKLY_TYPES.forEach(t => { weekly.types[t] = { val: wval[t], tiers: WEEKLY_TIERS[t], tier: wev.tier[t] }; });
-    return { ok: true, today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending, weekly, catchup: (dailyDow(today) === 0 && user) ? { left: catchLeft, max: DAILY_CATCH_MAX, used: catchUsed } : undefined };
+    return { ok: true, lnOn: lnAllowed(payload), today, isSunday: dailyDow(today) === 0, days, loggedIn: !!user, claimable: po.claimable, pending: po.pending, weekly, catchup: (dailyDow(today) === 0 && user) ? { left: catchLeft, max: DAILY_CATCH_MAX, used: catchUsed } : undefined };
   }
   if (action === "word") {
     const ip = String(payload.__ip || "x"), now = Date.now(), rr = wordRate.get(ip) || { t: now, n: 0 };
@@ -6565,8 +6570,9 @@ async function dailyApi(action, payload, lang) {
     }
     return Object.assign({ ok: true }, out);
   }
-  const date = String(payload.date || ""), type = ["cw", "ws", "wv", "wr"].includes(payload.type) ? payload.type : "sudoku", diff = String(payload.diff || "");
+  const date = String(payload.date || ""), type = ["cw", "ws", "wv", "wr", "ln"].includes(payload.type) ? payload.type : "sudoku", diff = String(payload.diff || "");
   if (!DAILY_REWARDS[type] || !DAILY_REWARDS[type][diff] || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return errObj("invalidInput", lang);
+  if (type === "ln" && !lnAllowed(payload)) return { ok: false, error: lang === "en" ? "Not available." : "Nicht verfügbar." };
   if (!allowed.includes(date)) return { ok: false, error: lang === "en" ? "This puzzle is not available now. Missed puzzles can be caught up on Sundays." : "Dieses Rätsel ist gerade nicht verfügbar. Verpasste Rätsel kannst du sonntags nachholen." };
   const skey = date + ":" + type + ":" + diff;
   if (user && date !== today) { // Nachholen (nur sonntags): max. DAILY_CATCH_MAX Tage pro Woche, Tag frei waehlbar; der erste Start eines Tages verbraucht einen Platz
@@ -6680,6 +6686,11 @@ async function dailyApi(action, payload, lang) {
         const ok = found.some(f => f && String(f.w) === p.w && ((f.r === p.r && f.c === p.c && f.r2 === p.r2 && f.c2 === p.c2) || (f.r === p.r2 && f.c === p.c2 && f.r2 === p.r && f.c2 === p.c)));
         if (!ok) wrong++;
       }
+    } else if (type === "ln") {
+      const g = LNP.build(pz.shape), path = Array.isArray(payload.path) ? payload.path.slice(0, 400) : [], used = new Set();
+      let okp = path.length > 0 && path.every(n => Number.isInteger(n) && n >= 0 && n < g.nodes.length);
+      for (let i = 1; okp && i < path.length; i++) { const a = g.adj[path[i - 1]].filter(q => q[0] === path[i] && !used.has(q[1]))[0]; if (!a) okp = false; else used.add(a[1]); }
+      wrong = okp ? g.edges.length - used.size : g.edges.length;
     } else if (type === "wv") {
       // Boggle-artig: found = [{ w, path:[[r,c],...] }] - jeder Pfad muss ueber benachbarte, verschiedene Felder das Wort buchstabieren,
       // und das Wort muss zur Kategorie des Tages gehoeren. Gewertet werden verschiedene Woerter, gefordert sind n.

@@ -536,6 +536,7 @@
 <div id="settingsOverlay" class="settings-overlay hidden"></div>
 
 <script src="/core/achievements.js"></script>
+<script src="/core/linePuzzles.js"></script>
 <script src="/chess/dame-engine.js"></script>
 <script src="/chess/muehle-engine.js"></script>
 <script src="/solo/backgammon.js"></script>
@@ -6866,19 +6867,20 @@ function dzStyle(){
   document.head.appendChild(st);
 }
 function dzTypeName(type,diff){
+  if(type==='ln') return L('Linienrätsel','Line puzzle')+' · '+({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[diff];
   if(type==='sudoku') return 'Sudoku · '+({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[diff];
   if(type==='ws') return L('Wörter finden','Find words')+' · '+({small:L('Klein','Small'),medium:L('Mittel','Medium'),big:L('Groß','Large')})[diff];
   if(type==='wr') return L('Wort raten','Guess the word')+' · '+({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[diff];
   if(type==='wv') return L('Wörter verbinden','Connect words')+' · '+({small:L('Klein','Small'),medium:L('Mittel','Medium'),big:L('Groß','Large')})[diff];
   return L('Kreuzworträtsel','Crossword')+' · '+({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[diff];
 }
-function dzIcon(type){ return type==='sudoku'?'🔢':type==='cw'?'✏️':type==='ws'?'🔎':type==='wr'?'🔤':'🔗'; }
+function dzIcon(type){ return type==='ln'?'🎨':type==='sudoku'?'🔢':type==='cw'?'✏️':type==='ws'?'🔎':type==='wr'?'🔤':'🔗'; }
 function dzDayLabel(date){ try{ return new Date(date+'T12:00:00').toLocaleDateString(currentLang==='en'?'en-GB':'de-DE',{weekday:'long',day:'2-digit',month:'2-digit'}); }catch(e){ return date; } }
 function dzKey(date,type,diff){ return 'bp_dz_'+(account&&account.profile?account.profile.username:'guest')+'_'+date+'_'+type+'_'+diff+(type!=='sudoku'?'_'+currentLang:''); }
 async function startDailyFlow(){
   dzStyle(); if(dz){ dzTimerStop(); dzSave(); } dz=null;
   renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">…</div></div></div>`);
-  const r=await apiCall('/api/daily/state',{token:account&&account.token});
+  const r=await apiCall('/api/daily/state',{token:account&&account.token,adminKey:adminViewOn()?adminKeyStored():undefined});
   if(!r.ok){ renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">📅 ${L('TAGESRÄTSEL','DAILY PUZZLES')}</div><div class="picker-sub">${r.error||'Fehler'}</div><div class="actions-row"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div></div></div>`); return; }
   dzLast=r; dzList(r);
 }
@@ -6914,8 +6916,8 @@ let dzBoardTab='sudoku', dzBoardMode='today', dzBoardData=null;
 async function dzBoard(tab,mode){
   if(tab) dzBoardTab=tab; if(mode) dzBoardMode=mode;
   if(!dzBoardData||!tab&&!mode){ const r=await apiCall('/api/daily/board',{token:account&&account.token}); if(!r||!r.ok){ dzList(dzLast); return; } dzBoardData=r; }
-  const B=dzBoardData, types=[['sudoku','🔢','Sudoku'],['cw','✏️',L('Kreuzwort','Crossword')],['ws','🔎',L('Finden','Find')],['wv','🔗',L('Verbinden','Connect')]];
-  const diffs={sudoku:[['easy',L('Leicht','Easy')],['medium',L('Mittel','Medium')],['hard',L('Schwer','Hard')]],cw:[['small','7×7'],['medium','11×11'],['big','17×17']],ws:[['small',L('Klein','Small')],['medium',L('Mittel','Medium')],['big',L('Groß','Large')]],wv:[['small',L('Klein','Small')],['medium',L('Mittel','Medium')],['big',L('Groß','Large')]]}[dzBoardTab];
+  const B=dzBoardData, types=[['sudoku','🔢','Sudoku'],['cw','✏️',L('Kreuzwort','Crossword')],['ws','🔎',L('Finden','Find')],['wv','🔗',L('Verbinden','Connect')]].concat(dzLast&&dzLast.lnOn?[['ln','🎨',L('Linien','Lines')]]:[]);
+  const diffs={sudoku:[['easy',L('Leicht','Easy')],['medium',L('Mittel','Medium')],['hard',L('Schwer','Hard')]],cw:[['small','7×7'],['medium','11×11'],['big','17×17']],ws:[['small',L('Klein','Small')],['medium',L('Mittel','Medium')],['big',L('Groß','Large')]],wv:[['small',L('Klein','Small')],['medium',L('Mittel','Medium')],['big',L('Groß','Large')]],ln:[['easy',L('Leicht','Easy')],['medium',L('Mittel','Medium')],['hard',L('Schwer','Hard')]]}[dzBoardTab];
   const me=account&&account.profile?account.profile.username:null, med=['🥇','🥈','🥉','4.','5.'];
   const blocks=diffs.map(([dk,dn])=>{
     const k=dzBoardTab+':'+dk, rows=(B[dzBoardMode][k]||[]), mine=B.mine&&B.mine[k];
@@ -6938,14 +6940,15 @@ function dzList(r){
     const its=day.items.filter(i=>i.type===kind), total=its.length;
     const idx=its.findIndex(i=>!(i.solved||i.failed)), done=idx<0, it=done?null:its[idx];
     const pips=its.map(i=>i.solved?'●':i.failed?'✕':'○').join(' ');
-    const ico=dzIcon(kind), name=kind==='wr'?L('Wort raten','Guess the word'):kind==='sudoku'?'Sudoku':kind==='cw'?L('Kreuzworträtsel','Crossword'):kind==='ws'?L('Wörter finden','Find words'):L('Wörter verbinden','Connect words');
+    const ico=dzIcon(kind), name=kind==='ln'?L('Linienrätsel','Line puzzle'):kind==='wr'?L('Wort raten','Guess the word'):kind==='sudoku'?'Sudoku':kind==='cw'?L('Kreuzworträtsel','Crossword'):kind==='ws'?L('Wörter finden','Find words'):L('Wörter verbinden','Connect words');
     const wsN={small:5,medium:10,big:15}, tierN=({small:L('Klein','Small'),medium:L('Mittel','Medium'),big:L('Groß','Large')});
+    const lnLv=d=>({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[d];
     const wrLv=d=>({easy:L('Leicht','Easy')+' · 3 '+L('Tipps','tips'),medium:L('Mittel','Medium')+' · 1 '+L('Tipp','tip'),hard:L('Schwer','Hard')+' · '+L('ohne Tipp','no tips')})[d];
-    const lvName=it?(kind==='wr'?wrLv(it.diff):kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[it.diff]:tierN[it.diff]+' · '+(kind==='wv'?({small:21,medium:42,big:70})[it.diff]+' '+L('Punkte','points'):wsN[it.diff]+' '+L('Wörter','words'))+(it.cat?' · '+it.cat.icon+' '+it.cat.name:'')):'';
+    const lvName=it?(kind==='ln'?lnLv(it.diff):kind==='wr'?wrLv(it.diff):kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:L('Klein','Small')+' 7×7',medium:L('Mittel','Medium')+' 11×11',big:L('Groß','Large')+' 17×17'})[it.diff]:tierN[it.diff]+' · '+(kind==='wv'?({small:21,medium:42,big:70})[it.diff]+' '+L('Punkte','points'):wsN[it.diff]+' '+L('Wörter','words'))+(it.cat?' · '+it.cat.icon+' '+it.cat.name:'')):'';
     const best=its.filter(i=>i.solved).length?its.filter(i=>i.solved).slice(-1)[0].reward:0;
     const can=!done&&day.open&&!it.locked;
-    const shortLv=it?(kind==='wr'?wrLv(it.diff):kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:'7×7',medium:'11×11',big:'17×17'})[it.diff]:kind==='wv'?({small:21,medium:42,big:70})[it.diff]+' '+L('Pkt.','pts'):wsN[it.diff]+' '+L('Wörter','words')+(it.cat?' '+it.cat.icon:'')):'';
-    return `<button class="btn ${done?'btn-ghost':'btn-primary'}" style="margin:0;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;${kind==='wr'?'grid-column:1/-1;':''}${done?'opacity:.75;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
+    const shortLv=it?(kind==='ln'?lnLv(it.diff):kind==='wr'?wrLv(it.diff):kind==='sudoku'?({easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')})[it.diff]:kind==='cw'?({small:'7×7',medium:'11×11',big:'17×17'})[it.diff]:kind==='wv'?({small:21,medium:42,big:70})[it.diff]+' '+L('Pkt.','pts'):wsN[it.diff]+' '+L('Wörter','words')+(it.cat?' '+it.cat.icon:'')):'';
+    return `<button class="btn ${done?'btn-ghost':'btn-primary'}" style="margin:0;padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:112px;${done?'opacity:.75;border-color:#7ae582;':''}${can?'':(done?'':'opacity:.4;')}" ${can?`onclick="dzOpen('${day.date}','${it.type}','${it.diff}')"`:'disabled'}>
       <span style="font-size:24px;line-height:1">${ico}</span><span style="font-size:14px;font-weight:900">${name}</span>
       <span style="font-size:11.5px;font-weight:600">${done?'✓ '+L('Alles geschafft','All done'):L('Stufe','Level')+' '+(idx+1)+'/'+total+' · '+shortLv}</span>
       <span style="font-size:11px;letter-spacing:3px;opacity:.9">${pips}</span><span class="dz-coin" style="font-size:13px">🪙 ${half?Math.floor((done?best:it.reward)/2):(done?best:it.reward)}</span></button>`;
@@ -6953,7 +6956,7 @@ function dzList(r){
       <span><span style="font-size:18px;font-weight:900">${ico} ${name}</span><br><span style="font-size:13px;font-weight:600">${done?'✓ '+L('Alle Stufen geschafft','All levels done'):L('Stufe','Level')+' '+(idx+1)+'/'+total+' · '+lvName}</span><br><span style="font-size:12px;letter-spacing:3px;opacity:.9">${pips}</span></span>
       <span class="dz-coin" style="font-size:15px">${done?'🪙 '+best:'🪙 '+it.reward}</span></button>`;
   };
-  const dayBtns=(day,half)=>`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${card(day,'sudoku',half)+card(day,'cw',half)+card(day,'ws',half)+card(day,'wv',half)+card(day,'wr',half)}</div>`;
+  const dayBtns=(day,half)=>`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${card(day,'sudoku',half)+card(day,'cw',half)+card(day,'ws',half)+card(day,'wv',half)+(r.lnOn?card(day,'ln',half):'')+card(day,'wr',half)}</div>`;
   const today=r.days[r.days.length-1];
   const missed=r.isSunday?r.days.slice(0,-1).filter(d=>d.items.some(i=>!(i.solved||i.failed))):[];
   if(!missed.some(d=>d.date===dzCatch)) dzCatch=missed.length?missed[0].date:null;
@@ -6974,6 +6977,7 @@ function dzList(r){
     <div class="dz-day"><h4>${L('Heute','Today')} · ${dzDayLabel(today.date)}</h4>${dayBtns(today)}</div>
     ${dzWeekBtn(r)}
     <button class="btn btn-ghost btn-block" style="margin:8px 0" onclick="dzBoardData=null;dzBoard()">🏆 ${L('Bestenliste','Leaderboard')}</button>
+    ${adminViewOn()?`<button class="btn btn-ghost btn-block" style="margin:8px 0;border:2px dashed #ffd45a" onclick="lnMenu()">🎨 ${L('Linienrätsel (nur Admin)','Line puzzle (admin only)')}</button>`:''}
     ${missed.length?catchUp:''}
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div></div>`);
@@ -6983,6 +6987,100 @@ async function dzClaim(){
   if(r&&r.ok){ if(typeof r.balance==='number'&&account&&account.profile) account.profile.coins=r.balance; if(typeof sfx==='function'&&r.granted) sfx('win'); showInviteToast((r.granted||r.weeklyKeys)?L('Abgeholt: '+(r.granted?'+'+r.granted+' 🪙 ':'')+(r.weeklyKeys?'+'+r.weeklyKeys+' 🔑':''),'Collected: '+(r.granted?'+'+r.granted+' 🪙 ':'')+(r.weeklyKeys?'+'+r.weeklyKeys+' 🔑':'')):L('Gerade nichts abzuholen.','Nothing to collect right now.')); }
   startDailyFlow();
 }
+/* ---------- Linienraetsel (Admin-Vorschau): Form in einem Strich nachzeichnen ---------- */
+let ln=null, lnTimerId=null;
+function lnDoneMap(){ try{ return JSON.parse(localStorage.getItem('bp_ln_done')||'{}'); }catch(e){ return {}; } }
+function lnSetDone(id,sec){ try{ const m=lnDoneMap(); if(!m[id]||sec<m[id]) m[id]=sec; localStorage.setItem('bp_ln_done',JSON.stringify(m)); }catch(e){} }
+function lnStop(){ if(lnTimerId){ clearInterval(lnTimerId); lnTimerId=null; } }
+function lnThumb(s,sz){ const g=LNP.build(s); return `<svg viewBox="0 0 100 100" width="${sz}" height="${sz}" style="display:block">`+g.edges.map(e=>`<line x1="${g.nodes[e[0]].x}" y1="${g.nodes[e[0]].y}" x2="${g.nodes[e[1]].x}" y2="${g.nodes[e[1]].y}" stroke="#b9854f" stroke-width="8" stroke-linecap="round"/>`).join('')+`</svg>`; }
+function lnMenu(){
+  dzStyle(); lnStop(); ln=null;
+  const done=lnDoneMap(), dn={easy:L('Leicht','Easy'),medium:L('Mittel','Medium'),hard:L('Schwer','Hard')};
+  const sec=d=>`<div style="margin:14px 0"><div style="font-weight:900;text-align:left;margin-bottom:6px">${dn[d]}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">${LNP.byDiff(d).map(s=>`<button class="btn ${done[s.id]!==undefined?'btn-ghost':'btn-primary'}" style="margin:0;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;${done[s.id]!==undefined?'border-color:#7ae582;':''}" onclick="lnPlay('${s.id}')"><span style="background:#e8c9a0;border-radius:10px;padding:4px">${lnThumb(s,64)}</span><span style="font-weight:900;font-size:14px">${s.icon} ${currentLang==='en'?s.en:s.name}</span><span style="font-size:11px;opacity:.85">${done[s.id]!==undefined?'✓ '+dzFmt(done[s.id]):L('Noch offen','Open')}</span></button>`).join('')}</div></div>`;
+  renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">🎨 ${L('LINIENRÄTSEL','LINE PUZZLE')}</div>
+    <div class="picker-sub">${L('Admin-Vorschau: Ziehe mit dem Finger einen Strich durch alle braunen Linien. Jedes Stück genau einmal, ohne abzusetzen.','Admin preview: drag one line through all brown lines. Every piece exactly once, without lifting.')}</div>
+    ${sec('easy')}${sec('medium')}${sec('hard')}
+    <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="startDailyFlow()">${t('btn_back')}</button></div></div></div>`);
+}
+function lnInit(s,embed){
+  const g=LNP.build(s);
+  ln={s,g,path:[],seq:[],used:new Set(),down:false,done:false,hint:s.diff==='easy',t0:Date.now(),R:9,embed:!!embed,sub:false};
+}
+function lnBoardHtml(embed){
+  return `<div style="width:min(100cqw,440px);margin:6px auto;background:#e8c9a0;border-radius:18px;border:4px solid #b9854f;box-sizing:border-box"><svg id="lnSvg" viewBox="0 0 100 100" style="display:block;width:100%;touch-action:none;user-select:none;-webkit-user-select:none"></svg></div>
+    <div id="lnMsg" style="min-height:22px;font-size:13px;font-weight:700;color:#ffd45a;margin:4px 0"></div>
+    <div style="display:flex;gap:8px;justify-content:center;margin:6px 0;flex-wrap:wrap">
+      <button class="btn btn-ghost" style="margin:0" onclick="lnUndo()">↩ ${L('Zurück','Undo')}</button>
+      <button class="btn btn-ghost" style="margin:0" onclick="lnReset()">🔄 ${L('Neu','Restart')}</button>
+      <button class="btn btn-ghost" style="margin:0" onclick="lnHint()">💡 ${L('Start zeigen','Show start')}</button></div>
+    <div id="lnEnd"></div>`;
+}
+function lnPlay(id){
+  dzStyle(); lnStop();
+  const s=LNP.shapes.filter(x=>x.id===id)[0]; if(!s) return;
+  lnInit(s,false);
+  renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">${s.icon} ${esc(currentLang==='en'?s.en:s.name)}</div>
+    <div class="dz-timer" id="lnTimer">⏱ 00:00</div>${lnBoardHtml(false)}
+    <div class="actions-row" style="margin-top:10px"><button class="btn btn-ghost" onclick="lnMenu()">${t('btn_back')}</button></div></div></div>`);
+  lnBind();
+  lnTimerId=setInterval(()=>{ const e=document.getElementById('lnTimer'); if(!ln||!e){ lnStop(); return; } if(!ln.done) e.textContent='⏱ '+dzFmt(Math.floor((Date.now()-ln.t0)/1000)); },500);
+  lnPaint();
+}
+function lnBind(){
+  const svg=document.getElementById('lnSvg'); if(!svg||!ln) return;
+  const pt=ev=>{ const r=svg.getBoundingClientRect(); return [(ev.clientX-r.left)/r.width*100,(ev.clientY-r.top)/r.height*100]; };
+  svg.addEventListener('pointerdown',ev=>{ if(!ln||ln.done) return; ev.preventDefault(); try{ svg.setPointerCapture(ev.pointerId); }catch(e){}
+    const [x,y]=pt(ev), n=lnNear(x,y,ln.path.length?1.7:1.3); if(n<0) return; ln.lp=[x,y];
+    if(!ln.path.length){ ln.path=[n]; ln.down=true; lnPaint(); return; }
+    const h=ln.path[ln.path.length-1]; if(n===h||ln.g.adj[h].some(a=>a[0]===n)||ln.path.slice(-3).includes(n)){ ln.down=true; lnStepTo(n); lnPaint(); } });
+  svg.addEventListener('pointermove',ev=>{ if(!ln||!ln.down||ln.done) return; ev.preventDefault();
+    const cur=pt(ev), last=ln.lp||cur, dx=cur[0]-last[0], dy=cur[1]-last[1], n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/2)); let ch=false;
+    for(let i=1;i<=n;i++){ const q=lnNear(last[0]+dx*i/n,last[1]+dy*i/n,.8); if(q>=0&&lnStepTo(q)) ch=true; }
+    ln.lp=cur; if(ch) lnPaint(); });
+  const up=()=>{ if(ln) ln.down=false; };
+  svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
+}
+function lnNear(x,y,k){ let best=-1,bd=1e9; ln.g.nodes.forEach((n,i)=>{ const d=Math.hypot(n.x-x,n.y-y); if(d<bd){ bd=d; best=i; } }); return bd<=ln.R*(k||1)?best:-1; }
+function lnStepTo(n){
+  const g=ln.g; if(!ln.path.length){ ln.path=[n]; return true; }
+  const h=ln.path[ln.path.length-1]; if(n===h) return false;
+  if(ln.path.length>1&&n===ln.path[ln.path.length-2]){ ln.used.delete(ln.seq.pop()); ln.path.pop(); return true; }
+  const a=g.adj[h].filter(q=>q[0]===n&&!ln.used.has(q[1]))[0];
+  if(a){ ln.used.add(a[1]); ln.seq.push(a[1]); ln.path.push(n); return true; }
+  return false;
+}
+function lnGo(n){
+  if(lnStepTo(n)) return true;
+  const h=ln.path[ln.path.length-1], g=ln.g;
+  // schnell gewischt: bis zu 3 Schritte ueber unbenutzte Linien zum Ziel
+  const q=[[h,[]]], seen={}; seen[h]=1;
+  while(q.length){ const [c,pth]=q.shift(); if(pth.length>=3) continue;
+    for(const [m,e] of g.adj[c]){ if(ln.used.has(e)||seen[m]) continue; seen[m]=1; const np=pth.concat([[m,e]]); if(m===n){ np.forEach(([mm,ee])=>{ ln.used.add(ee); ln.seq.push(ee); ln.path.push(mm); }); return true; } q.push([m,np]); } }
+  // schnell zurueckgewischt
+  const i=ln.path.lastIndexOf(n); if(i>=0&&ln.path.length-1-i<=3){ while(ln.path[ln.path.length-1]!==n){ ln.used.delete(ln.seq.pop()); ln.path.pop(); } return true; }
+  return false;
+}
+function lnUndo(){ if(!ln||ln.done||ln.path.length<1) return; if(ln.path.length>1){ ln.used.delete(ln.seq.pop()); ln.path.pop(); } else ln.path=[]; lnPaint(); }
+function lnReset(){ if(!ln) return; ln.path=[]; ln.seq=[]; ln.used=new Set(); ln.done=false; ln.t0=Date.now(); const en=document.getElementById('lnEnd'); if(en) en.innerHTML=''; ln.sub=false; lnPaint(); }
+function lnHint(){ if(!ln) return; ln.hint=true; lnPaint(); }
+function lnPaint(){
+  const svg=document.getElementById('lnSvg'); if(!svg||!ln) return; const g=ln.g, N=g.nodes;
+  let h='';
+  g.edges.forEach(e=>{ h+=`<line x1="${N[e[0]].x}" y1="${N[e[0]].y}" x2="${N[e[1]].x}" y2="${N[e[1]].y}" stroke="#6b3f1d" stroke-width="9" stroke-linecap="round"/>`; });
+  g.edges.forEach(e=>{ h+=`<line x1="${N[e[0]].x}" y1="${N[e[0]].y}" x2="${N[e[1]].x}" y2="${N[e[1]].y}" stroke="#8a5628" stroke-width="5" stroke-linecap="round"/>`; });
+  ln.seq.forEach(ei=>{ const e=g.edges[ei]; h+=`<line x1="${N[e[0]].x}" y1="${N[e[0]].y}" x2="${N[e[1]].x}" y2="${N[e[1]].y}" stroke="#ffb454" stroke-width="5.4" stroke-linecap="round"/>`; });
+  if(ln.hint&&!ln.path.length){ const st=g.odd.length?g.odd:[0]; (g.odd.length?[g.odd[0]]:[0]).forEach(i=>{ h+=`<circle cx="${N[i].x}" cy="${N[i].y}" r="5.5" fill="#3de0ff" stroke="#fff" stroke-width="1.4"><animate attributeName="r" values="4.5;7;4.5" dur="1s" repeatCount="indefinite"/></circle>`; }); }
+  if(ln.path.length){ const hd=N[ln.path[ln.path.length-1]]; h+=`<circle cx="${hd.x}" cy="${hd.y}" r="4.4" fill="#fff" stroke="#ff8a1f" stroke-width="1.6"/>`; }
+  svg.innerHTML=h;
+  const tot=g.edges.length, cur=ln.used.size, m=document.getElementById('lnMsg'); let msg='';
+  if(cur>=tot&&ln.embed){ ln.done=true; msg='🎉 '+L('Geschafft! Wird geprüft …','Done! Checking …'); if(!ln.sub){ ln.sub=true; setTimeout(()=>{ if(dz&&dz.kind==='ln') dzSubmit(); },400); } }
+  else if(cur>=tot){ ln.done=true; const sec=Math.floor((Date.now()-ln.t0)/1000); lnSetDone(ln.s.id,sec); sfxSafe('win'); msg='🎉 '+L('Gelöst!','Solved!');
+    const order=LNP.shapes, nx=order[(order.indexOf(ln.s)+1)%order.length];
+    { const en=document.getElementById('lnEnd'); if(en) en.innerHTML=`<div style="padding:10px;border-radius:14px;background:rgba(122,229,130,.15);border:2px solid #7ae582;margin:6px auto;max-width:440px"><b>${L('Geschafft in ','Done in ')}${dzFmt(sec)}</b><div style="display:flex;gap:8px;justify-content:center;margin-top:8px"><button class="btn btn-ghost" style="margin:0" onclick="lnPlay('${ln.s.id}')">${L('Nochmal','Again')}</button><button class="btn btn-primary" style="margin:0" onclick="lnPlay('${nx.id}')">${L('Nächste Form','Next shape')} ▸</button></div></div>`; } }
+  else { msg=cur+' / '+tot+' '+L('Linien','lines'); if(ln.path.length){ const hd=ln.path[ln.path.length-1]; if(!g.adj[hd].some(a=>!ln.used.has(a[1]))) msg='🚧 '+L('Sackgasse! Tippe auf ↩ Zurück oder 🔄 Neu.','Dead end! Tap ↩ Undo or 🔄 Restart.'); } }
+  if(m) m.textContent=msg;
+}
+function sfxSafe(n){ try{ if(typeof sfx==='function') sfx(n); }catch(e){} }
 /* ---------- Wort raten (Tagesraetsel, Wordle-Stil: leicht 3 Tipps / mittel 1 Tipp / schwer keiner) ---------- */
 let dzwr=null;
 function dzWrSid(){ try{ let v=localStorage.getItem('bp_wr_sid'); if(!v){ v='g'+Math.random().toString(36).slice(2,12); localStorage.setItem('bp_wr_sid',v); } return v; }catch(e){ return 'g'+Math.random().toString(36).slice(2,12); } }
@@ -7074,10 +7172,14 @@ document.addEventListener('keydown',e=>{
 async function dzOpen(date,type,diff){
   dzStyle();
   if(type==='wr') return dzWrOpen(date,diff);
-  const r=await apiCall('/api/daily/puzzle',{token:account&&account.token,date,type,diff});
+  const r=await apiCall('/api/daily/puzzle',{token:account&&account.token,date,type,diff,adminKey:adminViewOn()?adminKeyStored():undefined});
   if(!r.ok){ alert(r.error||'Fehler'); startDailyFlow(); return; }
   const key=dzKey(date,type,diff); let saved=null; try{ saved=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){}
-  if(type==='ws'){
+  if(type==='ln'){
+    const s0={id:r.id,name:r.name,en:r.en,icon:r.icon,diff,polys:r.polys};
+    lnInit(s0,true);
+    dz={kind:'ln',date,type,diff,key,sig:r.id,reward:r.reward,msg:'',busy:false,el:0};
+  } else if(type==='ws'){
     const sig=r.grid.join('');
     dz={kind:'ws',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,words:r.words,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},sel:null,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
   } else if(type==='wv'){
@@ -7098,7 +7200,7 @@ async function dzOpen(date,type,diff){
   }
   dz.hints=r.hints||{}; dz.hs=(saved&&saved.sig===dz.sig&&saved.hs)||{}; dz.hw=(saved&&saved.sig===dz.sig&&saved.hw)||{}; dzFrame(); dzTimerStart();
 }
-function dzSave(){ if(!dz) return; try{ const x={hs:dz.hs||{},hw:dz.hw||{}}; if(dz.kind==='ws'||dz.kind==='wv'){ localStorage.setItem(dz.key, JSON.stringify(Object.assign({sig:dz.sig,found:dz.found,el:dzElapsed()},x))); return; } localStorage.setItem(dz.key, JSON.stringify(Object.assign(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,notes:dz.notes,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()},x))); }catch(e){} }
+function dzSave(){ if(!dz||dz.kind==='ln') return; try{ const x={hs:dz.hs||{},hw:dz.hw||{}}; if(dz.kind==='ws'||dz.kind==='wv'){ localStorage.setItem(dz.key, JSON.stringify(Object.assign({sig:dz.sig,found:dz.found,el:dzElapsed()},x))); return; } localStorage.setItem(dz.key, JSON.stringify(Object.assign(dz.kind==='sudoku'?{sig:dz.sig,cur:dz.cur,notes:dz.notes,el:dzElapsed()}:{sig:dz.sig,letters:dz.letters,el:dzElapsed()},x))); }catch(e){} }
 function dzFrame(){
   if(!dz) return;
   const head=`<div class="picker-title">${dzIcon(dz.type)} ${dzTypeName(dz.type,dz.diff).toUpperCase()}</div>${dz.cat?`<div class="picker-sub" style="font-size:16px;font-weight:800;color:#ffd45a">${dz.cat.icon} ${esc(dz.cat.name)}</div>`:''}<div class="picker-sub">${dzDayLabel(dz.date)} · 🪙 ${dz.reward}${account?'':' · '+L('ohne Anmeldung keine Münzen','no coins without login')}</div><div class="dz-timer" id="dzTimer">⏱ ${dzFmt(dzElapsed())}</div>`;
@@ -7141,6 +7243,7 @@ async function dzHint(hk){
 function dzMsg(m,color){ const e=document.getElementById('dzMsg'); if(e){ e.textContent=m||''; e.style.color=color||'#ff8a8a'; } }
 function dzPaint(){
   if(!dz) return; const b=document.getElementById('dzBody'); if(!b) return;
+  if(dz.kind==='ln'){ b.innerHTML=lnBoardHtml(true); lnBind(); lnPaint(); return; }
   if(dz.kind==='sudoku') b.innerHTML=dzSudokuHtml(); else if(dz.kind==='ws') b.innerHTML=dzWsHtml(); else if(dz.kind==='wv') b.innerHTML=dzWvHtml(); else b.innerHTML=dzCwHtml();
   const full=dz.kind==='sudoku'?dz.cur.every(v=>v>0):dz.kind==='ws'?Object.keys(dz.found).length===dz.words.length:dz.kind==='wv'?dzWvPts()>=dz.n:dz.cells.every((row,r)=>row.every((c,cc)=>!c||dz.letters[r][cc]));
   const btn=document.getElementById('dzDone'); if(btn){ btn.disabled=!full; btn.style.opacity=full?1:.45; }
@@ -7420,8 +7523,8 @@ document.addEventListener('keydown',e=>{
 });
 async function dzSubmit(){
   if(!dz||dz.busy) return; dz.busy=true;
-  const body={token:account&&account.token,date:dz.date,type:dz.type,diff:dz.diff};
-  if(dz.kind==='ws') body.found=Object.values(dz.found); else if(dz.kind==='wv') body.found=Object.values(dz.found); else if(dz.kind==='sudoku') body.grid=dz.cur; else body.letters=dz.cells.map((row,r)=>row.map((c,cc)=>c?(dz.letters[r][cc]||'.'):'.').join(''));
+  const body={token:account&&account.token,date:dz.date,type:dz.type,diff:dz.diff,adminKey:adminViewOn()?adminKeyStored():undefined};
+  if(dz.kind==='ws') body.found=Object.values(dz.found); else if(dz.kind==='wv') body.found=Object.values(dz.found); else if(dz.kind==='ln') body.path=ln.path; else if(dz.kind==='sudoku') body.grid=dz.cur; else body.letters=dz.cells.map((row,r)=>row.map((c,cc)=>c?(dz.letters[r][cc]||'.'):'.').join(''));
   body.secs=dzElapsed(); const r=await apiCall('/api/daily/submit',body); dz.busy=false;
   if(!r.ok){ dzMsg(r.error||'Fehler'); return; }
   if(!r.correct){
@@ -7431,7 +7534,7 @@ async function dzSubmit(){
     else { dz.wrongC={}; (r.wrongCells||[]).forEach(k=>{ const p=k.split(','); dz.wrongC[k]=dz.letters[+p[0]][+p[1]]; }); }
     dzPaint();
   }
-  if(!r.correct){ dzMsg(dz.kind==='wv'?L(r.wrong+' Punkt(e) fehlen noch.',r.wrong+' point(s) still missing.'):dz.kind==='ws'?L(r.wrong+' Wort/Wörter fehlen noch.',r.wrong+' word(s) still missing.'):dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
+  if(!r.correct){ dzMsg(dz.kind==='wv'?L(r.wrong+' Punkt(e) fehlen noch.',r.wrong+' point(s) still missing.'):dz.kind==='ws'?L(r.wrong+' Wort/Wörter fehlen noch.',r.wrong+' word(s) still missing.'):dz.kind==='ln'?L(r.wrong+' Linie(n) fehlen noch.',r.wrong+' line(s) still missing.'):dz.kind==='sudoku'?L(r.wrong+' Feld(er) stimmen noch nicht.',r.wrong+' cell(s) are still wrong.'):L(r.wrong+' Buchstabe(n) stimmen noch nicht.',r.wrong+' letter(s) are still wrong.')); return; }
   const wvList=dz.kind==='wv'?dzWvEndList():''; const solvedTime=dzElapsed(); dzTimerStop();
   try{ if(!r.tooFast) achvRecord({ t:'daily', type:dz.type, date:dz.date }); }catch(e){}
   try{ localStorage.removeItem(dz.key); }catch(e){}
