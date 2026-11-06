@@ -6353,7 +6353,7 @@ async function fourupsApi(action, payload, lang) {
 // Muenzen werden erst am NAECHSTEN Tag abgeholt. Stufen muessen der Reihe nach geloest werden.
 const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small: 25, medium: 50, big: 75 }, ws: { small: 25, medium: 50, big: 75 }, wv: { small: 25, medium: 50, big: 75 }, wr: { easy: 25, medium: 50, hard: 75 }, ln: { easy: 25, medium: 50, hard: 75 } };
 // Hilfen kosten Muenzen (vom Guthaben, sofort). Preise liegen nur hier; der Client bekommt sie mit dem Raetsel.
-const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 }, wr: {}, ln: {} };
+const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 }, wr: {}, ln: { line: 20 } };
 const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"], wr: ["easy", "medium", "hard"], ln: ["easy", "medium", "hard"] };
 const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55, "ln:easy": 8, "ln:medium": 15, "ln:hard": 25 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
@@ -6370,7 +6370,7 @@ function dailyAllowedDates(today) { return dailyDow(today) === 0 ? dailyWeekDate
 const DAILY_CATCH_MAX = 3; // Nachholen: so viele verpasste Tage pro Woche (frei waehlbar), nachgeholt = halbe Muenzen
 const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"], ["wr", "easy"], ["wr", "medium"], ["wr", "hard"], ["ln", "easy"], ["ln", "medium"], ["ln", "hard"]];
 // Linienraetsel: zunaechst nur fuer Admin sichtbar (LN_PUBLIC=1 in den Render-Umgebungsvariablen schaltet es fuer alle frei)
-const LN_PUBLIC = process.env.LN_PUBLIC === "1";
+const LN_PUBLIC = process.env.LN_PUBLIC !== "0"; // ab jetzt fuer alle offen (LN_PUBLIC=0 sperrt wieder auf Admin)
 function lnAllowed(payload) { return LN_PUBLIC || !!(payload && payload.adminKey && adminOk(payload.adminKey, String(payload.__ip || ""))); }
 function dailyState(user) {
   if (!user.stats.daily || typeof user.stats.daily !== "object") user.stats.daily = { solved: {}, started: {} };
@@ -6458,7 +6458,7 @@ function dailyGet(date, type, diff, lang) {
   let v;
   if (type === "sudoku") { const s = DailyPz.makeSudoku(date, diff); v = { pub: { puzzle: s.puzzle }, solution: s.solution }; }
   else if (type === "ws") { const w = DailyWords.makeWordSearch(date, diff, lang === "en" ? "en" : "de"); v = { pub: w.pub, solution: w.solution }; }
-  else if (type === "ln") { const pool = LNP.byDiff(diff), dn = Math.round(Date.parse(date + "T00:00:00Z") / 86400000), sh = pool[((dn + (diff === "easy" ? 0 : diff === "medium" ? 1 : 2)) % pool.length + pool.length) % pool.length]; v = { pub: { id: sh.id, name: sh.name, en: sh.en, icon: sh.icon, polys: sh.polys }, shape: sh }; }
+  else if (type === "ln") { const pool = LNP.pool(diff, 500), dn = Math.round(Date.parse(date + "T00:00:00Z") / 86400000), sh = pool[((dn + (diff === "easy" ? 0 : diff === "medium" ? 1 : 2)) % pool.length + pool.length) % pool.length]; v = { pub: { id: sh.id, name: sh.name, en: sh.en, icon: sh.icon, polys: sh.polys }, shape: sh }; }
   else if (type === "wv") { const w = DailyWords.makeBoggle(date, diff, lang === "en" ? "en" : "de"); v = { pub: w.pub, solution: w.solution }; }
   else {
     // Fester Plan (shared/crosswordSchedule.json): jedes Wort kommt pro Zyklus nur einmal vor. Ohne Plan: alte Zufallserzeugung.
@@ -6637,7 +6637,7 @@ async function dailyApi(action, payload, lang) {
   if (action === "puzzle") {
     const pz = dailyGet(date, type, diff, lang);
     if (user && !d.solved[skey] && !d.started[skey]) { d.started[skey] = Date.now(); await saveUsers(); }
-    return { ok: true, date, type, diff, reward: date === today ? DAILY_REWARDS[type][diff] : Math.floor(DAILY_REWARDS[type][diff] / 2), solved: !!d.solved[skey], hints: DAILY_HINTS[type], ...pz.pub };
+    return { ok: true, date, type, diff, reward: date === today ? DAILY_REWARDS[type][diff] : Math.floor(DAILY_REWARDS[type][diff] / 2), solved: !!d.solved[skey], hints: DAILY_HINTS[type], ...(type === "ln" ? { lnLeft: ({ easy: 2, medium: 3, hard: 3 }[diff] || 2) - ((d.lnh && d.lnh[skey]) | 0) } : {}), ...pz.pub };
   }
   if (action === "hint") {
     if (!user) return errObj("notLoggedIn", lang);
@@ -6664,6 +6664,14 @@ async function dailyApi(action, payload, lang) {
     } else if (type === "ws") {
       const fw = new Set(Array.isArray(payload.found) ? payload.found.map(String) : []), rest = pz.solution.filter(p => !fw.has(p.w));
       const p = pick(rest); if (p) out = hk === "start" ? { r: p.r, c: p.c, len: p.w.length } : { w: p.w, r: p.r, c: p.c, r2: p.r2, c2: p.c2 };
+    } else if (type === "ln") {
+      const g = LNP.build(pz.shape), LN_CAP = { easy: 2, medium: 3, hard: 3 }[diff] || 2;
+      if (!d.lnh || typeof d.lnh !== "object") d.lnh = {};
+      const usedN = d.lnh[skey] | 0;
+      if (usedN >= LN_CAP) return { ok: false, error: lang === "en" ? "No more line hints for this puzzle." : "Für dieses Rätsel gibt es keine Linien-Hilfen mehr." };
+      const path = (Array.isArray(payload.path) ? payload.path.slice(0, 400) : []).filter(n => Number.isInteger(n) && n >= 0 && n < g.nodes.length);
+      const h = LNP.hint(pz.shape, path);
+      if (h) { out = { keep: h.keep, from: h.from, to: h.to, left: LN_CAP - usedN - 1 }; d.lnh[skey] = usedN + 1; }
     } else if (type === "wv") {
       const fw = new Set(Array.isArray(payload.found) ? payload.found.map(String) : []), rest = [...pz.solution.solved.entries()].map(([w, path]) => ({ w, path })).filter(p => !fw.has(p.w));
       const longer = rest.filter(p => p.w.length >= 5); const p = pick(hk === "word" && longer.length ? longer : rest); if (p) out = hk === "start" ? { r: p.path[0][0], c: p.path[0][1], len: p.w.length } : { w: p.w, path: p.path };

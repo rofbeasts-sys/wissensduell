@@ -6977,7 +6977,7 @@ function dzList(r){
     <div class="dz-day"><h4>${L('Heute','Today')} · ${dzDayLabel(today.date)}</h4>${dayBtns(today)}</div>
     ${dzWeekBtn(r)}
     <button class="btn btn-ghost btn-block" style="margin:8px 0" onclick="dzBoardData=null;dzBoard()">🏆 ${L('Bestenliste','Leaderboard')}</button>
-    ${adminViewOn()?`<button class="btn btn-ghost btn-block" style="margin:8px 0;border:2px dashed #ffd45a" onclick="lnMenu()">🎨 ${L('Linienrätsel (nur Admin)','Line puzzle (admin only)')}</button>`:''}
+    ${adminViewOn()?`<button class="btn btn-ghost btn-block" style="margin:8px 0;border:2px dashed #ffd45a" onclick="lnMenu()">🎨 ${L('Linienrätsel-Vorschau (Admin)','Line puzzle preview (admin)')}</button>`:''}
     ${missed.length?catchUp:''}
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div></div>`);
@@ -6999,6 +6999,7 @@ function lnMenu(){
   const sec=d=>`<div style="margin:14px 0"><div style="font-weight:900;text-align:left;margin-bottom:6px">${dn[d]}</div><div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">${LNP.byDiff(d).map(s=>`<button class="btn ${done[s.id]!==undefined?'btn-ghost':'btn-primary'}" style="margin:0;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;${done[s.id]!==undefined?'border-color:#7ae582;':''}" onclick="lnPlay('${s.id}')"><span style="background:#e8c9a0;border-radius:10px;padding:4px">${lnThumb(s,64)}</span><span style="font-weight:900;font-size:14px">${s.icon} ${currentLang==='en'?s.en:s.name}</span><span style="font-size:11px;opacity:.85">${done[s.id]!==undefined?'✓ '+dzFmt(done[s.id]):L('Noch offen','Open')}</span></button>`).join('')}</div></div>`;
   renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">🎨 ${L('LINIENRÄTSEL','LINE PUZZLE')}</div>
     <div class="picker-sub">${L('Admin-Vorschau: Ziehe mit dem Finger einen Strich durch alle braunen Linien. Jedes Stück genau einmal, ohne abzusetzen.','Admin preview: drag one line through all brown lines. Every piece exactly once, without lifting.')}</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0">${['easy','medium','hard'].map(d=>`<button class="btn btn-primary" style="margin:0" onclick="lnPlayRnd('${d}')">🎲 ${dn[d]}</button>`).join('')}</div>
     ${sec('easy')}${sec('medium')}${sec('hard')}
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="startDailyFlow()">${t('btn_back')}</button></div></div></div>`);
 }
@@ -7012,12 +7013,13 @@ function lnBoardHtml(embed){
     <div style="display:flex;gap:8px;justify-content:center;margin:6px 0;flex-wrap:wrap">
       <button class="btn btn-ghost" style="margin:0" onclick="lnUndo()">↩ ${L('Zurück','Undo')}</button>
       <button class="btn btn-ghost" style="margin:0" onclick="lnReset()">🔄 ${L('Neu','Restart')}</button>
-      <button class="btn btn-ghost" style="margin:0" onclick="lnHint()">💡 ${L('Start zeigen','Show start')}</button></div>
+      ${(!embed||(ln&&ln.s.diff==='easy'))?`<button class="btn btn-ghost" style="margin:0" onclick="lnHint()">📍 ${L('Start zeigen','Show start')}</button>`:''}</div>
     <div id="lnEnd"></div>`;
 }
+function lnPlayRnd(d){ const P=LNP.pool(d,500); lnPlay(P[Math.floor(Math.random()*P.length)].id); }
 function lnPlay(id){
   dzStyle(); lnStop();
-  const s=LNP.shapes.filter(x=>x.id===id)[0]; if(!s) return;
+  const s=LNP.shapes.filter(x=>x.id===id)[0]||['easy','medium','hard'].map(d=>LNP.pool(d,500).filter(x=>x.id===id)[0]).filter(Boolean)[0]; if(!s) return;
   lnInit(s,false);
   renderApp(`<div class="panel"><div class="dz-wrap"><div class="picker-title">${s.icon} ${esc(currentLang==='en'?s.en:s.name)}</div>
     <div class="dz-timer" id="lnTimer">⏱ 00:00</div>${lnBoardHtml(false)}
@@ -7034,11 +7036,28 @@ function lnBind(){
     if(!ln.path.length){ ln.path=[n]; ln.down=true; lnPaint(); return; }
     const h=ln.path[ln.path.length-1]; if(n===h||ln.g.adj[h].some(a=>a[0]===n)||ln.path.slice(-3).includes(n)){ ln.down=true; lnStepTo(n); lnPaint(); } });
   svg.addEventListener('pointermove',ev=>{ if(!ln||!ln.down||ln.done) return; ev.preventDefault();
-    const cur=pt(ev), last=ln.lp||cur, dx=cur[0]-last[0], dy=cur[1]-last[1], n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/2)); let ch=false;
-    for(let i=1;i<=n;i++){ const q=lnNear(last[0]+dx*i/n,last[1]+dy*i/n,.8); if(q>=0&&lnStepTo(q)) ch=true; }
-    ln.lp=cur; if(ch) lnPaint(); });
-  const up=()=>{ if(ln) ln.down=false; };
+    const evs=ev.getCoalescedEvents?ev.getCoalescedEvents():[]; (evs.length?evs:[ev]).forEach(e=>{
+      const cur=pt(e), last=ln.lp||cur, dx=cur[0]-last[0], dy=cur[1]-last[1], n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/2));
+      for(let i=1;i<=n;i++) lnTrack(last[0]+dx*i/n,last[1]+dy*i/n);
+      ln.lp=cur; });
+    lnPaint(); });
+  const up=()=>{ if(ln){ ln.down=false; ln.tip=null; ln.pend=-1; lnPaint(); } };
   svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
+}
+function lnCommit(n,e){ ln.used.add(e); ln.seq.push(e); ln.path.push(n); ln.he=null; }
+// Fluessiges Folgen: der Finger wird auf die Linien vom Kopf aus projiziert; Ecken werden ohne Halt passiert.
+function lnTrack(x,y){
+  const g=ln.g, N=g.nodes, TOL=9; ln.tip=null;
+  for(let it=0;it<10&&ln.path.length;it++){
+    const h=ln.path[ln.path.length-1], H=N[h]; let best=null;
+    const sc=(n,e,back)=>{ const A=H,B=N[n], vx=B.x-A.x, vy=B.y-A.y, L2=vx*vx+vy*vy||1; let t=((x-A.x)*vx+(y-A.y)*vy)/L2; const tc=Math.max(0,Math.min(1,t)), px=A.x+vx*tc, py=A.y+vy*tc, d=Math.hypot(x-px,y-py); return {n,e,t:tc,d,back,raw:t,px,py}; };
+    g.adj[h].forEach(([n,e])=>{ if(ln.used.has(e)) return; const c=sc(n,e,false); if(c.raw<=0.02||c.d>TOL) return; if(e===ln.pend) c.d-=3; if(!best||c.d<best.d) best=c; });
+    if(ln.path.length>1){ const q=ln.path[ln.path.length-2], c=sc(q,ln.seq[ln.seq.length-1],true); if(c.raw>=0.25&&c.d<=TOL&&(!best||c.d<best.d-1)) best=c; }
+    if(!best) return;
+    if(best.back){ ln.used.delete(ln.seq.pop()); ln.path.pop(); ln.pend=-1; ln.he=null; continue; }
+    if(best.raw>=0.999){ lnCommit(best.n,best.e); ln.pend=-1; continue; }
+    ln.pend=best.e; ln.tip={x:best.px,y:best.py}; return;
+  }
 }
 function lnNear(x,y,k){ let best=-1,bd=1e9; ln.g.nodes.forEach((n,i)=>{ const d=Math.hypot(n.x-x,n.y-y); if(d<bd){ bd=d; best=i; } }); return bd<=ln.R*(k||1)?best:-1; }
 function lnStepTo(n){
@@ -7060,8 +7079,8 @@ function lnGo(n){
   const i=ln.path.lastIndexOf(n); if(i>=0&&ln.path.length-1-i<=3){ while(ln.path[ln.path.length-1]!==n){ ln.used.delete(ln.seq.pop()); ln.path.pop(); } return true; }
   return false;
 }
-function lnUndo(){ if(!ln||ln.done||ln.path.length<1) return; if(ln.path.length>1){ ln.used.delete(ln.seq.pop()); ln.path.pop(); } else ln.path=[]; lnPaint(); }
-function lnReset(){ if(!ln) return; ln.path=[]; ln.seq=[]; ln.used=new Set(); ln.done=false; ln.t0=Date.now(); const en=document.getElementById('lnEnd'); if(en) en.innerHTML=''; ln.sub=false; lnPaint(); }
+function lnUndo(){ if(!ln||ln.done||ln.path.length<1) return; ln.tip=null; ln.he=null; if(ln.path.length>1){ ln.used.delete(ln.seq.pop()); ln.path.pop(); } else ln.path=[]; lnPaint(); }
+function lnReset(){ if(!ln) return; ln.tip=null; ln.he=null; ln.path=[]; ln.seq=[]; ln.used=new Set(); ln.done=false; ln.t0=Date.now(); const en=document.getElementById('lnEnd'); if(en) en.innerHTML=''; ln.sub=false; lnPaint(); }
 function lnHint(){ if(!ln) return; ln.hint=true; lnPaint(); }
 function lnPaint(){
   const svg=document.getElementById('lnSvg'); if(!svg||!ln) return; const g=ln.g, N=g.nodes;
@@ -7069,13 +7088,15 @@ function lnPaint(){
   g.edges.forEach(e=>{ h+=`<line x1="${N[e[0]].x}" y1="${N[e[0]].y}" x2="${N[e[1]].x}" y2="${N[e[1]].y}" stroke="#6b3f1d" stroke-width="9" stroke-linecap="round"/>`; });
   g.edges.forEach(e=>{ h+=`<line x1="${N[e[0]].x}" y1="${N[e[0]].y}" x2="${N[e[1]].x}" y2="${N[e[1]].y}" stroke="#8a5628" stroke-width="5" stroke-linecap="round"/>`; });
   ln.seq.forEach(ei=>{ const e=g.edges[ei]; h+=`<line x1="${N[e[0]].x}" y1="${N[e[0]].y}" x2="${N[e[1]].x}" y2="${N[e[1]].y}" stroke="#ffb454" stroke-width="5.4" stroke-linecap="round"/>`; });
-  if(ln.hint&&!ln.path.length){ const st=g.odd.length?g.odd:[0]; (g.odd.length?[g.odd[0]]:[0]).forEach(i=>{ h+=`<circle cx="${N[i].x}" cy="${N[i].y}" r="5.5" fill="#3de0ff" stroke="#fff" stroke-width="1.4"><animate attributeName="r" values="4.5;7;4.5" dur="1s" repeatCount="indefinite"/></circle>`; }); }
-  if(ln.path.length){ const hd=N[ln.path[ln.path.length-1]]; h+=`<circle cx="${hd.x}" cy="${hd.y}" r="4.4" fill="#fff" stroke="#ff8a1f" stroke-width="1.6"/>`; }
+  if(ln.tip&&ln.path.length){ const hh=N[ln.path[ln.path.length-1]]; h+=`<line x1="${hh.x}" y1="${hh.y}" x2="${ln.tip.x}" y2="${ln.tip.y}" stroke="#ffb454" stroke-width="5.4" stroke-linecap="round"/>`; }
+  if(ln.he){ const A=N[ln.he.from],B=N[ln.he.to]; h+=`<line x1="${A.x}" y1="${A.y}" x2="${B.x}" y2="${B.y}" stroke="#3de0ff" stroke-width="5.4" stroke-linecap="round" opacity=".9"><animate attributeName="opacity" values=".35;1;.35" dur="1s" repeatCount="indefinite"/></line><circle cx="${A.x}" cy="${A.y}" r="5" fill="#3de0ff" stroke="#fff" stroke-width="1.4"/>`; }
+  if(ln.hint&&!ln.path.length&&!ln.he){ const st=g.odd.length?g.odd:[0]; (g.odd.length?[g.odd[0]]:[0]).forEach(i=>{ h+=`<circle cx="${N[i].x}" cy="${N[i].y}" r="5.5" fill="#3de0ff" stroke="#fff" stroke-width="1.4"><animate attributeName="r" values="4.5;7;4.5" dur="1s" repeatCount="indefinite"/></circle>`; }); }
+  if(ln.path.length){ const hd=ln.tip||N[ln.path[ln.path.length-1]]; h+=`<circle cx="${hd.x}" cy="${hd.y}" r="4.4" fill="#fff" stroke="#ff8a1f" stroke-width="1.6"/>`; }
   svg.innerHTML=h;
   const tot=g.edges.length, cur=ln.used.size, m=document.getElementById('lnMsg'); let msg='';
   if(cur>=tot&&ln.embed){ ln.done=true; msg='🎉 '+L('Geschafft! Wird geprüft …','Done! Checking …'); if(!ln.sub){ ln.sub=true; setTimeout(()=>{ if(dz&&dz.kind==='ln') dzSubmit(); },400); } }
   else if(cur>=tot){ ln.done=true; const sec=Math.floor((Date.now()-ln.t0)/1000); lnSetDone(ln.s.id,sec); sfxSafe('win'); msg='🎉 '+L('Gelöst!','Solved!');
-    const order=LNP.shapes, nx=order[(order.indexOf(ln.s)+1)%order.length];
+    const order=LNP.shapes, nx=ln.s.gen?(P=>P[Math.floor(Math.random()*P.length)])(LNP.pool(ln.s.diff,500)):order[(order.indexOf(ln.s)+1)%order.length];
     { const en=document.getElementById('lnEnd'); if(en) en.innerHTML=`<div style="padding:10px;border-radius:14px;background:rgba(122,229,130,.15);border:2px solid #7ae582;margin:6px auto;max-width:440px"><b>${L('Geschafft in ','Done in ')}${dzFmt(sec)}</b><div style="display:flex;gap:8px;justify-content:center;margin-top:8px"><button class="btn btn-ghost" style="margin:0" onclick="lnPlay('${ln.s.id}')">${L('Nochmal','Again')}</button><button class="btn btn-primary" style="margin:0" onclick="lnPlay('${nx.id}')">${L('Nächste Form','Next shape')} ▸</button></div></div>`; } }
   else { msg=cur+' / '+tot+' '+L('Linien','lines'); if(ln.path.length){ const hd=ln.path[ln.path.length-1]; if(!g.adj[hd].some(a=>!ln.used.has(a[1]))) msg='🚧 '+L('Sackgasse! Tippe auf ↩ Zurück oder 🔄 Neu.','Dead end! Tap ↩ Undo or 🔄 Restart.'); } }
   if(m) m.textContent=msg;
@@ -7178,7 +7199,7 @@ async function dzOpen(date,type,diff){
   if(type==='ln'){
     const s0={id:r.id,name:r.name,en:r.en,icon:r.icon,diff,polys:r.polys};
     lnInit(s0,true);
-    dz={kind:'ln',date,type,diff,key,sig:r.id,reward:r.reward,msg:'',busy:false,el:0};
+    dz={kind:'ln',date,type,diff,key,sig:r.id,reward:r.reward,msg:'',busy:false,el:0,lnLeft:r.lnLeft};
   } else if(type==='ws'){
     const sig=r.grid.join('');
     dz={kind:'ws',date,type,diff,key,sig,reward:r.reward,size:r.size,grid:r.grid,words:r.words,cat:r.cat,found:(saved&&saved.sig===sig&&saved.found)||{},sel:null,msg:'',busy:false,el:(saved&&saved.sig===sig&&saved.el)||0};
@@ -7216,7 +7237,7 @@ function dzHelpPaint(){
   const e=document.getElementById('dzHelp'); if(!e||!dz) return;
   const H=dz.hints||{}, bal=account&&account.profile?(account.profile.coins||0):0;
   const defs={sudoku:[['cell','🔢',L('Feld aufdecken','Reveal cell')]],cw:[['letter','🔤',L('Buchstabe','Letter')],['word','📖',L('Wort aufdecken','Reveal word')]],
-    ws:[['start','🔍',L('Startfeld zeigen','Show start')],['word','✨',L('Wort zeigen','Show word')]],wv:[['start','🔍',L('Startfeld zeigen','Show start')],['word','✨',L('Wort zeigen','Show word')]]}[dz.kind]||[];
+    ln:[['line','💡',L('Nächste Linie','Next line')+(dz.lnLeft!==undefined?' ('+dz.lnLeft+'×)':'')]],ws:[['start','🔍',L('Startfeld zeigen','Show start')],['word','✨',L('Wort zeigen','Show word')]],wv:[['start','🔍',L('Startfeld zeigen','Show start')],['word','✨',L('Wort zeigen','Show word')]]}[dz.kind]||[];
   if(!defs.length||!H) { e.innerHTML=''; return; }
   e.innerHTML=`<div style="margin:8px 0 2px;font-size:12px;opacity:.8">💡 ${L('Hilfe','Help')} · ${account?L('Guthaben','Balance')+': '+bal+' 🪙':L('Melde dich an, um Hilfen zu nutzen','Log in to use hints')}</div><div class="actions-row" style="margin:4px 0">${defs.map(([k,ic,n])=>`<button class="btn btn-ghost" ${account?'':'disabled'} onclick="dzHint('${k}')">${ic} ${n} · ${H[k]||'?'} 🪙</button>`).join('')}</div>`;
 }
@@ -7227,6 +7248,7 @@ async function dzHint(hk){
   else if(dz.kind==='cw'){ body.cur=dz.letters.map(row=>row.map(x=>x||'.').join(''));
     if(hk==='letter'){ if(!dz.sel){ dzMsg(L('Tippe zuerst ein Feld an.','Tap a cell first.')); return; } body.r=dz.sel[0]; body.c=dz.sel[1]; }
     else { const wi=dzActiveWord(); if(wi===null){ dzMsg(L('Wähle zuerst ein Wort.','Pick a word first.')); return; } body.wi=wi; } }
+  else if(dz.kind==='ln') body.path=ln.path;
   else body.found=Object.keys(dz.found);
   dz.busy=true; let r; try{ r=await apiCall('/api/daily/hint',body); }finally{ dz.busy=false; }
   if(!dz) return;
@@ -7236,6 +7258,7 @@ async function dzHint(hk){
   else if(dz.kind==='cw'){ if(r.cells) r.cells.forEach(x=>{ dz.letters[x.r][x.c]=x.letter; dz.hs[x.r+','+x.c]=1; }); else { dz.letters[r.r][r.c]=r.letter; dz.hs[r.r+','+r.c]=1; } }
   else if(dz.kind==='ws'){ if(r.w){ dz.found[r.w]={w:r.w,r:r.r,c:r.c,r2:r.r2,c2:r.c2}; dz.hw[r.w]=1; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dz.hintLen=r.len; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
   else if(dz.kind==='wv'){ if(r.w){ dz.found[r.w]={w:r.w,path:r.path}; dz.hw[r.w]=1; dz.hintK=null; } else { dz.hintK=r.r+','+r.c; dz.hintLen=r.len; dzMsg(L('Ein Wort mit '+r.len+' Buchstaben beginnt hier.','A word with '+r.len+' letters starts here.'),'#ffd45a'); } }
+  else if(dz.kind==='ln'){ dz.lnLeft=r.left; ln.path=ln.path.slice(0,r.keep); ln.seq=ln.seq.slice(0,Math.max(0,r.keep-1)); ln.used=new Set(ln.seq); if(!r.keep) ln.path=[]; ln.he={from:r.from,to:r.to}; ln.tip=null; dzMsg(L('Die blaue Linie zeigt dir den nächsten Schritt.','The blue line shows your next step.'),'#3de0ff'); }
   if(typeof sfx==='function') sfx('mill');
   dzSave(); dzPaint(); dzHelpPaint();
   if(r.cost) { /* Kostenhinweis */ }
