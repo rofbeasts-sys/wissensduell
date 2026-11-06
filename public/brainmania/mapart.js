@@ -108,6 +108,8 @@
   // Weg-Pfad wie in fruit.html (gleiche Kurve), Aufrufer uebergibt pd
   function bg(WD, pts, H, seed, pd, extra) {
     var T = TH[WD.k] || TH.wiese, R = rng(seed), o = '', i, c;
+    // ueberlappende Level-Knoepfe leicht auseinanderschieben (wirkt auf die Knoepfe, da pts als Referenz geteilt wird)
+    for (var pass = 0; pass < 6; pass++) for (i = 0; i < pts.length; i++) for (var j2 = i + 1; j2 < pts.length; j2++) { var dx = pts[j2][1] - pts[i][1], dy = pts[j2][2] - pts[i][2], dd = Math.hypot(dx, dy), need = (WD.r || 16) * 2 + 6; if (dd < need) { if (dd < .01) { dx = 1; dy = 0; dd = 1; } var k2 = (need - dd) / 2 / dd; pts[j2][1] += dx * k2; pts[j2][2] += dy * k2; pts[i][1] -= dx * k2; pts[i][2] -= dy * k2; } }
     var defs = '<defs><linearGradient id="mpg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + T.g[0] + '"/><stop offset="1" stop-color="' + T.g[1] + '"/></linearGradient>' +
       '<radialGradient id="mpw' + T.water[4] + '" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="' + T.water[2] + '"/><stop offset=".55" stop-color="' + T.water[1] + '"/><stop offset="1" stop-color="' + T.water[0] + '"/></radialGradient>' +
       '<radialGradient id="mpv" cx=".5" cy=".5" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".38"/></radialGradient></defs>';
