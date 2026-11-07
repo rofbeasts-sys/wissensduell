@@ -7738,6 +7738,7 @@ function startLane(){ renderChessFrame('/solo/realm/index.html'); }
 function startHopper(){ renderChessFrame('/solo/hopper.html'); }
 function startFlappy(){ renderChessFrame('/solo/flappy.html'); }
 function startBlockPuzzle(){ renderChessFrame('/solo/blockpuzzle.html'); }
+function startSoldat(){ renderChessFrame('/soldat/index.html'); }
 function startMake24(){ renderChessFrame('/kartenwelt/make24.html'); }
 function startPyramide(){ renderChessFrame('/kartenwelt/pyramide.html'); }
 function startSpider(){ renderChessFrame('/kartenwelt/spider.html'); }
@@ -8002,6 +8003,11 @@ ${currentLang === 'de' ? `
         <h3>Brain Pro</h3>${admTag('brain_royale')}
         <p>${L('In offener Entwicklung: Ideen, die wir testen.','In open development: ideas we are testing.')}</p>
       </div>
+      ${adminViewOn() ? `<div class="mode-card" onclick="startSoldat()" style="border-color:var(--warn);">
+        <div class="icon">🏰</div>
+        <h3>Brain Soldat</h3><div style="font-size:11px;font-weight:800;color:#3de0ff;letter-spacing:.5px;margin-top:2px">TEST</div>
+        <p>${L('Türme erobern mit Truppen und Wissensfragen.','Conquer towers with troops and quiz questions.')}</p>
+      </div>` : ''}
     </div>` : ''}
 
     ${socialBarHtml()}
