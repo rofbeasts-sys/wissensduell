@@ -28,7 +28,7 @@ const { WebSocketServer } = require("./lib/miniws");
 // Erfolge: gleiche Datei wie im Browser (public/core/achievements.js) - eine Definition, ein Regelwerk
 const Achv = require("./public/core/achievements.js");
 const DailyPz = require("./lib/dailyPuzzles.js");
-const LNP = require("./public/core/linePuzzles.js");
+let LNP = null; try { LNP = require("./public/core/linePuzzles.js"); } catch (e) { console.error("Linienraetsel-Modul fehlt (public/core/linePuzzles.js) - Linienraetsel ist abgeschaltet:", e.message); }
 const DailyWords = require("./lib/dailyWords.js");
 
 /* ------------------------------------------------------------------------ */
@@ -6371,7 +6371,7 @@ const DAILY_CATCH_MAX = 3; // Nachholen: so viele verpasste Tage pro Woche (frei
 const DAILY_KINDS = [["sudoku", "easy"], ["sudoku", "medium"], ["sudoku", "hard"], ["cw", "small"], ["cw", "medium"], ["cw", "big"], ["ws", "small"], ["ws", "medium"], ["ws", "big"], ["wv", "small"], ["wv", "medium"], ["wv", "big"], ["wr", "easy"], ["wr", "medium"], ["wr", "hard"], ["ln", "easy"], ["ln", "medium"], ["ln", "hard"]];
 // Linienraetsel: zunaechst nur fuer Admin sichtbar (LN_PUBLIC=1 in den Render-Umgebungsvariablen schaltet es fuer alle frei)
 const LN_PUBLIC = process.env.LN_PUBLIC !== "0"; // ab jetzt fuer alle offen (LN_PUBLIC=0 sperrt wieder auf Admin)
-function lnAllowed(payload) { return LN_PUBLIC || !!(payload && payload.adminKey && adminOk(payload.adminKey, String(payload.__ip || ""))); }
+function lnAllowed(payload) { if (!LNP) return false; return LN_PUBLIC || !!(payload && payload.adminKey && adminOk(payload.adminKey, String(payload.__ip || ""))); }
 function dailyState(user) {
   if (!user.stats.daily || typeof user.stats.daily !== "object") user.stats.daily = { solved: {}, started: {} };
   const d = user.stats.daily; if (!d.solved) d.solved = {}; if (!d.started) d.started = {};

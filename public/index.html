@@ -6977,7 +6977,6 @@ function dzList(r){
     <div class="dz-day"><h4>${L('Heute','Today')} · ${dzDayLabel(today.date)}</h4>${dayBtns(today)}</div>
     ${dzWeekBtn(r)}
     <button class="btn btn-ghost btn-block" style="margin:8px 0" onclick="dzBoardData=null;dzBoard()">🏆 ${L('Bestenliste','Leaderboard')}</button>
-    ${adminViewOn()?`<button class="btn btn-ghost btn-block" style="margin:8px 0;border:2px dashed #ffd45a" onclick="lnMenu()">🎨 ${L('Linienrätsel-Vorschau (Admin)','Line puzzle preview (admin)')}</button>`:''}
     ${missed.length?catchUp:''}
     <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" onclick="renderMainMenu()">${t('btn_back')}</button></div>
   </div></div>`);
