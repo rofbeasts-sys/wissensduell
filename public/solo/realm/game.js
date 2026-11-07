@@ -872,11 +872,17 @@ function attack() {
     return;
   }
 
+  // Zugwechsel: erst schlaegt der Held, dann (verzoegert) der Gegner
+  renderFight(); updateUI();
+  window.__turnLock = true;
+  setTimeout(function(){ window.__turnLock = false; _counterTurn(); }, 900);
+  function _counterTurn() {
   // Counter attack
   let totalDmg = 0;
   let blocked = false;
   monstersInFight.forEach(m => {
     let md = m.atk + Math.floor(Math.random() * 3);
+    if (window.__kamShield) md = Math.max(1, Math.round(md * (1 - window.__kamShield / 100)));
     // Jaeger: 5% Ausweichen
     // Jaeger: 10% Dodge (improved from 5%)
     const _dodgeChance = hasClass('jaeger') ? 0.10 : (playerClass && playerClass.id === 'jaeger' ? 0.10 : 0);
@@ -947,7 +953,7 @@ function attack() {
     const _mname = m.isWorldBoss ? ('Boss ' + m.bossNum) : (MONSTER_NAMES[m.type] || m.type);
     log('⚠️ <span style="color:#cc4444">' + _mname + ' trifft dich für ' + md + '!</span>');
   });
-  if (totalDmg > 0) showDmgPopup('-' + totalDmg + '💰', '#cc2200');
+  if (totalDmg > 0) showDmgPopup('-' + totalDmg + '❤', '#cc2200');
 
   if (meta.hp <= 0) {
     meta.hp = 0;
@@ -964,6 +970,7 @@ function attack() {
 
   renderFight();
   updateUI();
+  } // end _counterTurn
 }
 
 // ===== RANG & LEVEL SYSTEM =====

@@ -3,12 +3,12 @@
 var KEY='robCity';
 var IMG={dia:'dia',smith:'smith',house:'house',bank:'bank',tower:'tower',arena:'arena',camp:'camp'};
 var B=[
- {id:'mine',  ic:'⛏️', n:'Goldmine',      d:'Bringt Gold pro Stunde',        max:15, cost:function(l){return Math.round(300*Math.pow(1.55,l));}, cur:'g', x:14,y:12},
- {id:'dia',   ic:'💎', n:'Diamantenmine', d:'Bringt Diamanten pro Stunde',   max:8,  cost:function(l){return Math.round(40*Math.pow(1.7,l));},  cur:'d', x:70,y:10},
- {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2 Angriff pro Stufe',          max:15, cost:function(l){return Math.round(400*Math.pow(1.6,l));}, cur:'g', x:42,y:30},
- {id:'house', ic:'🏠', n:'Kaserne',       d:'+15 Leben pro Stufe',           max:15, cost:function(l){return Math.round(400*Math.pow(1.6,l));}, cur:'g', x:10,y:46},
- {id:'bank',  ic:'🏦', n:'Schatzhaus',    d:'+4% Gold im Kampf pro Stufe',   max:10, cost:function(l){return Math.round(30*Math.pow(1.6,l));},  cur:'d', x:72,y:46},
- {id:'tower', ic:'🗼', n:'Wachturm',      d:'Lagert mehr Offline-Ertrag (+2h pro Stufe)', max:6, cost:function(l){return Math.round(500*Math.pow(1.8,l));}, cur:'g', x:40,y:62},
+ {id:'mine',  ic:'⛏️', n:'Goldmine',      d:'Bringt Gold pro Stunde',        max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:14,y:12},
+ {id:'dia',   ic:'💎', n:'Diamantenmine', d:'Bringt Diamanten pro Stunde',   max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:70,y:10},
+ {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2 Angriff pro Stufe',          max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:42,y:30},
+ {id:'house', ic:'🏠', n:'Kaserne',       d:'+15 Leben pro Stufe',           max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:10,y:46},
+ {id:'bank',  ic:'🏦', n:'Schatzhaus',    d:'+4% Gold im Kampf pro Stufe',   max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:72,y:46},
+ {id:'tower', ic:'🗼', n:'Wachturm',      d:'Lagert mehr Offline-Ertrag (+2h pro Stufe, max. 24h)', max:15, cost:function(l){return Math.round(500*Math.pow(1.45,l));}, cur:'g', x:40,y:62},
  {id:'arena', ic:'⚔️', n:'Arena',         d:'Zum Kampf!',                    max:0,  cost:null, cur:'', x:14,y:76},
  {id:'camp',  ic:'🔥', n:'Lagerfeuer',    d:'Zurück zum Heldenmenü',         max:0,  cost:null, cur:'', x:68,y:76}
 ];
@@ -21,7 +21,7 @@ window.cityBonus=function(k){
   if(k==='gold')return 1+lv('bank')*0.04;
   return 0;
 };
-function cap(){return 4+lv('tower')*2;}
+function cap(){return Math.min(24,4+lv('tower')*2);}
 function pending(){
   var o=get(),h=Math.min((Date.now()-o.last)/3600000,cap());
   return {g:Math.floor(h*lv('mine')*250),d:Math.floor(h*lv('dia')*1.5),h:h};
@@ -59,7 +59,9 @@ window.showCity=function(){
      +(b.max?'<div style="position:absolute;top:6px;right:10px;background:'+(l?'#c9a227':'#444')+';color:#000;border-radius:12px;padding:2px 9px;font-size:.72rem;font-weight:700;border:2px solid #000">'+(l?'Lv.'+l:'🔒 bauen')+'</div>':'')
      +'</div>';
   });
-  h+='</div><div id="cityPanel" style="margin:10px auto;max-width:640px;padding:0 10px 30px"></div>';
+  h+='</div><div id="cityPanel" style="margin:10px auto;max-width:640px;padding:0 10px 90px"></div>';
+  h+='<div style="position:sticky;bottom:0;z-index:5;padding:10px 12px;background:#07111c;border-top:2px solid #c9a227;text-align:center">'
+   +'<button class="btn btn-wide" onclick="cityCollect()" style="width:100%;font-size:.9rem;padding:12px" '+((p.g||p.d)?'':'disabled')+'>📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d+'</button></div>';
   r.innerHTML=h;
 };
 window.cityOpen=function(id){
