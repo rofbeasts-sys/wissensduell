@@ -231,7 +231,7 @@ function addEl(o){
   var d=document.createElement('div');d.className='tile '+o.t;
   if(o.t==='boss'){d.style.left=px(CM)+'px';d.innerHTML='<img class="sp" src="'+getMonsterImg(drag(K.k))+'" alt=""><small>BOSS</small>'}
   else{
-    var inner=o.t==='monster'?'<img class="sp" src="'+getMonsterImg(o.m)+'" alt=""><small>Kampf</small>':o.t==='gold'?'🪙<small>+'+o.v+'</small>':o.t==='die'?dieHTML(o.d,30)+'<small>Würfel</small>':o.t==='bed'?'🛌<small>Bett</small>':o.t==='start'?'🔥':'';
+    var inner=o.t==='monster'?'<img class="sp" src="'+getMonsterImg(o.m)+'" alt=""><small>Kampf</small>':o.t==='gold'?'💰<small>+'+o.v+'</small>':o.t==='die'?dieHTML(o.d,30)+'<small>Würfel</small>':o.t==='bed'?'🛌<small>Bett</small>':o.t==='start'?'🔥':'';
     d.style.left=px(o.c)+'px';d.innerHTML=inner;d.style.setProperty('--b',(0.88+Math.random()*0.3).toFixed(2));
   }
   d.style.bottom=(o.r*STEP)+'px';o.el=d;$('kamWorld').appendChild(d);reg(o.r,d);
@@ -294,7 +294,7 @@ function hud(){
   if(!K||!meta)return;
   $('kHp').textContent=Math.max(0,meta.hp)+'/'+meta.maxHp;$('kHpB').style.width=Math.max(0,meta.hp/meta.maxHp*100)+'%';$('kGold').textContent=meta.gold;$('kAtk').textContent=meta.attack;
   var r=K.cur.r,et=Math.min(10,Math.ceil(Math.max(1,r)/ETG));$('kEt').textContent=theme(K.k).n+' · Etage '+et+'/10';
-  var left=ROWS+1-r;$('kBn').textContent='Drache '+getMonsterNameSafe()+' · noch '+left+' Felder';$('kBb').style.width=(100*(1-left/(ROWS+1)))+'%';
+  var left=ROWS+1-r;$('kBn').textContent='Drache '+getMonsterNameSafe()+' · '+(r>ROWS?'Boss-Reihe':'Reihe '+r+' / '+ROWS);$('kBb').style.width=(100*(1-left/(ROWS+1)))+'%';
 }
 function getMonsterNameSafe(){try{return MONSTER_NAMES[drag(K.k)]||'Drache'}catch(e){return 'Drache'}}
 function fl(txt,color){var st=$('kam'),h=$('kamHero').getBoundingClientRect(),r=st.getBoundingClientRect(),d=document.createElement('div');d.className='fl';d.textContent=txt;d.style.color=color;d.style.left=(h.left-r.left+8)+'px';d.style.top=(h.top-r.top-6)+'px';st.appendChild(d);setTimeout(function(){d.remove()},1200)}
