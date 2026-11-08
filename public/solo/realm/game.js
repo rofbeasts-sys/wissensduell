@@ -975,14 +975,15 @@ function attack() {
       log('<span style="color:#88cc00">Gift: -3 HP (' + meta.poisoned + ' verbleibend)</span>');
     }
     totalDmg += md;
-    meta.hp -= md;
+    meta.hp -= (window.__kamRoute ? window.__kamRoute(md, m) : md);
     meta._fightTookDamage = true;
     const _mname = m.isWorldBoss ? ('Boss ' + m.bossNum) : (MONSTER_NAMES[m.type] || m.type);
     log('⚠️ <span style="color:#cc4444">' + _mname + ' trifft dich für ' + md + '!</span>');
   });
   if (totalDmg > 0) showDmgPopup('-' + totalDmg + '❤', '#cc2200');
 
-  if (meta.hp <= 0) {
+  if (meta.hp <= 0 && window.__kamTeamUp && window.__kamTeamUp()) { meta.hp = 0; updateUI(); }
+  else if (meta.hp <= 0) {
     meta.hp = 0;
     try { if (window.__kamDeathSoul) window.__kamDeathSoul(); } catch(e) {}
     saveHeroData();
@@ -2374,6 +2375,8 @@ function closeInventory() { document.getElementById('inventoryModal').style.disp
 function itemIcon(it, px) {
   var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:'o'}[it.rarity] || 'g';
   var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape'}[it.type] || 'sword';
+  var em = {hand:'\uD83E\uDDE4', book:'\uD83D\uDCD6', shield:'\uD83D\uDEE1\uFE0F'}[it.type];
+  if (em) return '<div style="width:' + px + 'px;height:' + px + 'px;display:flex;align-items:center;justify-content:center;font-size:' + Math.round(px*0.72) + 'px;margin:0 auto 3px;filter:drop-shadow(0 0 7px ' + (RARITY_COLOR[it.rarity] || '#888') + ')">' + em + '</div>';
   return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + '' + '">';
 }
 function renderInventoryModal() {

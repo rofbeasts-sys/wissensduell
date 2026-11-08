@@ -80,7 +80,7 @@ var css=document.createElement('style');css.textContent=
 '#kam canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}'+
 '#kamWorld{position:absolute;left:50%;bottom:62px;width:0;height:0;transition:transform .28s linear;will-change:transform;transform-style:preserve-3d}'+
 '#kamHud{position:absolute;left:0;right:0;top:0;z-index:6;display:flex;gap:8px;align-items:center;padding:7px 10px;background:linear-gradient(#000f 60%,#000c);font-size:.78rem;color:#ffe9c4;font-weight:700}'+
-'#kamHud .hb{flex:1;height:10px;border-radius:6px;background:#0008;border:1px solid #fff3;overflow:hidden}#kamHud .hb i{display:block;height:100%;background:linear-gradient(90deg,#d22,#f66);width:100%;transition:width .3s}'+
+'#kamHud .hb{flex:1;height:10px;border-radius:6px;background:#0008;border:1px solid #fff3;overflow:hidden}#kamHud .hb i{display:block;height:100%;background:linear-gradient(90deg,#c9a227,#ffe27a);width:0;transition:width .3s}'+
 '#kamHud .bx{margin-left:auto;text-align:right;font-size:.7rem;color:var(--a)}'+
 '#kamBoss{position:absolute;left:0;right:0;top:34px;z-index:6;padding:3px 10px 5px;background:#000a;font-size:.66rem;color:#ffe9c4;text-align:center;letter-spacing:1px}'+
 '#kamBoss .bb{height:6px;border-radius:4px;background:#0008;margin-top:3px;overflow:hidden}#kamBoss .bb i{display:block;height:100%;background:var(--a);width:0;transition:width .3s}'+
@@ -164,7 +164,7 @@ document.head.appendChild(css);
 function rebuildPage(){
   var bp=$('battlePanel'),qp=$('quickPanel'),ab=$('actionBtn');
   var k=document.createElement('div');k.id='kam';
-  k.innerHTML='<canvas id="kamEm"></canvas><div id="kamHud"><span>❤ <b id="kHp">20</b></span><div class="hb"><i id="kHpB"></i></div><span>⚔ <b id="kAtk">5</b></span><span>💰 <b id="kGold">0</b></span><span class="bx" id="kEt"></span></div>'+
+  k.innerHTML='<canvas id="kamEm"></canvas><div id="kamHud"><span>💎 <b id="kDia">0</b></span><span>💜 <b id="kSoul">0</b></span><span>💰 <b id="kGold">0</b></span><span style="display:none"><b id="kHp"></b><b id="kAtk"></b></span><div class="hb" title="Kills bis zum nächsten Level"><i id="kHpB"></i></div><span class="bx" id="kEt"></span></div>'+
    '<div id="kamBoss"><span id="kBn"></span><div class="bb"><i id="kBb"></i></div></div><div id="kamWorld"><div id="kamHero"><div class="sh"></div><div class="up"><img id="kamHeroImg" alt="" src="hero/idle0.webp"></div></div></div><div id="kamMsg"></div>';
   bp.insertBefore(k,bp.firstChild);
   /* Menütasten unten, direkt unter dem Würfel-Knopf */
@@ -353,7 +353,7 @@ function place(){
 function msg(t){var m=$('kamMsg');if(m)m.textContent=t}
 function hud(){
   if(!K||!meta)return;
-  $('kHp').textContent=Math.max(0,meta.hp)+'/'+meta.maxHp;$('kHpB').style.width=Math.max(0,meta.hp/meta.maxHp*100)+'%';$('kGold').textContent=meta.gold;$('kAtk').textContent=meta.attack;
+  $('kHp').textContent=Math.max(0,meta.hp)+'/'+meta.maxHp;try{$('kHpB').style.width=Math.min(100,getKillsThisLevel(meta.hero)/150*100)+'%';$('kDia').textContent=meta.diamonds||0;$('kSoul').textContent=(prestigeData&&prestigeData.souls)||0}catch(e){}$('kGold').textContent=meta.gold;$('kAtk').textContent=meta.attack;
   var r=K.cur.r,et=Math.min(10,Math.ceil(Math.max(1,r)/ETG));$('kEt').textContent=theme(K.k).n+' · Etage '+et+'/10';
   var left=ROWS+1-r;$('kBn').textContent='Drache '+getMonsterNameSafe()+' · '+(r>ROWS?'Boss-Reihe':'Reihe '+r+' / '+ROWS);$('kBb').style.width=(100*(1-left/(ROWS+1)))+'%';
 }
@@ -596,7 +596,7 @@ function hook(){
     board=['empty'];pos=0;build(k);
   };
   window.drawBoard=function(){};
-  var oSw=window.runSwing;window.runSwing=function(){if(inFight&&$('kam')&&typeof meta!=='undefined'&&meta){try{kamStrike()}catch(e){}}return oSw&&oSw.apply(this,arguments)};
+  var oSw=window.runSwing;window.runSwing=function(){if(inFight&&$('kam')&&typeof meta!=='undefined'&&meta){try{window.__kamStrike&&window.__kamStrike()}catch(e){}}return oSw&&oSw.apply(this,arguments)};
   var oAct=window.handleAction;
   window.handleAction=function(){
     if(window.__turnLock)return;
@@ -669,7 +669,7 @@ function animAlly(a,dm){
   setTimeout(function(){a.busy=false;i.src='ally/'+a.idle[0]+'.webp'},560);
 }
 function allyStrike(){
-  var L=allyList();if(!L.length)return;
+  var L=allyList().filter(function(a){return aliveA(a.id)});if(!L.length)return;
   allyRound++;var d=0;
   L.forEach(function(a,k){var dm=Math.max(1,Math.round(meta.attack*a.mult)+(window.__kamAllyBonus?window.__kamAllyBonus(a.id):0));d+=dm;setTimeout(function(){animAlly(a,dm)},170+k*230)});
   meta.attack+=d;setTimeout(function(){meta.attack-=d},0);
@@ -698,12 +698,16 @@ var NEWI=[
 ['helm4','Drachenhelm','helm','episch',12,30],['helm5','Himmelshelm','helm','legendaer',18,55]];
 NEWI.forEach(function(n){if(ITEMS.some(function(x){return x.id===n[0]}))return;
  ITEMS.push({id:n[0],name:n[1],type:n[2],rarity:n[3],atk:n[4],hp:n[5],desc:(n[4]?'+'+n[4]+' ATK':'')+(n[4]&&n[5]?' ':'')+(n[5]?'+'+n[5]+' HP':'')})});
-TYPE_LABEL.bow='Bogen';TYPE_LABEL.staff='Stab';TYPE_LABEL.cape='Umhang';
+TYPE_LABEL.bow='Bogen';TYPE_LABEL.staff='Stab';TYPE_LABEL.cape='Umhang';TYPE_LABEL.hand='Handschuhe';TYPE_LABEL.book='Buch';TYPE_LABEL.shield='Schild';
+[['glove1','Stoffhandschuhe','hand','normal',2,0],['glove2','Lederhandschuhe','hand','gruen',5,0],['glove3','Kettenhandschuhe','hand','blau',10,3],['glove4','Drachenhandschuhe','hand','episch',18,6],['glove5','Himmelshandschuhe','hand','legendaer',30,10],
+['book1','Altes Buch','book','normal',2,0],['book2','Zauberfibel','book','gruen',5,3],['book3','Runenbuch','book','blau',10,6],['book4','Arkanum','book','episch',18,10],['book5','Sternenbuch','book','legendaer',30,15],
+['shield1','Holzschild','shield','normal',0,6],['shield2','Eisenschild','shield','gruen',0,14],['shield3','Stahlschild','shield','blau',2,25],['shield4','Drachenschild','shield','episch',4,45],['shield5','Himmelsschild','shield','legendaer',8,80]].forEach(function(n){if(ITEMS.some(function(x){return x.id===n[0]}))return;
+ ITEMS.push({id:n[0],name:n[1],type:n[2],rarity:n[3],atk:n[4],hp:n[5],desc:(n[4]?'+'+n[4]+' ATK':'')+(n[4]&&n[5]?' ':'')+(n[5]?'+'+n[5]+' HP':'')})});
 function pushAll(a,l){l.forEach(function(x){a.push(x)})}
-pushAll(MONSTER_POOL,['bow1','staff1','cape1']);
-pushAll(BOSS_POOL,['bow2','bow3','bow4','bow5','staff2','staff3','staff4','staff5','cape2','cape3','cape4','cape5','helm4','helm5']);
-try{pushAll(CHEST_CONFIG.wood.itemPool,['bow1','staff1','cape1']);pushAll(CHEST_CONFIG.dia.itemPool,['bow2','bow3','staff2','staff3','cape2','cape3']);
-pushAll(CHEST_CONFIG.legend.itemPool,['bow3','bow4','staff3','staff4','cape4','helm4']);pushAll(CHEST_CONFIG.sin.itemPool,['bow4','bow5','staff4','staff5','cape5','helm5'])}catch(e){}
+pushAll(MONSTER_POOL,['bow1','staff1','cape1','glove1','book1','shield1']);
+pushAll(BOSS_POOL,['bow2','bow3','bow4','bow5','staff2','staff3','staff4','staff5','cape2','cape3','cape4','cape5','helm4','helm5','glove2','glove3','glove4','glove5','book2','book3','book4','book5','shield2','shield3','shield4','shield5']);
+try{pushAll(CHEST_CONFIG.wood.itemPool,['bow1','staff1','cape1','glove1','book1','shield1']);pushAll(CHEST_CONFIG.dia.itemPool,['bow2','bow3','staff2','staff3','cape2','cape3','glove2','glove3','book2','book3','shield2','shield3']);
+pushAll(CHEST_CONFIG.legend.itemPool,['bow3','bow4','staff3','staff4','cape4','helm4','glove3','glove4','book3','book4','shield3','shield4']);pushAll(CHEST_CONFIG.sin.itemPool,['bow4','bow5','staff4','staff5','cape5','helm5','glove4','glove5','book4','book5','shield4','shield5'])}catch(e){}
 var TI=[2,5,9,15],RAR=['gruen','blau','episch','legendaer'];
 var FXD=[['feuer','ring','🔥 Feuerring',function(v){return 'Brennt: '+v+'% der Gegner-Leben pro Runde'}],
  ['eis','ring','❄️ Eisring',function(v){return v*2+'% Gegner setzt aus'}],
@@ -758,9 +762,13 @@ window.getEquippedBonuses=function(){ens();var a=0,h=allyHp();for(var t in inven
 function clv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(e){return 0}}
 
 /* ---- Kampf-Effekte ---- */
-window.__kamGoldM=function(){return (1+fxSum('goldm')/100)*(1+suLv('gold')*.02)*(1+(prestigeData.count||0)*.15)};
+window.__kamGoldM=function(){return (1+goldBonus()/100)*(1+fxSum('goldm')/100)*(1+suLv('gold')*.02)*(1+(prestigeData.count||0)*.15)};
 window.__kamDiaReward=function(b){return Math.round(b*(1+(prestigeData.count||0)*.15))+suLv('dias')};
 window.__kamMonHit=function(m,md){
+ if(teamSp('aegis')){ARS.ag=(ARS.ag||0)+1;if(ARS.ag<=2){fl('🛡️ Aegis','#8fd8ff');return 0}}
+ if(m&&m.__frz>0){m.__frz=0;fl('💫 Gegner verliert den Angriff','#8fd8ff');return 0}
+ if(Math.random()*100<Math.min(60,gs('dodge'))){fl('💨 Verfehlt','#cfe');return 0}
+ var wk=Math.min(50,gs('weak'));if(wk>0)md=Math.max(1,Math.round(md*(1-wk/100)));
  if(Math.random()*100<fxSum('eis')*2){fl('❄️ erstarrt','#8fd8ff');return 0}
  if(Math.random()*100<fxSum('dodge')){fl('💨 Ausgewichen','#cfe');return 0}
  var er=Math.min(60,fxSum('erde')*2);if(er>0)md=Math.max(1,Math.round(md*(1-er/100)));return md};
@@ -768,11 +776,17 @@ function kamStrike(){
  var m=monstersInFight&&monstersInFight[0];if(!m||meta.hp<=0)return;
  var bf=fxSum('feuer');if(bf>0){var b=Math.max(1,Math.round(m.maxHp*(bf/100)*(m.isBoss?.5:1)));m.hp=Math.max(1,m.hp-b);fl('🔥 -'+b,'#ff8a3a')}
  var bs=meta.attack;
+ monstersInFight.forEach(function(t){if(t.__dot&&t.__dot.n>0&&t.hp>1){sideD(t,t.__dot.d);t.__dot.n--;fl('☣️ -'+t.__dot.d,'#9fdc5a')}});
+ armRound();
+ var ex=0;try{ex=strikeFx('hero',bs)}catch(e){}
  try{allyStrike()}catch(e){}
+ if(ex>0){meta.attack+=ex;setTimeout(function(){meta.attack-=ex},0)}
  if(Math.random()*100<fxSum('donner','hero')*2){meta.attack+=bs;setTimeout(function(){meta.attack-=bs},0);fl('⚡ Doppeltreffer','#ffe14a')}}
-allyStrike=function(){var L=allyList();if(!L.length)return;allyRound++;var d=0;
+window.__kamStrike=kamStrike;
+allyStrike=function(){var L=allyList().filter(function(a){return aliveA(a.id)});if(!L.length)return;allyRound++;var d=0;
  L.forEach(function(a,k){var dm=Math.max(1,Math.round(meta.attack*a.mult)+window.__kamAllyBonus(a.id));
   if(Math.random()*100<fxSum('donner',a.id)*2)dm*=2;
+  try{dm+=strikeFx(a.id,dm)}catch(e){}
   d+=dm;setTimeout(function(){animAlly(a,dm)},170+k*230)});
  meta.attack+=d;setTimeout(function(){meta.attack-=d},0);
  if(L.some(function(a){return a.heal})&&allyRound%3===0)setTimeout(function(){
@@ -995,9 +1009,9 @@ window.__kamChest=function(type,cfg){
  m+=loot(rnd(ir[0],ir[1]),{wood:{},dia:{blau:10},legend:{blau:25,lila:8},sin:{blau:30,lila:20,orange:6}}[type]||{});return m};
 
 /* ---- Heldenabteil ---- */
-var SL={hero:['helm','armor','cape','weapon','ring'],arc:['helm','armor','cape','bow','ring'],mag:['helm','armor','cape','staff','ring']};
+var SL={hero:['helm','armor','cape','hand','weapon','ring','shield','book'],arc:['helm','armor','cape','hand','bow','ring','shield','book'],mag:['helm','armor','cape','hand','staff','ring','shield','book']};
 var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalif'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'ally/'+w+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:15,mag:30};
-var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring'};
+var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring',hand:'Handsch.',book:'Buch',shield:'Schild'};
 var sel='hero',fr=0;
 var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){return true}
 function gk(w,i){return WKT.indexOf(i.type)>=0?WSK[w]:i.type}
@@ -1016,11 +1030,11 @@ window.unequipItem=function(t){var uid=inventory.equipped[t];if(uid){unw(uid);sa
 function slotHtml(w,t){var id=gear(w)[t],i=id?it(id):null,col=i?RARITY_COLOR[i.rarity]:'#7a4a1a';
  return '<div class="hs'+(i?'':' e')+'" style="border-color:'+col+(i&&i.c===2?';box-shadow:0 0 10px #ffd24a':'')+'" '+(i?'onclick="equipItem(\''+id+'\')"':'')+'>'+(i?itemIcon(i,48):'<span>'+SLN[t]+'</span>')+'<em>'+(i?stars(i):SLN[t])+'</em></div>'}
 function card(i,sub,click,on){var col=RARITY_COLOR[i.rarity];
- return '<div onclick="'+click+'" style="border:2px solid '+(on?col:'#222')+';border-radius:6px;padding:6px;text-align:center;cursor:pointer;background:rgba(10,10,15,.8);display:inline-block;width:48%;margin:1%;vertical-align:top;box-sizing:border-box'+(i.c===2?';box-shadow:0 0 10px #ffd24a66':'')+'">'+itemIcon(i,48)+
+ return '<div onclick="'+click+'" style="border:2px solid '+(on?col:'#222')+';border-radius:6px;padding:6px;text-align:center;cursor:pointer;background:rgba(10,10,15,.8);position:relative;display:inline-block;width:48%;margin:1%;vertical-align:top;box-sizing:border-box'+(i.c===2?';box-shadow:0 0 10px #ffd24a66':'')+'">'+itemIcon(i,48)+
  '<div style="font-size:0.6rem;color:'+col+';font-weight:700">'+i.name+'</div><div style="font-size:0.55rem;color:#888">'+descOf(i)+'</div>'+
- '<div style="font-size:0.55rem"><span style="color:#ffd24a">'+stars(i)+'</span> <span style="color:'+CC[i.c]+'">'+CN[i.c]+'</span></div>'+(sub||'')+'</div>'}
+ '<div style="font-size:0.55rem"><span style="color:#ffd24a">'+stars(i)+'</span> <span style="color:'+CC[i.c]+'">'+CN[i.c]+'</span></div>'+(hasE(i)?efIcons(i.id)+'<span onclick="event.stopPropagation();__kamInfo(\''+i.id+'\')" style="position:absolute;top:2px;right:4px;font-size:.8rem;border:1px solid #c9a050;border-radius:50%;width:18px;height:18px;line-height:16px;color:#f0c040">i</span>':'')+(sub||'')+'</div>'}
 function tg(i){return i.type==='bow'||i.type==='staff'?'weapon':i.type}
-function filt(){var T=[['all','Alle'],['weapon','Waffe'],['helm','Helm'],['armor','Rüstung'],['ring','Ring'],['cape','Umhang']],R=[['all','Alle','#ccc'],['normal','Normal','#aaa'],['gruen','Grün','#44cc44'],['blau','Blau','#4488ff'],['episch','Lila','#cc44ff'],['legendaer','Legendär','#ff8800']];
+function filt(){var T=[['all','Alle'],['weapon','Waffe'],['helm','Helm'],['armor','Rüstung'],['ring','Ring'],['cape','Umhang'],['hand','Handsch.'],['book','Buch'],['shield','Schild']],R=[['all','Alle','#ccc'],['normal','Normal','#aaa'],['gruen','Grün','#44cc44'],['blau','Blau','#4488ff'],['episch','Lila','#cc44ff'],['legendaer','Legendär','#ff8800']];
  function ch(a,cur,fn){return '<span onclick="'+fn+'(\''+a[0]+'\')" style="padding:4px 9px;border-radius:12px;font-size:.62rem;cursor:pointer;border:1px solid '+(a[2]||'#c9a050')+';color:'+(cur===a[0]?'#000':(a[2]||'#ffe9c4'))+';background:'+(cur===a[0]?(a[2]||'#f0c040'):'#0006')+'">'+a[1]+'</span>'}
  return '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+T.map(function(a){return ch(a,FT,'__kamFT')}).join('')+'</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+R.map(function(a){return ch(a,FR,'__kamFR')}).join('')+'</div>'}
 window.__kamFT=function(v){FT=v;render()};window.__kamFR=function(v){FR=v;render()};
@@ -1037,7 +1051,7 @@ function render(){
  L.innerHTML='<style>.hts{display:flex;gap:8px;justify-content:center;margin-bottom:10px}.ht{width:84px;height:88px;border:2px solid #7a4a1a;border-radius:12px;background:#0006;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;cursor:pointer;color:#ffe9c4}.ht.on{border-color:#f0c040;box-shadow:0 0 14px #f0c04066}.ht img{width:54px;height:54px;object-fit:contain}.ht small{font-size:10px;text-align:center}.ht.lk{opacity:.55;cursor:default;justify-content:center}.ht b{font-size:20px}'+
  '.hst{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:6px;align-items:center;justify-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 12px 22px;overflow:hidden;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:18px}.hs{width:54px;height:54px;box-sizing:border-box;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important;width:40px!important;height:40px!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
  '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
- '<div class="hts">'+tabs+'</div>'+posbar()+'<div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'<div class="hs e" style="opacity:.4"><span>Schild</span><em>bald</em></div></div></div>';
+ '<div class="hts">'+tabs+'</div>'+posbar()+'<div class="hst"><div class="hc">'+g(s.slice(0,4))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b></div><div class="hc">'+g(s.slice(4))+'</div></div>';
  var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NN[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
  var SRT=sorted(),OWNR={bow:'arc',staff:'mag'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
@@ -1087,8 +1101,136 @@ setInterval(function(){var m=document.getElementById('inventoryModal'),im=docume
  im.src=HF(sel,fr);
  [].slice.call(document.querySelectorAll('.ht img')).forEach(function(x){var w=x.dataset.w;x.src=HF(w,fr)})},300);
 
+/* ---- Waffen-Effekte ---- */
+var EQ=[[3,8],[9,14],[15,19],[20,25]],EQN=['Grün','Blau','Lila','Episch'],EQC=['#4caf50','#42a5f5','#ab47bc','#ff9800'];
+var EE={first:['⚡','Schnelle Finger'],dgrip:['👊','Doppelgriff'],kgrip:['💪','Kraftgriff'],tsich:['🎯','Treffsicher'],egrip:['🧤','Eisengriff'],pluen:['🪙','Plünderer'],dzau:['📖','Doppelzauber'],arwis:['🔮','Arkanes Wissen'],sseit:['💨','Schnelle Seiten'],hzau:['💚','Heilzauber'],zsch:['🛡️','Zauberschild'],weis:['🪄','Weisheit'],block:['🛡️','Blocken'],guard:['🤝','Wächter'],cnt:['⚔️','Gegenschlag'],prot:['🛡️','Schutz'],elem:['🔮','Elementschutz'],life:['❤️','Leben'],thorn:['🌵','Dornen'],heal:['💚','Heilung'],dodge:['💨','Ausweichen'],fire:['🔥','Feuer'],ice:['❄️','Eis'],thun:['⚡','Blitz'],air:['🌪️','Wind'],fee:['🧚','Fee'],light:['✨','Licht'],dark:['🌑','Dunkel']};
+var WCL={weapon:{m:1,lab:'Schwert',pool:['fire','ice','thun','air','light','dark']},bow:{m:.8,lab:'Bogen',pool:['fire','ice','thun','air','fee','dark']},staff:{m:.6,lab:'Magie',pool:['fire','ice','thun','air','fee','dark']}};
+var AKT=['helm','armor','cape'],AP=['prot','elem','life','thorn','heal','dodge'],AM={prot:.6,dodge:.6};
+var NKT=['hand','book','shield'];
+function hasE(i){return (WKT.indexOf(i.type)>=0||AKT.indexOf(i.type)>=0||NKT.indexOf(i.type)>=0)&&!i.fx&&SLOTS[i.rarity]>0}
+AKT.forEach(function(t){WCL[t]={m:1,lab:'Rüstung',pool:AP}});
+WCL.hand={m:1,lab:'Handschuhe',pool:['first','dgrip','kgrip','tsich','egrip','pluen']};WCL.book={m:1,lab:'Buch',pool:['dzau','arwis','sseit','hzau','zsch','weis']};WCL.shield={m:1,lab:'Schild',pool:['block','prot','thorn','elem','guard','cnt']};
+AM.dgrip=.8;AM.dzau=.8;AM.egrip=.8;AM.block=.8;AM.zsch=.6;
+var BM={helm:null,armor:null,cape:null,weapon:{fire:'dmg',ice:'stun',thun:'behind',air:'stun',light:'heal',dark:'steal'},bow:{fire:'dmg',ice:'stun',thun:'behind',air:'dbl',fee:'heal',dark:'dot'},staff:{fire:'dmg',ice:'stun',thun:'dmg',air:'stun',fee:'heal',dark:'weak'}};
+var ABM={prot:'prot',elem:'elem',life:'life',thorn:'thorn',heal:'rheal',dodge:'adodge'};BM.helm=BM.armor=BM.cape=ABM;
+BM.hand={first:'stun',dgrip:'dbl',kgrip:'dmg',tsich:'crit',egrip:'stun',pluen:'gold'};BM.book={dzau:'dbl',arwis:'dmg',sseit:'stun',hzau:'gheal',zsch:'prot',weis:'gold'};BM.shield={block:'block',prot:'prot',thorn:'thorn',elem:'elem',guard:'guard',cnt:'cnt'};
+var MT={crit:function(v){return v+'% Chance auf einen Krit-Treffer (+50% Schaden)'},gold:function(v){return '+'+v+'% Gold aus Kämpfen'},gheal:function(v){return 'Heilt die Gruppe jede Runde um '+(v/10).toFixed(1)+'% Leben'},block:function(v){return v+'% Chance, den Schaden eines Treffers zu halbieren'},guard:function(v){return 'Mitstreiter erleiden '+v+'% weniger Schaden (solange du lebst)'},cnt:function(v){return v+'% Chance, nach einem Block zurückzuschlagen'},prot:function(v){return v+'% weniger Schaden von allen Angriffen'},elem:function(v){return v+'% weniger Schaden von Zauber- und Element-Gegnern'},life:function(v){return 'Hält '+v+'% mehr aus (wie +'+v+'% Leben)'},thorn:function(v){return v+'% des erlittenen Schadens geht an den Angreifer zurück'},rheal:function(v){return 'Heilt dich jede Runde um '+(v/10).toFixed(1)+'% Leben'},adodge:function(v){return v+'% Chance, einem Angriff auszuweichen'},protx:function(v){return '+'+Math.round(v*.5)+'% Schutz extra (Schutz kann bis 100% steigen)'},dmg:function(v){return v+'% extra Schaden'},stun:function(v){return v+'% Chance: Gegner verliert seinen nächsten Angriff'},behind:function(v){return v+'% des Schadens trifft auch den Gegner dahinter'},all:function(v){return v+'% des Schadens trifft alle anderen Gegner'},heal:function(v){return 'Heilt dich pro Treffer um '+(v/10).toFixed(1)+'% Leben'},steal:function(v){return v+'% des Schadens heilen dich'},dbl:function(v){return v+'% Chance auf einen zweiten Treffer'},dot:function(v){return 'Gift: '+v+'% Schaden pro Runde (3 Runden)'},weak:function(v){return 'Gegner machen '+v+'% weniger Schaden'},dodge:function(v){return 'Gegner verfehlen dich mit '+v+'%'}};
+function mtxt(m,v,t){return (t==='staff'&&m!=='heal'&&m!=='weak'?'Alle Gegner: ':'')+MT[m](v)}
+var CBO={};function cbA(a,b,n,i,m){CBO[[a,b].sort().join('+')]=[n,i,m]}
+cbA('fire','ice','Rauch','💨','dodge');cbA('fire','thun','Plasma','☄️','dmg');cbA('fire','air','Feuersturm','🌋','all');cbA('fire','fee','Funkenstaub','🎇','all');cbA('fire','light','Sonnenglut','☀️','dmg');cbA('fire','dark','Höllenfeuer','👹','dot');
+cbA('ice','thun','Frostblitz','🧊','dmg');cbA('ice','air','Blizzard','🌨️','stun');cbA('ice','fee','Raureif','❄️','weak');cbA('ice','light','Kristall','💎','dodge');cbA('ice','dark','Frostfluch','☠️','weak');
+cbA('thun','air','Sturm','🌩️','all');cbA('thun','fee','Irrlicht','💫','dbl');cbA('thun','light','Himmelsblitz','⚡','dmg');cbA('thun','dark','Schattenblitz','🌑','stun');
+cbA('air','fee','Windfee','🍃','dodge');cbA('air','light','Federlicht','🪶','heal');cbA('air','dark','Gift','☣️','dot');cbA('fee','light','Segen','🙏','heal');cbA('fee','dark','Fluch','🕯️','weak');cbA('light','dark','Zwielicht','🌗','dbl');
+function cbA2(a,b,n,i,m){cbA(a,b,n,i,m)}
+cbA2('prot','prot','Doppelter Schutz','🛡️','protx');cbA2('prot','elem','Runenpanzer','🔰','elem');cbA2('prot','life','Festung','🏯','life');cbA2('prot','thorn','Stachelpanzer','🦔','thorn');cbA2('prot','heal','Bollwerk','🏰','rheal');cbA2('prot','dodge','Schildtanz','💃','adodge');
+cbA2('elem','life','Zauberhaut','🔮','life');cbA2('elem','thorn','Funkenpanzer','⚡','thorn');cbA2('elem','heal','Heiliger Schleier','🕊️','rheal');cbA2('elem','dodge','Nebelmantel','🌫️','adodge');
+cbA2('life','thorn','Dornenfleisch','🌹','thorn');cbA2('life','heal','Zähigkeit','💪','rheal');cbA2('life','dodge','Federleicht','🪶','adodge');cbA2('thorn','heal','Dornenranke','🌿','thorn');cbA2('thorn','dodge','Konterschritt','🥷','thorn');cbA2('heal','dodge','Lebensfluss','🌊','rheal');
+cbA('first','dgrip','Flinke Hände','⚡','dbl');cbA('egrip','kgrip','Bärenkraft','🐻','stun');cbA('first','tsich','Scharfschütze','🎯','crit');cbA('dgrip','pluen','Raubzug','💰','gold');cbA('dgrip','kgrip','Faustkampf','🥊','dmg');
+cbA('dzau','sseit','Zauberschnell','✨','dbl');cbA('arwis','hzau','Heiliges Wissen','📜','gheal');cbA('hzau','zsch','Schutzzauber','🔰','gheal');cbA('arwis','dzau','Arkane Salve','🧪','dmg');cbA('weis','zsch','Weiser Schutz','🦉','gold');
+cbA('block','prot','Schildwall','🧱','block');cbA('block','thorn','Stachelschild','🦔','thorn');cbA('guard','prot','Bollwerk','🏰','guard');cbA('block','cnt','Konter-Block','🥷','cnt');
+function cbo(a,b,t){var key=[a,b].sort().join('+');if(CBO[key]&&(a!==b||a==='prot'))return CBO[key];if(a!==b&&t&&BM[t]&&BM[t][a]&&BM[t][a]!==BM[t][b])return[EE[a][1]+' + '+EE[b][1],'✦',BM[t][[a,b].sort()[0]]];return a===b?[EE[a][1]+' verstärkt',EE[a][0],'stack']:(CBO[[a,b].sort().join('+')]||['?','✦',null])}
+var SPL={weapon:[['dstrike','Doppelschlag','Schlägt zweimal. Der zweite Schlag macht 60% Schaden.'],['kraft','Kraftschlag','Jede Fähigkeit dieser Waffe wirkt doppelt so stark.'],['wirbel','Wirbelhieb','Trifft zusätzlich die Gegner dahinter mit 40%.'],['henker','Henker','Doppelter Schaden gegen Gegner unter 25% Leben.'],['nach','Nachschlag','20% Chance auf einen sofortigen zweiten Schlag.']],
+ staff:[['flamme','Lange Flamme','Gift und Brand halten 2 Runden länger.'],['echo','Echo','40% Chance, dass der Zauber sich sofort wiederholt.'],['arkan','Arkane Kraft','Zauber machen 30% mehr Schaden.'],['kette','Kettenzauber','50% Chance auf einen zweiten Zauber mit 50% auf einen zufälligen Gegner.'],['meteor','Meteor','Jede 4. Runde fällt ein Meteor mit dreifachem Schaden auf alle.']],
+ bow:[['dshot','Doppelschuss','Zwei Pfeile pro Angriff, der zweite mit 60%.'],['tshot','Dreifachschuss','Drei Pfeile auf drei Ziele, jeder mit 45%.'],['qshot','Vierfachschuss','Vier Pfeile, jeder mit 35%.'],['lade','Ladeschuss','Jeder 2. Schuss ist ein Ladeschuss mit 300% und trifft alle in der Reihe.'],['quer','Querschläger','Der Pfeil springt zweimal mit 40% auf zufällige Gegner.']]};
+SPL.helm=SPL.armor=SPL.cape=[['bw','Bollwerk','Der erste Treffer pro Kampf wird ganz geblockt.'],['dorn','Dornenpanzer','Angreifer bekommen immer 15% ihres Schadens zurück.'],['quell','Lebensquell','Heilt dich jede Runde um 3% deiner Leben.'],['spiegel','Spiegelpanzer','25% der gegnerischen Treffer werden auf den Angreifer zurückgeworfen.'],['will','Eiserner Wille','Unter 30% Leben erleidest du 25% weniger Schaden.']];
+SPL.hand=[['blitz','Blitzhände','Im ersten Angriff jedes Kampfes verlieren alle Gegner ihren Angriff.'],['drei','Dreifachgriff','Alle 3 Runden schlägst du mit doppelter Zusatzkraft zu.'],['dieb','Diebesgriff','Besiegte Gegner lassen 50% mehr Gold fallen.']];
+SPL.book=[['zecho','Zauberecho','Jeder 3. Zauber wird kostenlos wiederholt.'],['bheil','Buch der Heilung','Heilt die Gruppe zusätzlich um 3% pro Runde.'],['verb','Verbotenes Wissen','+40% Schaden, aber du erleidest 5% mehr Schaden.']];
+SPL.shield=[['bw','Turmschild','Der erste Treffer jedes Kampfes wird ganz geblockt.'],['aegis','Aegis','Die ersten 2 gegnerischen Angriffe jedes Kampfes treffen niemanden.'],['spiegel','Spiegelschild','25% der Treffer werden auf den Angreifer zurückgeworfen.']];
+var SLOTS={normal:0,gruen:1,blau:2,episch:3,legendaer:4,mystisch:4};
+function qv(q){return EQ[q][0]+Math.floor(Math.random()*(EQ[q][1]-EQ[q][0]+1))}
+function rq(){var r=Math.random()*100;return r<50?0:r<80?1:r<95?2:3}
+function ne(t){var p=WCL[t].pool,q=rq();return{e:p[Math.floor(Math.random()*p.length)],q:q,p:qv(q)}}
+function efOf(uid){ens();var n=inventory.inst&&inventory.inst[uid];if(!n)return null;var b=base(n.b);if(!b||b.fx||(WKT.indexOf(b.type)<0&&AKT.indexOf(b.type)<0&&NKT.indexOf(b.type)<0))return null;
+ if(!n.e){var cnt=SLOTS[b.rarity]||0;n.e=[];n.k=[];for(var i=0;i<cnt;i++){n.e.push(ne(b.type));n.k.push(0)}n.ro=0;
+  if(RANK.indexOf(b.rarity)>=4&&SPL[b.type])n.sp=SPL[b.type][Math.floor(Math.random()*SPL[b.type].length)][0];
+  try{saveInventory()}catch(x){}}
+ return n}
+function vOf(n,x,t){return Math.max(1,Math.round(x.p*WCL[t].m*(AM[x.e]||1)*(n.sp==='kraft'?2:1)))}
+function wfx(uid){var n=efOf(uid);if(!n)return null;var b=base(n.b),t=b.type,c=WCL[t],bm=BM[t],k2=n.sp==='kraft'?2:1,L=[];
+ n.e.forEach(function(x){L.push({mech:bm[x.e],v:vOf(n,x,t)})});
+ for(var i=0;i<n.e.length-1;i++){var a=n.e[i],b2=n.e[i+1],cb=cbo(a.e,b2.e,t);if(cb[2]&&cb[2]!=='stack')L.push({mech:cb[2],v:vOf(n,a,t)+vOf(n,b2,t)})}
+ return{t:t,L:L,sp:n.sp}}
+function wUid(w){var g=gear(w)||{};return g[WSK[w]]}
+function efIcons(uid){var n=efOf(uid);if(!n||!n.e.length)return '';return '<div style="font-size:.55rem;color:#cdb">'+n.e.map(function(x){return EE[x.e][0]+'<b style="color:'+EQC[x.q]+'">'+vOf(n,x,base(n.b).type)+'%</b>'}).join(' ')+(n.sp?' ★':'')+'</div>'}
+function efHtml(uid,edit){var n=efOf(uid);if(!n)return '';var b=base(n.b),t=b.type,c=WCL[t],bm=BM[t],k2=n.sp==='kraft'?2:1,h='';
+ if(!n.e.length)return '<div style="font-size:.7rem;color:#a08060;padding:6px">Dieser Gegenstand hat keine Effekt-Plätze (ab Grün).</div>';
+ n.e.forEach(function(x,j){var v=vOf(n,x,t),lk=edit&&n.k[j];
+  h+='<div style="display:flex;gap:8px;align-items:center;border:1px solid '+(lk?'#f0c040':'#5a3f8a')+';border-radius:10px;padding:6px 8px;margin-top:6px;background:#0007'+(lk?';box-shadow:0 0 10px #f0c04055':'')+'"><div style="font-size:22px;min-width:28px;text-align:center">'+EE[x.e][0]+'</div><div style="flex:1;min-width:0"><div style="font-size:.78rem"><b>'+EE[x.e][1]+'</b> <b style="color:'+EQC[x.q]+'">'+v+'%</b> <span style="font-size:.6rem;color:'+EQC[x.q]+'">'+EQN[x.q]+'</span></div><div style="font-size:.62rem;color:#b9a77f">'+mtxt(bm[x.e],v,t)+'</div></div>'+
+  (edit?'<div style="display:flex;flex-direction:column;gap:4px;align-items:center"><span onclick="__kamEL('+j+')" style="font-size:1.1rem;cursor:pointer">'+(n.k[j]?'🔒':'🔓')+'</span>'+(x.q<3?'<span onclick="__kamEU('+j+')" style="font-size:.55rem;border:1px solid '+EQC[x.q+1]+';color:'+EQC[x.q+1]+';border-radius:8px;padding:2px 5px;cursor:pointer;white-space:nowrap">▲ '+EQN[x.q+1]+' · '+upCost(x)+'💰</span>':'<span style="font-size:.55rem;color:#ff9800">MAX</span>')+'</div>':'')+'</div>'});
+ var cs='';for(var i=0;i<n.e.length-1;i++){var a=n.e[i],b2=n.e[i+1],cb=cbo(a.e,b2.e,t),v2=vOf(n,a,t)+vOf(n,b2,t);
+  cs+='<div style="display:flex;gap:8px;align-items:center;border:1px solid #8a60d0;border-radius:10px;padding:6px 8px;margin-top:6px;background:#1a0f2e"><div style="font-size:22px;min-width:28px;text-align:center">'+cb[1]+'</div><div style="font-size:.78rem"><b>'+cb[0]+'</b> <b style="color:#ffd24a">'+v2+'%</b><div style="font-size:.62rem;color:#b9a77f;font-weight:400">'+(cb[2]==='stack'?'Stapelt: '+EE[a.e][1]+' zusammen '+v2+'%':mtxt(cb[2],v2,t))+'</div></div></div>'}
+ if(cs)h+='<div style="font-size:.6rem;color:#9a8cc0;letter-spacing:2px;margin-top:10px">KOMBIS (AUTOMATISCH)</div>'+cs;
+ if(n.sp){var s=SPL[t].filter(function(x){return x[0]===n.sp})[0];if(s)h+='<div style="border:1px solid #ff9800;border-radius:10px;padding:6px 8px;margin-top:10px;background:#2a1600"><b style="color:#ff9800;font-size:.78rem">★ '+s[1]+'</b><div style="font-size:.62rem;color:#e0c8a0">'+s[2]+'</div></div>'}
+ return h}
+function efCost(n,b){return Math.round(60*Math.pow(1.5,n.ro||0)*(1+.4*RANK.indexOf(b.rarity)))}
+function upCost(x){return Math.round(250*Math.pow(2.5,x.q))}
+function sideD(t,d){if(!t||t.hp<=1||d<1)return;t.hp=Math.max(1,t.hp-Math.round(d))}
+function healAbs(w,a){a=Math.max(1,Math.round(a));try{if(w==='hero'){if(meta.hp>0)meta.hp=Math.min(meta.maxHp,meta.hp+a)}else if(AH[w]&&AH[w].hp>0)AH[w].hp=Math.min(AH[w].max,AH[w].hp+a)}catch(e){}}
+var WC={};
+function offIds(w){var g=gear(w)||{},r=[];[g[WSK[w]],g.hand,g.book].forEach(function(u){if(u)r.push(u)});return r}
+function strikeFx(w,d0){var ids=offIds(w);if(!ids.length)return 0;var tg=monstersInFight||[],m=tg[0];if(!m)return 0;
+ var L=[],sps=[],wt='weapon';ids.forEach(function(u){var F=wfx(u);if(!F)return;if((gear(w)||{})[WSK[w]]===u)wt=F.t;F.L.forEach(function(f){L.push(f)});if(F.sp)sps.push(F.sp)});
+ var ex=0,all=wt==='staff',T=all?tg:[m],rest=tg.slice(1);WC[w]=(WC[w]||0)+1;var c=WC[w];
+ L.forEach(function(f){var v=f.v,x=v/100;
+  switch(f.mech){
+   case 'dmg':ex+=d0*x;if(all)rest.forEach(function(t){sideD(t,d0*x)});break;
+   case 'crit':if(Math.random()*100<v){ex+=d0*.5;fl('💥 Krit','#ffd24a')}break;
+   case 'stun':T.forEach(function(t){if(Math.random()*100<v)t.__frz=1});break;
+   case 'behind':sideD(tg[1],d0*x);break;
+   case 'all':rest.forEach(function(t){sideD(t,d0*x)});break;
+   case 'heal':healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*v/1000);break;
+   case 'steal':healAbs(w,d0*x);break;
+   case 'dbl':if(Math.random()*100<v){ex+=d0;fl('✨ Doppeltreffer','#ffe14a')}break;
+   case 'dot':T.forEach(function(t){t.__dot={d:Math.max(1,Math.round(d0*x)),n:3+(sps.indexOf('flamme')>=0?2:0)}});break}});
+ sps.forEach(function(sp){
+ if(sp==='dstrike'||sp==='dshot'){ex+=d0*.6;fl('⚔️ Doppelschlag','#ffd24a')}
+ else if(sp==='wirbel'){sideD(tg[1],d0*.4);sideD(tg[2],d0*.4)}
+ else if(sp==='henker'){if(m.hp<m.maxHp*.25){ex+=d0;fl('☠️ Henker','#ff6666')}}
+ else if(sp==='nach'){if(Math.random()<.2){ex+=d0;fl('⚔️ Nachschlag','#ffd24a')}}
+ else if(sp==='echo'){if(Math.random()<.4){ex+=d0;fl('🔁 Echo','#d070ff')}}
+ else if(sp==='arkan'){ex+=d0*.3}
+ else if(sp==='kette'){if(Math.random()<.5){var r=tg[Math.floor(Math.random()*tg.length)];if(r===m)ex+=d0*.5;else sideD(r,d0*.5);fl('⛓ Kettenzauber','#d070ff')}}
+ else if(sp==='meteor'){if(c%4===0){ex+=d0*2;rest.forEach(function(t){sideD(t,d0*3)});fl('☄️ METEOR','#ff8a3a')}}
+ else if(sp==='tshot'){ex+=d0*.45;sideD(tg[1],d0*.45);sideD(tg[2],d0*.45)}
+ else if(sp==='qshot'){ex+=d0*.35;sideD(tg[1],d0*.35);sideD(tg[2],d0*.35)}
+ else if(sp==='lade'){if(c%2===0){ex+=d0*2;rest.forEach(function(t){sideD(t,d0*3)});fl('🏹 Ladeschuss','#ffd24a')}}
+ else if(sp==='quer'){for(var q=0;q<2;q++){var r2=tg[Math.floor(Math.random()*tg.length)];if(r2===m)ex+=d0*.4;else sideD(r2,d0*.4)}}
+ else if(sp==='blitz'){if(c===1){tg.forEach(function(t){t.__frz=1});fl('⚡ Blitzhände','#ffe14a')}}
+ else if(sp==='drei'){if(c%3===0){ex+=d0*2;fl('👊 Dreifachgriff','#ffd24a')}}
+ else if(sp==='zecho'){if(c%3===0){ex+=d0;fl('🔁 Zauberecho','#d070ff')}}
+ else if(sp==='verb'){ex+=d0*.4}});
+ return Math.round(ex)}
+function gs(mech){var s=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var u=wUid(w);if(!u)return;var F=wfx(u);if(F)F.L.forEach(function(f){if(f.mech===mech)s+=f.v})}catch(e){}});return s}
+var ARS={};
+function armOf(w){var g=(w==='hero'?inventory.equipped:(ai()[w]||{}))||{},A={prot:0,elem:0,life:0,thorn:0,rheal:0,adodge:0,block:0,guard:0,cnt:0,gheal:0,sp:{}},any=false;
+ AKT.concat(['shield','book']).forEach(function(t){var u=g[t];if(!u)return;var F=wfx(u);if(!F)return;any=true;F.L.forEach(function(f){if(f.mech==='protx')A.prot+=f.v*.5;else if(A[f.mech]!=null)A[f.mech]+=f.v});if(F.sp)A.sp[F.sp]=1});
+ return any?A:null}
+var ELM=['hexe','snowman','inferno','dragon1','dragon2','dragon3'];
+window.__kamFightEnd=function(){ARS={};WC={}};
+function teamSp(k){return ['hero','arc','mag'].some(function(w){try{if(!aliveA(w))return false;var A=armOf(w);return A&&A.sp[k]}catch(e){return false}})}
+function goldBonus(){var s=0;try{worn().forEach(function(x){var F=wfx(x.i.id);if(F){F.L.forEach(function(f){if(f.mech==='gold')s+=f.v});if(F.sp==='dieb')s+=50}})}catch(e){}return s}
+window.__kamArmHit=function(w,dmg,m){try{var A=armOf(w);if(!A||dmg<=0)return dmg;var sp=A.sp;
+ if(sp.bw&&!ARS[w+'bw']){ARS[w+'bw']=1;fl('🛡️ Bollwerk','#8fd8ff');return 0}
+ if(Math.random()*100<Math.min(60,A.adodge)){fl('💨 Ausgewichen','#cfe');return 0}
+ if(sp.spiegel&&Math.random()<.25){if(m)sideD(m,dmg);fl('🪞 Zurückgeworfen','#d0b0ff');return 0}
+ var d=dmg;d*=1-Math.min(80,A.prot-(sp.verb?5:0))/100;
+ var gd=0;['hero','arc','mag'].forEach(function(o){if(o===w)return;try{if(!aliveA(o))return;var B=armOf(o);if(B)gd+=B.guard}catch(e){}});if(gd>0)d*=1-Math.min(50,gd)/100;
+ if(A.block>0&&Math.random()*100<Math.min(50,A.block)){d*=.5;fl('🛡️ Geblockt','#8fd8ff');if(A.cnt>0&&m&&Math.random()*100<Math.min(60,A.cnt)){sideD(m,meta.attack*.5);fl('⚔️ Gegenschlag','#ffd24a')}}
+ if(m&&(m.isBoss||m.isWorldBoss||ELM.indexOf(m.baseType)>=0))d*=1-Math.min(80,A.elem)/100;
+ if(A.life>0)d*=100/(100+A.life);
+ if(sp.will){var mx=w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||1,cur=w==='hero'?meta.hp:(AH[w]&&AH[w].hp)||0;if(cur<mx*.3)d*=.75}
+ var th=A.thorn+(sp.dorn?15:0);if(th>0&&m)sideD(m,d*th/100);
+ return Math.max(1,Math.round(d))}catch(e){return dmg}};
+function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var A=armOf(w);if(!A)return;var p=A.rheal/10+(A.sp.quell?3:0);if(p>0)healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*p/100);GH+=A.gheal/10+(A.sp.bheil?3:0)}catch(e){}});
+ if(GH>0)['hero','arc','mag'].forEach(function(w){try{if(aliveA(w))healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*GH/100)}catch(e){}})}
+window.__kamInfo=function(uid){var i=it(uid);if(!i)return;var M=document.getElementById('kamInfo');
+ if(!M){M=document.createElement('div');M.id='kamInfo';M.style.cssText='position:fixed;inset:0;z-index:100002;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px';M.onclick=function(e){if(e.target===M)M.style.display='none'};document.body.appendChild(M)}
+ var col=RARITY_COLOR[i.rarity],q=st(i);
+ M.innerHTML='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid '+col+';border-radius:16px;padding:16px;max-width:380px;width:100%;max-height:88vh;overflow:auto;color:#ffe9c4;font-family:Georgia,serif"><div style="display:flex;gap:10px;align-items:center">'+itemIcon(i,52)+'<div><b style="color:'+col+'">'+i.name+'</b><div style="font-size:.65rem;color:#c8a070">'+RARITY_LABEL[i.rarity]+' · '+CN[i.c]+' · <span style="color:#ffd24a">'+stars(i)+'</span></div><div style="font-size:.7rem">'+descOf(i)+'</div></div></div>'+efHtml(uid,false)+'<button class="btn btn-wide" style="width:100%;margin-top:12px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\'">Schließen</button></div>';
+ M.style.display='flex'};
+
 /* ---- Schmiede ---- */
-var FS={b:null,f:null,msg:''};
+var FS={b:null,f:null,msg:''},EFLV=4;
 function fam(b){return b.fx?b.fx.k:b.type}
 function nextBase(b){var r=RANK.indexOf(b.rarity);if(r<1||r>3)return null;var nr=RANK[r+1];
  return ITEMS.filter(function(x){return fam(x)===fam(b)&&x.rarity===nr})[0]||null}
@@ -1107,6 +1249,18 @@ function forgeUI(){
  '<h2 style="color:#f0c040;text-align:center;font-size:1.05rem;margin:0 0 6px">⚒️ SCHMIEDE · Stufe '+smithLv()+'</h2>'+
  '<div style="text-align:center;font-size:.75rem;margin-bottom:10px">🔩 Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; 🔵 '+(inventory.orbs.blau||0)+' &nbsp; 🟣 '+(inventory.orbs.lila||0)+' &nbsp; 🟠 '+(inventory.orbs.orange||0)+'</div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
+ var md=FS.mode==='eff';
+ h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','★ Sterne'],['eff','✨ Wunderschmiede']].map(function(a){var on=(a[0]==='eff')===md;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
+ if(md&&smithLv()<EFLV){h+='<div style="text-align:center;font-size:.8rem;line-height:1.6;padding:16px 8px">🔒 <b style="color:#f0c040">Wunderschmiede</b><br>Hier würfelst du Effekte auf deinen Waffen und Rüstungen.<br>Frei ab <b>Schmiede-Stufe '+EFLV+'</b> (dann kannst du auch Blau schmieden).<br>Du hast Stufe '+smithLv()+'. Baue die Schmiede in der Stadt aus.</div><button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
+ if(md){var EB=FS.eb?it(FS.eb):null;if(!EB)FS.eb=null;
+  h+='<div style="text-align:center;font-size:.75rem;margin-bottom:10px">💰 Gold: <b>'+(meta?meta.gold:0)+'</b></div>';
+  if(!EB){h+='<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin-bottom:6px">GEGENSTAND WÄHLEN (Effekte ab Grün)</div>';var cn2=0;
+   sorted().filter(hasE).forEach(function(x){cn2++;h+=card(x,'','__kamEB(\''+x.id+'\')',false)});
+   if(!cn2)h+='<div style="font-size:.7rem;color:#a08060;text-align:center;padding:12px">Du hast noch keinen Gegenstand ab Grün.</div>'}
+  else{var en=efOf(FS.eb),eb=base(en.b),ec=efCost(en,eb),alk=en.k.length&&en.k.every(Boolean);
+   h+=card(EB,'','__kamEB(null)',true)+'<div style="font-size:.7rem;color:#c8a070;margin:8px 0 2px;text-align:center">Tippe 🔓, um eine Fähigkeit zu sperren. Sperren kostet nichts extra.</div>'+efHtml(FS.eb,true)+
+   '<button class="btn btn-wide" '+(alk||!en.e.length||(meta&&meta.gold<ec)?'disabled ':'')+'onclick="__kamER()" style="width:100%;margin-top:12px">🎲 WÜRFELN · '+ec+' 💰</button><div style="text-align:center;font-size:.62rem;color:#c8a070;margin-top:6px">Würfe bei dieser Waffe: '+(en.ro||0)+' · jeder Wurf wird teurer</div>'}
+  h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
  if(!B){h+='<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin-bottom:6px">1. BASIS-ITEM WÄHLEN</div>';
   var n=0;sorted().forEach(function(i){n++;h+=card(i,'','__kamFB(\''+i.id+'\')',false)});
   if(!n)h+='<div style="font-size:.7rem;color:#a08060;text-align:center;padding:12px">Du hast noch keine Items zum Schmieden.</div>'}
@@ -1123,7 +1277,14 @@ function forgeUI(){
    (nb&&smithLv()<UPLV[B.rarity]?'<div style="text-align:center;font-size:.72rem;color:#ff9a8a;margin-bottom:6px">🔒 Schmiede Stufe '+UPLV[B.rarity]+' nötig für '+UPN[B.rarity]+' (du hast Stufe '+smithLv()+'). Baue die Schmiede in der Stadt aus.</div>':'')+(nb?'<button class="btn btn-wide" '+((inventory.orbs[oc]||0)>0&&smithLv()>=UPLV[B.rarity]?'':'disabled ')+'onclick="__kamDoUp()" style="width:100%">'+(smithLv()<UPLV[B.rarity]?'Schmiede zu niedrig':(inventory.orbs[oc]||0)>0?'✨ AUFWERTEN':'Kugel fehlt')+'</button>':'')}}
  h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';
  M.innerHTML=h;M.style.display='flex'}
-window.__kForge=function(){FS={b:null,f:null,msg:''};forgeUI()};
+window.__kamEM=function(m){FS.mode=m;FS.msg='';forgeUI()};
+window.__kamEB=function(u){FS.eb=u;FS.msg='';forgeUI()};
+window.__kamEL=function(j){var n=efOf(FS.eb);if(!n||smithLv()<EFLV)return;n.k[j]=n.k[j]?0:1;saveInventory();forgeUI()};
+window.__kamER=function(){var n=efOf(FS.eb);if(!n||smithLv()<EFLV)return;var b=base(n.b),c=efCost(n,b);if(!n.e.length||n.k.every(Boolean)||!meta||meta.gold<c)return;
+ meta.gold-=c;n.ro=(n.ro||0)+1;n.e=n.e.map(function(x,j){return n.k[j]?x:ne(b.type)});FS.msg='🎲 Neu gewürfelt';saveInventory();try{updateUI()}catch(e){}forgeUI()};
+window.__kamEU=function(j){var n=efOf(FS.eb);if(smithLv()<EFLV||!n||!n.e[j]||n.e[j].q>=3)return;var c=upCost(n.e[j]);if(!meta||meta.gold<c)return;
+ meta.gold-=c;n.e[j].q++;n.e[j].p=qv(n.e[j].q);saveInventory();try{updateUI()}catch(e){}forgeUI()};
+window.__kForge=function(){FS={b:null,f:null,msg:'',mode:FS.mode,eb:null};forgeUI()};
 window.__kamFB=function(u){FS.b=u;FS.f=null;FS.msg='';forgeUI()};
 window.__kamFF=function(u){FS.f=u;forgeUI()};
 window.__kamDoForge=function(){var B=it(FS.b),F=it(FS.f);if(!B||!F||B.s>=3||(inventory.iron||0)<cost(B))return;
@@ -1178,6 +1339,47 @@ window.__kamDieSet=function(id){if(busy||inFight||dieLocked())return;EQ=id;saveD
 
 
 (function(){var st=document.createElement('style');st.textContent='body #runHero{left:104px!important;bottom:10px!important;width:65px!important;max-width:65px!important;z-index:5!important}body #runHero img{height:auto!important;object-fit:contain!important}';document.head.appendChild(st)})();
+/* ---------- Eigene Lebensleisten ---------- */
+var AH={arc:{hp:0,max:0},mag:{hp:0,max:0}},wasF=false;
+var PATT={wolf:'double',snake:'back',spider:'back',hexe:'back',inferno:'all'};
+function aMax(){return Math.max(10,Math.round((meta&&meta.maxHp||20)*.6))}
+function aInit(force){var m=aMax();['arc','mag'].forEach(function(k){var a=AH[k];if(force||!a.max){a.max=m;a.hp=m}else if(a.max!==m){a.hp=Math.round(a.hp/a.max*m);a.max=m}})}
+function onTeam(id){return id==='hero'||allyList().some(function(a){return a.id===id})}
+function aliveA(id){if(id==='hero')return meta&&meta.hp>0;if(!AH[id]||!AH[id].max)aInit();return AH[id].hp>0}
+function teamAlive(){return SLT.filter(function(id){return onTeam(id)&&aliveA(id)})}
+window.__kamTeamUp=function(){return teamAlive().some(function(id){return id!=='hero'})};
+window.__kamRoute=function(md,m){
+ try{aInit();var al=teamAlive();if(!al.length)return md;
+  var pat=(m&&(m.isBoss||m.isWorldBoss))?'all':(PATT[m&&m.baseType]||'front'),tg;
+  function pick(a){return a[Math.floor(Math.random()*a.length)]}
+  if(pat==='all')tg=al.map(function(id){return[id,Math.max(1,Math.round(md*.7))]});
+  else if(pat==='double'){var c=al.slice(),t=[];while(c.length&&t.length<2){var x=pick(c);c.splice(c.indexOf(x),1);t.push(x)}tg=t.map(function(id){return[id,Math.max(1,Math.round(md*.7))]})}
+  else if(pat==='back'){var b=al.filter(function(id){return SLT.indexOf(id)>0});tg=[[b.length?pick(b):al[0],md]]}
+  else tg=[[al[0],md]];
+  var hd=0;tg.forEach(function(x){if(window.__kamArmHit)x[1]=window.__kamArmHit(x[0],x[1],m);if(x[0]==='hero')hd+=x[1];else AH[x[0]].hp=Math.max(0,AH[x[0]].hp-x[1])});
+  return hd}catch(e){return md}};
+var oAtk2=window.attack;
+if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(),sv=meta&&meta.attack;if(down)meta.attack=0;
+ try{return oAtk2.apply(this,arguments)}finally{if(down)setTimeout(function(){meta.attack=sv},60)}};
+(function(){
+ var st=document.createElement('style');
+ st.textContent='body.khd #runImg{filter:grayscale(1) brightness(.45)!important;transform:rotate(-90deg) translate(0,-6px)!important;transform-origin:50% 100%;animation:none!important}#kamAl img.dn{filter:grayscale(1) brightness(.45)!important;transform:rotate(-90deg) translate(0,-4px);transform-origin:50% 100%}.kbar{position:absolute;width:46px;height:6px;border-radius:4px;background:#000a;border:1px solid #fff4;overflow:hidden;z-index:30;pointer-events:none}.kbar i{display:block;height:100%;transition:width .25s}';
+ document.head.appendChild(st);
+ function bar(id){var e=document.getElementById('kb_'+id),w=document.getElementById('sceneWrap');if(!e&&w){e=document.createElement('div');e.id='kb_'+id;e.className='kbar';e.innerHTML='<i></i>';w.appendChild(e)}return e}
+ setInterval(function(){
+  var f=false;try{f=!!(inFight&&meta&&document.getElementById('kam'))}catch(e){}
+  if(f){aInit();var hd=meta.hp<=0&&window.__kamTeamUp();document.body.classList.toggle('khd',hd);
+   var ids=['hero'].concat(allyList().map(function(a){return a.id}));
+   ['hero','arc','mag'].forEach(function(id){var e=bar(id);if(!e)return;if(ids.indexOf(id)<0){e.style.display='none';return}
+    var p=POS(id),W={hero:65,arc:112,mag:132}[id],cur=id==='hero'?Math.max(0,meta.hp):AH[id].hp,mx=id==='hero'?meta.maxHp:AH[id].max,pc=Math.max(0,Math.min(100,cur/mx*100));
+    e.style.display='block';e.style.left=(p.l+W/2-23)+'px';e.style.bottom=(p.b+94)+'px';var i=e.firstChild;i.style.width=pc+'%';i.style.background=pc>50?'#3fd16a':pc>25?'#e8c33a':'#e04a3a'});
+   allyList().forEach(function(a){var im=document.getElementById('kal_'+a.id);if(im)im.classList.toggle('dn',AH[a.id].hp<=0)})}
+  else{document.body.classList.remove('khd');document.querySelectorAll('.kbar').forEach(function(e){e.remove()})}
+  if(wasF&&!f&&meta){var rv=function(c,m){return Math.max(1,Math.round(m*.25))};if(meta.hp<=0&&meta.hp<meta.maxHp)meta.hp=rv(0,meta.maxHp);['arc','mag'].forEach(function(k){if(AH[k].hp<=0)AH[k].hp=rv(0,AH[k].max||aMax())});try{updateUI()}catch(e){}}
+  if(wasF&&!f&&window.__kamFightEnd)window.__kamFightEnd();
+  wasF=f},200);
+})();
+
 /* ---------- Startbild: Held, Werte, Offline-Hinweis ---------- */
 (function(){
   var st=document.createElement('style');
@@ -1261,6 +1463,7 @@ window.__kamDieSet=function(id){if(busy||inFight||dieLocked())return;EQ=id;saveD
     setTimeout(function(){
       var B=document.body;B.classList.add('kfall');
       try{oRS&&oRS.apply(window,a)}catch(e){}
+      try{aInit(true)}catch(e){}
       B.classList.remove('kdead');
       var W=document.getElementById('kamWorld'),to=W&&W.style.transform;
       if(W&&to){
