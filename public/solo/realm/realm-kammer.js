@@ -1398,7 +1398,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
 /* ---------- Startbild: Held, Werte, Offline-Hinweis ---------- */
 (function(){
   var st=document.createElement('style');
-  st.textContent='#loginBox .hero-select,#loginBox>p{display:none!important}#kamStart{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px 0 14px}#kamStart img{width:150px;max-height:190px;object-fit:contain;filter:drop-shadow(0 8px 10px #000)}#kamStart .sn{color:#f0c040;font-weight:800;letter-spacing:2px;font-size:1.05rem}#kamStart .sl{color:#ffe9c4;font-size:.75rem;opacity:.85}#kamStart .sg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}#kamStart .sg div{background:#0006;border:1px solid #7a4a1a;border-radius:10px;padding:6px 2px;font-size:.62rem;color:#ffe9c4;text-align:center}#kamStart .sg b{display:block;font-size:.85rem;color:#f0c040;margin-top:2px}#kamStart .so{width:100%;box-sizing:border-box;border-radius:10px;padding:8px 10px;font-size:.7rem;text-align:center;border:1px solid}#kamStart .so.off{color:#bbb;border-color:#555;background:#0004}#kamStart .so.on{color:#9dffb5;border-color:#3fbf68;background:#06200f88}#kamStart .so.rd{color:#ffd24a;border-color:#ffd24a;background:#3a2a0a88}';
+  st.textContent='#loginBox h1{margin-top:40px!important}#loginBox .hero-select,#loginBox>p{display:none!important}#kamStart{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px 0 14px}#kamStart img{width:150px;max-height:190px;object-fit:contain;filter:drop-shadow(0 8px 10px #000)}#kamStart .sn{color:#f0c040;font-weight:800;letter-spacing:2px;font-size:1.05rem}#kamStart .sl{color:#ffe9c4;font-size:.75rem;opacity:.85}#kamStart .sg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}#kamStart .sg div{background:#0006;border:1px solid #7a4a1a;border-radius:10px;padding:6px 2px;font-size:.62rem;color:#ffe9c4;text-align:center}#kamStart .sg b{display:block;font-size:.85rem;color:#f0c040;margin-top:2px}#kamStart .so{width:100%;box-sizing:border-box;border-radius:10px;padding:8px 10px;font-size:.7rem;text-align:center;border:1px solid}#kamStart .so.off{color:#bbb;border-color:#555;background:#0004}#kamStart .so.on{color:#9dffb5;border-color:#3fbf68;background:#06200f88}#kamStart .so.rd{color:#ffd24a;border-color:#ffd24a;background:#3a2a0a88}';
   document.head.appendChild(st);
   function num(k){try{return parseInt(localStorage.getItem(k)||'0')||0}catch(e){return 0}}
   function refresh(){
@@ -1408,14 +1408,15 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     var p=document.getElementById('kamStart');
     if(!p){p=document.createElement('div');p.id='kamStart';var h1=box.querySelector('h1'),ref=h1&&h1.nextSibling;box.insertBefore(p,box.querySelector('.hero-select')||ref)}
     var ci=card.querySelector('img'),mb=0;try{mb=(inventory&&inventory.stats&&inventory.stats.maxBoss)||0}catch(e){}
-    var oi=window.__cityOffInfo?window.__cityOffInfo():{tower:0},ot,oc;
+    var oi={tower:0},ot,oc;try{if(window.__cityOffInfo)oi=window.__cityOffInfo()||oi}catch(e){}
     if(!oi.tower){oc='off';ot='Offline-Modus: nicht aktiv (Magieturm fehlt)'}
     else if(oi.ready){oc='rd';ot='Offline-Modus: aktiv · Beute wartet auf dich'}
     else{oc='on';ot='Offline-Modus: aktiv · nichts zu holen'}
     var lv=card.querySelector('.hlevel');
     p.innerHTML='<img src="'+(ci?ci.src:'')+'"><div class="sn">'+(card.querySelector('.hname')?card.querySelector('.hname').textContent:'')+'</div><div class="sl">'+(lv?lv.textContent:'')+'</div>'+
      '<div class="sg"><div>Gold<b>'+num('robGold')+'</b></div><div>Diamanten<b>'+num('robDiamonds')+'</b></div><div>Beste Kammer<b>'+Math.max(1,mb)+'</b></div></div><div class="so '+oc+'">'+ot+'</div>'}
-  setInterval(refresh,700);setTimeout(refresh,300);
+  function safe(){try{refresh()}catch(e){try{console.log('kamStart',e.message)}catch(x){}}}
+  setInterval(safe,700);setTimeout(safe,300);
 })();
 
 /* ---------- Angriffsleiste: wer ist dran ---------- */
