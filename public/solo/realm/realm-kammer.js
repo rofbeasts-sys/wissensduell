@@ -120,7 +120,7 @@ var css=document.createElement('style');css.textContent=
 '#kamDieBox{width:62px;height:62px;flex:none;perspective:260px;position:relative}'+
 '#kamDieBox.toss{animation:ktoss .95s ease-out;z-index:20}@keyframes ktoss{0%{transform:translateY(0)}35%{transform:translateY(-120px) scale(1.5)}60%{transform:translateY(-40px) scale(1.25)}78%{transform:translateY(-70px) scale(1.3)}100%{transform:translateY(0) scale(1)}}'+
 '#kamCube{position:absolute;left:5px;top:5px;width:52px;height:52px;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.8,.2,1)}'+
-'#kamDieBox.kcol #kamCube .f{background:linear-gradient(145deg,var(--d0),var(--d1))!important;border-color:var(--d1)}#kamDieBox.kcol #kamCube .f i.p{background:radial-gradient(circle at 35% 30%,#fff,#ddd)!important}#kamInv .eqb{background:#2a1a0a;border:1px solid #ffd24a;border-radius:8px;padding:5px 12px;cursor:pointer;font:700 .65rem Georgia,serif}'+
+'#kamDieBox.kcol #kamCube .f{background:linear-gradient(145deg,var(--d0),var(--d1))!important;border-color:var(--d1)}#kamDieBox.kcol #kamCube .f i.p{background:radial-gradient(circle at 35% 30%,#fff,#ddd)!important}#kamDieBox.klock::after{content:"🔒";position:absolute;right:-2px;bottom:-4px;font-size:12px}#kamInv .eqb{background:#2a1a0a;border:1px solid #ffd24a;border-radius:8px;padding:5px 12px;cursor:pointer;font:700 .65rem Georgia,serif}'+
 '#kamCube.spin{transition:none;animation:kspin .45s linear infinite}@keyframes kspin{to{transform:rotateX(360deg) rotateY(720deg)}}'+
 '#kamCube .f{position:absolute;inset:0;border-radius:9px;background:linear-gradient(145deg,#fff,#d9d2c4);border:1px solid #8a7a5c;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:7px;backface-visibility:hidden;box-shadow:inset 0 0 8px #0003}'+
 '#kamCube .f i{border-radius:50%;margin:1px}#kamCube .f i.p{background:radial-gradient(circle at 35% 30%,#e33,#800)}'+
@@ -408,8 +408,7 @@ function saveD(){ss('robKamInv',INV);ss('robKamOwned',OWN);ss('robKamEq',EQ);ss(
 function invUI(){
   var el=$('kamInv');if(!el)return;var h='';
   for(var i=0;i<3;i++){var id=INV[i];h+=id?'<button class="sl'+(armed===i?' on':'')+'" data-i="'+i+'">'+dieHTML(id,34)+'<small>'+dd(id).n.replace('würfel','')+'</small></button>':'<span class="sl em"></span>'}
-  var e='<button class="eqd eqb" onclick="__kamDiePick()">🎲 '+(EQ&&SD[EQ]?SD[EQ].n:'WÜRFEL')+' ▾</button>';
-  el.innerHTML=h+e;paintCube();
+  el.innerHTML=h;paintCube();
   [].forEach.call(el.querySelectorAll('button.sl'),function(b){b.onclick=function(){if(busy||inFight)return;var i=+b.dataset.i;armed=armed===i?-1:i;invUI();msg(armed>=0?dd(INV[armed]).n+' bereit: '+dd(INV[armed]).d+'. Jetzt würfeln.':'Würfel abgelegt.')}});
 }
 function applyFightBonus(){
@@ -986,8 +985,8 @@ function render(){
  var s=SL[sel],g=function(a){return a.map(function(t){return slotHtml(sel,t)}).join('')};
  var hi=sel==='hero'?'hero/idle0.webp':'ally/'+sel+'_i0.webp';
  L.innerHTML='<style>.hts{display:flex;gap:8px;justify-content:center;margin-bottom:10px}.ht{width:84px;height:88px;border:2px solid #7a4a1a;border-radius:12px;background:#0006;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;cursor:pointer;color:#ffe9c4}.ht.on{border-color:#f0c040;box-shadow:0 0 14px #f0c04066}.ht img{width:54px;height:54px;object-fit:contain}.ht small{font-size:10px;text-align:center}.ht.lk{opacity:.55;cursor:default;justify-content:center}.ht b{font-size:20px}'+
- '.hst{display:grid;grid-template-columns:64px 1fr 64px;gap:8px;align-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 8px 20px;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:16px}.hs{width:64px;height:64px;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
- '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:140px;height:140px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
+ '.hst{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:6px;align-items:center;justify-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 12px 22px;overflow:hidden;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:18px}.hs{width:54px;height:54px;box-sizing:border-box;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important;width:40px!important;height:40px!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
+ '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
  '<div class="hts">'+tabs+'</div><div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NM[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'<div class="hs e" style="opacity:.4"><span>Schild</span><em>bald</em></div></div></div>';
  var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NM[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NM[sel].toUpperCase()+'</div>',n=0;
@@ -1008,6 +1007,7 @@ function fam(b){return b.fx?b.fx.k:b.type}
 function nextBase(b){var r=RANK.indexOf(b.rarity);if(r<1||r>3)return null;var nr=RANK[r+1];
  return ITEMS.filter(function(x){return fam(x)===fam(b)&&x.rarity===nr})[0]||null}
 function orbFor(b){return{gruen:'blau',blau:'lila',episch:'orange'}[b.rarity]}
+var UPLV={gruen:4,blau:8,episch:12},UPN={gruen:'Blau',blau:'Lila',episch:'Orange (Legendär)'};
 function smithLv(){try{return JSON.parse(localStorage.getItem('robCity')||'{}').b.smith||0}catch(e){return 0}}
 function cost(i){return [2,4,8,16,32,64][RANK.indexOf(i.rarity)]*(i.s+1)}
 function chance(i){return Math.min(98,[90,70,50][i.s]+smithLv()*2)}
@@ -1022,8 +1022,8 @@ function forgeUI(){
  '<div style="text-align:center;font-size:.75rem;margin-bottom:10px">🔩 Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; 🔵 '+(inventory.orbs.blau||0)+' &nbsp; 🟣 '+(inventory.orbs.lila||0)+' &nbsp; 🟠 '+(inventory.orbs.orange||0)+'</div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  if(!B){h+='<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin-bottom:6px">1. BASIS-ITEM WÄHLEN</div>';
-  var n=0;sorted().forEach(function(i){if(!i.rarity||RANK.indexOf(i.rarity)<1)return;n++;h+=card(i,'','__kamFB(\''+i.id+'\')',false)});
-  if(!n)h+='<div style="font-size:.7rem;color:#a08060;text-align:center;padding:12px">Du hast noch keine Items zum Schmieden (grün oder besser).</div>'}
+  var n=0;sorted().forEach(function(i){n++;h+=card(i,'','__kamFB(\''+i.id+'\')',false)});
+  if(!n)h+='<div style="font-size:.7rem;color:#a08060;text-align:center;padding:12px">Du hast noch keine Items zum Schmieden.</div>'}
  else{h+='<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin-bottom:6px">BASIS</div>'+card(B,'','__kamFB(null)',true)+
   (B.s<3?'<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin:8px 0 6px">2. GLEICHES ITEM ALS FUTTER (geht verloren)</div>':'');
   if(B.s<3){var cands=sorted().filter(function(x){return x.bid===B.bid&&x.id!==B.id&&!wearer(x.id)});
@@ -1033,8 +1033,8 @@ function forgeUI(){
    h+='<div style="font-size:.75rem;margin:10px 0;line-height:1.5;text-align:center">Erfolg: <b>'+chance(B)+'%</b> (Schmiede +'+smithLv()*2+'%)<br>Kosten: 🔩 '+cost(B)+'<br>'+(cr.perf?'Perfekt-Chance: <b style="color:#ffd24a">'+cr.perf+'%</b>':'Zustand wird '+CN[cr.base])+'<br><span style="color:#ff9a8a">Bei Fehlschlag geht das Futter verloren.</span></div>'+
    '<button class="btn btn-wide" '+(ok?'':'disabled ')+'onclick="__kamDoForge()" style="width:100%">'+(ok?'⚒️ SCHMIEDEN':'Zu wenig Eisenbarren')+'</button>'}
   if(B.s>=3){var nb=nextBase(B),oc=orbFor(B);
-   h+='<div style="font-size:.75rem;margin:10px 0;text-align:center;line-height:1.5">★★★ Voll ausgebaut.<br>'+(nb?'Aufwerten zu <b style="color:'+RARITY_COLOR[nb.rarity]+'">'+nb.name+'</b> mit '+ORB[oc][0]+' '+ORB[oc][1]+' (du hast '+(inventory.orbs[oc]||0)+')':'Höher geht es nicht.')+'</div>'+
-   (nb?'<button class="btn btn-wide" '+((inventory.orbs[oc]||0)>0?'':'disabled ')+'onclick="__kamDoUp()" style="width:100%">'+((inventory.orbs[oc]||0)>0?'✨ AUFWERTEN':'Kugel fehlt')+'</button>':'')}}
+   h+='<div style="font-size:.75rem;margin:10px 0;text-align:center;line-height:1.5">★★★ Voll ausgebaut.<br>'+(nb?'Aufwerten zu <b style="color:'+RARITY_COLOR[nb.rarity]+'">'+nb.name+'</b> mit '+ORB[oc][0]+' '+ORB[oc][1]+' (du hast '+(inventory.orbs[oc]||0)+')':(B.rarity==='normal'?'Normale Items kannst du nur mit Sternen verbessern.':'Höher geht es nicht.'))+'</div>'+
+   (nb&&smithLv()<UPLV[B.rarity]?'<div style="text-align:center;font-size:.72rem;color:#ff9a8a;margin-bottom:6px">🔒 Schmiede Stufe '+UPLV[B.rarity]+' nötig für '+UPN[B.rarity]+' (du hast Stufe '+smithLv()+'). Baue die Schmiede in der Stadt aus.</div>':'')+(nb?'<button class="btn btn-wide" '+((inventory.orbs[oc]||0)>0&&smithLv()>=UPLV[B.rarity]?'':'disabled ')+'onclick="__kamDoUp()" style="width:100%">'+(smithLv()<UPLV[B.rarity]?'Schmiede zu niedrig':(inventory.orbs[oc]||0)>0?'✨ AUFWERTEN':'Kugel fehlt')+'</button>':'')}}
  h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';
  M.innerHTML=h;M.style.display='flex'}
 window.__kForge=function(){FS={b:null,f:null,msg:''};forgeUI()};
@@ -1047,7 +1047,7 @@ window.__kamDoForge=function(){var B=it(FS.b),F=it(FS.f);if(!B||!F||B.s>=3||(inv
   var nb=it(B.id);FS.msg='✨ Gelungen! <b style="color:'+CC[nb.c]+'">'+CN[nb.c]+'</b> '+stars(nb)}
  else FS.msg='💥 Fehlgeschlagen. Das Futter ist weg.';
  saveInventory();forgeUI()};
-window.__kamDoUp=function(){var B=it(FS.b);if(!B||B.s<3)return;var nb=nextBase(B),oc=orbFor(B);if(!nb||(inventory.orbs[oc]||0)<1)return;
+window.__kamDoUp=function(){var B=it(FS.b);if(!B||B.s<3)return;var nb=nextBase(B),oc=orbFor(B);if(!nb||(inventory.orbs[oc]||0)<1||smithLv()<UPLV[B.rarity])return;
  inventory.orbs[oc]--;bump('upgraded');restat(B.id,function(){var n=inventory.inst[B.id];n.b=nb.id;n.s=0});
  FS.msg='✨ Aufgewertet zu '+nb.name+'!';saveInventory();forgeUI()};
 ens();
@@ -1074,11 +1074,12 @@ window.showChambers=function(){
 };
 
 /* ---------- Würfelwahl: großer Würfel + Knopf unten ---------- */
+function dieLocked(){return !!(K&&K.cur&&K.cur.r>0)}
 function paintCube(){var b=$('kamDieBox');if(!b)return;var d=EQ&&SD[EQ]?SD[EQ]:null;
-  b.style.setProperty('--d0',d?d.c[0]:'#ffffff');b.style.setProperty('--d1',d?d.c[1]:'#d9d2c4');b.style.setProperty('--dp',d?'#fff':'#c22');b.classList.toggle('kcol',!!d);
+  b.style.setProperty('--d0',d?d.c[0]:'#ffffff');b.style.setProperty('--d1',d?d.c[1]:'#d9d2c4');b.style.setProperty('--dp',d?'#fff':'#c22');b.classList.toggle('kcol',!!d);b.classList.toggle('klock',dieLocked());
   if(!b.__kp){b.__kp=1;b.style.cursor='pointer';b.addEventListener('click',function(){window.__kamDiePick()})}}
 window.__kamDiePick=function(){
-  if(busy||inFight){msg('Nicht während eines Kampfes oder Laufs.');return}
+  if(busy||inFight||dieLocked()){msg('Der Würfel ist für diese Runde gewählt.');return}
   var M=$('kamDiceSel');
   if(!M){M=document.createElement('div');M.id='kamDiceSel';M.style.cssText='position:fixed;inset:0;z-index:700;overflow-y:auto;background:radial-gradient(circle at 50% 0,#2a1245,#0d0814 60%);color:#ffe9c4;font-family:Georgia,serif';document.body.appendChild(M)}
   var h='<div style="max-width:420px;margin:0 auto;padding:14px 14px 40px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button class="btn btn-sm" onclick="document.getElementById(\'kamDiceSel\').style.display=\'none\'">← ZURÜCK</button><b style="flex:1;text-align:center;color:#f0c040;letter-spacing:2px">🎲 WÜRFEL</b></div><p style="font-size:.72rem;opacity:.75;text-align:center;margin:0 0 10px">Tippe einen Würfel an, um ihn zu benutzen. Neue Würfel findest du im Spiel.</p>';
@@ -1087,5 +1088,5 @@ window.__kamDiePick=function(){
   var n=0;Object.keys(SD).forEach(function(id){if(OWN.indexOf(id)<0){n++;return}h+=row(id,EQ===id,SD[id].n,id==='city'?cityInfo():SD[id].d,dieHTML(id,38))});
   for(var q=0;q<n;q++)h+='<div style="display:flex;align-items:center;gap:12px;margin:7px 0;padding:10px;border-radius:12px;border:2px solid #ffffff11;background:#0004;opacity:.5"><span style="width:38px;height:38px;border-radius:9px;background:#222"></span><div><b style="font-size:.85rem">? ? ?</b><div style="font-size:.65rem">Geheimer Würfel. Finde ihn im Spiel.</div></div></div>';
   M.innerHTML=h+'</div>';M.style.display='block'};
-window.__kamDieSet=function(id){EQ=id;saveD();invUI();hud();var M=$('kamDiceSel');if(M)M.style.display='none';msg(id?SD[id].n+' angelegt.':'Normaler Würfel.')};
+window.__kamDieSet=function(id){if(busy||inFight||dieLocked())return;EQ=id;saveD();invUI();hud();var M=$('kamDiceSel');if(M)M.style.display='none';msg(id?SD[id].n+' angelegt.':'Normaler Würfel.')};
 })();
