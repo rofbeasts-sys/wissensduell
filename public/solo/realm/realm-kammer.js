@@ -85,7 +85,7 @@ var css=document.createElement('style');css.textContent=
 '#kamBoss{position:absolute;left:0;right:0;top:34px;z-index:6;padding:3px 10px 5px;background:#000a;font-size:.66rem;color:#ffe9c4;text-align:center;letter-spacing:1px}'+
 '#kamBoss .bb{height:6px;border-radius:4px;background:#0008;margin-top:3px;overflow:hidden}#kamBoss .bb i{display:block;height:100%;background:var(--a);width:0;transition:width .3s}'+
 '#kam .tile{position:absolute;width:'+TS+'px;height:'+TS+'px;border-radius:10px;background:var(--t);border:2px solid color-mix(in srgb,var(--a) 45%,#000);display:flex;align-items:center;justify-content:center;font-size:22px;color:#fff;overflow:visible}'+
-'#kam .tile.empty,#kam .tile.start,#kam .tile.gold,#kam .tile.bed,#kam .tile.die{background:linear-gradient(#0001,#0003),url(dung/floor.webp) center/cover,var(--t);background-blend-mode:multiply,normal,normal;box-shadow:none;filter:brightness(calc(var(--b,1) * 1.4)) saturate(1.3) hue-rotate(14deg)}'+
+'#kam .tile.empty,#kam .tile.start,#kam .tile.gold,#kam .tile.bed,#kam .tile.camp,#kam .tile.die{background:linear-gradient(#0001,#0003),url(dung/floor.webp) center/cover,var(--t);background-blend-mode:multiply,normal,normal;box-shadow:none;filter:brightness(calc(var(--b,1) * 1.4)) saturate(1.3) hue-rotate(14deg)}'+
 '#kam .wall,#kam .blk{background:linear-gradient(#0002,#0004),url(dung/brick.webp) 0 0/46px 33px,var(--w)!important;border:1px solid #0008!important;border-radius:6px!important;box-shadow:none;filter:brightness(1.5) saturate(1.2) hue-rotate(18deg)}'+
 '#kam .glow{position:absolute;width:200px;height:200px;margin:-100px 0 0 -100px;border-radius:50%;background:radial-gradient(circle,#ff9a3a66 0%,#ff6a1a22 40%,#0000 70%);mix-blend-mode:screen;pointer-events:none}'+
 
@@ -94,7 +94,7 @@ var css=document.createElement('style');css.textContent=
 '#kam .torch{position:absolute;width:30px;height:46px;background:url(dung/torch.png) center/contain no-repeat;transform:rotateX(-30deg);transform-origin:50% 100%;pointer-events:none;filter:drop-shadow(0 0 8px #f90)}'+
 '#kam .tile img{width:100%;height:100%;object-fit:cover;border-radius:8px;display:block}'+
 '#kam .tile small{position:absolute;bottom:-1px;left:0;right:0;text-align:center;font-size:9px;font-weight:800;background:#000a;border-radius:0 0 8px 8px;color:#ffe9c4;line-height:13px}'+
-'#kam .tile.monster{border-color:#e14}#kam .tile.coin{border-color:#f0c040}#kam .tile.bed{border-color:#4c8}#kam .tile.boss{border-color:#f40;border-width:3px;box-shadow:0 0 24px #f408}'+
+'#kam .tile.monster{border-color:#e14}#kam .tile.coin{border-color:#f0c040}#kam .tile.bed{border-color:#4c8}#kam .tile.camp{border-color:#ff9a3a;box-shadow:0 0 14px #ff8a2a99!important}#kam .tile.boss{border-color:#f40;border-width:3px;box-shadow:0 0 24px #f408}'+
 '#kam .tile.used{opacity:.35;filter:grayscale(.7)}'+
 '@keyframes kd{from{transform:scale(1)}to{transform:scale(1.1)}}'+
 '#kam .wall,#kam .blk{position:absolute;background:var(--w);border:1px solid #0006;border-radius:6px}'+
@@ -263,6 +263,7 @@ function embersOn(c,full){
 }
 
 /* ---------- Brett ---------- */
+function campLv(){try{return JSON.parse(localStorage.getItem('robCity')||'{}').b.camp||0}catch(e){return 0}}
 function gen(r,c,R){
   /* Etage 1-3: wenig Gold, Etage 4-6: Gold-Zone, Etage 7-10: nur noch Monster (und Betten) */
   var e=Math.min(10,Math.ceil(r/ETG)),w;
@@ -272,6 +273,10 @@ function gen(r,c,R){
   var x=Math.random()*100,a=0,t='empty';
   for(var i=0;i<w.length;i++){a+=w[i][1];if(x<a){t=w[i][0];break}}
   if(t==='empty'&&e>=2&&!K.dieE[e]&&Math.random()<(EQ==='city'&&cityTier()>=2?.07:.035)){t='die';K.dieE[e]=1}
+  var cl2=campLv();
+  if(cl2>0&&t!=='die'){K.campE=K.campE||{};var gap=Math.max(1,Math.ceil(10/cl2));
+    if(!K.campE[e]&&e%gap===0&&r===ETG*e-3){t='camp';K.campE[e]=1}
+    else if(t==='empty'&&Math.random()<Math.min(.1,.01*cl2))t='camp'}
   var o={t:t,r:r,c:c};
   if(t==='die'){var ids=Object.keys(BD);o.d=pick(ids)}
   if(t==='gold')o.v=3+Math.floor(Math.random()*7);
@@ -282,7 +287,7 @@ function addEl(o){
   var d=document.createElement('div');d.className='tile '+o.t;
   if(o.t==='boss'){d.style.left=px(CM)+'px';d.innerHTML='<img class="sp" src="'+getMonsterImg(drag(K.k))+'" alt=""><small>BOSS</small>'}
   else{
-    var inner=o.t==='monster'?'<img class="sp" src="'+getMonsterImg(o.m)+'" alt=""><small>Kampf</small>':o.t==='gold'?'💰<small>+'+o.v+'</small>':o.t==='die'?dieHTML(o.d,30)+'<small>Würfel</small>':o.t==='bed'?'🛌<small>Bett</small>':o.t==='start'?'🔥':'';
+    var inner=o.t==='monster'?'<img class="sp" src="'+getMonsterImg(o.m)+'" alt=""><small>Kampf</small>':o.t==='gold'?'💰<small>+'+o.v+'</small>':o.t==='die'?dieHTML(o.d,30)+'<small>Würfel</small>':o.t==='bed'?'🛌<small>Bett</small>':o.t==='camp'?'🔥<small>Lagerfeuer</small>':o.t==='start'?'🔥':'';
     d.style.left=px(o.c)+'px';d.innerHTML=inner;d.style.setProperty('--b',(0.88+Math.random()*0.3).toFixed(2));
   }
   d.style.bottom=(o.r*STEP)+'px';o.el=d;$('kamWorld').appendChild(d);reg(o.r,d);
@@ -485,7 +490,20 @@ function dieShop(){
 }
 var CUBE={1:[0,0],2:[0,-90],6:[0,-180],5:[0,90],3:[-90,0],4:[90,0]};
 function setCube(v,spin){var c=$('kamCube');if(!c)return;c.classList.remove('spin');c.style.transform='rotateX('+(CUBE[v][0]+(spin?720:0))+'deg) rotateY('+(CUBE[v][1]+(spin?720:0))+'deg)'}
-function anim(sv,cb){var box=$('kamDieBox'),c=$('kamCube');
+/* Würfelgeräusch: Holzwürfel rollt über einen Tisch (WebAudio, ohne Datei) */
+var AC=null;
+function ac(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
+function knock(t,vol,f){var a=ac();if(!a)return;
+  var n=Math.floor(a.sampleRate*.06),b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);
+  for(var i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
+  var s=a.createBufferSource();s.buffer=b;var fl=a.createBiquadFilter();fl.type='bandpass';fl.frequency.value=f;fl.Q.value=1.2;
+  var g=a.createGain();g.gain.value=vol;s.connect(fl);fl.connect(g);g.connect(a.destination);s.start(a.currentTime+t);
+  var o=a.createOscillator(),og=a.createGain();o.type='sine';o.frequency.setValueAtTime(170+Math.random()*60,a.currentTime+t);o.frequency.exponentialRampToValueAtTime(70,a.currentTime+t+.07);
+  og.gain.setValueAtTime(vol*.7,a.currentTime+t);og.gain.exponentialRampToValueAtTime(.001,a.currentTime+t+.09);o.connect(og);og.connect(a.destination);o.start(a.currentTime+t);o.stop(a.currentTime+t+.1)}
+function diceSound(){var t=0,gaps=[.0,.07,.14,.23,.34,.47,.62,.8];
+  gaps.forEach(function(gp,i){knock(gp,.5-i*.04,900+Math.random()*1400)});knock(.9,.35,700)}
+window.__kamDiceSound=diceSound;
+function anim(sv,cb){var box=$('kamDieBox'),c=$('kamCube');try{diceSound()}catch(e){}
   box.classList.remove('toss');void box.offsetWidth;box.classList.add('toss');
   c.style.transform='';c.classList.add('spin');
   setTimeout(function(){setCube(sv,true)},450);
@@ -546,6 +564,7 @@ function land(){
       if(window.__kamGoldM)g=Math.floor(g*window.__kamGoldM());
       meta.gold+=g;K.gb=0;fl('+'+g+' 🪙','#ffd24a');msg('Gold gefunden.');
       try{if(playerClass){questTracking.goldEarned=(questTracking.goldEarned||0)+g;saveQuestTracking()}}catch(e){}}
+    else if(o.t==='camp'){var cl=campLv(),h3=Math.floor(meta.maxHp*Math.min(1,.4+.06*cl));meta.hp=Math.min(meta.maxHp,meta.hp+h3);fl('+'+h3+' ❤','#ffa04a');msg('Du rastest am Lagerfeuer. +'+h3+' Leben.')}
     else if(o.t==='bed'){var h=Math.floor(meta.maxHp*.5);meta.hp=Math.min(meta.maxHp,meta.hp+h);fl('+'+h+' ❤','#6fe08a');msg('Du ruhst dich im Bett aus.')}
     else msg('Ruhiges Feld.');
     o.used=true;if(o.el)o.el.classList.add('used');
@@ -1007,7 +1026,7 @@ function fam(b){return b.fx?b.fx.k:b.type}
 function nextBase(b){var r=RANK.indexOf(b.rarity);if(r<1||r>3)return null;var nr=RANK[r+1];
  return ITEMS.filter(function(x){return fam(x)===fam(b)&&x.rarity===nr})[0]||null}
 function orbFor(b){return{gruen:'blau',blau:'lila',episch:'orange'}[b.rarity]}
-var UPLV={gruen:4,blau:8,episch:12},UPN={gruen:'Blau',blau:'Lila',episch:'Orange (Legendär)'};
+var UPLV={gruen:4,blau:8,episch:10},UPN={gruen:'Blau',blau:'Lila',episch:'Orange (Legendär)'};
 function smithLv(){try{return JSON.parse(localStorage.getItem('robCity')||'{}').b.smith||0}catch(e){return 0}}
 function cost(i){return [2,4,8,16,32,64][RANK.indexOf(i.rarity)]*(i.s+1)}
 function chance(i){return Math.min(98,[90,70,50][i.s]+smithLv()*2)}
