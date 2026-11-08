@@ -669,6 +669,12 @@ function startWorldBoss(bossNum) {
     isWorldBoss: true,
     bossNum: bossNum
   }];
+  // Boss 7-9: zwei Drachen nacheinander (je 60% Leben/Kraft), der zweite kommt von rechts herein
+  if (bossNum >= 7 && bossNum <= 9) {
+    const m0 = monstersInFight[0];
+    m0.hp = m0.maxHp = Math.floor(bs.hp * 0.6); m0.atk = Math.floor(bs.atk * 0.6);
+    m0.next = { type: 'worldboss_' + bossNum + 'b', baseType: 'dragon1', hp: m0.hp, maxHp: m0.hp, atk: m0.atk, gold: bs.gold, isBoss: true, isWorldBoss: true, bossNum: bossNum };
+  }
   showBossAlert('? BOSS ' + bossNum);
   renderFight();
   log('⭐ <span style="color:#ff4400">BOSS ' + bossNum + ' greift an! HP: ' + bs.hp + ' | Kraft: ' + bs.atk + '</span>');
@@ -800,7 +806,7 @@ function attack() {
     const newLv = getHeroLevel(meta.hero);
     if (newLv > prevLv) showLevelUp(newLv);
 
-    if (wasBoss) {
+    if (wasBoss && !target.next) {
       meta.bossKillsThisRun++;
       const totalBossKillsBefore = Object.values(heroData).reduce((s,h)=>s+h.bossKills,0);
       heroData[meta.hero].bossKills++;
@@ -857,6 +863,21 @@ function attack() {
       }
     } // end if (wasBoss)
 
+    if (target.isWorldBoss && target.next) {
+      // Erster Drache stirbt (Animation), danach kommt der zweite von rechts herein
+      const nx = target.next; target.next = null;
+      window.__turnLock = true;
+      const el0 = document.getElementById('mimg0'); if (el0) el0.classList.add('kdie');
+      saveHeroData(); updateUI();
+      setTimeout(function() {
+        monstersInFight[0] = nx;
+        renderFight(); updateUI();
+        const e2 = document.getElementById('mimg0'); if (e2) e2.classList.add('kenter');
+        log('<span style="color:#ff6644">Der zweite Drache greift an!</span>');
+        setTimeout(function() { window.__turnLock = false; }, 700);
+      }, 800);
+      return;
+    }
     saveHeroData();
     monstersInFight.shift();
   }

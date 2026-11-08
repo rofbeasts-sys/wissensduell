@@ -7,12 +7,17 @@ var COLS=5,CM=2,TS=54,GAP=6,STEP=TS+GAP,ETG=10,ROWS=ETG*10,FACES='⚀⚁⚂⚃�
 var $=function(i){return document.getElementById(i)};
 var K=null,busy=false,fightBoss=false;window.__K=function(){return K};
 var THEMES=[
- {n:'Glutkammer',a:'#ff6a1a',bg:'#1a0707',t:'#3a1208',w:'#2a0c07'},
+ {n:'Gefängniskammer',a:'#c9b79a',bg:'#0f0d12',t:'#2a2530',w:'#1b1720'},
+ {n:'Feuerkammer',a:'#ff6a1a',bg:'#1a0707',t:'#3a1208',w:'#2a0c07'},
+ {n:'Eiskammer',a:'#5ad2ff',bg:'#07131a',t:'#12303d',w:'#0c2029'},
  {n:'Giftkammer',a:'#7bd23a',bg:'#0b1607',t:'#1c3010',w:'#13220b'},
- {n:'Schattenkammer',a:'#b06bff',bg:'#120a1c',t:'#2a1a40',w:'#1c1030'},
- {n:'Schwefelkammer',a:'#e8d23a',bg:'#171505',t:'#3a3410',w:'#262208'},
- {n:'Eiskammer',a:'#5ad2ff',bg:'#07131a',t:'#12303d',w:'#0c2029'}];
-function theme(k){return THEMES[(k-1)%THEMES.length]}
+ {n:'Wasserkammer',a:'#3a7bff',bg:'#06101f',t:'#10284a',w:'#0b1c36'},
+ {n:'Blitzkammer',a:'#e8d23a',bg:'#171505',t:'#3a3410',w:'#262208'},
+ {n:'Erdkammer',a:'#b9824a',bg:'#160e07',t:'#3a2410',w:'#26180b'},
+ {n:'Skelettkammer',a:'#b06bff',bg:'#120a1c',t:'#2a1a40',w:'#1c1030'}];
+/* Kammer 1 normal; Kammer k+1 zeigt den Boss, der Kammer k beendet hat (7=Feuer,8=Gift,9=Blitz,10=Skelett) */
+var TMAP=[0,1,2,3,4,5,6,1,3,5,7];
+function theme(k){return THEMES[k<=1?0:TMAP[Math.min(k-1,TMAP.length-1)]||TMAP[((k-2)%10)+1]]}
 function avail(R){var a=[];if(R<=10)a.push('frog');if(R>=6&&R<=15)a.push('gobold');if(R>=11&&R<=20)a.push('wolf');if(R>=21&&R<=30)a.push('bear');if(R>=25&&R<=35)a.push('golem');if(R>=31&&R<=40)a.push('snake');if(R>=41&&R<=50)a.push('spider');if(R>=51&&R<=60)a.push('freggz');if(R>=61&&R<=70)a.push('hexe');if(R>=71&&R<=80)a.push('snowman');if(R>=81)a.push('inferno');if(!a.length)a.push('frog');return a}
 function reg(r,e){(K.rows[r]=K.rows[r]||[]).push(e)}
 function updateVis(){var c=K.cur.r,lo=Math.max(0,c-5),hi=c+14;if(K.lo===lo&&K.hi===hi)return;for(var r=0;r<=ROWS+1;r++){var v=r>=lo&&r<=hi;if(K.vr[r]===v)continue;K.vr[r]=v;(K.rows[r]||[]).forEach(function(e){e.style.display=v?'':'none'})}K.lo=lo;K.hi=hi}
@@ -21,15 +26,22 @@ function mainOf(k){return MAIN[Math.min(k-1,MAIN.length-1)]}
 function pool(k){return MAIN.slice(0,Math.min(k,MAIN.length))}
 function pick(a){return a[Math.floor(Math.random()*a.length)]}
 /* Monster-Animationen (Bildsätze): Stehen i0/i1, Angriff a0-a2, Treffer h */
-var AF={},ANIMT=['bear','wolf','gobold','snake'],mlock=0,midle=0;
+var AF={},ANIMT=['bear','wolf','gobold','snake','worldboss_1','worldboss_2','worldboss_3','worldboss_4','worldboss_5','worldboss_6','worldboss_10'],mlock=0,midle=0;
 ANIMT.forEach(function(t){['i0','i1','a0','a1','a2','h'].forEach(function(k){var im=new Image();im.src='mon/'+t+'_'+k+'.webp';AF[t+k]=im.src})});
-function mimgs(){return [].slice.call(document.querySelectorAll('#battleScene .monster-slot img')).filter(function(i){return ANIMT.indexOf(i.getAttribute('alt'))>=0})}
-function mset(k,only){mimgs().forEach(function(i,n){if(only!==undefined&&n!==only)return;i.src=AF[i.getAttribute('alt')+k]})}
-function prepAnim(){mimgs().forEach(function(i){i.classList.add('kanim');i.src=AF[i.getAttribute('alt')+'i0']})}
+function ak(a){var pm=/^worldboss_([789])(b?)$/.exec(a||'');if(pm)return 'worldboss_'+(((+pm[1]-7)*2+1)+(pm[2]?1:0));var m=/^worldboss_(\d+)$/.exec(a||'');return m?([4,5,6,10].indexOf(+m[1])>=0?'worldboss_'+m[1]:'worldboss_'+(((+m[1]-1)%3)+1)):a}
+function mimgs(){return [].slice.call(document.querySelectorAll('#battleScene .monster-slot img')).filter(function(i){return ANIMT.indexOf(ak(i.getAttribute('alt')))>=0})}
+function mset(k,only){mimgs().forEach(function(i,n){if(only!==undefined&&n!==only)return;i.src=AF[ak(i.getAttribute('alt'))+k]})}
+function prepAnim(){mimgs().forEach(function(i){i.classList.add('kanim');i.src=AF[ak(i.getAttribute('alt'))+'i0']})}
 setInterval(function(){if(mlock)return;midle=1-midle;mset('i'+midle)},420);
+window.__kamMonAtk=function(){monAtk()};
 function monHurt(){mlock=1;mset('h',0);setTimeout(function(){mlock=0},380)}
 function snakeSpit(){try{var w=$('sceneWrap'),sl=[].slice.call(document.querySelectorAll('#battleScene .monster-slot')).filter(function(x){var i=x.querySelector('img');return i&&i.getAttribute('alt')==='snake'})[0],hr=$('runImg');if(!w||!sl||!hr)return;var wr=w.getBoundingClientRect(),mr=sl.getBoundingClientRect(),hb=hr.getBoundingClientRect();var smi=sl.querySelector('img').getBoundingClientRect();var x0=smi.left-wr.left+smi.width*.12,y0=smi.top-wr.top+smi.height*.54,x1=hb.left-wr.left+hb.width*.55,y1=y0;var p=document.createElement('div');p.className='kpj stream';p.style.left=x0+'px';p.style.top=y0+'px';w.appendChild(p);p.animate([{transform:'translate(0,0)',opacity:1},{transform:'translate('+(x1-x0-30)+'px,0)',opacity:1}],{duration:330,easing:'ease-in'}).onfinish=function(){p.remove();var q=document.createElement('div');q.className='kpj splash';q.style.left=x1+'px';q.style.top=y1+'px';w.appendChild(q);q.animate([{transform:'scale(.5)',opacity:1},{transform:'scale(1.25)',opacity:0}],{duration:420}).onfinish=function(){q.remove()}}}catch(e){}}
-function monAtk(){mlock=1;mset('a0');setTimeout(snakeSpit,260);setTimeout(function(){mset('a1')},130);setTimeout(function(){mset('a2')},260);setTimeout(function(){mlock=0;mset('i0')},520)}
+function dragonSpit(){try{var w=$('sceneWrap');if(!w)return;var wr=w.getBoundingClientRect(),hr=$('runImg'),hb=hr?hr.getBoundingClientRect():null;
+ [].slice.call(document.querySelectorAll('#battleScene .monster-slot img')).forEach(function(im,ix){var a=im.getAttribute('alt')||'',k=ak(a);if(!/^worldboss_/.test(k))return;
+  var fw=document.body.classList.contains('kamn2')?85:150,r=im.getBoundingClientRect(),x0=r.left-wr.left+r.width*.08,y0=r.top-wr.top+r.height*.46,x1=(hb&&hb.width>0)?hb.left-wr.left+hb.width*.6:wr.width*.18;
+  var fx=document.createElement('img');fx.src='mon/'+k+'_fx.webp';fx.style.cssText='position:absolute;z-index:40;pointer-events:none;width:'+fw+'px;height:auto;left:'+(x0-fw)+'px;top:'+(y0-fw*.3)+'px;transform-origin:100% 50%;transform:scaleX(-1)';w.appendChild(fx);
+  var dx=Math.min(0,x1-x0+60);fx.animate([{transform:'translate(0,0) scaleX(-.25) scaleY(.5)',opacity:.2,offset:0},{transform:'translate('+(dx*.4)+'px,0) scaleX(-1) scaleY(1)',opacity:1,offset:.35},{transform:'translate('+dx+'px,0) scaleX(-1.1) scaleY(1.1)',opacity:0,offset:1}],{duration:560,easing:'ease-out'}).onfinish=function(){fx.remove()}})}catch(e){}}
+function monAtk(){mlock=1;mset('a0');setTimeout(dragonSpit,200);setTimeout(snakeSpit,260);setTimeout(function(){mset('a1')},130);setTimeout(function(){mset('a2')},260);setTimeout(function(){mlock=0;mset('i0')},700)}
 function key(r,c){return r+','+c}
 function px(c){return (c-CM)*STEP-TS/2}
 function drag(k){return 'dragon'+(((k-1)%3)+1)}
@@ -111,8 +123,14 @@ var css=document.createElement('style');css.textContent=
 '#kamCube .f i{border-radius:50%;margin:1px}#kamCube .f i.p{background:radial-gradient(circle at 35% 30%,#e33,#800)}'+
 '#kamCube .f1{transform:translateZ(26px)}#kamCube .f2{transform:rotateY(90deg) translateZ(26px)}#kamCube .f6{transform:rotateY(180deg) translateZ(26px)}#kamCube .f5{transform:rotateY(-90deg) translateZ(26px)}#kamCube .f3{transform:rotateX(90deg) translateZ(26px)}#kamCube .f4{transform:rotateX(-90deg) translateZ(26px)}'+
 
-'#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:150px;height:150px;filter:drop-shadow(0 6px 5px #000a)}'+
-'body.kamn2 #battleScene{gap:4px!important;padding-left:38%!important}body.kamn2 #battleScene .monster-slot img{width:92px!important;height:92px!important}body.kamn3 #battleScene{gap:2px!important;padding-left:36%!important}body.kamn3 #battleScene .monster-slot img{width:66px!important;height:66px!important}body.kamn3 #battleScene .monster-name{font-size:.5rem!important}'+
+'#battleScene .monster-slot img.kdie{animation:kdie .8s ease-in forwards}@keyframes kdie{0%{transform:scaleX(-1) translateY(0);opacity:1;filter:brightness(1)}35%{transform:scaleX(-1) translateY(4px) rotate(3deg);filter:brightness(2.2)}100%{transform:scaleX(-1) translateY(34px) rotate(9deg);opacity:0;filter:brightness(.4)}}#battleScene .monster-slot img.kenter{animation:kenter .7s ease-out}@keyframes kenter{from{transform:scaleX(-1) translateX(-170px);opacity:0}to{transform:scaleX(-1) translateX(0);opacity:1}}'+
+'#battleScene .monster-slot img.kanim[alt^="worldboss"]{width:230px!important;height:180px!important}#battleScene .monster-slot img.kanim[alt^="worldboss"]{transform:scaleX(-1)}body.kamn2 #battleScene .monster-slot img.kanim[alt^="worldboss"]{width:150px!important;height:140px!important}#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:150px;height:150px;filter:drop-shadow(0 6px 5px #000a)}'+
+'body.kamn2 #battleScene{gap:6px!important;padding-left:36%!important;padding-bottom:10px!important}body.kamn2 #battleScene .monster-slot img{width:104px!important;height:104px!important}'+
+'body.kamn3 #battleScene{gap:0!important;padding-left:30%!important;padding-bottom:10px!important}body.kamn3 #battleScene .monster-slot img{width:86px!important;height:86px!important}body.kamn3 #battleScene .monster-name{font-size:.5rem!important}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(4){z-index:3}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(3){transform:translateY(-40px) scale(.86);z-index:2;opacity:.97}'+
+'body.kamn3 #battleScene .monster-slot:nth-child(3){transform:translateY(-52px) scale(.84);z-index:2}'+
+'#battleScene .monster-slot img.kanim:not([alt^="worldboss"]){background:radial-gradient(ellipse 46% 8% at 50% 95%,#000b,#0000 70%)!important}'+
 /* Profil-Taste */
 '#kamPf{position:fixed;right:14px;bottom:14px;z-index:70;width:64px;height:64px;border-radius:50%;border:3px solid var(--gold2);padding:0;overflow:hidden;background:#200;cursor:pointer;box-shadow:0 4px 16px #000c}'+
 '#kamPf img{width:100%;height:100%;object-fit:cover}'+
@@ -407,9 +425,9 @@ function saveST(){ss('robKamStats',ST)}
 function checkUnlocks(){
   if(!meta)return;
   if(meta.kills>lastK){ST.kills+=meta.kills-lastK;saveST()}lastK=meta.kills;
-  if(ST.kills>=60)unlock('vamp');
+  if(ST.kills>=10)unlock('rig');
   if(ST.deaths>=3)unlock('redo');
-  if(ST.dice>=8)unlock('luck');
+  if(ST.dice>=25)unlock('luck');
   if(ST.bosses>=1)unlock('warp');
   if(ST.low>=1)unlock('iron');
   if(meta.gold>=5000)unlock('thief');
@@ -417,6 +435,7 @@ function checkUnlocks(){
   if(cityTier()>=1)unlock('city');
   if(inFight&&meta.hp>0&&meta.hp<=meta.maxHp*.1&&!ST.lowSeen){ST.lowSeen=1;ST.low=1;saveST()}
 }
+setInterval(function(){try{if(inFight&&fightBoss&&OWN.indexOf('vamp')<0&&monstersInFight&&monstersInFight[0]&&monstersInFight[0].isBoss&&monstersInFight[0].hp<=monstersInFight[0].maxHp*.5)unlock('vamp')}catch(e){}},400);
 function cityInfo(){var t=cityTier(),mn=Math.min(6,t+1),x=['wirft '+mn+(mn<6?' bis 6':'')];if(t>=2)x.push('mehr Würfel auf dem Brett');if(t>=3)x.push('gerade Zahl: Münzfelder +2');if(t>=4)x.push('Beutewürfel stärker');if(t>=5)x.push('heilt bei jedem Wurf');return 'Stufe '+t+'/6: '+x.join(', ')}
 function dieShop(){
   var box=$('kamDiceShop');if(!box||!meta||!K)return;
@@ -487,7 +506,7 @@ function kamFight(o){
 window.__kamFight=function(kk,mm){if(kk)K.k=kk;return kamFight({r:10,m:mm||mainOf(K.k)})};
 function land(){
   var o=K.cur;busy=false;walk(false,1);
-  if(o.t==='boss'){unlock('rig');fightBoss=true;pendingBossNum=K.k;startWorldBoss(K.k);
+  if(o.t==='boss'){fightBoss=true;pendingBossNum=K.k;startWorldBoss(K.k);
     try{monstersInFight[0].baseType=drag(K.k);renderFight()}catch(e){}
     applyFightBonus();var dm='Der Drache versperrt den Weg!';if(DRG.indexOf(K.k)>=0){try{var bm=monstersInFight[0],ch=Math.round(bm.maxHp*.1);bm.hp=Math.max(1,bm.hp-ch);DRG.splice(DRG.indexOf(K.k),1);saveD();dm+=' Drachenwürfel: -'+ch+' Leben!';renderFight()}catch(e){}}msg(dm);return afterAny()}
   if(o.t==='monster'&&!o.used){o.used=true;o.el.classList.add('used');var tp=kamFight(o);msg(tp.length>1?tp.map(function(t){return MONSTER_NAMES[t]}).join(' und ')+' greifen an!':MONSTER_NAMES[o.m]+' greift an!');return afterAny()}
@@ -545,8 +564,8 @@ function hook(){
 
 /* ---------- Gruppe: Bogenschuetzin (ab Klassenlevel 15) und Magierin (ab 30) stehen hinten und helfen im Kampf ---------- */
 var ALLY=[
- {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:112,l:-4,b:132,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
- {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:140,l:58,b:170,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
+ {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:108,l:4,b:34,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
+ {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:118,l:70,b:82,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
 ];
 var allyRound=0;
 function clsLv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(e){return 0}}
