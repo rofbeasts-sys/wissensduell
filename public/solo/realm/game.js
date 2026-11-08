@@ -2336,7 +2336,7 @@ function tryDropItem(isBoss) {
 function showItemPopup(item) {
   var popup = document.getElementById('itemFoundPopup');
   if (!popup) return;
-  popup.innerHTML = '<div style="font-size:0.7rem;color:' + RARITY_COLOR[item.rarity] + ';font-weight:700">' + item.name + '</div>'
+  popup.innerHTML = itemIcon(item, 56) + '<div style="font-size:0.7rem;color:' + RARITY_COLOR[item.rarity] + ';font-weight:700">' + item.name + '</div>'
     + '<div style="font-size:0.6rem;color:#888">' + item.desc + '</div>';
   popup.style.display = 'block';
   popup.style.opacity = '1';
@@ -2353,6 +2353,11 @@ function showInventory() {
 }
 function closeInventory() { document.getElementById('inventoryModal').style.display = 'none'; openMenu(); }
 
+function itemIcon(it, px) {
+  var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:'o'}[it.rarity] || 'g';
+  var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape'}[it.type] || 'sword';
+  return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + (it.rarity === 'normal' ? 'filter:grayscale(.9) brightness(.9);' : '') + '">';
+}
 function renderInventoryModal() {
   var eq = inventory.equipped;
   var types = ['weapon','armor','helm','ring'];
@@ -2363,7 +2368,7 @@ function renderInventoryModal() {
     slotsHtml += '<div style="border:1px solid ' + (eqItem ? RARITY_COLOR[eqItem.rarity] : '#333') + ';border-radius:8px;padding:8px;text-align:center;background:rgba(0,10,20,0.6)">'
       + '<div style="font-size:0.6rem;color:#446688;margin-bottom:4px">' + TYPE_LABEL[t].toUpperCase() + '</div>'
       + (eqItem
-        ? '<div style="font-size:0.65rem;color:' + RARITY_COLOR[eqItem.rarity] + ';font-weight:700">' + eqItem.name + '</div>'
+        ? itemIcon(eqItem, 44) + '<div style="font-size:0.65rem;color:' + RARITY_COLOR[eqItem.rarity] + ';font-weight:700">' + eqItem.name + '</div>'
           + '<div style="font-size:0.55rem;color:#888">' + eqItem.desc + '</div>'
           + '<button onclick="unequipItem(\'' + t + '\')" style="font-size:0.55rem;color:#cc4444;background:none;border:none;cursor:pointer;margin-top:2px">ablegen</button>'
         : '<div style="font-size:0.7rem;color:#333">leer</div>')
@@ -2389,7 +2394,7 @@ function renderInventoryModal() {
       var isEq = eq[it.type] === id;
       var col = RARITY_COLOR[it.rarity];
       itemsHtml += '<div onclick="equipItem(\'' + id + '\')" style="border:2px solid ' + (isEq ? col : '#222') + ';border-radius:6px;padding:7px;text-align:center;cursor:pointer;background:' + (isEq ? 'rgba(20,30,40,0.9)' : 'rgba(10,10,15,0.8)') + '">'
-        + '<div style="font-size:0.6rem;color:' + col + ';font-weight:700;margin:2px 0">' + it.name + '</div>'
+        + itemIcon(it, 52) + '<div style="font-size:0.6rem;color:' + col + ';font-weight:700;margin:2px 0">' + it.name + '</div>'
         + '<div style="font-size:0.55rem;color:#888">' + it.desc + '</div>'
         + (isEq ? '<div style="font-size:0.5rem;color:#44ff88">ANGELEGT</div>' : '<div style="font-size:0.5rem;color:#446688">anlegen</div>')
         + '</div>';
