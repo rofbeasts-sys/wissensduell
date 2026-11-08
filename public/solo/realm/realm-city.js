@@ -48,11 +48,9 @@ window.showCity=function(){
    +'<button class="btn" onclick="cityBack()" style="font-size:.75rem;padding:7px 12px">← ZURÜCK</button>'
    +'<div style="flex:1;text-align:center;font-weight:700;letter-spacing:2px">🏙️ STADT</div>'
    +'<div style="font-size:.8rem">💰 '+gold()+' · 💎 '+dias()+'</div></div>';
-  h+='<div style="margin:10px;padding:10px;border:1px solid #c9a227;border-radius:10px;background:rgba(0,0,0,.4);font-size:.8rem;text-align:center">'
-   +'Ertrag bereit: 💰 '+p.g+' · 💎 '+p.d+' <span style="opacity:.7">(max. '+cap()+' Std.)</span> '
-   +'<button class="btn" onclick="cityCollect()" style="margin-left:8px;font-size:.75rem;padding:6px 12px" '+((p.g||p.d)?'':'disabled')+'>EINSAMMELN</button></div>';
+  h+='<div style="text-align:center;font-size:.7rem;opacity:.7;padding:8px 0 0">Max. '+cap()+' Std. Offline-Ertrag</div>';
   h+='<div id="cityMap" style="margin:10px auto;max-width:640px;padding:14px 8px;border-radius:16px;border:3px solid #c9a227;'
-   +'background:radial-gradient(ellipse at 30% 20%,#2b8fe0 0%,#1a6fc0 50%,#0f4a8a 100%);display:grid;grid-template-columns:1fr 1fr;gap:6px 4px">';
+   +'background:radial-gradient(ellipse at 50% 30%,#2a1c3d 0%,#170f26 55%,#0b0714 100%);display:grid;grid-template-columns:1fr 1fr;gap:6px 4px">';
   B.forEach(function(b){
     var l=lv(b.id), img=IMG[b.id], dim=(b.max&&!l);
     h+='<div onclick="cityOpen(\''+b.id+'\')" style="position:relative;text-align:center;cursor:pointer;user-select:none;padding:4px">'
