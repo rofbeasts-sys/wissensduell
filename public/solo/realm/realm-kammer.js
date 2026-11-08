@@ -985,7 +985,7 @@ window.__kamChest=function(type,cfg){
 
 /* ---- Heldenabteil ---- */
 var SL={hero:['helm','armor','cape','weapon','ring'],arc:['helm','armor','cape','bow','ring'],mag:['helm','armor','cape','staff','ring']};
-var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NEED={hero:0,arc:15,mag:30};
+var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalif'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'ally/'+w+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:15,mag:30};
 var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring'};
 var sel='hero',fr=0;
 function can(w,i){return SL[w].indexOf(i.type)>=0}
@@ -1006,31 +1006,36 @@ function card(i,sub,click,on){var col=RARITY_COLOR[i.rarity];
  return '<div onclick="'+click+'" style="border:2px solid '+(on?col:'#222')+';border-radius:6px;padding:6px;text-align:center;cursor:pointer;background:rgba(10,10,15,.8);display:inline-block;width:48%;margin:1%;vertical-align:top;box-sizing:border-box'+(i.c===2?';box-shadow:0 0 10px #ffd24a66':'')+'">'+itemIcon(i,48)+
  '<div style="font-size:0.6rem;color:'+col+';font-weight:700">'+i.name+'</div><div style="font-size:0.55rem;color:#888">'+descOf(i)+'</div>'+
  '<div style="font-size:0.55rem"><span style="color:#ffd24a">'+stars(i)+'</span> <span style="color:'+CC[i.c]+'">'+CN[i.c]+'</span></div>'+(sub||'')+'</div>'}
+function tg(i){return i.type==='bow'||i.type==='staff'?'weapon':i.type}
+function filt(){var T=[['all','Alle'],['weapon','Waffe'],['helm','Helm'],['armor','Rüstung'],['ring','Ring'],['cape','Umhang']],R=[['all','Alle','#ccc'],['normal','Normal','#aaa'],['gruen','Grün','#44cc44'],['blau','Blau','#4488ff'],['episch','Lila','#cc44ff'],['legendaer','Legendär','#ff8800']];
+ function ch(a,cur,fn){return '<span onclick="'+fn+'(\''+a[0]+'\')" style="padding:4px 9px;border-radius:12px;font-size:.62rem;cursor:pointer;border:1px solid '+(a[2]||'#c9a050')+';color:'+(cur===a[0]?'#000':(a[2]||'#ffe9c4'))+';background:'+(cur===a[0]?(a[2]||'#f0c040'):'#0006')+'">'+a[1]+'</span>'}
+ return '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+T.map(function(a){return ch(a,FT,'__kamFT')}).join('')+'</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+R.map(function(a){return ch(a,FR,'__kamFR')}).join('')+'</div>'}
+window.__kamFT=function(v){FT=v;render()};window.__kamFR=function(v){FR=v;render()};
 function sorted(){ens();return inventory.items.map(it).filter(Boolean).sort(function(a,b){return RANK.indexOf(b.rarity)-RANK.indexOf(a.rarity)||b.c-a.c||b.s-a.s})}
 function render(){
  ens();var c=clv(),L=document.getElementById('invSlots');if(!L)return;
  if(c<NEED[sel]&&!(window.__kamGot&&window.__kamGot()[sel]))sel='hero';
  var tabs='';['hero','arc','mag'].forEach(function(w){var lock=c<NEED[w]&&!(window.__kamGot&&window.__kamGot()[w]);
   tabs+='<div class="ht'+(sel===w?' on':'')+(lock?' lk':'')+'" '+(lock?'':'onclick="__kamSel(\''+w+'\')"')+'>'+
-   (lock?'<b>🔒</b><small>Neuer Held<br>ab Kl. '+NEED[w]+'</small>':'<img src="'+(w==='hero'?'hero/idle0.webp':'ally/'+w+'_i0.webp')+'" data-w="'+w+'"><small>'+NM[w]+'</small>')+'</div>'});
+   (lock?'<b>🔒</b><small>Neuer Held<br>ab Kl. '+NEED[w]+'</small>':'<img src="'+HF(w,0)+'" data-w="'+w+'"><small>'+NN[w]+'</small>')+'</div>'});
  var s=SL[sel],g=function(a){return a.map(function(t){return slotHtml(sel,t)}).join('')};
- var hi=sel==='hero'?'hero/idle0.webp':'ally/'+sel+'_i0.webp';
+ var hi=HF(sel,0);
  L.innerHTML='<style>.hts{display:flex;gap:8px;justify-content:center;margin-bottom:10px}.ht{width:84px;height:88px;border:2px solid #7a4a1a;border-radius:12px;background:#0006;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;cursor:pointer;color:#ffe9c4}.ht.on{border-color:#f0c040;box-shadow:0 0 14px #f0c04066}.ht img{width:54px;height:54px;object-fit:contain}.ht small{font-size:10px;text-align:center}.ht.lk{opacity:.55;cursor:default;justify-content:center}.ht b{font-size:20px}'+
  '.hst{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:6px;align-items:center;justify-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 12px 22px;overflow:hidden;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:18px}.hs{width:54px;height:54px;box-sizing:border-box;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important;width:40px!important;height:40px!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
  '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
- '<div class="hts">'+tabs+'</div><div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NM[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'<div class="hs e" style="opacity:.4"><span>Schild</span><em>bald</em></div></div></div>';
- var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NM[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
- var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NM[sel].toUpperCase()+'</div>',n=0;
- var SRT=sorted(),OWNR={bow:'arc',staff:'mag'};SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
-  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Kl. '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NM[w]:'anlegen')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
- if(!n)h+='<div style="font-size:0.7rem;color:#446688;text-align:center;padding:12px">Noch keine passenden Items. Besiege Monster und Bosse!</div>';
+ '<div class="hts">'+tabs+'</div><div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'<div class="hs e" style="opacity:.4"><span>Schild</span><em>bald</em></div></div></div>';
+ var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NN[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
+ var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
+ var SRT=sorted(),OWNR={bow:'arc',staff:'mag'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
+  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Kl. '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
+ if(!n)h+='<div style="font-size:0.7rem;color:#446688;text-align:center;padding:12px">Keine passenden Items. Ändere den Filter oder besiege Monster und Bosse!</div>';
  var T=document.getElementById('invItems');if(T)T.innerHTML=h}
 window.__kamSel=function(w){sel=w;render()};
 window.renderInventoryModal=render;
 window.showInventory=function(){sel='hero';render();document.getElementById('inventoryModal').style.display='flex'};
 setInterval(function(){var m=document.getElementById('inventoryModal'),im=document.getElementById('hAn');if(!m||m.style.display==='none'||!im)return;fr++;
- im.src=sel==='hero'?'hero/idle'+(fr%4)+'.webp':'ally/'+sel+'_i'+(fr%2)+'.webp';
- [].slice.call(document.querySelectorAll('.ht img')).forEach(function(x){var w=x.dataset.w;x.src=w==='hero'?'hero/idle'+(fr%4)+'.webp':'ally/'+w+'_i'+(fr%2)+'.webp'})},300);
+ im.src=HF(sel,fr);
+ [].slice.call(document.querySelectorAll('.ht img')).forEach(function(x){var w=x.dataset.w;x.src=HF(w,fr)})},300);
 
 /* ---- Schmiede ---- */
 var FS={b:null,f:null,msg:''};
