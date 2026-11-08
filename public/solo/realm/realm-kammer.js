@@ -114,7 +114,7 @@ var css=document.createElement('style');css.textContent=
 '#sceneWrap{display:none!important}#gameWrapper>.game-title{order:-10!important}'+
 'body.kamfight #sceneWrap{display:flex!important;flex-direction:column;position:absolute;left:8px;right:8px;top:8px;bottom:8px;z-index:30;margin:0}body.kamfight #sceneWrap #battleScene{flex:1}'+
 '#kam .tile.gold{background:none!important;filter:none!important;isolation:isolate}#kam .tile.gold::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(#0001,#0003),url(dung/floor.webp) center/cover,var(--t);filter:brightness(1.4) saturate(1.3) hue-rotate(14deg)}'+
-'body.kamfight #battleBg{background:url(dung/door.webp) center top/auto 92% no-repeat,linear-gradient(#1a1030,#0d0714)!important;opacity:1!important;border-radius:10px}'+
+'body.kamfight #battleBg{background:url(dung/door.webp) calc(50% - 30px) top/auto 92% no-repeat,linear-gradient(#1a1030,#0d0714)!important;opacity:1!important;border-radius:10px}'+
 '#battlePanel{position:relative}'+
 '#kamBar{display:flex;gap:10px;align-items:center;order:-1;position:relative;z-index:12}#kamBar #actionBtn{flex:1;order:0!important}'+
 '#kamDieBox{width:62px;height:62px;flex:none;perspective:260px;position:relative}'+
