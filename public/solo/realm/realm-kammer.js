@@ -746,7 +746,8 @@ function descOf(i){var d;if(i.fx){var f=FXD.filter(function(x){return x[0]===i.f
   d=f[3](v)}else{var q=st(i);d=(q.atk?'+'+q.atk+' ATK':'')+(q.atk&&q.hp?' ':'')+(q.hp?'+'+q.hp+' HP':'')}return d}
 function ai(){ens();if(!inventory.ally)inventory.ally={arc:{},mag:{}};if(!inventory.ally.arc)inventory.ally.arc={};if(!inventory.ally.mag)inventory.ally.mag={};return inventory.ally}
 function gear(w){return w==='hero'?inventory.equipped:ai()[w]}
-function wearer(uid){var i=it(uid);if(!i)return null;if(inventory.equipped[i.type]===uid)return'hero';var a=ai();for(var k in a)if(a[k][i.type]===uid)return k;return null}
+function wkey(uid){for(var t in inventory.equipped)if(inventory.equipped[t]===uid)return['hero',t];var a=ai();for(var k in a)for(var t2 in a[k])if(a[k][t2]===uid)return[k,t2];return null}
+function wearer(uid){var i=it(uid);if(!i)return null;var w=wkey(uid);return w?w[0]:null}
 function worn(){ens();var r=[],g=inventory.equipped;for(var t in g){var i=it(g[t]);if(i)r.push({w:'hero',i:i})}var a=ai();for(var k in a)for(var t2 in a[k]){var j=it(a[k][t2]);if(j)r.push({w:k,i:j})}return r}
 function fxSum(k,w){var s=0;worn().forEach(function(x){if(x.i.fx&&x.i.fx.k===k&&(!w||x.w===w))s+=fxv(x.i)});return s}
 function restat(uid,fn){var i0=it(uid),o=i0?st(i0):{atk:0,hp:0},w=wearer(uid);fn();var n=st(it(uid));
@@ -998,15 +999,17 @@ var SL={hero:['helm','armor','cape','weapon','ring'],arc:['helm','armor','cape',
 var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalif'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'ally/'+w+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:15,mag:30};
 var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring'};
 var sel='hero',fr=0;
-function can(w,i){return SL[w].indexOf(i.type)>=0}
+var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){return true}
+function gk(w,i){return WKT.indexOf(i.type)>=0?WSK[w]:i.type}
 function unw(uid){var i=it(uid),w=wearer(uid);if(!w)return;
- var q=st(i);if(w==='hero')delete inventory.equipped[i.type];else delete ai()[w][i.type];
+ var q=st(i),wk=wkey(uid);if(wk){if(w==='hero')delete inventory.equipped[wk[1]];else delete ai()[w][wk[1]]}
  if(meta){if(w==='hero')meta.attack=Math.max(1,meta.attack-q.atk);meta.maxHp=Math.max(1,meta.maxHp-q.hp);meta.hp=Math.min(meta.hp,meta.maxHp);try{updateUI()}catch(e){}}}
 window.equipItem=function(uid,who){var i=it(uid);if(!i)return;who=who||sel;if(!can(who,i))return;
  var cur=wearer(uid);if(cur===who){unw(uid);saveInventory();render();return}
+ if(cur&&inventory.lock&&inventory.lock[uid]){try{toast('🔒 Bleibt bei '+NN[cur])}catch(e){}return}
  if(cur)unw(uid);
- var g=gear(who),oid=g[i.type];if(oid)unw(oid);
- g[i.type]=uid;var n=st(i);
+ var g=gear(who),kk=gk(who,i),oid=g[kk];if(oid)unw(oid);
+ g[kk]=uid;var n=st(i);
  if(meta){if(who==='hero')meta.attack+=n.atk;meta.maxHp+=n.hp;meta.hp=Math.min(meta.hp,meta.maxHp);try{updateUI()}catch(e){}}
  saveInventory();render()};
 window.unequipItem=function(t){var uid=inventory.equipped[t];if(uid){unw(uid);saveInventory();render()}};
@@ -1024,6 +1027,7 @@ window.__kamFT=function(v){FT=v;render()};window.__kamFR=function(v){FR=v;render
 function sorted(){ens();return inventory.items.map(it).filter(Boolean).sort(function(a,b){return RANK.indexOf(b.rarity)-RANK.indexOf(a.rarity)||b.c-a.c||b.s-a.s})}
 function render(){
  ens();var c=clv(),L=document.getElementById('invSlots');if(!L)return;
+ var hh=L.parentNode.querySelector('h2');if(hh&&!document.getElementById('kamCharBtn')){hh.style.position='relative';var cb=document.createElement('div');cb.id='kamCharBtn';cb.textContent='Charakter';cb.onclick=function(){window.__kamChars()};cb.style.cssText='position:absolute;left:0;top:50%;transform:translateY(-60%);border:2px solid #f0c040;border-radius:10px;padding:4px 8px;font:700 .6rem Cinzel,Georgia,serif;color:#f0c040;cursor:pointer;background:#0008;box-shadow:0 0 10px #f0c04044';hh.appendChild(cb)}
  if(c<NEED[sel]&&!(window.__kamGot&&window.__kamGot()[sel]))sel='hero';
  var tabs='';['hero','arc','mag'].forEach(function(w){var lock=c<NEED[w]&&!(window.__kamGot&&window.__kamGot()[w]);
   tabs+='<div class="ht'+(sel===w?' on':'')+(lock?' lk':'')+'" '+(lock?'':'onclick="__kamSel(\''+w+'\')"')+'>'+
@@ -1037,20 +1041,20 @@ function render(){
  var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NN[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
  var SRT=sorted(),OWNR={bow:'arc',staff:'mag'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
-  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Kl. '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
+  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Kl. '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+(w?' <span onclick="event.stopPropagation();__kamLk(\''+i.id+'\')" style="font-size:.75rem;margin-left:4px">'+(inventory.lock&&inventory.lock[i.id]?'🔒':'🔓')+'</span>':'')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
  if(!n)h+='<div style="font-size:0.7rem;color:#446688;text-align:center;padding:12px">Keine passenden Items. Ändere den Filter oder besiege Monster und Bosse!</div>';
  var T=document.getElementById('invItems');if(T)T.innerHTML=h}
 
 var SWP=false,SWF=-1,CTB='k',CPK=null;
 function locked(id){return id!=='hero'&&clv()<NEED[id]&&!(window.__kamGot&&window.__kamGot()[id])}
-function posbar(){
+function posbar(){return '';
  var h='<style>.pbr{display:flex;gap:6px;align-items:stretch;margin-bottom:10px}.pbr .pb{border:2px solid #7a4a1a;background:#0006;color:#ffe9c4;border-radius:12px;font-size:11px;padding:6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}.pbr .pb.gl{border-color:#f0c040;box-shadow:0 0 14px #f0c04088;color:#f0c040}.pbr .pc{flex:1;flex-direction:row;gap:5px;justify-content:flex-start}.pbr .pc img{width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:40% 8%;border:2px solid #4ade80;background:#000}.pbr .pc.sel{border-color:#f0c040;box-shadow:0 0 12px #f0c040aa}.pbr .pc small{font-size:9px;opacity:.8;line-height:1.1;text-align:left}.pbr .pc.lk img{filter:grayscale(1);opacity:.5}.pbr.sw .pc{animation:kpul 1s infinite alternate}@keyframes kpul{to{box-shadow:0 0 10px #f0c04088}}</style>';
  h+='<div class="pbr'+(SWP?' sw':'')+'"><div class="pb'+(SWP?' gl':'')+'" onclick="__kamSwp()">⇄<br>Wechseln</div>';
  SLT.forEach(function(id,i){var lk=locked(id);h+='<div class="pb pc'+(SWF===i?' sel':'')+(lk?' lk':'')+'" onclick="__kamPos('+i+')"><img src="'+HF(id,0)+'"><small>Platz '+(i+1)+'<br>'+(lk?'🔒':NN[id])+'</small></div>'});
  h+='<div class="pb" onclick="__kamChars()">Charakter</div></div>';
  return h+(SWP?'<div style="font-size:.6rem;color:#9a8cc0;text-align:center;margin:-4px 0 8px">'+(SWF<0?'Tippe den ersten Platz an.':'Tippe den Platz zum Tauschen an.')+'</div>':'')}
-window.__kamSwp=function(){SWP=!SWP;SWF=-1;render()};
-window.__kamPos=function(i){if(!SWP)return;if(SWF<0){SWF=i;render();return}if(SWF!==i){var t=SLT[SWF];SLT[SWF]=SLT[i];SLT[i]=t;saveSL();applySlots()}SWF=-1;SWP=false;render()};
+window.__kamSwp=function(){SWP=!SWP;SWF=-1;render();chDraw()};
+window.__kamPos=function(i){if(!SWP)return;if(SWF<0){SWF=i;chDraw();return}if(SWF!==i){var t=SLT[SWF];SLT[SWF]=SLT[i];SLT[i]=t;saveSL();applySlots()}SWF=-1;SWP=false;render();chDraw()};
 window.__kamChars=function(){CPK=null;chDraw();var m=document.getElementById('kamChar');if(m)m.style.display='flex'};
 window.__kamChClose=function(e){if(e&&e.target&&e.target.id!=='kamChar')return;var m=document.getElementById('kamChar');if(m)m.style.display='none'};
 window.__kamChTab=function(t){CTB=t;CPK=null;chDraw()};
@@ -1060,7 +1064,10 @@ function chDraw(){
  var m=document.getElementById('kamChar');
  if(!m){m=document.createElement('div');m.id='kamChar';m.onclick=window.__kamChClose;m.style.cssText='position:fixed;inset:0;z-index:100001;background:#000c;display:none;align-items:flex-end;justify-content:center';document.body.appendChild(m)}
  var sty='<style>#kamChar .sh{width:min(100%,440px);background:#160e28;border:2px solid #5a3f8a;border-radius:18px 18px 0 0;padding:14px 16px 18px;max-height:82vh;overflow:auto;color:#ffe9c4;font-family:inherit}#kamChar .tb{display:flex;gap:8px;margin-bottom:10px}#kamChar .tb div{flex:1;text-align:center;border:2px solid #5a3f8a;border-radius:12px;padding:8px;font-size:13px;cursor:pointer}#kamChar .tb div.on{background:#f0c040;color:#000;border-color:#f0c040}#kamChar .g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#kamChar .t{border:2px solid #5a3f8a;border-radius:12px;background:#0006;padding:6px 4px 8px;text-align:center;font-size:12px;cursor:pointer;min-width:0}#kamChar .t img{width:62px;height:62px;object-fit:cover;object-position:40% 8%;border-radius:10px;display:block;margin:0 auto 4px}#kamChar .t.lk{opacity:.5;cursor:default}#kamChar .t.lk .ic{font-size:30px;height:62px;line-height:62px}#kamChar .t small{display:block;color:#9a8cc0;font-size:10px;margin-top:2px}#kamChar .t.on{border-color:#f0c040;box-shadow:0 0 12px #f0c04066}#kamChar .d{margin-top:10px;border:1px solid #5a3f8a;border-radius:12px;padding:10px;font-size:13px;background:#0004}#kamChar .rw{display:flex;gap:8px;margin-top:8px}#kamChar .rw div{flex:1;text-align:center;border:2px solid #f0c040;border-radius:12px;padding:9px;color:#f0c040;cursor:pointer;box-shadow:0 0 10px #f0c04055}</style>';
- var h=sty+'<div class="sh"><div class="tb"><div class="'+(CTB==='k'?'on':'')+'" onclick="__kamChTab(\'k\')">Klassenhelden</div><div class="'+(CTB==='h'?'on':'')+'" onclick="__kamChTab(\'h\')">Helden</div></div>';
+ var PXs=[[188,6],[128,70],[18,34]],stg='<div style="position:relative;height:176px;border:2px solid #7a4a1a;border-radius:14px;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover;overflow:hidden;margin-bottom:8px">';
+ SLT.forEach(function(id,i){var lk=locked(id);stg+='<div onclick="__kamPos('+i+')" style="position:absolute;left:'+PXs[i][0]+'px;bottom:'+PXs[i][1]+'px;width:92px;height:84px;border:2px '+(SWP?'solid':'dashed')+' '+(SWF===i?'#f0c040':SWP?'#f0c04077':'#ffffff33')+';border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;z-index:'+[3,1,2][i]+(SWF===i?';box-shadow:0 0 14px #f0c040':'')+'"><span style="position:absolute;top:2px;left:6px;font-size:9px;color:#9a8cc0">Platz '+(i+1)+'</span><img src="'+HF(id,0)+'" style="height:'+(id==='hero'?54:id==='arc'?50:48)+'px;display:block;'+(lk?'filter:grayscale(1);opacity:.5':'')+'"><span style="font-size:10px;color:#f0c040;font-weight:700">'+NN[id]+'</span></div>'});
+ stg+='</div><div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><div onclick="__kamSwp()" style="border:2px solid '+(SWP?'#f0c040':'#5a3f8a')+';border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;color:'+(SWP?'#f0c040':'#ffe9c4')+(SWP?';box-shadow:0 0 12px #f0c04088':'')+'">⇄ Wechseln</div><div style="font-size:11px;color:#9a8cc0;flex:1">'+(SWP?(SWF<0?'Tippe den ersten Platz an.':'Tippe den Platz zum Tauschen an.'):'Ausrüstung bleibt bei der Figur.')+'</div></div>';
+ var h=sty+'<div class="sh">'+stg+'<div class="tb"><div class="'+(CTB==='k'?'on':'')+'" onclick="__kamChTab(\'k\')">Klassenhelden</div><div class="'+(CTB==='h'?'on':'')+'" onclick="__kamChTab(\'h\')">Helden</div></div>';
  function pl(id){return '<div class="rw">'+[1,2,3].map(function(p){return '<div onclick="__kamChPlace(\''+id+'\','+(p-1)+')">Platz '+p+'</div>'}).join('')+'</div>'}
  function tile(id,sub){var lk=locked(id);return '<div class="t'+(lk?' lk':'')+(CPK===id?' on':'')+'" '+(lk?'':'onclick="__kamChPick(\''+id+'\')"')+'>'+(lk?'<div class="ic">🔒</div>':'<img src="'+HF(id,0)+'">')+NN[id]+'<small>'+(lk?'freigeschaltet ab Klassenlevel '+NEED[id]:sub)+'</small></div>'}
  function lock(a,b){return '<div class="t lk"><div class="ic">🔒</div>'+a+'<small>'+b+'</small></div>'}
@@ -1072,6 +1079,7 @@ function chDraw(){
   h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Helden kämpfen mit, haben aber keine Klassenfähigkeiten.</div><div class="g">'+tile('arc','frei'+(SLT.indexOf('arc')>=0?' · Platz '+(SLT.indexOf('arc')+1):''))+tile('mag','frei'+(SLT.indexOf('mag')>=0?' · Platz '+(SLT.indexOf('mag')+1):''))+lock('Neuer Held','bald')+'</div>';
   if(CPK&&CPK!=='hero')h+='<div class="d"><b style="color:#f0c040">'+NN[CPK]+'</b><div style="color:#9a8cc0;font-size:12px;margin-top:4px">Einsetzen auf:</div>'+pl(CPK)+'</div>'}
  m.innerHTML=h+'</div>'}
+window.__kamLk=function(uid){ens();inventory.lock=inventory.lock||{};if(inventory.lock[uid])delete inventory.lock[uid];else inventory.lock[uid]=1;saveInventory();render()};
 window.__kamSel=function(w){sel=w;render()};
 window.renderInventoryModal=render;
 window.showInventory=function(){sel='hero';render();document.getElementById('inventoryModal').style.display='flex'};
