@@ -860,7 +860,7 @@ function attack() {
           prestigeData.unlocked = true; savePrestige();
           log('<span style="color:#cc44ff">💜 PRESTIGE FREIGESCHALTET!</span>');
         }
-        if (totalBossKillsBefore === 0) setTimeout(() => showClassModal(), 1500);
+        // Klassenauswahl oeffnet sich nicht mehr automatisch (Button im Menue)
       }
     } // end if (wasBoss)
 

@@ -128,11 +128,16 @@ var css=document.createElement('style');css.textContent=
 
 '#battleScene .monster-slot img.kdie{animation:kdie .8s ease-in forwards}@keyframes kdie{0%{transform:scaleX(-1) translateY(0);opacity:1;filter:brightness(1)}35%{transform:scaleX(-1) translateY(4px) rotate(3deg);filter:brightness(2.2)}100%{transform:scaleX(-1) translateY(34px) rotate(9deg);opacity:0;filter:brightness(.4)}}#battleScene .monster-slot img.kenter{animation:kenter .7s ease-out}@keyframes kenter{from{transform:scaleX(-1) translateX(-170px);opacity:0}to{transform:scaleX(-1) translateX(0);opacity:1}}'+
 '#battleScene .monster-slot img.kanim[alt^="worldboss"]{width:230px!important;height:180px!important}#battleScene .monster-slot img.kanim[alt^="worldboss"]{transform:scaleX(-1)}body.kamn2 #battleScene .monster-slot img.kanim[alt^="worldboss"]{width:150px!important;height:140px!important}#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:150px;height:150px;filter:drop-shadow(0 6px 5px #000a)}'+
-'body.kamn2 #battleScene{gap:6px!important;padding-left:36%!important;padding-bottom:10px!important}body.kamn2 #battleScene .monster-slot img{width:104px!important;height:104px!important}'+
-'body.kamn3 #battleScene{gap:0!important;padding-left:30%!important;padding-bottom:10px!important}body.kamn3 #battleScene .monster-slot img{width:86px!important;height:86px!important}body.kamn3 #battleScene .monster-name{font-size:.5rem!important}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(4){z-index:3}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(3){transform:translateY(-40px) scale(.86);z-index:2;opacity:.97}'+
-'body.kamn3 #battleScene .monster-slot:nth-child(3){transform:translateY(-52px) scale(.84);z-index:2}'+
+'body.kamn2 #battleScene,body.kamn3 #battleScene{padding:0!important}'+
+'body.kamn2 #battleScene .monster-slot,body.kamn3 #battleScene .monster-slot{position:absolute!important;transform:none!important;margin:0!important;opacity:1!important}'+
+'body.kamn2 #battleScene .monster-slot .monster-name,body.kamn3 #battleScene .monster-slot .monster-name{display:none!important}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(2){left:197px;bottom:10px;z-index:4}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(3),body.kamn3 #battleScene .monster-slot:nth-child(3){left:216px;bottom:58px;z-index:2}'+
+'body.kamn3 #battleScene .monster-slot:nth-child(4){left:293px;bottom:26px;z-index:3}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(2) img,body.kamn3 #battleScene .monster-slot:nth-child(2) img{width:92px!important;height:92px!important}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(3) img,body.kamn3 #battleScene .monster-slot:nth-child(3) img{width:104px!important;height:104px!important}'+
+'body.kamn3 #battleScene .monster-slot:nth-child(4) img{width:84px!important;height:84px!important}'+
+'body.kamn2 #battleScene .monster-slot img:not(.kanim),body.kamn3 #battleScene .monster-slot img:not(.kanim){width:70px!important;height:70px!important}'+
 '#battleScene .monster-slot img.kanim:not([alt^="worldboss"]){background:radial-gradient(ellipse 46% 8% at 50% 95%,#000b,#0000 70%)!important}'+
 /* Profil-Taste */
 '#kamPf{position:fixed;right:14px;bottom:14px;z-index:70;width:64px;height:64px;border-radius:50%;border:3px solid var(--gold2);padding:0;overflow:hidden;background:#200;cursor:pointer;box-shadow:0 4px 16px #000c}'+
@@ -616,8 +621,8 @@ function hook(){
 
 /* ---------- Gruppe: Bogenschuetzin (ab Klassenlevel 15) und Magierin (ab 30) stehen hinten und helfen im Kampf ---------- */
 var ALLY=[
- {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:108,l:4,b:34,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
- {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:118,l:70,b:82,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
+ {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:112,l:49,b:60,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
+ {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:132,l:-10,b:26,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
 ];
 var allyRound=0;
 function clsLv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(e){return 0}}
@@ -637,7 +642,7 @@ function syncAllies(){
   if(!box){box=document.createElement('div');box.id='kamAl';w.appendChild(box)}
   if(box.dataset.n==String(L.length))return;
   box.dataset.n=String(L.length);box.innerHTML='';
-  L.forEach(function(a){var i=document.createElement('img');i.id='kal_'+a.id;i.alt='';i.src='ally/'+a.idle[0]+'.webp';i.style.cssText='left:'+a.l+'px;bottom:'+a.b+'px;width:'+a.w+'px';box.appendChild(i)});
+  L.forEach(function(a){var i=document.createElement('img');i.id='kal_'+a.id;i.alt='';i.src='ally/'+a.idle[0]+'.webp';i.style.cssText='left:'+a.l+'px;bottom:'+a.b+'px;width:'+a.w+'px;z-index:'+(a.id==='arc'?3:4);box.appendChild(i)});
 }
 var allyT=0;
 setInterval(function(){allyT++;allyList().forEach(function(a){var i=$('kal_'+a.id);if(i&&!a.busy)i.src='ally/'+a.idle[allyT%2]+'.webp'})},480);
@@ -667,7 +672,7 @@ function allyStrike(){
     if(!inFight||meta.hp<=0)return;var h=Math.max(1,Math.round(meta.maxHp*.08));meta.hp=Math.min(meta.maxHp,meta.hp+h);
     fl('+'+h+' ❤ Magierin','#d070ff');try{updateUI()}catch(e){}},760);
 }
-(function(){var st=document.createElement('style');st.textContent='#kamAl{position:absolute;inset:0;pointer-events:none;z-index:6}#kamAl img{position:absolute;display:block;filter:drop-shadow(0 3px 4px #000a)}.kpj{position:absolute;z-index:9;pointer-events:none}.kpj.arrow{width:86px;height:48px;margin-top:-24px;background:url(ally/fx_arrow.png) center/contain no-repeat;mix-blend-mode:screen}.kpj.stream{width:84px;height:36px;margin-top:-18px;background:url(ally/fx_stream.png) center/contain no-repeat;mix-blend-mode:screen}.kpj.splash{width:60px;height:39px;margin:-20px 0 0 -30px;background:url(ally/fx_splash.png) center/contain no-repeat;mix-blend-mode:screen}.kpj.orb{width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:radial-gradient(#fff 15%,#c050ff 55%,#0000 72%);box-shadow:0 0 16px #b040ff}.kdm{position:absolute;z-index:10;pointer-events:none;font-weight:900;font-size:1.05rem;text-shadow:0 2px 4px #000}';document.head.appendChild(st)})();
+(function(){var st=document.createElement('style');st.textContent='#kamAl{position:absolute;inset:0;pointer-events:none;z-index:auto}#kamAl img{position:absolute;display:block;filter:drop-shadow(0 3px 4px #000a)}.kpj{position:absolute;z-index:9;pointer-events:none}.kpj.arrow{width:86px;height:48px;margin-top:-24px;background:url(ally/fx_arrow.png) center/contain no-repeat;mix-blend-mode:screen}.kpj.stream{width:84px;height:36px;margin-top:-18px;background:url(ally/fx_stream.png) center/contain no-repeat;mix-blend-mode:screen}.kpj.splash{width:60px;height:39px;margin:-20px 0 0 -30px;background:url(ally/fx_splash.png) center/contain no-repeat;mix-blend-mode:screen}.kpj.orb{width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:radial-gradient(#fff 15%,#c050ff 55%,#0000 72%);box-shadow:0 0 16px #b040ff}.kdm{position:absolute;z-index:10;pointer-events:none;font-weight:900;font-size:1.05rem;text-shadow:0 2px 4px #000}';document.head.appendChild(st)})();
 
 function init(){
   if(!$('battlePanel')||typeof generateBoard!=='function'||typeof meta==='undefined'&&false)return setTimeout(init,50);
@@ -1125,6 +1130,67 @@ window.__kamDiePick=function(){
   for(var q=0;q<n;q++)h+='<div style="display:flex;align-items:center;gap:12px;margin:7px 0;padding:10px;border-radius:12px;border:2px solid #ffffff11;background:#0004;opacity:.5"><span style="width:38px;height:38px;border-radius:9px;background:#222"></span><div><b style="font-size:.85rem">? ? ?</b><div style="font-size:.65rem">Geheimer Würfel. Finde ihn im Spiel.</div></div></div>';
   M.innerHTML=h+'</div>';M.style.display='block'};
 window.__kamDieSet=function(id){if(busy||inFight||dieLocked())return;EQ=id;saveD();invUI();hud();var M=$('kamDiceSel');if(M)M.style.display='none';msg(id?SD[id].n+' angelegt.':'Normaler Würfel.')};
+
+
+(function(){var st=document.createElement('style');st.textContent='body #runHero{left:104px!important;bottom:10px!important;width:65px!important;max-width:65px!important;z-index:5!important}body #runHero img{height:auto!important;object-fit:contain!important}';document.head.appendChild(st)})();
+/* ---------- Startbild: Held, Werte, Offline-Hinweis ---------- */
+(function(){
+  var st=document.createElement('style');
+  st.textContent='#loginBox .hero-select,#loginBox>p{display:none!important}#kamStart{display:flex;flex-direction:column;align-items:center;gap:8px;margin:6px 0 14px}#kamStart img{width:150px;max-height:190px;object-fit:contain;filter:drop-shadow(0 8px 10px #000)}#kamStart .sn{color:#f0c040;font-weight:800;letter-spacing:2px;font-size:1.05rem}#kamStart .sl{color:#ffe9c4;font-size:.75rem;opacity:.85}#kamStart .sg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%}#kamStart .sg div{background:#0006;border:1px solid #7a4a1a;border-radius:10px;padding:6px 2px;font-size:.62rem;color:#ffe9c4;text-align:center}#kamStart .sg b{display:block;font-size:.85rem;color:#f0c040;margin-top:2px}#kamStart .so{width:100%;box-sizing:border-box;border-radius:10px;padding:8px 10px;font-size:.7rem;text-align:center;border:1px solid}#kamStart .so.off{color:#bbb;border-color:#555;background:#0004}#kamStart .so.on{color:#9dffb5;border-color:#3fbf68;background:#06200f88}#kamStart .so.rd{color:#ffd24a;border-color:#ffd24a;background:#3a2a0a88}';
+  document.head.appendChild(st);
+  function num(k){try{return parseInt(localStorage.getItem(k)||'0')||0}catch(e){return 0}}
+  function refresh(){
+    var o=document.getElementById('loginOverlay'),box=document.getElementById('loginBox');
+    if(!o||!box||o.style.display==='none')return;
+    var card=document.querySelector('.hero-card.selected')||document.querySelector('.hero-card');if(!card)return;
+    var p=document.getElementById('kamStart');
+    if(!p){p=document.createElement('div');p.id='kamStart';var h1=box.querySelector('h1'),ref=h1&&h1.nextSibling;box.insertBefore(p,box.querySelector('.hero-select')||ref)}
+    var ci=card.querySelector('img'),mb=0;try{mb=(inventory&&inventory.stats&&inventory.stats.maxBoss)||0}catch(e){}
+    var oi=window.__cityOffInfo?window.__cityOffInfo():{tower:0},ot,oc;
+    if(!oi.tower){oc='off';ot='Offline-Modus: nicht aktiv (Magieturm fehlt)'}
+    else if(oi.ready){oc='rd';ot='Offline-Modus: aktiv · Beute wartet auf dich'}
+    else{oc='on';ot='Offline-Modus: aktiv · nichts zu holen'}
+    var lv=card.querySelector('.hlevel');
+    p.innerHTML='<img src="'+(ci?ci.src:'')+'"><div class="sn">'+(card.querySelector('.hname')?card.querySelector('.hname').textContent:'')+'</div><div class="sl">'+(lv?lv.textContent:'')+'</div>'+
+     '<div class="sg"><div>Gold<b>'+num('robGold')+'</b></div><div>Diamanten<b>'+num('robDiamonds')+'</b></div><div>Beste Kammer<b>'+Math.max(1,mb)+'</b></div></div><div class="so '+oc+'">'+ot+'</div>'}
+  setInterval(refresh,700);setTimeout(refresh,300);
+})();
+
+/* ---------- Angriffsleiste: wer ist dran ---------- */
+(function(){
+  var S=28,G=4,Q=[],key='',cnt=0,bar=null;
+  var st=document.createElement('style');
+  st.textContent='#kamTurn{position:absolute;top:62px;left:50%;height:'+(S+8)+'px;margin-left:0;background:#000b;border:1px solid #6a4a20;border-radius:20px;z-index:7;pointer-events:none;transform:translateX(-50%);transition:width .3s}'+
+   '#kamTurn .th{position:absolute;top:3px;width:'+S+'px;height:'+S+'px;border-radius:50%;border:2px solid;overflow:hidden;background:#1a1226;transition:left .4s cubic-bezier(.4,0,.2,1),transform .25s,box-shadow .25s,opacity .3s}'+
+   '#kamTurn .th img{position:absolute;display:block;max-width:none}'+
+   '#kamTurn .th.a{border-color:#4ade80}#kamTurn .th.f{border-color:#ef4444}#kamTurn .th.on{transform:scale(1.18);box-shadow:0 0 10px #ffd24a;border-color:#ffd24a;z-index:2}';
+  document.head.appendChild(st);
+  var CR={hero:['run0.png',155,200,[25,0,110,110]],arc:['ally/arc_i0.webp',307,256,[130,35,120,120]],mag:['ally/mag_i0.webp',384,256,[180,60,110,110]]};
+  function head(id,side,src){
+    var d=document.createElement('div');d.className='th '+side;var im=document.createElement('img'),c=CR[id];
+    if(c){var k=(S-4)/c[3][2];im.src=c[0];im.style.width=(c[1]*k)+'px';im.style.left=(-c[3][0]*k)+'px';im.style.top=(-c[3][1]*k)+'px'}
+    else{im.src=src;im.style.cssText='width:100%;height:100%;left:0;top:0;object-fit:cover;object-position:35% 12%'}
+    d.appendChild(im);return d}
+  function lay(){if(!bar)return;Q.forEach(function(q,i){q.e.style.left=(5+i*(S+G))+'px';q.e.classList.toggle('on',i===0)});bar.style.width=(10+Q.length*(S+G)-G)+'px'}
+  function sync(){
+    var w=document.getElementById('sceneWrap'),on=inFight&&monstersInFight&&monstersInFight.length&&w&&document.getElementById('kam');
+    if(!on){if(bar){bar.remove();bar=null;Q=[];key=''}return}
+    var L=allyList(),ms=[].slice.call(document.querySelectorAll('#battleScene .monster-slot img')),k=['hero'].concat(L.map(function(a){return a.id})).join(',')+'|'+ms.length+'|'+monstersInFight.length;
+    if(bar&&k===key&&bar.parentNode===w)return;
+    key=k;if(bar)bar.remove();bar=document.createElement('div');bar.id='kamTurn';w.appendChild(bar);Q=[];
+    var ids=['hero'].concat(L.map(function(a){return a.id}));
+    ids.forEach(function(id){var e=head(id,'a');bar.appendChild(e);Q.push({id:id,e:e,side:'a'})});
+    ms.forEach(function(m,j){var e=head(null,'f',m.src);bar.appendChild(e);Q.push({id:'m'+j,e:e,side:'f'})});
+    lay()}
+  function go(id){var j=Q.findIndex(function(q){return q.id===id});if(j<0)return;var q=Q.splice(j,1)[0];Q.push(q);lay()}
+  setInterval(sync,250);
+  var oA=window.attack;
+  if(oA)window.attack=function(){
+    try{sync();var ids=Q.filter(function(q){return q.side==='a'}).map(function(q){return q.id}),ms=Q.filter(function(q){return q.side==='f'}).map(function(q){return q.id});
+      ids.forEach(function(id,n){setTimeout(function(){go(id)},60+n*230)});
+      ms.forEach(function(id,n){setTimeout(function(){go(id)},60+ids.length*230+250+n*230)})}catch(e){}
+    return oA.apply(this,arguments)};
+})();
 
 /* ---------- Tod: Held verpufft, Strecke faellt nach unten, Held springt am Start wieder rein ---------- */
 (function(){

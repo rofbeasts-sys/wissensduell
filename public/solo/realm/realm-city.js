@@ -132,9 +132,9 @@ function offShow(){
   d.querySelector('#offHalf').onclick=function(){take(o.half,false)};
   d.querySelector('#offFull').onclick=function(){take(o.full,true)};
 }
-window.__cityOff=offShow;
+window.__cityOff=offShow;window.__cityOffInfo=function(){var t=lv('tower'),o=null;try{o=offCalc()}catch(e){}return {tower:t,ready:!!o,h:o?o.h:0,k:o?o.k:0}};
 setInterval(offTouch,20000);
 document.addEventListener('visibilitychange',function(){if(document.hidden)offTouch();else setTimeout(offShow,400)});
 addEventListener('pagehide',offTouch);
-setTimeout(function(){var o=localStorage.getItem(OFFK);if(!o)offTouch();else offShow()},2500);
+setTimeout(function(){var o=localStorage.getItem(OFFK);if(!o)offTouch();else offShow();},2500);
 })();
