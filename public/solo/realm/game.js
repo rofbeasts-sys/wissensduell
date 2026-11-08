@@ -2276,8 +2276,8 @@ function closePrestigeLevelTable() { document.getElementById('prestigeLevelModal
 const ITEMS = [
   // NORMAL (grau)
   { id:'sword1', name:'Rostiges Schwert',  type:'weapon', rarity:'normal',    atk:3,  hp:0,   desc:'+3 ATK' },
-  { id:'armor1', name:'Lederruestung',     type:'armor',  rarity:'normal',    atk:3,  hp:3,   desc:'+3 ATK +3 HP' },
-  { id:'helm1',  name:'Lederhelm',         type:'helm',   rarity:'normal',    atk:0,  hp:4,   desc:'+4 HP' },
+  { id:'armor1', name:'Schwere Rüstung',    type:'armor',  rarity:'normal',    atk:3,  hp:3,   desc:'+3 ATK +3 HP' },
+  { id:'helm1',  name:'Schwerer Helm',      type:'helm',   rarity:'normal',    atk:0,  hp:4,   desc:'+4 HP' },
   // GRUEN (uncommon)
   { id:'sword2', name:'Eisenschwert',      type:'weapon', rarity:'gruen',     atk:8,  hp:0,   desc:'+8 ATK' },
   { id:'armor2', name:'Kettenhemd',        type:'armor',  rarity:'gruen',     atk:5,  hp:10,  desc:'+5 ATK +10 HP' },

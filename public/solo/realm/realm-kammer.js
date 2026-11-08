@@ -1120,4 +1120,46 @@ window.__kamDiePick=function(){
   for(var q=0;q<n;q++)h+='<div style="display:flex;align-items:center;gap:12px;margin:7px 0;padding:10px;border-radius:12px;border:2px solid #ffffff11;background:#0004;opacity:.5"><span style="width:38px;height:38px;border-radius:9px;background:#222"></span><div><b style="font-size:.85rem">? ? ?</b><div style="font-size:.65rem">Geheimer Würfel. Finde ihn im Spiel.</div></div></div>';
   M.innerHTML=h+'</div>';M.style.display='block'};
 window.__kamDieSet=function(id){if(busy||inFight||dieLocked())return;EQ=id;saveD();invUI();hud();var M=$('kamDiceSel');if(M)M.style.display='none';msg(id?SD[id].n+' angelegt.':'Normaler Würfel.')};
+
+/* ---------- Tod: Held verpufft, Strecke faellt nach unten, Held springt am Start wieder rein ---------- */
+(function(){
+  var st=document.createElement('style');
+  st.textContent='body.kdead #runImg{animation:kpoof 1s ease-in forwards!important;transform-origin:50% 100%}'+
+   '@keyframes kpoof{0%{transform:none;filter:brightness(1);opacity:1}15%{transform:translateX(4px);filter:brightness(3) saturate(0)}28%{transform:translateX(-4px);filter:brightness(1)}60%{transform:scale(1.05,.95);filter:brightness(2.5) hue-rotate(40deg);opacity:.8}100%{transform:scale(.1,1.8) translateY(-60px);filter:brightness(4);opacity:0}}'+
+   'body.kdead #sceneWrap{animation:kredp 1s ease-out forwards}@keyframes kredp{0%{box-shadow:inset 0 0 70px 18px #000}40%{box-shadow:inset 0 0 120px 40px #a00}100%{box-shadow:inset 0 0 120px 60px #500}}'+
+   '#kamFade{position:fixed;inset:0;background:#000;opacity:0;z-index:99998;pointer-events:none;transition:opacity .3s ease}'+
+   'body.kfall #kamHero{opacity:0}'+
+   'body.kjump #kamHero .up{animation:kjump .75s cubic-bezier(.3,.7,.4,1) both!important;transform-origin:50% 100%}'+
+   '@keyframes kjump{0%{transform:translateY(-320px) scale(.7,1.3);opacity:0}15%{opacity:1}60%{transform:translateY(0) scale(1.2,.75)}78%{transform:translateY(-26px) scale(.95,1.08)}100%{transform:none}}'+
+   '.kwr{position:fixed;width:110px;height:30px;margin:-15px 0 0 -55px;border-radius:50%;border:3px solid #c9a3ff;box-shadow:0 0 16px #a66bff,inset 0 0 12px #a66bff;pointer-events:none;z-index:99997;animation:kwring .6s ease-out forwards}'+
+   '@keyframes kwring{0%{opacity:0;transform:scale(.3)}30%{opacity:1}100%{opacity:0;transform:scale(1.8)}}';
+  document.head.appendChild(st);
+  var oSD=window.showDeath;
+  window.showDeath=function(){
+    document.body.classList.add('kdead');
+    var a=arguments;setTimeout(function(){try{oSD&&oSD.apply(window,a)}catch(e){}},1100)};
+  var oRS=window.respawn;
+  window.respawn=function(){
+    var f=document.getElementById('kamFade');if(!f){f=document.createElement('div');f.id='kamFade';document.body.appendChild(f)}
+    f.style.opacity='1';var a=arguments;
+    setTimeout(function(){
+      var B=document.body;B.classList.add('kfall');
+      try{oRS&&oRS.apply(window,a)}catch(e){}
+      B.classList.remove('kdead');
+      var W=document.getElementById('kamWorld'),to=W&&W.style.transform;
+      if(W&&to){
+        var hi=(typeof ROWS!=='undefined'?ROWS:20)*(typeof STEP!=='undefined'?STEP:60)*.8;
+        W.style.transition='none';W.style.transform=to.replace(/translateY\([^)]*\)/,'translateY('+hi+'px)');
+        void W.offsetWidth;
+        setTimeout(function(){f.style.opacity='0';W.style.transition='transform 1.6s cubic-bezier(.5,0,.35,1)';W.style.transform=to},80);
+        setTimeout(function(){
+          W.style.transition='';
+          var h=document.getElementById('kamHero'),r=h&&h.getBoundingClientRect();
+          B.classList.remove('kfall');B.classList.add('kjump');
+          if(r&&r.width){var w=document.createElement('div');w.className='kwr';w.style.left=(r.left+r.width/2)+'px';w.style.top=(r.bottom-6)+'px';B.appendChild(w);setTimeout(function(){w.remove()},700)}
+          setTimeout(function(){B.classList.remove('kjump')},800);
+        },1750);
+      }else{B.classList.remove('kfall');f.style.opacity='0'}
+    },330)};
+})();
 })();
