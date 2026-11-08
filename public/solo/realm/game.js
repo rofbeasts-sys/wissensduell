@@ -267,14 +267,11 @@ function getCompletedQuestCount() {
 function getClassLevel() {
   // Erst ab Helden-Level 10 und nach Klassenwahl freigeschaltet
   if (!meta || !meta.hero) return 0;
-  if (getHeroLevel(meta.hero) < 10) return 0;
-  if (playerClasses.length === 0) return 0;
   return Math.min(100, getCompletedQuestCount());
 }
 
 // Spielzeit tracken (1 Minute = 1 Tick)
 setInterval(function() {
-  if (playerClasses.length === 0) return;
   questTracking.playMinutes = (questTracking.playMinutes||0) + 1;
   saveQuestTracking();
 }, 60000);
@@ -434,9 +431,10 @@ function getTotalBossesDefeated() {
   return Object.values(heroData).reduce((s,h) => s + h.bossKills, 0);
 }
 function getWorldBossStats(bossNum) {
+  const _pm = 1 + ((typeof prestigeData !== 'undefined' && prestigeData.count) || 0) * 0.12;
   return {
-    hp:  1000 + (bossNum - 1) * 800,
-    atk: 25   + (bossNum - 1) * 20,
+    hp:  Math.floor((1000 + (bossNum - 1) * 800) * _pm),
+    atk: Math.floor((25   + (bossNum - 1) * 20) * _pm),
     gold: 100  * bossNum,
     diamonds: Math.max(10, 10 + (bossNum - 1) * 5)
   };
@@ -597,7 +595,7 @@ function handleAction() {
       showSkillPopup('🍀 GLÜCKSGRIFF! Doppeltes Gold!');
     }
     meta.gold += g;
-    if (playerClass) { questTracking.goldEarned = (questTracking.goldEarned||0) + g; saveQuestTracking(); }
+    if (true) { questTracking.goldEarned = (questTracking.goldEarned||0) + g; saveQuestTracking(); }
     log('👹 <span style="color:var(--gold)">' + g + ' Gold gefunden!</span>');
     board[pos] = 'empty';
     showDmgPopup('+' + g + '💰', '#f0c040');
@@ -650,6 +648,7 @@ function createMonster(type, isBoss) {
   if (meta.round >= 21) { hp = Math.floor(hp * 1.4); atk = Math.floor(atk * 1.3); }
   let gold = base.gold;
   if (isBoss) { hp *= 4; atk = Math.floor(atk * 2); gold *= 3; }
+  { const _pm = 1 + ((typeof prestigeData !== 'undefined' && prestigeData.count) || 0) * 0.12; hp = Math.floor(hp * _pm); atk = Math.floor(atk * _pm); }
   return { type: isBoss ? 'boss_' + type : type, baseType: type, hp, maxHp: hp, atk, gold, isBoss };
 }
 
@@ -740,7 +739,7 @@ function attack() {
   const critChance = hasClass('jaeger') ? 0.15 : 0.10;
   const critMult = hasClass('jaeger') ? 2.0 : 1.5;
   let isCrit = Math.random() < critChance;
-  if (isCrit) { dmg = Math.floor(dmg * critMult); if (playerClass) { questTracking.critHits = (questTracking.critHits||0) + 1; saveQuestTracking(); } showSkillPopup('\u26A1 KRIT!'); }
+  if (isCrit) { dmg = Math.floor(dmg * critMult); if (true) { questTracking.critHits = (questTracking.critHits||0) + 1; saveQuestTracking(); } showSkillPopup('\u26A1 KRIT!'); }
 
   // Wutanfall: HP < 50% ? +50% Angriff
   if (skills.includes('jamal1') && meta.hp < meta.maxHp * 0.5) {
@@ -762,7 +761,7 @@ function attack() {
 
   const imgEl = document.getElementById('mimg0');
   if (imgEl) { imgEl.classList.add('hit-flash'); setTimeout(() => imgEl.classList.remove('hit-flash'), 300); }
-  if (playerClass) { questTracking.damageDone = (questTracking.damageDone||0) + (instantKill ? target.hp : dmg); saveQuestTracking(); }
+  if (true) { questTracking.damageDone = (questTracking.damageDone||0) + (instantKill ? target.hp : dmg); saveQuestTracking(); }
   if (!instantKill) showDmgPopup('-' + dmg + ' ⚔️', '#ff4400');
   const _tname = target.isWorldBoss ? ('Boss ' + target.bossNum) : (MONSTER_NAMES[target.type] || target.type);
   log('⚔️ Du triffst <span style="color:var(--red)">' + _tname + '</span> für <span style="color:#ff6644">' + (instantKill ? 'INSTANT KILL' : dmg + ' Schaden') + '</span>.');
@@ -777,12 +776,13 @@ function attack() {
       // Schurke: +30% Gold
       killGold = Math.floor(killGold * getSchurkeGoldMult());
       if (typeof cityBonus === 'function') killGold = Math.floor(killGold * cityBonus('gold'));
+      if (window.__kamGoldM) killGold = Math.floor(killGold * window.__kamGoldM());
       // (Energie-Regen läuft am Ende von attack())
       // Reset hinterhaltAvailable after fight ends (set here too)
       log('\uD83D\uDC79 <span style="color:var(--gold)">' + _dname + ' besiegt! +' + killGold + ' Gold</span>');
-      meta.gold += killGold; if (playerClass) { questTracking.goldEarned = (questTracking.goldEarned||0) + killGold; saveQuestTracking(); }
+      meta.gold += killGold; if (true) { questTracking.goldEarned = (questTracking.goldEarned||0) + killGold; saveQuestTracking(); }
     }
-    if (playerClass && !target.isBoss && !meta._fightTookDamage) { questTracking.monstersNoDmg = (questTracking.monstersNoDmg||0) + 1; saveQuestTracking(); }
+    if (!target.isBoss && !meta._fightTookDamage) { questTracking.monstersNoDmg = (questTracking.monstersNoDmg||0) + 1; saveQuestTracking(); }
     // Monster Lexikon Kill-Tracking
     if (!target.isWorldBoss) {
       var _lexType = target.baseType || target.type;
@@ -795,6 +795,7 @@ function attack() {
     // level-up check based on monster kills (only once per kill)
     const prevLv = getHeroLevel(meta.hero);
     meta.kills++;
+    try { tryDropItem(!!target.isBoss); } catch(e) {}
     heroData[meta.hero].kills = (heroData[meta.hero].kills||0) + 1;
     const newLv = getHeroLevel(meta.hero);
     if (newLv > prevLv) showLevelUp(newLv);
@@ -803,14 +804,14 @@ function attack() {
       meta.bossKillsThisRun++;
       const totalBossKillsBefore = Object.values(heroData).reduce((s,h)=>s+h.bossKills,0);
       heroData[meta.hero].bossKills++;
-      if (playerClass) { questTracking.bossesKilled = (questTracking.bossesKilled||0) + 1; saveQuestTracking(); }
+      if (true) { questTracking.bossesKilled = (questTracking.bossesKilled||0) + 1; saveQuestTracking(); }
 
       // World Boss Belohnungen
       if (target.isWorldBoss) {
         const bs = getWorldBossStats(target.bossNum);
         // First kill bonus: 100 diamonds, then 5 per kill
         const isFirstBossKill = bossFirstKills.indexOf(target.bossNum) === -1;
-        const diamondReward = isFirstBossKill ? 100 : 15;
+        const diamondReward = window.__kamDiaReward ? window.__kamDiaReward(isFirstBossKill ? 100 : 15) : (isFirstBossKill ? 100 : 15);
         if (isFirstBossKill) { bossFirstKills.push(target.bossNum); saveBossFirstKills(); }
         let goldReward = bs.gold;
         // Champion-Beute (jeffry4): Boss-Gold +50%
@@ -820,7 +821,7 @@ function attack() {
         }
         meta.diamonds += diamondReward; globalDiamonds += diamondReward; saveDiamonds(globalDiamonds);
         meta.gold += goldReward;
-        if (playerClass) { questTracking.goldEarned = (questTracking.goldEarned||0) + goldReward; saveQuestTracking(); }
+        if (true) { questTracking.goldEarned = (questTracking.goldEarned||0) + goldReward; saveQuestTracking(); }
         showDmgPopup('+' + diamondReward + ' DIAS', '#44ddff');
         log('<span style="color:#44ddff">\uD83D\uDC8E BOSS ' + target.bossNum + ' besiegt!' + (isFirstBossKill ? ' ERSTMAL!' : '') + ' +' + diamondReward + ' Diamanten, +' + goldReward + ' Gold!</span>');
         // Auto-Run Stufe freischaltbar nach Boss-Kill
@@ -829,14 +830,17 @@ function attack() {
           log('<span style="color:#ffaa44">\u26A1 AUTO-RUN Stufe ' + target.bossNum + ' freigeschalten! Kaufe es im Shop f\u00FCr ' + nextCost + ' Gold. (L\u00E4uft bis Boss ' + target.bossNum + ')</span>');
         }
         pendingBossNum = 0; meta._wasWorldBoss = true; // Boss erledigt, nÄchste Runde starten
-        // Prestige: alle 50 Boss-Kills eine Chance
-        const totalNow = totalBossKillsBefore + 1;
-        const oldBatch = Math.floor(totalBossKillsBefore / 50);
-        const newBatch = Math.floor(totalNow / 50);
-        if (newBatch > oldBatch) {
-          prestigeData.prestigeAvailable = (prestigeData.prestigeAvailable || 0) + 1;
+        // Prestige-Token
+        prestigeData.top = Math.max(prestigeData.top || 0, target.bossNum); savePrestige();
+        // Nur Bosse ab Boss 5 zählen (kein Boss-1-Farmen): alle 10 solcher Siege gibt es ein Token
+        if (target.bossNum >= 5) {
+          const hb = (prestigeData.hb || 0) + 1;
+          prestigeData.hb = hb;
+          if (hb % 10 === 0) {
+            prestigeData.prestigeAvailable = (prestigeData.prestigeAvailable || 0) + 1;
+            log('<span style="color:#cc44ff">💜 PRESTIGE VERFÜGBAR! (' + prestigeData.prestigeAvailable + ' Token)</span>');
+          }
           savePrestige();
-          log('<span style="color:#cc44ff">💜 PRESTIGE VERFÜGBAR! (' + prestigeData.prestigeAvailable + ' Token)</span>');
         }
       } else {
         // Normaler Boss (alter Code-Pfad, falls noch irgendwo genutzt)
@@ -882,12 +886,13 @@ function attack() {
   let blocked = false;
   monstersInFight.forEach(m => {
     let md = m.atk + Math.floor(Math.random() * 3);
+    if (window.__kamMonHit) { md = window.__kamMonHit(m, md); if (md <= 0) return; }
     if (window.__kamShield) md = Math.max(1, Math.round(md * (1 - window.__kamShield / 100)));
     // Jaeger: 5% Ausweichen
     // Jaeger: 10% Dodge (improved from 5%)
     const _dodgeChance = hasClass('jaeger') ? 0.10 : (playerClass && playerClass.id === 'jaeger' ? 0.10 : 0);
     if (_dodgeChance > 0 && Math.random() < _dodgeChance) {
-      if (playerClass) { questTracking.attacksDodged = (questTracking.attacksDodged||0) + 1; saveQuestTracking(); }
+      if (true) { questTracking.attacksDodged = (questTracking.attacksDodged||0) + 1; saveQuestTracking(); }
       showSkillPopup('Ausgewichen!'); return;
     }
     // Paladin Schild: blockt naechsten Angriff
@@ -957,6 +962,7 @@ function attack() {
 
   if (meta.hp <= 0) {
     meta.hp = 0;
+    try { if (window.__kamDeathSoul) window.__kamDeathSoul(); } catch(e) {}
     saveHeroData();
     updateUI();
     setTimeout(showDeath, 400);
@@ -1096,7 +1102,7 @@ const RANK_LEVELS = {10:'Bronze',25:'Silber',50:'Gold',80:'Legendaer',90:'Mythic
 function showLevelUp(newLevel) {
   if (newLevel > (questTracking.maxHeroLv||0)) { questTracking.maxHeroLv = newLevel; saveQuestTracking(); }
   const el = document.getElementById('levelUpAlert');
-  const reward = LEVEL_REWARDS[newLevel - 1] || {g:0,h:0,a:0,d:0};
+  const reward = window.__kamLvReward ? window.__kamLvReward(newLevel) : (LEVEL_REWARDS[newLevel - 1] || {g:0,h:0,a:0,d:0});
   const rankUp = RANK_LEVELS[newLevel];
   const rank = getRank(newLevel);
   let parts = [];
@@ -1799,15 +1805,7 @@ function showClassModal() {
 }
 
 function showQuestModal() {
-  // only available once hero has reached level 10 and class is chosen
-  if (!meta || getHeroLevel(meta.hero) < 10) {
-    log('ℹ️ Helden-Level 10 erforderlich, um Quests zu sehen.');
-    return;
-  }
-  if (playerClasses.length === 0) {
-    log('\u2139\uFE0F W\u00E4hle erst eine Klasse, um Quests freizuschalten!');
-    return;
-  }
+  if (!meta || !meta.hero) return;
   const clsLv = getClassLevel();
   const completed = getCompletedQuestCount();
   document.getElementById('questClassLvDisplay').textContent =
@@ -1820,6 +1818,7 @@ function showQuestModal() {
     QUEST_LIST.filter(q => q.cat === cat).forEach(q => {
       const val = Math.min(q.getValue(questTracking, heroData), q.target);
       const done = val >= q.target;
+      if (q.secret && !done && !q.secret()) { html += '<div style="border:1px dashed #333;border-radius:6px;padding:6px 8px;margin-bottom:3px;background:rgba(0,0,0,0.3)"><span style="font-size:0.65rem;color:#555">\uD83D\uDD12 Geheime Quest</span></div>'; return; }
       const pct = Math.min(100, Math.floor(val / q.target * 100));
       html += '<div style="border:1px solid ' + (done ? '#44ff88' : '#1a2a1a') + ';border-radius:6px;padding:6px 8px;margin-bottom:3px;background:rgba(0,10,0,' + (done ? '0.4' : '0.2') + ')">'
         + '<div style="display:flex;justify-content:space-between;align-items:center">'
@@ -1969,8 +1968,7 @@ function doPrestige() {
   const pts = prestigeData.points || 0;
   const nextBonus = (prestigeData.count + 1) * 5;
   document.getElementById('prestigeRewardText').textContent =
-    '+' + nextBonus + '% Stats | Prestige-Punkte: +' + meta.round +
-    ' | Token: ' + available + ' verfügbar';
+    'Seelen: +' + (window.__kamSoulGain ? window.__kamSoulGain() : 0) + ' | Gegner +12% stärker | Gold & Diamanten +15% | Token: ' + available + ' verfügbar';
   document.getElementById('prestigeModal').style.display = 'flex';
 }
 
@@ -1978,28 +1976,23 @@ function confirmPrestige() {
   if ((prestigeData.prestigeAvailable || 0) <= 0) return;
   prestigeData.prestigeAvailable = (prestigeData.prestigeAvailable || 1) - 1;
   prestigeData.count++;
+  try { if (window.__kamSoulGrant) window.__kamSoulGrant(); } catch(e) {}
   prestigeData.points = (prestigeData.points || 0) + meta.round;
   prestigeData.bonus = prestigeData.count * 5;
   savePrestige();
 
-  // Reset: Kills (hero level), Diamanten, Skills, Shop, Gold, Auto-Run
-  // RÜstung (inventory) BLEIBT!
-  const savedInventory = JSON.parse(JSON.stringify(inventory)); // keep armor
-  heroData = {
-    ben:{kills:0, bossKills:heroData.ben ? heroData.ben.bossKills : 0, skills:[]},
-    jamal:{kills:0, bossKills:heroData.jamal ? heroData.jamal.bossKills : 0, skills:[]},
-    jeffry:{kills:0, bossKills:heroData.jeffry ? heroData.jeffry.bossKills : 0, skills:[]}
-  };
+  // Reset: nur Heldenlevel (Kills), Shop und Gold. Es BLEIBEN: Items, Klasse/Quests, Diamanten, Fähigkeiten, Lexikon, Stadt, Würfel
+  Object.keys(heroData).forEach(function(h) { heroData[h].kills = 0; });
   saveHeroData();
-  globalDiamonds = 0; saveDiamonds(0);
   shopPrices = {hp:50, atk:50}; saveShopPrices();
   shopBonuses = {hp:0, atk:0, gold:0}; saveShopBonuses();
-  savePersistentGold(0);
-  autoRunData = {level:0}; saveAutoRun();
-  playerClasses = []; playerClass = null; savePlayerClasses([]);
-  // Restore inventory (armor stays)
-  inventory = savedInventory; saveInventory();
-  questTracking = {}; saveQuestTracking();
+  var _oldGold = Math.max(loadPersistentGold(), meta.gold || 0);
+  var _loot = window.__kamPrestigeLoot ? window.__kamPrestigeLoot(prestigeData.top || 0) : null;
+  var _startGold = Math.floor(_oldGold * 0.5) + (_loot ? _loot.gold : 0);
+  savePersistentGold(_startGold); meta.gold = _startGold;
+  if (_loot && _loot.dias) { globalDiamonds += _loot.dias; meta.diamonds += _loot.dias; saveDiamonds(globalDiamonds); }
+  try { if (_loot && window.__kamPrestigeGrant) window.__kamPrestigeGrant(_loot); } catch(e) {}
+  prestigeData.top = 0; savePrestige();
   pendingBossNum = 0;
 
   closePrestigeModal();
@@ -2011,6 +2004,7 @@ function confirmPrestige() {
 
 function closePrestigeModal() {
   document.getElementById('prestigeModal').style.display = 'none';
+  if (window.__kamFromLv) { window.__kamFromLv = 0; try { var _lm = document.getElementById('kamLevels'); if (_lm) { _lm.style.display = 'block'; if (window.__kamLM) window.__kamLM(3); } } catch(e) {} }
 }
 
 function updatePrestigeUI() {
@@ -2035,7 +2029,7 @@ const _origInitMeta = initMeta;
 initMeta = function(hero, name) {
   _origInitMeta(hero, name);
   if (prestigeData.count > 0) {
-    const bonus = prestigeData.bonus / 100;
+    const bonus = 0; // Prestige gibt keine Spieler-Stats mehr, sondern mehr Beute (Gold/Dias) bei stärkeren Gegnern
     meta.maxHp = Math.floor(meta.maxHp * (1 + bonus));
     meta.hp = meta.maxHp;
     meta.attack = Math.floor(meta.attack * (1 + bonus));
@@ -2045,6 +2039,7 @@ initMeta = function(hero, name) {
     meta.maxHp += eqB.hp;
     meta.hp = meta.maxHp;
   }
+  if (window.__kamSuMult) { meta.maxHp = Math.floor(meta.maxHp * window.__kamSuMult('hp')); meta.attack = Math.floor(meta.attack * window.__kamSuMult('atk')); meta.hp = meta.maxHp; }
   applyClassBonus();
   }
 };
@@ -2322,6 +2317,7 @@ function tryDropItem(isBoss) {
   var itemId = pool[Math.floor(Math.random() * pool.length)];
   var item = ITEMS.find(function(x){ return x.id === itemId; });
   if (!item) return;
+  if (inventory.items.indexOf(itemId) >= 0 && window.__kamDupe && window.__kamDupe(item)) { return; }
   if (inventory.items.indexOf(itemId) >= 0) {
     if (meta) { meta.diamonds += 2; globalDiamonds += 2; saveDiamonds(globalDiamonds); }
     log('<span style="color:#888">Item doppelt: +2 Diamanten</span>');
@@ -2470,13 +2466,16 @@ function openChest(type) {
     meta.gold += bonusGold; questTracking.goldEarned = (questTracking.goldEarned||0) + bonusGold; saveQuestTracking();
     msg += ' <span style="color:#44ddff">+' + dias + ' Dias</span> <span style="color:var(--gold)">+' + bonusGold + ' Gold</span>';
   }
+  if (window.__kamChest) { msg += window.__kamChest(type, cfg); } else {
   // Item drop
   if (Math.random() < cfg.itemChance) {
     const pool = cfg.itemPool;
     const itemId = pool[Math.floor(Math.random() * pool.length)];
     const item = ITEMS.find(function(x){ return x.id === itemId; });
     if (item) {
-      if (inventory.items.indexOf(itemId) >= 0) {
+      if (inventory.items.indexOf(itemId) >= 0 && window.__kamDupe && window.__kamDupe(item)) {
+        msg += ' <span style="color:' + RARITY_COLOR[item.rarity] + '">' + item.name + ' +1 Stufe</span>';
+      } else if (inventory.items.indexOf(itemId) >= 0) {
         meta.diamonds += 3; globalDiamonds += 3; saveDiamonds(globalDiamonds);
         msg += ' <span style="color:#888">+3 Dias (doppelt)</span>';
       } else {
@@ -2495,6 +2494,7 @@ function openChest(type) {
       inventory.items.push(lid); saveInventory();
       msg += ' <span style="color:' + RARITY_COLOR[litem.rarity] + '">+ ' + litem.name + '</span>';
     }
+  }
   }
   log(msg);
   showDmgPopup('+' + gold + '💰', cfg.color);

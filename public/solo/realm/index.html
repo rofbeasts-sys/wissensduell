@@ -41,8 +41,6 @@
   <!-- 2. KLASSE WAEHLEN + KLASSEN-LEVEL -->
   <button id="menuClassBtn" class="btn btn-wide" onclick="showClassModal()" style="width:100%;margin-bottom:4px;font-size:0.8rem;padding:9px;background:linear-gradient(135deg,#440000,#880000);border-color:var(--gold2);color:var(--gold)">KLASSE WAEHLEN</button>
   <div id="menuClassInfo" style="font-size:0.65rem;color:var(--gold2);text-align:center;margin-bottom:4px;min-height:14px;padding:0 4px"></div>
-  <button class="btn btn-wide btn-diamond" onclick="showLevelTable()" style="width:100%;margin-bottom:4px;font-size:0.75rem;padding:7px">HELDEN-LEVEL TABELLE</button>
-  <button class="btn btn-wide" onclick="showClassLevelTable()" style="width:100%;margin-bottom:7px;font-size:0.75rem;padding:7px;background:linear-gradient(135deg,#003300,#006600);border-color:#44cc88;color:#55ee99">KLASSEN-LEVEL TABELLE</button>
 
   <!-- 3. BESTENLISTE -->
   <button class="btn btn-wide btn-diamond" onclick="showTop100()" style="width:100%;margin-bottom:7px;font-size:0.8rem;padding:9px">&#127942; BESTENLISTE</button>
@@ -59,7 +57,7 @@
   </div>
 
   <!-- 5. INVENTAR -->
-  <button class="btn btn-wide" onclick="showInventory()" style="width:100%;margin-bottom:7px;font-size:0.8rem;padding:9px;background:linear-gradient(135deg,#001a33,#003366);border-color:#336699;color:#88aacc">INVENTAR</button>
+  <button class="btn btn-wide" onclick="showInventory()" style="width:100%;margin-bottom:7px;font-size:0.8rem;padding:9px;background:linear-gradient(135deg,#001a33,#003366);border-color:#336699;color:#88aacc">HELDENABTEIL</button>
 
   <!-- 6. LAUTSTAERKE -->
   <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px;background:rgba(0,0,0,0.4)">
@@ -281,7 +279,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
         <button class="btn btn-sm" onclick="showTop100()">&#127942; BESTENLISTE</button>
         <button class="btn btn-sm" onclick="showQuestModal()">&#128220; QUESTS</button>
-        <button class="btn btn-sm" onclick="showInventory()">&#127890; INVENTAR</button>
+        <button class="btn btn-sm" onclick="showInventory()">&#127890; HELDENABTEIL</button>
         <button class="btn btn-sm" onclick="showClassModal()">&#9876; KLASSE</button>
         <button class="btn btn-sm" onclick="showMonsterLexicon()">&#128218; LEXIKON</button>
         <button class="btn btn-sm" onclick="showDiaShop()">&#128142; DIA-SHOP</button>
@@ -348,7 +346,7 @@
 <div id="questModal" style="position:fixed;inset:0;z-index:600;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,0.97);overflow-y:auto;padding:20px">
   <div style="background:linear-gradient(145deg,#050a15,#0a1525);border:2px solid var(--diamond);border-radius:16px;padding:20px 16px;max-width:420px;width:95%">
     <h2 style="font-family:Cinzel Decorative,serif;color:var(--diamond);font-size:1rem;text-align:center;margin-bottom:4px">📋 QUESTS</h2>
-    <p style="color:#446688;font-size:0.6rem;text-align:center;margin-bottom:10px">Jede abgeschlossene Quest = +1 Klassen-Level (max. 150)</p>
+    <p style="color:#446688;font-size:0.6rem;text-align:center;margin-bottom:10px">Jede abgeschlossene Quest = +1 Klassen-Level (max. 100)</p>
     <div id="questClassLvDisplay" style="text-align:center;font-size:0.8rem;color:var(--diamond);font-weight:700;margin-bottom:10px;padding:6px;border:1px solid var(--diamond);border-radius:8px">Klassen-Level: 0</div>
     <div id="questList" style="max-height:65vh;overflow-y:auto"></div>
     <button class="btn btn-wide btn-diamond" onclick="backToMenu('questModal')" style="width:100%;margin-top:10px">&#8592; ZURUECK</button>
@@ -487,7 +485,7 @@
 <!-- INVENTAR MODAL -->
 <div id="inventoryModal" style="position:fixed;inset:0;z-index:500;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
   <div style="background:linear-gradient(145deg,#050a15,#0a1525);border:2px solid var(--gold2);border-radius:16px;padding:20px 16px;max-width:400px;width:95%">
-    <h2 style="font-family:Cinzel Decorative,serif;color:var(--gold);font-size:1.05rem;margin-bottom:12px;text-align:center">INVENTAR &amp; AUSRUESTUNG</h2>
+    <h2 style="font-family:Cinzel Decorative,serif;color:var(--gold);font-size:1.05rem;margin-bottom:12px;text-align:center">HELDENABTEIL</h2>
     <div id="invSlots"></div>
     <div id="invBonus"></div>
     <div id="invItems"></div>
