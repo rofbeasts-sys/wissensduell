@@ -2374,7 +2374,7 @@ function closeInventory() { document.getElementById('inventoryModal').style.disp
 function itemIcon(it, px) {
   var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:'o'}[it.rarity] || 'g';
   var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape'}[it.type] || 'sword';
-  return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + (it.rarity === 'normal' ? 'filter:grayscale(.9) brightness(.9);' : '') + '">';
+  return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + '' + '">';
 }
 function renderInventoryModal() {
   var eq = inventory.equipped;
