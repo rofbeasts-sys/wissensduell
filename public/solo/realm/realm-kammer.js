@@ -5,7 +5,7 @@
 'use strict';
 var COLS=5,CM=2,TS=54,GAP=6,STEP=TS+GAP,ETG=10,ROWS=ETG*10,FACES='⚀⚁⚂⚃⚄⚅';
 var $=function(i){return document.getElementById(i)};
-var K=null,busy=false,fightBoss=false;window.__K=function(){return K};
+var K=null,busy=false,fightBoss=false,bossWon=false;window.__K=function(){return K};
 var THEMES=[
  {n:'Gefängniskammer',a:'#c9b79a',bg:'#0f0d12',t:'#2a2530',w:'#1b1720'},
  {n:'Feuerkammer',a:'#ff6a1a',bg:'#1a0707',t:'#3a1208',w:'#2a0c07'},
@@ -534,8 +534,12 @@ function hook(){
   var oGen=window.generateBoard;
   window.generateBoard=function(){
     if(!$('kam'))return oGen&&oGen.apply(this,arguments);
-    var k=fightBoss&&K?K.k+1:Math.floor((Math.max(1,meta.round)-1)/10)+1;
-    if(fightBoss){fightBoss=false;ST.bosses++;saveST()}
+    var mb=0;try{mb=(inventory.stats&&inventory.stats.maxBoss)||0}catch(e){}
+    var k=Math.floor((Math.max(1,meta.round)-1)/10)+1;
+    if(fightBoss&&K){k=bossWon?K.k+1:K.k}
+    if(fightBoss){if(bossWon){ST.bosses++;saveST()}fightBoss=false;bossWon=false}
+    /* Der Drache beschuetzt seine Kammer: hoechstens Kammer (besiegte Bosse + 1) */
+    k=Math.max(1,Math.min(k,mb+1));meta.round=Math.max(meta.round,(k-1)*10+1);if(meta.round>k*10)meta.round=(k-1)*10+1;
     board=['empty'];pos=0;build(k);
   };
   window.drawBoard=function(){};
@@ -898,7 +902,7 @@ setInterval(function(){try{milestones()}catch(e){}},4000);
 function cap(k,boss){var r=k<3?1:k<5?2:3;return Math.min(4,r+(boss&&k>=3?1:0)+(boss&&k<3?1:0))}
 window.tryDropItem=function(isBoss){
  var k=kk(),ex='';
- if(isBoss){bump('x0',0);inventory.stats.maxBoss=Math.max(inventory.stats.maxBoss||0,k);inventory.orbs=inventory.orbs||{};var o=orbDrop(k);ens();inventory.orbs[o]=(inventory.orbs[o]||0)+1;ex+=' +1 '+ORB[o][0];
+ if(isBoss){bossWon=true;bump('x0',0);inventory.stats.maxBoss=Math.max(inventory.stats.maxBoss||0,k);inventory.orbs=inventory.orbs||{};var o=orbDrop(k);ens();inventory.orbs[o]=(inventory.orbs[o]||0)+1;ex+=' +1 '+ORB[o][0];
   ex+=loot(rnd(3,6),{});
   ens();inventory.ms=inventory.ms||{};if(k>=10&&!inventory.ms.b10){inventory.ms.b10=1;try{saveInventory()}catch(e){}perfectGift(4,'Kammer 10 bezwungen')}}
  else if(Math.random()<.25)ex+=loot(1,{});
@@ -1019,4 +1023,23 @@ window.__kamDoUp=function(){var B=it(FS.b);if(!B||B.s<3)return;var nb=nextBase(B
 ens();
 })();
 
+
+/* ---------- Kammern-Auswahl (Schnellzugriff) ---------- */
+window.__kamPick=function(k){
+  if(inFight){msg('Nicht waehrend eines Kampfes.');return}
+  var mb=(inventory.stats&&inventory.stats.maxBoss)||0;if(k>mb+1)return;
+  meta.round=(k-1)*10+1;fightBoss=false;bossWon=false;window.generateBoard();
+  var m=$('kamChambers');if(m)m.style.display='none';try{updateUI()}catch(e){}
+};
+window.showChambers=function(){
+  var mb=(inventory.stats&&inventory.stats.maxBoss)||0,cur=K?K.k:1;
+  var M=$('kamChambers');
+  if(!M){M=document.createElement('div');M.id='kamChambers';M.style.cssText='position:fixed;inset:0;z-index:600;display:none;overflow-y:auto;background:radial-gradient(circle at 50% 0,#2a1245,#0d0814 60%);color:#ffe9c4;font-family:Georgia,serif';document.body.appendChild(M)}
+  var h='<div style="max-width:420px;margin:0 auto;padding:14px 14px 40px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button class="btn btn-sm" onclick="document.getElementById(\'kamChambers\').style.display=\'none\'">← ZURÜCK</button><b style="flex:1;text-align:center;color:#f0c040;letter-spacing:2px">🗺️ KAMMERN</b></div><p style="font-size:.75rem;opacity:.75;text-align:center;margin:0 0 12px">Jeder Drache beschützt seine Kammer. Besiege ihn, um sie zu öffnen.</p>';
+  for(var k=1;k<=10;k++){
+    var th=theme(k),open=k<=mb+1,boss=k>1?'Boss '+(k-1)+' besiegt':'Von Anfang an offen';
+    h+='<div '+(open?'onclick="__kamPick('+k+')" ':'')+'style="display:flex;align-items:center;gap:12px;margin:8px 0;padding:12px;border-radius:12px;border:2px solid '+(k===cur?'#f0c040':th.a)+';background:linear-gradient(90deg,'+th.t+','+th.bg+');'+(open?'cursor:pointer':'opacity:.45;filter:grayscale(.7)')+'"><div style="width:14px;height:40px;border-radius:6px;background:'+th.a+';box-shadow:0 0 10px '+th.a+'"></div><div style="flex:1"><b style="color:'+th.a+'">Kammer '+k+' · '+th.n+'</b><div style="font-size:.7rem;opacity:.8">'+(open?(k===cur?'Du bist hier':'Tippen zum Betreten'):'🔒 Gesperrt – '+boss.replace('besiegt','besiegen'))+'</div></div></div>';
+  }
+  M.innerHTML=h+'</div>';M.style.display='block';
+};
 })();
