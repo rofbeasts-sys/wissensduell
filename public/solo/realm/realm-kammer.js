@@ -979,7 +979,8 @@ var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',s
 var sel='hero',fr=0;
 function can(w,i){return SL[w].indexOf(i.type)>=0}
 function unw(uid){var i=it(uid),w=wearer(uid);if(!w)return;
- restat(uid,function(){if(w==='hero')delete inventory.equipped[i.type];else delete ai()[w][i.type]});}
+ var q=st(i);if(w==='hero')delete inventory.equipped[i.type];else delete ai()[w][i.type];
+ if(meta){if(w==='hero')meta.attack=Math.max(1,meta.attack-q.atk);meta.maxHp=Math.max(1,meta.maxHp-q.hp);meta.hp=Math.min(meta.hp,meta.maxHp);try{updateUI()}catch(e){}}}
 window.equipItem=function(uid,who){var i=it(uid);if(!i)return;who=who||sel;if(!can(who,i))return;
  var cur=wearer(uid);if(cur===who){unw(uid);saveInventory();render();return}
  if(cur)unw(uid);
