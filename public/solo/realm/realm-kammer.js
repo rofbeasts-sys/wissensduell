@@ -120,6 +120,7 @@ var css=document.createElement('style');css.textContent=
 '#kamDieBox{width:62px;height:62px;flex:none;perspective:260px;position:relative}'+
 '#kamDieBox.toss{animation:ktoss .95s ease-out;z-index:20}@keyframes ktoss{0%{transform:translateY(0)}35%{transform:translateY(-120px) scale(1.5)}60%{transform:translateY(-40px) scale(1.25)}78%{transform:translateY(-70px) scale(1.3)}100%{transform:translateY(0) scale(1)}}'+
 '#kamCube{position:absolute;left:5px;top:5px;width:52px;height:52px;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.8,.2,1)}'+
+'#kamDieBox.kcol #kamCube .f{background:linear-gradient(145deg,var(--d0),var(--d1))!important;border-color:var(--d1)}#kamDieBox.kcol #kamCube .f i.p{background:radial-gradient(circle at 35% 30%,#fff,#ddd)!important}#kamInv .eqb{background:#2a1a0a;border:1px solid #ffd24a;border-radius:8px;padding:5px 12px;cursor:pointer;font:700 .65rem Georgia,serif}'+
 '#kamCube.spin{transition:none;animation:kspin .45s linear infinite}@keyframes kspin{to{transform:rotateX(360deg) rotateY(720deg)}}'+
 '#kamCube .f{position:absolute;inset:0;border-radius:9px;background:linear-gradient(145deg,#fff,#d9d2c4);border:1px solid #8a7a5c;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:7px;backface-visibility:hidden;box-shadow:inset 0 0 8px #0003}'+
 '#kamCube .f i{border-radius:50%;margin:1px}#kamCube .f i.p{background:radial-gradient(circle at 35% 30%,#e33,#800)}'+
@@ -407,8 +408,8 @@ function saveD(){ss('robKamInv',INV);ss('robKamOwned',OWN);ss('robKamEq',EQ);ss(
 function invUI(){
   var el=$('kamInv');if(!el)return;var h='';
   for(var i=0;i<3;i++){var id=INV[i];h+=id?'<button class="sl'+(armed===i?' on':'')+'" data-i="'+i+'">'+dieHTML(id,34)+'<small>'+dd(id).n.replace('würfel','')+'</small></button>':'<span class="sl em"></span>'}
-  var e=EQ&&SD[EQ]?'<span class="eqd">'+dieHTML(EQ,22)+'<small>'+SD[EQ].n+'</small></span>':'';
-  el.innerHTML=h+e;
+  var e='<button class="eqd eqb" onclick="__kamDiePick()">🎲 '+(EQ&&SD[EQ]?SD[EQ].n:'WÜRFEL')+' ▾</button>';
+  el.innerHTML=h+e;paintCube();
   [].forEach.call(el.querySelectorAll('button.sl'),function(b){b.onclick=function(){if(busy||inFight)return;var i=+b.dataset.i;armed=armed===i?-1:i;invUI();msg(armed>=0?dd(INV[armed]).n+' bereit: '+dd(INV[armed]).d+'. Jetzt würfeln.':'Würfel abgelegt.')}});
 }
 function applyFightBonus(){
@@ -564,11 +565,11 @@ function hook(){
   window.generateBoard=function(){
     if(!$('kam'))return oGen&&oGen.apply(this,arguments);
     var mb=0;try{mb=(inventory.stats&&inventory.stats.maxBoss)||0}catch(e){}
-    var k=Math.floor((Math.max(1,meta.round)-1)/10)+1;
+    var k=Math.floor((Math.max(1,meta.round||1)-1)/10)+1;
     if(fightBoss&&K){k=bossWon?K.k+1:K.k}
     if(fightBoss){if(bossWon){ST.bosses++;saveST()}fightBoss=false;bossWon=false}
     /* Der Drache beschuetzt seine Kammer: hoechstens Kammer (besiegte Bosse + 1) */
-    k=Math.max(1,Math.min(k,mb+1));meta.round=Math.max(meta.round,(k-1)*10+1);if(meta.round>k*10)meta.round=(k-1)*10+1;
+    k=Math.max(1,Math.min(k,mb+1));meta.round=Math.max(meta.round||1,(k-1)*10+1);if(meta.round>k*10)meta.round=(k-1)*10+1;
     board=['empty'];pos=0;build(k);
   };
   window.drawBoard=function(){};
@@ -990,8 +991,8 @@ function render(){
  '<div class="hts">'+tabs+'</div><div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NM[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'<div class="hs e" style="opacity:.4"><span>Schild</span><em>bald</em></div></div></div>';
  var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NM[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NM[sel].toUpperCase()+'</div>',n=0;
- sorted().forEach(function(i){if(!can(sel,i))return;n++;var w=wearer(i.id),mine=w===sel;
-  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NM[w]:'anlegen')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),'equipItem(\''+i.id+'\')',mine)});
+ var SRT=sorted(),OWNR={bow:'arc',staff:'mag'};SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
+  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Kl. '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NM[w]:'anlegen')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
  if(!n)h+='<div style="font-size:0.7rem;color:#446688;text-align:center;padding:12px">Noch keine passenden Items. Besiege Monster und Bosse!</div>';
  var T=document.getElementById('invItems');if(T)T.innerHTML=h}
 window.__kamSel=function(w){sel=w;render()};
@@ -1071,4 +1072,20 @@ window.showChambers=function(){
   }
   M.innerHTML=h+'</div>';M.style.display='block';
 };
+
+/* ---------- Würfelwahl: großer Würfel + Knopf unten ---------- */
+function paintCube(){var b=$('kamDieBox');if(!b)return;var d=EQ&&SD[EQ]?SD[EQ]:null;
+  b.style.setProperty('--d0',d?d.c[0]:'#ffffff');b.style.setProperty('--d1',d?d.c[1]:'#d9d2c4');b.style.setProperty('--dp',d?'#fff':'#c22');b.classList.toggle('kcol',!!d);
+  if(!b.__kp){b.__kp=1;b.style.cursor='pointer';b.addEventListener('click',function(){window.__kamDiePick()})}}
+window.__kamDiePick=function(){
+  if(busy||inFight){msg('Nicht während eines Kampfes oder Laufs.');return}
+  var M=$('kamDiceSel');
+  if(!M){M=document.createElement('div');M.id='kamDiceSel';M.style.cssText='position:fixed;inset:0;z-index:700;overflow-y:auto;background:radial-gradient(circle at 50% 0,#2a1245,#0d0814 60%);color:#ffe9c4;font-family:Georgia,serif';document.body.appendChild(M)}
+  var h='<div style="max-width:420px;margin:0 auto;padding:14px 14px 40px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><button class="btn btn-sm" onclick="document.getElementById(\'kamDiceSel\').style.display=\'none\'">← ZURÜCK</button><b style="flex:1;text-align:center;color:#f0c040;letter-spacing:2px">🎲 WÜRFEL</b></div><p style="font-size:.72rem;opacity:.75;text-align:center;margin:0 0 10px">Tippe einen Würfel an, um ihn zu benutzen. Neue Würfel findest du im Spiel.</p>';
+  var row=function(id,sel,nm,ds,ic){return '<div onclick="__kamDieSet(\''+id+'\')" style="display:flex;align-items:center;gap:12px;margin:7px 0;padding:10px;border-radius:12px;cursor:pointer;border:2px solid '+(sel?'#ffd24a':'#ffffff22')+';background:'+(sel?'#3a2a0a99':'#0006')+'">'+ic+'<div style="flex:1"><b style="font-size:.85rem">'+nm+'</b><div style="font-size:.65rem;opacity:.8">'+ds+'</div></div><span style="font-size:.65rem;color:#ffd24a">'+(sel?'✔ ANGELEGT':'ANLEGEN')+'</span></div>'};
+  h+=row('',!EQ,'Normaler Würfel','Wirft 1 bis 6, ohne Besonderheit','<span style="display:inline-block;width:38px;height:38px;border-radius:9px;background:linear-gradient(145deg,#fff,#d9d2c4)"></span>');
+  var n=0;Object.keys(SD).forEach(function(id){if(OWN.indexOf(id)<0){n++;return}h+=row(id,EQ===id,SD[id].n,id==='city'?cityInfo():SD[id].d,dieHTML(id,38))});
+  for(var q=0;q<n;q++)h+='<div style="display:flex;align-items:center;gap:12px;margin:7px 0;padding:10px;border-radius:12px;border:2px solid #ffffff11;background:#0004;opacity:.5"><span style="width:38px;height:38px;border-radius:9px;background:#222"></span><div><b style="font-size:.85rem">? ? ?</b><div style="font-size:.65rem">Geheimer Würfel. Finde ihn im Spiel.</div></div></div>';
+  M.innerHTML=h+'</div>';M.style.display='block'};
+window.__kamDieSet=function(id){EQ=id;saveD();invUI();hud();var M=$('kamDiceSel');if(M)M.style.display='none';msg(id?SD[id].n+' angelegt.':'Normaler Würfel.')};
 })();
