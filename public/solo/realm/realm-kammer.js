@@ -936,14 +936,25 @@ function levelsUI(){
    if(L===10)c+='<span class="lc nh big">Klasse wählbar</span>';if(L===30)c+='<span class="lc nh big">2. Klassen-Slot</span>';if(L===50)c+='<span class="lc nh big">3. Klassen-Slot</span>'}
   else{c+=chips(CG[L],CX[L]);if(L===15)c+='<span class="lc nh big"><img src="ally/arc_i0.webp">NEUER HELD</span>';if(L===30)c+='<span class="lc nh big"><img src="ally/mag_i0.webp">NEUER HELD</span>'}
   var big=!(LM===1&&L%5&&!RK[L]);h+='<div class="m '+cls+lk+(big?'':' sm')+'"><div class="dot">'+L+'</div><div class="card"><h3>Level '+L+' '+rk+'<span>'+(L<=lv?'✓ erhalten':(lk?'braucht mehr Quests':''))+'</span></h3><div class="rw">'+(c||'<span class="lc">–</span>')+'</div></div></div>'});
- if(LM===3){M.innerHTML='<div class="w"><h1>⭐ LEVEL</h1><div class="tb"><button onclick="__kamLM(1)">Heldenlevel</button><button onclick="__kamLM(2)">Klassenlevel</button><button class="on" onclick="__kamLM(3)">Prestige</button></div>'+prestigeTab()+'<button class="btn btn-wide" onclick="__kamLvBack()" style="width:100%;margin-top:6px">← ZURÜCK</button></div>';M.style.display='block';return}
- M.innerHTML='<div class="w"><h1>⭐ LEVEL</h1><div class="tb"><button class="'+(LM===1?'on':'')+'" onclick="__kamLM(1)">Heldenlevel</button><button class="'+(LM===2?'on':'')+'" onclick="__kamLM(2)">Klassenlevel</button><button class="'+(LM===3?'on':'')+'" onclick="__kamLM(3)">Prestige</button></div>'+
+ var TOP='<div style="display:flex;align-items:center;gap:10px;margin:0 0 6px"><button class="btn btn-sm" onclick="__kamLvBack()">← ZURÜCK</button><h1 style="flex:1;margin:0">⭐ LEVEL</h1></div>',
+ TB='<div class="tb">'+[[1,'Heldenlevel'],[2,'Klassenlevel'],[3,'Prestige']].map(function(t){return '<button class="'+(LM===t[0]?'on':'')+'" onclick="__kamLM('+t[0]+')">'+t[1]+'</button>'}).join('')+'</div>';
+ if(LM===3){M.innerHTML='<div class="w">'+TOP+TB+prestigeTab()+'</div>';M.style.display='block';return}
+ M.innerHTML='<div class="w">'+TOP+TB+
  '<div class="hr"><img src="hero/idle0.webp"><div class="t"><div class="lv">'+(LM===1?'Held-Level ':'Klassen-Level ')+lv+'</div><small>'+(ml?'Nächster Meilenstein bei Level '+ml:'Alle Meilensteine erreicht')+'</small>'+(LM===1?'<div class="bar"><i style="width:'+kp+'%"></i></div>':'')+'</div></div>'+
- '<div class="how">'+(LM===1?'So steigst du auf: <b>150 Monster-Kills pro Level</b> (max. Level 100).':'So steigst du auf: <b>1 Level pro erledigter Quest</b> (aktuell '+nq+' Quests, für Level 100 brauchen wir weitere).')+'</div><div class="tl">'+h+'</div>'+
- '<button class="btn btn-wide" onclick="__kamLvBack()" style="width:100%;margin-top:6px">← ZURÜCK</button></div>';
+ (LM===2?'<button class="btn btn-wide" onclick="__kamQO()" style="width:100%;margin:2px 0 8px">📋 QUESTS '+(window.__kamQOpen?'▴':'▾')+'</button>'+(window.__kamQOpen?questsTab():''):'')+'<div class="how">'+(LM===1?'So steigst du auf: <b>150 Monster-Kills pro Level</b> (max. Level 100).':'So steigst du auf: <b>1 Level pro erledigter Quest</b> (aktuell '+nq+' Quests, für Level 100 brauchen wir weitere).')+'</div><div class="tl">'+h+'</div></div>';
  M.style.display='block'}
-var LH=[];window.__kamLvBack=function(){if(LM===3&&(SHS||SHL)){SHS=0;SHL=0;levelsUI();return}if(LH.length){LM=LH.pop();levelsUI();return}document.getElementById('kamLevels').style.display='none'};
-window.__kamLM=function(m){if(m!==LM)LH.push(LM);LM=m;levelsUI()};
+var LH=[];window.__kamLvBack=function(){SHS=0;SHL=0;LH=[];document.getElementById('kamLevels').style.display='none';var pf=document.getElementById('kamPf');if(pf)pf.click()};
+function questsTab(){var L=(typeof QUEST_LIST!=='undefined')?QUEST_LIST:[],cats=[],done=0;
+ L.forEach(function(q){if(cats.indexOf(q.cat)<0)cats.push(q.cat)});
+ var h='';cats.forEach(function(cat){var qs=L.filter(function(q){return q.cat===cat});
+  h+='<div style="font-size:.62rem;color:#c8a070;letter-spacing:2px;margin:14px 0 6px">'+cat+'</div>';
+  qs.forEach(function(q){var v=0;try{v=Math.min(q.getValue(questTracking,heroData),q.target)}catch(e){}var dn=v>=q.target;if(dn)done++;
+   if(q.secret&&!dn){var sc=false;try{sc=q.secret()}catch(e){}if(!sc){h+='<div style="border:1px dashed #4a3a6a;border-radius:8px;padding:8px 10px;margin-bottom:5px;background:#0004;font-size:.7rem;opacity:.6">🔒 Geheime Quest</div>';return}}
+   var p=Math.min(100,Math.floor(v/q.target*100));
+   h+='<div style="border:1px solid '+(dn?'#44ff88':'#4a2a6a')+';border-radius:8px;padding:8px 10px;margin-bottom:5px;background:'+(dn?'#06200f99':'#0006')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-size:.72rem"><span style="color:'+(dn?'#44ff88':'#ffe9c4')+'">'+q.name+'</span><span style="color:'+(dn?'#44ff88':'#c9b79c')+';white-space:nowrap">'+(dn?'✓ fertig':v.toLocaleString('de')+' / '+q.target.toLocaleString('de'))+'</span></div>'+(dn?'':'<div style="height:5px;background:#0008;border-radius:3px;margin-top:5px;overflow:hidden"><div style="height:100%;width:'+p+'%;background:#a070e0"></div></div>')+'</div>'})});
+ return '<div style="text-align:center;font-size:.8rem;margin:4px 0 2px">'+done+' von '+L.length+' Quests geschafft. Jede Quest gibt 1 Klassen-Level.</div>'+h}
+window.__kamQO=function(){window.__kamQOpen=!window.__kamQOpen;levelsUI()};
+window.__kamLM=function(m){window.__kamQOpen=false;if(m!==LM)LH.push(LM);LM=m;levelsUI()};
 window.showLevels=function(){LM=1;LH=[];SHS=0;SHL=0;var m=document.getElementById('menuPanel');levelsUI()};
 window.showLevelTable=function(){LM=1;levelsUI()};window.showPrestigeLevelTable=function(){LM=3;levelsUI()};window.showClassLevelTable=function(){LM=2;levelsUI()};
 setInterval(function(){try{milestones()}catch(e){}},4000);
