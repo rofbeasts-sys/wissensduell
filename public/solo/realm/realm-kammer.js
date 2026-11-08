@@ -1498,3 +1498,38 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     },330)};
 })();
 })();
+
+/* ---------- Geraet: Handy / Tablet (Anzeige-Groesse) ---------- */
+(function(){
+  var K='robDevice',st=document.createElement('style');
+  st.textContent='body.dev-tablet #gameWrapper{zoom:var(--tz,1.5);max-width:520px!important;display:flex!important;flex-direction:column!important;margin:0 auto!important;min-height:calc(100vh / var(--tz,1.5))!important}'+
+   'body.dev-tablet #loginBox{zoom:var(--tz,1.5)}'+
+   '#kamDev{display:flex;gap:8px;width:100%;margin-top:12px}#kamDev button{flex:1;padding:10px 6px;border-radius:10px;border:1px solid #7a4a1a;background:#0006;color:#ffe9c4;font-family:Cinzel,serif;font-size:.78rem;cursor:pointer}#kamDev button.on{background:linear-gradient(135deg,#7a1a00,#c23a10);border-color:#f0c040;color:#fff}'+
+   '#kamSync{width:100%;box-sizing:border-box;border-radius:10px;padding:7px 10px;font-size:.66rem;text-align:center;border:1px solid #555;background:#0004;color:#bbb;margin-top:8px}#kamSync.ok{color:#9dffb5;border-color:#3fbf68}#kamSync.bad{color:#ffb3a0;border-color:#c0502a}';
+  document.head.appendChild(st);
+  function get(){try{return localStorage.getItem(K)}catch(e){return null}}
+  function fit(){
+    var d=get();if(!d)d=(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone');
+    var on=d==='tablet';document.body.classList.toggle('dev-tablet',on);
+    var z=on?Math.max(1,Math.min(innerWidth/540,innerHeight/860,2.4)):1;
+    document.documentElement.style.setProperty('--tz',String(z));
+    return d;
+  }
+  window.__kamSetDev=function(d){try{localStorage.setItem(K,d)}catch(e){}fit();paint()};
+  function paint(){
+    var d=fit(),box=document.getElementById('loginBox'),o=document.getElementById('loginOverlay');
+    if(!box||!o)return;
+    var w=document.getElementById('kamDev');
+    if(!w){w=document.createElement('div');w.id='kamDev';
+      w.innerHTML='<button data-d="phone" onclick="__kamSetDev(\'phone\')">&#128241; Handy</button><button data-d="tablet" onclick="__kamSetDev(\'tablet\')">&#128223; Tablet</button>';
+      var go=[].slice.call(box.querySelectorAll('button')).filter(function(b){return /ABENTEUER/i.test(b.textContent)})[0];
+      var sy=document.createElement('div');sy.id='kamSync';
+      if(go&&go.parentNode===box){box.appendChild(sy);box.appendChild(w)}else{box.appendChild(sy);box.appendChild(w)}}
+    [].forEach.call(w.querySelectorAll('button'),function(b){b.classList.toggle('on',b.getAttribute('data-d')===d)});
+    var sy2=document.getElementById('kamSync');if(sy2){var s=window.__cloudState||{};
+      sy2.className=s.ok?'ok':'bad';
+      sy2.textContent=s.ahead?'☁ Cloud hat mehr Fortschritt als dieses Geraet – Seite neu laden':(s.ok?'☁ Cloud verbunden'+(s.user?' ('+s.user+')':''):'☁ Nicht mit Konto verbunden – Stand nur auf diesem Geraet')}
+  }
+  window.addEventListener('resize',fit);window.addEventListener('orientationchange',function(){setTimeout(fit,200)});
+  fit();setInterval(function(){try{paint()}catch(e){}},900);
+})();

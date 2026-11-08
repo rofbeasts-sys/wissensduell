@@ -11,7 +11,7 @@ Ref.prototype.once=function(){
   var p=this.path, n=this.n;
   if(p==="leaderboard") return api("/api/realm/board",{n:n}).then(function(r){ var t=r&&r.ok?r.top.slice().reverse():[]; return snap(t); });
   if(p.indexOf("leaderboard/")===0) return api("/api/realm/board",{n:1}).then(function(r){ return snap(r&&r.ok?r.mine:null); });
-  if(/\/state$/.test(p)) return api("/api/realm/load",{}).then(function(r){ return snap(r&&r.ok?r.state:null); });
+  if(/\/state$/.test(p)) return api("/api/realm/load",{}).then(function(r){ window.__bpLoadOk=!!(r&&r.ok); return snap(r&&r.ok?r.state:null); });
   return Promise.resolve(snap(null));
 };
 Ref.prototype.on=function(ev,cb){ var self=this; function go(){ self.once().then(cb); } go(); setInterval(go,60000); };

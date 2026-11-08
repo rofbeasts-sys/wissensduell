@@ -267,7 +267,12 @@ function getCompletedQuestCount() {
 function getClassLevel() {
   // Erst ab Helden-Level 10 und nach Klassenwahl freigeschaltet
   if (!meta || !meta.hero) return 0;
-  return Math.min(100, getCompletedQuestCount());
+  var _c = getCompletedQuestCount();
+  try {
+    if (!questTracking.lvFix) { questTracking.lvFix = 1; if (_c < 15) questTracking.lvMin = 15; saveQuestTracking(); }
+    if (questTracking.lvMin && _c < questTracking.lvMin) _c = questTracking.lvMin;
+  } catch(e) {}
+  return Math.min(100, _c);
 }
 
 // Spielzeit tracken (1 Minute = 1 Tick)
@@ -2694,8 +2699,34 @@ auth.onAuthStateChanged(async user => {
 });
 
 // ===== FIREBASE STATE SYNC =====
+window.__cloudState = window.__cloudState || {};
+var _cloudChecked = false;
+function _progScore(o) {
+  try {
+    var sc = 0, hd = (o && o.heroData) || {};
+    Object.keys(hd).forEach(function(h){ sc += (hd[h].kills||0) + (hd[h].bossKills||0)*10 + ((hd[h].skills||[]).length)*5; });
+    var pr = (o && o.prestigeData) || {}; sc += (pr.count||0)*1000;
+    var qt = (o && o.questTracking) || {}; sc += Math.floor((qt.playMinutes||0)/10);
+    sc += (qt.lvMin||0)*10;
+    sc += (((o && o.playerClassIds)||[]).length)*50;
+    var it = (o && o.inventory && o.inventory.items) || []; sc += it.length;
+    return sc;
+  } catch(e) { return 0; }
+}
+function _localScore() {
+  var g = function(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { return null; } };
+  return _progScore({ heroData: g('robHeroes'), prestigeData: g('robPrestige'), questTracking: g('robQuestTracking'),
+    playerClassIds: playerClasses.map(function(c){ return c.id; }), inventory: inventory });
+}
 async function saveStateToFirebase() {
   if (!onlineAccount || onlineAccount.isAnonymous) return;
+  if (!_cloudChecked) return; // erst Cloud-Stand pruefen, sonst koennte ein altes Geraet den neuen Stand ueberschreiben
+  try {
+    var _snap = await db.ref('players/' + onlineAccount.uid + '/state').once('value');
+    var _cs = _snap.val();
+    if (_cs && _progScore(_cs) > _localScore()) { window.__cloudState.ahead = true; return; }
+    window.__cloudState.ahead = false;
+  } catch(e) { return; }
   try {
     const state = {
       heroData: JSON.parse(localStorage.getItem('robHeroes') || '{}'),
@@ -2730,9 +2761,12 @@ async function loadStateFromFirebase() {
   try {
     const snap = await db.ref('players/' + onlineAccount.uid + '/state').once('value');
     const state = snap.val();
-    if (!state) return false;
+    if (!window.__bpLoadOk) return false; // Server nicht erreichbar: nichts ueberschreiben
+    window.__cloudState.ok = true; window.__cloudState.user = onlineAccount.username;
+    if (!state) { _cloudChecked = true; return false; }
     const localSaved = parseInt(localStorage.getItem('robStateSavedAt') || '0');
-    if (state.savedAt && state.savedAt <= localSaved) return false; // local is newer
+    const _cloudSc = _progScore(state), _locSc = _localScore();
+    if (_cloudSc < _locSc || (_cloudSc === _locSc && state.savedAt && state.savedAt <= localSaved)) { _cloudChecked = true; return false; } // lokal hat mehr Fortschritt
 
     // -- In localStorage schreiben --
     if (state.heroData && Object.keys(state.heroData).length > 0) localStorage.setItem('robHeroes', JSON.stringify(state.heroData));
@@ -2767,6 +2801,7 @@ async function loadStateFromFirebase() {
       if (cls) { playerClasses = [cls]; playerClass = cls; savePlayerClasses(playerClasses); }
     }
 
+    _cloudChecked = true;
     log('\u2601\uFE0F <span style="color:#44aaff">Spielstand aus der Cloud geladen!</span>');
     return true;
   } catch(e) { return false; }
