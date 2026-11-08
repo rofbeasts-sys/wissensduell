@@ -8,7 +8,7 @@ var B=[
  {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2% Erfolgschance beim Schmieden pro Stufe',          max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:42,y:30},
  {id:'house', ic:'🏠', n:'Kaserne',       d:'+15 Leben pro Stufe',           max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:10,y:46},
  {id:'bank',  ic:'🏦', n:'Schatzhaus',    d:'+4% Gold im Kampf und +2,5% besserer Loot pro Stufe',   max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:72,y:46},
- {id:'tower', ic:'🗼', n:'Magieturm',      d:'Lagert mehr Offline-Ertrag (+2h pro Stufe, max. 24h)', max:10, cost:function(l){return Math.round(500*Math.pow(1.45,l));}, cur:'g', x:40,y:62},
+ {id:'tower', ic:'🗼', n:'Magieturm',      d:'Lagert mehr Offline-Ertrag (4 Std. am Anfang, +0,8 Std. pro Stufe, max. 12 Std.)', max:10, cost:function(l){return Math.round(500*Math.pow(1.45,l));}, cur:'g', x:40,y:62},
  {id:'arena', ic:'⚔️', n:'Arena',         d:'Gegner schlagen 5% schwächer pro Stufe (Stufe 10: halbe Kampfkraft)', max:10, cost:function(l){return Math.round(1500*Math.pow(1.6,l));}, cur:'g', x:14,y:76},
  {id:'camp',  ic:'🔥', n:'Lagerfeuer',    d:'Mehr Lagerfeuer im Lauf: heilen 40% +6% pro Stufe, öfter pro Stufe', max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:68,y:76}
 ];
@@ -23,10 +23,10 @@ window.cityBonus=function(k){
   if(k==='arena')return Math.min(0.5,lv('arena')*0.05);
   return 0;
 };
-function cap(){return Math.min(24,4+lv('tower')*2);}
+function cap(){return Math.min(12,4+lv('tower')*0.8);}
 function pending(){
   var o=get(),h=Math.min((Date.now()-o.last)/3600000,cap());
-  return {g:Math.floor(h*lv('mine')*250),d:Math.floor(h*lv('dia')*1.5),h:h};
+  return {g:Math.floor(h*lv('mine')*30),d:Math.floor(h*lv('dia')*1.5),h:h};
 }
 function gold(){return (typeof meta!=='undefined'&&meta)?meta.gold:(parseInt(localStorage.getItem('robGold')||'0')||0);}
 function setGold(v){ if(typeof meta!=='undefined'&&meta)meta.gold=v; try{localStorage.setItem('robGold',String(v));}catch(e){} }
@@ -49,7 +49,7 @@ window.showCity=function(){
    +'<button class="btn" onclick="cityBack()" style="font-size:.75rem;padding:7px 12px">← ZURÜCK</button>'
    +'<div style="flex:1;text-align:center;font-weight:700;letter-spacing:2px">🏙️ STADT</div>'
    +'<div style="font-size:.8rem">💰 '+gold()+' · 💎 '+dias()+'</div></div>';
-  h+='<div style="text-align:center;font-size:.7rem;opacity:.7;padding:8px 0 0">Max. '+cap()+' Std. Offline-Ertrag</div>';
+  h+='<div style="text-align:center;font-size:.7rem;opacity:.7;padding:8px 0 0">Max. '+(Math.round(cap()*10)/10)+' Std. Offline-Ertrag</div>';
   h+='<div id="cityMap" style="margin:10px auto;max-width:640px;padding:14px 8px;border-radius:16px;border:3px solid #c9a227;'
    +'background:radial-gradient(ellipse at 50% 30%,#2a1c3d 0%,#170f26 55%,#0b0714 100%);display:grid;grid-template-columns:1fr 1fr;gap:6px 4px">';
   B.forEach(function(b){

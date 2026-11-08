@@ -127,16 +127,36 @@ var css=document.createElement('style');css.textContent=
 '#kamCube .f1{transform:translateZ(26px)}#kamCube .f2{transform:rotateY(90deg) translateZ(26px)}#kamCube .f6{transform:rotateY(180deg) translateZ(26px)}#kamCube .f5{transform:rotateY(-90deg) translateZ(26px)}#kamCube .f3{transform:rotateX(90deg) translateZ(26px)}#kamCube .f4{transform:rotateX(-90deg) translateZ(26px)}'+
 
 '#battleScene .monster-slot img.kdie{animation:kdie .8s ease-in forwards}@keyframes kdie{0%{transform:scaleX(-1) translateY(0);opacity:1;filter:brightness(1)}35%{transform:scaleX(-1) translateY(4px) rotate(3deg);filter:brightness(2.2)}100%{transform:scaleX(-1) translateY(34px) rotate(9deg);opacity:0;filter:brightness(.4)}}#battleScene .monster-slot img.kenter{animation:kenter .7s ease-out}@keyframes kenter{from{transform:scaleX(-1) translateX(-170px);opacity:0}to{transform:scaleX(-1) translateX(0);opacity:1}}'+
-'#battleScene .monster-slot img.kanim[alt^="worldboss"]{width:230px!important;height:180px!important}#battleScene .monster-slot img.kanim[alt^="worldboss"]{transform:scaleX(-1)}body.kamn2 #battleScene .monster-slot img.kanim[alt^="worldboss"]{width:150px!important;height:140px!important}#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:150px;height:150px;filter:drop-shadow(0 6px 5px #000a)}'+
+'#battleScene .monster-slot img.kanim[alt^="worldboss"]{width:190px!important;height:150px!important}#battleScene .monster-slot img.kanim[alt^="worldboss"]{transform:scaleX(-1)}body.kamn2 #battleScene .monster-slot img.kanim[alt^="worldboss"]{width:140px!important;height:112px!important}#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:124px;height:124px;filter:drop-shadow(0 6px 5px #000a)}'+
 'body.kamn2 #battleScene,body.kamn3 #battleScene{padding:0!important}'+
 'body.kamn2 #battleScene .monster-slot,body.kamn3 #battleScene .monster-slot{position:absolute!important;transform:none!important;margin:0!important;opacity:1!important}'+
 'body.kamn2 #battleScene .monster-slot .monster-name,body.kamn3 #battleScene .monster-slot .monster-name{display:none!important}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(2){left:197px;bottom:10px;z-index:4}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(3),body.kamn3 #battleScene .monster-slot:nth-child(3){left:216px;bottom:58px;z-index:2}'+
-'body.kamn3 #battleScene .monster-slot:nth-child(4){left:293px;bottom:26px;z-index:3}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(2) img,body.kamn3 #battleScene .monster-slot:nth-child(2) img{width:92px!important;height:92px!important}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(3) img,body.kamn3 #battleScene .monster-slot:nth-child(3) img{width:104px!important;height:104px!important}'+
-'body.kamn3 #battleScene .monster-slot:nth-child(4) img{width:84px!important;height:84px!important}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(2){left:200px;bottom:7px;z-index:4}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(3),body.kamn3 #battleScene .monster-slot:nth-child(3){left:258px;bottom:41px;z-index:2}'+
+'body.kamn3 #battleScene .monster-slot:nth-child(4){left:298px;bottom:11px;z-index:3}'+
+'#battleScene .monster-slot img.kanim:not([alt^="worldboss"]){width:85px!important;height:85px!important}'+
+'#battleScene .monster-slot img.kanim[alt="frog"]{width:73px!important;height:73px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_frog"]{width:95px!important;height:95px!important}'+
+'#battleScene .monster-slot img.kanim[alt="gobold"]{width:80px!important;height:80px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_gobold"]{width:104px!important;height:104px!important}'+
+'#battleScene .monster-slot img.kanim[alt="wolf"]{width:92px!important;height:92px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_wolf"]{width:120px!important;height:120px!important}'+
+'#battleScene .monster-slot img.kanim[alt="bear"]{width:105px!important;height:105px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_bear"]{width:136px!important;height:136px!important}'+
+'#battleScene .monster-slot img.kanim[alt="golem"]{width:105px!important;height:105px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_golem"]{width:136px!important;height:136px!important}'+
+'#battleScene .monster-slot img.kanim[alt="snake"]{width:85px!important;height:85px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_snake"]{width:110px!important;height:110px!important}'+
+'#battleScene .monster-slot img.kanim[alt="spider"]{width:85px!important;height:85px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_spider"]{width:110px!important;height:110px!important}'+
+'#battleScene .monster-slot img.kanim[alt="freggz"]{width:90px!important;height:90px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_freggz"]{width:117px!important;height:117px!important}'+
+'#battleScene .monster-slot img.kanim[alt="hexe"]{width:85px!important;height:85px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_hexe"]{width:110px!important;height:110px!important}'+
+'#battleScene .monster-slot img.kanim[alt="snowman"]{width:90px!important;height:90px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_snowman"]{width:117px!important;height:117px!important}'+
+'#battleScene .monster-slot img.kanim[alt="inferno"]{width:100px!important;height:100px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_inferno"]{width:130px!important;height:130px!important}'+
 'body.kamn2 #battleScene .monster-slot img:not(.kanim),body.kamn3 #battleScene .monster-slot img:not(.kanim){width:70px!important;height:70px!important}'+
 '#battleScene .monster-slot img.kanim:not([alt^="worldboss"]){background:radial-gradient(ellipse 46% 8% at 50% 95%,#000b,#0000 70%)!important}'+
 /* Profil-Taste */
@@ -621,13 +641,13 @@ function hook(){
 
 /* ---------- Gruppe: Bogenschuetzin (ab Klassenlevel 15) und Magierin (ab 30) stehen hinten und helfen im Kampf ---------- */
 var ALLY=[
- {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:112,l:49,b:60,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
- {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:132,l:-10,b:26,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
+ {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:100,l:49,b:60,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
+ {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:118,l:-10,b:26,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
 ];
 var SLK='robKamSlots',SLT=(function(){try{var a=JSON.parse(localStorage.getItem(SLK));if(a&&a.length===3&&['hero','arc','mag'].every(function(x){return a.indexOf(x)>=0}))return a}catch(e){}return['hero','arc','mag']})();
 function saveSL(){try{localStorage.setItem(SLK,JSON.stringify(SLT))}catch(e){}}
-function POS(id){var s=Math.max(0,SLT.indexOf(id)),vx={hero:0,arc:23,mag:29}[id]||0;return{l:[104,72,16][s]-vx,b:[10,60,26][s],z:[5,3,4][s]}}
-function applySlots(){var o=document.getElementById('kamSlotCss');if(o)o.remove();var p=POS('hero'),st=document.createElement('style');st.id='kamSlotCss';st.textContent='body #runHero{left:'+p.l+'px!important;bottom:'+p.b+'px!important;z-index:'+p.z+'!important;width:65px!important;max-width:65px!important}';document.head.appendChild(st);var box=document.getElementById('kamAl');if(box)box.dataset.n=''}
+function POS(id){var s=Math.max(0,SLT.indexOf(id)),W={hero:58,arc:100,mag:118}[id]||58;return{l:Math.round([161,65,126][s]-W/2),b:[19,15,54][s],z:[5,6,3][s]}}
+function applySlots(){var o=document.getElementById('kamSlotCss');if(o)o.remove();var p=POS('hero'),st=document.createElement('style');st.id='kamSlotCss';st.textContent='body #runHero{left:'+p.l+'px!important;bottom:'+p.b+'px!important;z-index:'+p.z+'!important;width:58px!important;max-width:58px!important}';document.head.appendChild(st);var box=document.getElementById('kamAl');if(box)box.dataset.n=''}
 setTimeout(applySlots,0);
 var allyRound=0;
 function clsLv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(e){return 0}}
