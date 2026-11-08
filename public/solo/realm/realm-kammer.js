@@ -624,6 +624,11 @@ var ALLY=[
  {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:112,l:49,b:60,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
  {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:132,l:-10,b:26,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
 ];
+var SLK='robKamSlots',SLT=(function(){try{var a=JSON.parse(localStorage.getItem(SLK));if(a&&a.length===3&&['hero','arc','mag'].every(function(x){return a.indexOf(x)>=0}))return a}catch(e){}return['hero','arc','mag']})();
+function saveSL(){try{localStorage.setItem(SLK,JSON.stringify(SLT))}catch(e){}}
+function POS(id){var s=Math.max(0,SLT.indexOf(id)),vx={hero:0,arc:23,mag:29}[id]||0;return{l:[104,72,16][s]-vx,b:[10,60,26][s],z:[5,3,4][s]}}
+function applySlots(){var o=document.getElementById('kamSlotCss');if(o)o.remove();var p=POS('hero'),st=document.createElement('style');st.id='kamSlotCss';st.textContent='body #runHero{left:'+p.l+'px!important;bottom:'+p.b+'px!important;z-index:'+p.z+'!important;width:65px!important;max-width:65px!important}';document.head.appendChild(st);var box=document.getElementById('kamAl');if(box)box.dataset.n=''}
+setTimeout(applySlots,0);
 var allyRound=0;
 function clsLv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(e){return 0}}
 window.__kamGot=function(){try{return JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){return{}}};
@@ -640,9 +645,9 @@ function syncAllies(){
   var box=$('kamAl'),on=inFight&&monstersInFight&&monstersInFight.length&&$('kam'),L=on?allyList():[];
   if(!L.length){if(box)box.remove();return}
   if(!box){box=document.createElement('div');box.id='kamAl';w.appendChild(box)}
-  if(box.dataset.n==String(L.length))return;
-  box.dataset.n=String(L.length);box.innerHTML='';
-  L.forEach(function(a){var i=document.createElement('img');i.id='kal_'+a.id;i.alt='';i.src='ally/'+a.idle[0]+'.webp';i.style.cssText='left:'+a.l+'px;bottom:'+a.b+'px;width:'+a.w+'px;z-index:'+(a.id==='arc'?3:4);box.appendChild(i)});
+  if(box.dataset.n==String(L.length)+SLT.join())return;
+  box.dataset.n=String(L.length)+SLT.join();box.innerHTML='';
+  L.forEach(function(a){var i=document.createElement('img');i.id='kal_'+a.id;i.alt='';i.src='ally/'+a.idle[0]+'.webp';var ps=POS(a.id);i.style.cssText='left:'+ps.l+'px;bottom:'+ps.b+'px;width:'+a.w+'px;z-index:'+ps.z;box.appendChild(i)});
 }
 var allyT=0;
 setInterval(function(){allyT++;allyList().forEach(function(a){var i=$('kal_'+a.id);if(i&&!a.busy)i.src='ally/'+a.idle[allyT%2]+'.webp'})},480);
@@ -1028,13 +1033,45 @@ function render(){
  L.innerHTML='<style>.hts{display:flex;gap:8px;justify-content:center;margin-bottom:10px}.ht{width:84px;height:88px;border:2px solid #7a4a1a;border-radius:12px;background:#0006;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;cursor:pointer;color:#ffe9c4}.ht.on{border-color:#f0c040;box-shadow:0 0 14px #f0c04066}.ht img{width:54px;height:54px;object-fit:contain}.ht small{font-size:10px;text-align:center}.ht.lk{opacity:.55;cursor:default;justify-content:center}.ht b{font-size:20px}'+
  '.hst{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:6px;align-items:center;justify-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 12px 22px;overflow:hidden;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:18px}.hs{width:54px;height:54px;box-sizing:border-box;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important;width:40px!important;height:40px!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
  '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
- '<div class="hts">'+tabs+'</div><div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'<div class="hs e" style="opacity:.4"><span>Schild</span><em>bald</em></div></div></div>';
+ '<div class="hts">'+tabs+'</div>'+posbar()+'<div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'<div class="hs e" style="opacity:.4"><span>Schild</span><em>bald</em></div></div></div>';
  var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NN[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
  var SRT=sorted(),OWNR={bow:'arc',staff:'mag'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
   h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Kl. '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
  if(!n)h+='<div style="font-size:0.7rem;color:#446688;text-align:center;padding:12px">Keine passenden Items. Ändere den Filter oder besiege Monster und Bosse!</div>';
  var T=document.getElementById('invItems');if(T)T.innerHTML=h}
+
+var SWP=false,SWF=-1,CTB='k',CPK=null;
+function locked(id){return id!=='hero'&&clv()<NEED[id]&&!(window.__kamGot&&window.__kamGot()[id])}
+function posbar(){
+ var h='<style>.pbr{display:flex;gap:6px;align-items:stretch;margin-bottom:10px}.pbr .pb{border:2px solid #7a4a1a;background:#0006;color:#ffe9c4;border-radius:12px;font-size:11px;padding:6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}.pbr .pb.gl{border-color:#f0c040;box-shadow:0 0 14px #f0c04088;color:#f0c040}.pbr .pc{flex:1;flex-direction:row;gap:5px;justify-content:flex-start}.pbr .pc img{width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:40% 8%;border:2px solid #4ade80;background:#000}.pbr .pc.sel{border-color:#f0c040;box-shadow:0 0 12px #f0c040aa}.pbr .pc small{font-size:9px;opacity:.8;line-height:1.1;text-align:left}.pbr .pc.lk img{filter:grayscale(1);opacity:.5}.pbr.sw .pc{animation:kpul 1s infinite alternate}@keyframes kpul{to{box-shadow:0 0 10px #f0c04088}}</style>';
+ h+='<div class="pbr'+(SWP?' sw':'')+'"><div class="pb'+(SWP?' gl':'')+'" onclick="__kamSwp()">⇄<br>Wechseln</div>';
+ SLT.forEach(function(id,i){var lk=locked(id);h+='<div class="pb pc'+(SWF===i?' sel':'')+(lk?' lk':'')+'" onclick="__kamPos('+i+')"><img src="'+HF(id,0)+'"><small>Platz '+(i+1)+'<br>'+(lk?'🔒':NN[id])+'</small></div>'});
+ h+='<div class="pb" onclick="__kamChars()">Charakter</div></div>';
+ return h+(SWP?'<div style="font-size:.6rem;color:#9a8cc0;text-align:center;margin:-4px 0 8px">'+(SWF<0?'Tippe den ersten Platz an.':'Tippe den Platz zum Tauschen an.')+'</div>':'')}
+window.__kamSwp=function(){SWP=!SWP;SWF=-1;render()};
+window.__kamPos=function(i){if(!SWP)return;if(SWF<0){SWF=i;render();return}if(SWF!==i){var t=SLT[SWF];SLT[SWF]=SLT[i];SLT[i]=t;saveSL();applySlots()}SWF=-1;SWP=false;render()};
+window.__kamChars=function(){CPK=null;chDraw();var m=document.getElementById('kamChar');if(m)m.style.display='flex'};
+window.__kamChClose=function(e){if(e&&e.target&&e.target.id!=='kamChar')return;var m=document.getElementById('kamChar');if(m)m.style.display='none'};
+window.__kamChTab=function(t){CTB=t;CPK=null;chDraw()};
+window.__kamChPick=function(id){CPK=id;chDraw()};
+window.__kamChPlace=function(id,p){var o=SLT.indexOf(id);if(o>=0){SLT[o]=SLT[p]}SLT[p]=id;saveSL();applySlots();window.__kamChClose();render()};
+function chDraw(){
+ var m=document.getElementById('kamChar');
+ if(!m){m=document.createElement('div');m.id='kamChar';m.onclick=window.__kamChClose;m.style.cssText='position:fixed;inset:0;z-index:100001;background:#000c;display:none;align-items:flex-end;justify-content:center';document.body.appendChild(m)}
+ var sty='<style>#kamChar .sh{width:min(100%,440px);background:#160e28;border:2px solid #5a3f8a;border-radius:18px 18px 0 0;padding:14px 16px 18px;max-height:82vh;overflow:auto;color:#ffe9c4;font-family:inherit}#kamChar .tb{display:flex;gap:8px;margin-bottom:10px}#kamChar .tb div{flex:1;text-align:center;border:2px solid #5a3f8a;border-radius:12px;padding:8px;font-size:13px;cursor:pointer}#kamChar .tb div.on{background:#f0c040;color:#000;border-color:#f0c040}#kamChar .g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}#kamChar .t{border:2px solid #5a3f8a;border-radius:12px;background:#0006;padding:6px 4px 8px;text-align:center;font-size:12px;cursor:pointer;min-width:0}#kamChar .t img{width:62px;height:62px;object-fit:cover;object-position:40% 8%;border-radius:10px;display:block;margin:0 auto 4px}#kamChar .t.lk{opacity:.5;cursor:default}#kamChar .t.lk .ic{font-size:30px;height:62px;line-height:62px}#kamChar .t small{display:block;color:#9a8cc0;font-size:10px;margin-top:2px}#kamChar .t.on{border-color:#f0c040;box-shadow:0 0 12px #f0c04066}#kamChar .d{margin-top:10px;border:1px solid #5a3f8a;border-radius:12px;padding:10px;font-size:13px;background:#0004}#kamChar .rw{display:flex;gap:8px;margin-top:8px}#kamChar .rw div{flex:1;text-align:center;border:2px solid #f0c040;border-radius:12px;padding:9px;color:#f0c040;cursor:pointer;box-shadow:0 0 10px #f0c04055}</style>';
+ var h=sty+'<div class="sh"><div class="tb"><div class="'+(CTB==='k'?'on':'')+'" onclick="__kamChTab(\'k\')">Klassenhelden</div><div class="'+(CTB==='h'?'on':'')+'" onclick="__kamChTab(\'h\')">Helden</div></div>';
+ function pl(id){return '<div class="rw">'+[1,2,3].map(function(p){return '<div onclick="__kamChPlace(\''+id+'\','+(p-1)+')">Platz '+p+'</div>'}).join('')+'</div>'}
+ function tile(id,sub){var lk=locked(id);return '<div class="t'+(lk?' lk':'')+(CPK===id?' on':'')+'" '+(lk?'':'onclick="__kamChPick(\''+id+'\')"')+'>'+(lk?'<div class="ic">🔒</div>':'<img src="'+HF(id,0)+'">')+NN[id]+'<small>'+(lk?'freigeschaltet ab Klassenlevel '+NEED[id]:sub)+'</small></div>'}
+ function lock(a,b){return '<div class="t lk"><div class="ic">🔒</div>'+a+'<small>'+b+'</small></div>'}
+ var cn='';try{cn=playerClasses.length?playerClasses.map(function(c){return c.name}).join('+'):'noch keine Klasse'}catch(e){}
+ if(CTB==='k'){
+  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Klassenhelden haben ein Klassenlevel und Spezialfähigkeiten.</div><div class="g">'+tile('hero','Klasse: '+cn+(SLT.indexOf('hero')>=0?' · Platz '+(SLT.indexOf('hero')+1):''))+lock('Klassenheld 2','ab Heldenlevel 30')+lock('Klassenheld 3','ab Heldenlevel 50')+'</div>';
+  if(CPK==='hero')h+='<div class="d"><b style="color:#f0c040">Ben · Klassenheld</b><div style="font-size:12px;margin:6px 0">Klasse: '+cn+'</div><div class="rw"><div onclick="window.__kamChClose();try{showClassModal()}catch(e){}">Klasse wählen</div></div><div style="color:#9a8cc0;font-size:12px;margin:8px 0 0">Einsetzen auf:</div>'+pl('hero')+'</div>'}
+ else{
+  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Helden kämpfen mit, haben aber keine Klassenfähigkeiten.</div><div class="g">'+tile('arc','frei'+(SLT.indexOf('arc')>=0?' · Platz '+(SLT.indexOf('arc')+1):''))+tile('mag','frei'+(SLT.indexOf('mag')>=0?' · Platz '+(SLT.indexOf('mag')+1):''))+lock('Neuer Held','bald')+'</div>';
+  if(CPK&&CPK!=='hero')h+='<div class="d"><b style="color:#f0c040">'+NN[CPK]+'</b><div style="color:#9a8cc0;font-size:12px;margin-top:4px">Einsetzen auf:</div>'+pl(CPK)+'</div>'}
+ m.innerHTML=h+'</div>'}
 window.__kamSel=function(w){sel=w;render()};
 window.renderInventoryModal=render;
 window.showInventory=function(){sel='hero';render();document.getElementById('inventoryModal').style.display='flex'};
