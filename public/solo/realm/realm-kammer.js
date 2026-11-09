@@ -96,6 +96,7 @@ var css=document.createElement('style');css.textContent=
 '#kam .tile small{position:absolute;bottom:-1px;left:0;right:0;text-align:center;font-size:9px;font-weight:800;background:#000a;border-radius:0 0 8px 8px;color:#ffe9c4;line-height:13px}'+
 '#kam .tile.monster{border-color:#e14}#kam .tile.coin{border-color:#f0c040}#kam .tile.bed{border-color:#4c8}#kam .tile.camp{border-color:#ff9a3a;box-shadow:0 0 14px #ff8a2a99!important}#kam .tile.boss{border-color:#f40;border-width:3px;box-shadow:0 0 24px #f408}'+
 '#kam .tile.used{opacity:.35;filter:grayscale(.7)}'+
+'#kam .tile .kch{width:50px;max-height:46px;object-fit:contain;filter:drop-shadow(0 3px 3px #000a)}#kam .tile.chest small{position:absolute;bottom:-1px}#kamChestFx{position:fixed;left:0;right:0;top:0;bottom:0;z-index:100005;display:flex;align-items:center;justify-content:center;background:#000a;pointer-events:none}#kamChestFx img{width:210px;animation:kcpop .45s ease-out}@keyframes kcpop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}'+
 '@keyframes kd{from{transform:scale(1)}to{transform:scale(1.1)}}'+
 '#kam .wall,#kam .blk{position:absolute;background:var(--w);border:1px solid #0006;border-radius:6px}'+
 '#kam .wall{width:26px}#kam .blk{width:'+TS+'px;height:'+TS+'px;background:repeating-linear-gradient(45deg,var(--w),var(--w) 6px,#0005 6px,#0005 12px)}'+
@@ -127,36 +128,37 @@ var css=document.createElement('style');css.textContent=
 '#kamCube .f1{transform:translateZ(26px)}#kamCube .f2{transform:rotateY(90deg) translateZ(26px)}#kamCube .f6{transform:rotateY(180deg) translateZ(26px)}#kamCube .f5{transform:rotateY(-90deg) translateZ(26px)}#kamCube .f3{transform:rotateX(90deg) translateZ(26px)}#kamCube .f4{transform:rotateX(-90deg) translateZ(26px)}'+
 
 '#battleScene .monster-slot img.kdie{animation:kdie .8s ease-in forwards}@keyframes kdie{0%{transform:scaleX(-1) translateY(0);opacity:1;filter:brightness(1)}35%{transform:scaleX(-1) translateY(4px) rotate(3deg);filter:brightness(2.2)}100%{transform:scaleX(-1) translateY(34px) rotate(9deg);opacity:0;filter:brightness(.4)}}#battleScene .monster-slot img.kenter{animation:kenter .7s ease-out}@keyframes kenter{from{transform:scaleX(-1) translateX(-170px);opacity:0}to{transform:scaleX(-1) translateX(0);opacity:1}}'+
-'#battleScene .monster-slot img.kanim[alt^="worldboss"]{width:190px!important;height:150px!important}#battleScene .monster-slot img.kanim[alt^="worldboss"]{transform:scaleX(-1)}body.kamn2 #battleScene .monster-slot img.kanim[alt^="worldboss"]{width:140px!important;height:112px!important}#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:124px;height:124px;filter:drop-shadow(0 6px 5px #000a)}'+
+'#battleScene .monster-slot img.kanim[alt^="worldboss"]{width:190px!important;height:150px!important}#battleScene .monster-slot img.kanim[alt^="worldboss"]{transform:scaleX(-1);position:relative;left:26px}body.kamn2 #battleScene .monster-slot img.kanim[alt^="worldboss"]{width:140px!important;height:112px!important}#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:124px;height:124px;filter:drop-shadow(0 6px 5px #000a)}'+
 'body.kamn2 #battleScene,body.kamn3 #battleScene{padding:0!important}'+
 'body.kamn2 #battleScene .monster-slot,body.kamn3 #battleScene .monster-slot{position:absolute!important;transform:none!important;margin:0!important;opacity:1!important}'+
 'body.kamn2 #battleScene .monster-slot .monster-name,body.kamn3 #battleScene .monster-slot .monster-name{display:none!important}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(2){left:200px;bottom:7px;z-index:4}'+
-'body.kamn2 #battleScene .monster-slot:nth-child(3),body.kamn3 #battleScene .monster-slot:nth-child(3){left:258px;bottom:41px;z-index:2}'+
-'body.kamn3 #battleScene .monster-slot:nth-child(4){left:298px;bottom:11px;z-index:3}'+
-'#battleScene .monster-slot img.kanim:not([alt^="worldboss"]){width:85px!important;height:85px!important}'+
-'#battleScene .monster-slot img.kanim[alt="frog"]{width:73px!important;height:73px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_frog"]{width:95px!important;height:95px!important}'+
-'#battleScene .monster-slot img.kanim[alt="gobold"]{width:80px!important;height:80px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_gobold"]{width:104px!important;height:104px!important}'+
-'#battleScene .monster-slot img.kanim[alt="wolf"]{width:92px!important;height:92px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_wolf"]{width:120px!important;height:120px!important}'+
-'#battleScene .monster-slot img.kanim[alt="bear"]{width:105px!important;height:105px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_bear"]{width:136px!important;height:136px!important}'+
-'#battleScene .monster-slot img.kanim[alt="golem"]{width:105px!important;height:105px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_golem"]{width:136px!important;height:136px!important}'+
-'#battleScene .monster-slot img.kanim[alt="snake"]{width:85px!important;height:85px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_snake"]{width:110px!important;height:110px!important}'+
-'#battleScene .monster-slot img.kanim[alt="spider"]{width:85px!important;height:85px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_spider"]{width:110px!important;height:110px!important}'+
-'#battleScene .monster-slot img.kanim[alt="freggz"]{width:90px!important;height:90px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_freggz"]{width:117px!important;height:117px!important}'+
-'#battleScene .monster-slot img.kanim[alt="hexe"]{width:85px!important;height:85px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_hexe"]{width:110px!important;height:110px!important}'+
-'#battleScene .monster-slot img.kanim[alt="snowman"]{width:90px!important;height:90px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_snowman"]{width:117px!important;height:117px!important}'+
-'#battleScene .monster-slot img.kanim[alt="inferno"]{width:100px!important;height:100px!important}'+
-'#battleScene .monster-slot img.kanim[alt="boss_inferno"]{width:130px!important;height:130px!important}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(2),body.kamn3 #battleScene .monster-slot:nth-child(2){left:222px;bottom:10px;z-index:4}'+
+'body.kamn2 #battleScene .monster-slot:nth-child(3),body.kamn3 #battleScene .monster-slot:nth-child(3){left:278px;bottom:44px;z-index:2}'+
+'body.kamn3 #battleScene .monster-slot:nth-child(4){left:312px;bottom:14px;z-index:3}'+
+'#battleScene .monster-slot img.kanim:not([alt^="worldboss"]){width:70px!important;height:70px!important}'+
+'#battleScene .monster-slot img.kanim[alt="frog"]{width:60px!important;height:60px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_frog"]{width:78px!important;height:78px!important}'+
+'#battleScene .monster-slot img.kanim[alt="gobold"]{width:66px!important;height:66px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_gobold"]{width:85px!important;height:85px!important}'+
+'#battleScene .monster-slot img.kanim[alt="wolf"]{width:75px!important;height:75px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_wolf"]{width:98px!important;height:98px!important}'+
+'#battleScene .monster-slot img.kanim[alt="bear"]{width:86px!important;height:86px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_bear"]{width:112px!important;height:112px!important}'+
+'#battleScene .monster-slot img.kanim[alt="golem"]{width:86px!important;height:86px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_golem"]{width:112px!important;height:112px!important}'+
+'#battleScene .monster-slot img.kanim[alt="snake"]{width:70px!important;height:70px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_snake"]{width:90px!important;height:90px!important}'+
+'#battleScene .monster-slot img.kanim[alt="spider"]{width:70px!important;height:70px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_spider"]{width:90px!important;height:90px!important}'+
+'#battleScene .monster-slot img.kanim[alt="freggz"]{width:74px!important;height:74px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_freggz"]{width:96px!important;height:96px!important}'+
+'#battleScene .monster-slot img.kanim[alt="hexe"]{width:70px!important;height:70px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_hexe"]{width:90px!important;height:90px!important}'+
+'#battleScene .monster-slot img.kanim[alt="snowman"]{width:74px!important;height:74px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_snowman"]{width:96px!important;height:96px!important}'+
+'#battleScene .monster-slot img.kanim[alt="inferno"]{width:82px!important;height:82px!important}'+
+'#battleScene .monster-slot img.kanim[alt="boss_inferno"]{width:107px!important;height:107px!important}'+
+'#battleScene .monster-slot img.fk[alt="frog"]{height:76px!important;position:relative;left:12px}#battleScene .monster-slot img.fk[alt="boss_frog"]{height:104px!important;position:relative;left:12px}body.kamn2 #battleScene .monster-slot img.fk,body.kamn3 #battleScene .monster-slot img.fk{left:0!important}'+
 'body.kamn2 #battleScene .monster-slot img:not(.kanim),body.kamn3 #battleScene .monster-slot img:not(.kanim){width:70px!important;height:70px!important}'+
 '#battleScene .monster-slot img.kanim:not([alt^="worldboss"]){background:radial-gradient(ellipse 46% 8% at 50% 95%,#000b,#0000 70%)!important}'+
 /* Profil-Taste */
@@ -289,6 +291,13 @@ function embersOn(c,full){
 
 /* ---------- Brett ---------- */
 function campLv(){try{return JSON.parse(localStorage.getItem('robCity')||'{}').b.camp||0}catch(e){return 0}}
+var CHL={wood:'Holzkiste',dia:'Diamant-Kiste',legend:'Legendäre Kiste',sin:'Todsünde-Kiste'};
+function chestFor(e){
+  /* Todsünde: überall, 5% auf Etage 1-5, danach steigend (Etage 10: 20%) */
+  var sp=e<=5?5:5+(e-5)*3;if(Math.random()*100<sp)return 'sin';
+  var a=[];if(e<=3)a.push('wood');if(e>=3&&e<=5)a.push('dia');if(e>=5)a.push('legend');
+  return a.length?a[Math.floor(Math.random()*a.length)]:'wood';
+}
 function gen(r,c,R){
   /* Etage 1-3: wenig Gold, Etage 4-6: Gold-Zone, Etage 7-10: nur noch Monster (und Betten) */
   var e=Math.min(10,Math.ceil(r/ETG)),w;
@@ -298,13 +307,15 @@ function gen(r,c,R){
   var x=Math.random()*100,a=0,t='empty';
   for(var i=0;i<w.length;i++){a+=w[i][1];if(x<a){t=w[i][0];break}}
   if(t==='empty'&&e>=2&&!K.dieE[e]&&Math.random()<(EQ==='city'&&cityTier()>=2?.07:.035)){t='die';K.dieE[e]=1}
+  var chT=null;if(t==='empty'&&Math.random()<(e<=3?.14:e<=5?.10:.06)){chT=chestFor(e);if(chT)t='chest'}
   var cl2=campLv();
-  if(cl2>0&&t!=='die'){K.campE=K.campE||{};var gap=Math.max(1,Math.ceil(10/cl2));
+  if(cl2>0&&t!=='die'&&t!=='chest'){K.campE=K.campE||{};var gap=Math.max(1,Math.ceil(10/cl2));
     if(!K.campE[e]&&e%gap===0&&r===ETG*e-3){t='camp';K.campE[e]=1}
     else if(t==='empty'&&Math.random()<Math.min(.1,.01*cl2))t='camp'}
   var o={t:t,r:r,c:c};
   if(t==='die'){var ids=Object.keys(BD);o.d=pick(ids)}
   if(t==='gold')o.v=3+Math.floor(Math.random()*7);
+  if(t==='chest')o.ch=chT;
   if(t==='monster')o.m=mainOf(K.k);
   return o;
 }
@@ -312,7 +323,7 @@ function addEl(o){
   var d=document.createElement('div');d.className='tile '+o.t;
   if(o.t==='boss'){d.style.left=px(CM)+'px';d.innerHTML='<img class="sp" src="'+getMonsterImg(drag(K.k))+'" alt=""><small>BOSS</small>'}
   else{
-    var inner=o.t==='monster'?'<img class="sp" src="'+getMonsterImg(o.m)+'" alt=""><small>Kampf</small>':o.t==='gold'?'💰<small>+'+o.v+'</small>':o.t==='die'?dieHTML(o.d,30)+'<small>Würfel</small>':o.t==='bed'?'🛌<small>Bett</small>':o.t==='camp'?'🔥<small>Lagerfeuer</small>':o.t==='start'?'🔥':'';
+    var inner=o.t==='monster'?'<img class="sp" src="'+getMonsterImg(o.m)+'" alt=""><small>Kampf</small>':o.t==='gold'?'💰<small>+'+o.v+'</small>':o.t==='die'?dieHTML(o.d,30)+'<small>Würfel</small>':o.t==='chest'?'<img class="kch" src="items/chest_'+o.ch+'_0.webp" alt=""><small>Kiste</small>':o.t==='bed'?'🛌<small>Bett</small>':o.t==='camp'?'🔥<small>Lagerfeuer</small>':o.t==='start'?'🔥':'';
     d.style.left=px(o.c)+'px';d.innerHTML=inner;d.style.setProperty('--b',(0.88+Math.random()*0.3).toFixed(2));
   }
   d.style.bottom=(o.r*STEP)+'px';o.el=d;$('kamWorld').appendChild(d);reg(o.r,d);
@@ -589,6 +600,7 @@ function land(){
       if(window.__kamGoldM)g=Math.floor(g*window.__kamGoldM());
       meta.gold+=g;K.gb=0;fl('+'+g+' 🪙','#ffd24a');msg('Gold gefunden.');
       try{if(playerClass){questTracking.goldEarned=(questTracking.goldEarned||0)+g;saveQuestTracking()}}catch(e){}}
+    else if(o.t==='chest'){var etc=Math.min(10,Math.ceil(o.r/ETG));msg(CHL[o.ch]+' gefunden!');try{var ci=o.el&&o.el.querySelector('img.kch');if(ci)ci.src='items/chest_'+o.ch+'_2.webp'}catch(e){}try{openChest(o.ch,etc)}catch(e){}}
     else if(o.t==='camp'){var cl=campLv(),h3=Math.floor(meta.maxHp*Math.min(1,.4+.06*cl));meta.hp=Math.min(meta.maxHp,meta.hp+h3);fl('+'+h3+' ❤','#ffa04a');msg('Du rastest am Lagerfeuer. +'+h3+' Leben.')}
     else if(o.t==='bed'){var h=Math.floor(meta.maxHp*.5);meta.hp=Math.min(meta.maxHp,meta.hp+h);fl('+'+h+' ❤','#6fe08a');msg('Du ruhst dich im Bett aus.')}
     else msg('Ruhiges Feld.');
@@ -641,23 +653,24 @@ function hook(){
 
 /* ---------- Gruppe: Bogenschuetzin (ab Klassenlevel 15) und Magierin (ab 30) stehen hinten und helfen im Kampf ---------- */
 var ALLY=[
- {id:'arc',ic:'🏹',nm:'Bogenschützin',need:15,w:100,l:49,b:60,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
- {id:'mag',ic:'🔮',nm:'Magierin',need:30,w:118,l:-10,b:26,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
+ {id:'arc',ic:'🏹',nm:'Bogenschützin',need:10,w:80,l:49,b:60,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
+ {id:'mag',ic:'🔮',nm:'Kalifa',need:20,w:94,l:-10,b:26,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
 ];
 var SLK='robKamSlots',SLT=(function(){try{var a=JSON.parse(localStorage.getItem(SLK));if(a&&a.length===3&&['hero','arc','mag'].every(function(x){return a.indexOf(x)>=0}))return a}catch(e){}return['hero','arc','mag']})();
 function saveSL(){try{localStorage.setItem(SLK,JSON.stringify(SLT))}catch(e){}}
-function POS(id){var s=Math.max(0,SLT.indexOf(id)),W={hero:58,arc:100,mag:118}[id]||58;return{l:Math.round([161,65,126][s]-W/2),b:[19,15,54][s],z:[5,6,3][s]}}
-function applySlots(){var o=document.getElementById('kamSlotCss');if(o)o.remove();var p=POS('hero'),st=document.createElement('style');st.id='kamSlotCss';st.textContent='body #runHero{left:'+p.l+'px!important;bottom:'+p.b+'px!important;z-index:'+p.z+'!important;width:58px!important;max-width:58px!important}';document.head.appendChild(st);var box=document.getElementById('kamAl');if(box)box.dataset.n=''}
+function POS(id){var s=Math.max(0,SLT.indexOf(id)),W={hero:46,arc:80,mag:94}[id]||46;return{l:Math.round([132,50,102][s]-W/2),b:[19,15,54][s],z:[5,6,3][s]}}
+function applySlots(){var o=document.getElementById('kamSlotCss');if(o)o.remove();var p=POS('hero'),st=document.createElement('style');st.id='kamSlotCss';st.textContent='body #runHero{left:'+p.l+'px!important;bottom:'+p.b+'px!important;z-index:'+p.z+'!important;width:46px!important;max-width:46px!important}';document.head.appendChild(st);var box=document.getElementById('kamAl');if(box)box.dataset.n=''}
 setTimeout(applySlots,0);
 var allyRound=0;
 function clsLv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(e){return 0}}
 window.__kamGot=function(){try{return JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){return{}}};
 function gotAl(){try{return JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){return{}}}
-function allyList(){var c=clsLv(),g=gotAl();return ALLY.filter(function(a){return c>=a.need||g[a.id]})}
+function hlvl(){try{return window.__hl!=null?window.__hl:maxHeroLv()}catch(e){return 0}}
+function allyList(){var c=hlvl(),g=gotAl();return ALLY.filter(function(a){return c>=a.need||g[a.id]})}
 function allyUnlockToast(){
   var got={};try{got=JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){}
-  var c=clsLv(),ch=false;
-  ALLY.forEach(function(a){if(c>=a.need&&!got[a.id]){got[a.id]=1;ch=true;toast(a.ic+' '+a.nm+' schließt sich dir an! Sie steht hinten und hilft im Kampf.')}});
+  var c=hlvl(),ch=false;
+  ALLY.forEach(function(a){if(c>=a.need&&!got[a.id]){got[a.id]=1;ch=true;toast(a.ic+' '+a.nm+' schließt sich dir an! Sie hilft im Kampf und hilft im Kampf.')}});
   if(ch)try{localStorage.setItem('robKamAl',JSON.stringify(got))}catch(e){}
 }
 function syncAllies(){
@@ -784,7 +797,7 @@ window.getEquippedBonuses=function(){ens();var a=0,h=0;for(var t in inventory.eq
 function clv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(e){return 0}}
 
 /* ---- Kampf-Effekte ---- */
-window.__kamGoldM=function(){return (1+goldBonus()/100)*(1+fxSum('goldm')/100)*(1+suLv('gold')*.02)*(1+(prestigeData.count||0)*.15)};
+window.__kamGoldM=function(){return (1+goldBonus()/100)*(1+fxSum('goldm')/100)*(1+suLv('gold')*.02)*(1+(prestigeData.count||0)*.15)*(meta&&meta.hero==='ben'?1.15:1)};
 window.__kamDiaReward=function(b){return Math.round(b*(1+(prestigeData.count||0)*.15))+suLv('dias')};
 window.__kamMonHit=function(m,md){
  if(teamSp('aegis')){ARS.ag=(ARS.ag||0)+1;if(ARS.ag<=2){fl('🛡️ Aegis','#8fd8ff');return 0}}
@@ -817,11 +830,12 @@ allyStrike=function(){var L=allyList().filter(function(a){return aliveA(a.id)});
 var oLand=land;land=function(){var rg=fxSum('regen');if(rg>0&&meta&&meta.hp>0){var h=Math.max(1,Math.round(meta.maxHp*rg/100));meta.hp=Math.min(meta.maxHp,meta.hp+h)}return oLand.apply(this,arguments)};
 
 /* ---- Drops ---- */
-var ORB={blau:['🔵','Blaue Kugel'],lila:['🟣','Lila Kugel'],orange:['🟠','Orange Kugel']};
+function oimg(k){return '<img src="items/orb_'+k+'.webp" style="width:1.25em;height:1.25em;vertical-align:-.28em" alt="">'}
+var ORB={blau:['🔵','Blaue Kugel',oimg('blau')],lila:['🟣','Lila Kugel',oimg('lila')],orange:['🟠','Orange Kugel',oimg('orange')]};
 function rnd(a,b){return a+Math.floor(Math.random()*(b-a+1))}
 function condRoll(used,perf){var r=Math.random()*100;if(r<perf)return 2;return Math.random()*100<used?0:1}
 function loot(iron,orbs){ens();var m='';if(iron>0){inventory.iron=(inventory.iron||0)+iron;bump('ironTotal',iron);m+=' +'+iron+' 🔩'}
- for(var k in orbs)if(Math.random()*100<orbs[k]){inventory.orbs[k]=(inventory.orbs[k]||0)+1;m+=' +'+ORB[k][0]}
+ for(var k in orbs)if(Math.random()*100<orbs[k]){inventory.orbs[k]=(inventory.orbs[k]||0)+1;m+=' +'+ORB[k][2]}
  try{saveInventory()}catch(e){}return m}
 var BAGMAX=15;
 function bagCount(){ens();return inventory.items.filter(function(u){return!wearer(u)}).length}
@@ -966,9 +980,9 @@ function prestigeTab(){
  return r}
 /* ---- Level-Fenster ---- */
 var LM=1;
-function ico(id){var b=base(id),c={normal:'g',gruen:'g',blau:'b',episch:'p',legendaer:'o',mystisch:'o'}[b.rarity]||'g',n={weapon:'sword',armor:'armor',helm:'helm',ring:'ring',bow:'bow',staff:'staff',cape:'cape'}[b.type]||'sword';return 'items/'+n+'_'+c+'.webp'}
+function ico(id){var b=base(id),c={normal:'g',gruen:'g',blau:'b',episch:'p',legendaer:'o',mystisch:'o'}[b.rarity]||'g',n={weapon:'sword',armor:'armor',helm:'helm',ring:'ring',bow:'bow',staff:'staff',cape:'cape',hand:'hand'}[b.type]||'sword';return 'items/'+n+'_'+c+'.webp'}
 function chips(items,ex){var h='';(items||[]).forEach(function(g){var b=base(g[0]);h+='<span class="lc big'+(g[1]===2?' pf':'')+'"><img src="'+ico(g[0])+'">'+({weapon:'Waffe',armor:'Rüstung',helm:'Helm',ring:'Ring',bow:'Bogen',staff:'Stab',cape:'Umhang'}[b.type])+' · '+CN[g[1]]+'</span>'});
- ex=ex||{};if(ex.iron)h+='<span class="lc">🔩 '+ex.iron+'</span>';['blau','lila','orange'].forEach(function(o){if(ex[o])h+='<span class="lc">'+ORB[o][0]+' '+ex[o]+(ex[o]>1?' Kugeln':' Kugel')+'</span>'});return h}
+ ex=ex||{};if(ex.iron)h+='<span class="lc">🔩 '+ex.iron+'</span>';['blau','lila','orange'].forEach(function(o){if(ex[o])h+='<span class="lc">'+ORB[o][2]+' '+ex[o]+(ex[o]>1?' Kugeln':' Kugel')+'</span>'});return h}
 var RK={10:['🥉','Bronze','#cd7f32'],25:['🥈','Silber','#ccc'],50:['🥇','Gold','#ffd700'],80:['👑','Legendär','#ff8800'],90:['💠','Mythic','#cc44ff'],100:['✨','Mystisch','#ff44cc']};
 function levelsUI(){
  ens();var M=document.getElementById('kamLevels');
@@ -981,7 +995,7 @@ function levelsUI(){
  lvls.forEach(function(L){var cls=L<=lv?'done':(!nd?(nd=true,'next'):''),lk=(LM===2&&L>nq)?' lk':'',rk=LM===1&&RK[L]?'<span class="rk" style="color:'+RK[L][2]+';border-color:'+RK[L][2]+'">'+RK[L][0]+' '+RK[L][1]+'</span>':'',c='';
   if(LM===1){var b=window.__kamLvReward(L);if(b.h)c+='<span class="lc">❤ +'+b.h+'</span>';if(b.a)c+='<span class="lc">⚔ +'+b.a+'</span>';if(b.g)c+='<span class="lc">💰 '+b.g+'</span>';if(b.d)c+='<span class="lc">💎 '+b.d+'</span>';c+=chips(HG[L],HX[L]);
    if(L===10)c+='<span class="lc nh big">Klasse wählbar</span>';if(L===30)c+='<span class="lc nh big">2. Klassen-Slot</span>';if(L===50)c+='<span class="lc nh big">3. Klassen-Slot</span>'}
-  else{c+=chips(CG[L],CX[L]);if(L===15)c+='<span class="lc nh big"><img src="ally/arc_i0.webp">NEUER HELD</span>';if(L===30)c+='<span class="lc nh big"><img src="ally/mag_i0.webp">NEUER HELD</span>'}
+  else{c+=chips(CG[L],CX[L]);if(L===50)c+='<span class="lc nh big"><img src="items/p_jeffrey.webp">NEUER HELD</span>';if(L===100)c+='<span class="lc nh big"><img src="items/p_berta.webp">NEUER HELD</span>'}
   var big=!(LM===1&&L%5&&!RK[L]);h+='<div class="m '+cls+lk+(big?'':' sm')+'"><div class="dot">'+L+'</div><div class="card"><h3>Level '+L+' '+rk+'<span>'+(L<=lv?'✓ erhalten':(lk?'braucht mehr Quests':''))+'</span></h3><div class="rw">'+(c||'<span class="lc">–</span>')+'</div></div></div>'});
  var TOP='<div style="display:flex;align-items:center;gap:10px;margin:0 0 6px"><button class="btn btn-sm" onclick="__kamLvBack()">← ZURÜCK</button><h1 style="flex:1;margin:0">⭐ LEVEL</h1></div>',
  TB='<div class="tb">'+[[1,'Heldenlevel'],[2,'Klassenlevel'],[3,'Prestige']].map(function(t){return '<button class="'+(LM===t[0]?'on':'')+'" onclick="__kamLM('+t[0]+')">'+t[1]+'</button>'}).join('')+'</div>';
@@ -1023,6 +1037,7 @@ window.tryDropItem=function(isBoss){
  showItemPopup({name:i.name+' · '+CN[i.c],rarity:i.rarity,type:i.type,desc:descOf(i)})};
 window.__kamChest=function(type,cfg){
  var P={wood:[60,0],dia:[40,2],legend:[25,6],sin:[15,12]}[type]||[50,0],m='';
+ if(type==='sin'&&window.__kamEtg){var E=window.__kamEtg;P=[Math.max(5,Math.round(95-(E-1)*10)),Math.round((E-1)*2.5)]}
  if(Math.random()<cfg.itemChance){var id=cfg.itemPool[Math.floor(Math.random()*cfg.itemPool.length)];
   if(base(id)){var rr=giveOrSell(id,condRoll(P[0],P[1]));if(rr.sold){m+=' <span style="color:#e0c070">Beutel voll: '+rr.name+' verkauft +'+rr.sold+'</span>'}else{var i=rr.item;m+=' <span style="color:'+RARITY_COLOR[i.rarity]+'">+ '+i.name+' ['+RARITY_LABEL[i.rarity]+'] <b style="color:'+CC[i.c]+'">'+CN[i.c]+'</b></span>';
    showItemPopup({name:i.name+' · '+CN[i.c],rarity:i.rarity,type:i.type,desc:descOf(i)})}}}
@@ -1032,7 +1047,7 @@ window.__kamChest=function(type,cfg){
 
 /* ---- Heldenabteil ---- */
 var SL={hero:['helm','armor','cape','weapon','ring','shield'],arc:['helm','armor','cape','bow','ring','hand'],mag:['helm','armor','cape','staff','ring','book']},XT={shield:'hero',hand:'arc',book:'mag'};
-var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalif'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'ally/'+w+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:15,mag:30};
+var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'ally/'+w+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:10,mag:20},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
 var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring',hand:'Handsch.',book:'Buch',shield:'Schild'};
 var sel='hero',fr=0;
 var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){return !XT[i.type]||XT[i.type]===w}
@@ -1050,7 +1065,7 @@ window.equipItem=function(uid,who){var i=it(uid);if(!i)return;who=who||sel;if(!c
  saveInventory();render()};
 window.unequipItem=function(t){var uid=inventory.equipped[t];if(uid){unw(uid);saveInventory();render()}};
 function slotHtml(w,t){var id=gear(w)[t],i=id?it(id):null,col=i?RARITY_COLOR[i.rarity]:'#7a4a1a';
- return '<div class="hs'+(i?'':' e')+'" style="border-color:'+col+(i&&i.c===2?';box-shadow:0 0 10px #ffd24a':'')+'" '+(i?'onclick="equipItem(\''+id+'\')"':'')+'>'+(i?itemIcon(i,48):'<span>'+SLN[t]+'</span>')+'<em>'+(i?stars(i):SLN[t])+'</em></div>'}
+ return '<div class="hs'+(i?'':' e')+'" style="border-color:'+col+(i&&i.c===2?';box-shadow:0 0 10px #ffd24a':'')+'" '+(i?'onclick="__kamInfo(\''+id+'\')"':'')+'>'+(i?itemIcon(i,48):'<span>'+SLN[t]+'</span>')+'<em>'+(i?stars(i):SLN[t])+'</em></div>'}
 function card(i,sub,click,on){var col=RARITY_COLOR[i.rarity];
  return '<div onclick="'+click+'" style="border:2px solid '+(on?col:'#222')+';border-radius:6px;padding:6px;text-align:center;cursor:pointer;background:rgba(10,10,15,.8);position:relative;display:inline-block;width:48%;margin:1%;vertical-align:top;box-sizing:border-box'+(i.c===2?';box-shadow:0 0 10px #ffd24a66':'')+'">'+itemIcon(i,48)+
  '<div style="font-size:0.6rem;color:'+col+';font-weight:700">'+i.name+'</div><div style="font-size:0.55rem;color:#888">'+descOf(i)+'</div>'+
@@ -1064,25 +1079,25 @@ function sorted(){ens();return inventory.items.map(it).filter(Boolean).sort(func
 function render(){
  ens();var c=clv(),L=document.getElementById('invSlots');if(!L)return;
  var hh=L.parentNode.querySelector('h2');if(hh&&!document.getElementById('kamCharBtn')){hh.style.position='relative';var cb=document.createElement('div');cb.id='kamCharBtn';cb.textContent='Charakter';cb.onclick=function(){window.__kamChars()};cb.style.cssText='position:absolute;left:0;top:50%;transform:translateY(-60%);border:2px solid #f0c040;border-radius:10px;padding:4px 8px;font:700 .6rem Cinzel,Georgia,serif;color:#f0c040;cursor:pointer;background:#0008;box-shadow:0 0 10px #f0c04044';hh.appendChild(cb)}
- if(c<NEED[sel]&&!(window.__kamGot&&window.__kamGot()[sel]))sel='hero';
- var tabs='';['hero','arc','mag'].forEach(function(w){var lock=c<NEED[w]&&!(window.__kamGot&&window.__kamGot()[w]);
+ if(hlvl()<NEED[sel]&&!(window.__kamGot&&window.__kamGot()[sel]))sel='hero';
+ var tabs='';['hero','arc','mag'].forEach(function(w){var lock=hlvl()<NEED[w]&&!(window.__kamGot&&window.__kamGot()[w]);
   tabs+='<div class="ht'+(sel===w?' on':'')+(lock?' lk':'')+'" '+(lock?'':'onclick="__kamSel(\''+w+'\')"')+'>'+
-   (lock?'<b>🔒</b><small>Neuer Held<br>ab Kl. '+NEED[w]+'</small>':'<img src="'+HF(w,0)+'" data-w="'+w+'"><small>'+NN[w]+'</small>')+'</div>'});
+   (lock?'<b>🔒</b><small>Neuer Held<br>ab Heldenlv. '+NEED[w]+'</small>':'<img class="pt" src="'+PRT[w]+'"><small>'+NN[w]+'</small>')+'</div>'});
  var s=SL[sel],g=function(a){return a.map(function(t){return slotHtml(sel,t)}).join('')};
  var hi=HF(sel,0);
- L.innerHTML='<style>.hts{display:flex;gap:8px;justify-content:center;margin-bottom:10px}.ht{width:84px;height:88px;border:2px solid #7a4a1a;border-radius:12px;background:#0006;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;cursor:pointer;color:#ffe9c4}.ht.on{border-color:#f0c040;box-shadow:0 0 14px #f0c04066}.ht img{width:54px;height:54px;object-fit:contain}.ht small{font-size:10px;text-align:center}.ht.lk{opacity:.55;cursor:default;justify-content:center}.ht b{font-size:20px}'+
+ L.innerHTML='<style>.hts{display:flex;gap:8px;justify-content:center;margin-bottom:10px}.ht{width:84px;height:88px;border:2px solid #7a4a1a;border-radius:12px;background:#0006;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:4px;cursor:pointer;color:#ffe9c4}.ht.on{border-color:#f0c040;box-shadow:0 0 14px #f0c04066}.ht img{width:54px;height:54px;object-fit:cover;object-position:50% 15%;border-radius:8px}.ht small{font-size:10px;text-align:center}.ht.lk{opacity:.55;cursor:default;justify-content:center}.ht b{font-size:20px}'+
  '.hst{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:6px;align-items:center;justify-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 12px 22px;overflow:hidden;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:18px}.hs{width:54px;height:54px;box-sizing:border-box;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important;width:40px!important;height:40px!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
  '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
  '<div class="hts">'+tabs+'</div>'+posbar()+'<div class="hst"><div class="hc">'+g(s.slice(0,3))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b></div><div class="hc">'+g(s.slice(3))+'</div></div>';
  var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NN[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
  var SRT=sorted(),OWNR={bow:'arc',staff:'mag',hand:'arc',book:'mag',shield:'hero'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
-  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Kl. '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+(w?' <span onclick="event.stopPropagation();__kamLk(\''+i.id+'\')" style="font-size:.75rem;margin-left:4px">'+(inventory.lock&&inventory.lock[i.id]?'🔒':'🔓')+'</span>':'')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
+  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Heldenlevel '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+(w?' <span onclick="event.stopPropagation();__kamLk(\''+i.id+'\')" style="font-size:.75rem;margin-left:4px">'+(inventory.lock&&inventory.lock[i.id]?'🔒':'🔓')+'</span>':'')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
  if(!n)h+='<div style="font-size:0.7rem;color:#446688;text-align:center;padding:12px">Keine passenden Items. Ändere den Filter oder besiege Monster und Bosse!</div>';
  var T=document.getElementById('invItems');if(T)T.innerHTML=h}
 
 var SWP=false,SWF=-1,CTB='k',CPK=null;
-function locked(id){return id!=='hero'&&clv()<NEED[id]&&!(window.__kamGot&&window.__kamGot()[id])}
+function locked(id){return id!=='hero'&&hlvl()<NEED[id]&&!(window.__kamGot&&window.__kamGot()[id])}
 function posbar(){return '';
  var h='<style>.pbr{display:flex;gap:6px;align-items:stretch;margin-bottom:10px}.pbr .pb{border:2px solid #7a4a1a;background:#0006;color:#ffe9c4;border-radius:12px;font-size:11px;padding:6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0}.pbr .pb.gl{border-color:#f0c040;box-shadow:0 0 14px #f0c04088;color:#f0c040}.pbr .pc{flex:1;flex-direction:row;gap:5px;justify-content:flex-start}.pbr .pc img{width:30px;height:30px;border-radius:50%;object-fit:cover;object-position:40% 8%;border:2px solid #4ade80;background:#000}.pbr .pc.sel{border-color:#f0c040;box-shadow:0 0 12px #f0c040aa}.pbr .pc small{font-size:9px;opacity:.8;line-height:1.1;text-align:left}.pbr .pc.lk img{filter:grayscale(1);opacity:.5}.pbr.sw .pc{animation:kpul 1s infinite alternate}@keyframes kpul{to{box-shadow:0 0 10px #f0c04088}}</style>';
  h+='<div class="pbr'+(SWP?' sw':'')+'"><div class="pb'+(SWP?' gl':'')+'" onclick="__kamSwp()">⇄<br>Wechseln</div>';
@@ -1093,7 +1108,8 @@ window.__kamSwp=function(){SWP=!SWP;SWF=-1;render();chDraw()};
 window.__kamPos=function(i){if(!SWP)return;if(SWF<0){SWF=i;chDraw();return}if(SWF!==i){var t=SLT[SWF];SLT[SWF]=SLT[i];SLT[i]=t;saveSL();applySlots()}SWF=-1;SWP=false;render();chDraw()};
 window.__kamChars=function(){CPK=null;chDraw();var m=document.getElementById('kamChar');if(m)m.style.display='flex'};
 window.__kamChClose=function(e){if(e&&e.target&&e.target.id!=='kamChar')return;var m=document.getElementById('kamChar');if(m)m.style.display='none'};
-window.__kamChTab=function(t){CTB=t;CPK=null;chDraw()};
+window.__kamNote=function(n){var T={Luna:'Luna · vorne · Fäuste. Hilft mit Bonus, der mit ihrem Heldenlevel wächst.',Jamal:'Jamal · hinten · Speerwerfer.',Brutus:'Brutus · vorne · Berserker, Bodenschlag.',Jeffrey:'Jeffrey · Tank · Gruppe erhält 10% weniger Schaden.',Berta:'Berta · hinten · Magierin · 10% Chance, dass Gegner eine Runde aussetzen.'};window.__kamNt='<b style="color:#f0c040">'+n+'</b><div style="font-size:12px;margin-top:4px">'+(T[n]||'')+' Kampfbild folgt.</div>';chDraw()};
+window.__kamChTab=function(t){window.__kamNt=null;CTB=t;CPK=null;chDraw()};
 window.__kamChPick=function(id){CPK=id;chDraw()};
 window.__kamChPlace=function(id,p){var o=SLT.indexOf(id);if(o>=0){SLT[o]=SLT[p]}SLT[p]=id;saveSL();applySlots();window.__kamChClose();render()};
 function chDraw(){
@@ -1105,14 +1121,15 @@ function chDraw(){
  stg+='</div><div style="display:flex;gap:8px;align-items:center;margin-bottom:10px"><div onclick="__kamSwp()" style="border:2px solid '+(SWP?'#f0c040':'#5a3f8a')+';border-radius:10px;padding:6px 12px;font-size:12px;cursor:pointer;color:'+(SWP?'#f0c040':'#ffe9c4')+(SWP?';box-shadow:0 0 12px #f0c04088':'')+'">⇄ Wechseln</div><div style="font-size:11px;color:#9a8cc0;flex:1">'+(SWP?(SWF<0?'Tippe den ersten Platz an.':'Tippe den Platz zum Tauschen an.'):'Ausrüstung bleibt bei der Figur.')+'</div></div>';
  var h=sty+'<div class="sh">'+stg+'<div class="tb"><div class="'+(CTB==='k'?'on':'')+'" onclick="__kamChTab(\'k\')">Klassenhelden</div><div class="'+(CTB==='h'?'on':'')+'" onclick="__kamChTab(\'h\')">Helden</div></div>';
  function pl(id){return '<div class="rw">'+[1,2,3].map(function(p){return '<div onclick="__kamChPlace(\''+id+'\','+(p-1)+')">Platz '+p+'</div>'}).join('')+'</div>'}
- function tile(id,sub){var lk=locked(id);return '<div class="t'+(lk?' lk':'')+(CPK===id?' on':'')+'" '+(lk?'':'onclick="__kamChPick(\''+id+'\')"')+'>'+(lk?'<div class="ic">🔒</div>':'<img src="'+HF(id,0)+'">')+NN[id]+'<small>'+(lk?'freigeschaltet ab Klassenlevel '+NEED[id]:sub)+'</small></div>'}
- function lock(a,b){return '<div class="t lk"><div class="ic">🔒</div>'+a+'<small>'+b+'</small></div>'}
+ function tile(id,sub){var lk=locked(id);return '<div class="t'+(lk?' lk':'')+(CPK===id?' on':'')+'" '+(lk?'':'onclick="__kamChPick(\''+id+'\')"')+'>'+'<img src="'+PRT[id]+'"'+(lk?' style="filter:grayscale(1)"':'')+'>'+NN[id]+'<small>'+(lk?'🔒 ab Heldenlevel '+NEED[id]:sub)+'</small></div>'}
+ function lock(a,b,p,tx){var u=window.__hl!=null||1;var ok=tx&&tx();return '<div class="t'+(ok?'':' lk')+'" onclick="__kamNote(\''+a+'\')"><img src="items/p_'+p+'.webp"'+(ok?'':' style="filter:grayscale(1)"')+'>'+a+'<small>'+(ok?'Kampfbild folgt':'🔒 '+b)+'</small></div>'}
  var cn='';try{cn=playerClasses.length?playerClasses.map(function(c){return c.name}).join('+'):'noch keine Klasse'}catch(e){}
  if(CTB==='k'){
-  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Klassenhelden haben ein Klassenlevel und Spezialfähigkeiten.</div><div class="g">'+tile('hero','Klasse: '+cn+(SLT.indexOf('hero')>=0?' · Platz '+(SLT.indexOf('hero')+1):''))+lock('Klassenheld 2','ab Heldenlevel 30')+lock('Klassenheld 3','ab Heldenlevel 50')+'</div>';
-  if(CPK==='hero')h+='<div class="d"><b style="color:#f0c040">Ben · Klassenheld</b><div style="font-size:12px;margin:6px 0">Klasse: '+cn+'</div><div class="rw"><div onclick="window.__kamChClose();try{showClassModal()}catch(e){}">Klasse wählen</div></div><div style="color:#9a8cc0;font-size:12px;margin:8px 0 0">Einsetzen auf:</div>'+pl('hero')+'</div>'}
+  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Klassenhelden: Klassenlevel gilt für alle und bleibt nach Prestige.</div><div class="g">'+tile('hero','Start · Platz '+(SLT.indexOf('hero')+1))+lock('Jeffrey','ab Klassenlevel 50','jeffrey',function(){return clv()>=50})+lock('Berta','ab Klassenlevel 100','berta',function(){return clv()>=100})+'</div>';
+  if(CPK==='hero')h+='<div class="d"><b style="color:#f0c040">Ben · Klassenheld</b><div style="font-size:12px;margin:6px 0">Vorne. Gruppen-Fähigkeit: +15% Gold für alle.</div><div style="color:#9a8cc0;font-size:12px;margin:8px 0 0">Einsetzen auf:</div>'+pl('hero')+'</div>';
+  if(window.__kamNt)h+='<div class="d">'+window.__kamNt+'</div>'}
  else{
-  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Helden kämpfen mit, haben aber keine Klassenfähigkeiten.</div><div class="g">'+tile('arc','frei'+(SLT.indexOf('arc')>=0?' · Platz '+(SLT.indexOf('arc')+1):''))+tile('mag','frei'+(SLT.indexOf('mag')>=0?' · Platz '+(SLT.indexOf('mag')+1):''))+lock('Neuer Held','bald')+'</div>';
+  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Helden kämpfen mit, haben aber keine Klassenfähigkeiten.</div><div class="g">'+tile('arc','frei'+(SLT.indexOf('arc')>=0?' · Platz '+(SLT.indexOf('arc')+1):''))+tile('mag','frei'+(SLT.indexOf('mag')>=0?' · Platz '+(SLT.indexOf('mag')+1):''))+lock('Luna','ab Heldenlevel 5','luna',function(){return hlvl()>=5})+lock('Jamal','ab Heldenlevel 15','jamal',function(){return hlvl()>=15})+lock('Brutus','ab Heldenlevel 30','brutus',function(){return hlvl()>=30})+'</div>'+(window.__kamNt?'<div class="d">'+window.__kamNt+'</div>':'');
   if(CPK&&CPK!=='hero')h+='<div class="d"><b style="color:#f0c040">'+NN[CPK]+'</b><div style="color:#9a8cc0;font-size:12px;margin-top:4px">Einsetzen auf:</div>'+pl(CPK)+'</div>'}
  m.innerHTML=h+'</div>'}
 window.__kamLk=function(uid){ens();inventory.lock=inventory.lock||{};if(inventory.lock[uid])delete inventory.lock[uid];else inventory.lock[uid]=1;saveInventory();render()};
@@ -1121,7 +1138,7 @@ window.renderInventoryModal=render;
 window.showInventory=function(){sel='hero';render();document.getElementById('inventoryModal').style.display='flex'};
 setInterval(function(){var m=document.getElementById('inventoryModal'),im=document.getElementById('hAn');if(!m||m.style.display==='none'||!im)return;fr++;
  im.src=HF(sel,fr);
- [].slice.call(document.querySelectorAll('.ht img')).forEach(function(x){var w=x.dataset.w;x.src=HF(w,fr)})},300);
+ [].slice.call(document.querySelectorAll('.ht img')).forEach(function(x){var w=x.dataset.w;if(w)x.src=HF(w,fr)})},300);
 
 /* ---- Waffen-Effekte ---- */
 var EQ=[[3,8],[9,14],[15,19],[20,25]],EQN=['Grün','Blau','Lila','Episch'],EQC=['#4caf50','#42a5f5','#ab47bc','#ff9800'];
@@ -1248,7 +1265,7 @@ function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!al
 window.__kamInfo=function(uid){var i=it(uid);if(!i)return;var M=document.getElementById('kamInfo');
  if(!M){M=document.createElement('div');M.id='kamInfo';M.style.cssText='position:fixed;inset:0;z-index:100002;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px';M.onclick=function(e){if(e.target===M)M.style.display='none'};document.body.appendChild(M)}
  var col=RARITY_COLOR[i.rarity],q=st(i);
- M.innerHTML='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid '+col+';border-radius:16px;padding:16px;max-width:380px;width:100%;max-height:88vh;overflow:auto;color:#ffe9c4;font-family:Georgia,serif"><div style="display:flex;gap:10px;align-items:center">'+itemIcon(i,52)+'<div><b style="color:'+col+'">'+i.name+'</b><div style="font-size:.65rem;color:#c8a070">'+RARITY_LABEL[i.rarity]+' · '+CN[i.c]+' · <span style="color:#ffd24a">'+stars(i)+'</span></div><div style="font-size:.7rem">'+descOf(i)+'</div></div></div>'+efHtml(uid,false)+'<button class="btn btn-wide" style="width:100%;margin-top:12px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\'">Schließen</button></div>';
+ M.innerHTML='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid '+col+';border-radius:16px;padding:16px;max-width:380px;width:100%;max-height:88vh;overflow:auto;color:#ffe9c4;font-family:Georgia,serif"><div style="display:flex;gap:10px;align-items:center">'+itemIcon(i,52)+'<div><b style="color:'+col+'">'+i.name+'</b><div style="font-size:.65rem;color:#c8a070">'+RARITY_LABEL[i.rarity]+' · '+CN[i.c]+' · <span style="color:#ffd24a">'+stars(i)+'</span></div><div style="font-size:.7rem">'+descOf(i)+'</div></div></div>'+(efHtml(uid,false)||'<div style="font-size:.72rem;color:#c8a070;text-align:center;margin:12px 0 2px">Dieser Gegenstand hat keine Fähigkeit.</div>')+(wearer(uid)?'<button class="btn btn-wide" style="width:100%;margin-top:12px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\';equipItem(\''+uid+'\',\''+wearer(uid)+'\')">Ablegen</button>':'')+'<button class="btn btn-wide" style="width:100%;margin-top:8px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\'">Schließen</button></div>';
  M.style.display='flex'};
 
 /* ---- Schmiede ---- */
@@ -1269,10 +1286,10 @@ function forgeUI(){
  var B=FS.b?it(FS.b):null,F=FS.f?it(FS.f):null;if(!B)FS.b=null;if(!F)FS.f=null;
  var h='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid #f0c040;border-radius:16px;padding:18px 14px;max-width:400px;width:95%;color:#ffe9c4;font-family:Georgia,serif">'+
  '<h2 style="color:#f0c040;text-align:center;font-size:1.05rem;margin:0 0 6px">⚒️ SCHMIEDE · Stufe '+smithLv()+'</h2>'+
- '<div style="text-align:center;font-size:.75rem;margin-bottom:10px">🔩 Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; 🔵 '+(inventory.orbs.blau||0)+' &nbsp; 🟣 '+(inventory.orbs.lila||0)+' &nbsp; 🟠 '+(inventory.orbs.orange||0)+'</div>';
+ '<div style="text-align:center;font-size:.75rem;margin-bottom:10px">🔩 Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; '+oimg('blau')+' '+(inventory.orbs.blau||0)+' &nbsp; '+oimg('lila')+' '+(inventory.orbs.lila||0)+' &nbsp; '+oimg('orange')+' '+(inventory.orbs.orange||0)+'</div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  var md=FS.mode==='eff';
- h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','★ Sterne'],['eff','✨ Wunderschmiede']].map(function(a){var on=(a[0]==='eff')===md;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
+ h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','⚒️ Schmelzen'],['eff','✨ Wunderschmiede']].map(function(a){var on=(a[0]==='eff')===md;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
  if(md&&smithLv()<EFLV){h+='<div style="text-align:center;font-size:.8rem;line-height:1.6;padding:16px 8px">🔒 <b style="color:#f0c040">Wunderschmiede</b><br>Hier würfelst du Effekte auf deinen Waffen und Rüstungen.<br>Frei ab <b>Schmiede-Stufe '+EFLV+'</b> (dann kannst du auch Blau schmieden).<br>Du hast Stufe '+smithLv()+'. Baue die Schmiede in der Stadt aus.</div><button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
  if(md){var EB=FS.eb?it(FS.eb):null;if(!EB)FS.eb=null;
   h+='<div style="text-align:center;font-size:.75rem;margin-bottom:10px">💰 Gold: <b>'+(meta?meta.gold:0)+'</b></div>';
@@ -1288,14 +1305,14 @@ function forgeUI(){
   if(!n)h+='<div style="font-size:.7rem;color:#a08060;text-align:center;padding:12px">Du hast noch keine Items zum Schmieden.</div>'}
  else{h+='<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin-bottom:6px">BASIS</div>'+card(B,'','__kamFB(null)',true)+
   (B.s<3?'<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin:8px 0 6px">2. GLEICHES ITEM ALS FUTTER (geht verloren)</div>':'');
-  if(B.s<3){var cands=sorted().filter(function(x){return x.bid===B.bid&&x.id!==B.id&&!wearer(x.id)});
-   if(F){h+=card(F,'','__kamFF(null)',true)}else if(!cands.length)h+='<div style="font-size:.7rem;color:#a08060;padding:8px">Du brauchst ein zweites gleiches Item (nicht angelegt).</div>';
+  if(B.s<3){var cands=sorted().filter(function(x){return x.bid===B.bid&&x.s===B.s&&x.id!==B.id&&!wearer(x.id)});
+   if(F){h+=card(F,'','__kamFF(null)',true)}else if(!cands.length)h+='<div style="font-size:.7rem;color:#a08060;padding:8px">Du brauchst ein zweites gleiches Item mit gleich vielen Sternen (nicht angelegt).</div>';
    else cands.forEach(function(x){h+=card(x,'','__kamFF(\''+x.id+'\')',false)})}
   if(F&&B.s<3){var cr=condResult(B,F),ok=(inventory.iron||0)>=cost(B);
    h+='<div style="font-size:.75rem;margin:10px 0;line-height:1.5;text-align:center">Erfolg: <b>'+chance(B)+'%</b> (Schmiede +'+smithLv()*2+'%)<br>Kosten: 🔩 '+cost(B)+'<br>'+(cr.perf?'Perfekt-Chance: <b style="color:#ffd24a">'+cr.perf+'%</b>':'Zustand wird '+CN[cr.base])+'<br><span style="color:#ff9a8a">Bei Fehlschlag geht das Futter verloren.</span></div>'+
-   '<button class="btn btn-wide" '+(ok?'':'disabled ')+'onclick="__kamDoForge()" style="width:100%">'+(ok?'⚒️ SCHMIEDEN':'Zu wenig Eisenbarren')+'</button>'}
+   '<button class="btn btn-wide" '+(ok?'':'disabled ')+'onclick="__kamDoForge()" style="width:100%">'+(ok?'⚒️ SCHMELZEN':'Zu wenig Eisenbarren')+'</button>'}
   if(B.s>=3){var nb=nextBase(B),oc=orbFor(B);
-   h+='<div style="font-size:.75rem;margin:10px 0;text-align:center;line-height:1.5">★★★ Voll ausgebaut.<br>'+(nb?'Aufwerten zu <b style="color:'+RARITY_COLOR[nb.rarity]+'">'+nb.name+'</b> mit '+ORB[oc][0]+' '+ORB[oc][1]+' (du hast '+(inventory.orbs[oc]||0)+')':(B.rarity==='normal'?'Normale Items kannst du nur mit Sternen verbessern.':'Höher geht es nicht.'))+'</div>'+
+   h+='<div style="font-size:.75rem;margin:10px 0;text-align:center;line-height:1.5">★★★ Voll ausgebaut.<br>'+(nb?'Aufwerten zu <b style="color:'+RARITY_COLOR[nb.rarity]+'">'+nb.name+'</b> mit '+ORB[oc][2]+' '+ORB[oc][1]+' (du hast '+(inventory.orbs[oc]||0)+')':(B.rarity==='normal'?'Normale Items kannst du nur durch Schmelzen verbessern.':'Höher geht es nicht.'))+'</div>'+
    (nb&&smithLv()<UPLV[B.rarity]?'<div style="text-align:center;font-size:.72rem;color:#ff9a8a;margin-bottom:6px">🔒 Schmiede Stufe '+UPLV[B.rarity]+' nötig für '+UPN[B.rarity]+' (du hast Stufe '+smithLv()+'). Baue die Schmiede in der Stadt aus.</div>':'')+(nb?'<button class="btn btn-wide" '+((inventory.orbs[oc]||0)>0&&smithLv()>=UPLV[B.rarity]?'':'disabled ')+'onclick="__kamDoUp()" style="width:100%">'+(smithLv()<UPLV[B.rarity]?'Schmiede zu niedrig':(inventory.orbs[oc]||0)>0?'✨ AUFWERTEN':'Kugel fehlt')+'</button>':'')}}
  h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';
  M.innerHTML=h;M.style.display='flex'}
@@ -1552,4 +1569,20 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   }
   window.addEventListener('resize',fit);window.addEventListener('orientationchange',function(){setTimeout(fit,200)});
   fit();setInterval(function(){try{paint()}catch(e){}},900);
+})();
+
+
+/* ---------- Kisten: Öffnen-Animation + Etage fuer den Loot ---------- */
+(function(){
+  var oOC=window.openChest;if(typeof oOC!=='function')return;
+  ['wood','dia','legend','sin'].forEach(function(t){[0,1,2].forEach(function(f){var i=new Image();i.src='items/chest_'+t+'_'+f+'.webp'})});
+  window.openChest=function(type,etg){
+    var args=arguments;
+    try{
+      var fx=document.createElement('div');fx.id='kamChestFx';var im=document.createElement('img');im.src='items/chest_'+type+'_0.webp';fx.appendChild(im);document.body.appendChild(fx);
+      setTimeout(function(){im.src='items/chest_'+type+'_1.webp'},320);
+      setTimeout(function(){im.src='items/chest_'+type+'_2.webp'},620);
+      setTimeout(function(){try{fx.remove()}catch(e){}window.__kamEtg=etg||0;window.__kamBoardScale=etg?.2:1;try{oOC.apply(window,[type])}finally{window.__kamEtg=0;window.__kamBoardScale=1}},1150);
+    }catch(e){window.__kamEtg=etg||0;try{oOC.apply(window,[type])}finally{window.__kamEtg=0}}
+  };
 })();

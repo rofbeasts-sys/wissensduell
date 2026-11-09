@@ -1582,6 +1582,7 @@ const HERO_CLASSES = [
     ]
   }
 ];
+HERO_CLASSES.length = 0; // alte Klassen entfernt (Daten im Projekt-Dokument gesichert)
 
 // Ability state (reset per fight/game)
 let abilityCooldowns = {}; // { abilityId: roundsLeft }
@@ -2379,7 +2380,7 @@ function closeInventory() { document.getElementById('inventoryModal').style.disp
 
 function itemIcon(it, px) {
   var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:'o'}[it.rarity] || 'g';
-  var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape'}[it.type] || 'sword';
+  var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape', hand:'hand'}[it.type] || 'sword';
   var em = {hand:'\uD83E\uDDE4', book:'\uD83D\uDCD6', shield:'\uD83D\uDEE1\uFE0F'}[it.type];
   if (em) return '<div style="width:' + px + 'px;height:' + px + 'px;display:flex;align-items:center;justify-content:center;font-size:' + Math.round(px*0.72) + 'px;margin:0 auto 3px;filter:drop-shadow(0 0 7px ' + (RARITY_COLOR[it.rarity] || '#888') + ')">' + em + '</div>';
   return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + '' + '">';
@@ -2489,7 +2490,8 @@ function openChest(type) {
   var msg = '<span style="color:' + cfg.color + '">[' + cfg.name + '] +' + gold + ' Gold</span>';
 
   if (cfg.diaMin) {
-    const dias = Math.floor(Math.random() * (cfg.diaMax - cfg.diaMin + 1)) + cfg.diaMin;
+    let dias = Math.floor(Math.random() * (cfg.diaMax - cfg.diaMin + 1)) + cfg.diaMin;
+    dias = Math.max(1, Math.round(dias * (window.__kamBoardScale || 1)));
     // Diamanten bekommen immer auch Gold dazu
     const bonusGold = Math.floor(Math.random() * (cfg.extraGoldMax - cfg.extraGoldMin + 1)) + cfg.extraGoldMin;
     meta.diamonds += dias; globalDiamonds += dias; saveDiamonds(globalDiamonds);
@@ -2578,14 +2580,14 @@ function renderDiaShop() {
   var chestHtml = '<div style="border-top:1px solid #224;margin-top:10px;padding-top:10px">'
     + '<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px;text-align:center">KISTEN KAUFEN</div>'
     + [
-        { type:'wood',   icon:'📦', name:'Holzkiste',        color:'#cc8844', cost:60,   desc:'Gold + Item (50%)' },
-        { type:'dia',    icon:'💎', name:'Diamant-Kiste',    color:'#44ddff', cost:300,  desc:'Gold + Dias + Item (85%, bis Blau)' },
-        { type:'legend', icon:'🏆', name:'Legendaere Kiste', color:'#ff8800', cost:600,  desc:'Viel Gold + Dias + seltenes Item' },
-        { type:'sin',    icon:'💀', name:'Todsuende-Kiste',  color:'#cc44ff', cost:1200, desc:'Maximum: 150-400 Dias + Gold + Epic Items' },
+        { type:'wood',   icon:'<img src="items/chest_wood_0.webp" style="width:44px;height:auto" alt="">', name:'Holzkiste',        color:'#cc8844', cost:60,   desc:'Gold + Item (50%)' },
+        { type:'dia',    icon:'<img src="items/chest_dia_0.webp" style="width:44px;height:auto" alt="">', name:'Diamant-Kiste',    color:'#44ddff', cost:300,  desc:'Gold + Dias + Item (85%, bis Blau)' },
+        { type:'legend', icon:'<img src="items/chest_legend_0.webp" style="width:44px;height:auto" alt="">', name:'Legendaere Kiste', color:'#ff8800', cost:600,  desc:'Viel Gold + Dias + seltenes Item' },
+        { type:'sin',    icon:'<img src="items/chest_sin_0.webp" style="width:44px;height:auto" alt="">', name:'Todsuende-Kiste',  color:'#cc44ff', cost:1200, desc:'Maximum: 150-400 Dias + Gold + Epic Items' },
       ].map(function(c) {
         var canBuy = meta && meta.diamonds >= c.cost;
         return '<div style="display:flex;align-items:center;gap:8px;padding:7px;border:1px solid ' + (canBuy ? c.color : '#222') + ';border-radius:8px;margin-bottom:5px;background:rgba(0,5,15,0.5)">'
-          + '<span style="font-size:1.1rem;color:' + c.color + '">' + c.icon + '</span>'
+          + '<span style="font-size:1.1rem;color:' + c.color + ';width:46px;display:flex;justify-content:center">' + c.icon + '</span>'
           + '<div style="flex:1"><div style="font-size:0.65rem;color:' + c.color + ';font-weight:700">' + c.name + '</div>'
           + '<div style="font-size:0.55rem;color:#446688">' + c.desc + '</div></div>'
           + '<button onclick="buyChest(\'' + c.type + '\',' + c.cost + ')" style="font-size:0.6rem;padding:4px 8px;background:' + (canBuy ? 'linear-gradient(135deg,#002244,#003366)' : '#111') + ';border:1px solid ' + (canBuy ? c.color : '#333') + ';border-radius:6px;color:' + (canBuy ? c.color : '#333') + ';cursor:' + (canBuy ? 'pointer' : 'default') + '">' + c.cost + ' Dias</button>'
