@@ -1072,7 +1072,7 @@ var SL={hero:['helm','armor','hand','boots','amulet','ring','cape','shield','wea
 var NM={hero:'Ben',arc:'Elfa',mag:'Kalifa',brutus:'Brutus',jeffrey:'Jeffrey',berta:'Berta',jamal:'Jamal',luna:'Luna'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?(window.__benSkin&&window.__benSkin()==='rick'?'run'+(f%2)+'.png':'h/ben_i'+(f%2)+'.webp'):'h/'+(w==='arc'?'elf':'kal')+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:5,mag:30},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
 var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring',hand:'Handsch.',book:'Buch',shield:'Schild',amulet:'Amulett',boots:'Schuhe',quiver:'Köcher'};
 var sel='hero',fr=0;
-var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){var ow=ownersOf(i);if(ow&&ow.indexOf(w)<0)return false;return !XT[i.type]||XT[i.type]===w}
+var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){var ow=ownersOf(i);if(ow&&ow.indexOf(w)<0)return false;if(WKT.indexOf(i.type)>=0&&WSK[w]&&WSK[w]!==i.type)return false;return !XT[i.type]||XT[i.type]===w}
 function gk(w,i){return WKT.indexOf(i.type)>=0?WSK[w]:i.type}
 function unw(uid){var i=it(uid),w=wearer(uid);if(!w)return;
  var q=st(i),wk=wkey(uid);if(wk){if(w==='hero')delete inventory.equipped[wk[1]];else delete ai()[w][wk[1]]}
