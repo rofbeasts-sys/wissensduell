@@ -395,6 +395,7 @@ function hud(){
   var left=ROWS+1-r;$('kBn').textContent='Drache '+getMonsterNameSafe()+' · '+(r>ROWS?'Boss-Reihe':'Reihe '+r+' / '+ROWS);$('kBb').style.width=(100*(1-left/(ROWS+1)))+'%';
 }
 function getMonsterNameSafe(){try{return MONSTER_NAMES[drag(K.k)]||'Drache'}catch(e){return 'Drache'}}
+(function(){var o=window.toggleAutoRun;if(typeof o!=='function')return;window.toggleAutoRun=function(){try{if(!autoRunActive&&K&&autoRunData.level>0&&autoRunData.level<K.k){msg('Auto-Run Stufe '+autoRunData.level+' gilt nur bis Kammer '+autoRunData.level+'. Für Kammer '+K.k+' brauchst du Stufe '+K.k+' (nach dem Drachen dieser Kammer kaufbar).');return}}catch(e){}return o.apply(this,arguments)}})();
 window.__kamFl=function(t,c){try{var kh=$('kamHero'),ok=kh&&kh.offsetParent!==null&&kh.getBoundingClientRect().width>0;if(ok){fl(t,c);return}
 var w=document.getElementById('sceneWrap'),im=document.getElementById('runImg');if(!w||!im)return;var r=w.getBoundingClientRect(),h=im.getBoundingClientRect(),d=document.createElement('div');
 d.textContent=t;d.style.cssText='position:absolute;z-index:30;font-weight:900;font-size:22px;pointer-events:none;text-shadow:0 2px 4px #000;color:'+c+';left:'+(h.left-r.left+h.width/2-16+(Math.random()*30-15))+'px;top:'+(h.top-r.top-4)+'px;transition:transform 1.1s,opacity 1.1s';
@@ -564,6 +565,7 @@ function askRedo(R0){
 }
 function roll(){
   if(busy||!K||inFight)return;
+  if(typeof autoRunActive!=='undefined'&&autoRunActive&&autoRunData.level<K.k){autoRunActive=false;clearInterval(autoRunInterval);updateAutoRunUI();msg('Auto-Run Stufe '+autoRunData.level+' gilt nur bis Kammer '+autoRunData.level+'. Besiege den Drachen dieser Kammer, dann kannst du die nächste Stufe kaufen.');return}
   if(typeof autoRunActive!=='undefined'&&autoRunActive&&autoRunData.level<=K.k&&K.cur.r+6>=ROWS+1){autoRunActive=false;clearInterval(autoRunInterval);updateAutoRunUI();msg('Auto-Run pausiert: Der Drache wartet. Kämpfe ihn selbst.');return}
   busy=true;var R0=rollValue();
   anim(R0.show,function(){
