@@ -59,6 +59,24 @@
   <!-- 5. INVENTAR -->
   <button class="btn btn-wide" onclick="showInventory()" style="width:100%;margin-bottom:7px;font-size:0.8rem;padding:9px;background:linear-gradient(135deg,#001a33,#003366);border-color:#336699;color:#88aacc">HELDENABTEIL</button>
 
+  <!-- ANSICHT / GROESSE -->
+  <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px;background:rgba(0,0,0,0.4)">
+    <div style="font-size:0.6rem;color:#a08060;letter-spacing:2px;text-align:center;margin-bottom:6px">GRÖSSE</div>
+    <div style="display:flex;gap:6px" id="viewBtns">
+      <button data-v="phone" onclick="setView('phone')" class="btn btn-sm" style="flex:1">📱 Handy</button>
+      <button data-v="tablet" onclick="setView('tablet')" class="btn btn-sm" style="flex:1">📟 Tablet</button>
+      <button data-v="pc" onclick="setView('pc')" class="btn btn-sm" style="flex:1">🖥️ PC</button>
+    </div>
+  </div>
+  <script>
+  (function(){var Z={phone:1,tablet:1.3,pc:1.6};
+  window.setView=function(v){if(!Z[v])v='phone';try{localStorage.setItem('robView',v)}catch(e){}
+   document.body.style.zoom=Z[v]==1?'':Z[v];
+   [].forEach.call(document.querySelectorAll('#viewBtns button'),function(b){var on=b.dataset.v===v;b.style.outline=on?'2px solid #ffd24a':'';b.style.opacity=on?'1':'.65'})};
+  var v='phone';try{v=localStorage.getItem('robView')||'phone'}catch(e){}
+  setView(v)})();
+  </script>
+
   <!-- 6. LAUTSTAERKE -->
   <div style="border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:10px;background:rgba(0,0,0,0.4)">
     <div style="font-size:0.6rem;color:#a08060;letter-spacing:2px;text-align:center;margin-bottom:6px">MUSIK</div>

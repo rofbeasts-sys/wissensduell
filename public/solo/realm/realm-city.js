@@ -95,8 +95,8 @@ window.cityCollect=function(silent){
 };
 
 /* ---------- Magieturm: Offline-Farmen ---------- */
-var OFFK='robOffLast',OFFMIN=5*60000;
-function offTouch(){try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}
+var OFFK='robOffLast',OFFMIN=2*60000;
+function offTouch(){if(document.hidden)return;try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}
 function offCalc(){
   var t=lv('tower');if(t<1)return null;
   var last=0;try{last=+localStorage.getItem(OFFK)||0}catch(e){}if(!last)return null;
@@ -134,7 +134,7 @@ function offShow(){
 }
 window.__cityOff=offShow;window.__cityOffInfo=function(){var t=lv('tower'),o=null;try{o=offCalc()}catch(e){}return {tower:t,ready:!!o,h:o?o.h:0,k:o?o.k:0}};
 setInterval(offTouch,20000);
-document.addEventListener('visibilitychange',function(){if(document.hidden)offTouch();else setTimeout(offShow,400)});
-addEventListener('pagehide',offTouch);
+document.addEventListener('visibilitychange',function(){if(document.hidden){try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}else setTimeout(offShow,400)});
+addEventListener('pagehide',function(){try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}});
 (function(){var n=0,iv=setInterval(function(){n++;var lo=document.getElementById('loginOverlay'),up=!lo||getComputedStyle(lo).display==='none';if(up||n>60){clearInterval(iv);setTimeout(function(){var o=localStorage.getItem(OFFK);if(!o)offTouch();else offShow()},700)}},300)})();
 })();
