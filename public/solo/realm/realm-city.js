@@ -48,7 +48,8 @@ window.showCity=function(){
   var h='<div style="position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;padding:10px 12px;background:#07111c;border-bottom:2px solid #c9a227">'
    +'<button class="btn" onclick="cityBack()" style="font-size:.75rem;padding:7px 12px">← ZURÜCK</button>'
    +'<div style="flex:1;text-align:center;font-weight:700;letter-spacing:2px">🏙️ STADT</div>'
-   +'<div style="font-size:.8rem">💰 '+gold()+' · 💎 '+dias()+'</div></div>';
+   +'<div style="font-size:.8rem">💰 '+gold()+' · 💎 '+dias()+' · 💜 '+souls()+'</div></div>';
+  h+='<div id="cityRate" style="margin:8px auto 0;max-width:640px;padding:8px 10px;border:1px solid #c9a22788;border-radius:10px;background:#0006;font-size:.74rem;text-align:center;line-height:1.6"></div>';
   h+='<div style="text-align:center;font-size:.7rem;opacity:.7;padding:8px 0 0">Max. '+(Math.round(cap()*10)/10)+' Std. Offline-Ertrag</div>';
   h+='<div id="cityMap" style="margin:10px auto;max-width:640px;padding:14px 8px;border-radius:16px;border:3px solid #c9a227;'
    +'background:radial-gradient(ellipse at 50% 30%,#2a1c3d 0%,#170f26 55%,#0b0714 100%);display:grid;grid-template-columns:1fr 1fr;gap:6px 4px">';
@@ -63,8 +64,22 @@ window.showCity=function(){
   h+='</div><div id="cityPanel" style="margin:10px auto;max-width:640px;padding:0 10px 90px"></div>';
   h+='<div style="position:sticky;bottom:0;z-index:5;padding:10px 12px;background:#07111c;border-top:2px solid #c9a227;text-align:center">'
    +'<button class="btn btn-wide" onclick="cityCollect()" style="width:100%;font-size:.9rem;padding:12px" '+((p.g||p.d)?'':'disabled')+'>📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d+'</button></div>';
-  r.innerHTML=h;
+  r.innerHTML=h;rateUpd();
 };
+function souls(){try{return (prestigeData&&prestigeData.souls)||0}catch(e){return 0}}
+function fmtT(s){s=Math.max(0,Math.round(s));var h=Math.floor(s/3600),m=Math.floor(s%3600/60),r=s%60;return (h?h+' Std. ':'')+(h||m?m+' Min. ':'')+r+' Sek.'}
+function rateUpd(){var el=document.getElementById('cityRate'),m=document.getElementById('cityModal');if(!el||!m||m.style.display==='none')return;
+ var o=get(),mn=lv('mine'),dn=lv('dia'),el_=(Date.now()-o.last)/3600000,capH=cap(),h=Math.min(el_,capH),t='';
+ var gph=mn*30,dph=Math.round(dn*1.5*10)/10;
+ t+='⛏️ Gold: <b>'+gph+'</b> pro Std.';
+ if(mn&&h<capH){var gn=Math.floor(h*gph)+1;t+=' · nächstes 💰 in <b>'+fmtT((gn/gph-h)*3600)+'</b>'}
+ t+='<br>💎 Diamanten: <b>'+dph+'</b> pro Std.';
+ if(dn&&h<capH){var dd=Math.floor(h*dn*1.5)+1;t+=' · nächster 💎 in <b>'+fmtT((dd/(dn*1.5)-h)*3600)+'</b>'}
+ if(!mn&&!dn)t='Baue Goldmine oder Diamantenmine, dann siehst du hier die Zeiten.';
+ else t+='<br>📦 Speicher '+(h>=capH?'<b style="color:#ff9a8a">voll – bitte abholen!</b>':'voll in <b>'+fmtT((capH-h)*3600)+'</b>');
+ el.innerHTML=t;
+ var p=pending(),bt=document.querySelector('#cityModal button[onclick="cityCollect()"]');if(bt){bt.innerHTML='📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d;bt.disabled=!(p.g||p.d)}}
+setInterval(rateUpd,1000);
 window.cityOpen=function(id){
   var b=B.filter(function(x){return x.id===id;})[0], l=lv(id), pn=document.getElementById('cityPanel');
   var c=l>=b.max?null:b.cost(l);

@@ -198,7 +198,8 @@ function rebuildPage(){
     try{Object.keys(localStorage).forEach(function(k){if(/^rob/.test(k)&&['robPlayerName','robLastHero','robAvatar'].indexOf(k)<0)localStorage.removeItem(k)})}catch(e){}location.reload()};
   if(qp){$('kamProfBody').appendChild(qp)}
   var qk=document.createElement('div');qk.id='kamQuick';
-  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['💎 DIA-SHOP','__kDia'],['🏙️ STADT','showCity']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
+  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['💎 DIA-SHOP','__kDia'],['🏙️ STADT','showCity']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
+  (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
   $('kamProfBody').appendChild(qk);
   var mp=$('menuPanel');if(mp){$('kamProfBody').appendChild(mp);mp.addEventListener('click',function(e){var bt=e.target.closest&&e.target.closest('button');if(bt)setTimeout(closeP,0)})}
   function openP(t){var sp=$('statusPanel'),b=$('kamProfBody');b.insertBefore(sp,b.firstChild);b.insertBefore($('kamQuick'),sp.nextSibling);b.appendChild(rs);pw.dataset.tab=t||'p';sp.style.setProperty('display',pw.dataset.tab==='p'?'block':'none','important');[].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.classList.toggle('on',x.dataset.t===pw.dataset.tab)});pw.classList.add('on');syncFace()}
@@ -675,7 +676,7 @@ function clsLv(){try{return window.__cl!=null?window.__cl:getClassLevel()}catch(
 window.__kamGot=function(){try{return JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){return{}}};
 try{if(!localStorage.getItem('robKamAlV2')){localStorage.removeItem('robKamAl');localStorage.setItem('robKamAlV2','1')}}catch(e){}
 function gotAl(){try{return JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){return{}}}
-function hlvl(){try{return window.__hl!=null?window.__hl:maxHeroLv()}catch(e){return 0}}
+function hlvl(){if(window.__hl!=null)return window.__hl;var m=0;try{for(var h in heroData)m=Math.max(m,getHeroLevel(h))}catch(e){}return m}
 function allyList(){var c=hlvl(),g=gotAl();return ALLY.filter(function(a){return c>=a.need||g[a.id]})}
 function allyUnlockToast(){
   var got={};try{got=JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){}
