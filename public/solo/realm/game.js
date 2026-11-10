@@ -2379,9 +2379,9 @@ function showInventory() {
 function closeInventory() { document.getElementById('inventoryModal').style.display = 'none'; openMenu(); }
 
 function itemIcon(it, px) {
-  var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:'o'}[it.rarity] || 'g';
-  var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape', hand:'hand'}[it.type] || 'sword';
-  var em = {hand:'\uD83E\uDDE4', book:'\uD83D\uDCD6', shield:'\uD83D\uDEE1\uFE0F'}[it.type];
+  var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:(['boots','quiver','book','shield'].indexOf(it.type) >= 0 ? 'r' : 'o')}[it.rarity] || 'g';
+  var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape', hand:'hand', amulet:'amu', boots:'boots', quiver:'quiver', book:'book', shield:'shield'}[it.type] || 'sword';
+  var em = null;
   if (em) return '<div style="width:' + px + 'px;height:' + px + 'px;display:flex;align-items:center;justify-content:center;font-size:' + Math.round(px*0.72) + 'px;margin:0 auto 3px;filter:drop-shadow(0 0 7px ' + (RARITY_COLOR[it.rarity] || '#888') + ')">' + em + '</div>';
   return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + '' + '">';
 }

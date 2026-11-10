@@ -136,5 +136,5 @@ window.__cityOff=offShow;window.__cityOffInfo=function(){var t=lv('tower'),o=nul
 setInterval(offTouch,20000);
 document.addEventListener('visibilitychange',function(){if(document.hidden)offTouch();else setTimeout(offShow,400)});
 addEventListener('pagehide',offTouch);
-setTimeout(function(){var o=localStorage.getItem(OFFK);if(!o)offTouch();else offShow();},2500);
+(function(){var n=0,iv=setInterval(function(){n++;var lo=document.getElementById('loginOverlay'),up=!lo||getComputedStyle(lo).display==='none';if(up||n>60){clearInterval(iv);setTimeout(function(){var o=localStorage.getItem(OFFK);if(!o)offTouch();else offShow()},700)}},300)})();
 })();
