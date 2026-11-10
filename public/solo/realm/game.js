@@ -2381,6 +2381,9 @@ function closeInventory() { document.getElementById('inventoryModal').style.disp
 function itemIcon(it, px) {
   var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:(['boots','quiver','book','shield'].indexOf(it.type) >= 0 ? 'r' : 'o')}[it.rarity] || 'g';
   var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape', hand:'hand', amulet:'amu', boots:'boots', quiver:'quiver', book:'book', shield:'shield'}[it.type] || 'sword';
+  if (it.type === 'shield') n = {turm:'tshield', rund:'shield', stachel:'buckler'}[it.sk || 'turm'];
+  n = {club:'wclub', axe:'waxe', spear:'wspear', potion:'n/potion', fist:'n/fist'}[it.type] || n;
+  if (it.cls === 'leder') n += 'L'; else if (it.cls === 'stoff') n += 'S';
   var em = null;
   if (em) return '<div style="width:' + px + 'px;height:' + px + 'px;display:flex;align-items:center;justify-content:center;font-size:' + Math.round(px*0.72) + 'px;margin:0 auto 3px;filter:drop-shadow(0 0 7px ' + (RARITY_COLOR[it.rarity] || '#888') + ')">' + em + '</div>';
   return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + '' + '">';

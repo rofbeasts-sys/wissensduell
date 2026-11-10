@@ -5,10 +5,10 @@ function mk(){
   var L=[],have={};
   ITEMS.forEach(function(x){if(x.rarity==='mystisch'&&!x.fx)have[x.type]=x});
   ITEMS.forEach(function(x){if(x.rarity==='legendaer'&&!x.fx&&!have[x.type]&&!have['m_'+x.type]){have['m_'+x.type]=1;
-    var id=x.id+'m';if(!ITEMS.some(function(y){return y.id===id}))ITEMS.push({id:id,name:'Mythisch: '+x.name,type:x.type,rarity:'mystisch',atk:Math.round((x.atk||0)*MUL),hp:Math.round((x.hp||0)*MUL),desc:x.desc,m:1})}});
+    var id=x.id+'m';if(!ITEMS.some(function(y){return y.id===id}))ITEMS.push({id:id,name:'Mythisch: '+x.name,type:x.type,rarity:'mystisch',atk:Math.round((x.atk||0)*MUL),hp:Math.round((x.hp||0)*MUL),desc:x.desc,m:1,cls:x.cls,sk:x.sk})}});
   ITEMS.forEach(function(x){if(x.rarity==='mystisch'&&!x.fx)L.push(x)});
   return L}
-function icon(b){var n=TY[b.type];return n?'items/'+n+(['boots','quiver','book','shield'].indexOf(b.type)>=0?'_r':'_o')+'.webp':null}
+function icon(b){var n=TY[b.type];if(b.type==='shield')n={turm:'tshield',rund:'shield',stachel:'buckler'}[b.sk||'turm'];return n?'items/'+n+(['boots','quiver','book','shield'].indexOf(b.type)>=0?'_r':'_o')+'.webp':null}
 function buy(id){
   var b=ITEMS.filter(function(x){return x.id===id})[0];if(!b||meta.gold<PRICE)return;
   meta.gold-=PRICE;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}

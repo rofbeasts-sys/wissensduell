@@ -198,8 +198,8 @@ function rebuildPage(){
     try{Object.keys(localStorage).forEach(function(k){if(/^rob/.test(k)&&['robPlayerName','robLastHero','robAvatar'].indexOf(k)<0)localStorage.removeItem(k)})}catch(e){}location.reload()};
   if(qp){$('kamProfBody').appendChild(qp)}
   var qk=document.createElement('div');qk.id='kamQuick';
-  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['💎 DIA-SHOP','__kDia'],['🏙️ STADT','showCity']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
-  (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
+  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['💎 DIA-SHOP','__kDia'],['🏙️ STADT','showCity'],['🐾 MONSTER','showMonsterLexicon'],['📖 WAFFEN-LEXIKON','__kamWDex']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
+  (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal','monsterLexikonModal','wdexModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
   $('kamProfBody').appendChild(qk);
   var mp=$('menuPanel');if(mp){$('kamProfBody').appendChild(mp);mp.addEventListener('click',function(e){var bt=e.target.closest&&e.target.closest('button');if(bt)setTimeout(closeP,0)})}
   function openP(t){var sp=$('statusPanel'),b=$('kamProfBody');b.insertBefore(sp,b.firstChild);b.insertBefore($('kamQuick'),sp.nextSibling);b.appendChild(rs);pw.dataset.tab=t||'p';sp.style.setProperty('display',pw.dataset.tab==='p'?'block':'none','important');[].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.classList.toggle('on',x.dataset.t===pw.dataset.tab)});pw.classList.add('on');syncFace()}
@@ -999,7 +999,7 @@ function prestigeTab(){
  return r}
 /* ---- Level-Fenster ---- */
 var LM=1;
-function ico(id){var b=base(id),c={normal:'g',gruen:'g',blau:'b',episch:'p',legendaer:'o',mystisch:(['boots','quiver','book','shield'].indexOf(b.type)>=0?'r':'o')}[b.rarity]||'g',n={weapon:'sword',armor:'armor',helm:'helm',ring:'ring',bow:'bow',staff:'staff',cape:'cape',hand:'hand',amulet:'amu',boots:'boots',quiver:'quiver',book:'book',shield:'shield'}[b.type]||'sword';return 'items/'+n+'_'+c+'.webp'}
+function ico(id){var b=base(id),c={normal:'g',gruen:'g',blau:'b',episch:'p',legendaer:'o',mystisch:(['boots','quiver','book','shield'].indexOf(b.type)>=0?'r':'o')}[b.rarity]||'g',n={weapon:'sword',armor:'armor',helm:'helm',ring:'ring',bow:'bow',staff:'staff',cape:'cape',hand:'hand',amulet:'amu',boots:'boots',quiver:'quiver',book:'book',shield:'shield'}[b.type]||'sword';if(b.type==='shield')n={turm:'tshield',rund:'shield',stachel:'buckler'}[b.sk||'turm'];n={club:'wclub',axe:'waxe',spear:'wspear',potion:'n/potion',fist:'n/fist'}[b.type]||n;if(b.cls==='leder')n+='L';else if(b.cls==='stoff')n+='S';return 'items/'+n+'_'+c+'.webp'}
 function chips(items,ex){var h='';(items||[]).forEach(function(g){var b=base(g[0]);h+='<span class="lc big'+(g[1]===2?' pf':'')+'"><img src="'+ico(g[0])+'">'+({weapon:'Waffe',armor:'Rüstung',helm:'Helm',ring:'Ring',bow:'Bogen',staff:'Stab',cape:'Umhang'}[b.type])+' · '+CN[g[1]]+'</span>'});
  ex=ex||{};if(ex.iron)h+='<span class="lc">🔩 '+ex.iron+'</span>';['blau','lila','orange'].forEach(function(o){if(ex[o])h+='<span class="lc">'+ORB[o][2]+' '+ex[o]+(ex[o]>1?' Kugeln':' Kugel')+'</span>'});return h}
 var RK={10:['🥉','Bronze','#cd7f32'],25:['🥈','Silber','#ccc'],50:['🥇','Gold','#ffd700'],80:['👑','Legendär','#ff8800'],90:['💠','Mythic','#cc44ff'],100:['✨','Mystisch','#ff44cc']};
@@ -1066,14 +1066,97 @@ window.__kamChest=function(type,cfg){
 
 /* ---- Heldenabteil ---- */
 var SL={hero:['helm','armor','hand','boots','amulet','ring','cape','shield','weapon'],arc:['helm','armor','hand','boots','amulet','ring','cape','quiver','bow'],mag:['helm','armor','hand','boots','amulet','ring','cape','book','staff']},XT={shield:'hero',quiver:'arc',book:'mag'};
-var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?(window.__benSkin&&window.__benSkin()==='rick'?'run'+(f%2)+'.png':'h/ben_i'+(f%2)+'.webp'):'h/'+(w==='arc'?'elf':'kal')+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:5,mag:30},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
+var NM={hero:'Ben',arc:'Elfa',mag:'Kalifa',brutus:'Brutus',jeffrey:'Jeffrey',berta:'Berta',jamal:'Jamal',luna:'Luna'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?(window.__benSkin&&window.__benSkin()==='rick'?'run'+(f%2)+'.png':'h/ben_i'+(f%2)+'.webp'):'h/'+(w==='arc'?'elf':'kal')+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:5,mag:30},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
 var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring',hand:'Handsch.',book:'Buch',shield:'Schild',amulet:'Amulett',boots:'Schuhe',quiver:'Köcher'};
 var sel='hero',fr=0;
-var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){return !XT[i.type]||XT[i.type]===w}
+var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){var ow=ownersOf(i);if(ow&&ow.indexOf(w)<0)return false;return !XT[i.type]||XT[i.type]===w}
 function gk(w,i){return WKT.indexOf(i.type)>=0?WSK[w]:i.type}
 function unw(uid){var i=it(uid),w=wearer(uid);if(!w)return;
  var q=st(i),wk=wkey(uid);if(wk){if(w==='hero')delete inventory.equipped[wk[1]];else delete ai()[w][wk[1]]}
  if(meta){if(w==='hero'){meta.attack=Math.max(1,meta.attack-q.atk);meta.maxHp=Math.max(1,meta.maxHp-q.hp);meta.hp=Math.min(meta.hp,meta.maxHp)}try{updateUI()}catch(e){}}}
+
+/* ---- Rüstungsklassen: Schwer / Leder / Stoff ---- */
+var CLSN={schwer:'Schwer',leder:'Leder',stoff:'Stoff'},CLSOK={schwer:['hero','brutus','jeffrey','berta','jamal'],leder:['hero','arc','luna','jamal'],stoff:['arc','mag','luna']};
+window.__clsOk=CLSOK;
+(function(){
+ var H={helm1:'schwer',helm2:'schwer',helm3:'schwer',helm4:'schwer',helm5:'schwer',armor1:'schwer',armor2:'schwer',armor3:'schwer',armor4:'schwer',armor5:'schwer',armor6:'schwer'};
+ ITEMS.forEach(function(x){if(H[x.id]){x.cls='schwer'}});
+ var R=['normal','gruen','blau','episch','legendaer'],HB=[[0,4],[3,8],[8,18],[12,30],[18,55]],AB=[[3,3],[5,10],[8,20],[15,45],[20,80]],
+ NL={helm:['Lederkappe','Jägerhaube','Waldläufer-Kapuze','Schattenkapuze','Windkapuze'],armor:['Lederweste','Jägerwams','Waldläuferrüstung','Schattenleder','Windleder']},
+ NS={helm:['Stoffkappe','Magierhut','Runenhut','Arkanhut','Sternenhut'],armor:['Stoffrobe','Magierrobe','Runenrobe','Arkanrobe','Sternenrobe']};
+ var made=[];
+ ['helm','armor'].forEach(function(t){var B=t==='helm'?HB:AB;
+  [['leder',NL,1.5,.7,'L'],['stoff',NS,2,.45,'S']].forEach(function(c){
+   for(var n=0;n<5;n++){var id=t+c[4]+(n+1),a=Math.round(B[n][0]*c[2]+(n?1:0)),h=Math.round(B[n][1]*c[3]);
+    if(ITEMS.some(function(x){return x.id===id}))continue;
+    ITEMS.push({id:id,name:c[1][t][n],type:t,rarity:R[n],atk:a,hp:h,cls:c[0],desc:(a?'+'+a+' ATK':'')+(a&&h?' ':'')+(h?'+'+h+' HP':'')});made.push([id,n])}})});
+ ITEMS.forEach(function(x){if(x.cls&&x.desc&&x.desc.indexOf('·')<0)x.desc=CLSN[x.cls]+' · '+x.desc});
+ function ids(ns){var o=[];made.forEach(function(m){if(ns.indexOf(m[1])>=0)o.push(m[0])});return o}
+ try{pushAll(MONSTER_POOL,ids([0]));pushAll(BOSS_POOL,ids([1,2,3,4]));pushAll(CHEST_CONFIG.wood.itemPool,ids([0]));pushAll(CHEST_CONFIG.dia.itemPool,ids([1,2]));pushAll(CHEST_CONFIG.legend.itemPool,ids([2,3,4]))}catch(e){}
+})();
+
+
+/* ---- Drei Schildarten: Turm (Ben, Jeffrey), Rund (Jamal, Brutus), Stachel (Berta) ---- */
+var SKOK={turm:['hero','jeffrey'],rund:['jamal','brutus'],stachel:['berta']},SKN={turm:'Turmschild',rund:'Rundschild',stachel:'Stachelschild'};
+window.__skOk=SKOK;
+(function(){
+ var R=['normal','gruen','blau','episch','legendaer'],SB=[[0,6],[0,14],[2,25],[4,45],[8,80]];
+ ITEMS.forEach(function(x){if(x.type==='shield'&&!x.sk)x.sk='turm'});
+ var NR=['Rundschild','Eisenrundschild','Stahlrundschild','Drachenrundschild','Himmelsrundschild'],NS=['Stachelbuckler','Eisenbuckler','Dornenschild','Drachenbuckler','Himmelsbuckler'];
+ [['rshield',NR,'rund'],['bshield',NS,'stachel']].forEach(function(s){var ids=[];
+  for(var n=0;n<5;n++){var id=s[0]+(n+1),a=SB[n][0],h=SB[n][1];ids.push(id);if(ITEMS.some(function(x){return x.id===id}))continue;
+   ITEMS.push({id:id,name:s[1][n],type:'shield',sk:s[2],rarity:R[n],atk:a,hp:h,desc:(a?'+'+a+' ATK':'')+(a&&h?' ':'')+(h?'+'+h+' HP':'')})}
+  try{pushAll(MONSTER_POOL,[ids[0]]);pushAll(BOSS_POOL,ids.slice(1));pushAll(CHEST_CONFIG.wood.itemPool,[ids[0]]);pushAll(CHEST_CONFIG.dia.itemPool,ids.slice(1,3));pushAll(CHEST_CONFIG.legend.itemPool,ids.slice(2))}catch(e){}});
+ ITEMS.forEach(function(x){if(x.type==='shield'&&x.desc&&x.desc.indexOf('·')<0)x.desc=SKN[x.sk]+' · '+x.desc});
+})();
+function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shield')return SKOK[i.sk||'turm'];return null}
+/* ---- Eigene Waffen je Held + Fundfreischaltung ---- */
+(function(){
+ var R=['normal','gruen','blau','episch','legendaer'],AT=[3,8,18,35,60],
+ W=[['club','Keule',['Knüppel','Eisenkeule','Stachelkeule','Drachenkeule','Himmelskeule']],['axe','Axt',['Beil','Eisenaxt','Kriegsaxt','Drachenaxt','Himmelsaxt']],['spear','Speer',['Holzspeer','Eisenspeer','Silberspeer','Drachenspeer','Himmelsspeer']],['potion','Trankwaffe',['Giftfläschchen','Säuretrank','Sprengtrank','Drachentrank','Himmelstrank']],['fist','Fäuste',['Bandagen','Eisenfäuste','Stahlfäuste','Drachenfäuste','Himmelsfäuste']]];
+ TYPE_LABEL.fist='Faustwaffe';W.forEach(function(w){if(w[0]!=='fist')TYPE_LABEL[w[0]]=w[1];for(var n=0;n<5;n++){var id=w[0]+(n+1);if(ITEMS.some(function(x){return x.id===id}))continue;ITEMS.push({id:id,name:w[2][n],type:w[0],rarity:R[n],atk:AT[n],hp:0,desc:'+'+AT[n]+' ATK'})}});
+ XT.club='brutus';XT.axe='jeffrey';XT.spear='jamal';XT.potion='berta';XT.fist='luna';
+ var pools=[MONSTER_POOL,BOSS_POOL,CHEST_CONFIG.wood.itemPool,CHEST_CONFIG.dia.itemPool,CHEST_CONFIG.legend.itemPool];
+ W.forEach(function(w){var T=[1,2,3,4,5].map(function(n){return w[0]+n});try{pushAll(MONSTER_POOL,[T[0]]);pushAll(BOSS_POOL,T.slice(1));pushAll(CHEST_CONFIG.wood.itemPool,[T[0]]);pushAll(CHEST_CONFIG.dia.itemPool,T.slice(1,3));pushAll(CHEST_CONFIG.legend.itemPool,T.slice(2))}catch(e){}});
+ var full=pools.map(function(p){return p.slice()});
+ /* Freischaltung: Typ -> [Bedingung, Name] */
+ var G=[
+  {t:['bow','quiver'],ok:function(){return hlvl()>=5},k:'g_elfa',m:'Ab jetzt Bögen und Köcher zu finden'},
+  {t:['fist'],ok:function(){return hlvl()>=10},k:'g_luna',m:'Ab jetzt Fäuste und Handschuhe zu finden'},
+  {t:['spear'],s:['rund'],ok:function(){return hlvl()>=15},k:'g_jamal',m:'Ab jetzt Speere und Rundschilde zu finden'},
+  {t:['club'],ok:function(){return hlvl()>=20},k:'g_brutus',m:'Ab jetzt Keulen zu finden'},
+  {t:['staff','book'],c:['stoff'],ok:function(){return hlvl()>=30},k:'g_kalifa',m:'Ab jetzt Stäbe, Bücher und Stoffrüstungen (Hüte, Roben) zu finden'},
+  {t:['axe'],ok:function(){return clv()>=50},k:'g_jeffrey',m:'Ab jetzt Äxte zu finden'},
+  {t:['potion'],s:['stachel'],ok:function(){return clv()>=100},k:'g_berta',m:'Ab jetzt Wurftränke und Stachelschilde zu finden'}];
+ function open(id){var b=ITEMS.find(function(x){return x.id===id});if(!b)return true;
+  for(var i=0;i<G.length;i++){var g=G[i];if(g.t.indexOf(b.type)>=0||(b.cls&&g.c&&g.c.indexOf(b.cls)>=0)||(b.sk&&g.s&&g.s.indexOf(b.sk)>=0))return !!g.ok()}return true}
+ window.__syncPools=function(){var got={};try{got=JSON.parse(localStorage.getItem('robGearMsg')||'{}')}catch(e){}var ch=false;
+  pools.forEach(function(p,n){var f=full[n].filter(open);p.length=0;f.forEach(function(x){p.push(x)})});
+  G.forEach(function(g){if(g.ok()&&!got[g.k]){got[g.k]=1;ch=true;try{if(window.hlvl&&!window.__gearQuiet)setTimeout(function(){toast('🎁 '+g.m+'!')},1800)}catch(e){}}});
+  if(ch)try{localStorage.setItem('robGearMsg',JSON.stringify(got))}catch(e){}};
+ window.__syncPools();
+ setInterval(function(){try{window.__syncPools()}catch(e){}},4000);
+})();
+
+/* ---- Waffen-Lexikon ---- */
+(function(){
+ var WT=[['weapon','Schwerter','Ben'],['bow','Bögen','Elfa'],['staff','Stäbe','Kalifa'],['fist','Fäuste','Luna'],['spear','Speere','Jamal'],['club','Keulen','Brutus'],['axe','Äxte','Jeffrey'],['potion','Tränke','Berta']],
+ RK=['normal','gruen','blau','episch','legendaer','mystisch'],DK='robWpnDex2';
+ function dex(){try{return JSON.parse(localStorage.getItem(DK)||'{}')}catch(e){return {}}}
+ function scan(){try{ens();var d=dex(),ch=false;for(var u in inventory.inst){var n=inventory.inst[u];if(!n||!n.b)continue;var key=n.b+':'+(n.c||0);if(!d[key]){d[key]=1;ch=true;var x=ITEMS.find(function(y){return y.id===n.b});if(x&&WT.some(function(t){return t[0]===x.type})&&!x.m&&window.__wdexNew)toast('📖 Waffen-Lexikon: '+x.name+' ('+CN[n.c||0]+') eingetragen!')}}
+  if(ch)localStorage.setItem(DK,JSON.stringify(d))}catch(e){}window.__wdexNew=1}
+ setInterval(scan,2500);
+ window.__kamWDex=function(){scan();var d=dex(),m=$('wdexModal');if(!m){m=document.createElement('div');m.id='wdexModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816ee;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';document.body.appendChild(m)}
+  var tot=0,have=0,h='<div style="max-width:440px;margin:0 auto"><div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><button class="btn btn-sm" onclick="document.getElementById(\'wdexModal\').style.display=\'none\';if(window.__fromProf){window.__fromProf=0;var p=document.getElementById(\'kamPf\');if(p)p.click()}">← ZURÜCK</button><b style="font-size:1.05rem">📖 WAFFEN-LEXIKON</b></div>';
+  var body='';
+  WT.forEach(function(t){var L=ITEMS.filter(function(x){return x.type===t[0]&&!x.m}).sort(function(a,b){return RK.indexOf(a.rarity)-RK.indexOf(b.rarity)});if(!L.length)return;
+   body+='<div style="margin:12px 0 6px;font-size:.8rem;color:#ffd24a">'+t[1]+' <span style="opacity:.6;font-size:.65rem">· für '+t[2]+'</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
+   L.forEach(function(x){var n3=0,col=RARITY_COLOR[x.rarity]||'#888',bd='';tot+=3;[0,1,2].forEach(function(c){var s=!!d[x.id+':'+c];if(s){have++;n3++}bd+='<span style="font-size:.48rem;padding:1px 4px;border-radius:6px;margin:0 1px;border:1px solid '+(s?CC[c]:'#3a3358')+';color:'+(s?CC[c]:'#6a6488')+';background:'+(s?'#0006':'none')+'">'+['G','N','P'][c]+(s?'✔':'')+'</span>'});var s=n3===3;
+    body+='<div style="border:1px solid '+(s?col:'#3a3358')+';border-radius:10px;padding:6px 4px;text-align:center;background:'+(n3?'#1a1330':'#0d0a18')+';'+(n3?'':'opacity:.65')+'"><img src="'+ico(x.id)+'" style="width:52px;height:52px;object-fit:contain"><div style="font-size:.55rem;margin-top:3px;color:'+col+';font-weight:700">'+x.name+'</div><div style="font-size:.5rem;opacity:.85">+'+x.atk+' ATK</div><div style="margin-top:3px">'+bd+'</div></div>'});
+   body+='</div>'});
+  h+='<div style="font-size:.7rem;opacity:.8;margin-bottom:4px">Gesammelt: <b>'+have+' / '+tot+'</b> · jede Waffe in <span style="color:#aaa">G</span>ebraucht, <span style="color:#8fd8ff">N</span>eu (Wie neu) und <span style="color:#ffd24a">P</span>erfekt</div>'+body+'</div>';
+  m.innerHTML=h;m.style.display='block'};
+})();
 window.equipItem=function(uid,who){var i=it(uid);if(!i)return;who=who||sel;if(!can(who,i))return;
  var cur=wearer(uid);if(cur===who){unw(uid);saveInventory();render();return}
  if(cur&&inventory.lock&&inventory.lock[uid]){try{toast('🔒 Bleibt bei '+NN[cur])}catch(e){}return}
@@ -1089,7 +1172,7 @@ function card(i,sub,click,on){var col=RARITY_COLOR[i.rarity];
  return '<div onclick="'+click+'" style="border:2px solid '+(on?col:'#222')+';border-radius:6px;padding:6px;text-align:center;cursor:pointer;background:rgba(10,10,15,.8);position:relative;display:inline-block;width:48%;margin:1%;vertical-align:top;box-sizing:border-box'+(i.c===2?';box-shadow:0 0 10px #ffd24a66':'')+'">'+itemIcon(i,48)+
  '<div style="font-size:0.6rem;color:'+col+';font-weight:700">'+i.name+'</div><div style="font-size:0.55rem;color:#888">'+descOf(i)+'</div>'+
  '<div style="font-size:0.55rem"><span style="color:#ffd24a">'+stars(i)+'</span> <span style="color:'+CC[i.c]+'">'+CN[i.c]+'</span></div>'+(hasE(i)?efIcons(i.id)+'<span onclick="event.stopPropagation();__kamInfo(\''+i.id+'\')" style="position:absolute;top:2px;right:4px;font-size:.8rem;border:1px solid #c9a050;border-radius:50%;width:18px;height:18px;line-height:16px;color:#f0c040">i</span>':'')+(sub||'')+'</div>'}
-function tg(i){return i.type==='bow'||i.type==='staff'?'weapon':i.type}
+function tg(i){return ['bow','staff','club','axe','spear','potion','fist'].indexOf(i.type)>=0?'weapon':i.type}
 function filt(){var T=[['all','Alle'],['weapon','Waffe'],['helm','Helm'],['armor','Rüstung'],['ring','Ring'],['cape','Umhang'],['hand','Handsch.'],['boots','Schuhe'],['amulet','Amulett'],['quiver','Köcher'],['book','Buch'],['shield','Schild']],R=[['all','Alle','#ccc'],['normal','Normal','#aaa'],['gruen','Grün','#44cc44'],['blau','Blau','#4488ff'],['episch','Lila','#cc44ff'],['legendaer','Legendär','#ff8800']];
  function ch(a,cur,fn){return '<span onclick="'+fn+'(\''+a[0]+'\')" style="padding:4px 9px;border-radius:12px;font-size:.62rem;cursor:pointer;border:1px solid '+(a[2]||'#c9a050')+';color:'+(cur===a[0]?'#000':(a[2]||'#ffe9c4'))+';background:'+(cur===a[0]?(a[2]||'#f0c040'):'#0006')+'">'+a[1]+'</span>'}
  return '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">'+T.map(function(a){return ch(a,FT,'__kamFT')}).join('')+'</div><div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">'+R.map(function(a){return ch(a,FR,'__kamFR')}).join('')+'</div>'}
@@ -1110,8 +1193,8 @@ function render(){
  '<div class="hts">'+tabs+'</div>'+posbar()+'<div class="hst"><div class="hc">'+g(s.slice(0,4))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b><div style="margin-top:18px">'+g(s.slice(8))+'</div></div><div class="hc">'+g(s.slice(4,8))+'</div></div>';
  var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NN[sel]+': <b style="color:#ffd24a">+'+window.__kamAllyBonus(sel)+' ATK</b>':'')+' | 🔩 '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
- var SRT=sorted(),OWNR={bow:'arc',staff:'mag',quiver:'arc',book:'mag',shield:'hero'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
-  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Heldenlevel '+NEED[OWNR[i.type]||'hero']+')':''):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+(w?' <span onclick="event.stopPropagation();__kamLk(\''+i.id+'\')" style="font-size:.75rem;margin-left:4px">'+(inventory.lock&&inventory.lock[i.id]?'🔒':'🔓')+'</span>':'')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
+ var SRT=sorted(),OWNR={bow:'arc',staff:'mag',quiver:'arc',book:'mag',shield:'hero',club:'brutus',axe:'jeffrey',spear:'jamal',potion:'berta',fist:'luna'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
+  h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?(ownersOf(i)?'🔒 nur für '+ownersOf(i).filter(function(z){return NM[z]}).map(function(z){return NM[z]}).join(', '):'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Heldenlevel '+NEED[OWNR[i.type]||'hero']+')':'')):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+(w?' <span onclick="event.stopPropagation();__kamLk(\''+i.id+'\')" style="font-size:.75rem;margin-left:4px">'+(inventory.lock&&inventory.lock[i.id]?'🔒':'🔓')+'</span>':'')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
  if(!n)h+='<div style="font-size:0.7rem;color:#446688;text-align:center;padding:12px">Keine passenden Items. Ändere den Filter oder besiege Monster und Bosse!</div>';
  var T=document.getElementById('invItems');if(T)T.innerHTML=h}
 
