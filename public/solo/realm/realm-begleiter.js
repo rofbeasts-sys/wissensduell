@@ -13,7 +13,9 @@ function inv(){try{return typeof inventory!=='undefined'?inventory:null}catch(e)
 function st(){var i=inv();if(!i)return {own:{},act:null};i.comp=i.comp||{own:{},act:null};i.comp.own=i.comp.own||{};return i.comp}
 function sv(){try{saveInventory()}catch(e){}}
 function pw(id){var o=st().own[id];return o?(o.f-1)*3+o.s:0}
-function act(){var s=st();return s.act&&s.own[s.act]?s.act:null}
+function hl(){var m=0;try{for(var h in heroData)m=Math.max(m,getHeroLevel(h))}catch(e){}return window.__hl!=null?window.__hl:m}
+var NEEDHL=60;
+function act(){if(hl()<NEEDHL)return null;var s=st();return s.act&&s.own[s.act]?s.act:null}
 function dias(){try{return globalDiamonds}catch(e){return 0}}
 function setDias(v){try{globalDiamonds=v;if(meta)meta.diamonds=v;saveDiamonds(v)}catch(e){}}
 function gold(){try{return meta.gold}catch(e){return 0}}
@@ -51,12 +53,12 @@ function draw(){
     h+='</div></div>'});
   m.innerHTML=h+'</div>';
 }
-window.__kamCmp=function(){draw();document.getElementById('kamCmp').style.display='flex'};
+window.__kamCmp=function(){if(hl()<NEEDHL){try{toast('🐾 Begleiter gibt es ab Heldenlevel '+NEEDHL+'.')}catch(e){}return}draw();document.getElementById('kamCmp').style.display='flex'};
 window.__kamCmpBuy=function(id){var c=C(id),s=st();if(s.own[id]||dias()<c.pr)return;setDias(dias()-c.pr);s.own[id]={f:1,s:0,x:0};if(!s.act)s.act=id;sv();draw()};
 window.__kamCmpAct=function(id){var s=st();if(s.own[id]){s.act=id;sv();draw()}};
 window.__kamCmpEvo=function(id){var s=st(),o=s.own[id];if(!o||o.s<3||o.f>=3||gold()<EVO[o.f])return;setGold(gold()-EVO[o.f]);o.f++;o.s=0;o.x=0;sv();draw()};
 /* ---- Menue-Knopf ---- */
-setInterval(function(){var q=document.getElementById('kamQuick');if(q&&!document.getElementById('kamCmpBtn')){var b=document.createElement('button');b.id='kamCmpBtn';b.className='btn btn-sm';b.textContent='🐾 BEGLEITER';b.onclick=function(){try{document.getElementById('kamProf')&&0}catch(e){}window.__kamCmp()};q.appendChild(b)}},900);
+setInterval(function(){var q=document.getElementById('kamQuick');if(q&&!document.getElementById('kamCmpBtn')){var b=document.createElement('button');b.id='kamCmpBtn';b.className='btn btn-sm';b.textContent=hl()<NEEDHL?'🔒 BEGLEITER (ab Heldenlv. '+NEEDHL+')':'🐾 BEGLEITER';b.onclick=function(){try{document.getElementById('kamProf')&&0}catch(e){}window.__kamCmp()};q.appendChild(b)}},900);
 /* ---- Erfahrung: +5 nach jedem Kampf ---- */
 var was=false;
 setInterval(function(){var f=false;try{f=!!inFight}catch(e){}

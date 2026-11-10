@@ -293,10 +293,15 @@ function embersOn(c,full){
 function campLv(){try{return JSON.parse(localStorage.getItem('robCity')||'{}').b.camp||0}catch(e){return 0}}
 var CHL={wood:'Holzkiste',dia:'Diamant-Kiste',legend:'Legendäre Kiste',sin:'Todsünde-Kiste'};
 function chestFor(e){
-  /* Todsünde: überall, 5% auf Etage 1-5, danach steigend (Etage 10: 20%) */
-  var sp=e<=5?5:5+(e-5)*3;if(Math.random()*100<sp)return 'sin';
-  var a=[];if(e<=3)a.push('wood');if(e>=3&&e<=5)a.push('dia');if(e>=5)a.push('legend');
-  return a.length?a[Math.floor(Math.random()*a.length)]:'wood';
+  /* Kiste pro leerem Feld, nach KAMMER: K1 Holz 10%, K2 Holz 30%, K3 Holz 50% + Diamant 10%, K4 nur Diamant 20%,
+     K5 Diamant 20% + Legendaer 10%, ab K6 Legendaer 20%. Todsuende separat: selten, steigt mit der Etage. */
+  var kc=1;try{kc=Math.max(1,K&&K.k||1)}catch(x){}
+  var P=kc<=1?{wood:10}:kc===2?{wood:30}:kc===3?{wood:50,dia:10}:kc===4?{dia:20}:kc===5?{dia:20,legend:10}:{legend:20};
+  var sp=(e<=5?5:5+(e-5)*3)*.1,x=Math.random()*100;
+  if(x<sp)return 'sin';
+  x=Math.random()*100;var a=0;
+  for(var t in P){a+=P[t];if(x<a)return t}
+  return null;
 }
 function gen(r,c,R){
   /* Etage 1-3: wenig Gold, Etage 4-6: Gold-Zone, Etage 7-10: nur noch Monster (und Betten) */
@@ -307,7 +312,7 @@ function gen(r,c,R){
   var x=Math.random()*100,a=0,t='empty';
   for(var i=0;i<w.length;i++){a+=w[i][1];if(x<a){t=w[i][0];break}}
   if(t==='empty'&&e>=2&&!K.dieE[e]&&Math.random()<(EQ==='city'&&cityTier()>=2?.07:.035)){t='die';K.dieE[e]=1}
-  var chT=null;if(t==='empty'&&Math.random()<(e<=3?.14:e<=5?.10:.06)){chT=chestFor(e);if(chT)t='chest'}
+  var chT=null;if(t==='empty'){chT=chestFor(e);if(chT)t='chest'}
   var cl2=campLv();
   if(cl2>0&&t!=='die'&&t!=='chest'){K.campE=K.campE||{};var gap=Math.max(1,Math.ceil(10/cl2));
     if(!K.campE[e]&&e%gap===0&&r===ETG*e-3){t='camp';K.campE[e]=1}
@@ -653,12 +658,12 @@ function hook(){
 
 /* ---------- Gruppe: Bogenschuetzin (ab Klassenlevel 15) und Magierin (ab 30) stehen hinten und helfen im Kampf ---------- */
 var ALLY=[
- {id:'arc',ic:'🏹',nm:'Bogenschützin',need:10,w:80,l:49,b:60,idle:['arc_i0','arc_i1'],atk:['arc_a0','arc_a2'],mult:.5,pj:'arrow',col:'#ffd24a'},
- {id:'mag',ic:'🔮',nm:'Kalifa',need:20,w:94,l:-10,b:26,idle:['mag_i0','mag_i1'],atk:['mag_a1','mag_a1'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
+ {id:'arc',ic:'🏹',nm:'Bogenschützin',need:5,dir:'h/',w:68,l:49,b:60,idle:['elf_i0','elf_i1'],atk:['elf_at','elf_at'],mult:.5,pj:'arrow',col:'#ffd24a'},
+ {id:'mag',ic:'🔮',nm:'Kalifa',need:30,dir:'h/',w:72,l:-10,b:26,idle:['kal_i0','kal_i1'],atk:['kal_at','kal_at'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
 ];
 var SLK='robKamSlots',SLT=(function(){try{var a=JSON.parse(localStorage.getItem(SLK));if(a&&a.length===3&&['hero','arc','mag'].every(function(x){return a.indexOf(x)>=0}))return a}catch(e){}return['hero','arc','mag']})();
 function saveSL(){try{localStorage.setItem(SLK,JSON.stringify(SLT))}catch(e){}}
-function POS(id){var s=Math.max(0,SLT.indexOf(id)),W={hero:46,arc:80,mag:94}[id]||46;return{l:Math.round([132,50,102][s]-W/2),b:[19,15,54][s],z:[5,6,3][s]}}
+function POS(id){var s=Math.max(0,SLT.indexOf(id)),W={hero:46,arc:68,mag:72}[id]||46;return{l:Math.round([132,50,102][s]-W/2),b:[19,15,54][s],z:[5,6,3][s]}}
 function applySlots(){var o=document.getElementById('kamSlotCss');if(o)o.remove();var p=POS('hero'),st=document.createElement('style');st.id='kamSlotCss';st.textContent='body #runHero{left:'+p.l+'px!important;bottom:'+p.b+'px!important;z-index:'+p.z+'!important;width:46px!important;max-width:46px!important}';document.head.appendChild(st);var box=document.getElementById('kamAl');if(box)box.dataset.n=''}
 setTimeout(applySlots,0);
 var allyRound=0;
@@ -671,7 +676,7 @@ function allyList(){var c=hlvl(),g=gotAl();return ALLY.filter(function(a){return
 function allyUnlockToast(){
   var got={};try{got=JSON.parse(localStorage.getItem('robKamAl')||'{}')}catch(e){}
   var c=hlvl(),ch=false;
-  ALLY.forEach(function(a){if(c>=a.need&&!got[a.id]){got[a.id]=1;ch=true;toast(a.ic+' '+a.nm+' schließt sich dir an! Sie hilft im Kampf und hilft im Kampf.')}});
+  ALLY.forEach(function(a){if(c>=a.need&&!got[a.id]){got[a.id]=1;ch=true;toast(a.ic+' '+a.nm+' schließt sich dir an und hilft im Kampf!')}});
   if(ch)try{localStorage.setItem('robKamAl',JSON.stringify(got))}catch(e){}
 }
 function syncAllies(){
@@ -681,14 +686,14 @@ function syncAllies(){
   if(!box){box=document.createElement('div');box.id='kamAl';w.appendChild(box)}
   if(box.dataset.n==String(L.length)+SLT.join())return;
   box.dataset.n=String(L.length)+SLT.join();box.innerHTML='';
-  L.forEach(function(a){var i=document.createElement('img');i.id='kal_'+a.id;i.alt='';i.src='ally/'+a.idle[0]+'.webp';var ps=POS(a.id);i.style.cssText='left:'+ps.l+'px;bottom:'+ps.b+'px;width:'+a.w+'px;z-index:'+ps.z;box.appendChild(i)});
+  L.forEach(function(a){var i=document.createElement('img');i.id='kal_'+a.id;i.alt='';i.src=(a.dir||'ally/')+a.idle[0]+'.webp';var ps=POS(a.id);i.style.cssText='left:'+ps.l+'px;bottom:'+ps.b+'px;width:'+a.w+'px;z-index:'+ps.z;box.appendChild(i)});
 }
 var allyT=0;
-setInterval(function(){allyT++;allyList().forEach(function(a){var i=$('kal_'+a.id);if(i&&!a.busy)i.src='ally/'+a.idle[allyT%2]+'.webp'})},480);
+setInterval(function(){allyT++;allyList().forEach(function(a){var i=$('kal_'+a.id);if(i&&!a.busy)i.src=(a.dir||'ally/')+a.idle[allyT%2]+'.webp'})},480);
 function animAlly(a,dm){
   var i=$('kal_'+a.id),w=$('sceneWrap');if(!i||!w)return;
-  a.busy=true;i.src='ally/'+a.atk[0]+'.webp';
-  setTimeout(function(){i.src='ally/'+a.atk[1]+'.webp'},110);
+  a.busy=true;i.src=(a.dir||'ally/')+a.atk[0]+'.webp';
+  setTimeout(function(){i.src=(a.dir||'ally/')+a.atk[1]+'.webp'},110);
   var wr=w.getBoundingClientRect(),ir=i.getBoundingClientRect(),ms=document.querySelector('#battleScene .monster-slot'),mi0=ms&&ms.querySelector('img'),mr=mi0?mi0.getBoundingClientRect():null;
   var x0=ir.left-wr.left+ir.width*(a.id==='arc'?.80:.76),y0=ir.top-wr.top+ir.height*(a.id==='arc'?.52:.46);
   var x1=mr?mr.left-wr.left+mr.width*.4:wr.width*.7,y1=a.id==='arc'?(mr?y0+(mr.top-wr.top+mr.height*.5-y0)*.5:y0):(mr?mr.top-wr.top+mr.height*.5:y0);
@@ -700,7 +705,7 @@ function animAlly(a,dm){
     t.animate([{transform:'translateY(0)',opacity:1},{transform:'translateY(-30px)',opacity:0}],{duration:800}).onfinish=function(){t.remove()};
     var mi=ms&&ms.querySelector('img');if(mi)mi.animate([{filter:'brightness(2.6) saturate(.3)'},{filter:'none'}],{duration:240});
   }},150);
-  setTimeout(function(){a.busy=false;i.src='ally/'+a.idle[0]+'.webp'},560);
+  setTimeout(function(){a.busy=false;i.src=(a.dir||'ally/')+a.idle[0]+'.webp'},560);
 }
 function allyStrike(){
   var L=allyList().filter(function(a){return aliveA(a.id)});if(!L.length)return;
@@ -1003,7 +1008,7 @@ function levelsUI(){
  var ml=lvls.filter(function(x){return x>lv})[0];
  lvls.forEach(function(L){var cls=L<=lv?'done':(!nd?(nd=true,'next'):''),lk=(LM===2&&L>nq)?' lk':'',rk=LM===1&&RK[L]?'<span class="rk" style="color:'+RK[L][2]+';border-color:'+RK[L][2]+'">'+RK[L][0]+' '+RK[L][1]+'</span>':'',c='';
   if(LM===1){var b=window.__kamLvReward(L);if(b.h)c+='<span class="lc">❤ +'+b.h+'</span>';if(b.a)c+='<span class="lc">⚔ +'+b.a+'</span>';if(b.g)c+='<span class="lc">💰 '+b.g+'</span>';if(b.d)c+='<span class="lc">💎 '+b.d+'</span>';c+=chips(HG[L],HX[L]);
-   var NHH={5:['luna','Luna'],10:['elfa','Elfa'],15:['jamal','Jamal'],20:['kalifa','Kalifa'],30:['brutus','Brutus']};if(NHH[L])c+='<span class="lc nh big"><img src="items/p_'+NHH[L][0]+'.webp">NEUER HELD: '+NHH[L][1]+'</span>'}
+   var NHH={5:['elfa','Elfa'],10:['luna','Luna'],15:['jamal','Jamal'],20:['brutus','Brutus'],30:['kalifa','Kalifa']};if(NHH[L])c+='<span class="lc nh big"><img src="items/p_'+NHH[L][0]+'.webp">NEUER HELD: '+NHH[L][1]+'</span>';if(L===60)c+='<span class="lc nh big"><img src="comp/fee_1_i0.webp">BEGLEITER FREI</span>'}
   else{c+=chips(CG[L],CX[L]);if(L===50)c+='<span class="lc nh big"><img src="items/p_jeffrey.webp">NEUER HELD</span>';if(L===100)c+='<span class="lc nh big"><img src="items/p_berta.webp">NEUER HELD</span>'}
   var big=!(LM===1&&L%5&&!RK[L]);h+='<div class="m '+cls+lk+(big?'':' sm')+'"><div class="dot">'+L+'</div><div class="card"><h3>Level '+L+' '+rk+'<span>'+(L<=lv?'✓ erhalten':(lk?'braucht mehr Quests':''))+'</span></h3><div class="rw">'+(c||'<span class="lc">–</span>')+'</div></div></div>'});
  var TOP='<div style="display:flex;align-items:center;gap:10px;margin:0 0 6px"><button class="btn btn-sm" onclick="__kamLvBack()">← ZURÜCK</button><h1 style="flex:1;margin:0">⭐ LEVEL</h1></div>',
@@ -1056,7 +1061,7 @@ window.__kamChest=function(type,cfg){
 
 /* ---- Heldenabteil ---- */
 var SL={hero:['helm','armor','hand','boots','amulet','ring','cape','shield','weapon'],arc:['helm','armor','hand','boots','amulet','ring','cape','quiver','bow'],mag:['helm','armor','hand','boots','amulet','ring','cape','book','staff']},XT={shield:'hero',quiver:'arc',book:'mag'};
-var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'ally/'+w+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:10,mag:20},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
+var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'h/'+(w==='arc'?'elf':'kal')+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:5,mag:30},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
 var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring',hand:'Handsch.',book:'Buch',shield:'Schild',amulet:'Amulett',boots:'Schuhe',quiver:'Köcher'};
 var sel='hero',fr=0;
 var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){return !XT[i.type]||XT[i.type]===w}
@@ -1138,7 +1143,7 @@ function chDraw(){
   if(CPK==='hero')h+='<div class="d"><b style="color:#f0c040">Ben · Klassenheld</b><div style="font-size:12px;margin:6px 0">Vorne. Gruppen-Fähigkeit: +15% Gold für alle.</div><div style="color:#9a8cc0;font-size:12px;margin:8px 0 0">Einsetzen auf:</div>'+pl('hero')+'</div>';
   if(window.__kamNt)h+='<div class="d">'+window.__kamNt+'</div>'}
  else{
-  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Helden kämpfen mit, haben aber keine Klassenfähigkeiten.</div><div class="g">'+tile('arc','frei'+(SLT.indexOf('arc')>=0?' · Platz '+(SLT.indexOf('arc')+1):''))+tile('mag','frei'+(SLT.indexOf('mag')>=0?' · Platz '+(SLT.indexOf('mag')+1):''))+lock('Luna','ab Heldenlevel 5','luna',function(){return hlvl()>=5})+lock('Jamal','ab Heldenlevel 15','jamal',function(){return hlvl()>=15})+lock('Brutus','ab Heldenlevel 30','brutus',function(){return hlvl()>=30})+'</div>'+(window.__kamNt?'<div class="d">'+window.__kamNt+'</div>':'');
+  h+='<div style="font-size:12px;color:#9a8cc0;margin-bottom:8px">Helden kämpfen mit, haben aber keine Klassenfähigkeiten.</div><div class="g">'+tile('arc','frei'+(SLT.indexOf('arc')>=0?' · Platz '+(SLT.indexOf('arc')+1):''))+tile('mag','frei'+(SLT.indexOf('mag')>=0?' · Platz '+(SLT.indexOf('mag')+1):''))+lock('Luna','ab Heldenlevel 10','luna',function(){return hlvl()>=10})+lock('Jamal','ab Heldenlevel 15','jamal',function(){return hlvl()>=15})+lock('Brutus','ab Heldenlevel 20','brutus',function(){return hlvl()>=20})+'</div>'+(window.__kamNt?'<div class="d">'+window.__kamNt+'</div>':'');
   if(CPK&&CPK!=='hero')h+='<div class="d"><b style="color:#f0c040">'+NN[CPK]+'</b><div style="color:#9a8cc0;font-size:12px;margin-top:4px">Einsetzen auf:</div>'+pl(CPK)+'</div>'}
  m.innerHTML=h+'</div>'}
 window.__kamLk=function(uid){ens();inventory.lock=inventory.lock||{};if(inventory.lock[uid])delete inventory.lock[uid];else inventory.lock[uid]=1;saveInventory();render()};
