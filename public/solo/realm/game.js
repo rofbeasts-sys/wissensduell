@@ -2385,7 +2385,7 @@ function showInventory() {
 function closeInventory() { document.getElementById('inventoryModal').style.display = 'none'; openMenu(); }
 
 function itemIcon(it, px) {
-  var c = {normal:'g', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:(['boots','quiver','book','shield'].indexOf(it.type) >= 0 ? 'r' : 'o')}[it.rarity] || 'g';
+  var c = {normal:'w', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:(['boots','quiver','book','shield'].indexOf(it.type) >= 0 ? 'r' : 'o')}[it.rarity] || 'g';
   var n = {weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape', hand:'hand', amulet:'amu', boots:'boots', quiver:'quiver', book:'book', shield:'shield'}[it.type] || 'sword';
   if (it.type === 'shield') n = {turm:'tshield', rund:'shield', stachel:'buckler'}[it.sk || 'turm'];
   n = {club:'wclub', axe:'waxe', spear:'wspear', potion:'n/potion', fist:'n/fist'}[it.type] || n;
