@@ -19,6 +19,16 @@
   window.runGo=go;
   function tick(t){
     if(!ok){ requestAnimationFrame(tick); return; }
+    if(window.__benSkin&&window.__benSkin()==='new'){
+      var ra=t<until, aa=atkAt&&t-atkAt<AT[4], wn;
+      if(aa){wn='h/ben_at.webp';img.style.width='208%';img.style.maxWidth='none';img.style.border='0'}
+      else{ if(atkAt)atkAt=0; img.style.width='165%';img.style.maxWidth='none';img.style.border='0'; if(ra){ if(t-last>140){last=t;fr=(fr+1)%2} } else fr=0; wn='h/ben_i'+fr+'.webp'; }
+      if(img.getAttribute('src')!==wn)img.src=wn;
+      if(floor.classList.contains('go')!==ra) floor.classList.toggle('go',ra);
+      img.parentNode.classList.toggle('running',ra);
+      requestAnimationFrame(tick);return;
+    }
+    img.style.border='';
     var run=t<until, want, atk=atkAt&&t-atkAt<AT[4];
     if(atk){ var d=t-atkAt, a=0; while(a<3&&d>=AT[a+1]) a++; want=A[a]; run=false; fr=0;
       if(!img.dataset.atk){ img.dataset.atk='1'; img.style.width=(AM.aw/AM.rw*100)+'%'; img.style.maxWidth='none'; img.style.marginLeft=((AM.axr-AM.axa)/AM.rw*100)+'%'; }

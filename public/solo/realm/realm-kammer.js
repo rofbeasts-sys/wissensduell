@@ -394,7 +394,10 @@ function hud(){
   var left=ROWS+1-r;$('kBn').textContent='Drache '+getMonsterNameSafe()+' · '+(r>ROWS?'Boss-Reihe':'Reihe '+r+' / '+ROWS);$('kBb').style.width=(100*(1-left/(ROWS+1)))+'%';
 }
 function getMonsterNameSafe(){try{return MONSTER_NAMES[drag(K.k)]||'Drache'}catch(e){return 'Drache'}}
-window.__kamFl=function(t,c){try{fl(t,c)}catch(e){}};
+window.__kamFl=function(t,c){try{var kh=$('kamHero'),ok=kh&&kh.offsetParent!==null&&kh.getBoundingClientRect().width>0;if(ok){fl(t,c);return}
+var w=document.getElementById('sceneWrap'),im=document.getElementById('runImg');if(!w||!im)return;var r=w.getBoundingClientRect(),h=im.getBoundingClientRect(),d=document.createElement('div');
+d.textContent=t;d.style.cssText='position:absolute;z-index:30;font-weight:900;font-size:22px;pointer-events:none;text-shadow:0 2px 4px #000;color:'+c+';left:'+(h.left-r.left+h.width/2-16+(Math.random()*30-15))+'px;top:'+(h.top-r.top-4)+'px;transition:transform 1.1s,opacity 1.1s';
+w.appendChild(d);setTimeout(function(){d.style.transform='translateY(-50px)';d.style.opacity='0'},30);setTimeout(function(){d.remove()},1200)}catch(e){}};
 function fl(txt,color){var st=$('kam'),h=$('kamHero').getBoundingClientRect(),r=st.getBoundingClientRect(),d=document.createElement('div');d.className='fl';d.textContent=txt;d.style.color=color;d.style.left=(h.left-r.left+8)+'px';d.style.top=(h.top-r.top-6)+'px';st.appendChild(d);setTimeout(function(){d.remove()},1200)}
 
 /* ---------- Würfeln und Ziel wählen ---------- */
@@ -1062,7 +1065,7 @@ window.__kamChest=function(type,cfg){
 
 /* ---- Heldenabteil ---- */
 var SL={hero:['helm','armor','hand','boots','amulet','ring','cape','shield','weapon'],arc:['helm','armor','hand','boots','amulet','ring','cape','quiver','bow'],mag:['helm','armor','hand','boots','amulet','ring','cape','book','staff']},XT={shield:'hero',quiver:'arc',book:'mag'};
-var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?'run'+(f%2)+'.png':'h/'+(w==='arc'?'elf':'kal')+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:5,mag:30},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
+var NM={hero:'Held',arc:'Bogenschützin',mag:'Magierin'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?(window.__benSkin&&window.__benSkin()==='rick'?'run'+(f%2)+'.png':'h/ben_i'+(f%2)+'.webp'):'h/'+(w==='arc'?'elf':'kal')+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:5,mag:30},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
 var SLN={helm:'Helm',armor:'Rüstung',cape:'Umhang',weapon:'Waffe',bow:'Bogen',staff:'Stab',ring:'Ring',hand:'Handsch.',book:'Buch',shield:'Schild',amulet:'Amulett',boots:'Schuhe',quiver:'Köcher'};
 var sel='hero',fr=0;
 var WKT=['weapon','bow','staff'],WSK={hero:'weapon',arc:'bow',mag:'staff'};function can(w,i){return !XT[i.type]||XT[i.type]===w}
