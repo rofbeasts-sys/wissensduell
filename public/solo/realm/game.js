@@ -655,6 +655,12 @@ function createMonster(type, isBoss) {
   if (isBoss) { hp *= 4; atk = Math.floor(atk * 2); gold *= 3; }
   { const _ar = (typeof cityBonus === 'function' ? cityBonus('arena') : 0) || 0; atk = Math.max(1, Math.floor(atk * (1 - _ar))); }
   { const _pm = 1 + ((typeof prestigeData !== 'undefined' && prestigeData.count) || 0) * 0.12; hp = Math.floor(hp * _pm); atk = Math.floor(atk * _pm); }
+  // Ab Kammer 2 (Runde 11+): normale Gegner mindestens halb so stark wie der Drachen-Boss der Runde
+  if (!isBoss && !createMonster._r && (meta.round || 1) >= 11) {
+    createMonster._r = 1;
+    try { const bb = createMonster('dragon1', true); const f = 0.28 + 0.4 * Math.min(1, base.hp / 55); hp = Math.max(hp, Math.round(bb.hp * f)); atk = Math.max(atk, Math.round(bb.atk * f * 0.85)); } catch (e) {}
+    createMonster._r = 0;
+  }
   return { type: isBoss ? 'boss_' + type : type, baseType: type, hp, maxHp: hp, atk, gold, isBoss };
 }
 
