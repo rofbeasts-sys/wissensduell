@@ -12,7 +12,7 @@ var B=[
  {id:'arena', ic:'⚔️', n:'Arena',         d:'Gegner schlagen 5% schwächer pro Stufe (Stufe 10: halbe Kampfkraft)', max:10, cost:function(l){return Math.round(1500*Math.pow(1.6,l));}, cur:'g', x:14,y:76},
  {id:'camp',  ic:'🔥', n:'Lagerfeuer',    d:'Mehr Lagerfeuer im Lauf: heilen 40% +6% pro Stufe, öfter pro Stufe', max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:68,y:76}
 ];
-function get(){ try{var o=JSON.parse(localStorage.getItem(KEY)||'{}'); o.b=o.b||{}; if(!o.last)o.last=Date.now(); return o;}catch(e){return {b:{},last:Date.now()};} }
+function get(){ try{var o=JSON.parse(localStorage.getItem(KEY)||'{}'); o.b=o.b||{}; if(!o.last)o.last=Date.now(); if(!o.dlast)o.dlast=o.last; return o;}catch(e){return {b:{},last:Date.now()};} }
 function put(o){ try{localStorage.setItem(KEY,JSON.stringify(o));}catch(e){} if(typeof saveStateToFirebase==='function')saveStateToFirebase(); }
 function lv(id){var v=get().b[id]||0,b=B.filter(function(x){return x.id===id})[0];return b&&b.max?Math.min(v,b.max):v;}
 window.cityBonus=function(k){
@@ -26,7 +26,7 @@ window.cityBonus=function(k){
 function cap(){return Math.min(12,4+lv('tower')*0.8);}
 function pending(){
   var o=get(),h=Math.min((Date.now()-o.last)/3600000,cap());
-  return {g:Math.floor(h*lv('mine')*30),d:Math.floor(h*lv('dia')*1.5),h:h};
+  var hd=Math.min((Date.now()-(o.dlast||o.last))/3600000,cap());return {g:Math.floor(h*lv('mine')*30),d:Math.floor(hd*lv('dia')*1.5),h:h,hd:hd};
 }
 function gold(){return (typeof meta!=='undefined'&&meta)?meta.gold:(parseInt(localStorage.getItem('robGold')||'0')||0);}
 function setGold(v){ if(typeof meta!=='undefined'&&meta)meta.gold=v; try{localStorage.setItem('robGold',String(v));}catch(e){} }
@@ -74,10 +74,14 @@ function rateUpd(){var el=document.getElementById('cityRate'),m=document.getElem
  t+='⛏️ Gold: <b>'+gph+'</b> pro Std.';
  if(mn&&h<capH){var gn=Math.floor(h*gph)+1;t+=' · nächstes 💰 in <b>'+fmtT((gn/gph-h)*3600)+'</b>'}
  t+='<br>💎 Diamanten: <b>'+dph+'</b> pro Std.';
- if(dn&&h<capH){var dd=Math.floor(h*dn*1.5)+1;t+=' · nächster 💎 in <b>'+fmtT((dd/(dn*1.5)-h)*3600)+'</b>'}
+ var hD=Math.min((Date.now()-(o.dlast||o.last))/3600000,capH);if(dn&&hD<capH){var dd=Math.floor(hD*dn*1.5)+1;t+=' · nächster 💎 in <b>'+fmtT((dd/(dn*1.5)-hD)*3600)+'</b>'}t+=' <span style="opacity:.7">(nur online)</span>'
+var bar=function(f,col){f=Math.max(0,Math.min(1,f));return '<div style="height:8px;border-radius:5px;background:#0009;border:1px solid #ffffff22;margin:2px 0 6px;overflow:hidden"><div style="height:100%;width:'+(f*100)+'%;background:'+col+'"></div></div>'};
+ var hdd=Math.min((Date.now()-(o.dlast||o.last))/3600000,capH),bars='';
+ if(mn)bars+='<div style="text-align:left;margin-top:6px">💰 nächstes Gold</div>'+bar((h*gph)%1,'linear-gradient(90deg,#c9a227,#ffd24a)');
+ if(dn)bars+='<div style="text-align:left">💎 nächster Diamant <span style="opacity:.7">(läuft nur online, Fortschritt bleibt gespeichert)</span></div>'+bar((hdd*dn*1.5)%1,'linear-gradient(90deg,#2a8fd8,#8fd8ff)');
  if(!mn&&!dn)t='Baue Goldmine oder Diamantenmine, dann siehst du hier die Zeiten.';
  else t+='<br>📦 Speicher '+(h>=capH?'<b style="color:#ff9a8a">voll – bitte abholen!</b>':'voll in <b>'+fmtT((capH-h)*3600)+'</b>');
- el.innerHTML=t;
+ el.innerHTML=t+bars;
  var p=pending(),bt=document.querySelector('#cityModal button[onclick="cityCollect()"]');if(bt){bt.innerHTML='📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d;bt.disabled=!(p.g||p.d)}}
 setInterval(rateUpd,1000);
 window.cityOpen=function(id){
@@ -105,7 +109,7 @@ window.cityUp=function(id){
 window.cityCollect=function(silent){
   var p=pending(), o=get();
   if(p.g)setGold(gold()+p.g); if(p.d)setDias(dias()+p.d);
-  o.last=Date.now(); put(o); applyStats();
+  o.last=Date.now(); o.dlast=o.last; put(o); applyStats();
   if(!silent)showCity();
 };
 
@@ -119,18 +123,24 @@ function offCalc(){
   var mb=0;try{mb=(inventory&&inventory.stats&&inventory.stats.maxBoss)||0}catch(e){}
   var k=Math.max(1,Math.min(t,mb+1)),h=Math.min(ms/3600000,cap()),runs=h*4;
   var g=Math.floor(runs*200*k),ir=Math.floor(runs*k);
-  return {k:k,h:h,full:{g:g,ir:ir},half:{g:Math.floor(g/2),ir:Math.floor(ir/2)},price:Math.max(5,Math.ceil((g-Math.floor(g/2))/200))};
+  var runs_=Math.max(1,Math.floor(runs)),st=0;try{st=((meta.maxHp||60)+(meta.attack||5)*8)/(250*k+100)}catch(e){st=.5}
+  var pR=Math.max(.2,Math.min(.95,.25+.5*st)),pW=Math.max(.1,Math.min(.9,.2+.45*st)),rb=0,bw=0;
+  for(var i=0;i<runs_;i++){if(Math.random()<pR){rb++;if(Math.random()<pW)bw++}}
+  return {runs:runs_,boss:rb,won:bw,lost:runs_-bw,died:runs_-rb,bl:rb-bw,cp:pending(),k:k,h:h,full:{g:g,ir:ir},half:{g:Math.floor(g/2),ir:Math.floor(ir/2)},price:Math.max(5,Math.ceil((g-Math.floor(g/2))/200))};
 }
 function offHM(h){var m=Math.round(h*60);return Math.floor(m/60)+' Std. '+(m%60)+' Min.'}
 function offShow(){
-  var o=offCalc();if(!o){offTouch();return}
+  var o=offCalc();if(!o){try{var l0=+localStorage.getItem(OFFK)||0;if(l0&&Date.now()-l0>=OFFMIN){var c0=get();c0.dlast=Math.min(Date.now(),(c0.dlast||c0.last)+(Date.now()-l0));put(c0)}}catch(e){}offTouch();return}
   if(document.getElementById('cityOff'))return;
+  try{var lt=+localStorage.getItem(OFFK)||0,cy=get();cy.dlast=Math.min(Date.now(),(cy.dlast||cy.last)+(Date.now()-lt));put(cy);o.cp=pending()}catch(e){}
   var d=document.createElement('div');d.id='cityOff';
   d.style.cssText='position:fixed;inset:0;z-index:99990;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.82);padding:16px;font-family:Cinzel,Georgia,serif';
   var have=dias();
   d.innerHTML='<div style="max-width:380px;width:100%;border:2px solid #c9a227;border-radius:16px;padding:18px 16px;background:linear-gradient(145deg,#150a2a,#0d0716);color:#f5e6b0;text-align:center">'
    +'<div style="font-size:2rem">🔮</div><div style="font-weight:700;font-size:1.05rem;margin:4px 0">Während du weg warst</div>'
    +'<div style="font-size:.78rem;opacity:.85;margin-bottom:12px">Der Magieturm hat '+offHM(o.h)+' in Kammer '+o.k+' für dich gefarmt.</div>'
+   +'<div style="text-align:left;font-size:.74rem;line-height:1.7;padding:8px 10px;margin-bottom:10px;border-radius:10px;background:#0006;border:1px solid #c9a22733">🏃 Läufe: <b>'+o.runs+'</b><br>⚔️ Boss erreicht: <b>'+o.boss+'</b> · davon besiegt: <b style="color:#8fe08f">'+o.won+'</b> · verloren: <b style="color:#ff9a8a">'+o.bl+'</b><br>💀 Vor dem Boss gestorben: <b>'+o.died+'</b></div>'
+   +'<div style="text-align:left;font-size:.74rem;line-height:1.7;padding:8px 10px;margin-bottom:10px;border-radius:10px;background:#0006;border:1px solid #c9a22733">🏰 Stadt (kommt dazu): <b>💰 '+o.cp.g+'</b> · <b>💎 '+o.cp.d+'</b> <span style="opacity:.6">(Diamanten nur online)</span></div>'
    +'<div style="display:flex;gap:8px;margin-bottom:12px"><div style="flex:1;padding:8px;border-radius:10px;background:#0006;border:1px solid #c9a22755"><div style="font-size:.65rem;opacity:.7">Hälfte</div><b>💰 '+o.half.g+'</b><br><b>🔩 '+o.half.ir+'</b></div>'
    +'<div style="flex:1;padding:8px;border-radius:10px;background:#3a2a0a88;border:1px solid #ffd24a"><div style="font-size:.65rem;opacity:.7">Alles</div><b>💰 '+o.full.g+'</b><br><b>🔩 '+o.full.ir+'</b></div></div>'
    +'<button id="offHalf" class="btn btn-wide" style="width:100%;margin-bottom:8px">✔ HÄLFTE NEHMEN</button>'
@@ -139,10 +149,10 @@ function offShow(){
   document.body.appendChild(d);
   function take(r,pay){
     if(pay){if(dias()<o.price)return;setDias(dias()-o.price)}
-    setGold(gold()+r.g);
+    setGold(gold()+r.g);try{window.cityCollect(true)}catch(e){}
     try{inventory.iron=(inventory.iron||0)+r.ir;if(typeof saveInventory==='function')saveInventory()}catch(e){}
     offTouch();d.remove();applyStats();
-    try{if(typeof toast==='function')toast('Offline: +'+r.g+' Gold, +'+r.ir+' Eisenbarren')}catch(e){}
+    try{if(typeof toast==='function')toast('Offline: +'+(r.g+o.cp.g)+' Gold, +'+r.ir+' Eisen'+(o.cp.d?', +'+o.cp.d+' 💎':''))}catch(e){}
   }
   d.querySelector('#offHalf').onclick=function(){take(o.half,false)};
   d.querySelector('#offFull').onclick=function(){take(o.full,true)};
