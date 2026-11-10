@@ -297,7 +297,7 @@ function chestFor(e){
      K5 Diamant 20% + Legendaer 10%, ab K6 Legendaer 20%. Todsuende separat: selten, steigt mit der Etage. */
   var kc=1;try{kc=Math.max(1,K&&K.k||1)}catch(x){}
   var P=kc<=1?{wood:10}:kc===2?{wood:30}:kc===3?{wood:50,dia:10}:kc===4?{dia:20}:kc===5?{dia:20,legend:10}:{legend:20};
-  var sp=(e<=5?5:5+(e-5)*3)*.1,x=Math.random()*100;
+  var sp=.001,x=Math.random()*100;
   if(x<sp)return 'sin';
   x=Math.random()*100;var a=0;
   for(var t in P){a+=P[t];if(x<a)return t}
@@ -394,6 +394,7 @@ function hud(){
   var left=ROWS+1-r;$('kBn').textContent='Drache '+getMonsterNameSafe()+' · '+(r>ROWS?'Boss-Reihe':'Reihe '+r+' / '+ROWS);$('kBb').style.width=(100*(1-left/(ROWS+1)))+'%';
 }
 function getMonsterNameSafe(){try{return MONSTER_NAMES[drag(K.k)]||'Drache'}catch(e){return 'Drache'}}
+window.__kamFl=function(t,c){try{fl(t,c)}catch(e){}};
 function fl(txt,color){var st=$('kam'),h=$('kamHero').getBoundingClientRect(),r=st.getBoundingClientRect(),d=document.createElement('div');d.className='fl';d.textContent=txt;d.style.color=color;d.style.left=(h.left-r.left+8)+'px';d.style.top=(h.top-r.top-6)+'px';st.appendChild(d);setTimeout(function(){d.remove()},1200)}
 
 /* ---------- Würfeln und Ziel wählen ---------- */
@@ -1222,7 +1223,7 @@ function efHtml(uid,edit){var n=efOf(uid);if(!n)return '';var b=base(n.b),t=b.ty
 function efCost(n,b){return Math.round(60*Math.pow(1.5,n.ro||0)*(1+.4*RANK.indexOf(b.rarity)))}
 function upCost(x){return Math.round(250*Math.pow(2.5,x.q))}
 function sideD(t,d){if(!t||t.hp<=1||d<1)return;t.hp=Math.max(1,t.hp-Math.round(d))}
-function healAbs(w,a){a=Math.max(1,Math.round(a));try{if(w==='hero'){if(meta.hp>0)meta.hp=Math.min(meta.maxHp,meta.hp+a)}else if(AH[w]&&AH[w].hp>0)AH[w].hp=Math.min(AH[w].max,AH[w].hp+a)}catch(e){}}
+function healAbs(w,a){a=Math.max(1,Math.round(a));try{if(w==='hero'){if(meta.hp>0){meta.hp=Math.min(meta.maxHp,meta.hp+a);fl('+'+a+' ❤','#6fe08a')}}else if(AH[w]&&AH[w].hp>0)AH[w].hp=Math.min(AH[w].max,AH[w].hp+a)}catch(e){}}
 var WC={};
 function offIds(w){var g=gear(w)||{},r=[];[g[WSK[w]],g.hand,g.book].forEach(function(u){if(u)r.push(u)});return r}
 function strikeFx(w,d0){var ids=offIds(w);if(!ids.length)return 0;var tg=monstersInFight||[],m=tg[0];if(!m)return 0;

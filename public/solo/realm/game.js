@@ -914,13 +914,13 @@ function attack() {
   monstersInFight.forEach(m => {
     let md = m.atk + Math.floor(Math.random() * 3);
     if (window.__kamMonHit) { md = window.__kamMonHit(m, md); if (md <= 0) return; }
-    if (window.__kamShield) md = Math.max(1, Math.round(md * (1 - window.__kamShield / 100)));
+    if (window.__kamShield) { md = Math.max(1, Math.round(md * (1 - window.__kamShield / 100))); try{window.__kamFl('🛡️ Geblockt','#8fd8ff')}catch(e){} }
     // Jaeger: 5% Ausweichen
     // Jaeger: 10% Dodge (improved from 5%)
     const _dodgeChance = hasClass('jaeger') ? 0.10 : (playerClass && playerClass.id === 'jaeger' ? 0.10 : 0);
     if (_dodgeChance > 0 && Math.random() < _dodgeChance) {
       if (true) { questTracking.attacksDodged = (questTracking.attacksDodged||0) + 1; saveQuestTracking(); }
-      showSkillPopup('Ausgewichen!'); return;
+      showSkillPopup('Ausgewichen!'); try{window.__kamFl('💨 Ausgewichen','#cfe')}catch(e){} return;
     }
     // Paladin Schild: blockt naechsten Angriff
     if (shieldActive) {
@@ -946,7 +946,7 @@ function attack() {
     // Blutdurst: 20% Schaden zurÜck
     if (skills.includes('jamal2')) {
       const leech = Math.floor(md * 0.2);
-      if (leech > 0) { meta.hp = Math.min(meta.hp + leech, meta.maxHp); }
+      if (leech > 0) { meta.hp = Math.min(meta.hp + leech, meta.maxHp); try{window.__kamFl('+' + leech + ' ❤','#6fe08a')}catch(e){} }
     }
     // === GEGNER SPEZIALFAEHIGKEITEN ===
     // Ab Runde 5: Wolf-Wutanfall (25% Doppelschaden)
@@ -985,7 +985,7 @@ function attack() {
     const _mname = m.isWorldBoss ? ('Boss ' + m.bossNum) : (MONSTER_NAMES[m.type] || m.type);
     log('⚠️ <span style="color:#cc4444">' + _mname + ' trifft dich für ' + md + '!</span>');
   });
-  if (totalDmg > 0) showDmgPopup('-' + totalDmg + '❤', '#cc2200');
+  if (totalDmg > 0) { showDmgPopup('-' + totalDmg + '❤', '#cc2200'); try{window.__kamFl('-' + totalDmg,'#ff4a4a')}catch(e){} }
 
   if (meta.hp <= 0 && window.__kamTeamUp && window.__kamTeamUp()) { meta.hp = 0; updateUI(); }
   else if (meta.hp <= 0) {
