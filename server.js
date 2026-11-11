@@ -4339,12 +4339,26 @@ async function soloSubmit(token, game, val, diff, lang, extra) {
 }
 // ===== Realm of Brain: Spielstand und Bestenliste (statt Firebase) =====
 const REALM_MAX_STATE = 60000;
+// Reset fuer alle Realm-Konten: REALM_EPOCH um 1 erhoehen = alle starten neu. Der alte Stand wird in user.realm.backup aufgehoben,
+// gekaufte Diamanten (pendingDias) bleiben erhalten. Veraltete Clients (ohne passende Epoche) koennen nichts mehr speichern.
+const REALM_EPOCH = 1;
+function realmEpoch(user) {
+  if (!user) return false;
+  user.realm = user.realm || {};
+  if ((user.realm.epoch | 0) >= REALM_EPOCH) return false;
+  if (user.realm.state || user.realm.entry) user.realm.backup = { epoch: user.realm.epoch | 0, state: user.realm.state || null, entry: user.realm.entry || null, at: Date.now() };
+  user.realm.state = null; delete user.realm.entry; user.realm.at = 0; user.realm.epoch = REALM_EPOCH;
+  return true;
+}
+function realmSweep() { let n = 0; for (const u of users) if (u && realmEpoch(u)) n++; if (n) { console.log("[Realm] Reset fuer " + n + " Konten (Epoche " + REALM_EPOCH + "), alte Staende gesichert."); saveUsers().catch(() => {}); } return n; }
 function realmSave(token, state) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
   if (!state || typeof state !== "object" || Array.isArray(state)) return { ok: false };
   let str; try { str = JSON.stringify(state); } catch (e) { return { ok: false }; }
   if (str.length > REALM_MAX_STATE) return { ok: false, tooBig: true };
+  if (realmEpoch(user)) saveUsers().catch(() => {});
+  if (state.ep !== REALM_EPOCH) return { ok: false, stale: true, epoch: REALM_EPOCH };
   user.realm = user.realm || {};
   if (user.realm.state === str) return { ok: true, same: true };
   if (Date.now() - (user.realm.at || 0) < 3000) return { ok: true, wait: true };
@@ -4356,20 +4370,23 @@ function realmReset(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
   user.realm = user.realm || {};
-  user.realm.state = null; user.realm.at = Date.now(); delete user.realm.entry;
+  user.realm.state = null; user.realm.at = Date.now(); delete user.realm.entry; user.realm.epoch = REALM_EPOCH;
   saveUsers().catch(() => {});
-  return { ok: true };
+  return { ok: true, epoch: REALM_EPOCH };
 }
 function realmLoad(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
+  if (realmEpoch(user)) saveUsers().catch(() => {});
   let st = null; try { st = user.realm && user.realm.state ? JSON.parse(user.realm.state) : null; } catch (e) {}
-  return { ok: true, state: st, name: user.username };
+  return { ok: true, state: st, name: user.username, epoch: REALM_EPOCH };
 }
 function realmScore(token, e) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
   if (!e || typeof e !== "object") return { ok: false };
+  if (realmEpoch(user)) saveUsers().catch(() => {});
+  if (e.ep !== REALM_EPOCH) return { ok: false, stale: true, epoch: REALM_EPOCH };
   const num = (v, max) => Math.max(0, Math.min(max, Math.round(Number(v) || 0)));
   const round = num(e.round, 100000), kills = num(e.kills, 10000000), bossKills = num(e.bossKills, 1000000), prestige = num(e.prestige, 10);
   const score = round * 10 + kills * 5 + bossKills * 50 + prestige * 200;
@@ -4409,6 +4426,7 @@ async function realmClaimDias(token) {
 }
 function realmBoard(token, n) {
   if (!usersLoaded) return { ok: false, unavailable: true };
+  realmSweep();
   const me = token ? findUserByToken(token) : null;
   const all = users.filter(u => u.realm && u.realm.entry && u.realm.entry.score > 0).map(u => u.realm.entry).sort((a, b) => b.score - a.score);
   const mine = me && me.realm ? me.realm.entry || null : null;

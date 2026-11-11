@@ -175,7 +175,7 @@ var css=document.createElement('style');css.textContent=
 '#kamProf .tabs button.on{background:linear-gradient(#a02800,#6a1500);border-color:#ffd24a;color:#fff}'+
 '#kamProf .tabs .x{flex:none;float:none;position:static;width:44px;background:#600}'+
 '#kamProf #menuPanel{position:static!important;min-width:0!important;margin:0!important;box-shadow:none!important;top:auto!important;left:auto!important;z-index:auto!important;width:auto!important}'+
-'#kamProf #quickPanel{display:none!important}#kamProf[data-tab=p] #menuPanel,#kamProf[data-tab=p] #kamReset{display:none!important}'+
+'#kamProf #quickPanel{display:none!important}#kamProf[data-tab=p] #menuPanel,#kamProf[data-tab=p] #kamReset,#kamProf[data-tab=p] #kamReset2{display:none!important}'+
 '#kamQuick{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}#kamQuick .btn{padding:14px 2px;font-size:.66rem;letter-spacing:0;line-height:1.25}#kamProf[data-tab=m] #kamQuick{display:none!important}'+
 '#kamProf[data-tab=m] #statusPanel{display:none!important}'+
 
@@ -194,6 +194,9 @@ function rebuildPage(){
   var pf=document.createElement('button');pf.id='kamPf';pf.innerHTML='<img id="kamPfImg" alt=""><span>PROFIL</span>';document.body.appendChild(pf);
   var pw=document.createElement('div');pw.id='kamProf';pw.innerHTML='<div class="box"><div class="tabs"><button data-t="p">⚔ PROFIL</button><button data-t="m">☰ MENÜ</button><button class="x">✕</button></div><div id="kamProfBody"></div></div>';document.body.appendChild(pw);
   var rs=document.createElement('button');rs.id='kamReset';rs.className='btn btn-wide';rs.textContent='🗑 FORTSCHRITT ZURÜCKSETZEN';rs.style.cssText='margin-top:10px;background:#300;border-color:#a33;font-size:.7rem';
+  var rt=document.createElement('button');rt.id='kamReset2';rt.className='btn btn-wide';rt.style.cssText='margin-top:10px;font-size:.7rem';
+  function rtL(){var on=0;try{on=localStorage.getItem('robOneHit')==='1'}catch(e){}rt.textContent=on?'⚡ TEST: Boss-Schlag AN (tippen = aus)':'⚡ TEST: Bosse mit 1 Schlag (aus)';rt.style.borderColor=on?'#4c4':'';}
+  rt.onclick=function(){try{localStorage.setItem('robOneHit',localStorage.getItem('robOneHit')==='1'?'0':'1')}catch(e){}rtL()};rtL();
   rs.onclick=function(){if(!rs.dataset.sure){rs.dataset.sure=1;rs.textContent='SICHER? NOCHMAL TIPPEN: ALLES AUF ANFANG';setTimeout(function(){delete rs.dataset.sure;rs.textContent='🗑 FORTSCHRITT ZURÜCKSETZEN'},4000);return}
     var fin=0,go=function(){if(fin)return;fin=1;try{Object.keys(localStorage).forEach(function(k){if(/^rob/.test(k)&&['robPlayerName','robLastHero','robAvatar'].indexOf(k)<0)localStorage.removeItem(k)})}catch(e){}location.reload()};rs.textContent='Setze zurück… (ca. 4 Sekunden warten)';try{var PP=window.parent;if(PP&&PP!==window&&typeof PP.tfApi==='function'){var nz=function(){return null};PP.tfApi('/api/realm/reset',{}).then(nz,nz).then(function(){return new Promise(function(r){setTimeout(r,3300)})}).then(function(){return PP.tfApi('/api/realm/save',{state:{savedAt:Date.now(),reset:1}})}).then(go,go);setTimeout(go,9000);return}}catch(e){}go()};
   if(qp){$('kamProfBody').appendChild(qp)}
@@ -202,7 +205,7 @@ function rebuildPage(){
   (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal','monsterLexikonModal','wdexModal','dailyModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
   $('kamProfBody').appendChild(qk);
   var mp=$('menuPanel');if(mp){$('kamProfBody').appendChild(mp);mp.addEventListener('click',function(e){var bt=e.target.closest&&e.target.closest('button');if(bt)setTimeout(closeP,0)})}
-  function openP(t){var sp=$('statusPanel'),b=$('kamProfBody');b.insertBefore(sp,b.firstChild);b.insertBefore($('kamQuick'),sp.nextSibling);b.appendChild(rs);pw.dataset.tab=t||'p';sp.style.setProperty('display',pw.dataset.tab==='p'?'block':'none','important');[].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.classList.toggle('on',x.dataset.t===pw.dataset.tab)});pw.classList.add('on');syncFace()}
+  function openP(t){var sp=$('statusPanel'),b=$('kamProfBody');b.insertBefore(sp,b.firstChild);b.insertBefore($('kamQuick'),sp.nextSibling);b.appendChild(rs);b.appendChild(rt);pw.dataset.tab=t||'p';sp.style.setProperty('display',pw.dataset.tab==='p'?'block':'none','important');[].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.classList.toggle('on',x.dataset.t===pw.dataset.tab)});pw.classList.add('on');syncFace()}
   pf.onclick=function(){openP('p')};
   [].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.onclick=function(){openP(x.dataset.t)}});
   [].slice.call(document.querySelectorAll('#menuPanel button')).forEach(function(bt){var o=bt.getAttribute('onclick')||'';if(/showCity|showDiaShop|showInventory|showQuestModal|showLevelTable|showClassLevelTable|showLevels|doPrestige|showPrestigeLevelTable/.test(o))bt.remove()});
@@ -665,6 +668,8 @@ function hook(){
     board=['empty'];pos=0;kBuild(k,RR);
   };
   window.drawBoard=function(){};
+  var oAtk=window.attack;
+  window.attack=function(){try{if(localStorage.getItem('robOneHit')==='1'&&monstersInFight&&monstersInFight[0]){monstersInFight.forEach(function(m){if(m&&m.isBoss&&m.hp>1)m.hp=1})}}catch(e){}return oAtk.apply(this,arguments)};
   var oSw=window.runSwing;window.runSwing=function(){if(inFight&&$('kam')&&typeof meta!=='undefined'&&meta){try{window.__kamStrike&&window.__kamStrike()}catch(e){}}return oSw&&oSw.apply(this,arguments)};
   var oAct=window.handleAction;
   window.handleAction=function(){
@@ -688,7 +693,7 @@ function hook(){
 }
 
 
-/* ---------- Gruppe: Bogenschuetzin (ab Klassenlevel 15) und Magierin (ab 30) stehen hinten und helfen im Kampf ---------- */
+/* ---------- Gruppe: Bogenschuetzin (ab Heldenlevel 5) und Magierin (ab Heldenlevel 30) stehen hinten und helfen im Kampf ---------- */
 var ALLY=[
  {id:'arc',ic:'🏹',nm:'Bogenschützin',need:5,dir:'h/',w:68,l:49,b:60,idle:['elf_i0','elf_i1'],atk:['elf_at','elf_at'],mult:.5,pj:'arrow',col:'#ffd24a'},
  {id:'mag',ic:'🔮',nm:'Kalifa',need:30,dir:'h/',w:72,l:-10,b:26,idle:['kal_i0','kal_i1'],atk:['kal_at','kal_at'],mult:.4,pj:'orb',col:'#d070ff',heal:true}
@@ -820,7 +825,7 @@ function ens(){
 function it(uid){ens();var n=inventory.inst[uid];if(!n)return null;var b=base(n.b);if(!b)return null;
  var o={};for(var k in b)o[k]=b[k];o.id=uid;o.bid=n.b;o.c=n.c;o.s=n.s;return o}
 function bump(k,n){ens();var t=inventory.stats=inventory.stats||{};t[k]=(t[k]||0)+(n||1)}
-function give(bid,c){ens();bump('found');var u='u'+inventory.nid++;inventory.inst[u]={b:bid,c:c,s:0};inventory.items.push(u);try{saveInventory()}catch(e){}return it(u)}
+function give(bid,c){ens();bump('found');inventory.seen=inventory.seen||{};inventory.seen[bid]=1;var u='u'+inventory.nid++;inventory.inst[u]={b:bid,c:c,s:0};inventory.items.push(u);try{saveInventory()}catch(e){}return it(u)}
 function mul(i){return CM[i.c]*(1+.15*i.s)}
 function st(i){var m=mul(i);return{atk:Math.round((i.atk||0)*m),hp:Math.round((i.hp||0)*m)}}
 function fxv(i){return i.fx?i.fx.v*CM[i.c]*(1+.07*i.s):0}
@@ -978,6 +983,53 @@ var Q=[
  ['km2','Besiege den Boss von Kammer 5','🗺️ Kammern',5,stt('maxBoss')],
  ['km3','Besiege den Boss von Kammer 7','🗺️ Kammern',7,stt('maxBoss')],
  ['km4','Besiege den Boss von Kammer 10','🗺️ Kammern',10,stt('maxBoss')]];
+function seenSet(){ens();var s={};Object.keys(inventory.seen||{}).forEach(function(b){s[b]=1});Object.keys(inventory.inst).forEach(function(u){s[inventory.inst[u].b]=1});return s}
+function seenN(f){return function(){var s=seenSet(),n=0;ITEMS.forEach(function(b){if(s[b.id]&&(!f||f(b)))n++});return n}}
+function allN(f){return function(){return ITEMS.filter(f).length}}
+var WT=['weapon','bow','staff','club','axe','spear','fist','hand','book'],AT=['armor'],HT=['helm'],RT=['ring'],CT=['cape'],ST2=['shield'];
+function ty(a){return function(b){return a.indexOf(b.type)>=0}}
+function rar(r){return function(b){return b.rarity===r}}
+function comp(){try{return (inventory.comp&&inventory.comp.own)||{}}catch(e){return {}}}
+function cown(){return Object.keys(comp()).length}
+function cmax(f){return function(){var o=comp(),n=0;Object.keys(o).forEach(function(k){if(f(o[k]))n++});return n}}
+function gemN(){try{var g=inventory.gems||{},n=0;Object.keys(g).forEach(function(k){n+=g[k]||0});return n}catch(e){return 0}}
+function gemT(t){return function(){try{var g=inventory.gems||{};return Object.keys(g).some(function(k){return +k.slice(1)>=t&&g[k]>0})?1:0}catch(e){return 0}}}
+var Q2=[
+ ['sa1','Sammle 25 verschiedene Items','📚 Sammlung',25,seenN()],
+ ['sa2','Sammle 50 verschiedene Items','📚 Sammlung',50,seenN()],
+ ['sa3','Sammle 100 verschiedene Items','📚 Sammlung',100,seenN()],
+ ['sa4','Sammle alle Items','📚 Sammlung',0,seenN(),null,function(){return ITEMS.length}],
+ ['sa5','Besitze einmal ein grünes Item','📚 Sammlung',1,function(){return seenN(rar('gruen'))()?1:0}],
+ ['sa6','Besitze einmal ein blaues Item','📚 Sammlung',1,function(){return seenN(rar('blau'))()?1:0}],
+ ['sa7','Besitze einmal ein episches Item','📚 Sammlung',1,function(){return seenN(rar('episch'))()?1:0}],
+ ['sa8','Besitze einmal ein legendäres Item','📚 Sammlung',1,function(){return seenN(rar('legendaer'))()?1:0}],
+ ['sa9','Sammle alle Waffen','📚 Sammlung',0,seenN(ty(WT)),null,allN(ty(WT))],
+ ['sa10','Sammle alle Rüstungen','📚 Sammlung',0,seenN(ty(AT)),null,allN(ty(AT))],
+ ['sa11','Sammle alle Helme','📚 Sammlung',0,seenN(ty(HT)),null,allN(ty(HT))],
+ ['sa12','Sammle alle Ringe','📚 Sammlung',0,seenN(ty(RT)),null,allN(ty(RT))],
+ ['sa13','Sammle alle Umhänge','📚 Sammlung',0,seenN(ty(CT)),null,allN(ty(CT))],
+ ['sa14','Sammle alle Schilde','📚 Sammlung',0,seenN(ty(ST2)),null,allN(ty(ST2))],
+ ['sa15','Sammle alle legendären Items','🔒 Geheim',0,seenN(rar('legendaer')),function(){return seenN(rar('legendaer'))()>=10},allN(rar('legendaer'))],
+ ['sa16','Finde ein mystisches Item','🔒 Geheim',1,function(){return seenN(rar('mystisch'))()?1:0},function(){return seenN(rar('legendaer'))()>=10}],
+ ['bg1','Hole deinen ersten Begleiter','🐾 Begleiter',1,cown],
+ ['bg2','Besitze 3 Begleiter','🐾 Begleiter',3,cown],
+ ['bg3','Besitze alle 5 Begleiter','🐾 Begleiter',5,cown],
+ ['bg4','Bringe einen Begleiter auf Form 2','🐾 Begleiter',1,cmax(function(o){return o.f>=2})],
+ ['bg5','Bringe einen Begleiter auf Form 3','🐾 Begleiter',1,cmax(function(o){return o.f>=3})],
+ ['bg6','Alle Begleiter auf Form 3','🔒 Geheim',5,cmax(function(o){return o.f>=3}),function(){return cown()>=5}],
+ ['gm1','Besitze 5 Gems','💠 Gems',5,gemN],
+ ['gm2','Besitze 25 Gems','💠 Gems',25,gemN],
+ ['gm3','Besitze einen Gem der Stufe 3','💠 Gems',1,gemT(3)],
+ ['gm4','Besitze einen Gem der Stufe 5','💠 Gems',1,gemT(5)],
+ ['km5','Besiege den Boss von Kammer 15','🗺️ Kammern',15,stt('maxBoss')],
+ ['km6','Besiege den Boss von Kammer 20','🗺️ Kammern',20,stt('maxBoss')],
+ ['hr6','Erreiche Prestige 5','🦸 Helden',5,tr(function(){return prestigeData.count})],
+ ['hr7','Erreiche Prestige 10','🦸 Helden',10,tr(function(){return prestigeData.count})],
+ ['sm7','Schmiede 50 Mal erfolgreich','⚒️ Schmiede',50,stt('forged')],
+ ['sm8','Werte 10 Items mit Kugeln auf','⚒️ Schmiede',10,stt('upgraded')],
+ ['sm9','Verkaufe 100 Items','⚒️ Schmiede',100,stt('sold')],
+ ['sm10','Sammle 1.000 Eisenbarren','⚒️ Schmiede',1000,stt('ironTotal')]];
+Q2.forEach(function(x){Q.push(x)});
 Q.forEach(function(x){if(QUEST_LIST.some(function(y){return y.id===x[0]}))return;
  var o={id:x[0],name:x[1],cat:x[2],target:x[3],getValue:(function(f,tf){return function(){var v=f();return v}})(x[4])};
  if(x[5])o.secret=x[5];
@@ -1810,5 +1862,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     }catch(e){window.__kamEtg=etg||0;try{oOC.apply(window,[type])}finally{window.__kamEtg=0}}
   };
 })();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-11c';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-11d';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]==='11-11c'?'✓':'✗ alt'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);

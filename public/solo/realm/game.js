@@ -145,7 +145,7 @@ function loadPersistentGold() {
   try { return parseInt(localStorage.getItem('robGold') || '0') || 0; } catch(e) { return 0; }
 }
 function savePersistentGold(v) {
-  try { localStorage.setItem('robGold', String(v)); } catch(e) {}
+  try { localStorage.setItem('robGold', String(isFinite(v) ? v : 0)); } catch(e) {}
 }
 function loadShopPrices() {
   try { const d = localStorage.getItem('robShopPrices'); return d ? JSON.parse(d) : {hp:50,atk:50}; } catch(e) { return {hp:50,atk:50}; }
@@ -269,10 +269,9 @@ function getClassLevel() {
   if (!meta || !meta.hero) return 0;
   var _c = getCompletedQuestCount();
   try {
-    if (!questTracking.lvFix) { questTracking.lvFix = 1; if (_c < 15) questTracking.lvMin = 15; saveQuestTracking(); }
-    if (questTracking.lvMin && _c < questTracking.lvMin) _c = questTracking.lvMin;
+    /* Klassenlevel startet bei 1: es zaehlen nur erledigte Quests (kein Mindestlevel mehr) */
   } catch(e) {}
-  return Math.min(100, _c);
+  return Math.max(1, Math.min(100, _c));
 }
 
 // Spielzeit tracken (1 Minute = 1 Tick)
@@ -2013,7 +2012,7 @@ function doPrestige() {
   const pts = prestigeData.points || 0;
   const nextBonus = (prestigeData.count + 1) * 5;
   document.getElementById('prestigeRewardText').textContent =
-    'Seelen: +' + (window.__kamSoulGain ? window.__kamSoulGain() : 0) + ' | Gegner +12% stärker | Gold & Diamanten +15% | Token: ' + available + ' verfügbar';
+    'Seelen: +' + (window.__kamSoulGain ? window.__kamSoulGain() : 0) + ' | Prestige-Beute je nach höchstem Boss | Gegner +12% stärker | Token: ' + available + ' verfügbar';
   document.getElementById('prestigeModal').style.display = 'flex';
 }
 
@@ -2043,7 +2042,7 @@ function confirmPrestige() {
   closePrestigeModal();
   updateLoginLevels();
   updatePrestigeUI();
-  log('<span style="color:#cc88ff">? Prestige ' + prestigeData.count + ' abgeschlossen! +' + prestigeData.bonus + '% dauerhaft! RÜstung bleibt erhalten.</span>');
+  log('<span style="color:#cc88ff">💜 Prestige ' + prestigeData.count + ' abgeschlossen! Seelen und Beute erhalten, die Gegner sind jetzt ' + (prestigeData.count*12) + '% stärker. Items, Stadt und Fähigkeiten bleiben.</span>');
   saveStateToFirebase();
 }
 
@@ -2058,14 +2057,14 @@ function updatePrestigeUI() {
   const desc = document.getElementById('prestigeDesc');
   if (desc) {
     if (prestigeData.count > 0) {
-      desc.textContent = '? Prestige ' + prestigeData.count + ' aktiv! +' + prestigeData.bonus + '% auf alle Stats!';
+      desc.textContent = '💜 Prestige ' + prestigeData.count + ' aktiv: Gegner +' + (prestigeData.count*12) + '% stärker, dafür Seelen und Beute.';
       desc.style.color = '#cc88ff';
     }
   }
   const info = document.getElementById('prestigeBonusInfo');
   if (info && prestigeData.count > 0) {
-    const stars = '?'.repeat(Math.min(prestigeData.count, 5));
-    info.textContent = stars + ' NÄchstes Prestige: +' + ((prestigeData.count+1)*5) + '% Bonus';
+    const stars = '💜'.repeat(Math.min(prestigeData.count, 5));
+    info.textContent = stars + ' Nächstes Prestige: Gegner +' + ((prestigeData.count+1)*12) + '% stärker, mehr Seelen';
   }
 }
 

@@ -11,14 +11,30 @@ Ref.prototype.once=function(){
   var p=this.path, n=this.n;
   if(p==="leaderboard") return api("/api/realm/board",{n:n}).then(function(r){ var t=r&&r.ok?r.top.slice().reverse():[]; return snap(t); });
   if(p.indexOf("leaderboard/")===0) return api("/api/realm/board",{n:1}).then(function(r){ return snap(r&&r.ok?r.mine:null); });
-  if(/\/state$/.test(p)) return api("/api/realm/load",{}).then(function(r){ window.__bpLoadOk=!!(r&&r.ok); return snap(r&&r.ok?r.state:null); });
+  if(/\/state$/.test(p)) return api("/api/realm/load",{}).then(function(r){
+    window.__bpLoadOk=!!(r&&r.ok);
+    if(r&&r.ok&&r.epoch!=null){
+      window.__bpEpoch=r.epoch;
+      /* Reset fuer alle: wurde der Server-Stand zurueckgesetzt, wird auch der lokale Stand dieses Geraets geloescht (einmalig) */
+      try{
+        if(localStorage.getItem("robEpoch")!==String(r.epoch)){
+          var had=!!localStorage.getItem("robHeroes");
+          Object.keys(localStorage).forEach(function(k){ if(/^rob/.test(k)&&["robPlayerName","robLastHero","robAvatar"].indexOf(k)<0) localStorage.removeItem(k); });
+          localStorage.setItem("robEpoch",String(r.epoch));
+          if(had){ window.__bpLoadOk=false; setTimeout(function(){ location.reload(); },50); return snap(null); }
+        }
+      }catch(e){}
+    }
+    return snap(r&&r.ok?r.state:null);
+  });
   return Promise.resolve(snap(null));
 };
 Ref.prototype.on=function(ev,cb){ var self=this; var tries=0; function go(){ self.once().then(function(s){ cb(s); if(/\/state$/.test(self.path)&&!window.__bpLoadOk&&tries<10){ tries++; setTimeout(go,4000); } }); } go(); setInterval(go,60000); };
 Ref.prototype.set=function(v){
   var p=this.path;
-  if(p.indexOf("leaderboard/")===0) return api("/api/realm/score",{entry:v});
-  if(/\/state$/.test(p)) return api("/api/realm/save",{state:v});
+  if(window.__bpEpoch==null) return Promise.resolve();
+  if(p.indexOf("leaderboard/")===0){ try{ v.ep=window.__bpEpoch; }catch(e){} return api("/api/realm/score",{entry:v}); }
+  if(/\/state$/.test(p)){ try{ v.ep=window.__bpEpoch; }catch(e){} return api("/api/realm/save",{state:v}); }
   return Promise.resolve();
 };
 window.db={ ref:function(p){ return new Ref(p); } };
