@@ -198,7 +198,7 @@ function rebuildPage(){
     try{Object.keys(localStorage).forEach(function(k){if(/^rob/.test(k)&&['robPlayerName','robLastHero','robAvatar'].indexOf(k)<0)localStorage.removeItem(k)})}catch(e){}location.reload()};
   if(qp){$('kamProfBody').appendChild(qp)}
   var qk=document.createElement('div');qk.id='kamQuick';
-  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['🏪 MARKTPLATZ','__kDia'],['🏙️ STADT','showCity'],['🐾 MONSTER','showMonsterLexicon'],['📖 WAFFEN-LEXIKON','__kamWDex']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
+  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['🏪 MARKTPLATZ','__kDia'],['🏙️ STADT','showCity'],['🐾 MONSTER','showMonsterLexicon']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
   (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal','monsterLexikonModal','wdexModal','dailyModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
   $('kamProfBody').appendChild(qk);
   var mp=$('menuPanel');if(mp){$('kamProfBody').appendChild(mp);mp.addEventListener('click',function(e){var bt=e.target.closest&&e.target.closest('button');if(bt)setTimeout(closeP,0)})}
@@ -1073,6 +1073,7 @@ window.tryDropItem=function(isBoss){
   ex+=loot(rnd(3,6),{});
   ens();inventory.ms=inventory.ms||{};if(k>=10&&!inventory.ms.b10){inventory.ms.b10=1;try{saveInventory()}catch(e){}perfectGift(4,'Kammer 10 bezwungen')}}
  else if(Math.random()<.25)ex+=loot(1,{});
+ ex+=window.__gemLoot(isBoss?'boss':'mon',k);
  if(ex)log('<span style="color:#cfd6e0">Beute:'+ex+'</span>');
  var chn=isBoss?.35:Math.min(.07,.03+.004*(k-1));
  if(Math.random()>chn)return;
@@ -1090,7 +1091,7 @@ window.__kamChest=function(type,cfg){
    showItemPopup({name:i.name+' · '+CN[i.c],rarity:i.rarity,type:i.type,desc:descOf(i)})}}}
  if(cfg.alsoLowerItems){var lp=['sword1','armor1','helm1','ring1','sword2','armor2','helm2','ring2'],lid=lp[Math.floor(Math.random()*lp.length)],lr=giveOrSell(lid,condRoll(P[0],P[1]));m+=lr.sold?' Beutel voll: verkauft +'+lr.sold:' <span style="color:'+RARITY_COLOR[lr.item.rarity]+'">+ '+lr.item.name+'</span>'}
  var ir={wood:[1,2],dia:[2,5],legend:[5,10],sin:[10,18]}[type]||[1,2];
- m+=loot(rnd(ir[0],ir[1]),{wood:{},dia:{blau:10},legend:{blau:25,lila:8},sin:{blau:30,lila:20,orange:6}}[type]||{});return m};
+ m+=loot(rnd(ir[0],ir[1]),{wood:{},dia:{blau:10},legend:{blau:25,lila:8},sin:{blau:30,lila:20,orange:6}}[type]||{});m+=window.__gemLoot(type);return m};
 
 /* ---- Heldenabteil ---- */
 var SL={hero:['helm','armor','hand','boots','amulet','ring','cape','shield','weapon'],arc:['helm','armor','hand','boots','amulet','ring','cape','quiver','bow'],mag:['helm','armor','hand','boots','amulet','ring','cape','book','staff']},XT={shield:'hero',quiver:'arc',book:'mag'};
@@ -1150,7 +1151,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
  /* Freischaltung: Typ -> [Bedingung, Name] */
  var G=[
   {t:['bow','quiver'],ok:function(){return hlvl()>=5},k:'g_elfa',m:'Ab jetzt Bögen und Köcher zu finden'},
-  {t:['fist'],ok:function(){return hlvl()>=10},k:'g_luna',m:'Ab jetzt Fäuste und Handschuhe zu finden'},
+  {t:['fist'],ok:function(){return hlvl()>=10},k:'g_luna',m:'Ab jetzt Fäuste zu finden'},
   {t:['spear'],s:['rund'],ok:function(){return hlvl()>=15},k:'g_jamal',m:'Ab jetzt Speere und Rundschilde zu finden'},
   {t:['club'],ok:function(){return hlvl()>=20},k:'g_brutus',m:'Ab jetzt Keulen zu finden'},
   {t:['staff','book'],c:['stoff'],ok:function(){return hlvl()>=30},k:'g_kalifa',m:'Ab jetzt Stäbe, Bücher und Stoffrüstungen (Hüte, Roben) zu finden'},
@@ -1213,7 +1214,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
 
 /* ---- Waffen-Lexikon ---- */
 (function(){
- var WT=[['weapon','Schwerter','Ben'],['bow','Bögen','Elfa'],['staff','Stäbe','Kalifa'],['fist','Fäuste','Luna'],['spear','Speere','Jamal'],['club','Keulen','Brutus'],['axe','Äxte','Jeffrey'],['potion','Tränke','Berta'],['helm','Helme','Schwer / Leder / Stoff'],['armor','Rüstungen','Schwer / Leder / Stoff'],['shield','Schilde','Ben, Jamal, Brutus, Berta, Jeffrey']],
+ var WT=[['weapon','Schwerter','Ben'],['bow','Bögen','Elfa'],['staff','Stäbe','Kalifa'],['fist','Fäuste','Luna'],['spear','Speere','Jamal'],['club','Keulen','Brutus'],['axe','Äxte','Jeffrey'],['potion','Tränke','Berta'],['helm','Helme','Schwer / Leder / Stoff'],['armor','Rüstungen','Schwer / Leder / Stoff'],['shield','Schilde','Ben, Jamal, Brutus, Berta, Jeffrey'],['quiver','Köcher','Elfa'],['book','Bücher','Kalifa'],['hand','Handschuhe','alle Helden'],['boots','Schuhe','alle Helden'],['cape','Umhänge','alle Helden'],['ring','Ringe','alle Helden'],['amulet','Amulette','alle Helden']],
  RK=['normal','gruen','blau','episch','legendaer','mystisch'],DK='robWpnDex2';
  function dex(){try{return JSON.parse(localStorage.getItem(DK)||'{}')}catch(e){return {}}}
  function scan(){try{ens();var d=dex(),ch=false;for(var u in inventory.inst){var n=inventory.inst[u];if(!n||!n.b)continue;var key=n.b+':'+(n.c||0);if(!d[key]){d[key]=1;ch=true;var x=ITEMS.find(function(y){return y.id===n.b});if(x&&WT.some(function(t){return t[0]===x.type})&&!x.m&&window.__wdexNew)toast('📖 Waffen-Lexikon: '+x.name+' ('+CN[n.c||0]+') eingetragen!')}}
@@ -1225,7 +1226,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
   WT.forEach(function(t){var CO=function(x){return x.cls==='leder'?1:x.cls==='stoff'?2:0};var L=ITEMS.filter(function(x){return x.type===t[0]&&!x.m}).sort(function(a,b){return CO(a)-CO(b)||RK.indexOf(a.rarity)-RK.indexOf(b.rarity)});if(!L.length)return;
    body+='<div style="margin:12px 0 6px;font-size:.8rem;color:#ffd24a">'+t[1]+' <span style="opacity:.6;font-size:.65rem">· für '+t[2]+'</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
    L.forEach(function(x){var n3=0,col=RARITY_COLOR[x.rarity]||'#888',bd='';tot+=3;[0,1,2].forEach(function(c){var s=!!d[x.id+':'+c];if(s){have++;n3++}bd+='<span style="font-size:.48rem;padding:1px 4px;border-radius:6px;margin:0 1px;border:1px solid '+(s?CC[c]:'#3a3358')+';color:'+(s?CC[c]:'#6a6488')+';background:'+(s?'#0006':'none')+'">'+['G','N','P'][c]+(s?'✔':'')+'</span>'});var s=n3===3;
-    body+='<div style="border:1px solid '+(s?col:'#3a3358')+';border-radius:10px;padding:6px 4px;text-align:center;background:'+(n3?'#1a1330':'#0d0a18')+';'+(n3?'':'opacity:.65')+'"><img src="'+ico(x.id)+'" style="width:52px;height:52px;object-fit:contain"><div style="font-size:.55rem;margin-top:3px;color:'+col+';font-weight:700">'+x.name+'</div><div style="font-size:.5rem;opacity:.85">'+(x.atk?'+'+x.atk+' ATK':'')+(x.atk&&x.hp?' · ':'')+(x.hp?'+'+x.hp+' ❤':'')+'</div>'+(['helm','armor'].indexOf(x.type)>=0?'<div style="font-size:.45rem;opacity:.7">'+(x.cls==='leder'?'Leder':x.cls==='stoff'?'Stoff':'Schwer')+'</div>':'')+'<div style="margin-top:3px">'+bd+'</div></div>'});
+    body+='<div style="border:1px solid '+(s?col:'#3a3358')+';border-radius:10px;padding:6px 4px;text-align:center;background:'+(n3?'#1a1330':'#0d0a18')+';'+(n3?'':'opacity:.65')+'"><img src="'+ico(x.id)+'" style="width:52px;height:52px;object-fit:contain"><div style="font-size:.55rem;margin-top:3px;color:'+col+';font-weight:700">'+x.name+'</div><div style="font-size:.5rem;opacity:.85">'+(x.atk?'+'+x.atk+' ATK':'')+(x.atk&&x.hp?' · ':'')+(x.hp?'+'+x.hp+' ❤':'')+(!x.atk&&!x.hp&&x.desc?x.desc:'')+'</div>'+(['helm','armor'].indexOf(x.type)>=0?'<div style="font-size:.45rem;opacity:.7">'+(x.cls==='leder'?'Leder':x.cls==='stoff'?'Stoff':'Schwer')+'</div>':'')+'<div style="margin-top:3px">'+bd+'</div></div>'});
    body+='</div>'});
   h+='<div style="font-size:.7rem;opacity:.8;margin-bottom:4px">Gesammelt: <b>'+have+' / '+tot+'</b> · jede Waffe in <span style="color:#aaa">G</span>ebraucht, <span style="color:#8fd8ff">N</span>eu (Wie neu) und <span style="color:#ffd24a">P</span>erfekt</div>'+body+'</div>';
   m.innerHTML=h;m.style.display='block'};
@@ -1321,7 +1322,8 @@ var EE={first:['⚡','Schnelle Finger'],dgrip:['👊','Doppelgriff'],kgrip:['�
 var WCL={weapon:{m:1,lab:'Schwert',pool:['fire','ice','thun','air','light','dark']},bow:{m:.8,lab:'Bogen',pool:['fire','ice','thun','air','fee','dark']},staff:{m:.6,lab:'Magie',pool:['fire','ice','thun','air','fee','dark']}};
 var AKT=['helm','armor','cape'],AP=['prot','elem','life','thorn','dodge'],AM={prot:.6,dodge:.6};
 var NKT=['hand','book','shield','amulet','boots','quiver'];
-function hasE(i){return (WKT.indexOf(i.type)>=0||AKT.indexOf(i.type)>=0||NKT.indexOf(i.type)>=0)&&!i.fx&&SLOTS[i.rarity]>0}
+var SOCK=['weapon','bow','staff','helm','armor','cape','hand','book','shield','boots','quiver'];
+function hasE(i){return (WKT.indexOf(i.type)>=0||AKT.indexOf(i.type)>=0||NKT.indexOf(i.type)>=0)&&SOCK.indexOf(i.type)<0&&!i.fx&&SLOTS[i.rarity]>0}
 AKT.forEach(function(t){WCL[t]={m:1,lab:'Rüstung',pool:AP}});
 WCL.hand={m:1,lab:'Handschuhe',pool:['first','dgrip','kgrip','tsich','egrip','pluen']};WCL.book={m:1,lab:'Buch',pool:['dzau','arwis','sseit','hzau','zsch','weis']};WCL.shield={m:1,lab:'Schild',pool:['block','prot','thorn','elem','guard','cnt']};
 WCL.amulet={m:1,lab:'Amulett',pool:['akr','agl','arei','ahei','asch','abl']};WCL.boots={m:1,lab:'Schuhe',pool:['bfl','bau','bdo','bhe','bfe','bge']};WCL.quiver={m:1,lab:'Köcher',pool:['qdo','qsp','qtr','qeis','qbe']};
@@ -1359,7 +1361,7 @@ function qv(q){return EQ[q][0]+Math.floor(Math.random()*(EQ[q][1]-EQ[q][0]+1))}
 function rq(){var r=Math.random()*100;return r<50?0:r<80?1:r<95?2:3}
 var MQ={gruen:0,blau:1,episch:2,legendaer:3,mystisch:3};
 function ne(t,r){var p=WCL[t].pool,q=rq();if(r&&MQ[r]!=null)q=Math.min(q,MQ[r]);return{e:p[Math.floor(Math.random()*p.length)],q:q,p:qv(q)}}
-function efOf(uid){ens();var n=inventory.inst&&inventory.inst[uid];if(!n)return null;var b=base(n.b);if(!b||b.fx||(WKT.indexOf(b.type)<0&&AKT.indexOf(b.type)<0&&NKT.indexOf(b.type)<0))return null;
+function efOf(uid){ens();var n=inventory.inst&&inventory.inst[uid];if(!n)return null;var b=base(n.b);if(!b||b.fx||SOCK.indexOf(b.type)>=0||(WKT.indexOf(b.type)<0&&AKT.indexOf(b.type)<0&&NKT.indexOf(b.type)<0))return null;
  if(!n.e){var cnt=SLOTS[b.rarity]||0;n.e=[];n.k=[];for(var i=0;i<cnt;i++){n.e.push(ne(b.type,b.rarity));n.k.push(0)}n.ro=0;
   if(RANK.indexOf(b.rarity)>=4&&SPL[b.type])n.sp=SPL[b.type][Math.floor(Math.random()*SPL[b.type].length)][0];
   try{saveInventory()}catch(x){}}
@@ -1372,7 +1374,7 @@ function wfx(uid){var n=efOf(uid);if(!n)return null;var b=base(n.b),t=b.type,c=W
  for(var i=0;i<n.e.length-1;i++){var a=n.e[i],b2=n.e[i+1],cb=cbo(a.e,b2.e,t);if(cb[2]&&cb[2]!=='stack')L.push({mech:cb[2],v:vOf(n,a,t)+vOf(n,b2,t)})}
  return{t:t,L:L,sp:n.sp}}
 function wUid(w){var g=gear(w)||{};return g[WSK[w]]}
-function efIcons(uid){var n=efOf(uid);if(!n||!n.e.length)return '';return '<div style="font-size:.55rem;color:#cdb">'+n.e.map(function(x){return EE[x.e][0]+'<b style="color:'+EQC[x.q]+'">'+vOf(n,x,base(n.b).type)+'%</b>'}).join(' ')+(n.sp?' ★':'')+'</div>'}
+function efIcons(uid){try{var ii=it(uid);if(ii&&SOCK.indexOf(ii.type)>=0&&sockN(ii)){return '<div style="font-size:.55rem">'+gmOf(uid).map(function(k){return gemDot(k,12)}).join(' ')+'</div>'}}catch(e){}var n=efOf(uid);if(!n||!n.e.length)return '';return '<div style="font-size:.55rem;color:#cdb">'+n.e.map(function(x){return EE[x.e][0]+'<b style="color:'+EQC[x.q]+'">'+vOf(n,x,base(n.b).type)+'%</b>'}).join(' ')+(n.sp?' ★':'')+'</div>'}
 function efHtml(uid,edit){var n=efOf(uid);if(!n)return '';var b=base(n.b),t=b.type,c=WCL[t],bm=BM[t],k2=n.sp==='kraft'?2:1,h='';
  if(!n.e.length)return '<div style="font-size:.7rem;color:#a08060;padding:6px">Dieser Gegenstand hat keine Effekt-Plätze (ab Grün).</div>';
  n.e.forEach(function(x,j){var v=vOf(n,x,t),lk=edit&&n.k[j];
@@ -1389,7 +1391,7 @@ function sideD(t,d){if(!t||t.hp<=1||d<1)return;t.hp=Math.max(1,t.hp-Math.round(d
 function healAbs(w,a){a=Math.max(1,Math.round(a));try{if(w==='hero'){if(meta.hp>0){meta.hp=Math.min(meta.maxHp,meta.hp+a);fl('+'+a+' ❤','#6fe08a')}}else if(AH[w]&&AH[w].hp>0)AH[w].hp=Math.min(AH[w].max,AH[w].hp+a)}catch(e){}}
 var WC={};
 function offIds(w){var g=gear(w)||{},r=[];[g[WSK[w]],g.hand,g.book].forEach(function(u){if(u)r.push(u)});return r}
-function strikeFx(w,d0){var ids=offIds(w);if(!ids.length)return 0;var tg=monstersInFight||[],m=tg[0];if(!m)return 0;
+function strikeFx(w,d0){var ids=offIds(w),gR=gemSum(w,'r');if(!ids.length&&!gR)return 0;var tg=monstersInFight||[],m=tg[0];if(!m)return 0;
  var L=[],sps=[],wt='weapon';ids.forEach(function(u){var F=wfx(u);if(!F)return;if((gear(w)||{})[WSK[w]]===u)wt=F.t;F.L.forEach(function(f){L.push(f)});if(F.sp)sps.push(F.sp)});
  var ex=0,all=wt==='staff',T=all?tg:[m],rest=tg.slice(1);WC[w]=(WC[w]||0)+1;var c=WC[w];
  L.forEach(function(f){var v=f.v,x=v/100;
@@ -1420,7 +1422,7 @@ function strikeFx(w,d0){var ids=offIds(w);if(!ids.length)return 0;var tg=monster
  else if(sp==='drei'){if(c%3===0){ex+=d0*2;fl('👊 Dreifachgriff','#ffd24a')}}
  else if(sp==='zecho'){if(c%3===0){ex+=d0;fl('🔁 Zauberecho','#d070ff')}}
  else if(sp==='verb'){ex+=d0*.4}});
- return Math.round(ex)}
+ ex+=d0*gR/100;return Math.round(ex)}
 function gs(mech){var s=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var u=wUid(w);if(!u)return;var F=wfx(u);if(F)F.L.forEach(function(f){if(f.mech===mech)s+=f.v})}catch(e){}});return s}
 var ARS={};
 function armOf(w){var g=(w==='hero'?inventory.equipped:(ai()[w]||{}))||{},A={prot:0,elem:0,life:0,thorn:0,rheal:0,adodge:0,block:0,guard:0,cnt:0,gheal:0,sp:{}},any=false;
@@ -1430,7 +1432,7 @@ var ELM=['hexe','snowman','inferno','dragon1','dragon2','dragon3'];
 window.__kamFightEnd=function(){ARS={};WC={}};
 function teamSp(k){return ['hero','arc','mag'].some(function(w){try{if(!aliveA(w))return false;var A=armOf(w);return A&&A.sp[k]}catch(e){return false}})}
 function goldBonus(){var s=0;try{worn().forEach(function(x){var F=wfx(x.i.id);if(F){F.L.forEach(function(f){if(f.mech==='gold')s+=f.v});if(F.sp==='dieb')s+=50}})}catch(e){}return s}
-window.__kamArmHit=function(w,dmg,m){try{var A=armOf(w);if(!A||dmg<=0)return dmg;var sp=A.sp;
+window.__kamArmHit=function(w,dmg,m){try{var A=armOf(w),gP=gemSum(w,'b'),gD=gemSum(w,'y');if((!A&&!gP&&!gD)||dmg<=0)return dmg;A=A||{prot:0,elem:0,life:0,thorn:0,rheal:0,adodge:0,block:0,guard:0,cnt:0,gheal:0,sp:{}};A.prot+=gP;A.adodge+=gD;var sp=A.sp;
  if(sp.bw&&!ARS[w+'bw']){ARS[w+'bw']=1;fl('🛡️ Bollwerk','#8fd8ff');return 0}
  if(Math.random()*100<Math.min(60,A.adodge)){fl('💨 Ausgewichen','#cfe');return 0}
  if(sp.spiegel&&Math.random()<.25){if(m)sideD(m,dmg);fl('🪞 Zurückgeworfen','#d0b0ff');return 0}
@@ -1442,12 +1444,55 @@ window.__kamArmHit=function(w,dmg,m){try{var A=armOf(w);if(!A||dmg<=0)return dmg
  if(sp.will){var mx=w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||1,cur=w==='hero'?meta.hp:(AH[w]&&AH[w].hp)||0;if(cur<mx*.3)d*=.75}
  var th=A.thorn+(sp.dorn?15:0);if(th>0&&m)sideD(m,d*th/100);
  return Math.max(1,Math.round(d))}catch(e){return dmg}};
-function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var A=armOf(w);if(!A)return;var p=Math.min(A.rheal,15)/10+(A.sp.quell?3:0);if(p>0)healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*p/100);GH+=Math.min(A.gheal,15)/10+(A.sp.bheil?3:0)}catch(e){}});
+function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var A=armOf(w)||{rheal:0,gheal:0,sp:{}};var p=Math.min(A.rheal,15)/10+(A.sp.quell?3:0)+gemSum(w,'g');if(p>0)healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*p/100);GH+=Math.min(A.gheal,15)/10+(A.sp.bheil?3:0)}catch(e){}});
  if(GH>0)['hero','arc','mag'].forEach(function(w){try{if(aliveA(w))healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*GH/100)}catch(e){}})}
+
+/* ---- Juwelen: Sockel statt Zufalls-Fähigkeiten ---- */
+var GC={r:['Rubin','Angriff','#e53935','🔴'],g:['Smaragd','Leben','#43a047','🟢'],b:['Saphir','Schutz','#1e88e5','🔵'],y:['Topas','Ausweichen','#fdd835','🟡']},
+ GV={r:[2,4,7,11,16],g:[.2,.4,.7,1.1,1.6],b:[2,3,5,8,12],y:[2,3,5,7,10]},GCAP={r:150,g:8,b:60,y:40},GTN=['Rau','Geschliffen','Fein','Prächtig','Makellos'],
+ GSN={gruen:1,blau:2,episch:3,legendaer:4,mystisch:4};
+function gemEns(){ens();inventory.gems=inventory.gems||{}}
+function sockN(i){return GSN[i.rarity]||0}
+function gmOf(uid){var n=inventory.inst&&inventory.inst[uid];if(!n)return [];var b=base(n.b);if(!b||SOCK.indexOf(b.type)<0)return [];var c=GSN[b.rarity]||0;if(!n.gm)n.gm=[];while(n.gm.length<c)n.gm.push(0);return n.gm}
+function gv(k){return GV[k[0]][+k[1]-1]}
+function gemSum(w,c){var g=gear(w)||{},s=0;try{for(var t in g){var u=g[t];if(!u)continue;gmOf(u).forEach(function(k){if(k&&k[0]===c)s+=gv(k)})}}catch(e){}return Math.min(GCAP[c],s)}
+function gemTxt(k){var c=GC[k[0]],v=gv(k);return k[0]==='r'?'+'+v+'% Schaden':k[0]==='g'?'Heilt '+v+'% Leben pro Runde':k[0]==='b'?v+'% weniger Schaden':v+'% Ausweichen'}
+function gemDot(k,sz){sz=sz||26;if(!k)return '<span style="display:inline-block;width:'+sz+'px;height:'+sz+'px;border-radius:50%;border:2px dashed #6a5a3a;box-sizing:border-box;vertical-align:middle"></span>';return '<span style="display:inline-block;position:relative;width:'+sz+'px;height:'+sz+'px;vertical-align:middle"><img src="items/gem_'+k+'.webp" alt="" style="width:100%;height:100%;object-fit:contain;mix-blend-mode:screen">'+(sz>=22?'<b style="position:absolute;right:-2px;bottom:-2px;min-width:'+Math.round(sz*.38)+'px;height:'+Math.round(sz*.38)+'px;line-height:'+Math.round(sz*.38)+'px;border-radius:50%;background:#000c;color:#ffe9a0;font:700 '+Math.round(sz*.28)+'px Georgia;text-align:center">'+k[1]+'</b>':'')+'</span>'}
+function gemName(k){return GTN[+k[1]-1]+'er '+GC[k[0]][0]}
+window.__gemGive=function(c,t,n){gemEns();c=c||'rgby'[Math.floor(Math.random()*4)];var k=c+t;inventory.gems[k]=(inventory.gems[k]||0)+(n||1);try{saveInventory()}catch(e){}return ' +'+gemDot(k,16)+' '+GC[c][1]};
+function gemTier(k,boss){var b=Math.min(5,1+Math.floor((k-1)/2));if(boss)return Math.random()<.7?b:Math.max(1,b-1);return k<4?1:k<7?(Math.random()<.5?1:2):Math.max(1,b-rnd(1,2))}
+window.__gemLoot=function(kind,k){var m='';try{k=k||kk();
+ if(kind==='boss'){m+=window.__gemGive(null,gemTier(k,1));if(Math.random()<.5)m+=window.__gemGive(null,gemTier(k,1))}
+ else if(kind==='mon'){if(Math.random()<.1)m+=window.__gemGive(null,gemTier(k,0))}
+ else{var P={wood:[.3,1,1],dia:[1,1,2],legend:[1,2,3],sin:[1,3,5]}[kind]||[0,1,1];if(Math.random()<P[0]){var t=rnd(P[1],P[2]);m+=window.__gemGive(null,t);if(kind==='sin'||kind==='legend')m+=window.__gemGive(null,Math.max(1,t-1))}}}catch(e){}return m};
+var GP=null;
+function gemHtml(uid,info){var i=it(uid),n=sockN(i);if(!n)return '<div style="font-size:.72rem;color:#c8a070;text-align:center;margin:12px 0 2px">Normale Gegenstände haben keinen Sockel. Ab Grün: 1, Blau: 2, Lila: 3, Legendär: 4.</div>';
+ var g=gmOf(uid),h='<div style="font-size:.6rem;color:#9a8cc0;letter-spacing:2px;margin:12px 0 4px">💎 SOCKEL</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">';
+ g.forEach(function(k,j){h+='<span onclick="__gemSock(\''+uid+'\','+j+')" style="cursor:pointer">'+gemDot(k,48)+'</span>'});h+='</div>';
+ g.forEach(function(k){if(k)h+='<div style="font-size:.66rem;color:'+GC[k[0]][2]+'">'+gemName(k)+': '+gemTxt(k)+'</div>'});
+ if(GP&&GP.uid===uid){gemEns();var ks=Object.keys(inventory.gems).filter(function(x){return inventory.gems[x]>0}).sort();
+  h+='<div style="border:1px solid #5a3f8a;border-radius:10px;padding:8px;margin-top:8px;background:#0007"><div style="font-size:.66rem;margin-bottom:6px">Juwel für Sockel '+(GP.j+1)+' wählen:</div>';
+  if(!ks.length)h+='<div style="font-size:.65rem;color:#a08060">Du hast keine Juwelen. Bosse, Kisten und Monster lassen welche fallen.</div>';
+  ks.forEach(function(k){h+='<div onclick="__gemIns(\''+uid+'\','+GP.j+',\''+k+'\')" style="display:flex;gap:8px;align-items:center;padding:5px;cursor:pointer;border-bottom:1px solid #ffffff14">'+gemDot(k,34)+'<span style="font-size:.68rem;flex:1">'+gemName(k)+' ×'+inventory.gems[k]+'<br><span style="opacity:.7">'+gemTxt(k)+'</span></span></div>'});h+='</div>'}
+ else h+='<div style="font-size:.6rem;color:#a08060;text-align:center;margin-top:4px">Tippe auf einen Sockel, um ein Juwel einzusetzen oder zurückzunehmen.</div>';
+ return h}
+window.__gemSock=function(uid,j){var g=gmOf(uid);if(g[j]){gemEns();inventory.gems[g[j]]=(inventory.gems[g[j]]||0)+1;g[j]=0;GP=null;try{saveInventory()}catch(e){}}else GP={uid:uid,j:j};window.__kamInfo(uid)};
+window.__gemIns=function(uid,j,k){gemEns();var g=gmOf(uid);if(!inventory.gems[k]||g[j])return;inventory.gems[k]--;g[j]=k;GP=null;try{saveInventory()}catch(e){}window.__kamInfo(uid)};
+function gemCh(t){return Math.min(98,[90,75,60,45][t-1]+smithLv()*2)}
+function gemForge(){var h='<div style="text-align:center;font-size:.75rem;margin-bottom:8px">💰 Gold: <b>'+(meta?meta.gold:0)+'</b></div><div style="font-size:.7rem;color:#c8a070;line-height:1.5;margin-bottom:8px">Rot = Angriff · Grün = Leben (Heilung) · Blau = Schutz · Gelb = Ausweichen.<br>Verschmelzen: 3 gleiche Juwelen werden 1 Juwel der nächsten Stufe. <b style="color:#ff9a8a">Es kann fehlschlagen, dann sind die 3 Juwelen kaputt und weg.</b> Umwandeln: gleiche Stufe, andere Farbe.</div>';gemEns();
+ var ks=Object.keys(inventory.gems).filter(function(x){return inventory.gems[x]>0}).sort();
+ if(!ks.length)h+='<div style="font-size:.72rem;color:#a08060;text-align:center;padding:14px">Du hast noch keine Juwelen.</div>';
+ ks.forEach(function(k){var t=+k[1],cnt=inventory.gems[k],mc=150*t,cc=80*t;
+  h+='<div style="border:1px solid #5a3f8a;border-radius:10px;padding:8px;margin-bottom:6px;background:#0007"><div style="display:flex;gap:8px;align-items:center">'+gemDot(k,40)+'<div style="flex:1;font-size:.72rem"><b style="color:'+GC[k[0]][2]+'">'+gemName(k)+'</b> ×'+cnt+'<div style="opacity:.75;font-size:.62rem">'+gemTxt(k)+'</div></div></div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px">'+
+  (t<5?'<button class="btn btn-sm" '+(cnt>=3&&meta&&meta.gold>=mc?'':'disabled ')+'onclick="__gemMerge(\''+k+'\')" style="font-size:.6rem">3→1 Stufe '+(t+1)+' · '+gemCh(t)+'% · '+mc+'💰</button>':'<span style="font-size:.6rem;color:#ff9800">MAX</span>')+
+  'rgby'.split('').filter(function(c){return c!==k[0]}).map(function(c){return '<button class="btn btn-sm" '+(meta&&meta.gold>=cc?'':'disabled ')+'onclick="__gemConv(\''+k+'\',\''+c+'\')" style="font-size:.6rem">→'+GC[c][3]+' '+cc+'💰</button>'}).join('')+'</div></div>'});
+ return h}
+window.__gemMerge=function(k){gemEns();var t=+k[1],mc=150*t;if(t>=5||(inventory.gems[k]||0)<3||!meta||meta.gold<mc)return;meta.gold-=mc;inventory.gems[k]-=3;var n=k[0]+(t+1);if(Math.random()*100<gemCh(t)){inventory.gems[n]=(inventory.gems[n]||0)+1;FS.msg='💎 Gelungen! '+gemName(n)}else FS.msg='💥 Fehlgeschlagen. Die 3 Juwelen sind kaputt.';try{saveInventory();updateUI()}catch(e){}forgeUI()};
+window.__gemConv=function(k,c){gemEns();var t=+k[1],cc=80*t;if((inventory.gems[k]||0)<1||!meta||meta.gold<cc)return;meta.gold-=cc;inventory.gems[k]--;var n=c+t;inventory.gems[n]=(inventory.gems[n]||0)+1;FS.msg='💎 Umgewandelt zu '+gemName(n);try{saveInventory();updateUI()}catch(e){}forgeUI()};
 window.__kamInfo=function(uid){var i=it(uid);if(!i)return;var M=document.getElementById('kamInfo');
  if(!M){M=document.createElement('div');M.id='kamInfo';M.style.cssText='position:fixed;inset:0;z-index:100002;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px';M.onclick=function(e){if(e.target===M)M.style.display='none'};document.body.appendChild(M)}
  var col=RARITY_COLOR[i.rarity],q=st(i);
- M.innerHTML='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid '+col+';border-radius:16px;padding:16px;max-width:380px;width:100%;max-height:88vh;overflow:auto;color:#ffe9c4;font-family:Georgia,serif"><div style="display:flex;gap:10px;align-items:center">'+itemIcon(i,52)+'<div><b style="color:'+col+'">'+i.name+'</b><div style="font-size:.65rem;color:#c8a070">'+RARITY_LABEL[i.rarity]+' · '+CN[i.c]+' · <span style="color:#ffd24a">'+stars(i)+'</span></div><div style="font-size:.7rem">'+descOf(i)+'</div></div></div>'+(efHtml(uid,false)||'<div style="font-size:.72rem;color:#c8a070;text-align:center;margin:12px 0 2px">Dieser Gegenstand hat keine Fähigkeit.</div>')+(wearer(uid)?'<button class="btn btn-wide" style="width:100%;margin-top:12px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\';equipItem(\''+uid+'\',\''+wearer(uid)+'\')">Ablegen</button>':'')+'<button class="btn btn-wide" style="width:100%;margin-top:8px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\'">Schließen</button></div>';
+ M.innerHTML='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid '+col+';border-radius:16px;padding:16px;max-width:380px;width:100%;max-height:88vh;overflow:auto;color:#ffe9c4;font-family:Georgia,serif"><div style="display:flex;gap:10px;align-items:center">'+itemIcon(i,52)+'<div><b style="color:'+col+'">'+i.name+'</b><div style="font-size:.65rem;color:#c8a070">'+RARITY_LABEL[i.rarity]+' · '+CN[i.c]+' · <span style="color:#ffd24a">'+stars(i)+'</span></div><div style="font-size:.7rem">'+descOf(i)+'</div></div></div>'+(SOCK.indexOf(i.type)>=0?gemHtml(uid,true):(efHtml(uid,false)||'<div style="font-size:.72rem;color:#c8a070;text-align:center;margin:12px 0 2px">Dieser Gegenstand hat keine Fähigkeit.</div>'))+(wearer(uid)?'<button class="btn btn-wide" style="width:100%;margin-top:12px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\';equipItem(\''+uid+'\',\''+wearer(uid)+'\')">Ablegen</button>':'')+'<button class="btn btn-wide" style="width:100%;margin-top:8px" onclick="document.getElementById(\'kamInfo\').style.display=\'none\'">Schließen</button></div>';
  M.style.display='flex'};
 
 /* ---- Schmiede ---- */
@@ -1471,17 +1516,9 @@ function forgeUI(){
  '<div style="text-align:center;font-size:.75rem;margin-bottom:10px">🔩 Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; '+oimg('blau')+' '+(inventory.orbs.blau||0)+' &nbsp; '+oimg('lila')+' '+(inventory.orbs.lila||0)+' &nbsp; '+oimg('orange')+' '+(inventory.orbs.orange||0)+'</div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  var md=FS.mode==='eff';
- h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','⚒️ Schmelzen'],['eff','✨ Wunderschmiede']].map(function(a){var on=(a[0]==='eff')===md;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
- if(md&&smithLv()<EFLV){h+='<div style="text-align:center;font-size:.8rem;line-height:1.6;padding:16px 8px">🔒 <b style="color:#f0c040">Wunderschmiede</b><br>Hier würfelst du Effekte auf deinen Waffen und Rüstungen.<br>Frei ab <b>Schmiede-Stufe '+EFLV+'</b> (dann kannst du auch Blau schmieden).<br>Du hast Stufe '+smithLv()+'. Baue die Schmiede in der Stadt aus.</div><button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
- if(md){var EB=FS.eb?it(FS.eb):null;if(!EB)FS.eb=null;
-  h+='<div style="text-align:center;font-size:.75rem;margin-bottom:10px">💰 Gold: <b>'+(meta?meta.gold:0)+'</b></div>';
-  if(!EB){h+='<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin-bottom:6px">GEGENSTAND WÄHLEN (Effekte ab Grün)</div>';var cn2=0;
-   sorted().filter(hasE).forEach(function(x){cn2++;h+=card(x,'','__kamEB(\''+x.id+'\')',false)});
-   if(!cn2)h+='<div style="font-size:.7rem;color:#a08060;text-align:center;padding:12px">Du hast noch keinen Gegenstand ab Grün.</div>'}
-  else{var en=efOf(FS.eb),eb=base(en.b),ec=efCost(en,eb),alk=en.k.length&&en.k.every(Boolean);
-   h+=card(EB,'','__kamEB(null)',true)+'<div style="font-size:.7rem;color:#c8a070;margin:8px 0 2px;text-align:center">Tippe 🔓, um eine Fähigkeit zu sperren. Sperren kostet nichts extra.</div>'+efHtml(FS.eb,true)+
-   '<button class="btn btn-wide" '+(alk||!en.e.length||(meta&&meta.gold<ec)?'disabled ':'')+'onclick="__kamER()" style="width:100%;margin-top:12px">🎲 WÜRFELN · '+ec+' 💰</button><div style="text-align:center;font-size:.62rem;color:#c8a070;margin-top:6px">Würfe bei dieser Waffe: '+(en.ro||0)+' · jeder Wurf wird teurer</div>'}
-  h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
+ h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','⚒️ Schmelzen'],['eff','💎 Juwelen-Schmiede']].map(function(a){var on=(a[0]==='eff')===md;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
+ if(md&&smithLv()<EFLV){h+='<div style="text-align:center;font-size:.8rem;line-height:1.6;padding:16px 8px">🔒 <b style="color:#f0c040">Juwelen-Schmiede</b><br>Hier verschmilzt und wandelst du Juwelen um.<br>Frei ab <b>Schmiede-Stufe '+EFLV+'</b> (dann kannst du auch Blau schmieden).<br>Du hast Stufe '+smithLv()+'. Baue die Schmiede in der Stadt aus.</div><button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
+ if(md){h+=gemForge();h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
  if(!B){h+='<div style="font-size:.65rem;color:#c8a070;letter-spacing:2px;margin-bottom:6px">1. BASIS-ITEM WÄHLEN</div>';
   var n=0;sorted().forEach(function(i){n++;h+=card(i,'','__kamFB(\''+i.id+'\')',false)});
   if(!n)h+='<div style="font-size:.7rem;color:#a08060;text-align:center;padding:12px">Du hast noch keine Items zum Schmieden.</div>'}
