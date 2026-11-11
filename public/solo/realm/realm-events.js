@@ -158,7 +158,7 @@ var COL={gruen:'#6fe08a',blau:'#6ab8ff',rot:'#ff7a5a',orange:'#ffb04a',lila:'#c0
 var COMPN={gruen:'fee',blau:'eis',rot:'dae',orange:'bot',lila:'hex'};
 var STARS=[500,1500,5000];
 var CO={
- fee:{n:'Fee',sk:'Feenraub',d:function(L){return 'Entzieht dem Gegner bei jedem Tipp '+(0.8*L).toFixed(1)+' % seines Lebens'}},
+ fee:{n:'Fee',sk:'Feenraub',d:function(L){return 'Entzieht dem Gegner bei jedem Tipp '+Math.min(10,0.5*L).toFixed(1)+' % seines Lebens'}},
  eis:{n:'Eisvogel',sk:'Eiswand',d:function(L){return '+'+Math.min(2,.25*L).toFixed(2)+' s Zeit pro besiegtem Schleim'}},
  dae:{n:'Dämon',sk:'Feuerball',d:function(L){return 'Feuerball bei jedem Tipp: +'+(25*L)+' % Schaden'}},
  bot:{n:'Flugmaschine',sk:'Blitzschlag',d:function(L){return Math.min(60,8*L)+' % Chance auf Doppelschaden pro Tipp'}},
@@ -171,7 +171,7 @@ function lvS(i){return i%3}
 function lvName(i){return SLN[lvC(i)]+' · '+'★'.repeat(lvS(i)+1)}
 function isCl(i){return !!TD().cl[i]}
 function isUn(i){return i===0||isCl(i-1)}
-function hpL(i,w){return Math.round(60*Math.pow(1.5,i)*(1+.1*(w-1))*(w===10?3:1))}
+function hpL(i,w){return Math.round(290*Math.pow(1.6,i)*(1+.15*(w-1))*(w===10?4:1))}
 function coL(c){return TD().co[COMPN[c]]||0}
 function coCost(L){return 15+10*L}
 function coForm(L){return L>=10?3:L>=5?2:1}
@@ -180,11 +180,11 @@ function tapIntro(){
  CAMP.forEach(function(c,ci){
   var cid=COMPN[c],L=coL(c),cost=coCost(L),have=d.sl[c]||0,ok=have>=cost,co=CO[cid];
   h+='<div style="margin-bottom:12px;padding:10px;border:2px solid '+COL[c]+'66;border-radius:14px;background:#0008">'
-  +'<div style="display:flex;align-items:center;gap:10px"><img src="slime/'+c+'_i0.webp" style="width:54px;height:51px;object-fit:contain"><div style="flex:1"><b style="color:'+COL[c]+'">'+SLN[c]+'</b><div style="font-size:.65rem;opacity:.8">Schleim gesammelt: <b>'+fmt(have)+'</b></div></div></div>'
+  +'<div style="display:flex;align-items:center;gap:10px"><img src="slime/'+c+'_i0.webp?v=11g" style="width:54px;height:51px;object-fit:contain"><div style="flex:1"><b style="color:'+COL[c]+'">'+SLN[c]+'</b><div style="font-size:.65rem;opacity:.8">Schleim gesammelt: <b>'+fmt(have)+'</b></div></div></div>'
   +'<div style="display:flex;gap:6px;margin:8px 0">';
   for(var s=0;s<3;s++){var i=ci*3+s,cl=isCl(i),un=isUn(i);
    h+='<div style="flex:1;text-align:center;padding:6px 2px;border:2px solid '+(cl?'#6fe08a':un?'#f0c040':'#444')+';border-radius:10px;background:'+(cl?'#0a3a1a99':'#0006')+';font-size:.62rem;'+(un?'':'opacity:.5')+'"><div onclick="'+(un?'__evTapGo('+i+',0)':'')+'" style="cursor:'+(un?'pointer':'default')+'"><div style="font-size:1rem;color:#ffd24a">'+'★'.repeat(s+1)+'</div>'+(cl?'✓ geschafft':un?'▶ '+fmt(STARS[s])+' 💰':'🔒')+'</div>'+(cl?'<div onclick="__evTapGo('+i+',1)" style="margin-top:4px;padding:3px;border-radius:7px;background:#1a4a8a;color:#cfe8ff;cursor:pointer">⚙ AUTO</div>':'')+'</div>'}
-  h+='</div><div style="display:flex;gap:10px;align-items:center;padding:6px;border-radius:10px;background:#1a0a30"><img src="comp/'+cid+'_'+coForm(Math.max(1,L))+'_i0.webp" style="width:44px;height:44px;object-fit:contain;'+(L?'':'filter:grayscale(1) brightness(.6)')+'"><div style="flex:1"><b style="font-size:.78rem">'+co.n+'</b> <span style="font-size:.62rem;opacity:.75">'+(L?'Stufe '+L:'gesperrt')+' · '+co.sk+'</span><div style="font-size:.62rem;color:#b9a77f">'+co.d(Math.max(1,L))+'</div></div><div onclick="__evCoUp(\''+c+'\')" style="padding:6px 8px;border-radius:9px;border:2px solid '+(ok?'#f0c040':'#555')+';background:'+(ok?'linear-gradient(135deg,#8a0000,#c62000)':'#222')+';font-size:.68rem;font-weight:700;cursor:pointer;text-align:center">'+(L?'Aufwerten':'Freischalten')+'<br>'+cost+' <img src="slime/'+c+'_i0.webp" style="width:16px;height:15px;vertical-align:middle;object-fit:contain"></div></div></div>'});
+  h+='</div><div style="display:flex;gap:10px;align-items:center;padding:6px;border-radius:10px;background:#1a0a30"><img src="comp/'+cid+'_'+coForm(Math.max(1,L))+'_i0.webp?v=11g" style="width:44px;height:44px;object-fit:contain;'+(L?'':'filter:grayscale(1) brightness(.6)')+'"><div style="flex:1"><b style="font-size:.78rem">'+co.n+'</b> <span style="font-size:.62rem;opacity:.75">'+(L?'Stufe '+L:'gesperrt')+' · '+co.sk+'</span><div style="font-size:.62rem;color:#b9a77f">'+co.d(Math.max(1,L))+'</div></div><div onclick="__evCoUp(\''+c+'\')" style="padding:6px 8px;border-radius:9px;border:2px solid '+(ok?'#f0c040':'#555')+';background:'+(ok?'linear-gradient(135deg,#8a0000,#c62000)':'#222')+';font-size:.68rem;font-weight:700;cursor:pointer;text-align:center">'+(L?'Aufwerten':'Freischalten')+'<br>'+cost+' <img src="slime/'+c+'_i0.webp?v=11g" style="width:16px;height:15px;vertical-align:middle;object-fit:contain"></div></div></div>'});
  modal(h)}
 window.__evCoUp=function(c){var d=TD(),L=coL(c),cost=coCost(L);if((d.sl[c]||0)<cost)return;d.sl[c]-=cost;d.co[COMPN[c]]=L+1;sv();if(TS&&!TS.fin)return;tapIntro()};
 function tapStop(){if(TIV){clearInterval(TIV);TIV=null}}
@@ -194,12 +194,12 @@ window.__evTapGo=function(i,auto){
  TS.max=TS.hp=hpL(i,1);tapPaint();tapStop();TIV=setInterval(tapTick,100)};
 function tapPaint(){
  var c=TS.c,boss=TS.w===10,cmp='',n=0;
- CAMP.forEach(function(k){var L=coL(k);if(L>0){var cid=COMPN[k],f=coForm(L);cmp+='<div style="position:absolute;left:'+(8+n*46)+'px;top:'+(44+(n%2)*22)+'px;width:44px;height:44px"><img class="sA" src="comp/'+cid+'_'+f+'_i0.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain"><img class="sB" src="comp/'+cid+'_'+f+'_i1.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain"></div>';n++}});
- var h='<div class="evbar" style="margin-bottom:6px"><span>⏱ <b id="tT">60</b> s</span><span><b>'+lvName(TS.i)+'</b> · Welle <b id="tI">'+TS.w+'</b>/10</span><span><img src="slime/'+c+'_i0.webp" style="width:20px;height:19px;vertical-align:middle;object-fit:contain"> <b id="tS">0</b></span></div>'
+ CAMP.forEach(function(k){var L=coL(k);if(L>0){var cid=COMPN[k],f=coForm(L);cmp+='<div style="position:absolute;left:'+(8+n*46)+'px;top:'+(44+(n%2)*22)+'px;width:44px;height:44px"><img class="sA" src="comp/'+cid+'_'+f+'_i0.webp?v=11g" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain"><img class="sB" src="comp/'+cid+'_'+f+'_i1.webp?v=11g" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain"></div>';n++}});
+ var h='<div class="evbar" style="margin-bottom:6px"><span>⏱ <b id="tT">60</b> s</span><span><b>'+lvName(TS.i)+'</b> · Welle <b id="tI">'+TS.w+'</b>/10</span><span><img src="slime/'+c+'_i0.webp?v=11g" style="width:20px;height:19px;vertical-align:middle;object-fit:contain"> <b id="tS">0</b></span></div>'
  +'<div id="tF" style="position:relative;height:300px;overflow:hidden;border-radius:14px;border:2px solid #f0c04055;background:linear-gradient(#000a,#0004),url(dung/brick.webp) center/150px;touch-action:manipulation;user-select:none;-webkit-user-select:none" onpointerdown="__evTap(event)">'
  +'<div style="position:absolute;left:0;right:0;bottom:0;height:90px;background:linear-gradient(#0008,#0000),url(dung/floor.webp) center/120px;border-top:3px solid #000"></div>'
  +'<div style="position:absolute;left:10px;right:10px;top:8px"><div style="display:flex;justify-content:space-between;font-size:.66rem;text-shadow:0 0 4px #000"><b id="tN">'+(boss?'👑 BOSS ':'')+SLN[c]+'</b><span id="tH"></span></div><div style="height:12px;border-radius:6px;background:#000a;border:2px solid #000;overflow:hidden"><div id="tB" style="height:100%;width:100%;background:linear-gradient(90deg,#d02020,#ff5a3a)"></div></div></div>'+cmp
- +'<img id="tBen" src="h/ben_i0.webp" style="position:absolute;left:6px;bottom:30px;width:150px;filter:drop-shadow(0 5px 5px #000);transition:transform .08s">'
+ +'<img id="tBen" src="h/ben_i0.webp?v=11g" style="position:absolute;left:6px;bottom:30px;width:150px;filter:drop-shadow(0 5px 5px #000);transition:transform .08s">'
  +'<div id="tM" style="position:absolute;right:14px;bottom:36px">'+slimeHTML(c,boss)+'</div>'
  +'<div id="tSl" style="position:absolute;left:120px;top:140px;width:80px;height:8px;border-radius:50%;background:linear-gradient(90deg,#fff0,#fff,#fff0);transform:rotate(-18deg);box-shadow:0 0 14px #fff;opacity:0"></div>'
  +'<div style="position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:.66rem;opacity:.9;text-shadow:0 0 4px #000">'+(TS.auto?'⚙ AUTO-KAMPF läuft':'👆 Tippe aufs Feld: alle greifen an')+'</div></div>'
@@ -208,7 +208,7 @@ function tapPaint(){
  modal(head('💰 SCHLEIM-JAGD','__evTapQuit()')+h);tapHud(true)}
 function slimeHTML(type,boss){
  var n=boss?'boss':type,w=boss?210:176,hh=Math.round(w*.95),st0='position:absolute;inset:0;width:100%;height:100%;object-fit:contain';
- return '<div id="tMs" style="position:relative;width:'+w+'px;height:'+hh+'px"><img class="sA" src="slime/'+n+'_i0.webp" alt="" style="'+st0+'"><img class="sB" src="slime/'+n+'_i1.webp" alt="" style="'+st0+'"><img class="sH" src="slime/'+n+'_h.webp" alt="" style="'+st0+'"></div>'}
+ return '<div id="tMs" style="position:relative;width:'+w+'px;height:'+hh+'px"><img class="sA" src="slime/'+n+'_i0.webp?v=11g" alt="" style="'+st0+'"><img class="sB" src="slime/'+n+'_i1.webp?v=11g" alt="" style="'+st0+'"><img class="sH" src="slime/'+n+'_h.webp?v=11g" alt="" style="'+st0+'"></div>'}
 function tdmg(){return t0()*(TS.bf.rage>0?2:1)}
 function tapHud(full){
  if(!TS)return;var e;
@@ -218,11 +218,11 @@ function tapHud(full){
  var sk='';SK.forEach(function(s){var cd=TS.cd[s[0]],act=TS.bf[s[0]]>0;sk+='<div onclick="__evSkill(\''+s[0]+'\')" style="flex:1;text-align:center;padding:6px 2px;border:2px solid '+(cd>0?'#555':act?'#6fe08a':'#ffd24a')+';border-radius:12px;background:#0009;font-size:.58rem;cursor:pointer"><div style="font-size:1.3rem">'+s[1]+'</div>'+s[2]+'<div style="opacity:.75">'+(act?'aktiv':cd>0?Math.ceil(cd/1000)+' s':'bereit')+'</div></div>'});
  e=$('tSk');if(e)e.innerHTML=sk}
 function tapKill(){
- var boss=TS.w===10,y=[1,2,4][TS.star]*(boss?3:1)*(TS.bf.gold>0?2:1),d=TD();
+ var boss=TS.w===10,y=boss?[1,2,3][TS.star]*2:(Math.random()<.25?[1,2,3][TS.star]:0),d=TD();y*=(TS.bf.gold>0?2:1);
  TS.kills++;TS.got+=y;d.sl[TS.c]=(d.sl[TS.c]||0)+y;
  var eL=coL('blau');if(eL>0)TS.ms+=Math.min(2000,250*eL);
- tapFloat('+'+y,'#ffd24a');
- try{var f=$('tF'),mm=$('tM');if(f&&mm&&f.children.length<30){var gh=document.createElement('img');gh.src='slime/'+(boss?'boss':TS.c)+'_d.webp';gh.style.cssText='position:absolute;right:'+(boss?4:14)+'px;bottom:36px;width:'+(boss?210:176)+'px;pointer-events:none;transition:opacity .55s,transform .55s;z-index:3';f.appendChild(gh);setTimeout(function(){gh.style.opacity='0';gh.style.transform='translateY(14px)'},60);setTimeout(function(){if(gh.parentNode)gh.parentNode.removeChild(gh)},640)}}catch(e){}
+ if(y>0)tapFloat('+'+y,'#ffd24a');
+ try{var f=$('tF'),mm=$('tM');if(f&&mm&&f.children.length<30){var gh=document.createElement('img');gh.src='slime/'+(boss?'boss':TS.c)+'_d.webp?v=11g';gh.style.cssText='position:absolute;right:'+(boss?4:14)+'px;bottom:36px;width:'+(boss?210:176)+'px;pointer-events:none;transition:opacity .55s,transform .55s;z-index:3';f.appendChild(gh);setTimeout(function(){gh.style.opacity='0';gh.style.transform='translateY(14px)'},60);setTimeout(function(){if(gh.parentNode)gh.parentNode.removeChild(gh)},640)}}catch(e){}
  TS.w++;
  if(TS.w>10){tapEnd(true);return}
  TS.max=TS.hp=hpL(TS.i,TS.w);var m=$('tM');if(m)m.innerHTML=slimeHTML(TS.c,TS.w===10);var n=$('tN');if(n)n.innerHTML=(TS.w===10?'👑 BOSS ':'')+SLN[TS.c]}
@@ -234,12 +234,12 @@ function tapHit(d,crit){
 window.__evTap=function(ev){
  if(!TS||TS.fin)return;
  var cr=Math.random()<.08+(TS.bf.frost>0?.3:0),base=tdmg(),d=base*(cr?3:1);
- var b=$('tBen');if(b){b.src='h/ben_at.webp';b.style.transform='translateX(26px)';setTimeout(function(){var q=$('tBen');if(q){q.src='h/ben_i0.webp';q.style.transform=''}},120)}
+ var b=$('tBen');if(b){b.src='h/ben_at.webp';b.style.transform='translateX(26px)';setTimeout(function(){var q=$('tBen');if(q){q.src='h/ben_i0.webp?v=11g';q.style.transform=''}},120)}
  var s=$('tSl');if(s){s.style.opacity='1';setTimeout(function(){var q=$('tSl');if(q)q.style.opacity='0'},90)}
  var x=0,L;
  if((L=coL('rot'))>0)x+=base*.25*L;
  if((L=coL('orange'))>0&&Math.random()*100<Math.min(60,8*L))x+=base;
- if((L=coL('gruen'))>0)x+=TS.max*.008*L;
+ if((L=coL('gruen'))>0)x+=TS.max*Math.min(.10,.005*L);
  tapHit(d+x,cr);while(TS.hp<=0&&!TS.fin)tapKill();if(TS&&!TS.fin)tapHud(false)};
 window.__evSkill=function(k){
  if(!TS||TS.fin||TS.cd[k]>0)return;var s=SK.filter(function(x){return x[0]===k})[0];TS.cd[k]=s[3];
@@ -263,9 +263,9 @@ function tapEnd(win){
  try{log('<span style="color:#cfd6e0">Schleim-Jagd '+lvName(i)+': '+(win?'geschafft':'Zeit um')+', +'+TS.got+' Schleim</span>')}catch(e){}
  if(TS.auto&&TS.keepAuto!==false){var a=i;setTimeout(function(){if(TS&&TS.fin&&TS.auto&&$('tF'))window.__evTapGo(a,1)},1200);return}
  var nx=i+1<15&&isUn(i+1)?i+1:-1;
- modal(head('💰 SCHLEIM-JAGD','__evOpen()')+'<div style="padding:16px;border:2px solid '+(win?'#6fe08a':'#f0c040')+';border-radius:14px;background:#3a2a0a66;text-align:center"><b style="color:'+(win?'#6fe08a':'#f0c040')+';font-size:1.15rem">'+(win?'Geschafft!':'Zeit um!')+'</b><div style="font-size:.85rem;margin:6px 0">'+lvName(i)+' · <b>'+TS.kills+'/10</b> Wellen</div>'+rw+'<div style="font-size:.9rem;margin-top:6px"><img src="slime/'+TS.c+'_i0.webp" style="width:28px;height:26px;vertical-align:middle;object-fit:contain"> <b>+'+fmt(TS.got)+'</b> Schleim ('+fmt(d.sl[TS.c]||0)+' gesamt)</div></div>'
+ modal(head('💰 SCHLEIM-JAGD','__evOpen()')+'<div style="padding:16px;border:2px solid '+(win?'#6fe08a':'#f0c040')+';border-radius:14px;background:#3a2a0a66;text-align:center"><b style="color:'+(win?'#6fe08a':'#f0c040')+';font-size:1.15rem">'+(win?'Geschafft!':'Zeit um!')+'</b><div style="font-size:.85rem;margin:6px 0">'+lvName(i)+' · <b>'+TS.kills+'/10</b> Wellen</div>'+rw+'<div style="font-size:.9rem;margin-top:6px"><img src="slime/'+TS.c+'_i0.webp?v=11g" style="width:28px;height:26px;vertical-align:middle;object-fit:contain"> <b>+'+fmt(TS.got)+'</b> Schleim ('+fmt(d.sl[TS.c]||0)+' gesamt)</div></div>'
  +(nx>=0&&win?'<div class="evb" style="margin-top:14px" onclick="__evTapGo('+nx+',0)">▶ NÄCHSTES LEVEL</div>':'')+'<div class="evb" style="margin-top:8px'+(win?';opacity:.85':'')+'" onclick="__evTapGo('+i+',0)">↻ NOCHMAL</div><div class="evb" style="margin-top:8px;opacity:.8" onclick="__evPlay(\'tap\')">KARTE &amp; BEGLEITER</div>')}
 window.__evTapQuit=function(){if(TS&&!TS.fin){TS.fin=true;TS.auto=false;tapStop();sv()}tapIntro()};
 window.__evDbg=function(){return{MM:MM,TS:TS,BD:BD,plan:plan}};
-;window.__ver=window.__ver||{};window.__ver['evt']='11-11g';
+;window.__ver=window.__ver||{};window.__ver['evt']='11-11j';
 })();
