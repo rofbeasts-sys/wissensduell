@@ -1093,6 +1093,10 @@ window.__kamChest=function(type,cfg){
  var ir={wood:[1,2],dia:[2,5],legend:[5,10],sin:[10,18]}[type]||[1,2];
  m+=loot(rnd(ir[0],ir[1]),{wood:{},dia:{blau:10},legend:{blau:25,lila:8},sin:{blau:30,lila:20,orange:6}}[type]||{});m+=window.__gemLoot(type);return m};
 
+window.__kamEvtItem=function(r){try{var T=['helm','armor','hand','boots','cape','amulet'],P=ITEMS.filter(function(x){return x.rarity===r&&!x.m&&!x.fx&&T.indexOf(x.type)>=0});if(!P.length)return '';var b=P[Math.floor(Math.random()*P.length)],rr=giveOrSell(b.id,condRoll(40,0));
+ if(rr.sold)return ' <span style="color:#e0c070">Beutel voll: '+rr.name+' verkauft +'+rr.sold+'</span>';var i=rr.item;try{showItemPopup({name:i.name+' · '+CN[i.c],rarity:i.rarity,type:i.type,desc:descOf(i)})}catch(e){}return ' <span style="color:'+RARITY_COLOR[i.rarity]+'">+ '+i.name+' ['+RARITY_LABEL[i.rarity]+']</span>'}catch(e){return ''}};
+window.__kamEvtK=function(){try{return Math.max(1,(inventory.stats&&inventory.stats.maxBoss||0)+1)}catch(e){return 1}};
+
 /* ---- Heldenabteil ---- */
 var SL={hero:['helm','armor','hand','boots','amulet','ring','cape','shield','weapon'],arc:['helm','armor','hand','boots','amulet','ring','cape','quiver','bow'],mag:['helm','armor','hand','boots','amulet','ring','cape','book','staff']},XT={shield:'hero',quiver:'arc',book:'mag'};
 var NM={hero:'Ben',arc:'Elfa',mag:'Kalifa',brutus:'Brutus',jeffrey:'Jeffrey',berta:'Berta',jamal:'Jamal',luna:'Luna'},NN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},FT='all',FR='all',HF=function(w,f){return w==='hero'?(window.__benSkin&&window.__benSkin()==='rick'?'run'+(f%2)+'.png':'h/ben_i'+(f%2)+'.webp'):'h/'+(w==='arc'?'elf':'kal')+'_i'+(f%2)+'.webp'},NEED={hero:0,arc:5,mag:30},PRT={hero:'items/p_ben.webp',arc:'items/p_elfa.webp',mag:'items/p_kalifa.webp'};
@@ -1465,6 +1469,7 @@ window.__gemLoot=function(kind,k){var m='';try{k=k||kk();
  if(kind==='boss'){m+=window.__gemGive(null,gemTier(k,1));if(Math.random()<.5)m+=window.__gemGive(null,gemTier(k,1))}
  else if(kind==='mon'){if(Math.random()<.1)m+=window.__gemGive(null,gemTier(k,0))}
  else{var P={wood:[.3,1,1],dia:[1,1,2],legend:[1,2,3],sin:[1,3,5]}[kind]||[0,1,1];if(Math.random()<P[0]){var t=rnd(P[1],P[2]);m+=window.__gemGive(null,t);if(kind==='sin'||kind==='legend')m+=window.__gemGive(null,Math.max(1,t-1))}}}catch(e){}return m};
+window.__gemDot=gemDot;window.__gemName=gemName;
 var GP=null;
 function gemHtml(uid,info){var i=it(uid),n=sockN(i);if(!n)return '<div style="font-size:.72rem;color:#c8a070;text-align:center;margin:12px 0 2px">Normale Gegenstände haben keinen Sockel. Ab Grün: 1, Blau: 2, Lila: 3, Legendär: 4.</div>';
  var g=gmOf(uid),h='<div style="font-size:.6rem;color:#9a8cc0;letter-spacing:2px;margin:12px 0 4px">💎 SOCKEL</div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">';
