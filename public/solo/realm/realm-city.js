@@ -7,7 +7,7 @@ var B=[
  {id:'dia',   ic:'💎', n:'Diamantenmine', d:'Bringt Diamanten pro Stunde',   max:20, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:70,y:10},
  {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2% Erfolgschance beim Schmieden pro Stufe',          max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:42,y:30},
  {id:'house', ic:'🏠', n:'Kaserne',       d:'+15 Leben pro Stufe',           max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:10,y:46},
- {id:'bank',  ic:'🏦', n:'Schatzhaus',    d:'+4% Gold im Kampf und +2,5% besserer Loot pro Stufe',   max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:72,y:46},
+ {id:'bank',  ic:'🏦', n:'Marktplatz',    d:'+4% Gold im Kampf und +2,5% besserer Loot pro Stufe. Im Marktplatz-Shop: bessere Angebote (weniger Grün, mehr Lila und Legendär, bessere Zustände) und +6% tägliche Münzen pro Stufe',   max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:72,y:46},
  {id:'tower', ic:'🗼', n:'Magieturm',      d:'Lagert mehr Offline-Ertrag (4 Std. am Anfang, +0,8 Std. pro Stufe, max. 12 Std.)', max:10, cost:function(l){return Math.round(500*Math.pow(1.45,l));}, cur:'g', x:40,y:62},
  {id:'arena', ic:'⚔️', n:'Arena',         d:'Gegner schlagen 5% schwächer pro Stufe (Stufe 10: halbe Kampfkraft)', max:10, cost:function(l){return Math.round(1500*Math.pow(1.6,l));}, cur:'g', x:14,y:76},
  {id:'camp',  ic:'🔥', n:'Lagerfeuer',    d:'Mehr Lagerfeuer im Lauf: heilen 40% +6% pro Stufe, öfter pro Stufe', max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:68,y:76}
@@ -20,6 +20,7 @@ window.cityBonus=function(k){
   if(k==='hp')return lv('house')*15;
   if(k==='loot')return lv('bank')*2.5;
   if(k==='gold')return 1+lv('bank')*0.04;
+  if(k==='market')return lv('bank');
   if(k==='arena')return Math.min(0.5,lv('arena')*0.05);
   return 0;
 };
@@ -115,7 +116,8 @@ window.cityCollect=function(silent){
 
 /* ---------- Magieturm: Offline-Farmen ---------- */
 var OFFK='robOffLast',OFFMIN=2*60000;
-function offTouch(){if(document.hidden)return;try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}
+var chk=false;
+function offTouch(){if(document.hidden||!chk)return;try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}
 function offCalc(){
   var t=lv('tower');if(t<1)return null;
   var last=0;try{last=+localStorage.getItem(OFFK)||0}catch(e){}if(!last)return null;
@@ -159,7 +161,11 @@ function offShow(){
 }
 window.__cityOff=offShow;window.__cityOffInfo=function(){var t=lv('tower'),o=null;try{o=offCalc()}catch(e){}return {tower:t,ready:!!o,h:o?o.h:0,k:o?o.k:0}};
 setInterval(offTouch,20000);
-document.addEventListener('visibilitychange',function(){if(document.hidden){try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}else setTimeout(offShow,400)});
-addEventListener('pagehide',function(){try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}});
-(function(){var n=0,iv=setInterval(function(){n++;var lo=document.getElementById('loginOverlay'),up=!lo||getComputedStyle(lo).display==='none';if(up||n>60){clearInterval(iv);setTimeout(function(){var o=localStorage.getItem(OFFK);if(!o)offTouch();else offShow()},700)}},300)})();
+document.addEventListener('visibilitychange',function(){if(!chk)return;if(document.hidden){try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}else setTimeout(offShow,400)});
+addEventListener('pagehide',function(){if(!chk)return;try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}});
+/* Erst pruefen, wenn eingeloggt und die Stadt geladen ist. Vorher wird die Zeit nie ueberschrieben. */
+(function(){var up=0,iv=setInterval(function(){var lo=document.getElementById('loginOverlay');if(lo&&getComputedStyle(lo).display!=='none')return;up++;
+ var o=null;try{o=localStorage.getItem(OFFK)}catch(e){}
+ if(!o){chk=true;clearInterval(iv);offTouch();return}
+ if(lv('tower')>=1||up>25){chk=true;clearInterval(iv);offShow()}},1000)})();
 })();

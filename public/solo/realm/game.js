@@ -435,11 +435,20 @@ function getWorldBossNum() {
 function getTotalBossesDefeated() {
   return Object.values(heroData).reduce((s,h) => s + h.bossKills, 0);
 }
+// Gegner passen sich an die Ausruestung an (ab Kammer 2): je staerker Held + Gear, desto staerker die Gegner
+function _gearScale() {
+  try {
+    if (!meta || (meta.round || 1) < 11) return 1;
+    const k = Math.ceil(meta.round / 10);
+    const P = meta.attack + meta.maxHp / 4, E = 54 * k;
+    return Math.min(1.8, Math.max(1, Math.pow(P / E, 0.7)));
+  } catch (e) { return 1; }
+}
 function getWorldBossStats(bossNum) {
   const _pm = 1 + ((typeof prestigeData !== 'undefined' && prestigeData.count) || 0) * 0.12;
   return {
-    hp:  Math.floor((1000 + (bossNum - 1) * 800) * _pm),
-    atk: Math.max(1, Math.floor((25   + (bossNum - 1) * 20) * _pm * (1 - ((typeof cityBonus === 'function' ? cityBonus('arena') : 0) || 0)))),
+    hp:  Math.floor((1000 + (bossNum - 1) * 800) * _pm * _gearScale()),
+    atk: Math.max(1, Math.floor((25   + (bossNum - 1) * 20) * _pm * _gearScale() * (1 - ((typeof cityBonus === 'function' ? cityBonus('arena') : 0) || 0)))),
     gold: 100  * bossNum,
     diamonds: Math.max(10, 10 + (bossNum - 1) * 5)
   };
@@ -655,6 +664,7 @@ function createMonster(type, isBoss) {
   if (isBoss) { hp *= 4; atk = Math.floor(atk * 2); gold *= 3; }
   { const _ar = (typeof cityBonus === 'function' ? cityBonus('arena') : 0) || 0; atk = Math.max(1, Math.floor(atk * (1 - _ar))); }
   { const _pm = 1 + ((typeof prestigeData !== 'undefined' && prestigeData.count) || 0) * 0.12; hp = Math.floor(hp * _pm); atk = Math.floor(atk * _pm); }
+  { const _gs = _gearScale(); if (_gs > 1) { hp = Math.floor(hp * _gs); atk = Math.floor(atk * _gs); } }
   // Ab Kammer 2 (Runde 11+): normale Gegner mindestens halb so stark wie der Drachen-Boss der Runde
   if (!isBoss && !createMonster._r && (meta.round || 1) >= 11) {
     createMonster._r = 1;
@@ -2568,7 +2578,7 @@ function closeDiaShop() { document.getElementById('diaShopModal').style.display 
 function renderDiaShop() {
   var el = document.getElementById('diaShopList');
   if (!el) return;
-  el.innerHTML = DIA_ATTRS.map(function(a) {
+  el.innerHTML = DIA_ATTRS.filter(function() { return false; }).map(function(a) {
     var lv = getDiaAttrLevel(a.id);
     var maxed = lv >= a.maxLv;
     var cost = maxed ? 0 : a.costs[lv];
