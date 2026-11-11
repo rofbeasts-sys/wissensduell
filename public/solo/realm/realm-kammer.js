@@ -1168,7 +1168,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
 
 /* ---- Tagesangebot ---- */
 (function(){
- var DK='robDaily',PR={gruen:3000,blau:12000,episch:60000,legendaer:300000},OP={blau:15000,lila:80000,orange:400000};
+ var DK='robDaily',PR={gruen:100,blau:400,episch:2000,legendaer:10000},OP={blau:15000,lila:80000,orange:400000};
  function today(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
  function seedRnd(str){var h=1779033703^str.length;for(var i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}var a=h>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
  function sv(d){try{localStorage.setItem(DK,JSON.stringify(d))}catch(e){}}
@@ -1184,7 +1184,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
  function st(){var d;try{d=JSON.parse(localStorage.getItem(DK)||'{}')}catch(e){d={}}if(d.d!==today()||d.v!==2){var cl=d.d===today()?d.claimed:0;d={d:today(),v:2,claimed:cl,bought:[],O:gen()};sv(d)}return d}
  function ML(){try{return cityBonus('market')||0}catch(e){return 0}}
  function pr(o){return o.p}
- function gm(){return Math.round(5000*Math.max(1,(K&&K.k)||1)*(1+.06*ML()))}
+ function gm(){return Math.round(100*Math.pow(15,Math.min(15,ML())/15))}
  function pay(p){if(meta.gold<p){toast('Zu wenig Münzen ('+p+')');return false}meta.gold-=p;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}try{updateUI()}catch(e){}return true}
  function rw(){var L=Math.min(15,ML()),o={g:gm(),iron:L>=3?(L-2)*5:0,orbs:{},souls:L>=12?L-11:0};if(L>=6)o.orbs.blau=1;if(L>=10)o.orbs.lila=1;if(L>=15)o.orbs.orange=1;return o}
  function rwTxt(o){var t=['💰 '+o.g];if(o.iron)t.push('🔩 '+o.iron);for(var k in o.orbs)t.push(ORB[k][2]+' '+o.orbs[k]);if(o.souls)t.push('💜 '+o.souls);return t.join(' · ')}
@@ -1768,3 +1768,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     }catch(e){window.__kamEtg=etg||0;try{oOC.apply(window,[type])}finally{window.__kamEtg=0}}
   };
 })();
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-11c';
+setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]==='11-11c'?'✓':'✗ alt'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);

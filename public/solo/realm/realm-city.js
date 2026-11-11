@@ -169,3 +169,4 @@ addEventListener('pagehide',function(){if(!chk)return;try{localStorage.setItem(O
  if(!o){chk=true;clearInterval(iv);offTouch();return}
  if(lv('tower')>=1||up>25){chk=true;clearInterval(iv);offShow()}},1000)})();
 })();
+;window.__ver=window.__ver||{};window.__ver['city']='11-11c';

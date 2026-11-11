@@ -3314,3 +3314,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
+;window.__ver=window.__ver||{};window.__ver['game']='11-11c';

@@ -14,7 +14,7 @@ Ref.prototype.once=function(){
   if(/\/state$/.test(p)) return api("/api/realm/load",{}).then(function(r){ window.__bpLoadOk=!!(r&&r.ok); return snap(r&&r.ok?r.state:null); });
   return Promise.resolve(snap(null));
 };
-Ref.prototype.on=function(ev,cb){ var self=this; function go(){ self.once().then(cb); } go(); setInterval(go,60000); };
+Ref.prototype.on=function(ev,cb){ var self=this; var tries=0; function go(){ self.once().then(function(s){ cb(s); if(/\/state$/.test(self.path)&&!window.__bpLoadOk&&tries<10){ tries++; setTimeout(go,4000); } }); } go(); setInterval(go,60000); };
 Ref.prototype.set=function(v){
   var p=this.path;
   if(p.indexOf("leaderboard/")===0) return api("/api/realm/score",{entry:v});
@@ -24,8 +24,9 @@ Ref.prototype.set=function(v){
 window.db={ ref:function(p){ return new Ref(p); } };
 var cbs=[];
 function fire(){ cbs.forEach(function(cb){ cb(me); }); }
-function init(){
-  if(!PP||!PP.tfHasAccount||!PP.tfHasAccount()){ me=null; fire(); return; }
+function init(n){
+  n=n||0;
+  if(!PP||!PP.tfHasAccount||!PP.tfHasAccount()){ if(n===0){ me=null; fire(); } if(PP&&n<30) setTimeout(function(){ init(n+1); },1500); return; }
   api("/api/session",{}).then(function(r){
     var name=r&&r.ok&&r.profile&&r.profile.username;
     if(name){ window.bpUser=name; try{ localStorage.setItem("robPlayerName",name); }catch(e){} }
@@ -41,3 +42,4 @@ window.auth={
 };
 window.firebase={ auth:{ GoogleAuthProvider:function(){} } };
 })();
+;window.__ver=window.__ver||{};window.__ver['shim']='11-11c';

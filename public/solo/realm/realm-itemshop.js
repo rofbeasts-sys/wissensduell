@@ -51,3 +51,4 @@ else{var ie=document.createElement('div');ie.style.cssText='margin-bottom:10px';
 var own=localStorage.getItem('robRickOwn')==='1',on=window.__benSkin()==='rick',r=document.createElement('div');r.id='rickRow';r.style.cssText='border:2px solid #4a6a9a;border-radius:12px;padding:10px;margin-top:10px;background:#0a1220;display:flex;align-items:center;gap:10px';
 r.innerHTML='<img src="run0.png" style="height:70px"><div style="flex:1;text-align:left"><div style="color:#8fd8ff;font-weight:700">Zero</div><small style="color:#aab">❓ ❓ ❓ &nbsp; Werte: ???</small></div><button class="btn btn-sm" onclick="__rickBuy()">'+(own?(on?'Ben wählen':'Zero wählen'):'🪙 500.000')+'</button>';el.appendChild(r)}}catch(e){}};
 })();
+;window.__ver=window.__ver||{};window.__ver['itemshop']='11-11c';
