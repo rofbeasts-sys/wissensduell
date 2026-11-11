@@ -36,7 +36,6 @@ function draw(fm){
     h+='<div class="r">'+(ic?'<img src="'+ic+'">':'<div class="e">✨</div>')+'<div class="i"><b>'+b.name+'</b><small>'+(TL[b.type]||b.type)+' · '+(b.desc||'')+'</small></div><div class="bt'+(meta.gold>=PRICE?'':' off')+'" onclick="__kamShopBuy(\''+b.id+'\')">💰 '+PRICE+'</div></div>'});
   m.innerHTML=h+'</div>'}
 window.__kamShop=function(){draw(true);document.getElementById('kamShop').style.display='flex'};window.__kamShopInto=function(el){el.id='kamShopEmbed';el.className='ksx';draw()};
-setInterval(function(){var q=document.getElementById('kamQuick');if(q&&!document.getElementById('kamShopBtn')){var b=document.createElement('button');b.id='kamShopBtn';b.className='btn btn-sm';b.textContent='🛒 ITEM-SHOP';b.onclick=function(){window.__kamShop()};q.appendChild(b)}},900);
 
 window.__benSkin=function(){try{return (localStorage.getItem('robRickOwn')==='1'&&localStorage.getItem('robSkin')==='rick')?'rick':'new'}catch(e){return 'new'}};
 window.__rickBuy=function(){try{var P=500000;if(localStorage.getItem('robRickOwn')==='1'){localStorage.setItem('robSkin',window.__benSkin()==='rick'?'new':'rick');window.renderDiaShop();return}

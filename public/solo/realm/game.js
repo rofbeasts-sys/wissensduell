@@ -2597,7 +2597,7 @@ function renderDiaShop() {
   }).join('');
   // Kisten-Shop Sektion
   var chestHtml = '<div style="border-top:1px solid #224;margin-top:10px;padding-top:10px">'
-    + '<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px;text-align:center">KISTEN KAUFEN</div>'
+    + '<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px;text-align:center">KISTEN KAUFEN</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     + [
         { type:'wood',   icon:'<img src="items/chest_wood_0.webp" style="width:44px;height:auto" alt="">', name:'Holzkiste',        color:'#cc8844', cost:60,   desc:'Gold + Item (50%)' },
         { type:'dia',    icon:'<img src="items/chest_dia_0.webp" style="width:44px;height:auto" alt="">', name:'Diamant-Kiste',    color:'#44ddff', cost:300,  desc:'Gold + Dias + Item (85%, bis Blau)' },
@@ -2605,14 +2605,15 @@ function renderDiaShop() {
         { type:'sin',    icon:'<img src="items/chest_sin_0.webp" style="width:44px;height:auto" alt="">', name:'Todsuende-Kiste',  color:'#cc44ff', cost:1200, desc:'Maximum: 150-400 Dias + Gold + Epic Items' },
       ].map(function(c) {
         var canBuy = meta && meta.diamonds >= c.cost;
-        return '<div style="display:flex;align-items:center;gap:8px;padding:7px;border:1px solid ' + (canBuy ? c.color : '#222') + ';border-radius:8px;margin-bottom:5px;background:rgba(0,5,15,0.5)">'
-          + '<span style="font-size:1.1rem;color:' + c.color + ';width:46px;display:flex;justify-content:center">' + c.icon + '</span>'
-          + '<div style="flex:1"><div style="font-size:0.65rem;color:' + c.color + ';font-weight:700">' + c.name + '</div>'
-          + '<div style="font-size:0.55rem;color:#446688">' + c.desc + '</div></div>'
-          + '<button onclick="buyChest(\'' + c.type + '\',' + c.cost + ')" style="font-size:0.6rem;padding:4px 8px;background:' + (canBuy ? 'linear-gradient(135deg,#002244,#003366)' : '#111') + ';border:1px solid ' + (canBuy ? c.color : '#333') + ';border-radius:6px;color:' + (canBuy ? c.color : '#333') + ';cursor:' + (canBuy ? 'pointer' : 'default') + '">' + c.cost + ' Dias</button>'
+        var bc=canBuy?c.color:'#333';
+        return '<div style="border:2px solid '+bc+';border-radius:12px;padding:10px 8px;text-align:center;background:rgba(0,5,15,0.6);opacity:'+(canBuy?1:0.8)+'">'
+          + '<div style="display:flex;justify-content:center">'+c.icon.replace('width:44px','width:110px;height:110px;object-fit:contain')+'</div>'
+          + '<div style="color:'+c.color+';font-weight:700;font-size:0.85rem;margin-top:4px">'+c.name+'</div>'
+          + '<div style="font-size:0.6rem;color:#5f7fa0;min-height:28px;margin:3px 0 8px">'+c.desc+'</div>'
+          + '<button onclick="buyChest(\''+c.type+'\','+c.cost+')" style="width:100%;font-size:0.8rem;padding:7px;background:'+(canBuy?'linear-gradient(135deg,#002244,#003366)':'#111')+';border:1px solid '+bc+';border-radius:8px;color:'+(canBuy?c.color:'#555')+';cursor:'+(canBuy?'pointer':'default')+'">'+c.cost+' Dias</button>'
           + '</div>';
       }).join('')
-    + '</div>';
+    + '</div></div>';
   el.innerHTML += chestHtml;
   var dEl = document.getElementById('diaShopBalance');
   if (dEl && meta) dEl.textContent = meta.diamonds + ' Diamanten';
