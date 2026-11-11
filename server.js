@@ -7505,7 +7505,7 @@ const GAME_DEFS = [
   { id: "braining_brick", name: "Brick Flieger", group: "Solo Games", icon: "✈️" },
   { id: "braining_lane", name: "Realm of Brain", group: "Hauptmenü", icon: "🛡️" },
   { id: "realm_ev_mem", name: "Realm-Event: Schatz-Memory (Juwelen)", group: "Realm Events", icon: "🧠" },
-  { id: "realm_ev_tap", name: "Realm-Event: Münzen-Rausch (Gold, Diamanten, Schmied)", group: "Realm Events", icon: "💰" },
+  { id: "realm_ev_tap", name: "Realm-Event: Schleim-Jagd (Schleim-Juwelen, Upgrades)", group: "Realm Events", icon: "💰" },
   { id: "realm_ev_board", name: "Realm-Event: Schicksals-Brett (Gold, Items, Diamanten)", group: "Realm Events", icon: "🎲" },
   { id: "braining_royale", name: "Brain Royale", group: "Hauptmenü", icon: "🏟️" },
   { id: "braining_hopper", name: "Hüpfer", group: "Solo Games", icon: "⚪" },
