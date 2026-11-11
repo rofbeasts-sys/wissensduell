@@ -4352,6 +4352,14 @@ function realmSave(token, state) {
   saveUsers().catch(() => {});
   return { ok: true };
 }
+function realmReset(token) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  user.realm = user.realm || {};
+  user.realm.state = null; user.realm.at = Date.now(); delete user.realm.entry;
+  saveUsers().catch(() => {});
+  return { ok: true };
+}
 function realmLoad(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
@@ -8139,6 +8147,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/solo/board") result = soloBoard(payload.token, payload.game, payload.diff);
         else if (req.url === "/api/realm/save") result = realmSave(payload.token, payload.state);
         else if (req.url === "/api/realm/load") result = realmLoad(payload.token);
+        else if (req.url === "/api/realm/reset") result = realmReset(payload.token);
         else if (req.url === "/api/realm/score") result = realmScore(payload.token, payload.entry);
         else if (req.url === "/api/realm/board") result = realmBoard(payload.token, payload.n);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
