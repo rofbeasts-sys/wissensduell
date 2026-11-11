@@ -16086,9 +16086,10 @@ document.addEventListener('keydown', e => {
 
 /* ---------- FEEDBACK (Profil-Menue) ---------- */
 let fbKind = '';
-async function openFeedbackModal(){
+let fbPre = '';
+async function openFeedbackModal(pre){
   if(!account || document.getElementById('fbBox')) return;
-  fbKind = '';
+  fbKind = ''; fbPre = (typeof pre === 'string') ? pre : '';
   const d = document.createElement('div'); d.id = 'fbBox';
   d.style.cssText = 'position:fixed;inset:0;z-index:100003;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
   d.innerHTML = `<div style="background:#101a2b;border:2px solid #c6ff3d;border-radius:16px;padding:16px;max-width:400px;width:100%;color:#fff;font-family:system-ui,sans-serif;max-height:94vh;overflow:auto">
@@ -16106,7 +16107,7 @@ function fbPaint(r){
   const K = [['good','👍',L('Gut','Good')],['bad','👎',L('Schlecht','Bad')],['bug','🐞',L('Fehler','Bug')],['idea','💡',L('Idee','Idea')]];
   const mine = (r.mine || []).map(f => `<div style="border-top:1px solid #ffffff22;padding:6px 0;font-size:12px;opacity:.9">${({good:'👍',bad:'👎',bug:'🐞',idea:'💡'})[f.kind] || ''} ${esc(f.text)}${f.rewarded ? ` <b style="color:#c6ff3d">🎁 ${L('belohnt','rewarded')}</b>` : ''}</div>`).join('');
   b.innerHTML = (r.can ? `<div style="display:flex;gap:6px;margin-bottom:8px">${K.map(([k,e,n]) => `<button data-k="${k}" style="flex:1;padding:8px 2px;border-radius:10px;border:1px solid #ffffff33;background:${fbKind===k?'#c6ff3d':'#ffffff10'};color:${fbKind===k?'#10150a':'#fff'};font-weight:800;font-size:12px;cursor:pointer">${e}<br>${n}</button>`).join('')}</div>
-    <input id="fbArea" maxlength="40" placeholder="${L('Welches Spiel? (optional)','Which game? (optional)')}" style="width:100%;box-sizing:border-box;padding:9px;border-radius:10px;border:1px solid #ffffff33;background:#0008;color:#fff;margin-bottom:8px">
+    <input id="fbArea" maxlength="40" value="${esc(fbPre)}" placeholder="${L('Welches Spiel? (optional)','Which game? (optional)')}" style="width:100%;box-sizing:border-box;padding:9px;border-radius:10px;border:1px solid #ffffff33;background:#0008;color:#fff;margin-bottom:8px">
     <textarea id="fbText" maxlength="600" rows="5" placeholder="${L('Dein Feedback …','Your feedback …')}" style="width:100%;box-sizing:border-box;padding:9px;border-radius:10px;border:1px solid #ffffff33;background:#0008;color:#fff;font-family:inherit"></textarea>
     <div id="fbMsg" style="font-size:12px;min-height:16px;color:#ffd45a;margin:4px 0"></div><button id="fbSend" class="btn btn-primary btn-block">${L('SENDEN','SEND')}</button>`
     : `<div style="text-align:center;font-weight:800;padding:8px 0">${r.sent ? '✅ ' + L('Danke! Dein Feedback ist angekommen.','Thanks! Your feedback has arrived.') : L('Heute hast du schon Feedback geschickt. Morgen gern wieder!','You already sent feedback today. Come back tomorrow!')}</div>`)
