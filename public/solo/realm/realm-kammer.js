@@ -198,8 +198,8 @@ function rebuildPage(){
     try{Object.keys(localStorage).forEach(function(k){if(/^rob/.test(k)&&['robPlayerName','robLastHero','robAvatar'].indexOf(k)<0)localStorage.removeItem(k)})}catch(e){}location.reload()};
   if(qp){$('kamProfBody').appendChild(qp)}
   var qk=document.createElement('div');qk.id='kamQuick';
-  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['💎 DIA-SHOP','__kDia'],['🏙️ STADT','showCity'],['🐾 MONSTER','showMonsterLexicon'],['📖 WAFFEN-LEXIKON','__kamWDex']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
-  (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal','monsterLexikonModal','wdexModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
+  [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['🏪 MARKTPLATZ','__kDia'],['🏙️ STADT','showCity'],['🐾 MONSTER','showMonsterLexicon'],['📖 WAFFEN-LEXIKON','__kamWDex'],['🎁 TAGESANGEBOT','__kamDaily']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
+  (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal','monsterLexikonModal','wdexModal','dailyModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
   $('kamProfBody').appendChild(qk);
   var mp=$('menuPanel');if(mp){$('kamProfBody').appendChild(mp);mp.addEventListener('click',function(e){var bt=e.target.closest&&e.target.closest('button');if(bt)setTimeout(closeP,0)})}
   function openP(t){var sp=$('statusPanel'),b=$('kamProfBody');b.insertBefore(sp,b.firstChild);b.insertBefore($('kamQuick'),sp.nextSibling);b.appendChild(rs);pw.dataset.tab=t||'p';sp.style.setProperty('display',pw.dataset.tab==='p'?'block':'none','important');[].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.classList.toggle('on',x.dataset.t===pw.dataset.tab)});pw.classList.add('on');syncFace()}
@@ -216,7 +216,7 @@ function rebuildPage(){
     var m=$('diaShopModal');if(!m)return;
     try{claimPendingDias()}catch(e){}
     var err='';try{renderDiaShop()}catch(e){err=String(e&&e.message||e)}
-    if(err){var l=$('diaShopList');if(l)l.innerHTML='<div style="padding:14px;color:#f88;font-size:.8rem">Der Dia-Shop konnte nicht geladen werden: '+err+'</div>'}
+    if(err){var l=$('diaShopList');if(l)l.innerHTML='<div style="padding:14px;color:#f88;font-size:.8rem">Der Marktplatz konnte nicht geladen werden: '+err+'</div>'}
     m.style.display='flex'};
   window.__kShop=function(){window.__kshop=1;ov.classList.add('kshop');
     try{$('overlayGold').textContent='💰 '+meta.gold+' Gold verfügbar';$('overlayDiamond').textContent='💎 '+meta.diamonds+' Diamanten';updateShopPricesUI();updateAutoRunUI();renderSkillShop()}catch(e){}
@@ -1130,7 +1130,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
   {t:['staff','book'],c:['stoff'],ok:function(){return hlvl()>=30},k:'g_kalifa',m:'Ab jetzt Stäbe, Bücher und Stoffrüstungen (Hüte, Roben) zu finden'},
   {t:['axe'],ok:function(){return clv()>=50},k:'g_jeffrey',m:'Ab jetzt Äxte zu finden'},
   {t:['potion'],s:['stachel'],ok:function(){return clv()>=100},k:'g_berta',m:'Ab jetzt Wurftränke und Stachelschilde zu finden'}];
- function open(id){var b=ITEMS.find(function(x){return x.id===id});if(!b)return true;
+ function open(id){var b=ITEMS.find(function(x){return x.id===id});if(!b)return true;if(b.rarity==='episch'&&!(K&&K.k>=3))return false;if(b.rarity==='legendaer'&&!(K&&K.k>=5))return false;
   for(var i=0;i<G.length;i++){var g=G[i];if(g.t.indexOf(b.type)>=0||(b.cls&&g.c&&g.c.indexOf(b.cls)>=0)||(b.sk&&g.s&&g.s.indexOf(b.sk)>=0))return !!g.ok()}return true}
  window.__syncPools=function(){var got={};try{got=JSON.parse(localStorage.getItem('robGearMsg')||'{}')}catch(e){}var ch=false;
   pools.forEach(function(p,n){var f=full[n].filter(open);p.length=0;f.forEach(function(x){p.push(x)})});
@@ -1138,6 +1138,47 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
   if(ch)try{localStorage.setItem('robGearMsg',JSON.stringify(got))}catch(e){}};
  window.__syncPools();
  setInterval(function(){try{window.__syncPools()}catch(e){}},4000);
+})();
+
+/* ---- Tagesangebot ---- */
+(function(){
+ var DK='robDaily',PR={gruen:3000,blau:12000,episch:60000,legendaer:300000},OP={blau:15000,lila:80000,orange:400000};
+ function today(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+ function seedRnd(str){var h=1779033703^str.length;for(var i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}var a=h>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+ function sv(d){try{localStorage.setItem(DK,JSON.stringify(d))}catch(e){}}
+ function pool(r){var seen={},o=[];[MONSTER_POOL,BOSS_POOL,CHEST_CONFIG.wood.itemPool,CHEST_CONFIG.dia.itemPool,CHEST_CONFIG.legend.itemPool].forEach(function(P){P.forEach(function(id){if(seen[id])return;seen[id]=1;var b=ITEMS.find(function(x){return x.id===id});if(b&&!b.m&&b.rarity===r)o.push(id)})});return o}
+ function gen(){var R=seedRnd('daily'+today()),L=Math.min(15,ML()),pk=function(a){return a[Math.floor(R()*a.length)]},O=[];
+  var CP={gruen:1,blau:1.8,episch:4,legendaer:9};
+  var UN={gruen:0,blau:0,episch:4,legendaer:9};
+  function cond(r){var m=Math.max(0,Math.min(1,(L-UN[r])/8)),pP=(r==='blau'&&L===0)?0:.02+.2*m,pN=.13+.37*m,x=R();return x<pP?2:x<pP+pN?1:0}
+  function rar(slot){var x=R(),pe=L>=4?(slot<4?.02+(L-4)*.02:.08+(L-4)*.04):0,pl=L>=9?(slot<4?.01+(L-9)*.01:.02+(L-9)*.02):0,pb=slot<4?L*.04:1;return x<pl?'legendaer':x<pl+pe?'episch':x<pl+pe+pb?'blau':'gruen'}
+  for(var sl=0;sl<5;sl++){var r=rar(sl),P=pool(r);if(!P.length&&r==='legendaer'){r='episch';P=pool(r)}if(!P.length&&r==='episch'){r='blau';P=pool(r)}if(!P.length){r='gruen';P=pool(r)}
+   var c=cond(r),bi=PR[r]||PR.blau;O.push({k:'i',id:pk(P),c:c,p:Math.round(bi*[1,1.6,2.6][c])})}
+  return O}
+ function st(){var d;try{d=JSON.parse(localStorage.getItem(DK)||'{}')}catch(e){d={}}if(d.d!==today()||d.v!==2){var cl=d.d===today()?d.claimed:0;d={d:today(),v:2,claimed:cl,bought:[],O:gen()};sv(d)}return d}
+ function ML(){try{return cityBonus('market')||0}catch(e){return 0}}
+ function pr(o){return o.p}
+ function gm(){return Math.round(5000*Math.max(1,(K&&K.k)||1)*(1+.06*ML()))}
+ function pay(p){if(meta.gold<p){toast('Zu wenig Münzen ('+p+')');return false}meta.gold-=p;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}try{updateUI()}catch(e){}return true}
+ function rw(){var L=Math.min(15,ML()),o={g:gm(),iron:L>=3?(L-2)*5:0,orbs:{},souls:L>=12?L-11:0};if(L>=6)o.orbs.blau=1;if(L>=10)o.orbs.lila=1;if(L>=15)o.orbs.orange=1;return o}
+ function rwTxt(o){var t=['💰 '+o.g];if(o.iron)t.push('🔩 '+o.iron);for(var k in o.orbs)t.push(ORB[k][2]+' '+o.orbs[k]);if(o.souls)t.push('💜 '+o.souls);return t.join(' · ')}
+ window.__dailyClaim=function(){var d=st();if(d.claimed)return;var o=rw();meta.gold+=o.g;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}
+  if(o.iron||Object.keys(o.orbs).length){ens();inventory.iron=(inventory.iron||0)+o.iron;for(var k in o.orbs)inventory.orbs[k]=(inventory.orbs[k]||0)+o.orbs[k];try{saveInventory()}catch(e){}}
+  if(o.souls){pd().souls+=o.souls;try{savePrestige()}catch(e){}}
+  d.claimed=1;sv(d);try{updateUI()}catch(e){}toast('🎁 Täglich: '+rwTxt(o).replace(/<[^>]*>/g,'')+'!');window.__kamDaily()};
+ window.__dailyBuy=function(i){var d=st(),o=d.O[i];if(!o||d.bought.indexOf(i)>=0)return;if(!pay(pr(o)))return;
+  if(o.k==='i')give(o.id,o.c);else if(o.k==='iron'){ens();inventory.iron=(inventory.iron||0)+o.n;try{saveInventory()}catch(e){}}else{ens();inventory.orbs[o.o]=(inventory.orbs[o.o]||0)+1;try{saveInventory()}catch(e){}}
+  d.bought.push(i);sv(d);toast('✅ Gekauft!');window.__kamDaily()};
+ window.__kamDaily=function(){var d=st(),m=$('dailyModal');if(!m){m=document.createElement('div');m.id='dailyModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816ee;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';document.body.appendChild(m)}
+  var g=gm(),h='<div style="max-width:440px;margin:0 auto"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><button class="btn btn-sm" onclick="document.getElementById(\'dailyModal\').style.display=\'none\';if(window.__fromProf){window.__fromProf=0;var p=document.getElementById(\'kamPf\');if(p)p.click()}">← ZURÜCK</button><b style="font-size:1.05rem">🎁 TAGESANGEBOT</b></div><div style="font-size:.7rem;opacity:.8;margin-bottom:8px">💰 '+meta.gold+' Münzen · jeden Tag neu · Marktplatz Stufe '+ML()+'</div>';
+  h+='<div style="border:1px solid #4caf50;border-radius:10px;padding:10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;background:#0f1d12"><div><b style="color:#6fe08a">Tägliche Belohnung (kostenlos)</b><div style="font-size:.62rem;opacity:.9;margin-top:2px">'+rwTxt(rw())+'</div><div style="font-size:.5rem;opacity:.6;margin-top:3px">Mehr durch den Marktplatz: 🔩 ab Stufe 3 · Blaue Kugel ab 6 · 💜 ab 12 · Lila Kugel ab 10 · Orange Kugel ab 15</div></div>'+(d.claimed?'<span style="font-size:.65rem;opacity:.7">✔ geholt</span>':'<button class="btn btn-sm" onclick="__dailyClaim()">HOLEN</button>')+'</div>';
+  h+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">';
+  d.O.forEach(function(o,i){var bo=d.bought.indexOf(i)>=0,ic,nm,sub,col='#888';
+   if(o.k==='i'){var b=ITEMS.find(function(x){return x.id===o.id});ic=ico(o.id);nm=b.name;col=RARITY_COLOR[b.rarity]||'#888';sub=['Gebraucht','Wie neu','Perfekt'][o.c]+' · '+(b.atk?'+'+b.atk+' ATK':'')+(b.atk&&b.hp?' ':'')+(b.hp?'+'+b.hp+' ❤':'')}
+   else if(o.k==='iron'){ic=null;nm='🔩 '+o.n+' Eisenbarren';sub='Für die Schmiede'}
+   else{ic=ORB[o.o][2];nm=ORB[o.o][1];sub='Zum Aufwerten'}
+   h+='<div style="border:1px solid '+(bo?'#3a3358':col)+';border-radius:10px;padding:8px 6px;text-align:center;background:#1a1330;'+(bo?'opacity:.5':'')+'">'+(o.k==='i'?'<img src="'+ic+'" style="width:52px;height:52px;object-fit:contain">':o.k==='orb'?'<div style="font-size:1.6rem;height:52px;line-height:52px">'+ic+'</div>':'<div style="font-size:1.6rem;height:52px;line-height:52px">🔩</div>')+'<div style="font-size:.58rem;font-weight:700;color:'+col+';margin-top:2px">'+nm+'</div><div style="font-size:.5rem;opacity:.8">'+sub+'</div><div style="margin-top:5px">'+(bo?'<span style="font-size:.6rem">✔ gekauft</span>':'<button class="btn btn-sm" style="font-size:.6rem" onclick="__dailyBuy('+i+')">💰 '+pr(o)+'</button>')+'</div></div>'});
+  h+='</div></div>';m.innerHTML=h;m.style.display='block'};
 })();
 
 /* ---- Waffen-Lexikon ---- */
@@ -1248,7 +1289,7 @@ setInterval(function(){var m=document.getElementById('inventoryModal'),im=docume
 var EQ=[[3,8],[9,14],[15,19],[20,25]],EQN=['Grün','Blau','Lila','Episch'],EQC=['#4caf50','#42a5f5','#ab47bc','#ff9800'];
 var EE={first:['⚡','Schnelle Finger'],dgrip:['👊','Doppelgriff'],kgrip:['💪','Kraftgriff'],tsich:['🎯','Treffsicher'],egrip:['🧤','Eisengriff'],pluen:['🪙','Plünderer'],dzau:['📖','Doppelzauber'],arwis:['🔮','Arkanes Wissen'],sseit:['💨','Schnelle Seiten'],hzau:['💚','Heilzauber'],zsch:['🛡️','Zauberschild'],weis:['🪄','Weisheit'],block:['🛡️','Blocken'],guard:['🤝','Wächter'],cnt:['⚔️','Gegenschlag'],prot:['🛡️','Schutz'],elem:['🔮','Elementschutz'],life:['❤️','Leben'],thorn:['🌵','Dornen'],heal:['💚','Heilung'],dodge:['💨','Ausweichen'],fire:['🔥','Feuer'],ice:['❄️','Eis'],thun:['⚡','Blitz'],air:['🌪️','Wind'],fee:['🧚','Fee'],light:['✨','Licht'],dark:['🌑','Dunkel']};
 var WCL={weapon:{m:1,lab:'Schwert',pool:['fire','ice','thun','air','light','dark']},bow:{m:.8,lab:'Bogen',pool:['fire','ice','thun','air','fee','dark']},staff:{m:.6,lab:'Magie',pool:['fire','ice','thun','air','fee','dark']}};
-var AKT=['helm','armor','cape'],AP=['prot','elem','life','thorn','heal','dodge'],AM={prot:.6,dodge:.6};
+var AKT=['helm','armor','cape'],AP=['prot','elem','life','thorn','dodge'],AM={prot:.6,dodge:.6};
 var NKT=['hand','book','shield','amulet','boots','quiver'];
 function hasE(i){return (WKT.indexOf(i.type)>=0||AKT.indexOf(i.type)>=0||NKT.indexOf(i.type)>=0)&&!i.fx&&SLOTS[i.rarity]>0}
 AKT.forEach(function(t){WCL[t]={m:1,lab:'Rüstung',pool:AP}});
@@ -1286,11 +1327,14 @@ SPL.shield=[['bw','Turmschild','Der erste Treffer jedes Kampfes wird ganz gebloc
 var SLOTS={normal:0,gruen:1,blau:2,episch:3,legendaer:4,mystisch:4};
 function qv(q){return EQ[q][0]+Math.floor(Math.random()*(EQ[q][1]-EQ[q][0]+1))}
 function rq(){var r=Math.random()*100;return r<50?0:r<80?1:r<95?2:3}
-function ne(t){var p=WCL[t].pool,q=rq();return{e:p[Math.floor(Math.random()*p.length)],q:q,p:qv(q)}}
+var MQ={gruen:0,blau:1,episch:2,legendaer:3,mystisch:3};
+function ne(t,r){var p=WCL[t].pool,q=rq();if(r&&MQ[r]!=null)q=Math.min(q,MQ[r]);return{e:p[Math.floor(Math.random()*p.length)],q:q,p:qv(q)}}
 function efOf(uid){ens();var n=inventory.inst&&inventory.inst[uid];if(!n)return null;var b=base(n.b);if(!b||b.fx||(WKT.indexOf(b.type)<0&&AKT.indexOf(b.type)<0&&NKT.indexOf(b.type)<0))return null;
- if(!n.e){var cnt=SLOTS[b.rarity]||0;n.e=[];n.k=[];for(var i=0;i<cnt;i++){n.e.push(ne(b.type));n.k.push(0)}n.ro=0;
+ if(!n.e){var cnt=SLOTS[b.rarity]||0;n.e=[];n.k=[];for(var i=0;i<cnt;i++){n.e.push(ne(b.type,b.rarity));n.k.push(0)}n.ro=0;
   if(RANK.indexOf(b.rarity)>=4&&SPL[b.type])n.sp=SPL[b.type][Math.floor(Math.random()*SPL[b.type].length)][0];
   try{saveInventory()}catch(x){}}
+ if(!n.nh&&n.e&&AKT.indexOf(b.type)>=0){n.nh=1;n.e.forEach(function(x){if(x.e==='heal')x.e=AP[Math.floor(Math.random()*AP.length)]});try{saveInventory()}catch(x){}}
+ if(!n.cq&&n.e){n.cq=1;var mq=MQ[b.rarity];if(mq!=null)n.e.forEach(function(x){if(x.q>mq){x.q=mq;x.p=qv(mq)}});try{saveInventory()}catch(x){}}
  return n}
 function vOf(n,x,t){return Math.max(1,Math.round(x.p*WCL[t].m*(AM[x.e]||1)*(n.sp==='kraft'?2:1)))}
 function wfx(uid){var n=efOf(uid);if(!n)return null;var b=base(n.b),t=b.type,c=WCL[t],bm=BM[t],k2=n.sp==='kraft'?2:1,L=[];
@@ -1368,7 +1412,7 @@ window.__kamArmHit=function(w,dmg,m){try{var A=armOf(w);if(!A||dmg<=0)return dmg
  if(sp.will){var mx=w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||1,cur=w==='hero'?meta.hp:(AH[w]&&AH[w].hp)||0;if(cur<mx*.3)d*=.75}
  var th=A.thorn+(sp.dorn?15:0);if(th>0&&m)sideD(m,d*th/100);
  return Math.max(1,Math.round(d))}catch(e){return dmg}};
-function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var A=armOf(w);if(!A)return;var p=A.rheal/10+(A.sp.quell?3:0);if(p>0)healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*p/100);GH+=A.gheal/10+(A.sp.bheil?3:0)}catch(e){}});
+function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var A=armOf(w);if(!A)return;var p=Math.min(A.rheal,15)/10+(A.sp.quell?3:0);if(p>0)healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*p/100);GH+=Math.min(A.gheal,15)/10+(A.sp.bheil?3:0)}catch(e){}});
  if(GH>0)['hero','arc','mag'].forEach(function(w){try{if(aliveA(w))healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*GH/100)}catch(e){}})}
 window.__kamInfo=function(uid){var i=it(uid);if(!i)return;var M=document.getElementById('kamInfo');
  if(!M){M=document.createElement('div');M.id='kamInfo';M.style.cssText='position:fixed;inset:0;z-index:100002;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px';M.onclick=function(e){if(e.target===M)M.style.display='none'};document.body.appendChild(M)}
@@ -1428,7 +1472,7 @@ window.__kamEM=function(m){FS.mode=m;FS.msg='';forgeUI()};
 window.__kamEB=function(u){FS.eb=u;FS.msg='';forgeUI()};
 window.__kamEL=function(j){var n=efOf(FS.eb);if(!n||smithLv()<EFLV)return;n.k[j]=n.k[j]?0:1;saveInventory();forgeUI()};
 window.__kamER=function(){var n=efOf(FS.eb);if(!n||smithLv()<EFLV)return;var b=base(n.b),c=efCost(n,b);if(!n.e.length||n.k.every(Boolean)||!meta||meta.gold<c)return;
- meta.gold-=c;n.ro=(n.ro||0)+1;n.e=n.e.map(function(x,j){return n.k[j]?x:ne(b.type)});FS.msg='🎲 Neu gewürfelt';saveInventory();try{updateUI()}catch(e){}forgeUI()};
+ meta.gold-=c;n.ro=(n.ro||0)+1;n.e=n.e.map(function(x,j){return n.k[j]?x:ne(b.type,b.rarity)});FS.msg='🎲 Neu gewürfelt';saveInventory();try{updateUI()}catch(e){}forgeUI()};
 window.__kamEU=function(j){var n=efOf(FS.eb);if(smithLv()<EFLV||!n||!n.e[j]||n.e[j].q>=3)return;var c=upCost(n.e[j]);if(!meta||meta.gold<c)return;
  meta.gold-=c;n.e[j].q++;n.e[j].p=qv(n.e[j].q);saveInventory();try{updateUI()}catch(e){}forgeUI()};
 window.__kForge=function(){FS={b:null,f:null,msg:'',mode:FS.mode,eb:null};forgeUI()};
