@@ -438,7 +438,7 @@ function createRoom(hostWs, hostName, language, gameMode) {
 }
 
 function addPlayer(room, ws, id, name) {
-  room.players.set(id, { id, name: cleanStr(name, 20) || "Spieler", ws, teamId: null, connected: true, isBot: false, botTier: null });
+  room.players.set(id, { id, name: cleanStr(name, 20) || "Spieler", ws, teamId: null, connected: true, isBot: false, botTier: null, key: Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2), last: null });
   ws.playerId = id;
   ws.roomCode = room.code;
 }
@@ -486,7 +486,11 @@ function assignNewParticipantToSmallestTeam(room, participant) {
 }
 
 
+const PARTY_TRANSIENT = new Set(["roomUpdate","joined","error","kicked","rejoinFailed","guessAttempt","rankAttempt","slfThumbUpdate","slfHurryUp","nennsBlitzThumbUpdate","nennsBlitzOwnUpdate","orderingHurry","estimateProgress","estimateAck","musicPlayerSubmitted","musicReplayGranted"]);
 function send(ws, msg) {
+  // Letzte Bildschirm-Nachricht pro Party-Spieler merken, damit er nach einem Neuladen
+  // genau dort weitermachen kann (siehe "rejoinRoom").
+  try { if (ws && ws.roomCode && ws.playerId && msg && !PARTY_TRANSIENT.has(msg.type)) { const rm = rooms.get(ws.roomCode); const pl0 = rm && rm.players.get(ws.playerId); if (pl0 && pl0.ws === ws) pl0.last = msg; } } catch (e) { /* ignore */ }
   if (ws && ws.readyState === ws.OPEN) {
     try { ws.send(JSON.stringify(msg)); } catch (e) { /* ignore */ }
   }
@@ -6355,7 +6359,7 @@ const DAILY_REWARDS = { sudoku: { easy: 25, medium: 50, hard: 75 }, cw: { small:
 // Hilfen kosten Muenzen (vom Guthaben, sofort). Preise liegen nur hier; der Client bekommt sie mit dem Raetsel.
 const DAILY_HINTS = { sudoku: { cell: 10 }, cw: { letter: 5, word: 15 }, ws: { start: 5, word: 15 }, wv: { start: 5, word: 15 }, wr: {}, ln: { line: 20 } };
 const DAILY_ORDER = { sudoku: ["easy", "medium", "hard"], cw: ["small", "medium", "big"], ws: ["small", "medium", "big"], wv: ["small", "medium", "big"], wr: ["easy", "medium", "hard"], ln: ["easy", "medium", "hard"] };
-const DAILY_MIN_SECONDS = { "sudoku:easy": 45, "sudoku:medium": 90, "sudoku:hard": 150, "cw:small": 25, "cw:medium": 60, "cw:big": 120, "ws:small": 20, "ws:medium": 45, "ws:big": 80, "wv:small": 15, "wv:medium": 30, "wv:big": 55, "ln:easy": 8, "ln:medium": 15, "ln:hard": 25 };
+const DAILY_MIN_SECONDS = { "sudoku:easy": 30, "sudoku:medium": 60, "sudoku:hard": 100, "cw:small": 10, "cw:medium": 25, "cw:big": 50, "ws:small": 12, "ws:medium": 25, "ws:big": 45, "wv:small": 10, "wv:medium": 20, "wv:big": 35, "ln:easy": 5, "ln:medium": 10, "ln:hard": 18 };
 const DAILY_MIN_SCALE = process.env.DAILY_MIN_SCALE !== undefined ? Number(process.env.DAILY_MIN_SCALE) : 1;
 const dailyCache = new Map();
 let CW_SCHEDULE = null; try { CW_SCHEDULE = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "shared/crosswordSchedule.json"), "utf8")); } catch (e) { console.error("Kreuzwort-Plan nicht geladen:", e.message); }
@@ -6729,7 +6733,7 @@ async function dailyApi(action, payload, lang) {
     if (!user) return { ok: true, correct: true, coins: 0, needLogin: true };
     if (d.solved[skey]) return { ok: true, correct: true, coins: 0, already: true, balance: user.stats.coins || 0 };
     const started = d.started[skey] || 0, minMs = (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * 1000;
-    if (!started || Date.now() - started < minMs * DAILY_MIN_SCALE) return { ok: true, correct: true, coins: 0, tooFast: true };
+    if (!started || Date.now() - started < minMs * DAILY_MIN_SCALE) return { ok: true, correct: true, coins: 0, tooFast: true, waitMs: started ? Math.max(500, Math.ceil(minMs * DAILY_MIN_SCALE - (Date.now() - started)) + 400) : 2000 };
     if (date === today) { // Bestzeit (nur das Tagesraetsel von heute): Clientzeit (ohne Pausen), begrenzt durch die echte Dauer seit Start
       const wallS = (Date.now() - started) / 1000, cl = Number(payload.secs);
       const floorS = Math.max(1, (DAILY_MIN_SECONDS[type + ":" + diff] || 20) * DAILY_MIN_SCALE);
@@ -8377,8 +8381,22 @@ wss.on("connection", (ws, req) => {
 
     if (msg.action === "createRoom") {
       const room = createRoom(ws, cleanStr(msg.name, 20) || "Host", msg.language, msg.gameMode);
-      send(ws, { type: "joined", roomCode: room.code, playerId: ws.playerId, isHost: true });
+      send(ws, { type: "joined", roomCode: room.code, playerId: ws.playerId, isHost: true, key: room.players.get(ws.playerId) && room.players.get(ws.playerId).key });
       pushRoomState(room);
+      return;
+    }
+
+    if (msg.action === "rejoinRoom") {
+      // Nach Neuladen/Verbindungsabbruch: Platz im Party-Raum per geheimem Schluessel zurueckholen
+      if (rlWait("j|" + ws.ip)) return send(ws, { type: "rejoinFailed" });
+      const room = rooms.get(cleanCode(msg.code));
+      const pl = room && room.players.get(String(msg.playerId || ""));
+      if (!room || !pl || pl.isBot || !pl.key || pl.key !== msg.key) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "rejoinFailed" }); }
+      if (pl.ws && pl.ws !== ws) { try { pl.ws.roomCode = null; pl.ws.playerId = null; } catch (e) {} }
+      pl.ws = ws; pl.connected = true; ws.playerId = pl.id; ws.roomCode = room.code;
+      send(ws, { type: "joined", roomCode: room.code, playerId: pl.id, isHost: room.hostId === pl.id, key: pl.key, rejoined: true });
+      pushRoomState(room);
+      if (room.phase !== "lobby" && pl.last) send(ws, pl.last);
       return;
     }
 
@@ -8390,7 +8408,7 @@ wss.on("connection", (ws, req) => {
       if (room.players.size >= MAX_PARTICIPANTS) return send(ws, { type: "error", message: "Der Raum ist voll (max. " + MAX_PARTICIPANTS + " Teilnehmer)." });
       const id = "pl_" + Math.random().toString(36).slice(2, 9);
       addPlayer(room, ws, id, cleanStr(msg.name, 20) || "Spieler");
-      send(ws, { type: "joined", roomCode: room.code, playerId: id, isHost: false });
+      send(ws, { type: "joined", roomCode: room.code, playerId: id, isHost: false, key: room.players.get(id).key });
       rebuildFfaTeams(room);
       pushRoomState(room);
       return;
@@ -9103,7 +9121,7 @@ wss.on("connection", (ws, req) => {
     pushRoomState(room);
     // Raum aufräumen, wenn niemand mehr verbunden ist
     const anyConnected = Array.from(room.players.values()).some(p => p.connected);
-    if (!anyConnected) setTimeout(() => { if (!Array.from(room.players.values()).some(p => p.connected)) rooms.delete(room.code); }, 60000);
+    if (!anyConnected) setTimeout(() => { if (!Array.from(room.players.values()).some(p => p.connected)) rooms.delete(room.code); }, 120000);
   });
 });
 
