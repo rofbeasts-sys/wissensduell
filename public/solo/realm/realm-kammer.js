@@ -626,6 +626,30 @@ function updateBtn(){
 }
 
 /* ---------- Haken in game.js ---------- */
+/* ---------- Platz merken (Reload / Verlassen) ---------- */
+var RK='robKamRun';
+function mulb(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function kBuild(k,R){var seed=(R&&R.k===k)?R.seed:Math.floor(Math.random()*4294967296),o=Math.random;Math.random=mulb(seed);try{build(k)}finally{Math.random=o}K.seed=seed;
+  if(R&&R.k===k){try{kRestore(R)}catch(e){}}else{try{localStorage.removeItem(RK)}catch(e){}}}
+function kRestore(R){
+  (R.used||[]).forEach(function(kk){var n=K.N[kk];if(n){n.used=true;if(n.el)n.el.classList.add('used')}});
+  K.etage=R.etage||1;K.gb=R.gb||0;K.dieE=R.dieE||{};if(R.round)meta.round=R.round;
+  var nd=K.N[key(R.cur[0],R.cur[1])]||K.N[key(0,CM)];K.cur=nd;
+  var fresh=(Date.now()-(R.t||0))<3600000;
+  if(R.hp>0)meta.hp=Math.min(meta.maxHp,R.hp);
+  if(R.ah){try{['arc','mag'].forEach(function(w){if(R.ah[w]&&AH[w]){AH[w].hp=R.ah[w].hp;AH[w].max=R.ah[w].max}})}catch(e){}}
+  if(R.f&&fresh&&R.f.mons&&R.f.mons.length){inFight=true;monstersInFight=R.f.mons;fightBoss=!!R.f.boss;pendingBossNum=R.f.pb||0;meta._fightTookDamage=false;hinterhaltAvailable=true;hiebAvailable=true;shieldActive=false;try{renderFight()}catch(e){}
+    place();hud();msg('Willkommen zurück! Dein Kampf geht weiter.');return}
+  if(nd.t==='boss'){var below=K.N[key(nd.r-1,CM)];if(!below){for(var kk2 in K.N){var q=K.N[kk2];if(q.r===nd.r-1){below=q;break}}}if(below)K.cur=below}
+  place();hud();msg('Willkommen zurück! Du stehst wieder auf deinem Platz.')}
+function saveRun(){try{
+  if(!K||!K.cur||!meta||meta.hp<=0||bossWon){return}
+  var ov=$('overlayMsg');if(ov&&getComputedStyle(ov).display!=='none'){localStorage.removeItem(RK);return}
+  var used=[];for(var kk in K.N)if(K.N[kk].used)used.push(kk);
+  var R={k:K.k,seed:K.seed,cur:[K.cur.r,K.cur.c],used:used,etage:K.etage,gb:K.gb,dieE:K.dieE,round:meta.round,hp:meta.hp,t:Date.now(),ah:{arc:{hp:AH.arc.hp,max:AH.arc.max},mag:{hp:AH.mag.hp,max:AH.mag.max}}};
+  if(inFight&&monstersInFight&&monstersInFight.length){try{R.f={mons:JSON.parse(JSON.stringify(monstersInFight)),boss:!!fightBoss,pb:pendingBossNum}}catch(e){}}
+  localStorage.setItem(RK,JSON.stringify(R))}catch(e){}}
+setInterval(saveRun,2000);addEventListener('pagehide',saveRun);document.addEventListener('visibilitychange',function(){if(document.hidden)saveRun()});
 function hook(){
   var oGen=window.generateBoard;
   window.generateBoard=function(){
@@ -636,7 +660,9 @@ function hook(){
     if(fightBoss){if(bossWon){ST.bosses++;saveST()}fightBoss=false;bossWon=false}
     /* Der Drache beschuetzt seine Kammer: hoechstens Kammer (besiegte Bosse + 1) */
     k=Math.max(1,Math.min(k,mb+1));meta.round=Math.max(meta.round||1,(k-1)*10+1);if(meta.round>k*10)meta.round=(k-1)*10+1;
-    board=['empty'];pos=0;build(k);
+    var RR=null;if(!window.__kamRestDone){window.__kamRestDone=1;try{RR=JSON.parse(localStorage.getItem(RK)||'null')}catch(e){RR=null}
+      if(RR&&RR.k&&RR.k<=mb+1&&RR.seed!=null){k=RR.k}else RR=null}
+    board=['empty'];pos=0;kBuild(k,RR);
   };
   window.drawBoard=function(){};
   var oSw=window.runSwing;window.runSwing=function(){if(inFight&&$('kam')&&typeof meta!=='undefined'&&meta){try{window.__kamStrike&&window.__kamStrike()}catch(e){}}return oSw&&oSw.apply(this,arguments)};
@@ -1165,20 +1191,24 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
  window.__dailyClaim=function(){var d=st();if(d.claimed)return;var o=rw();meta.gold+=o.g;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}
   if(o.iron||Object.keys(o.orbs).length){ens();inventory.iron=(inventory.iron||0)+o.iron;for(var k in o.orbs)inventory.orbs[k]=(inventory.orbs[k]||0)+o.orbs[k];try{saveInventory()}catch(e){}}
   if(o.souls){pd().souls+=o.souls;try{savePrestige()}catch(e){}}
-  d.claimed=1;sv(d);try{updateUI()}catch(e){}toast('🎁 Täglich: '+rwTxt(o).replace(/<[^>]*>/g,'')+'!');window.__kamDaily()};
+  d.claimed=1;sv(d);try{updateUI()}catch(e){}toast('🎁 Täglich: '+rwTxt(o).replace(/<[^>]*>/g,'')+'!');window.__dailyRefresh()};
  window.__dailyBuy=function(i){var d=st(),o=d.O[i];if(!o||d.bought.indexOf(i)>=0)return;if(!pay(pr(o)))return;
   if(o.k==='i')give(o.id,o.c);else if(o.k==='iron'){ens();inventory.iron=(inventory.iron||0)+o.n;try{saveInventory()}catch(e){}}else{ens();inventory.orbs[o.o]=(inventory.orbs[o.o]||0)+1;try{saveInventory()}catch(e){}}
-  d.bought.push(i);sv(d);toast('✅ Gekauft!');window.__kamDaily()};
- window.__kamDaily=function(){var d=st(),m=$('dailyModal');if(!m){m=document.createElement('div');m.id='dailyModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816ee;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';document.body.appendChild(m)}
-  var g=gm(),h='<div style="max-width:440px;margin:0 auto"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><button class="btn btn-sm" onclick="document.getElementById(\'dailyModal\').style.display=\'none\';if(window.__fromProf){window.__fromProf=0;var p=document.getElementById(\'kamPf\');if(p)p.click()}">← ZURÜCK</button><b style="font-size:1.05rem">🎁 TAGESANGEBOT</b></div><div style="font-size:.7rem;opacity:.8;margin-bottom:8px">💰 '+meta.gold+' Münzen · jeden Tag neu · Marktplatz Stufe '+ML()+'</div>';
+  d.bought.push(i);sv(d);toast('✅ Gekauft!');window.__dailyRefresh()};
+ function dHtml(emb){var d=st();
+  var g=gm(),h='<div style="max-width:440px;margin:0 auto">'+(emb?'<div style="font-weight:700;margin-bottom:4px">🎁 TAGESANGEBOT</div>':'')+'<div style="'+(emb?'display:none':'display:flex')+';gap:10px;align-items:center;margin-bottom:8px"><button class="btn btn-sm" onclick="document.getElementById(\'dailyModal\').style.display=\'none\';if(window.__fromProf){window.__fromProf=0;var p=document.getElementById(\'kamPf\');if(p)p.click()}">← ZURÜCK</button><b style="font-size:1.05rem">🎁 TAGESANGEBOT</b></div><div style="font-size:.7rem;opacity:.8;margin-bottom:8px">💰 '+meta.gold+' Münzen · jeden Tag neu · Marktplatz Stufe '+ML()+'</div>';
   h+='<div style="border:1px solid #4caf50;border-radius:10px;padding:10px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;background:#0f1d12"><div><b style="color:#6fe08a">Tägliche Belohnung (kostenlos)</b><div style="font-size:.62rem;opacity:.9;margin-top:2px">'+rwTxt(rw())+'</div><div style="font-size:.5rem;opacity:.6;margin-top:3px">Mehr durch den Marktplatz: 🔩 ab Stufe 3 · Blaue Kugel ab 6 · 💜 ab 12 · Lila Kugel ab 10 · Orange Kugel ab 15</div></div>'+(d.claimed?'<span style="font-size:.65rem;opacity:.7">✔ geholt</span>':'<button class="btn btn-sm" onclick="__dailyClaim()">HOLEN</button>')+'</div>';
   h+='<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">';
   d.O.forEach(function(o,i){var bo=d.bought.indexOf(i)>=0,ic,nm,sub,col='#888';
-   if(o.k==='i'){var b=ITEMS.find(function(x){return x.id===o.id});ic=ico(o.id);nm=b.name;col=RARITY_COLOR[b.rarity]||'#888';sub=['Gebraucht','Wie neu','Perfekt'][o.c]+' · '+(b.atk?'+'+b.atk+' ATK':'')+(b.atk&&b.hp?' ':'')+(b.hp?'+'+b.hp+' ❤':'')}
+   if(o.k==='i'){var b=ITEMS.find(function(x){return x.id===o.id});ic=ico(o.id);nm=b.name;col=RARITY_COLOR[b.rarity]||'#888';sub=['Gebraucht','Wie neu','Perfekt'][o.c]+' · '+(b.atk?'+'+b.atk+' ATK':'')+(b.atk&&b.hp?' ':'')+(b.hp?'+'+b.hp+' ❤':'')+(!b.atk&&!b.hp?(b.desc||''):'')}
    else if(o.k==='iron'){ic=null;nm='🔩 '+o.n+' Eisenbarren';sub='Für die Schmiede'}
    else{ic=ORB[o.o][2];nm=ORB[o.o][1];sub='Zum Aufwerten'}
    h+='<div style="border:1px solid '+(bo?'#3a3358':col)+';border-radius:10px;padding:8px 6px;text-align:center;background:#1a1330;'+(bo?'opacity:.5':'')+'">'+(o.k==='i'?'<img src="'+ic+'" style="width:52px;height:52px;object-fit:contain">':o.k==='orb'?'<div style="font-size:1.6rem;height:52px;line-height:52px">'+ic+'</div>':'<div style="font-size:1.6rem;height:52px;line-height:52px">🔩</div>')+'<div style="font-size:.58rem;font-weight:700;color:'+col+';margin-top:2px">'+nm+'</div><div style="font-size:.5rem;opacity:.8">'+sub+'</div><div style="margin-top:5px">'+(bo?'<span style="font-size:.6rem">✔ gekauft</span>':'<button class="btn btn-sm" style="font-size:.6rem" onclick="__dailyBuy('+i+')">💰 '+pr(o)+'</button>')+'</div></div>'});
-  h+='</div></div>';m.innerHTML=h;m.style.display='block'};
+  h+='</div></div>';return h}
+ window.__kamDaily=function(){var m=$('dailyModal');if(!m){m=document.createElement('div');m.id='dailyModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816ee;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';document.body.appendChild(m)}
+  m.innerHTML=dHtml(false);m.style.display='block'};
+ window.__dailyInto=function(el){el.innerHTML=dHtml(true)};
+ window.__dailyRefresh=function(){var e=document.getElementById('dailyEmbed');if(e)return window.__dailyInto(e);var m=$('dailyModal');if(m&&m.style.display!=='none')window.__kamDaily()};
 })();
 
 /* ---- Waffen-Lexikon ---- */
