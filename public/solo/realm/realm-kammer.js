@@ -566,7 +566,6 @@ function askRedo(R0){
 function roll(){
   if(busy||!K||inFight)return;
   if(typeof autoRunActive!=='undefined'&&autoRunActive&&autoRunData.level<K.k){autoRunActive=false;clearInterval(autoRunInterval);updateAutoRunUI();msg('Auto-Run Stufe '+autoRunData.level+' gilt nur bis Kammer '+autoRunData.level+'. Besiege den Drachen dieser Kammer, dann kannst du die nächste Stufe kaufen.');return}
-  if(typeof autoRunActive!=='undefined'&&autoRunActive&&autoRunData.level<=K.k&&K.cur.r+6>=ROWS+1){autoRunActive=false;clearInterval(autoRunInterval);updateAutoRunUI();msg('Auto-Run pausiert: Der Drache wartet. Kämpfe ihn selbst.');return}
   busy=true;var R0=rollValue();
   anim(R0.show,function(){
     if(EQ==='redo'&&!R0.id&&R0.v===1&&redoE!==K.etage&&!(typeof autoRunActive!=='undefined'&&autoRunActive)){msg('Du würfelst 1.');return askRedo(R0)}
@@ -1143,7 +1142,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
 
 /* ---- Waffen-Lexikon ---- */
 (function(){
- var WT=[['weapon','Schwerter','Ben'],['bow','Bögen','Elfa'],['staff','Stäbe','Kalifa'],['fist','Fäuste','Luna'],['spear','Speere','Jamal'],['club','Keulen','Brutus'],['axe','Äxte','Jeffrey'],['potion','Tränke','Berta']],
+ var WT=[['weapon','Schwerter','Ben'],['bow','Bögen','Elfa'],['staff','Stäbe','Kalifa'],['fist','Fäuste','Luna'],['spear','Speere','Jamal'],['club','Keulen','Brutus'],['axe','Äxte','Jeffrey'],['potion','Tränke','Berta'],['helm','Helme','Schwer / Leder / Stoff'],['armor','Rüstungen','Schwer / Leder / Stoff'],['shield','Schilde','Ben, Jamal, Brutus, Berta, Jeffrey']],
  RK=['normal','gruen','blau','episch','legendaer','mystisch'],DK='robWpnDex2';
  function dex(){try{return JSON.parse(localStorage.getItem(DK)||'{}')}catch(e){return {}}}
  function scan(){try{ens();var d=dex(),ch=false;for(var u in inventory.inst){var n=inventory.inst[u];if(!n||!n.b)continue;var key=n.b+':'+(n.c||0);if(!d[key]){d[key]=1;ch=true;var x=ITEMS.find(function(y){return y.id===n.b});if(x&&WT.some(function(t){return t[0]===x.type})&&!x.m&&window.__wdexNew)toast('📖 Waffen-Lexikon: '+x.name+' ('+CN[n.c||0]+') eingetragen!')}}
@@ -1152,10 +1151,10 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
  window.__kamWDex=function(){scan();var d=dex(),m=$('wdexModal');if(!m){m=document.createElement('div');m.id='wdexModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816ee;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';document.body.appendChild(m)}
   var tot=0,have=0,h='<div style="max-width:440px;margin:0 auto"><div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><button class="btn btn-sm" onclick="document.getElementById(\'wdexModal\').style.display=\'none\';if(window.__fromProf){window.__fromProf=0;var p=document.getElementById(\'kamPf\');if(p)p.click()}">← ZURÜCK</button><b style="font-size:1.05rem">📖 WAFFEN-LEXIKON</b></div>';
   var body='';
-  WT.forEach(function(t){var L=ITEMS.filter(function(x){return x.type===t[0]&&!x.m}).sort(function(a,b){return RK.indexOf(a.rarity)-RK.indexOf(b.rarity)});if(!L.length)return;
+  WT.forEach(function(t){var CO=function(x){return x.cls==='leder'?1:x.cls==='stoff'?2:0};var L=ITEMS.filter(function(x){return x.type===t[0]&&!x.m}).sort(function(a,b){return CO(a)-CO(b)||RK.indexOf(a.rarity)-RK.indexOf(b.rarity)});if(!L.length)return;
    body+='<div style="margin:12px 0 6px;font-size:.8rem;color:#ffd24a">'+t[1]+' <span style="opacity:.6;font-size:.65rem">· für '+t[2]+'</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
    L.forEach(function(x){var n3=0,col=RARITY_COLOR[x.rarity]||'#888',bd='';tot+=3;[0,1,2].forEach(function(c){var s=!!d[x.id+':'+c];if(s){have++;n3++}bd+='<span style="font-size:.48rem;padding:1px 4px;border-radius:6px;margin:0 1px;border:1px solid '+(s?CC[c]:'#3a3358')+';color:'+(s?CC[c]:'#6a6488')+';background:'+(s?'#0006':'none')+'">'+['G','N','P'][c]+(s?'✔':'')+'</span>'});var s=n3===3;
-    body+='<div style="border:1px solid '+(s?col:'#3a3358')+';border-radius:10px;padding:6px 4px;text-align:center;background:'+(n3?'#1a1330':'#0d0a18')+';'+(n3?'':'opacity:.65')+'"><img src="'+ico(x.id)+'" style="width:52px;height:52px;object-fit:contain"><div style="font-size:.55rem;margin-top:3px;color:'+col+';font-weight:700">'+x.name+'</div><div style="font-size:.5rem;opacity:.85">+'+x.atk+' ATK</div><div style="margin-top:3px">'+bd+'</div></div>'});
+    body+='<div style="border:1px solid '+(s?col:'#3a3358')+';border-radius:10px;padding:6px 4px;text-align:center;background:'+(n3?'#1a1330':'#0d0a18')+';'+(n3?'':'opacity:.65')+'"><img src="'+ico(x.id)+'" style="width:52px;height:52px;object-fit:contain"><div style="font-size:.55rem;margin-top:3px;color:'+col+';font-weight:700">'+x.name+'</div><div style="font-size:.5rem;opacity:.85">'+(x.atk?'+'+x.atk+' ATK':'')+(x.atk&&x.hp?' · ':'')+(x.hp?'+'+x.hp+' ❤':'')+'</div>'+(['helm','armor'].indexOf(x.type)>=0?'<div style="font-size:.45rem;opacity:.7">'+(x.cls==='leder'?'Leder':x.cls==='stoff'?'Stoff':'Schwer')+'</div>':'')+'<div style="margin-top:3px">'+bd+'</div></div>'});
    body+='</div>'});
   h+='<div style="font-size:.7rem;opacity:.8;margin-bottom:4px">Gesammelt: <b>'+have+' / '+tot+'</b> · jede Waffe in <span style="color:#aaa">G</span>ebraucht, <span style="color:#8fd8ff">N</span>eu (Wie neu) und <span style="color:#ffd24a">P</span>erfekt</div>'+body+'</div>';
   m.innerHTML=h;m.style.display='block'};

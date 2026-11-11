@@ -562,7 +562,7 @@ function handleAction() {
       const bossNum = meta.round / 10;
       pendingBossNum = bossNum;
       // Auto-Run stoppen: Level N laeuft nur bis Boss N
-      if (autoRunActive && autoRunData.level <= bossNum) {
+      if (false && autoRunActive && autoRunData.level <= bossNum) {
         clearInterval(autoRunInterval);
         autoRunActive = false;
         updateAutoRunUI();
