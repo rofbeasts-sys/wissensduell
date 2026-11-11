@@ -171,12 +171,13 @@ function lvS(i){return i%3}
 function lvName(i){return SLN[lvC(i)]+' · '+'★'.repeat(lvS(i)+1)}
 function isCl(i){return !!TD().cl[i]}
 function isUn(i){return i===0||isCl(i-1)}
-function hpL(i,w){return Math.round(290*Math.pow(1.6,i)*(1+.15*(w-1))*(w===10?4:1))}
+function hScale(){return Math.pow(Math.max(1,t0())/13,.8)}
+function hpL(i,w,hs){return Math.round(1000*(hs||1)*Math.pow(1.55,i)*(1+.15*(w-1))*(w===10?4:1))}
 function coL(c){return TD().co[COMPN[c]]||0}
 function coCost(L){return 15+10*L}
 function coForm(L){return L>=10?3:L>=5?2:1}
 function tapIntro(){
- var d=TD(),h=head('💰 SCHLEIM-JAGD','__evOpen()')+'<p style="font-size:.78rem;line-height:1.5;text-align:center;margin:0 0 10px">Besiege in <b>60 Sekunden</b> alle <b>10 Wellen</b>. Beim ersten Mal gibt es Münzen: <b>★1 500 · ★2 1.500 · ★3 5.000</b>. Danach kannst du jedes Level auch <b>automatisch</b> kämpfen lassen und sammelst Schleim für deine Begleiter.'+(TEST?'<br><b style="color:#6fe08a">Test: Es wird nichts vom Spiel vergeben.</b>':'')+'</p>';
+ var d=TD(),h=head('💰 SCHLEIM-JAGD','__evOpen()')+'<p style="font-size:.78rem;line-height:1.5;text-align:center;margin:0 0 10px">Besiege in <b>60 Sekunden</b> alle <b>10 Wellen</b>. Beim ersten Mal gibt es Münzen: <b>★1 500 · ★2 1.500 · ★3 5.000</b>. Das Leben der Schleime <b>passt sich deiner Stärke an</b>. Danach kannst du jedes Level auch <b>automatisch</b> kämpfen lassen und sammelst Schleim für deine Begleiter.'+(TEST?'<br><b style="color:#6fe08a">Test: Es wird nichts vom Spiel vergeben.</b>':'')+'</p>';
  CAMP.forEach(function(c,ci){
   var cid=COMPN[c],L=coL(c),cost=coCost(L),have=d.sl[c]||0,ok=have>=cost,co=CO[cid];
   h+='<div style="margin-bottom:12px;padding:10px;border:2px solid '+COL[c]+'66;border-radius:14px;background:#0008">'
@@ -191,7 +192,7 @@ function tapStop(){if(TIV){clearInterval(TIV);TIV=null}}
 window.__evTapGo=function(i,auto){
  if(!isUn(i))return;
  TS={i:i,c:lvC(i),star:lvS(i),ms:60000,w:1,cd:{fire:0,rage:0,gold:0,frost:0},bf:{rage:0,gold:0,frost:0},kills:0,got:0,acc:0,pz:0,fin:false,auto:!!auto,aacc:0,svt:0,win:false};
- TS.max=TS.hp=hpL(i,1);tapPaint();tapStop();TIV=setInterval(tapTick,100)};
+ TS.hs=hScale();TS.max=TS.hp=hpL(i,1,TS.hs);tapPaint();tapStop();TIV=setInterval(tapTick,100)};
 function tapPaint(){
  var c=TS.c,boss=TS.w===10,cmp='',n=0;
  CAMP.forEach(function(k){var L=coL(k);if(L>0){var cid=COMPN[k],f=coForm(L);cmp+='<div style="position:absolute;left:'+(8+n*46)+'px;top:'+(44+(n%2)*22)+'px;width:44px;height:44px"><img class="sA" src="comp/'+cid+'_'+f+'_i0.webp?v=11g" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain"><img class="sB" src="comp/'+cid+'_'+f+'_i1.webp?v=11g" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain"></div>';n++}});
@@ -225,7 +226,7 @@ function tapKill(){
  try{var f=$('tF'),mm=$('tM');if(f&&mm&&f.children.length<30){var gh=document.createElement('img');gh.src='slime/'+(boss?'boss':TS.c)+'_d.webp?v=11g';gh.style.cssText='position:absolute;right:'+(boss?4:14)+'px;bottom:36px;width:'+(boss?210:176)+'px;pointer-events:none;transition:opacity .55s,transform .55s;z-index:3';f.appendChild(gh);setTimeout(function(){gh.style.opacity='0';gh.style.transform='translateY(14px)'},60);setTimeout(function(){if(gh.parentNode)gh.parentNode.removeChild(gh)},640)}}catch(e){}
  TS.w++;
  if(TS.w>10){tapEnd(true);return}
- TS.max=TS.hp=hpL(TS.i,TS.w);var m=$('tM');if(m)m.innerHTML=slimeHTML(TS.c,TS.w===10);var n=$('tN');if(n)n.innerHTML=(TS.w===10?'👑 BOSS ':'')+SLN[TS.c]}
+ TS.max=TS.hp=hpL(TS.i,TS.w,TS.hs);var m=$('tM');if(m)m.innerHTML=slimeHTML(TS.c,TS.w===10);var n=$('tN');if(n)n.innerHTML=(TS.w===10?'👑 BOSS ':'')+SLN[TS.c]}
 function tapFloat(t,col,x,y){var f=$('tF');if(!f)return;if(f.children.length>40)return;var d=document.createElement('div');d.className='evd';d.style.cssText='left:'+(x!=null?x:200+Math.random()*80)+'px;top:'+(y!=null?y:90+Math.random()*60)+'px;color:'+col+';font-size:'+(t.length>8?'1.1':'1.25')+'rem';d.textContent=t;f.appendChild(d);setTimeout(function(){if(d.parentNode)d.parentNode.removeChild(d)},720)}
 function tapHit(d,crit){
  if(!TS||TS.fin)return;TS.hp-=d;
@@ -267,5 +268,5 @@ function tapEnd(win){
  +(nx>=0&&win?'<div class="evb" style="margin-top:14px" onclick="__evTapGo('+nx+',0)">▶ NÄCHSTES LEVEL</div>':'')+'<div class="evb" style="margin-top:8px'+(win?';opacity:.85':'')+'" onclick="__evTapGo('+i+',0)">↻ NOCHMAL</div><div class="evb" style="margin-top:8px;opacity:.8" onclick="__evPlay(\'tap\')">KARTE &amp; BEGLEITER</div>')}
 window.__evTapQuit=function(){if(TS&&!TS.fin){TS.fin=true;TS.auto=false;tapStop();sv()}tapIntro()};
 window.__evDbg=function(){return{MM:MM,TS:TS,BD:BD,plan:plan}};
-;window.__ver=window.__ver||{};window.__ver['evt']='11-11j';
+;window.__ver=window.__ver||{};window.__ver['evt']='11-11l';
 })();
