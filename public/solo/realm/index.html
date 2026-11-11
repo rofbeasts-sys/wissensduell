@@ -54,7 +54,7 @@
     <div style="font-size:0.6rem;color:#8844aa;letter-spacing:2px;text-align:center;margin-bottom:5px">PRESTIGE</div>
     <button class="btn btn-wide prestige-btn" onclick="doPrestige()" style="width:100%;margin-bottom:4px;font-size:0.75rem;padding:7px">PRESTIGE DURCHFUEHREN</button>
     <button class="btn btn-wide prestige-btn" onclick="showPrestigeLevelTable()" style="width:100%;margin-bottom:4px;font-size:0.75rem;padding:7px;opacity:0.85">PRESTIGE TABELLE</button>
-    <button class="btn btn-wide btn-diamond" onclick="showDiaShop()" style="width:100%;font-size:0.75rem;padding:7px">DIA SHOP</button>
+    <button class="btn btn-wide btn-diamond" onclick="showDiaShop()" style="width:100%;font-size:0.75rem;padding:7px">MARKTPLATZ</button>
   </div>
 
   <!-- 5. INVENTAR -->
@@ -301,7 +301,7 @@
         <button class="btn btn-sm" onclick="showInventory()">&#127890; HELDENABTEIL</button>
         <button class="btn btn-sm" onclick="showClassModal()">&#9876; KLASSE</button>
         <button class="btn btn-sm" onclick="showMonsterLexicon()">&#128218; LEXIKON</button>
-        <button class="btn btn-sm" onclick="showDiaShop()">&#128142; DIA-SHOP</button>
+        <button class="btn btn-sm" onclick="showDiaShop()">&#127978; MARKTPLATZ</button>
         <button class="btn btn-sm" style="grid-column:span 2" onclick="showChambers()">&#128506; KAMMERN</button>
       </div>
     </div>
@@ -523,7 +523,7 @@
 <!-- DIA SHOP MODAL -->
 <div id="diaShopModal" style="position:fixed;inset:0;z-index:500;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,0.95);overflow-y:auto;padding:20px">
   <div style="background:linear-gradient(145deg,#050a15,#0a1525);border:2px solid var(--diamond);border-radius:16px;padding:22px 18px;max-width:400px;width:95%">
-    <h2 style="font-family:Cinzel Decorative,serif;color:var(--diamond);font-size:1.05rem;margin-bottom:4px;text-align:center">DIAMANTEN SHOP</h2>
+    <h2 style="font-family:Cinzel Decorative,serif;color:var(--diamond);font-size:1.05rem;margin-bottom:4px;text-align:center">MARKTPLATZ</h2>
     <p style="color:#446688;font-size:0.65rem;text-align:center;margin-bottom:12px">Guthaben: <span id="diaShopBalance" style="color:var(--diamond);font-weight:700">0 Diamanten</span></p>
     <div id="diaShopList"></div>
     <button class="btn btn-wide btn-diamond" onclick="closeDiaShop();openMenu()" style="width:100%;margin-top:8px">&#8592; ZURUECK</button>
