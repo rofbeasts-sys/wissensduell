@@ -5,7 +5,7 @@ var IMG={mine:'mine',dia:'dia',smith:'smith',house:'house',bank:'bank',tower:'to
 var B=[
  {id:'mine',  ic:'⛏️', n:'Goldmine',      d:'Bringt Gold pro Stunde',        max:20, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:14,y:12},
  {id:'dia',   ic:'💎', n:'Diamantenmine', d:'Bringt Diamanten pro Stunde',   max:20, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:70,y:10},
- {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2% Erfolgschance beim Schmieden pro Stufe',          max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:42,y:30},
+ {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2% Erfolgschance beim Schmieden pro Stufe und 3 Eisenbarren pro Stunde pro Stufe',          max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:42,y:30},
  {id:'house', ic:'🏠', n:'Kaserne',       d:'+15 Leben pro Stufe',           max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:10,y:46},
  {id:'bank',  ic:'🏦', n:'Marktplatz',    d:'+4% Gold im Kampf und +2,5% besserer Loot pro Stufe. Im Marktplatz-Shop: bessere Angebote (weniger Grün, mehr Lila und Legendär, bessere Zustände) und +6% tägliche Münzen pro Stufe',   max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:72,y:46},
  {id:'tower', ic:'🗼', n:'Magieturm',      d:'Lagert mehr Offline-Ertrag (4 Std. am Anfang, +0,8 Std. pro Stufe, max. 12 Std.)', max:10, cost:function(l){return Math.round(500*Math.pow(1.45,l));}, cur:'g', x:40,y:62},
@@ -27,7 +27,7 @@ window.cityBonus=function(k){
 function cap(){return Math.min(12,4+lv('tower')*0.8);}
 function pending(){
   var o=get(),h=Math.min((Date.now()-o.last)/3600000,cap());
-  var hd=Math.min((Date.now()-(o.dlast||o.last))/3600000,cap());return {g:Math.floor(h*lv('mine')*30),d:Math.floor(hd*lv('dia')*1.5),h:h,hd:hd};
+  var hd=Math.min((Date.now()-(o.dlast||o.last))/3600000,cap());return {g:Math.floor(h*lv('mine')*30),d:Math.floor(hd*lv('dia')*1.5),i:Math.floor(h*lv('smith')*3),h:h,hd:hd};
 }
 function gold(){return (typeof meta!=='undefined'&&meta)?meta.gold:(parseInt(localStorage.getItem('robGold')||'0')||0);}
 function setGold(v){ if(typeof meta!=='undefined'&&meta)meta.gold=v; try{localStorage.setItem('robGold',String(v));}catch(e){} }
@@ -64,7 +64,7 @@ window.showCity=function(){
   });
   h+='</div><div id="cityPanel" style="margin:10px auto;max-width:640px;padding:0 10px 90px"></div>';
   h+='<div style="position:sticky;bottom:0;z-index:5;padding:10px 12px;background:#07111c;border-top:2px solid #c9a227;text-align:center">'
-   +'<button class="btn btn-wide" onclick="cityCollect()" style="width:100%;font-size:.9rem;padding:12px" '+((p.g||p.d)?'':'disabled')+'>📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d+'</button></div>';
+   +'<button class="btn btn-wide" onclick="cityCollect()" style="width:100%;font-size:.9rem;padding:12px" '+((p.g||p.d||p.i)?'':'disabled')+'>📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d+' · '+'<img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt="">'+p.i+'</button></div>';
   r.innerHTML=h;rateUpd();
 };
 function souls(){try{return (prestigeData&&prestigeData.souls)||0}catch(e){return 0}}
@@ -83,7 +83,7 @@ var bar=function(f,col){f=Math.max(0,Math.min(1,f));return '<div style="height:8
  if(!mn&&!dn)t='Baue Goldmine oder Diamantenmine, dann siehst du hier die Zeiten.';
  else t+='<br>📦 Speicher '+(h>=capH?'<b style="color:#ff9a8a">voll – bitte abholen!</b>':'voll in <b>'+fmtT((capH-h)*3600)+'</b>');
  el.innerHTML=t+bars;
- var p=pending(),bt=document.querySelector('#cityModal button[onclick="cityCollect()"]');if(bt){bt.innerHTML='📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d;bt.disabled=!(p.g||p.d)}}
+ var p=pending(),bt=document.querySelector('#cityModal button[onclick="cityCollect()"]');if(bt){bt.innerHTML='📦 ABHOLEN · 💰 '+p.g+' · 💎 '+p.d+' · '+'<img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt="">'+p.i;bt.disabled=!(p.g||p.d||p.i)}}
 setInterval(rateUpd,1000);
 window.cityOpen=function(id){
   var b=B.filter(function(x){return x.id===id;})[0], l=lv(id), pn=document.getElementById('cityPanel');
@@ -109,7 +109,7 @@ window.cityUp=function(id){
 };
 window.cityCollect=function(silent){
   var p=pending(), o=get();
-  if(p.g)setGold(gold()+p.g); if(p.d)setDias(dias()+p.d);
+  if(p.g)setGold(gold()+p.g); if(p.d)setDias(dias()+p.d); if(p.i){try{inventory.iron=(inventory.iron||0)+p.i;inventory.stats=inventory.stats||{};inventory.stats.ironTotal=(inventory.stats.ironTotal||0)+p.i;if(typeof saveInventory==='function')saveInventory()}catch(e){}}
   o.last=Date.now(); o.dlast=o.last; put(o); applyStats();
   if(!silent)showCity();
 };
