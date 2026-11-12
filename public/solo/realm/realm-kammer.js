@@ -1276,20 +1276,29 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
 /* ---- Waffen-Lexikon ---- */
 (function(){
  var WT=[['weapon','Schwerter','Ben'],['bow','Bögen','Elfa'],['staff','Stäbe','Kalifa'],['fist','Fäuste','Luna'],['spear','Speere','Jamal'],['club','Keulen','Brutus'],['axe','Äxte','Jeffrey'],['potion','Tränke','Berta'],['helm','Helme','Schwer / Leder / Stoff'],['armor','Rüstungen','Schwer / Leder / Stoff'],['shield','Schilde','Ben, Jamal, Brutus, Berta, Jeffrey'],['quiver','Köcher','Elfa'],['book','Bücher','Kalifa'],['hand','Handschuhe','alle Helden'],['boots','Schuhe','alle Helden'],['cape','Umhänge','alle Helden'],['ring','Ringe','alle Helden'],['amulet','Amulette','alle Helden']],
- RK=['normal','gruen','blau','episch','legendaer','mystisch'],DK='robWpnDex2';
+ RK=['normal','gruen','blau','episch','legendaer','mystisch'],DK='robWpnDex2',IRW={normal:5,gruen:8,blau:12,episch:20,legendaer:35,mystisch:50};
  function dex(){try{return JSON.parse(localStorage.getItem(DK)||'{}')}catch(e){return {}}}
  function scan(){try{ens();var d=dex(),ch=false;for(var u in inventory.inst){var n=inventory.inst[u];if(!n||!n.b)continue;var key=n.b+':'+(n.c||0);if(!d[key]){d[key]=1;ch=true;var x=ITEMS.find(function(y){return y.id===n.b});if(x&&WT.some(function(t){return t[0]===x.type})&&!x.m&&window.__wdexNew)toast('📖 Waffen-Lexikon: '+x.name+' ('+CN[n.c||0]+') eingetragen!')}}
-  if(ch)localStorage.setItem(DK,JSON.stringify(d))}catch(e){}window.__wdexNew=1}
+  if(ch)localStorage.setItem(DK,JSON.stringify(d));
+  var ms=inventory.ms=inventory.ms||{},rc=false;
+  ITEMS.forEach(function(x){if(x.m||!WT.some(function(t){return t[0]===x.type}))return;var key='W'+x.id;if(ms[key])return;if(!(d[x.id+':0']&&d[x.id+':1']&&d[x.id+':2']))return;
+   ms[key]=1;rc=true;var ri=RK.indexOf(x.rarity),nr=RK[ri+1],pool=nr?ITEMS.filter(function(y){return y.type===x.type&&y.rarity===nr&&!y.m&&!y.fx&&(!x.cls||y.cls===x.cls)}):[];
+   if(nr&&!pool.length)pool=ITEMS.filter(function(y){return y.type===x.type&&y.rarity===nr&&!y.m&&!y.fx});
+   var cond=Math.floor(Math.random()*3),pick=pool.length?pool[Math.floor(Math.random()*pool.length)]:x;if(!pool.length)cond=2;
+   grant([[pick.id,cond]],{iron:IRW[x.rarity]||5},'Waffen-Lexikon: '+x.name+' komplett')});
+  if(rc)try{saveInventory()}catch(e){}}catch(e){}window.__wdexNew=1}
  setInterval(scan,2500);
+ var WDF='';window.__kamWDF=function(t){WDF=t||'';window.__kamWDex()};
  window.__kamWDex=function(){scan();var d=dex(),m=$('wdexModal');if(!m){m=document.createElement('div');m.id='wdexModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816ee;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';document.body.appendChild(m)}
   var tot=0,have=0,h='<div style="max-width:440px;margin:0 auto"><div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><button class="btn btn-sm" onclick="document.getElementById(\'wdexModal\').style.display=\'none\';if(window.__fromProf){window.__fromProf=0;var p=document.getElementById(\'kamPf\');if(p)p.click()}">← ZURÜCK</button><b style="font-size:1.05rem">📖 WAFFEN-LEXIKON</b></div>';
-  var body='';
-  WT.forEach(function(t){var CO=function(x){return x.cls==='leder'?1:x.cls==='stoff'?2:0};var L=ITEMS.filter(function(x){return x.type===t[0]&&!x.m}).sort(function(a,b){return CO(a)-CO(b)||RK.indexOf(a.rarity)-RK.indexOf(b.rarity)});if(!L.length)return;
+  var body='',PC={};
+  WT.forEach(function(t){var CO=function(x){return x.cls==='leder'?1:x.cls==='stoff'?2:0};var L=ITEMS.filter(function(x){return x.type===t[0]&&!x.m}).sort(function(a,b){return CO(a)-CO(b)||RK.indexOf(a.rarity)-RK.indexOf(b.rarity)});if(!L.length)return;var mark=body.length,h0=have,t0=tot;
    body+='<div style="margin:12px 0 6px;font-size:.8rem;color:#ffd24a">'+t[1]+' <span style="opacity:.6;font-size:.65rem">· für '+t[2]+'</span></div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">';
    L.forEach(function(x){var n3=0,col=RARITY_COLOR[x.rarity]||'#888',bd='';tot+=3;[0,1,2].forEach(function(c){var s=!!d[x.id+':'+c];if(s){have++;n3++}bd+='<span style="font-size:.48rem;padding:1px 4px;border-radius:6px;margin:0 1px;border:1px solid '+(s?CC[c]:'#3a3358')+';color:'+(s?CC[c]:'#6a6488')+';background:'+(s?'#0006':'none')+'">'+['G','N','P'][c]+(s?'✔':'')+'</span>'});var s=n3===3;
-    body+='<div style="border:1px solid '+(s?col:'#3a3358')+';border-radius:10px;padding:6px 4px;text-align:center;background:'+(n3?'#1a1330':'#0d0a18')+';'+(n3?'':'opacity:.65')+'"><img src="'+ico(x.id)+'" style="width:52px;height:52px;object-fit:contain"><div style="font-size:.55rem;margin-top:3px;color:'+col+';font-weight:700">'+x.name+'</div><div style="font-size:.5rem;opacity:.85">'+(x.atk?'+'+x.atk+' ATK':'')+(x.atk&&x.hp?' · ':'')+(x.hp?'+'+x.hp+' ❤':'')+(!x.atk&&!x.hp&&x.desc?x.desc:'')+'</div>'+(['helm','armor'].indexOf(x.type)>=0?'<div style="font-size:.45rem;opacity:.7">'+(x.cls==='leder'?'Leder':x.cls==='stoff'?'Stoff':'Schwer')+'</div>':'')+'<div style="margin-top:3px">'+bd+'</div></div>'});
-   body+='</div>'});
-  h+='<div style="font-size:.7rem;opacity:.8;margin-bottom:4px">Gesammelt: <b>'+have+' / '+tot+'</b> · jede Waffe in <span style="color:#aaa">G</span>ebraucht, <span style="color:#8fd8ff">N</span>eu (Wie neu) und <span style="color:#ffd24a">P</span>erfekt</div>'+body+'</div>';
+    body+='<div style="border:1px solid '+(s?col:'#3a3358')+';border-radius:10px;padding:6px 4px;text-align:center;background:'+(n3?'#1a1330':'#0d0a18')+';'+(n3?'':'opacity:.65')+'"><img src="'+ico(x.id)+'" style="width:52px;height:52px;object-fit:contain"><div style="font-size:.55rem;margin-top:3px;color:'+col+';font-weight:700">'+x.name+'</div><div style="font-size:.5rem;opacity:.85">'+(x.atk?'+'+x.atk+' ATK':'')+(x.atk&&x.hp?' · ':'')+(x.hp?'+'+x.hp+' ❤':'')+(!x.atk&&!x.hp&&x.desc?x.desc:'')+'</div>'+(['helm','armor'].indexOf(x.type)>=0?'<div style="font-size:.45rem;opacity:.7">'+(x.cls==='leder'?'Leder':x.cls==='stoff'?'Stoff':'Schwer')+'</div>':'')+'<div style="margin-top:3px">'+bd+'</div><div style="font-size:.45rem;margin-top:3px;color:'+((inventory.ms||{})['W'+x.id]?'#6c6':'#c8a070')+'">'+((inventory.ms||{})['W'+x.id]?'🎁 erhalten':'🎁 '+(RK[RK.indexOf(x.rarity)+1]?RARITY_LABEL[RK[RK.indexOf(x.rarity)+1]]:'Perfekt')+' + 🔩'+(IRW[x.rarity]||5))+'</div></div>'});
+   body+='</div>';PC[t[0]]=[have-h0,tot-t0];if(WDF&&WDF!==t[0])body=body.slice(0,mark)});
+  var bar='<div style="position:sticky;top:-14px;z-index:5;background:#0b0816;padding:8px 0;margin:0 -2px 6px;display:flex;gap:6px;overflow-x:auto;white-space:nowrap">'+[['','Alle']].concat(WT.filter(function(t){return PC[t[0]]}).map(function(t){return [t[0],t[1]]})).map(function(c){var on=(WDF||'')===c[0],pc=c[0]?PC[c[0]]:[have,tot];return '<span onclick="__kamWDF(\''+c[0]+'\')" style="cursor:pointer;flex:none;font-size:.62rem;padding:5px 9px;border-radius:14px;border:1px solid '+(on?'#ffd24a':'#3a3358')+';color:'+(on?'#ffd24a':'#c8b890')+';background:'+(on?'#2a2040':'#120d20')+'">'+c[1]+' <span style="opacity:.7">'+pc[0]+'/'+pc[1]+'</span></span>'}).join('')+'</div>';
+  h+='<div style="font-size:.7rem;opacity:.8;margin-bottom:4px">Gesammelt: <b>'+have+' / '+tot+'</b> · jede Waffe in <span style="color:#aaa">G</span>ebraucht, <span style="color:#8fd8ff">N</span>eu (Wie neu) und <span style="color:#ffd24a">P</span>erfekt</div><div style="font-size:.62rem;color:#ffd24a;margin-bottom:6px">🎁 Hast du alle drei Zustände eines Items, bekommst du <b>ein Item der nächsthöheren Seltenheit</b> (Zustand zufällig) und <b>Eisenbarren</b>.</div>'+bar+body+'</div>';
   m.innerHTML=h;m.style.display='block'};
 })();
 window.equipItem=function(uid,who){var i=it(uid);if(!i)return;who=who||sel;if(!can(who,i))return;
@@ -1867,5 +1876,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     }catch(e){window.__kamEtg=etg||0;try{oOC.apply(window,[type])}finally{window.__kamEtg=0}}
   };
 })();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-12a';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-12c';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]==='11-11c'?'✓':'✗ alt'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
