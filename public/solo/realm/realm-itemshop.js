@@ -38,6 +38,7 @@ function draw(fm){
 window.__kamShop=function(){draw(true);document.getElementById('kamShop').style.display='flex'};window.__kamShopInto=function(el){el.id='kamShopEmbed';el.className='ksx';draw()};
 
 window.__benSkin=function(){try{return (localStorage.getItem('robRickOwn')==='1'&&localStorage.getItem('robSkin')==='rick')?'rick':'new'}catch(e){return 'new'}};
+window.__dragBuy=function(){try{if(localStorage.getItem('robDragonDie')==='1')return;if(meta.gold<500000){alert('Zu wenig Münzen (500.000)');return}meta.gold-=500000;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}localStorage.setItem('robDragonDie','1');window.renderDiaShop()}catch(e){}};
 window.__rickBuy=function(){try{var P=500000;if(localStorage.getItem('robRickOwn')==='1'){localStorage.setItem('robSkin',window.__benSkin()==='rick'?'new':'rick');window.renderDiaShop();return}
 if(meta.gold<P){alert('Zu wenig Münzen (500.000)');return}meta.gold-=P;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}localStorage.setItem('robRickOwn','1');localStorage.setItem('robSkin','rick');window.renderDiaShop()}catch(e){}};
 var oRDS=window.renderDiaShop;window.__dsTab=window.__dsTab||'n';
@@ -48,6 +49,8 @@ var bar=document.createElement('div');bar.style.cssText='display:flex;gap:6px;ma
 if(tab==='n'){var dd=document.createElement('div');dd.id='dailyEmbed';dd.style.cssText='border:2px solid #4caf50;border-radius:12px;padding:10px;margin-bottom:10px;background:#0b140d';el.appendChild(dd);try{window.__dailyInto(dd)}catch(e){}kids.forEach(function(c){el.appendChild(c)})}
 else{var ie=document.createElement('div');ie.style.cssText='margin-bottom:10px';el.appendChild(ie);window.__kamShopInto(ie);
 var own=localStorage.getItem('robRickOwn')==='1',on=window.__benSkin()==='rick',r=document.createElement('div');r.id='rickRow';r.style.cssText='border:2px solid #4a6a9a;border-radius:12px;padding:10px;margin-top:10px;background:#0a1220;display:flex;align-items:center;gap:10px';
-r.innerHTML='<img src="run0.png" style="height:70px"><div style="flex:1;text-align:left"><div style="color:#8fd8ff;font-weight:700">Zero</div><small style="color:#aab">❓ ❓ ❓ &nbsp; Werte: ???</small></div><button class="btn btn-sm" onclick="__rickBuy()">'+(own?(on?'Ben wählen':'Zero wählen'):'🪙 500.000')+'</button>';el.appendChild(r)}}catch(e){}};
+r.innerHTML='<img src="run0.png" style="height:70px"><div style="flex:1;text-align:left"><div style="color:#8fd8ff;font-weight:700">Zero</div><small style="color:#aab">❓ ❓ ❓ &nbsp; Werte: ???</small></div><button class="btn btn-sm" onclick="__rickBuy()">'+(own?(on?'Ben wählen':'Zero wählen'):'🪙 500.000')+'</button>';el.appendChild(r);
+var dg=document.createElement('div'),dow=localStorage.getItem('robDragonDie')==='1';dg.style.cssText='border:2px solid #b5482a;border-radius:12px;padding:10px;margin-top:10px;background:#1a0c0a;display:flex;align-items:center;gap:10px';
+dg.innerHTML='<div style="font-size:2.4rem">🎲</div><div style="flex:1;text-align:left"><div style="color:#ff9a6a;font-weight:700">Drachenwürfel</div><small style="color:#caa">Dauerhaft, wirkt bei jedem Drachen: 3/4/5/6 = 30–60% Leben weg, ★ Oneshot, ☠ = +5000 Münzen, aber der Drache erledigt dich</small></div><button class="btn btn-sm" '+(dow?'disabled':'onclick="__dragBuy()"')+'>'+(dow?'✔ GEKAUFT':'🪙 500.000')+'</button>';el.appendChild(dg)}}catch(e){}};
 })();
-;window.__ver=window.__ver||{};window.__ver['itemshop']='11-11c';
+;window.__ver=window.__ver||{};window.__ver['itemshop']='11-12f';

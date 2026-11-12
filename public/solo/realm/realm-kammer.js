@@ -202,7 +202,7 @@ function rebuildPage(){
   if(qp){$('kamProfBody').appendChild(qp)}
   var qk=document.createElement('div');qk.id='kamQuick';
   [['🎒 HELDENABTEIL','showInventory'],['⚒️ SCHMIEDE','__kForge'],['⭐ LEVEL','showLevels'],['🏪 MARKTPLATZ','__kDia'],['🏙️ STADT','showCity'],['🐾 MONSTER','showMonsterLexicon']].forEach(function(q){var bt=document.createElement('button');bt.className='btn btn-sm';bt.textContent=q[0];bt.onclick=function(){closeP();window.__fromProf=1;try{window[q[1]]()}catch(e){}};qk.appendChild(bt)});
-  (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal','monsterLexikonModal','wdexModal','dailyModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
+  (function(){var IDS=['inventoryModal','kamForge','kamLevels','diaShopModal','cityModal','monsterLexikonModal','wdexModal','kamDDexModal','dailyModal'],done={};setInterval(function(){IDS.forEach(function(id){var el=$(id);if(!el||done[id]===el)return;done[id]=el;var was=getComputedStyle(el).display!=='none';new MutationObserver(function(){var on=getComputedStyle(el).display!=='none';if(was&&!on&&window.__fromProf){window.__fromProf=0;setTimeout(function(){var pf=$('kamPf');if(pf)pf.click()},30)}was=on}).observe(el,{attributes:true,attributeFilter:['style']})})},700)})();
   $('kamProfBody').appendChild(qk);
   var mp=$('menuPanel');if(mp){$('kamProfBody').appendChild(mp);mp.addEventListener('click',function(e){var bt=e.target.closest&&e.target.closest('button');if(bt)setTimeout(closeP,0)})}
   function openP(t){var sp=$('statusPanel'),b=$('kamProfBody');b.insertBefore(sp,b.firstChild);b.insertBefore($('kamQuick'),sp.nextSibling);b.appendChild(rs);b.appendChild(rt);pw.dataset.tab=t||'p';sp.style.setProperty('display',pw.dataset.tab==='p'?'block':'none','important');[].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.classList.toggle('on',x.dataset.t===pw.dataset.tab)});pw.classList.add('on');syncFace()}
@@ -243,7 +243,7 @@ function rebuildPage(){
     var syncA=function(){arb.classList.toggle('kon',/STOPPEN/.test(arb.textContent))};
     new MutationObserver(syncA).observe(arb,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:['class','disabled']});syncA()}
   low.appendChild(iv);var pfb=$('kamPf');if(pfb)low.appendChild(pfb);
-  var ds=document.createElement('div');ds.id='kamDiceShop';ds.className='overlay-shop-section';var dsx=$('deathShopSection');dsx.parentNode.insertBefore(ds,dsx.nextSibling);
+
   var om=$('overlayMsg');new MutationObserver(function(){if(om.style.display==='flex'){if(window.__kshop){dieShop();return}if(!om._d){om._d=1;ST.deaths++;saveST();checkUnlocks()}dieShop()}else om._d=0}).observe(om,{attributes:true,attributeFilter:['style']});invUI();
 }
 function syncFace(){var s=$('heroPortrait').src;if($('kamPfImg'))$('kamPfImg').src=s}
@@ -500,8 +500,15 @@ function afterRoll(r){
   hud();return note;
 }
 function toast(t){var d=document.createElement('div');d.className='ktoast';d.innerHTML=t;document.body.appendChild(d);setTimeout(function(){d.remove()},3600)}
+function foundDie(id,board){try{var ms=inventory.ms=inventory.ms||{},key='D'+id;if(ms[key])return;ms[key]=1;var dia=board?15:30;
+  try{meta.diamonds=(meta.diamonds||0)+dia;globalDiamonds+=dia;saveDiamonds(globalDiamonds)}catch(e){}
+  var all=Object.keys(BD).every(function(b){return ms['D'+b]}),allS=Object.keys(SD).filter(function(s){return s!=='city'}).every(function(s){return ms['D'+s]}),extra=[];
+  if(board&&all&&!ms.DALLB){ms.DALLB=1;extra.push('dia')}if(!board&&allS&&!ms.DALLS){ms.DALLS=1;extra.push('legend')}
+  try{log('<span style="color:#44ddff">🎲 Würfel-Lexikon: '+dd(id).n+' gefunden! +'+dia+' Diamanten</span>')}catch(e){}
+  extra.forEach(function(ct){try{window.__kamChest(ct,CHEST_CONFIG[ct]);log('<span style="color:#ffd24a">📦 Würfel-Lexikon komplett: '+(ct==='dia'?'Diamant-Kiste':'Legendäre Kiste')+'!</span>');try{toast('🎁 Würfel-Lexikon komplett: '+(ct==='dia'?'Diamant-Kiste':'Legendäre Kiste'))}catch(e){}}catch(e){}});try{saveInventory()}catch(e){}}catch(e){}}
+window.__kamFoundDie=foundDie;
 function unlock(id){
-  if(OWN.indexOf(id)>=0)return;OWN.push(id);if(!EQ)EQ=id;saveD();invUI();
+  if(OWN.indexOf(id)>=0)return;OWN.push(id);if(!EQ)EQ=id;saveD();invUI();foundDie(id,false);
   toast('<div>🎲 GEHEIMER WÜRFEL GEFUNDEN!</div>'+dieHTML(id,64)+'<b>'+SD[id].n+'</b><small>'+SD[id].d+'</small>');
 }
 var ST=ls('robKamStats',{kills:0,deaths:0,dice:0,bosses:0,low:0});var lastK=0;
@@ -521,23 +528,32 @@ function checkUnlocks(){
 }
 setInterval(function(){try{if(inFight&&fightBoss&&OWN.indexOf('vamp')<0&&monstersInFight&&monstersInFight[0]&&monstersInFight[0].isBoss&&monstersInFight[0].hp<=monstersInFight[0].maxHp*.5)unlock('vamp')}catch(e){}},400);
 function cityInfo(){var t=cityTier(),mn=Math.min(6,t+1),x=['wirft '+mn+(mn<6?' bis 6':'')];if(t>=2)x.push('mehr Würfel auf dem Brett');if(t>=3)x.push('gerade Zahl: Münzfelder +2');if(t>=4)x.push('Beutewürfel stärker');if(t>=5)x.push('heilt bei jedem Wurf');return 'Stufe '+t+'/6: '+x.join(', ')}
+var HOW={rig:['10 Monster besiegen',function(){return ST.kills+' / 10'}],redo:['3 Tode sterben',function(){return ST.deaths+' / 3'}],luck:['25 Würfel auf dem Brett einsammeln',function(){return ST.dice+' / 25'}],warp:['Einen Boss besiegen',function(){return ST.bosses+' / 1'}],iron:['Im Kampf unter 10% Leben kommen',function(){return ST.low?'1 / 1':'0 / 1'}],thief:['5.000 Gold besitzen',function(){return Math.min(5000,(meta&&meta.gold)||0)+' / 5.000'}],vamp:['Einen Boss auf unter 50% Leben bringen',null],six:['Das erste Prestige machen',function(){var c=0;try{c=prestigeData.count||0}catch(e){}return Math.min(1,c)+' / 1'}]};
+function dieRow(id,own,board){var d=dd(id),ms=(inventory.ms||{}),got=!!ms['D'+id],dia=board?15:30,eq=!board&&EQ===id,pr=null;
+  var how=board?'Fundort: liegt als 🎲 Würfel-Feld auf dem Spielfeld. Einmal benutzbar, 3 Plätze.':(id==='city'?'':'So bekommst du ihn: '+(HOW[id]?HOW[id][0]:'?')+(HOW[id]&&HOW[id][1]&&!got?' ('+HOW[id][1]()+')':''));
+  var tag=got?'<span style="color:#6c6">✔ gefunden · 🎁 erhalten</span>':'<span style="color:#c8a070">🎁 Belohnung: 💎 '+dia+'</span>';
+  var right=board?'':(own?(eq?'✔ ANGELEGT':'ANLEGEN'):'🔒');
+  return '<div class="di'+(eq?' eq':'')+(own||board?'':' lk')+'"'+((!board&&own)?' data-id="'+id+'"':'')+'>'+(board||own?dieHTML(id,38):'<span class="md" style="width:38px;height:38px;background:#222"></span>')+'<div class="t"><b>'+d.n+'</b><small>'+(id==='city'&&own?cityInfo():d.d)+'</small>'+(how?'<small style="color:#a08aa8">'+how+'</small>':'')+'<small>'+tag+'</small></div><div class="pr">'+right+'</div></div>'}
 function dieShop(){
-  var box=$('kamDiceShop');if(!box||!meta||!K)return;
-  var h='<h3>🎲 DEINE WÜRFEL</h3><div class="ds">',n=0;
-  Object.keys(SD).forEach(function(id){var d=SD[id];
-    if(OWN.indexOf(id)<0){n++;return}
-    var eq=EQ===id;
-    h+='<div class="di'+(eq?' eq':'')+'" data-id="'+id+'">'+dieHTML(id,38)+'<div class="t"><b>'+d.n+'</b><small>'+(id==='city'?cityInfo():d.d)+'</small></div><div class="pr">'+(eq?'✔ ANGELEGT':'ANLEGEN')+'</div></div>'});
-  for(var q=0;q<n;q++)h+='<div class="di lk"><span class="md" style="width:38px;height:38px;background:#222"></span><div class="t"><b>? ? ?</b><small>Geheimer Würfel. Finde ihn im Spiel.</small></div></div>';
-  var k=K.k,has=DRG.indexOf(k)>=0;
-  h+='<div class="di dr" data-id="dragon"><span class="md" style="width:38px;height:38px;padding:6px;background:linear-gradient(145deg,#1a1a2e,#050510)"><i class="p" style="background:#ff7a3a"></i></span><div class="t"><b>Drachenwürfel Kammer '+k+'</b><small>Erster Schlag gegen den Drachen: 10% seines Lebens</small></div><div class="pr">'+(has?'✔ GEKAUFT':'💰 '+dragCost(k))+'</div></div></div>';
-  box.innerHTML=h;
-  [].forEach.call(box.querySelectorAll('.di:not(.lk)'),function(nd){nd.onclick=function(){
+  var box=$('kamDiceShop');if(!box)return;inventory.ms=inventory.ms||{};
+  try{Object.keys(BD).concat(Object.keys(SD)).forEach(function(id){if(SD[id]&&OWN.indexOf(id)>=0)foundDie(id,false)})}catch(e){}
+  var ms=inventory.ms||{},nB=Object.keys(BD).filter(function(b){return ms['D'+b]}).length,sd=Object.keys(SD).filter(function(s){return s!=='city'}),nS=sd.filter(function(s){return ms['D'+s]}).length;
+  var h='<div style="font-size:.7rem;opacity:.85;margin-bottom:6px">Gefunden: <b>'+(nB+nS)+' / '+(Object.keys(BD).length+sd.length)+'</b> · für jeden neuen Würfel gibt es eine Belohnung (Diamanten). Alle Brettwürfel: 📦 Diamant-Kiste, alle Dauerwürfel: 📦 Legendäre Kiste.</div>';
+  h+='<h3 style="margin:10px 0 4px">🎲 BRETTWÜRFEL ('+nB+'/'+Object.keys(BD).length+')</h3><div class="ds">';
+  Object.keys(BD).forEach(function(id){h+=dieRow(id,true,true)});
+  h+='</div><h3 style="margin:14px 0 4px">♾️ DAUERWÜRFEL ('+nS+'/'+sd.length+')</h3><div style="font-size:.62rem;color:#a08aa8;margin-bottom:4px">Ein Dauerwürfel kann angelegt werden und wirkt bei jedem Wurf.</div><div class="ds">';
+  Object.keys(SD).forEach(function(id){if(id==='city'&&OWN.indexOf('city')<0)return;h+=dieRow(id,OWN.indexOf(id)>=0,false)});
+  var hasD=localStorage.getItem('robDragonDie')==='1';h+='<div class="di dr" data-id="dragon"><span class="md" style="width:38px;height:38px;padding:6px;background:linear-gradient(145deg,#1a1a2e,#050510)"><i class="p" style="background:#ff7a3a"></i></span><div class="t"><b>Drachenwürfel</b><small>Bei jedem Drachen: 3/4/5/6 = 30–60% Leben weg · ★ Oneshot · ☠ = +5000 Münzen, aber der Drache erledigt dich</small><small style="color:#a08aa8">So bekommst du ihn: Spezial-Shop, 500.000 Münzen, dauerhaft</small></div><div class="pr">'+(hasD?'✔ GEKAUFT':'🪙 500.000')+'</div></div>';
+  h+='</div>';box.innerHTML=h;
+  [].forEach.call(box.querySelectorAll('.di[data-id]'),function(nd){nd.onclick=function(){
     var id=nd.dataset.id;
-    if(id==='dragon'){if(DRG.indexOf(K.k)>=0)return;var c=dragCost(K.k);if(meta.gold<c)return;meta.gold-=c;DRG.push(K.k)}
-    else EQ=EQ===id?'':id;
-    saveD();var g=$('overlayGold');if(g)g.textContent='💰 '+meta.gold+' Gold verfügbar';dieShop();invUI();hud()}});
+    if(id==='dragon')return;
+    EQ=EQ===id?'':id;
+    saveD();dieShop();invUI();hud()}});
 }
+window.__kamDDex=function(){var m=$('kamDDexModal');if(!m){m=document.createElement('div');m.id='kamDDexModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816f2;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';
+  m.innerHTML='<div style="max-width:440px;margin:0 auto"><div style="display:flex;gap:10px;align-items:center;margin-bottom:10px"><button class="btn btn-sm" onclick="document.getElementById(\'kamDDexModal\').style.display=\'none\'">← ZURÜCK</button><b style="font-size:1.05rem">🎲 WÜRFEL-LEXIKON</b></div><div id="kamDiceShop"></div></div>';document.body.appendChild(m)}
+  m.style.display='block';dieShop()};
 var CUBE={1:[0,0],2:[0,-90],6:[0,-180],5:[0,90],3:[-90,0],4:[90,0]};
 function setCube(v,spin){var c=$('kamCube');if(!c)return;c.classList.remove('spin');c.style.transform='rotateX('+(CUBE[v][0]+(spin?720:0))+'deg) rotateY('+(CUBE[v][1]+(spin?720:0))+'deg)'}
 /* Würfelgeräusch: Holzwürfel rollt über einen Tisch (WebAudio, ohne Datei) */
@@ -605,10 +621,14 @@ function land(){
   var o=K.cur;busy=false;walk(false,1);
   if(o.t==='boss'){fightBoss=true;pendingBossNum=K.k;startWorldBoss(K.k);
     try{monstersInFight[0].baseType=drag(K.k);renderFight()}catch(e){}
-    applyFightBonus();var dm='Der Drache versperrt den Weg!';if(DRG.indexOf(K.k)>=0){try{var bm=monstersInFight[0],ch=Math.round(bm.maxHp*.1);bm.hp=Math.max(1,bm.hp-ch);DRG.splice(DRG.indexOf(K.k),1);saveD();dm+=' Drachenwürfel: -'+ch+' Leben!';renderFight()}catch(e){}}msg(dm);return afterAny()}
+    applyFightBonus();var dm='Der Drache versperrt den Weg!';if(localStorage.getItem('robDragonDie')==='1'){try{var bm=monstersInFight[0],F=['3','4','5','6','star','skull'],f=F[Math.floor(Math.random()*F.length)];
+if(f==='star'){bm.hp=1;dm+=' 🎲 Drachenwürfel: ★ ONE-SHOT! Ein Schlag und er fällt.';fl('★ ONESHOT','#ffd24a')}
+else if(f==='skull'){meta.gold+=5000;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}fl('☠ +5000 🪙','#ff4a4a');msg('🎲 Drachenwürfel: ☠☠ Totenkopf! +5000 Münzen, aber der Drache erledigt dich!');meta.hp=0;try{if(window.__kamDeathSoul)window.__kamDeathSoul()}catch(e){}saveHeroData();updateUI();setTimeout(showDeath,700);return}
+else{var ch=Math.round(bm.maxHp*.1*Number(f));bm.hp=Math.max(1,bm.hp-ch);dm+=' 🎲 Drachenwürfel: '+f+' → -'+ch+' Leben ('+(Number(f)*10)+'%)!';fl('🎲 '+f+' · -'+f*10+'%','#ffd24a')}
+renderFight()}catch(e){}}msg(dm);return afterAny()}
   if(o.t==='monster'&&!o.used){o.used=true;o.el.classList.add('used');var tp=kamFight(o);msg(tp.length>1?tp.map(function(t){return MONSTER_NAMES[t]}).join(' und ')+' greifen an!':MONSTER_NAMES[o.m]+' greift an!');return afterAny()}
   if(!o.used){
-    if(o.t==='die'){if(INV.length>=3){msg('Alle 3 Plätze voll. Der Würfel bleibt liegen.');updateUI();return}INV.push(o.d);ST.dice++;saveST();saveD();invUI();checkUnlocks();fl('🎲 '+dd(o.d).n,'#fff');msg(dd(o.d).n+' eingesammelt: '+dd(o.d).d+'.');o.used=true;if(o.el)o.el.classList.add('used');updateUI();return}
+    if(o.t==='die'){if(INV.length>=3){msg('Alle 3 Plätze voll. Der Würfel bleibt liegen.');updateUI();return}INV.push(o.d);foundDie(o.d,true);ST.dice++;saveST();saveD();invUI();checkUnlocks();fl('🎲 '+dd(o.d).n,'#fff');msg(dd(o.d).n+' eingesammelt: '+dd(o.d).d+'.');o.used=true;if(o.el)o.el.classList.add('used');updateUI();return}
     if(o.t==='gold'){var g=Math.floor((o.v+(K.gb||0))*(typeof getSchurkeGoldMult==='function'?getSchurkeGoldMult():1));
       if(heroData[meta.hero].skills.includes('ben1')&&Math.random()<.3){g*=2;try{showSkillPopup('🍀 GLÜCKSGRIFF! Doppeltes Gold!')}catch(e){}}
       if(window.__kamGoldM)g=Math.floor(g*window.__kamGoldM());
@@ -944,7 +964,7 @@ function cBuilt(){var b=cityB(),t=0;BL.forEach(function(x){if((b[x]||0)>=1)t++})
 function stt(k){return function(){ens();return (inventory.stats&&inventory.stats[k])||0}}
 function insts(){ens();return Object.keys(inventory.inst).map(function(u){return it(u)}).filter(Boolean)}
 function perf(r){return function(){return insts().some(function(i){return i.c===2&&i.rarity===r})?1:0}}
-var dTot=function(){return Object.keys(BD).length+Object.keys(SD).length};
+var dTot=function(){return Object.keys(SD).length};
 var Q=[
  ['ct1','Baue dein erstes Gebäude','🏙️ Stadt',1,tr(function(){return cSum()>=1?1:0})],
  ['ct2','Baue alle 6 Gebäude','🏙️ Stadt',6,tr(cBuilt)],
@@ -1049,13 +1069,13 @@ var SU=[['gold','💰','Seelen-Gold','+2% Gold pro Stufe',25],['dias','💎','Se
 function suCost(k){return 10+5*suLv(k)}
 window.__kamSuDias=function(){return suLv('dias')};
 window.__kamSuMult=function(k){return 1+suLv(k)*(k==='hp'?.04:.03)};
-window.__kamDeathSoul=function(){pd().souls+=1;try{savePrestige()}catch(e){}try{log('<span style="color:#cc88ff">💜 +1 Seele</span>')}catch(e){}};
+window.__kamDeathSoul=function(){var p=pd();p.soulsPend=(p.soulsPend||0)+1;try{savePrestige()}catch(e){}try{log('<span style="color:#cc88ff">💜 +1 Seele gesammelt (wird beim Prestige ausgezahlt: '+p.soulsPend+')</span>')}catch(e){}};
 var HPMAX=20;function hpCost(){return 5+2*suLv('hp')}
 window.__kamHpSoul=function(){var l=suLv('hp');if(l>=HPMAX||pd().souls<hpCost())return;pd().souls-=hpCost();pd().su.hp=l+1;try{savePrestige()}catch(e){}try{var f=(1+(l+1)*.04)/(1+l*.04),o=meta.maxHp;meta.maxHp=Math.floor(o*f);meta.hp+=meta.maxHp-o;updateUI()}catch(e){}try{showCity();cityOpen('house')}catch(e){}};
 var _co=window.cityOpen;window.cityOpen=function(id){_co(id);if(id!=='house')return;var pn=document.getElementById('cityPanel');if(!pn)return;var l=suLv('hp'),mx=l>=HPMAX,c=hpCost();pn.firstChild.insertAdjacentHTML('beforeend','<div style="margin-top:12px;padding-top:10px;border-top:1px solid #c9a227"><div style="font-weight:700">💜 Seelen-Training · Stufe '+l+'/'+HPMAX+'</div><div style="font-size:.78rem;margin:4px 0">+4% Leben pro Stufe (jetzt +'+(l*4)+'%). Pro Tod bekommst du 1 Seele, sie bleiben beim Prestige.</div><div style="font-size:.8rem;margin-bottom:6px">Deine Seelen: '+pd().souls+'</div>'+(mx?'<div style="color:#8f8">Maximal</div>':'<button class="btn btn-wide" '+(pd().souls<c?'disabled ':'')+'onclick="__kamHpSoul()" style="padding:9px 18px">TRAINIEREN · 💜 '+c+'</button>')+'</div>')};
 function soulGain(){ens();return 10+3*((inventory.stats&&inventory.stats.maxBoss)||0)+Math.floor(maxHeroLv()/2)}
-window.__kamSoulGain=function(){return soulGain()};
-window.__kamSoulGrant=function(){var g=soulGain();pd().souls+=g;try{savePrestige()}catch(e){}try{toast('💜 +'+g+' Seelen')}catch(e){}};
+window.__kamSoulGain=function(){return soulGain()+(pd().soulsPend||0)};
+window.__kamSoulGrant=function(){var g=soulGain()+(pd().soulsPend||0);pd().soulsPend=0;pd().souls+=g;try{savePrestige()}catch(e){}try{toast('💜 +'+g+' Seelen')}catch(e){}};
 window.__kamSuBuy=function(k){var d=SU.filter(function(x){return x[0]===k})[0];if(!d||suLv(k)>=d[4])return;var c=suCost(k);if(pd().souls<c)return;pd().souls-=c;pd().su[k]=suLv(k)+1;try{savePrestige()}catch(e){}levelsUI()};
 
 var PL=[[5,'Beute I',[],0,0],[6,'Beute II',['dia'],0,0],[7,'Beute III',[],1000,50],[8,'Beute IV',['dia','dia'],0,0],[9,'Beute V',[],1000,100],[10,'Beute VI',['legend'],1000,50]];
@@ -1073,14 +1093,14 @@ function prestigeTab(){
  var r='<style>.pxb{flex:1;font-size:12px!important;padding:10px 4px!important}.pxr{display:flex;gap:10px;align-items:center;background:linear-gradient(135deg,#1a0f2a,#0d0814);border:2px solid #3a2858;border-radius:14px;padding:10px;margin-bottom:8px}.pxr.dn{border-color:#4a9a6a;opacity:.85}.pxr.nx{border-color:#f0c040;box-shadow:0 0 14px #f0c04055}.pxn{min-width:38px;height:38px;border-radius:50%;background:#2a1a40;border:2px solid #7a5aa8;display:flex;align-items:center;justify-content:center;font-weight:bold;color:#ffd24a;font-size:16px}.pxr.dn .pxn{background:#1f5a38;border-color:#6fcf97;color:#fff}.pxr.nx .pxn{background:#f0c040;color:#2a1245;border-color:#fff}.pxc{display:inline-block;font-size:11px;background:#2a1a40;border:1px solid #5a3a88;border-radius:8px;padding:2px 7px;margin:2px 3px 0 0;color:#ffe9c4}.pxc.pf{border-color:#ffd24a;color:#ffd24a}.pxc.st{background:#3a1a2a;border-color:#a04060}.pxc.gd{background:#2a2a10;border-color:#a09030}</style>'+
  '<div class="hr"><img src="hero/idle0.webp"><div class="t"><div class="lv">Prestige '+c+'</div><small>Ab Boss 5 kannst du Prestige machen</small><div class="bar"><i style="width:'+pc+'%"></i></div><small>'+(hb%10)+' / 10 Bosse ab Boss 5 für das nächste Token · Token: '+tk+'</small></div></div>'+
  '<div style="display:flex;gap:6px;margin:10px 0"><button class="btn btn-wide pxb" onclick="__kamShowLoot()">🎁 Beute</button><button class="btn btn-wide pxb" style="flex:1.6" '+(tk>0?'':'disabled ')+'onclick="document.getElementById(\'kamLevels\').style.display=\'none\';window.__kamFromLv=1;doPrestige()">💜 Prestige durchführen</button><button class="btn btn-wide pxb" onclick="__kamShowShop()">🛒 Shop</button></div>'+(SHL?lootHtml():'');
- if(SHS){r+='<div style="font-size:13px;color:#f0c040;margin:4px 0 4px;display:flex;justify-content:space-between"><b>💜 Seelen-Shop</b><span>Seelen: '+prestigeData.souls+'</span></div><div style="font-size:11px;color:#a08aa8;margin-bottom:8px">Einmal für 💰500 freischalten, danach mit Seelen aufleveln. Das Leben trainierst du in der Kaserne.</div>';
-  SU.forEach(function(d){var lv=suLv(d[0]),c2=suCost(d[0]),mx=lv>=d[4],un=!!(prestigeData.sun&&prestigeData.sun[d[0]]);
+ if(SHS){r+='<div style="font-size:13px;color:#f0c040;margin:4px 0 4px;display:flex;justify-content:space-between"><b>💜 Seelen-Shop</b><span>Seelen: '+prestigeData.souls+'</span></div><div style="font-size:11px;color:#a08aa8;margin-bottom:8px">Alle Upgrades kosten nur Seelen. Seelen aus Toden werden erst beim Prestige ausgezahlt (gesammelt: '+(prestigeData.soulsPend||0)+'). Das Leben trainierst du in der Kaserne.</div>';
+  SU.forEach(function(d){var lv=suLv(d[0]),c2=suCost(d[0]),mx=lv>=d[4],un=true;
    r+='<div class="card" style="margin-bottom:8px;display:flex;align-items:center;gap:10px"><div style="font-size:24px">'+d[1]+'</div><div style="flex:1"><div style="font-size:13px">'+d[2]+' <span style="color:#a08aa8;font-size:11px">Stufe '+lv+'/'+d[4]+'</span></div><div style="font-size:11px;color:#a08aa8">'+d[3]+'</div></div>'+
    (un?'<button class="btn btn-sm" '+((mx||prestigeData.souls<c2)?'disabled ':'')+'onclick="__kamSuBuy(\''+d[0]+'\')">'+(mx?'MAX':'💜 '+c2)+'</button>':'<button class="btn btn-sm" '+((meta.gold||0)<500?'disabled ':'')+'onclick="__kamSuUnlock(\''+d[0]+'\')">💰 500</button>')+'</div>'});
   return r}
  r+='<div style="font-size:13px;color:#f0c040;margin:6px 0 8px"><b>Belohnungen pro Prestige</b></div>';
  for(var n=1;n<=10;n++){var d=n<=c,nxt=n===c+1;r+='<div class="pxr'+(d?' dn':nxt?' nx':'')+'"><div class="pxn">'+(d?'✓':n)+'</div><div style="flex:1"><div style="font-size:13px;color:#ffe9c4;margin-bottom:2px">Prestige '+n+(nxt?' · als Nächstes':'')+'</div><span class="pxc st">⚔ Gegner +'+(12*n)+'%</span><span class="pxc gd">💰💎 +'+(15*n)+'%</span><span class="pxc">🍀 Loot +'+(2*n)+'%</span><div>'+pxChips(n)+'</div></div></div>'}
- r+='<div style="font-size:11px;color:#a08aa8;margin:6px 0 12px">Danach je Prestige weiter +12% Gegner, +15% Gold &amp; Dias, +2% Loot. Zurückgesetzt wird nur das Heldenlevel, Shop-Upgrades und die Hälfte deines Goldes. Seelen: 1 pro Tod plus ca. '+soulGain()+' beim Prestige.</div>';
+ r+='<div style="font-size:11px;color:#a08aa8;margin:6px 0 12px">Danach je Prestige weiter +12% Gegner, +15% Gold &amp; Dias, +2% Loot. Zurückgesetzt wird nur das Heldenlevel, Shop-Upgrades und die Hälfte deines Goldes. Seelen: 1 pro Tod (gesammelt: '+(prestigeData.soulsPend||0)+') plus ca. '+soulGain()+' beim Prestige, alles wird erst beim Prestige ausgezahlt.</div>';
  return r}
 /* ---- Level-Fenster ---- */
 var LM=1;
@@ -1876,5 +1896,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     }catch(e){window.__kamEtg=etg||0;try{oOC.apply(window,[type])}finally{window.__kamEtg=0}}
   };
 })();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-12c';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-12f';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]==='11-11c'?'✓':'✗ alt'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
