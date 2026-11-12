@@ -913,20 +913,25 @@ function perfectGift(minRank,why){var pool=ITEMS.filter(function(x){return RANK.
 var PX={1:{items:[['armor5',2]],lila:1},2:{souls:5},3:{orange:1},4:{souls:10},5:{perfect:1,orange:2},6:{orange:1},7:{orange:1},8:{orange:1},9:{orange:1},10:{perfect:1,orange:3}};
 var HG={10:[['armor2',0]],20:[['ring2',0]],25:[['cape3',0]],30:[['helm4',1]],40:[['bow4',1]],50:[['armor4',1]],60:[['staff4',1]],70:[['cape4',2]],80:[['helm5',2]],90:[['ring4',2]],100:[['sword5',2]]};
 var HX={10:{blau:1},15:{blau:1},20:{blau:2},25:{iron:10},30:{lila:1,blau:1},35:{blau:2},40:{lila:1,iron:20},45:{lila:1},50:{lila:2},55:{lila:1},60:{lila:2},65:{orange:1},70:{orange:1,iron:30},75:{lila:2},80:{orange:2},85:{orange:1},90:{orange:2},95:{orange:2},100:{orange:3}};
-var CG={10:[['ring2',0]],20:[['armor4',0]],30:[['sword4',1]],40:[['cape4',1]],50:[['helm5',1]],70:[['bow5',2]],90:[['staff5',2]],100:[['armor5',2]]};
-var CX={5:{iron:5},20:{iron:15},25:{lila:1},40:{orange:1},60:{orange:1},80:{orange:2}};
-function grant(items,ex,why){var t=[];(items||[]).forEach(function(g){var r=giveOrSell(g[0],g[1],true);if(r.item)t.push(r.item.name+' ('+CN[g[1]]+')')});
+var HC={5:['wood'],10:['wood'],15:['wood'],20:['dia'],25:['dia'],30:['dia'],40:['dia'],50:['legend'],60:['legend'],70:['legend'],80:['legend','dia'],90:['sin'],100:['sin','sin']};
+var CC2={10:['wood'],15:['wood'],20:['dia'],30:['dia'],40:['dia'],50:['legend'],60:['legend'],70:['legend'],80:['legend'],90:['sin'],100:['sin']};
+var CG={10:[['ring2',0]],15:[['helm3',0]],20:[['armor4',0]],30:[['sword4',1]],40:[['cape4',1]],50:[['helm5',1]],70:[['bow5',2]],90:[['staff5',2]],100:[['armor5',2]]};
+var CX={5:{iron:5},15:{blau:1,iron:10},20:{iron:15},25:{lila:1},40:{orange:1},60:{orange:1},80:{orange:2}};
+function grant(items,ex,why,chs){var t=[];(items||[]).forEach(function(g){var r=giveOrSell(g[0],g[1],true);if(r.item)t.push(r.item.name+' ('+CN[g[1]]+')')});
  ex=ex||{};if(ex.iron){inventory.iron=(inventory.iron||0)+ex.iron;bump('ironTotal',ex.iron);t.push('🔩 '+ex.iron)}
  ['blau','lila','orange'].forEach(function(o){if(ex[o]){inventory.orbs[o]=(inventory.orbs[o]||0)+ex[o];t.push(ORB[o][0]+' ×'+ex[o])}});
+ (chs||[]).forEach(function(ct){try{window.__kamChest(ct,CHEST_CONFIG[ct]);t.push('📦 '+(CHN[ct]||ct))}catch(e){}});
  if(t.length){try{toast('🎁 '+why+': '+t.join(', '))}catch(e){}log('<span style="color:#ffd24a">🎁 '+why+': '+t.join(', ')+'</span>')}}
 function maxHeroLv(){var m=0;try{for(var h in heroData)m=Math.max(m,getHeroLevel(h))}catch(e){}return m}
 function milestones(){if(!meta||!meta.hero)return;ens();var ms=inventory.ms=inventory.ms||{},ch=false;
  try{if(ms.p1)ms.P1=1;for(var pn=1;pn<=(prestigeData.count||0);pn++){if(!ms['P'+pn]){ms['P'+pn]=1;ch=true;var px=PX[Math.min(pn,10)];if(px){grant(px.items,px,'Prestige '+pn);if(px.souls){pd().souls+=px.souls;savePrestige()}if(px.perfect)perfectGift(4,'Prestige '+pn)}}}}catch(e){}
  var hl=maxHeroLv(),cl=clv();
- for(var L=5;L<=100;L+=5){if(hl>=L&&!ms['H'+L]){ms['H'+L]=1;if(HG[L]||HX[L]){ch=true;grant(HG[L],HX[L],'Held-Level '+L)}}
-  if(cl>=L&&!ms['C'+L]){ms['C'+L]=1;if(CG[L]||CX[L]){ch=true;grant(CG[L],CX[L],'Klassen-Level '+L)}}}
+ for(var L=5;L<=100;L+=5){if(hl>=L&&!ms['H'+L]){ms['H'+L]=1;if(HG[L]||HX[L]||HC[L]){ch=true;grant(HG[L],HX[L],'Held-Level '+L,HC[L])}}
+  if(cl>=L&&!ms['C'+L]){ms['C'+L]=1;if(CG[L]||CX[L]||CC2[L]){ch=true;grant(CG[L],CX[L],'Klassen-Level '+L,CC2[L])}}}
  if(ch)try{saveInventory()}catch(e){}}
-window.__kamLvReward=function(L){var r=(typeof LEVEL_REWARDS!=='undefined'&&LEVEL_REWARDS[L-1])||{};return{g:r.g||0,h:r.h||0,a:r.a||0,d:r.d||0}};
+/* Heldenlevel: jedes Level gibt jetzt Gold (190 + 10 pro Level), die bisherigen Gold-Belohnungen zaehlen doppelt */
+window.__kamLvReward=function(L){var r=(typeof LEVEL_REWARDS!=='undefined'&&LEVEL_REWARDS[L-1])||{};return{g:190+10*L+(r.g||0)*2,h:r.h||0,a:r.a||0,d:r.d||0}};
+function chestChips(a){var h='';(a||[]).forEach(function(t){h+='<span class="lc big">📦 '+(CHN[t]||t)+'</span>'});return h}
 
 /* ---- Neue Quests ---- */
 (function(){
@@ -1092,9 +1097,9 @@ function levelsUI(){
  var lv=LM===1?hl:cl,ms=inventory.ms||{},h='',lvls=LM===1?Array.apply(null,Array(100)).map(function(_,i){return i+1}):[5,10,15,20,25,30,40,50,60,70,80,90,100],nd=false;
  var ml=lvls.filter(function(x){return x>lv})[0];
  lvls.forEach(function(L){var cls=L<=lv?'done':(!nd?(nd=true,'next'):''),lk=(LM===2&&L>nq)?' lk':'',rk=LM===1&&RK[L]?'<span class="rk" style="color:'+RK[L][2]+';border-color:'+RK[L][2]+'">'+RK[L][0]+' '+RK[L][1]+'</span>':'',c='';
-  if(LM===1){var b=window.__kamLvReward(L);if(b.h)c+='<span class="lc">❤ +'+b.h+'</span>';if(b.a)c+='<span class="lc">⚔ +'+b.a+'</span>';if(b.g)c+='<span class="lc">💰 '+b.g+'</span>';if(b.d)c+='<span class="lc">💎 '+b.d+'</span>';c+=chips(HG[L],HX[L]);
+  if(LM===1){var b=window.__kamLvReward(L);if(b.h)c+='<span class="lc">❤ +'+b.h+'</span>';if(b.a)c+='<span class="lc">⚔ +'+b.a+'</span>';if(b.g)c+='<span class="lc">💰 '+b.g+'</span>';if(b.d)c+='<span class="lc">💎 '+b.d+'</span>';c+=chips(HG[L],HX[L]);c+=chestChips(HC[L]);
    var NHH={5:['elfa','Elfa'],10:['luna','Luna'],15:['jamal','Jamal'],20:['brutus','Brutus'],30:['kalifa','Kalifa']};if(NHH[L])c+='<span class="lc nh big"><img src="items/p_'+NHH[L][0]+'.webp">NEUER HELD: '+NHH[L][1]+'</span>';if(L===60)c+='<span class="lc nh big"><img src="comp/fee_1_i0.webp">BEGLEITER FREI</span>'}
-  else{c+=chips(CG[L],CX[L]);if(L===50)c+='<span class="lc nh big"><img src="items/p_jeffrey.webp">NEUER HELD</span>';if(L===100)c+='<span class="lc nh big"><img src="items/p_berta.webp">NEUER HELD</span>'}
+  else{c+=chips(CG[L],CX[L]);c+=chestChips(CC2[L]);if(L===50)c+='<span class="lc nh big"><img src="items/p_jeffrey.webp">NEUER HELD</span>';if(L===100)c+='<span class="lc nh big"><img src="items/p_berta.webp">NEUER HELD</span>'}
   var big=!(LM===1&&L%5&&!RK[L]);h+='<div class="m '+cls+lk+(big?'':' sm')+'"><div class="dot">'+L+'</div><div class="card"><h3>Level '+L+' '+rk+'<span>'+(L<=lv?'✓ erhalten':(lk?'braucht mehr Quests':''))+'</span></h3><div class="rw">'+(c||'<span class="lc">–</span>')+'</div></div></div>'});
  var TOP='<div style="display:flex;align-items:center;gap:10px;margin:0 0 6px"><button class="btn btn-sm" onclick="__kamLvBack()">← ZURÜCK</button><h1 style="flex:1;margin:0">⭐ LEVEL</h1></div>',
  TB='<div class="tb">'+[[1,'Heldenlevel'],[2,'Klassenlevel'],[3,'Prestige']].map(function(t){return '<button class="'+(LM===t[0]?'on':'')+'" onclick="__kamLM('+t[0]+')">'+t[1]+'</button>'}).join('')+'</div>';
@@ -1862,5 +1867,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     }catch(e){window.__kamEtg=etg||0;try{oOC.apply(window,[type])}finally{window.__kamEtg=0}}
   };
 })();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-11d';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-12a';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]==='11-11c'?'✓':'✗ alt'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
