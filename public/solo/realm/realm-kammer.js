@@ -1237,7 +1237,7 @@ function zsync(){if(!meta||!inventory.equipped)return;var pv=inventory.zb||0;if(
  var e=inventory.equipped,all=true,mm=true;['helm','armor','hand','boots','ring','weapon','shield'].forEach(function(t){var i=e[t]&&it(e[t]);if(!i||!i.z){all=false;return}if(i.z!=='m')mm=false});
  if(all){var add=Math.round(meta.maxHp*(mm?.5:.4));meta.maxHp+=add;inventory.zb=add}meta.hp=Math.min(meta.hp,meta.maxHp);try{updateUI()}catch(x){}}
 window.__kamHeroGear=function(){ens();var o={};['hero','arc','mag'].forEach(function(w){var m={};(SL[w]||[]).forEach(function(t){m[t]=null});o[w]=m});
- inventory.items.forEach(function(u){var k=wkey(u);if(k&&o[k[0]]&&o[k[0]].hasOwnProperty(k[1])){var n=inventory.inst[u],b=n&&base(n.b);if(b)o[k[0]][k[1]]={ico:ico(b.id),col:RARITY_COLOR[b.rarity],name:b.name}}});return {gear:o,slots:SL}};
+ inventory.items.forEach(function(u){var k=wkey(u);if(k&&o[k[0]]&&o[k[0]].hasOwnProperty(k[1])){var n=inventory.inst[u],b=n&&base(n.b);if(b)o[k[0]][k[1]]={ico:ico(b.id),col:RARITY_COLOR[b.rarity],name:b.name}}});return {gear:o,slots:SL,own:{hero:true,arc:maxHeroLv()>=5,mag:maxHeroLv()>=30}}};
 window.__kamUnz=function(){var e=inventory.equipped||{};Object.keys(e).slice().forEach(function(t){var i=e[t]&&it(e[t]);if(i&&i.z)unw(e[t])});try{saveInventory()}catch(x){}};
 function unw(uid){var i=it(uid),w=wearer(uid);if(!w)return;
  var q=st(i),wk=wkey(uid);if(wk){if(w==='hero')delete inventory.equipped[wk[1]];else delete ai()[w][wk[1]]}
@@ -2001,7 +2001,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   function paint(){
     if(!document.body.classList.contains('dev-pc'))return;
     try{if(!build())return;var G=window.__kamHeroGear&&window.__kamHeroGear();if(!G)return;
-     var h='';['hero','arc','mag'].forEach(function(w){var n=NM[w],sl=G.slots[w];
+     var h='';['hero','arc','mag'].forEach(function(w){if(!G.own[w])return;var n=NM[w],sl=G.slots[w];
       h+='<div class="pcc" style="--c:'+n[2]+'"><div class="h"><img class="pf" src="items/'+n[1]+'?v=1113" alt=""><div><b style="font-size:1.1rem;color:'+n[2]+'">'+n[0]+'</b><br><small style="opacity:.8">'+(w==='hero'?'Krieger':w==='arc'?'Bogenschützin':'Magierin')+'</small></div></div><div class="sl">'+sl.map(function(t){var x=G.gear[w][t];return '<div title="'+(x?x.name:t)+'" style="'+(x?'border-color:'+x.col:'opacity:.45')+'">'+(x?'<img src="'+x.ico+'" alt="">':'')+'</div>'}).join('')+'</div></div>'});
      var L=document.getElementById('pcLeft');if(L&&L.dataset.h!==h){L.innerHTML=h;L.dataset.h=h}
      var inv=window.inventory||{},LG=[];try{LG=JSON.parse(localStorage.getItem('robKamLogR')||'[]')}catch(e){}
@@ -2036,5 +2036,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-13g';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-13h';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
