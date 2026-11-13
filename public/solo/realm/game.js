@@ -2394,6 +2394,7 @@ function showInventory() {
 function closeInventory() { document.getElementById('inventoryModal').style.display = 'none'; openMenu(); }
 
 function itemIcon(it, px) {
+  if (it.zi) return '<img src="items/' + it.zi + '" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px">';
   var c = {normal:'w', gruen:'g', blau:'b', episch:'p', legendaer:'o', mystisch:'r'}[it.rarity] || 'g';
   var n = {shoulder:'shoulder', weapon:'sword', armor:'armor', helm:'helm', ring:'ring', bow:'bow', staff:'staff', cape:'cape', hand:'hand', amulet:'amu', boots:'boots', quiver:'quiver', book:'book', shield:'shield'}[it.type] || 'sword';
   if (it.type === 'shield') n = {turm:'tshield', rund:'shield', stachel:'buckler'}[it.sk || 'turm'];
