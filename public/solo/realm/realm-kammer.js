@@ -1955,7 +1955,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
    'body.dev-tablet #loginBox{zoom:var(--tz,1.5)}'+
    'body.dev-pc #gameWrapper{display:grid!important;grid-template-columns:minmax(300px,1fr) minmax(380px,540px) minmax(300px,1fr);gap:16px;max-width:1560px!important;width:100%!important;margin:0 auto!important;align-items:start;padding:0 16px!important}'+
    'body.dev-pc #gameWrapper>.game-title{grid-column:1/-1}body.dev-pc #gameWrapper>.game-col{display:block!important;min-width:0}body.dev-pc #gameWrapper>.pcMid{grid-column:2;grid-row:2}body.dev-pc #gameWrapper>.pcRight{grid-column:3;grid-row:2}body.dev-pc #pcLeft{grid-column:1;grid-row:2}'+
-   'body.dev-pc #kam{height:min(calc(100vh - 330px),720px)!important;min-height:380px}'+
+   'body.dev-pc #kam{height:min(calc(100vh - 120px),960px)!important;min-height:380px}#pcCtl{margin-top:6px}#pcCtl #kamLow{margin-bottom:8px}'+
    '.pcc{border:2px solid var(--c);border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;box-shadow:0 0 12px color-mix(in srgb,var(--c) 40%,transparent)}.pcc .h{display:flex;gap:10px;align-items:center}.pcc img.pf{width:72px;height:72px;object-fit:cover;border-radius:12px;border:3px solid var(--c)}.pcc .sl{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:8px}.pcc .sl div{aspect-ratio:1;border:1px solid #5a3a1a;border-radius:6px;background:#0008;display:flex;align-items:center;justify-content:center}.pcc .sl img{max-width:88%;max-height:88%}'+
    '.pcp{border:2px solid #6b4a1f;border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;font-size:.72rem}.pcp h4{margin:0 0 6px;color:#ffd24a;font-size:.8rem;letter-spacing:2px}.pcp .r{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #2a1a14}'+
    '#kamDev{display:flex;gap:8px;width:100%;margin-top:12px}#kamDev button{flex:1;padding:10px 6px;border-radius:10px;border:1px solid #7a4a1a;background:#0006;color:#ffe9c4;font-family:Cinzel,serif;font-size:.78rem;cursor:pointer}#kamDev button.on{background:linear-gradient(135deg,#7a1a00,#c23a10);border-color:#f0c040;color:#fff}'+
@@ -1996,10 +1996,12 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   function build(){
     var W=document.getElementById('gameWrapper');if(!W)return false;
     var L=document.getElementById('pcLeft');if(!L){L=document.createElement('div');L.id='pcLeft';var c1=W.querySelector('.game-col');W.insertBefore(L,c1)}
-    var cols=W.querySelectorAll(':scope>.game-col'),R=cols[1];if(cols[0])cols[0].classList.add('pcMid');if(R)R.classList.add('pcRight');var P=document.getElementById('pcInfo');if(R&&!P){P=document.createElement('div');P.id='pcInfo';R.insertBefore(P,R.firstChild)}
+    var cols=W.querySelectorAll(':scope>.game-col'),R=cols[1];if(cols[0])cols[0].classList.add('pcMid');if(R)R.classList.add('pcRight');var P=document.getElementById('pcInfo');if(R&&!P){P=document.createElement('div');P.id='pcInfo';R.insertBefore(P,R.firstChild)}if(R&&!document.getElementById('pcCtl')){var cc=document.createElement('div');cc.id='pcCtl';R.insertBefore(cc,P?P.nextSibling:R.firstChild)}
     return true}
+  function moveCtl(on){try{var c=document.getElementById('pcCtl'),lo=document.getElementById('kamLow'),ba=document.getElementById('kamBar');
+    [lo,ba].forEach(function(e){if(!e)return;if(on){if(c&&e.parentNode!==c){e._op=e.parentNode;e._on=e.nextSibling;c.appendChild(e)}}else if(e._op&&e.parentNode!==e._op){e._op.insertBefore(e,e._on&&e._on.parentNode===e._op?e._on:null);e._op=null}})}catch(x){}}
   function paint(){
-    if(!document.body.classList.contains('dev-pc'))return;
+    if(!document.body.classList.contains('dev-pc')){moveCtl(false);return}
     try{if(!build())return;var G=window.__kamHeroGear&&window.__kamHeroGear();if(!G)return;
      var h='';['hero','arc','mag'].forEach(function(w){if(!G.own[w])return;var n=NM[w],sl=G.slots[w];
       h+='<div class="pcc" style="--c:'+n[2]+'"><div class="h"><img class="pf" src="items/'+n[1]+'?v=1113" alt=""><div><b style="font-size:1.1rem;color:'+n[2]+'">'+n[0]+'</b><br><small style="opacity:.8">'+(w==='hero'?'Krieger':w==='arc'?'Bogenschützin':'Magierin')+'</small></div></div><div class="sl">'+sl.map(function(t){var x=G.gear[w][t];return '<div title="'+(x?x.name:t)+'" style="'+(x?'border-color:'+x.col:'opacity:.45')+'">'+(x?'<img src="'+x.ico+'" alt="">':'')+'</div>'}).join('')+'</div></div>'});
@@ -2009,7 +2011,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
      var ih='<div class="pcp"><h4>📜 INFO-LOG</h4>'+(LG.length?LG.slice(0,6).map(function(x){var d=new Date(x[0]);return '<div class="r"><span>'+x[1]+'</span><small style="opacity:.6">'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'</small></div>'}).join(''):'<small style="opacity:.7">Noch nichts erhalten.</small>')+'</div>'
       +'<div class="pcp"><h4>🎒 INVENTAR</h4><div class="r"><span><img src="items/ore_silver.webp" style="height:1.2em;vertical-align:-.25em" alt=""> Eisenbarren</span><b>'+(inv.iron||0)+'</b></div><div class="r"><span>⛏ Erze</span><b>'+on+'</b></div><div class="r"><span>🔮 Kugeln</span><b>'+orb+'</b></div><div class="r"><span>💠 Juwelen</span><b>'+gm+'</b></div><div class="r"><span>🛡 Ausrüstung</span><b>'+((inv.items||[]).length)+'</b></div><div class="r"><span>⚒ Schmiede</span><b>'+((inv.fjobs||[]).length)+'/3</b></div><button class="btn btn-wide" style="margin-top:8px;font-size:.7rem" onclick="document.getElementById(\'kamPf\').click();setTimeout(function(){var b=document.querySelector(\'#kamProf .tabs button[data-t=i]\');b&&b.click()},50)">INVENTAR ÖFFNEN</button></div>'
       +'<div class="pcp"><h4>TASTEN</h4><small>Leertaste = Würfeln · I = Inventar · P = Profil</small></div>';
-     var P=document.getElementById('pcInfo');if(P&&P.dataset.h!==ih){P.innerHTML=ih;P.dataset.h=ih}}catch(e){}}
+     var P=document.getElementById('pcInfo');if(P&&P.dataset.h!==ih){P.innerHTML=ih;P.dataset.h=ih}moveCtl(true)}catch(e){}}
   setInterval(paint,1500);setTimeout(paint,600);
   document.addEventListener('keydown',function(e){if(!document.body.classList.contains('dev-pc'))return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
     if(e.code==='Space'){var d=document.getElementById('actionBtn');if(d&&!d.disabled){e.preventDefault();d.click()}}
@@ -2036,5 +2038,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-13h';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-13i';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
