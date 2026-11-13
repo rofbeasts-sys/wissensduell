@@ -180,6 +180,8 @@ var css=document.createElement('style');css.textContent=
 '#kamProf[data-tab=m] #statusPanel{display:none!important}'+
 '#kamProf[data-tab=i] #menuPanel,#kamProf[data-tab=i] #kamQuick,#kamProf[data-tab=i] #kamReset,#kamProf[data-tab=i] #kamReset2{display:none!important}#kamInfoPane,#kamLogPane{display:none}#kamProf[data-tab=p] #kamLogPane{display:block}#kamProf[data-tab=i] #kamInfoPane{display:block}'+
 
+'#kamProf.invonly .tabs button[data-t=p],#kamProf.invonly .tabs button[data-t=m]{display:none}#kamProf.invonly .tabs button[data-t=i]{cursor:default}'+
+'body.dev-pc #kamProf .box,body.dev-tablet #kamProf .box{max-width:760px}'+
 '#kamProf[data-tab=m] #menuPanel{display:block!important}';
 document.head.appendChild(css);
 
@@ -207,7 +209,7 @@ function rebuildPage(){
   $('kamProfBody').appendChild(qk);
   var mp=$('menuPanel');if(mp){$('kamProfBody').appendChild(mp);mp.addEventListener('click',function(e){var bt=e.target.closest&&e.target.closest('button');if(bt)setTimeout(closeP,0)})}
   function openP(t){var sp=$('statusPanel'),b=$('kamProfBody');b.insertBefore(sp,b.firstChild);b.insertBefore($('kamQuick'),sp.nextSibling);b.appendChild(rs);b.appendChild(rt);var ip=$('kamInfoPane');if(!ip){ip=document.createElement('div');ip.id='kamInfoPane'}b.appendChild(ip);var lp=$('kamLogPane');if(!lp){lp=document.createElement('div');lp.id='kamLogPane'}b.appendChild(lp);pw.dataset.tab=t||'p';if((t||'p')==='p'){try{window.__kamLogPane()}catch(e){}}if(t==='i'){try{window.__kamInfoTab()}catch(e){}}sp.style.setProperty('display',pw.dataset.tab==='p'?'block':'none','important');[].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.classList.toggle('on',x.dataset.t===pw.dataset.tab)});pw.classList.add('on');syncFace()}
-  pf.onclick=function(){openP('p')};
+  pf.onclick=function(){pw.classList.remove('invonly');openP('p')};window.__kamOpenP=function(t,only){openP(t||'p');pw.classList.toggle('invonly',!!only)};
   [].forEach.call(pw.querySelectorAll('.tabs button[data-t]'),function(x){x.onclick=function(){openP(x.dataset.t)}});
   [].slice.call(document.querySelectorAll('#menuPanel button')).forEach(function(bt){var o=bt.getAttribute('onclick')||'';if(/showCity|showDiaShop|showInventory|showQuestModal|showLevelTable|showClassLevelTable|showLevels|doPrestige|showPrestigeLevelTable/.test(o))bt.remove()});
   var oOM=window.openMenu;window.openMenu=function(){try{oOM&&oOM.apply(this,arguments)}catch(e){}};
@@ -226,7 +228,7 @@ function rebuildPage(){
     try{$('overlayGold').textContent='💰 '+meta.gold+' Gold verfügbar';$('overlayDiamond').textContent='💎 '+meta.diamonds+' Diamanten';updateShopPricesUI();updateAutoRunUI();renderSkillShop()}catch(e){}
     ov.style.display='flex';dieShop()};
   window.closeMenu=function(){};
-  function closeP(){pw.classList.remove('on');var sp=$('statusPanel');sp.style.removeProperty('display');var bp0=$('battlePanel');bp0.parentNode.insertBefore(sp,bp0)}
+  function closeP(){pw.classList.remove('on');pw.classList.remove('invonly');var sp=$('statusPanel');sp.style.removeProperty('display');var bp0=$('battlePanel');bp0.parentNode.insertBefore(sp,bp0)}
   pw.querySelector('.x').onclick=closeP;pw.onclick=function(e){if(e.target===pw)closeP()};
   /* Todes-Shop: Texte */
   var rb=document.querySelector('#overlayBox button.btn-wide');if(rb)rb.textContent='🚪 KAMMER ÖFFNEN';
@@ -1348,6 +1350,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
  window.__kamDaily=function(){var m=$('dailyModal');if(!m){m=document.createElement('div');m.id='dailyModal';m.style.cssText='position:fixed;inset:0;z-index:900;background:#0b0816ee;overflow:auto;padding:14px;font-family:Cinzel,Georgia,serif;color:#f5e6b0;display:none';document.body.appendChild(m)}
   m.innerHTML=dHtml(false);m.style.display='block'};
  window.__dailyInto=function(el){el.innerHTML=dHtml(true)};
+ window.__kamDailyState=function(){try{var d=st();return {claimed:!!d.claimed,rw:rwTxt(rw())}}catch(e){return null}};
  window.__dailyRefresh=function(){var e=document.getElementById('dailyEmbed');if(e)return window.__dailyInto(e);var m=$('dailyModal');if(m&&m.style.display!=='none')window.__kamDaily()};
 })();
 
@@ -1667,7 +1670,7 @@ function forgeUI(){
  var B=FS.b?it(FS.b):null,F=FS.f?it(FS.f):null;if(!B)FS.b=null;if(!F)FS.f=null;
  var h='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid #f0c040;border-radius:16px;padding:18px 14px;max-width:400px;width:95%;color:#ffe9c4;font-family:Georgia,serif">'+
  '<h2 style="color:#f0c040;text-align:center;font-size:1.05rem;margin:0 0 6px">⚒️ SCHMIEDE · Stufe '+smithLv()+'</h2>'+
- '<div style="text-align:center;font-size:.75rem;margin-bottom:10px"><img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; '+oresStr()+oimg('blau')+' '+(inventory.orbs.blau||0)+' &nbsp; '+oimg('lila')+' '+(inventory.orbs.lila||0)+' &nbsp; '+oimg('orange')+' '+(inventory.orbs.orange||0)+'</div>';
+ '<div style="position:sticky;top:-18px;z-index:5;display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;align-items:center;font-size:.78rem;margin:0 -6px 10px;padding:8px 6px;background:#150a05f2;border:1px solid #7a4a1a;border-radius:10px"><span>💰 <b style="color:#ffd24a">'+(meta.gold||0)+'</b></span><span>💎 <b style="color:#7fd8ff">'+(meta.diamonds||0)+'</b></span><span><img src="items/ore_silver.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> <b>'+(inventory.iron||0)+'</b></span><span>'+oresStr()+'</span><span>'+oimg('blau')+' <b>'+(inventory.orbs.blau||0)+'</b></span><span>'+oimg('lila')+' <b>'+(inventory.orbs.lila||0)+'</b></span><span>'+oimg('orange')+' <b>'+(inventory.orbs.orange||0)+'</b></span></div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  var cur=FS.mode||'star',md=cur==='eff';
  h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','⚒️ Schmelzen'],['craft','🔨 Herstellen'],['eff','💎 Juwelen']].map(function(a){var on=a[0]===cur;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
@@ -1727,6 +1730,7 @@ function jobsUI(){var J=fjobs(),h='<div id="kamFJ" style="border:2px solid #7a4a
  return h+'</div>'}
 function jobTick(){var els=document.querySelectorAll('#kamFJ [data-end]');if(!els.length){return}var fin=false;els.forEach(function(e){var rest=(+e.dataset.end-Date.now())/1000;if(rest<=0){if(e.textContent.indexOf('Fertig')<0)fin=true}else{e.textContent='⏳ '+fmtT(rest);var bar=document.querySelector('#kamFJ [data-bar="'+e.dataset.i+'"]');if(bar)bar.style.width=Math.min(100,100-rest/((+e.dataset.end-+e.dataset.st)/1000)*100)+'%'}});if(fin)forgeUI()}
 setInterval(jobTick,1000);
+window.__kamJobs=function(){return fjobs().map(function(j){var x=ITEMS.find(function(y){return y.id===j.id})||{name:j.id,rarity:'normal'};return {id:j.id,name:x.name,col:RARITY_COLOR[x.rarity],ico:ico(x.id),st:j.st,end:j.end}})};
 window.__kamEM=function(m){FS.mode=m;FS.msg='';forgeUI()};
 window.__kamEB=function(u){FS.eb=u;FS.msg='';forgeUI()};
 window.__kamEL=function(j){var n=efOf(FS.eb);if(!n||smithLv()<EFLV)return;n.k[j]=n.k[j]?0:1;saveInventory();forgeUI()};
@@ -1951,21 +1955,19 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
 /* ---------- Geraet: Handy / Tablet (Anzeige-Groesse) ---------- */
 (function(){
   var K='robDevice',st=document.createElement('style');
-  st.textContent='body.dev-tablet #gameWrapper{zoom:var(--tz,1.5);max-width:520px!important;display:flex!important;flex-direction:column!important;margin:0 auto!important;min-height:calc(100vh / var(--tz,1.5))!important}'+
-   'body.dev-tablet #loginBox{zoom:var(--tz,1.5)}'+
-   'body.dev-pc #gameWrapper{display:grid!important;grid-template-columns:minmax(300px,1fr) minmax(380px,540px) minmax(300px,1fr);gap:16px;max-width:1560px!important;width:100%!important;margin:0 auto!important;align-items:start;padding:0 16px!important}'+
-   'body.dev-pc #gameWrapper>.game-title{grid-column:1/-1}body.dev-pc #gameWrapper>.game-col{display:block!important;min-width:0}body.dev-pc #gameWrapper>.pcMid{grid-column:2;grid-row:2}body.dev-pc #gameWrapper>.pcRight{grid-column:3;grid-row:2}body.dev-pc #pcLeft{grid-column:1;grid-row:2}'+
-   'body.dev-pc{overflow:hidden}body.dev-pc #gameWrapper{height:100vh;grid-template-rows:auto minmax(0,1fr);padding-top:4px!important;padding-bottom:8px!important;box-sizing:border-box}body.dev-pc #gameWrapper>.game-title{margin:0!important;padding:2px 0!important;font-size:1.3rem!important;line-height:1.2}body.dev-pc #gameWrapper>.pcMid{height:100%;min-height:0}body.dev-pc #battlePanel{height:100%;box-sizing:border-box;display:flex!important;flex-direction:column}body.dev-pc #kam{flex:1 1 auto;height:auto!important;min-height:300px}body.dev-pc #gameWrapper>.pcRight{display:flex!important;flex-direction:column;height:100%;min-height:0}body.dev-pc .pcRight>*{flex:none}body.dev-pc #pcInfo{flex:1 1 auto!important;min-height:0;overflow-y:auto;scrollbar-width:thin}body.dev-pc #pcLeft{height:100%;overflow-y:auto;min-height:0}#pcCtl{margin-top:6px}#pcCtl #kamLow{margin-bottom:6px}body.dev-pc #pcCtl #actionBtn{min-height:48px}body.dev-pc .pcp{padding:7px 10px;margin-bottom:7px}body.dev-pc .pcp .r{padding:2px 0}'+
-   '.pcc{border:2px solid var(--c);border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;box-shadow:0 0 12px color-mix(in srgb,var(--c) 40%,transparent)}.pcc .h{display:flex;gap:10px;align-items:center}.pcc img.pf{width:72px;height:72px;object-fit:cover;border-radius:12px;border:3px solid var(--c)}.pcc .sl{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:8px}.pcc .sl div{aspect-ratio:1;border:1px solid #5a3a1a;border-radius:6px;background:#0008;display:flex;align-items:center;justify-content:center}.pcc .sl img{max-width:88%;max-height:88%}'+
-   '.pcp{border:2px solid #6b4a1f;border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;font-size:.72rem}.pcp h4{margin:0 0 6px;color:#ffd24a;font-size:.8rem;letter-spacing:2px}.pcp .r{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #2a1a14}'+
+  st.textContent='body.dev-tablet #loginBox{zoom:var(--tz,1.5)}'+
    '#kamDev{display:flex;gap:8px;width:100%;margin-top:12px}#kamDev button{flex:1;padding:10px 6px;border-radius:10px;border:1px solid #7a4a1a;background:#0006;color:#ffe9c4;font-family:Cinzel,serif;font-size:.78rem;cursor:pointer}#kamDev button.on{background:linear-gradient(135deg,#7a1a00,#c23a10);border-color:#f0c040;color:#fff}'+
    '#kamSync{width:100%;box-sizing:border-box;border-radius:10px;padding:7px 10px;font-size:.66rem;text-align:center;border:1px solid #555;background:#0004;color:#bbb;margin-top:8px}#kamSync.ok{color:#9dffb5;border-color:#3fbf68}#kamSync.bad{color:#ffb3a0;border-color:#c0502a}';
   document.head.appendChild(st);
   function get(){try{return localStorage.getItem(K)}catch(e){return null}}
+  function real(){var ua=navigator.userAgent||'',mob=/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(!mob)return 'pc';return Math.min(screen.width,screen.height)<600?'phone':'tablet'}
+  window.__kamReal=real;
   function fit(){
-    var d=get();if(!d)d=(innerWidth>=1100?'pc':(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone'));
-    var on=d==='tablet';document.body.classList.toggle('dev-tablet',on);document.body.classList.toggle('dev-pc',d==='pc');
-    var z=on?Math.max(1,Math.min(innerWidth/540,innerHeight/860,2.4)):1;
+    var R=real(),d=get();
+    if(R!=='pc'){d=R;try{localStorage.setItem(K,R)}catch(e){}}
+    else if(!d)d=(innerWidth>=1100?'pc':(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone'));
+    var b=document.body;b.classList.toggle('dev-phone',d==='phone');b.classList.toggle('dev-tablet',d==='tablet');b.classList.toggle('dev-pc',d==='pc');
+    var z=d==='tablet'?Math.max(1,Math.min(innerWidth/540,innerHeight/860,2.4)):1;
     document.documentElement.style.setProperty('--tz',String(z));
     return d;
   }
@@ -1982,6 +1984,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
       var sy=document.createElement('div');sy.id='kamSync';
       if(go&&go.parentNode===box){box.appendChild(sy);box.appendChild(w)}else{box.appendChild(sy);box.appendChild(w)}}
     [].forEach.call(w.querySelectorAll('button'),function(b){b.classList.toggle('on',b.getAttribute('data-d')===d)});
+    w.style.display=real()==='pc'?'':'none';
     var sy2=document.getElementById('kamSync');if(sy2){var s=window.__cloudState||{};
       sy2.className=s.ok?'ok':'bad';
       var hh=(s.ahead?'☁ Cloud hat mehr Fortschritt als dieses Geraet – Seite neu laden':(s.ok?'☁ Cloud verbunden'+(s.user?' ('+s.user+')':''):'☁ Nicht mit Konto verbunden – Stand nur auf diesem Geraet'))+(s.ok?'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudLoad()">⬇ Cloud-Stand laden</button><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudSave()">⬆ Dieses Gerät speichern</button></div>':'');if(sy2.dataset.h!==hh){sy2.innerHTML=hh;sy2.dataset.h=hh}}
@@ -1990,34 +1993,105 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   fit();setInterval(function(){try{paint()}catch(e){}},900);
 })();
 
-/* ---------- PC-Ansicht: Helden links, Info + Inventar rechts ---------- */
+/* ---------- Ansicht: PC (3 Spalten) / Tablet (2 Spalten) / Handy (1 Spalte) ---------- */
 (function(){
-  var NM={hero:['Ben','p_ben.webp','#ffb020'],arc:['Elfa','p_elfa.webp','#7ad06a'],mag:['Kalifa','p_kalifa.webp','#b07aff']};
-  function build(){
-    var W=document.getElementById('gameWrapper');if(!W)return false;
-    var L=document.getElementById('pcLeft');if(!L){L=document.createElement('div');L.id='pcLeft';var c1=W.querySelector('.game-col');W.insertBefore(L,c1)}
-    var cols=W.querySelectorAll(':scope>.game-col'),R=cols[1];if(cols[0])cols[0].classList.add('pcMid');if(R)R.classList.add('pcRight');var P=document.getElementById('pcInfo');if(R&&!P){P=document.createElement('div');P.id='pcInfo';R.insertBefore(P,R.firstChild)}if(R&&!document.getElementById('pcCtl')){var cc=document.createElement('div');cc.id='pcCtl';R.insertBefore(cc,P?P.nextSibling:R.firstChild)}
-    return true}
-  function moveCtl(on){try{var c=document.getElementById('pcCtl'),lo=document.getElementById('kamLow'),ba=document.getElementById('kamBar');
-    [lo,ba].forEach(function(e){if(!e)return;if(on){if(c&&e.parentNode!==c){e._op=e.parentNode;e._on=e.nextSibling;c.appendChild(e)}}else if(e._op&&e.parentNode!==e._op){e._op.insertBefore(e,e._on&&e._on.parentNode===e._op?e._on:null);e._op=null}})}catch(x){}}
-  function paint(){
-    if(!document.body.classList.contains('dev-pc')){moveCtl(false);return}
-    try{if(!build())return;var G=window.__kamHeroGear&&window.__kamHeroGear();if(!G)return;
-     var h='';['hero','arc','mag'].forEach(function(w){if(!G.own[w])return;var n=NM[w],sl=G.slots[w];
-      h+='<div class="pcc" style="--c:'+n[2]+'"><div class="h"><img class="pf" src="items/'+n[1]+'?v=1113" alt=""><div><b style="font-size:1.1rem;color:'+n[2]+'">'+n[0]+'</b><br><small style="opacity:.8">'+(w==='hero'?'Krieger':w==='arc'?'Bogenschützin':'Magierin')+'</small></div></div><div class="sl">'+sl.map(function(t){var x=G.gear[w][t];return '<div title="'+(x?x.name:t)+'" style="'+(x?'border-color:'+x.col:'opacity:.45')+'">'+(x?'<img src="'+x.ico+'" alt="">':'')+'</div>'}).join('')+'</div></div>'});
-     var L=document.getElementById('pcLeft');if(L&&L.dataset.h!==h){L.innerHTML=h;L.dataset.h=h}
-     var inv=window.inventory||{},LG=[];try{LG=JSON.parse(localStorage.getItem('robKamLogR')||'[]')}catch(e){}
-     var ores=inv.ores||{},on=0;for(var k in ores)on+=ores[k]||0;var orb=0,o2=inv.orbs||{};for(var k2 in o2)orb+=o2[k2]||0;var gm=0,g2=inv.gems||{};for(var k3 in g2)gm+=g2[k3]||0;
-     var ih='<div class="pcp"><h4>📜 INFO-LOG</h4>'+(LG.length?LG.slice(0,4).map(function(x){var d=new Date(x[0]);return '<div class="r"><span>'+x[1]+'</span><small style="opacity:.6">'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'</small></div>'}).join(''):'<small style="opacity:.7">Noch nichts erhalten.</small>')+'</div>'
-      +'<div class="pcp"><h4>🎒 INVENTAR</h4><div class="r"><span><img src="items/ore_silver.webp" style="height:1.2em;vertical-align:-.25em" alt=""> Eisenbarren</span><b>'+(inv.iron||0)+'</b></div><div class="r"><span>⛏ Erze</span><b>'+on+'</b></div><div class="r"><span>🔮 Kugeln</span><b>'+orb+'</b></div><div class="r"><span>💠 Juwelen</span><b>'+gm+'</b></div><div class="r"><span>🛡 Ausrüstung</span><b>'+((inv.items||[]).length)+'</b></div><div class="r"><span>⚒ Schmiede</span><b>'+((inv.fjobs||[]).length)+'/3</b></div><button class="btn btn-wide" style="margin-top:8px;font-size:.7rem" onclick="document.getElementById(\'kamPf\').click();setTimeout(function(){var b=document.querySelector(\'#kamProf .tabs button[data-t=i]\');b&&b.click()},50)">INVENTAR ÖFFNEN</button></div>'
-      +'<div style="font-size:.6rem;opacity:.6;text-align:center;padding:2px">Leertaste = Würfeln · I = Inventar · P = Profil</div>';
-     var P=document.getElementById('pcInfo');if(P&&P.dataset.h!==ih){P.innerHTML=ih;P.dataset.h=ih}moveCtl(true)}catch(e){}}
-  setInterval(paint,1500);setTimeout(paint,600);
-  document.addEventListener('keydown',function(e){if(!document.body.classList.contains('dev-pc'))return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
-    if(e.code==='Space'){var d=document.getElementById('actionBtn');if(d&&!d.disabled){e.preventDefault();d.click()}}
-    else if(e.key==='i'||e.key==='I'||e.key==='p'||e.key==='P'){var b=document.getElementById('kamPf');if(b){b.click();if(/i/i.test(e.key))setTimeout(function(){var x=document.querySelector('#kamProf .tabs button[data-t=i]');x&&x.click()},50)}}});
-})();
+  var NM={hero:['Ben','p_ben.webp','#ffb020','Krieger'],arc:['Elfa','p_elfa.webp','#7ad06a','Bogenschützin'],mag:['Kalifa','p_kalifa.webp','#b07aff','Magierin']};
+  var st=document.createElement('style');
+  st.textContent=[
+   '.pcc{border:2px solid var(--c);border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;box-shadow:0 0 12px color-mix(in srgb,var(--c) 40%,transparent)}',
+   '.pcc .h{display:flex;gap:10px;align-items:center}.pcc img.pf{width:64px;height:64px;object-fit:cover;border-radius:12px;border:3px solid var(--c)}',
+   '.pcc .sl{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}.pcc .sl div{aspect-ratio:1;border:1px solid #5a3a1a;border-radius:6px;background:#0008;display:flex;align-items:center;justify-content:center}.pcc .sl img{max-width:88%;max-height:88%}',
+   '.pcc.sm{padding:6px;margin-bottom:6px;border-radius:10px}.pcc.sm img.pf{width:42px;height:42px;border-width:2px;border-radius:9px}.pcc.sm .sl{grid-template-columns:repeat(10,1fr);gap:2px;margin-top:5px}.pcc.sm .sl div{border-radius:3px}',
+   '.pcc.emp{border-style:dashed;opacity:.75;box-shadow:none}',
+   '.pcp{border:2px solid #6b4a1f;border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;font-size:.72rem;color:#ffe9c4}.pcp h4{margin:0 0 6px;color:#ffd24a;font-size:.8rem;letter-spacing:2px}.pcp .r{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #2a1a14}',
+   '.pcp .bar{height:6px;background:#0009;border-radius:3px;overflow:hidden;margin:3px 0 6px}.pcp .bar i{display:block;height:100%;background:#ffb020}.pcp .jb{display:flex;gap:7px;align-items:center;margin:4px 0}.pcp .jb img{width:30px;height:30px;object-fit:contain}',
+   '.pst{display:grid;grid-template-columns:repeat(4,minmax(0,62px));justify-content:center;gap:6px;margin:2px 0}.pst .m{border:2px solid var(--c);border-radius:10px;background:#140a08ee;padding:3px;text-align:center;font-size:.55rem;color:#ffe9c4;cursor:pointer;min-width:0}.pst img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:7px;display:block}.pst .m.emp{border-style:dashed;opacity:.7}.pst .m div.ph{aspect-ratio:1;border-radius:7px;background:#0008}',
+   '.ptb{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0}.ptb button{padding:10px 2px;border-radius:10px;border:1px solid #6b4a1f;background:#1a0a08;color:#e4d6c4;font:800 .66rem Cinzel,serif;cursor:pointer}.ptb button.on{background:linear-gradient(#a02800,#6a1500);border-color:#ffd24a;color:#fff}',
+   '#pcSheet{position:fixed;inset:0;z-index:430;background:#000c;display:none;align-items:flex-start;justify-content:center;padding:34px 12px 12px}#pcSheet.on{display:flex}#pcSheet .box{width:100%;max-width:460px;max-height:90vh;overflow:auto;background:#0b0505;border:2px solid #6b4a1f;border-radius:14px;padding:10px}#pcSheet .x{float:right;background:#600;color:#fff;border:1px solid var(--gold2);border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer}',
+   /* Handy: Heldenleiste oben, Reiter unten */
+   'body.dev-phone #pcLeft{order:-5}body.dev-phone #pcInfo{order:40}',
+   /* PC */
+   'body.dev-pc{overflow:hidden}',
+   'body.dev-pc #gameWrapper{display:grid!important;grid-template-columns:minmax(240px,1fr) clamp(320px,calc(100vh - 270px),640px) minmax(260px,1fr);grid-template-rows:auto minmax(0,1fr);gap:16px;width:100%!important;max-width:1700px!important;margin:0 auto!important;height:100vh;padding:4px 16px 8px!important;box-sizing:border-box;align-items:start}',
+   'body.dev-pc #gameWrapper>.game-title{grid-column:1/-1;margin:0!important;padding:2px 0!important;font-size:1.3rem!important;order:0!important}',
+   'body.dev-pc #gameWrapper>.game-col{display:block!important;min-width:0}',
+   'body.dev-pc #gameWrapper>.pcMid{grid-column:2;grid-row:2;height:100%;overflow-y:auto;scrollbar-width:none}',
+   'body.dev-pc #gameWrapper>.pcRight{grid-column:3;grid-row:2;height:100%;overflow-y:auto;scrollbar-width:thin}',
+   'body.dev-pc #pcLeft{grid-column:1;grid-row:2;height:100%;overflow-y:auto;scrollbar-width:thin;order:0}body.dev-pc #pcInfo{order:0}body.dev-pc .ptb{display:none}',
+   'body.dev-pc .pcp{padding:8px 10px;margin-bottom:8px}',
+   /* Tablet quer */
+   '@media (orientation:landscape){body.dev-tablet{overflow-x:hidden}',
+   'body.dev-tablet #gameWrapper{display:grid!important;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-rows:auto auto 1fr;gap:10px;width:100%!important;max-width:1100px!important;margin:0 auto!important;padding:0 10px!important;box-sizing:border-box;align-items:start}',
+   'body.dev-tablet #gameWrapper>.game-title{grid-column:1/-1;margin:0!important;order:0!important}',
+   'body.dev-tablet #gameWrapper>.game-col{display:block!important;min-width:0}',
+   'body.dev-tablet .pcMid{grid-column:1;grid-row:2/4}body.dev-tablet #pcLeft{grid-column:2;grid-row:2;order:0}body.dev-tablet .pcRight{grid-column:2;grid-row:3}body.dev-tablet #pcInfo{order:0}}',
+   /* Tablet hoch: wie Handy, nur breiter */
+   '@media (orientation:portrait){body.dev-tablet #gameWrapper{max-width:760px!important}body.dev-tablet #pcLeft{order:-5}body.dev-tablet #pcInfo{order:40}}',
+   /* Kampffeld quadratisch (PC + Tablet quer) */
+   'body.dev-pc #kam{height:auto!important;aspect-ratio:1/1;min-height:0!important;width:min(100%,calc(100vh - 270px))!important;margin:0 auto}',
+   '@media (orientation:landscape){body.dev-tablet #kam{height:auto!important;aspect-ratio:1/1;min-height:0!important;width:min(100%,calc(100vh - 250px))!important;margin:0 auto}}'
+  ].join('\n');
+  document.head.appendChild(st);
 
+  var $=function(i){return document.getElementById(i)};
+  function mode(){var b=document.body;return b.classList.contains('dev-pc')?'pc':b.classList.contains('dev-tablet')?'tablet':'phone'}
+  function build(){
+    var W=$('gameWrapper');if(!W)return false;
+    var L=$('pcLeft');if(!L){L=document.createElement('div');L.id='pcLeft';W.insertBefore(L,W.querySelector('.game-col'))}
+    var cols=W.querySelectorAll(':scope>.game-col'),R=cols[1];if(cols[0])cols[0].classList.add('pcMid');if(R)R.classList.add('pcRight');
+    if(R&&!$('pcInfo')){var P=document.createElement('div');P.id='pcInfo';R.insertBefore(P,R.firstChild)}
+    if(!$('pcSheet')){var sh=document.createElement('div');sh.id='pcSheet';sh.onclick=function(e){if(e.target===sh)sh.classList.remove('on')};document.body.appendChild(sh)}
+    return true}
+  /* ---- Bausteine ---- */
+  function heroCard(w,G,sm){var n=NM[w],sl=G.slots[w];
+    return '<div class="pcc'+(sm?' sm':'')+'" style="--c:'+n[2]+'"><div class="h"><img class="pf" src="items/'+n[1]+'?v=1113" alt=""><div><b style="font-size:'+(sm?'.9':'1.1')+'rem;color:'+n[2]+'">'+n[0]+'</b><br><small style="opacity:.8">'+n[3]+'</small></div></div><div class="sl">'+sl.map(function(t){var x=G.gear[w][t];return '<div title="'+(x?x.name:t)+'" style="'+(x?'border-color:'+x.col:'opacity:.45')+'">'+(x?'<img src="'+x.ico+'" alt="">':'')+'</div>'}).join('')+'</div></div>'}
+  function teamBox(){var c=($('classLevelNum')||{}).textContent||'0',h=($('heroLevelNum')||{}).textContent||'0';return '<div class="pcp"><h4>TEAM</h4><div class="r"><span>Klassenlevel</span><b>'+c+'</b></div><div class="r"><span>Heldenlevel</span><b>'+h+'</b></div></div>'}
+  function pLog(n){var LG=[];try{LG=JSON.parse(localStorage.getItem('robKamLogR')||'[]')}catch(e){}
+    return '<div class="pcp"><h4>LIVE-LOG</h4>'+(LG.length?LG.slice(0,n).map(function(x){var d=new Date(x[0]);return '<div class="r"><span>'+x[1]+'</span><small style="opacity:.6">'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'</small></div>'}).join(''):'<small style="opacity:.7">Noch nichts erhalten.</small>')+'</div>'}
+  function fmt(sec){sec=Math.max(0,Math.ceil(sec));var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return h?h+' Std '+m+' Min':m?m+' Min '+('0'+s).slice(-2)+' S':s+' Sek'}
+  function pForge(){var J=[];try{J=window.__kamJobs?window.__kamJobs():[]}catch(e){}
+    var h='<div class="pcp"><h4>SCHMIEDE ('+J.length+'/3)</h4>';
+    if(!J.length)h+='<small style="opacity:.7">Kein Auftrag läuft.</small>';
+    J.forEach(function(j){var rest=(j.end-Date.now())/1000,pc=Math.min(100,Math.max(0,100-rest/((j.end-j.st)/1000)*100));
+      h+='<div class="jb"><img src="'+j.ico+'" alt=""><div style="flex:1;min-width:0"><b style="color:'+j.col+'">'+j.name+'</b><div class="bar"><i style="width:'+pc+'%"></i></div><small>'+(rest>0?'⏳ '+fmt(rest):'✅ Fertig')+'</small></div></div>'});
+    return h+'<button class="btn btn-wide" style="margin-top:6px;font-size:.66rem" onclick="__pcClose();__kForge()">SCHMIEDE ÖFFNEN</button></div>'}
+  function pGoals(){var h='<div class="pcp"><h4>TAGESZIELE</h4>';
+    try{var d=window.__kamDailyState&&window.__kamDailyState();if(d)h+='<div class="r"><span>Tägliche Belohnung</span><b>'+(d.claimed?'✔ geholt':'bereit')+'</b></div>'}catch(e){}
+    try{var Q=[];QUEST_LIST.forEach(function(q){if(q.secret&&!q.secret())return;var v=Math.min(q.getValue(questTracking,heroData),q.target);if(v<q.target)Q.push([q,v])});
+      Q.sort(function(a,b){return b[1]/b[0].target-a[1]/a[0].target});
+      Q.slice(0,3).forEach(function(x){var q=x[0],p=Math.round(x[1]/q.target*100);h+='<div style="margin-top:5px"><div class="r" style="border:0;padding:0"><span>'+q.name+'</span><b>'+x[1].toLocaleString('de')+'/'+q.target.toLocaleString('de')+'</b></div><div class="bar"><i style="width:'+p+'%;background:#7ad06a"></i></div></div>'})}catch(e){}
+    return h+'<button class="btn btn-wide" style="margin-top:4px;font-size:.66rem" onclick="__pcClose();showQuestModal()">ALLE QUESTS</button></div>'}
+  function pInv(){var inv=window.inventory||{},ores=inv.ores||{},on=0,k;for(k in ores)on+=ores[k]||0;var orb=0,o2=inv.orbs||{};for(k in o2)orb+=o2[k]||0;var gm=0,g2=inv.gems||{};for(k in g2)gm+=g2[k]||0;
+    return '<div class="pcp"><h4>INVENTAR</h4><div class="r"><span><img src="items/ore_silver.webp" style="height:1.2em;vertical-align:-.25em" alt=""> Eisenbarren</span><b>'+(inv.iron||0)+'</b></div><div class="r"><span>⛏ Erze</span><b>'+on+'</b></div><div class="r"><span>🔮 Kugeln</span><b>'+orb+'</b></div><div class="r"><span>💠 Juwelen</span><b>'+gm+'</b></div><div class="r"><span>🛡 Ausrüstung</span><b>'+((inv.items||[]).length)+'</b></div><button class="btn btn-wide" style="margin-top:8px;font-size:.7rem" onclick="__pcClose();__kamOpenP(\'i\',1)">INVENTAR ÖFFNEN</button></div>'}
+  var PN={log:['LOG',function(){return pLog(6)}],inv:['INVENTAR',pInv],forge:['SCHMIEDE',pForge],goals:['ZIELE',pGoals]},ORD=['log','inv','forge','goals'];
+  window.__pcTab=window.__pcTab||'log';
+  window.__pcClose=function(){var s=$('pcSheet');if(s)s.classList.remove('on')};
+  window.__pcSetTab=function(t){window.__pcTab=t;paint()};
+  window.__pcOpen=function(t){
+    if(t==='inv'){__kamOpenP('i',1);return}
+    var s=$('pcSheet');if(!s)return;s.dataset.t=t;s.innerHTML='<div class="box"><button class="x" onclick="__pcClose()">✕</button>'+(t==='log'?pLog(20):t==='forge'?pForge():pGoals())+'</div>';s.classList.add('on')};
+  window.__pcTabClick=function(t){var m=mode();if(m==='tablet'&&window.matchMedia('(orientation:landscape)').matches){window.__pcSetTab(t)}else __pcOpen(t)};
+  function tabBar(act){return '<div class="ptb">'+ORD.map(function(t){return '<button class="'+(act===t?'on':'')+'" onclick="__pcTabClick(\''+t+'\')">'+PN[t][0]+'</button>'}).join('')+'</div>'}
+  function setH(el,h){if(el&&el.dataset.h!==h){el.innerHTML=h;el.dataset.h=h}}
+  function paint(){
+    try{if(!build())return;var G=window.__kamHeroGear&&window.__kamHeroGear();if(!G)return;var m=mode(),land=window.matchMedia('(orientation:landscape)').matches;
+     var L=$('pcLeft'),P=$('pcInfo'),lh='',ph='';
+     var own=['hero','arc','mag'].filter(function(w){return G.own[w]});
+     if(m==='pc'){own.forEach(function(w){lh+=heroCard(w,G,false)});lh+='<div class="pcc emp" style="--c:#5ac8e0"><div class="h"><div class="pf" style="width:64px;height:64px;border-radius:12px;border:3px dashed #5ac8e0;flex:none"></div><div><b style="color:#5ac8e0">Begleiter</b><br><small style="opacity:.8">Noch kein Begleiter</small></div></div></div>'+teamBox();
+       ph=ORD.map(function(t){return PN[t][1]()}).join('')+'<div style="font-size:.6rem;opacity:.6;text-align:center;padding:2px">Leertaste = Würfeln · I = Inventar · P = Profil</div>'}
+     else if(m==='tablet'&&land){own.forEach(function(w){lh+=heroCard(w,G,true)});lh+='<div class="pcc sm emp" style="--c:#5ac8e0"><div class="h"><div class="pf" style="width:42px;height:42px;border-radius:9px;border:2px dashed #5ac8e0;flex:none"></div><div><b style="color:#5ac8e0;font-size:.9rem">Begleiter</b><br><small style="opacity:.8">Noch kein Begleiter</small></div></div></div>';
+       var at=window.__pcTab==='inv'||window.__pcTab==='log'||window.__pcTab==='forge'||window.__pcTab==='goals'?window.__pcTab:'log';ph=tabBar(at)+PN[at][1]()}
+     else{lh='<div class="pst">'+own.map(function(w){var n=NM[w];return '<div class="m" style="--c:'+n[2]+'" onclick="__kamOpenP(\'p\')"><img src="items/'+n[1]+'?v=1113" alt=""><b style="color:'+n[2]+'">'+n[0]+'</b></div>'}).join('')+'<div class="m emp" style="--c:#5ac8e0"><div class="ph"></div><b style="color:#5ac8e0">Begleiter</b></div></div>';
+       ph=tabBar('')}
+     setH(L,lh);setH(P,ph)}catch(e){}}
+  window.__pcPaint=paint;
+  setInterval(paint,1000);setTimeout(paint,600);addEventListener('resize',function(){setTimeout(paint,100)});
+  document.addEventListener('keydown',function(e){if(mode()!=='pc')return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
+    if(e.code==='Space'){var d=$('actionBtn');if(d&&!d.disabled){e.preventDefault();d.click()}}
+    else if(e.key==='i'||e.key==='I'){__kamOpenP('i',1)}
+    else if(e.key==='p'||e.key==='P'){var b=$('kamPf');if(b)b.click()}
+    else if(e.key==='Escape'){__pcClose()}});
+})();
 
 /* ---------- Kisten: Öffnen-Animation + Etage fuer den Loot ---------- */
 (function(){
@@ -2038,7 +2112,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-13k';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-13n';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
