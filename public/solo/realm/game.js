@@ -2402,7 +2402,7 @@ function itemIcon(it, px) {
   if (it.cls === 'leder') n += 'L'; else if (it.cls === 'stoff') n += 'S';
   var em = null;
   if (em) return '<div style="width:' + px + 'px;height:' + px + 'px;display:flex;align-items:center;justify-content:center;font-size:' + Math.round(px*0.72) + 'px;margin:0 auto 3px;filter:drop-shadow(0 0 7px ' + (RARITY_COLOR[it.rarity] || '#888') + ')">' + em + '</div>';
-  return '<img src="items/' + n + '_' + c + '.webp" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + '' + '">';
+  return '<img src="items/' + n + '_' + c + '.webp?v=1113" alt="" style="width:' + px + 'px;height:' + px + 'px;object-fit:contain;display:block;margin:0 auto 3px;' + '' + '">';
 }
 function renderInventoryModal() {
   var eq = inventory.equipped;
