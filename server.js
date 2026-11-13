@@ -8039,7 +8039,7 @@ function arenaLeaderboard() {
 /* ------------------------------------------------------------------------ */
 /* HTTP: statische Dateien aus /public                                       */
 /* ------------------------------------------------------------------------ */
-const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
+const MIME = { ".html": "text/html", ".js": "application/javascript", ".css": "text/css", ".json": "application/json", ".webmanifest": "application/manifest+json", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif", ".svg": "image/svg+xml", ".mp3": "audio/mpeg", ".m4a": "audio/mp4" };
 
 /* ------------------------------------------------------------------------ */
 /* Hintergrundmusik: Titelliste wird aus dem Ordner public/audio ausgelesen -  */
