@@ -560,7 +560,8 @@ function setCube(v,spin){var c=$('kamCube');if(!c)return;c.classList.remove('spi
 /* Würfelgeräusch: Holzwürfel rollt über einen Tisch (WebAudio, ohne Datei) */
 var AC=null;
 function ac(){try{if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
-function knock(t,vol,f){var a=ac();if(!a)return;
+var DICE_VOL=.05;
+function knock(t,vol,f){var a=ac();if(!a)return;vol=vol*DICE_VOL;
   var n=Math.floor(a.sampleRate*.06),b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);
   for(var i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3);
   var s=a.createBufferSource();s.buffer=b;var fl=a.createBiquadFilter();fl.type='bandpass';fl.frequency.value=f;fl.Q.value=1.2;
@@ -1193,10 +1194,24 @@ window.__kamLogPane=function(){var el=document.getElementById('kamLogPane');if(!
  var LG=[];try{LG=JSON.parse(localStorage.getItem('robKamLogR')||'[]')}catch(e){}
  el.innerHTML='<div style="'+SC+'"><div style="'+HC2+'">🎯 NÄCHSTE BELOHNUNG</div><small>Klassenlevel '+cl+' · nächste Klassen-Belohnung bei Level '+(nx||'—')+'. Heldenlevel: '+maxHeroLv()+'.</small></div>'
  +'<div style="'+SC+'"><div style="'+HC2+'">📜 INFO-LOG</div>'+(LG.length?LG.map(function(x){var d=new Date(x[0]);return '<div style="font-size:.66rem;margin:3px 0;border-bottom:1px solid #2a1a14;padding-bottom:3px"><span style="opacity:.6">'+('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'. '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'</span> '+x[1]+'</div>'}).join(''):'<small style="opacity:.7">Noch nichts erhalten.</small>')+'</div>'};
+var SELL_IT={normal:20,gruen:60,blau:200,episch:800,legendaer:3000,mystisch:12000},WN={hero:'Ben',arc:'Elfa',mag:'Kalifa'},SCF=null;
+function itPrice(u){var n=inventory.inst[u],b=base(n.b);return Math.round((SELL_IT[b.rarity]||10)*CM[n.c||0]*(1+(n.s||0)*.5))}
+window.__kamSellItem=function(u){try{var n=inventory.inst[u];if(!n||wearer(u))return;if(SCF!==u){SCF=u;window.__kamInfoTab();return}SCF=null;var b=base(n.b),g=itPrice(u);
+ delete inventory.inst[u];inventory.items.splice(inventory.items.indexOf(u),1);meta.gold+=g;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}try{saveInventory()}catch(e){}try{updateUI()}catch(e){}
+ try{window.__kamLogR('Verkauft: '+b.name+' für '+g+' Gold')}catch(e){}try{toast('💰 '+b.name+' verkauft: +'+g+' Gold')}catch(e){}window.__kamInfoTab()}catch(e){}};
+function itemsUI(SC,HC2){ens();var L=inventory.items.slice().filter(function(u){return inventory.inst[u]&&base(inventory.inst[u].b)}).sort(function(a,b){var A=inventory.inst[a],B=inventory.inst[b],ra=RANK.indexOf(base(A.b).rarity),rb=RANK.indexOf(base(B.b).rarity);return (wearer(b)?1:0)-(wearer(a)?1:0)||rb-ra||B.c-A.c});
+ var h='<div style="'+SC+'"><div style="'+HC2+'">🛡️ RÜSTUNGEN &amp; WAFFEN <small style="font-weight:400;opacity:.7">('+L.length+')</small></div>';
+ if(!L.length)return h+'<small style="opacity:.7">Noch keine Ausrüstung.</small></div>';
+ h+='<div style="max-height:380px;overflow-y:auto;padding-right:3px">';
+ L.forEach(function(u){var n=inventory.inst[u],b=base(n.b),w=wearer(u),c=n.c||0;
+  h+='<div style="display:flex;align-items:center;gap:6px;margin:3px 0;padding:3px;border:1px solid #3a2410;border-radius:8px;background:#0006"><img src="'+ico(b.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;min-width:0;font-size:.62rem;line-height:1.3"><b style="color:'+RARITY_COLOR[b.rarity]+'">'+b.name+'</b>'+(n.s?' <span style="color:#ffd24a">'+'★'.repeat(n.s)+'</span>':'')+'<br><span style="color:'+CC[c]+'">'+CN[c]+'</span> · '+(w?'<span style="color:#8fe08f">getragen: '+(WN[w]||w)+'</span>':'<span style="opacity:.7">im Beutel</span>')+'</div>'
+  +(w?'':'<button class="btn btn-sm" style="font-size:.55rem;padding:3px 6px'+(SCF===u?';background:#a22':'')+'" onclick="__kamSellItem(\''+u+'\')">'+(SCF===u?'SICHER? ':'')+itPrice(u)+'💰</button>')+'</div>'});
+ return h+'</div><small style="opacity:.6;display:block;margin-top:4px">Getragene Teile kann man nicht verkaufen. Verkaufen braucht zwei Klicks.</small></div>'}
 window.__kamInfoTab=function(){var el=document.getElementById('kamInfoPane');if(!el)return;ens();var h='',G=window.__gemName,D=window.__gemDot,pp=pd(),ob=inventory.orbs||{};
  var SC='border:1px solid #6b4a1f;border-radius:10px;padding:8px;margin-bottom:8px;background:#140a08',HC2='color:#ffd24a;font-weight:800;font-size:.75rem;margin-bottom:4px',IM='<img src="items/ore_silver.webp?v=1113" style="height:1.4em;vertical-align:-.3em" alt="">';
  function row(ic,nm,n,kind,key,pr){return '<div style="display:flex;align-items:center;gap:6px;margin:4px 0;font-size:.7rem"><span style="flex:1;min-width:0">'+ic+' '+nm+' <b>×'+n+'</b></span><button class="btn btn-sm" style="font-size:.6rem;padding:3px 6px" onclick="__kamSell(\''+kind+'\',\''+key+'\',0)">1 · '+pr+'💰</button><button class="btn btn-sm" style="font-size:.6rem;padding:3px 6px" onclick="__kamSell(\''+kind+'\',\''+key+'\',1)">Alle · '+(pr*n)+'💰</button></div>'}
  h+='<div style="'+SC+'"><div style="'+HC2+'">🎒 BESTÄNDE</div><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:.72rem"><span>💎 '+(meta.diamonds||0)+'</span><span>💰 '+(meta.gold||0)+'</span><span>💜 Seelen '+(pp.souls||0)+(pp.soulsPend?' (+'+pp.soulsPend+' beim Prestige)':'')+'</span></div><small style="opacity:.7;display:block;margin-top:4px">Seelen und Diamanten kann man nicht verkaufen.</small></div>';
+ h+=itemsUI(SC,HC2);
  var ir=inventory.iron||0,rows='';if(ir>0)rows+=row(IM,'Eisenbarren',ir,'iron','x',SELL_IR);
  ['green','blue','purple','gold','red'].forEach(function(k){var n=(inventory.ores||{})[k]||0;if(n>0)rows+=row('<img src="items/ore_'+k+'.webp?v=1113" style="height:1.4em;vertical-align:-.3em" alt="">',ORN[k],n,'ore',k,SELL_ORE[k])});
  h+='<div style="'+SC+'"><div style="'+HC2+'">⛏️ BARREN &amp; ERZE <small style="font-weight:400;opacity:.7">(verkaufen)</small></div>'+(rows||'<small style="opacity:.7">Keine Barren oder Erze.</small>')+'</div>';
@@ -1221,6 +1236,8 @@ function gk(w,i){return WKT.indexOf(i.type)>=0?WSK[w]:i.type}
 function zsync(){if(!meta||!inventory.equipped)return;var pv=inventory.zb||0;if(pv){meta.maxHp=Math.max(1,meta.maxHp-pv);inventory.zb=0}
  var e=inventory.equipped,all=true,mm=true;['helm','armor','hand','boots','ring','weapon','shield'].forEach(function(t){var i=e[t]&&it(e[t]);if(!i||!i.z){all=false;return}if(i.z!=='m')mm=false});
  if(all){var add=Math.round(meta.maxHp*(mm?.5:.4));meta.maxHp+=add;inventory.zb=add}meta.hp=Math.min(meta.hp,meta.maxHp);try{updateUI()}catch(x){}}
+window.__kamHeroGear=function(){ens();var o={};['hero','arc','mag'].forEach(function(w){var m={};(SL[w]||[]).forEach(function(t){m[t]=null});o[w]=m});
+ inventory.items.forEach(function(u){var k=wkey(u);if(k&&o[k[0]]&&o[k[0]].hasOwnProperty(k[1])){var n=inventory.inst[u],b=n&&base(n.b);if(b)o[k[0]][k[1]]={ico:ico(b.id),col:RARITY_COLOR[b.rarity],name:b.name}}});return {gear:o,slots:SL}};
 window.__kamUnz=function(){var e=inventory.equipped||{};Object.keys(e).slice().forEach(function(t){var i=e[t]&&it(e[t]);if(i&&i.z)unw(e[t])});try{saveInventory()}catch(x){}};
 function unw(uid){var i=it(uid),w=wearer(uid);if(!w)return;
  var q=st(i),wk=wkey(uid);if(wk){if(w==='hero')delete inventory.equipped[wk[1]];else delete ai()[w][wk[1]]}
@@ -1678,7 +1695,7 @@ function recipe(x){var p=prevOf(x),r=RANK.indexOf(x.rarity);if(!p)return{iron:10
 function mats(p){return inventory.items.filter(function(u){var n=inventory.inst[u];return n&&n.b===p.id&&!n.s&&!wearer(u)}).sort(function(a,b){return inventory.inst[a].c-inventory.inst[b].c})}
 function oresStr(){var o=inventory.ores||{},t='';['green','blue','purple','gold','red'].forEach(function(k){t+=oreI(k)+' <b>'+(o[k]||0)+'</b> &nbsp; '});return t}
 function oreI(k){return '<img src="items/ore_'+k+'.webp" style="height:1.15em;vertical-align:-.25em" alt="">'}
-function craftUI(){var h='<div style="font-size:.68rem;color:#c8a070;text-align:center;margin-bottom:8px;line-height:1.5">Stelle Ausrüstung her. Der Zustand (Gebraucht, Wie neu, Perfekt) ist zufällig.<br>Normal: <img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> 100 · Grün: 5× Normal · Blau: 3× Grün · Lila: 2× Blau · Legendär: 1× Lila · Mystisch: 1× Legendär<br>Zusätzlich brauchst du 10 Barren der Farbe: Grün = grüne, Blau = blaue, Lila = lila, Legendär = goldene, Mystisch = rote. Die produziert deine Schmiede in der Stadt (grün ab Stufe 2, blau ab 3, lila ab 5, gold ab 7, rot ab 9).</div>';
+function craftUI(){var h=jobsUI()+'<div style="font-size:.68rem;color:#c8a070;text-align:center;margin-bottom:8px;line-height:1.5">Stelle Ausrüstung her. Das dauert je nach Seltenheit: Normal 1 Min · Grün 5 Min · Blau 15 Min · Lila 45 Min · Legendär 2 Std · Mystisch 6 Std. Es laufen bis zu 3 Aufträge gleichzeitig. Der Zustand (Gebraucht, Wie neu, Perfekt) ist zufällig.<br>Normal: <img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> 100 · Grün: 5× Normal · Blau: 3× Grün · Lila: 2× Blau · Legendär: 1× Lila · Mystisch: 1× Legendär<br>Zusätzlich brauchst du 10 Barren der Farbe: Grün = grüne, Blau = blaue, Lila = lila, Legendär = goldene, Mystisch = rote. Die produziert deine Schmiede in der Stadt (grün ab Stufe 2, blau ab 3, lila ab 5, gold ab 7, rot ab 9).</div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  var NMR={normal:'Normal',gruen:'Grün',blau:'Blau',episch:'Lila (Episch)',legendaer:'Legendär',mystisch:'Mystisch'};
  ['normal','gruen','blau','episch','legendaer','mystisch'].forEach(function(rar){var L=ITEMS.filter(function(x){return x.rarity===rar&&!x.m&&!x.fx});if(!L.length)return;
@@ -1686,13 +1703,30 @@ function craftUI(){var h='<div style="font-size:.68rem;color:#c8a070;text-align:
   L.forEach(function(x){var rc=recipe(x),have=rc.mat?mats(rc.from).length:0,ok,txt;
    if(rc.mat){txt=rc.mat+'× '+rc.from.name+' ('+have+')'+(rc.ore?' + '+oreI(rc.ore)+' '+rc.on+' ('+((inventory.ores||{})[rc.ore]||0)+')':'');ok=have>=rc.mat&&(!rc.ore||((inventory.ores||{})[rc.ore]||0)>=rc.on)}
    else{txt='<img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> '+rc.iron+' Eisenbarren ('+(inventory.iron||0)+')';ok=(inventory.iron||0)>=rc.iron}
-   h+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #4a2c10;border-radius:8px;padding:5px;margin-bottom:4px;background:#0006"><img src="'+ico(x.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.64rem;line-height:1.35"><b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b><br>'+txt+(rc.lv&&smithLv()<rc.lv?'<br><span style="color:#ff9a8a">🔒 Schmiede Stufe '+rc.lv+'</span>':'')+'</div><button class="btn btn-sm" '+(ok?'':'disabled ')+'onclick="__kamCraft(\''+x.id+'\')">HERSTELLEN</button></div>'})});
+   h+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #4a2c10;border-radius:8px;padding:5px;margin-bottom:4px;background:#0006"><img src="'+ico(x.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.64rem;line-height:1.35"><b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> <span style="opacity:.7">· ⏱ '+fmtT(FT[x.rarity]||60)+'</span><br>'+txt+(rc.lv&&smithLv()<rc.lv?'<br><span style="color:#ff9a8a">🔒 Schmiede Stufe '+rc.lv+'</span>':'')+'</div><button class="btn btn-sm" '+(ok?'':'disabled ')+'onclick="__kamCraft(\''+x.id+'\')">HERSTELLEN</button></div>'})});
  return h}
+var FT={normal:60,gruen:300,blau:900,episch:2700,legendaer:7200,mystisch:21600},FSLOTS=3;
+function fmtT(sec){sec=Math.max(0,Math.ceil(sec));var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s2=sec%60;return h?h+' Std '+m+' Min':m?m+' Min '+('0'+s2).slice(-2)+' S':s2+' Sek'}
+function fjobs(){ens();return inventory.fjobs=inventory.fjobs||[]}
 window.__kamCraft=function(id){ens();var x=ITEMS.find(function(y){return y.id===id});if(!x)return;var rc=recipe(x);
+ if(fjobs().length>=FSLOTS){FS.msg='Alle '+FSLOTS+' Schmiedeplätze sind belegt. Hole fertige Aufträge ab oder warte.';forgeUI();return}
  if(rc.mat){var m=mats(rc.from);if(m.length<rc.mat||(rc.ore&&((inventory.ores||{})[rc.ore]||0)<rc.on))return;m.slice(0,rc.mat).forEach(function(u){delete inventory.inst[u];inventory.items.splice(inventory.items.indexOf(u),1)});if(rc.ore)inventory.ores[rc.ore]-=rc.on}
  else{if((inventory.iron||0)<rc.iron)return;inventory.iron-=rc.iron}
- var c=Math.floor(Math.random()*3),i=give(x.id,c);bump('crafted');if(c===2)bump('craftPerf');
- FS.msg='🔨 Hergestellt: <b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> · <b style="color:'+CC[c]+'">'+CN[c]+'</b>';try{window.__kamLogR('Geschmiedet: '+x.name+' ('+CN[c]+')')}catch(e){}saveInventory();forgeUI()};
+ var d=(FT[x.rarity]||60)*1000,n=Date.now();fjobs().push({id:x.id,st:n,end:n+d});
+ FS.msg='🔨 Auftrag gestartet: <b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> · fertig in '+fmtT(d/1000);try{window.__kamLogR('Schmiede gestartet: '+x.name+' ('+fmtT(d/1000)+')')}catch(e){}saveInventory();forgeUI()};
+window.__kamCollect=function(i){var j=fjobs()[i];if(!j||Date.now()<j.end)return;var x=ITEMS.find(function(y){return y.id===j.id});fjobs().splice(i,1);if(!x){saveInventory();forgeUI();return}
+ var c=Math.floor(Math.random()*3);give(x.id,c);bump('crafted');if(c===2)bump('craftPerf');
+ FS.msg='🔨 Hergestellt: <b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> · <b style="color:'+CC[c]+'">'+CN[c]+'</b>';try{window.__kamLogR('Geschmiedet: '+x.name+' ('+CN[c]+')')}catch(e){}saveInventory();forgeUI();try{window.__kamInfoTab()}catch(e){}};
+window.__kamSpeed=function(i){var j=fjobs()[i];if(!j)return;var rest=(j.end-Date.now())/1000;if(rest<=0)return;var c=Math.max(1,Math.ceil(rest/600));if(!meta||(meta.diamonds||0)<c){FS.msg='Zu wenig Diamanten ('+c+' nötig).';forgeUI();return}
+ meta.diamonds-=c;try{if(typeof globalDiamonds!=='undefined'){globalDiamonds-=c;saveDiamonds(globalDiamonds)}else localStorage.setItem('robDiamonds',String(meta.diamonds))}catch(e){}j.end=Date.now();saveInventory();try{updateUI()}catch(e){}forgeUI()};
+function jobsUI(){var J=fjobs(),h='<div id="kamFJ" style="border:2px solid #7a4a1a;border-radius:10px;padding:8px;margin-bottom:10px;background:#1a0d06"><div style="color:#ffd24a;font-weight:800;font-size:.75rem;margin-bottom:4px">⚒️ SCHMIEDE-AUFTRÄGE ('+J.length+'/'+FSLOTS+')</div>';
+ if(!J.length)h+='<small style="opacity:.7">Kein Auftrag läuft. Starte unten ein Herstellen, es dauert je nach Seltenheit von 1 Minute bis 6 Stunden und läuft auch weiter, wenn du das Spiel schließt.</small>';
+ J.forEach(function(j,i){var x=ITEMS.find(function(y){return y.id===j.id})||{name:j.id,rarity:'normal'},rest=(j.end-Date.now())/1000,tot=(j.end-j.st)/1000,pc=Math.min(100,Math.max(0,100-rest/tot*100));
+  h+='<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><img src="'+ico(x.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.66rem"><b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b><div style="height:6px;background:#222;border-radius:3px;margin:3px 0;overflow:hidden"><i data-bar="'+i+'" style="display:block;height:100%;width:'+pc+'%;background:#ffb020"></i></div><span data-end="'+j.end+'" data-st="'+j.st+'" data-i="'+i+'">'+(rest>0?'⏳ '+fmtT(rest):'✅ Fertig')+'</span></div>'
+  +(rest>0?'<button class="btn btn-sm" style="font-size:.58rem;padding:3px 6px" onclick="__kamSpeed('+i+')">⚡ '+Math.max(1,Math.ceil(rest/600))+'💎</button>':'<button class="btn btn-sm" onclick="__kamCollect('+i+')">ABHOLEN</button>')+'</div>'});
+ return h+'</div>'}
+function jobTick(){var els=document.querySelectorAll('#kamFJ [data-end]');if(!els.length){return}var fin=false;els.forEach(function(e){var rest=(+e.dataset.end-Date.now())/1000;if(rest<=0){if(e.textContent.indexOf('Fertig')<0)fin=true}else{e.textContent='⏳ '+fmtT(rest);var bar=document.querySelector('#kamFJ [data-bar="'+e.dataset.i+'"]');if(bar)bar.style.width=Math.min(100,100-rest/((+e.dataset.end-+e.dataset.st)/1000)*100)+'%'}});if(fin)forgeUI()}
+setInterval(jobTick,1000);
 window.__kamEM=function(m){FS.mode=m;FS.msg='';forgeUI()};
 window.__kamEB=function(u){FS.eb=u;FS.msg='';forgeUI()};
 window.__kamEL=function(j){var n=efOf(FS.eb);if(!n||smithLv()<EFLV)return;n.k[j]=n.k[j]?0:1;saveInventory();forgeUI()};
@@ -1919,34 +1953,67 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   var K='robDevice',st=document.createElement('style');
   st.textContent='body.dev-tablet #gameWrapper{zoom:var(--tz,1.5);max-width:520px!important;display:flex!important;flex-direction:column!important;margin:0 auto!important;min-height:calc(100vh / var(--tz,1.5))!important}'+
    'body.dev-tablet #loginBox{zoom:var(--tz,1.5)}'+
+   'body.dev-pc #gameWrapper{display:grid!important;grid-template-columns:minmax(300px,1fr) minmax(380px,540px) minmax(300px,1fr);gap:16px;max-width:1560px!important;width:100%!important;margin:0 auto!important;align-items:start;padding:0 16px!important}'+
+   'body.dev-pc #gameWrapper>.game-title{grid-column:1/-1}body.dev-pc #gameWrapper>.game-col{display:block!important;min-width:0}body.dev-pc #gameWrapper>.pcMid{grid-column:2;grid-row:2}body.dev-pc #gameWrapper>.pcRight{grid-column:3;grid-row:2}body.dev-pc #pcLeft{grid-column:1;grid-row:2}'+
+   'body.dev-pc #kam{height:min(calc(100vh - 330px),720px)!important;min-height:380px}'+
+   '.pcc{border:2px solid var(--c);border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;box-shadow:0 0 12px color-mix(in srgb,var(--c) 40%,transparent)}.pcc .h{display:flex;gap:10px;align-items:center}.pcc img.pf{width:72px;height:72px;object-fit:cover;border-radius:12px;border:3px solid var(--c)}.pcc .sl{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin-top:8px}.pcc .sl div{aspect-ratio:1;border:1px solid #5a3a1a;border-radius:6px;background:#0008;display:flex;align-items:center;justify-content:center}.pcc .sl img{max-width:88%;max-height:88%}'+
+   '.pcp{border:2px solid #6b4a1f;border-radius:14px;padding:10px;margin-bottom:10px;background:#140a08ee;font-size:.72rem}.pcp h4{margin:0 0 6px;color:#ffd24a;font-size:.8rem;letter-spacing:2px}.pcp .r{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #2a1a14}'+
    '#kamDev{display:flex;gap:8px;width:100%;margin-top:12px}#kamDev button{flex:1;padding:10px 6px;border-radius:10px;border:1px solid #7a4a1a;background:#0006;color:#ffe9c4;font-family:Cinzel,serif;font-size:.78rem;cursor:pointer}#kamDev button.on{background:linear-gradient(135deg,#7a1a00,#c23a10);border-color:#f0c040;color:#fff}'+
    '#kamSync{width:100%;box-sizing:border-box;border-radius:10px;padding:7px 10px;font-size:.66rem;text-align:center;border:1px solid #555;background:#0004;color:#bbb;margin-top:8px}#kamSync.ok{color:#9dffb5;border-color:#3fbf68}#kamSync.bad{color:#ffb3a0;border-color:#c0502a}';
   document.head.appendChild(st);
   function get(){try{return localStorage.getItem(K)}catch(e){return null}}
   function fit(){
-    var d=get();if(!d)d=(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone');
-    var on=d==='tablet';document.body.classList.toggle('dev-tablet',on);
+    var d=get();if(!d)d=(innerWidth>=1100?'pc':(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone'));
+    var on=d==='tablet';document.body.classList.toggle('dev-tablet',on);document.body.classList.toggle('dev-pc',d==='pc');
     var z=on?Math.max(1,Math.min(innerWidth/540,innerHeight/860,2.4)):1;
     document.documentElement.style.setProperty('--tz',String(z));
     return d;
   }
+  window.__kamCloudLoad=function(){try{if(!confirm('Cloud-Stand auf dieses Gerät laden? Der Stand auf diesem Gerät wird überschrieben.'))return;localStorage.setItem('robForceCloud','1');location.reload()}catch(e){}};
+  window.__kamCloudSave=function(){try{if(!confirm('Stand dieses Geräts in die Cloud speichern? Der Cloud-Stand wird überschrieben.'))return;window.__forceSave=true;Promise.resolve(saveStateToFirebase()).then(function(){window.__forceSave=false;try{toast('☁ Gespeichert')}catch(e){}})}catch(e){}};
   window.__kamSetDev=function(d){try{localStorage.setItem(K,d)}catch(e){}fit();paint()};
   function paint(){
     var d=fit(),box=document.getElementById('loginBox'),o=document.getElementById('loginOverlay');
     if(!box||!o)return;
     var w=document.getElementById('kamDev');
     if(!w){w=document.createElement('div');w.id='kamDev';
-      w.innerHTML='<button data-d="phone" onclick="__kamSetDev(\'phone\')">&#128241; Handy</button><button data-d="tablet" onclick="__kamSetDev(\'tablet\')">&#128223; Tablet</button>';
+      w.innerHTML='<button data-d="phone" onclick="__kamSetDev(\'phone\')">&#128241; Handy</button><button data-d="tablet" onclick="__kamSetDev(\'tablet\')">&#128223; Tablet</button><button data-d="pc" onclick="__kamSetDev(\'pc\')">&#128187; PC</button>';
       var go=[].slice.call(box.querySelectorAll('button')).filter(function(b){return /ABENTEUER/i.test(b.textContent)})[0];
       var sy=document.createElement('div');sy.id='kamSync';
       if(go&&go.parentNode===box){box.appendChild(sy);box.appendChild(w)}else{box.appendChild(sy);box.appendChild(w)}}
     [].forEach.call(w.querySelectorAll('button'),function(b){b.classList.toggle('on',b.getAttribute('data-d')===d)});
     var sy2=document.getElementById('kamSync');if(sy2){var s=window.__cloudState||{};
       sy2.className=s.ok?'ok':'bad';
-      sy2.textContent=s.ahead?'☁ Cloud hat mehr Fortschritt als dieses Geraet – Seite neu laden':(s.ok?'☁ Cloud verbunden'+(s.user?' ('+s.user+')':''):'☁ Nicht mit Konto verbunden – Stand nur auf diesem Geraet')}
+      var hh=(s.ahead?'☁ Cloud hat mehr Fortschritt als dieses Geraet – Seite neu laden':(s.ok?'☁ Cloud verbunden'+(s.user?' ('+s.user+')':''):'☁ Nicht mit Konto verbunden – Stand nur auf diesem Geraet'))+(s.ok?'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudLoad()">⬇ Cloud-Stand laden</button><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudSave()">⬆ Dieses Gerät speichern</button></div>':'');if(sy2.dataset.h!==hh){sy2.innerHTML=hh;sy2.dataset.h=hh}}
   }
   window.addEventListener('resize',fit);window.addEventListener('orientationchange',function(){setTimeout(fit,200)});
   fit();setInterval(function(){try{paint()}catch(e){}},900);
+})();
+
+/* ---------- PC-Ansicht: Helden links, Info + Inventar rechts ---------- */
+(function(){
+  var NM={hero:['Ben','p_ben.webp','#ffb020'],arc:['Elfa','p_elfa.webp','#7ad06a'],mag:['Kalifa','p_kalifa.webp','#b07aff']};
+  function build(){
+    var W=document.getElementById('gameWrapper');if(!W)return false;
+    var L=document.getElementById('pcLeft');if(!L){L=document.createElement('div');L.id='pcLeft';var c1=W.querySelector('.game-col');W.insertBefore(L,c1)}
+    var cols=W.querySelectorAll(':scope>.game-col'),R=cols[1];if(cols[0])cols[0].classList.add('pcMid');if(R)R.classList.add('pcRight');var P=document.getElementById('pcInfo');if(R&&!P){P=document.createElement('div');P.id='pcInfo';R.insertBefore(P,R.firstChild)}
+    return true}
+  function paint(){
+    if(!document.body.classList.contains('dev-pc'))return;
+    try{if(!build())return;var G=window.__kamHeroGear&&window.__kamHeroGear();if(!G)return;
+     var h='';['hero','arc','mag'].forEach(function(w){var n=NM[w],sl=G.slots[w];
+      h+='<div class="pcc" style="--c:'+n[2]+'"><div class="h"><img class="pf" src="items/'+n[1]+'?v=1113" alt=""><div><b style="font-size:1.1rem;color:'+n[2]+'">'+n[0]+'</b><br><small style="opacity:.8">'+(w==='hero'?'Krieger':w==='arc'?'Bogenschützin':'Magierin')+'</small></div></div><div class="sl">'+sl.map(function(t){var x=G.gear[w][t];return '<div title="'+(x?x.name:t)+'" style="'+(x?'border-color:'+x.col:'opacity:.45')+'">'+(x?'<img src="'+x.ico+'" alt="">':'')+'</div>'}).join('')+'</div></div>'});
+     var L=document.getElementById('pcLeft');if(L&&L.dataset.h!==h){L.innerHTML=h;L.dataset.h=h}
+     var inv=window.inventory||{},LG=[];try{LG=JSON.parse(localStorage.getItem('robKamLogR')||'[]')}catch(e){}
+     var ores=inv.ores||{},on=0;for(var k in ores)on+=ores[k]||0;var orb=0,o2=inv.orbs||{};for(var k2 in o2)orb+=o2[k2]||0;var gm=0,g2=inv.gems||{};for(var k3 in g2)gm+=g2[k3]||0;
+     var ih='<div class="pcp"><h4>📜 INFO-LOG</h4>'+(LG.length?LG.slice(0,6).map(function(x){var d=new Date(x[0]);return '<div class="r"><span>'+x[1]+'</span><small style="opacity:.6">'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+'</small></div>'}).join(''):'<small style="opacity:.7">Noch nichts erhalten.</small>')+'</div>'
+      +'<div class="pcp"><h4>🎒 INVENTAR</h4><div class="r"><span><img src="items/ore_silver.webp" style="height:1.2em;vertical-align:-.25em" alt=""> Eisenbarren</span><b>'+(inv.iron||0)+'</b></div><div class="r"><span>⛏ Erze</span><b>'+on+'</b></div><div class="r"><span>🔮 Kugeln</span><b>'+orb+'</b></div><div class="r"><span>💠 Juwelen</span><b>'+gm+'</b></div><div class="r"><span>🛡 Ausrüstung</span><b>'+((inv.items||[]).length)+'</b></div><div class="r"><span>⚒ Schmiede</span><b>'+((inv.fjobs||[]).length)+'/3</b></div><button class="btn btn-wide" style="margin-top:8px;font-size:.7rem" onclick="document.getElementById(\'kamPf\').click();setTimeout(function(){var b=document.querySelector(\'#kamProf .tabs button[data-t=i]\');b&&b.click()},50)">INVENTAR ÖFFNEN</button></div>'
+      +'<div class="pcp"><h4>TASTEN</h4><small>Leertaste = Würfeln · I = Inventar · P = Profil</small></div>';
+     var P=document.getElementById('pcInfo');if(P&&P.dataset.h!==ih){P.innerHTML=ih;P.dataset.h=ih}}catch(e){}}
+  setInterval(paint,1500);setTimeout(paint,600);
+  document.addEventListener('keydown',function(e){if(!document.body.classList.contains('dev-pc'))return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
+    if(e.code==='Space'){var d=document.getElementById('actionBtn');if(d&&!d.disabled){e.preventDefault();d.click()}}
+    else if(e.key==='i'||e.key==='I'||e.key==='p'||e.key==='P'){var b=document.getElementById('kamPf');if(b){b.click();if(/i/i.test(e.key))setTimeout(function(){var x=document.querySelector('#kamProf .tabs button[data-t=i]');x&&x.click()},50)}}});
 })();
 
 
@@ -1969,5 +2036,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-13b';
-setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]==='11-11c'?'✓':'✗ alt'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-13g';
+setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);

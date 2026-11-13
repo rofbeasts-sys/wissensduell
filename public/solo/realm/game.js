@@ -2732,6 +2732,8 @@ function _progScore(o) {
     sc += (qt.lvMin||0)*10;
     sc += (((o && o.playerClassIds)||[]).length)*50;
     var it = (o && o.inventory && o.inventory.items) || []; sc += it.length;
+    try { var _hd2 = hd, _qt2 = qt; sc += QUEST_LIST.filter(function(q){ try { return q.getValue(_qt2, _hd2) >= q.target; } catch(e) { return false; } }).length * 20; } catch(e) {}
+    try { var _st = (o && o.inventory && o.inventory.stats) || {}; sc += Math.floor((_st.ironTotal||0)/10) + (_st.crafted||0)*2; } catch(e) {}
     return sc;
   } catch(e) { return 0; }
 }
@@ -2746,7 +2748,7 @@ async function saveStateToFirebase() {
   try {
     var _snap = await db.ref('players/' + onlineAccount.uid + '/state').once('value');
     var _cs = _snap.val();
-    if (_cs && _progScore(_cs) > _localScore()) { window.__cloudState.ahead = true; return; }
+    if (!window.__forceSave && _cs && _progScore(_cs) > _localScore()) { window.__cloudState.ahead = true; return; }
     window.__cloudState.ahead = false;
   } catch(e) { return; }
   try {
@@ -2788,7 +2790,8 @@ async function loadStateFromFirebase() {
     if (!state) { _cloudChecked = true; return false; }
     const localSaved = parseInt(localStorage.getItem('robStateSavedAt') || '0');
     const _cloudSc = _progScore(state), _locSc = _localScore();
-    if (_cloudSc < _locSc || (_cloudSc === _locSc && state.savedAt && state.savedAt <= localSaved)) { _cloudChecked = true; return false; } // lokal hat mehr Fortschritt
+    var _fc = false; try { _fc = localStorage.getItem('robForceCloud') === '1'; localStorage.removeItem('robForceCloud'); } catch(e) {}
+    if (!_fc && (_cloudSc < _locSc || (_cloudSc === _locSc && state.savedAt && state.savedAt <= localSaved))) { _cloudChecked = true; return false; } // lokal hat mehr Fortschritt
 
     // -- In localStorage schreiben --
     if (state.heroData && Object.keys(state.heroData).length > 0) localStorage.setItem('robHeroes', JSON.stringify(state.heroData));
