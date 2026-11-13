@@ -1179,7 +1179,7 @@ window.__kamChestOpen=function(t){ens();var c=inventory.chs=inventory.chs||{};if
 window.__kamInfoTab=function(){var el=document.getElementById('kamInfoPane');if(!el)return;ens();var h='',G=window.__gemName,D=window.__gemDot,pp=pd(),ob=inventory.orbs||{};
  var SC='border:1px solid #6b4a1f;border-radius:10px;padding:8px;margin-bottom:8px;background:#140a08',HC2='color:#ffd24a;font-weight:800;font-size:.75rem;margin-bottom:4px';
  h+='<div style="'+SC+'"><div style="'+HC2+'">🎒 BESTÄNDE</div><div style="display:flex;flex-wrap:wrap;gap:6px;font-size:.72rem"><span>💎 '+(meta.diamonds||0)+'</span><span>💰 '+(meta.gold||0)+'</span><span>💜 Seelen '+(pp.souls||0)+(pp.soulsPend?' (+'+pp.soulsPend+' beim Prestige)':'')+'</span><span><img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> Eisen '+(inventory.iron||0)+'</span>';
- ['blau','lila','orange'].forEach(function(o){if(ob[o]&&ORB[o])h+='<span>'+ORB[o][0]+' '+ob[o]+'</span>'});h+='</div></div>';
+ ['blau','lila','orange'].forEach(function(o){if(ob[o]&&ORB[o])h+='<span>'+ORB[o][0]+' '+ob[o]+'</span>'});['green','blue','purple','gold','red'].forEach(function(k){var n=(inventory.ores||{})[k];if(n)h+='<span><img src="items/ore_'+k+'.webp" style="height:1.15em;vertical-align:-.25em" alt=""> '+n+'</span>'});h+='</div></div>';
  var gk=Object.keys(inventory.gems||{}).filter(function(k){return inventory.gems[k]>0}).sort();
  h+='<div style="'+SC+'"><div style="'+HC2+'">💠 JUWELEN</div>'+(gk.length?gk.map(function(k){return '<div style="font-size:.7rem;display:flex;align-items:center;gap:6px;margin:2px 0">'+(D?D(k,18):'')+(G?G(k):k)+' ×'+inventory.gems[k]+'</div>'}).join(''):'<small style="opacity:.7">Noch keine Juwelen.</small>')+'</div>';
  var ch=inventory.chs||{},ck=Object.keys(ch).filter(function(k){return ch[k]>0});
@@ -1623,7 +1623,7 @@ function forgeUI(){
  var B=FS.b?it(FS.b):null,F=FS.f?it(FS.f):null;if(!B)FS.b=null;if(!F)FS.f=null;
  var h='<div style="background:linear-gradient(145deg,#150a05,#251208);border:2px solid #f0c040;border-radius:16px;padding:18px 14px;max-width:400px;width:95%;color:#ffe9c4;font-family:Georgia,serif">'+
  '<h2 style="color:#f0c040;text-align:center;font-size:1.05rem;margin:0 0 6px">⚒️ SCHMIEDE · Stufe '+smithLv()+'</h2>'+
- '<div style="text-align:center;font-size:.75rem;margin-bottom:10px"><img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; '+oimg('blau')+' '+(inventory.orbs.blau||0)+' &nbsp; '+oimg('lila')+' '+(inventory.orbs.lila||0)+' &nbsp; '+oimg('orange')+' '+(inventory.orbs.orange||0)+'</div>';
+ '<div style="text-align:center;font-size:.75rem;margin-bottom:10px"><img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> Eisenbarren: <b>'+(inventory.iron||0)+'</b> &nbsp; '+oresStr()+oimg('blau')+' '+(inventory.orbs.blau||0)+' &nbsp; '+oimg('lila')+' '+(inventory.orbs.lila||0)+' &nbsp; '+oimg('orange')+' '+(inventory.orbs.orange||0)+'</div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  var cur=FS.mode||'star',md=cur==='eff';
  h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','⚒️ Schmelzen'],['craft','🔨 Herstellen'],['eff','💎 Juwelen']].map(function(a){var on=a[0]===cur;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
@@ -1647,20 +1647,22 @@ function forgeUI(){
  h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';
  M.innerHTML=h;M.style.display='flex'}
 function prevOf(x){var r=RANK.indexOf(x.rarity);if(r<1)return null;return ITEMS.filter(function(y){return !y.m&&!y.fx&&y.type===x.type&&(y.cls||'')===(x.cls||'')&&(y.sk||'')===(x.sk||'')&&y.rarity===RANK[r-1]})[0]||null}
-function recipe(x){var p=prevOf(x),r=RANK.indexOf(x.rarity);if(!p)return{iron:100,mat:0};var n={gruen:5,blau:3,episch:2,legendaer:1}[x.rarity]||1;return{iron:0,mat:n,from:p,orb:{blau:'blau',episch:'lila',legendaer:'orange'}[x.rarity]||null,lv:UPLV[p.rarity]||0}}
+function recipe(x){var p=prevOf(x),r=RANK.indexOf(x.rarity);if(!p)return{iron:100,mat:0};var n={gruen:5,blau:3,episch:2,legendaer:1,mystisch:1}[x.rarity]||1;return{iron:0,mat:n,from:p,ore:{gruen:'green',blau:'blue',episch:'purple',legendaer:'gold',mystisch:'red'}[x.rarity]||null,on:10,lv:0}}
 function mats(p){return inventory.items.filter(function(u){var n=inventory.inst[u];return n&&n.b===p.id&&!n.s&&!wearer(u)}).sort(function(a,b){return inventory.inst[a].c-inventory.inst[b].c})}
-function craftUI(){var h='<div style="font-size:.68rem;color:#c8a070;text-align:center;margin-bottom:8px;line-height:1.5">Stelle Ausrüstung her. Der Zustand (Gebraucht, Wie neu, Perfekt) ist zufällig.<br>Normal: <img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> 100 · Grün: 5× Normal · Blau: 3× Grün · Lila: 2× Blau · Legendär: 1× Lila<br>Ab Blau brauchst du zusätzlich eine Kugel und eine ausgebaute Schmiede.</div>';
+function oresStr(){var o=inventory.ores||{},t='';['green','blue','purple','gold','red'].forEach(function(k){t+=oreI(k)+' <b>'+(o[k]||0)+'</b> &nbsp; '});return t}
+function oreI(k){return '<img src="items/ore_'+k+'.webp" style="height:1.15em;vertical-align:-.25em" alt="">'}
+function craftUI(){var h='<div style="font-size:.68rem;color:#c8a070;text-align:center;margin-bottom:8px;line-height:1.5">Stelle Ausrüstung her. Der Zustand (Gebraucht, Wie neu, Perfekt) ist zufällig.<br>Normal: <img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> 100 · Grün: 5× Normal · Blau: 3× Grün · Lila: 2× Blau · Legendär: 1× Lila · Mystisch: 1× Legendär<br>Zusätzlich brauchst du 10 Barren der Farbe: Grün = grüne, Blau = blaue, Lila = lila, Legendär = goldene, Mystisch = rote. Die produziert deine Schmiede in der Stadt (grün ab Stufe 2, blau ab 3, lila ab 5, gold ab 7, rot ab 9).</div>';
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
- var NMR={normal:'Normal',gruen:'Grün',blau:'Blau',episch:'Lila (Episch)',legendaer:'Legendär'};
- ['normal','gruen','blau','episch','legendaer'].forEach(function(rar){var L=ITEMS.filter(function(x){return x.rarity===rar&&!x.m&&!x.fx});if(!L.length)return;
+ var NMR={normal:'Normal',gruen:'Grün',blau:'Blau',episch:'Lila (Episch)',legendaer:'Legendär',mystisch:'Mystisch'};
+ ['normal','gruen','blau','episch','legendaer','mystisch'].forEach(function(rar){var L=ITEMS.filter(function(x){return x.rarity===rar&&!x.m&&!x.fx});if(!L.length)return;
   h+='<div style="margin:10px 0 4px;font-weight:800;font-size:.75rem;color:'+RARITY_COLOR[rar]+'">📦 '+NMR[rar]+'</div>';
   L.forEach(function(x){var rc=recipe(x),have=rc.mat?mats(rc.from).length:0,ok,txt;
-   if(rc.mat){txt=rc.mat+'× '+rc.from.name+' ('+have+')'+(rc.orb?' + '+ORB[rc.orb][2]+' '+ORB[rc.orb][1]+' ('+(inventory.orbs[rc.orb]||0)+')':'');ok=have>=rc.mat&&(!rc.orb||(inventory.orbs[rc.orb]||0)>0)&&smithLv()>=rc.lv}
+   if(rc.mat){txt=rc.mat+'× '+rc.from.name+' ('+have+')'+(rc.ore?' + '+oreI(rc.ore)+' '+rc.on+' ('+((inventory.ores||{})[rc.ore]||0)+')':'');ok=have>=rc.mat&&(!rc.ore||((inventory.ores||{})[rc.ore]||0)>=rc.on)}
    else{txt='<img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> '+rc.iron+' Eisenbarren ('+(inventory.iron||0)+')';ok=(inventory.iron||0)>=rc.iron}
    h+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #4a2c10;border-radius:8px;padding:5px;margin-bottom:4px;background:#0006"><img src="'+ico(x.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.64rem;line-height:1.35"><b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b><br>'+txt+(rc.lv&&smithLv()<rc.lv?'<br><span style="color:#ff9a8a">🔒 Schmiede Stufe '+rc.lv+'</span>':'')+'</div><button class="btn btn-sm" '+(ok?'':'disabled ')+'onclick="__kamCraft(\''+x.id+'\')">HERSTELLEN</button></div>'})});
  return h}
 window.__kamCraft=function(id){ens();var x=ITEMS.find(function(y){return y.id===id});if(!x)return;var rc=recipe(x);
- if(rc.mat){var m=mats(rc.from);if(m.length<rc.mat||(rc.orb&&(inventory.orbs[rc.orb]||0)<1)||smithLv()<rc.lv)return;m.slice(0,rc.mat).forEach(function(u){delete inventory.inst[u];inventory.items.splice(inventory.items.indexOf(u),1)});if(rc.orb)inventory.orbs[rc.orb]--}
+ if(rc.mat){var m=mats(rc.from);if(m.length<rc.mat||(rc.ore&&((inventory.ores||{})[rc.ore]||0)<rc.on))return;m.slice(0,rc.mat).forEach(function(u){delete inventory.inst[u];inventory.items.splice(inventory.items.indexOf(u),1)});if(rc.ore)inventory.ores[rc.ore]-=rc.on}
  else{if((inventory.iron||0)<rc.iron)return;inventory.iron-=rc.iron}
  var c=Math.floor(Math.random()*3),i=give(x.id,c);bump('crafted');if(c===2)bump('craftPerf');
  FS.msg='🔨 Hergestellt: <b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> · <b style="color:'+CC[c]+'">'+CN[c]+'</b>';try{window.__kamLogR('Geschmiedet: '+x.name+' ('+CN[c]+')')}catch(e){}saveInventory();forgeUI()};
@@ -1935,5 +1937,5 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     }catch(e){window.__kamEtg=etg||0;try{oOC.apply(window,[type])}finally{window.__kamEtg=0}}
   };
 })();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-12i';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-12l';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]==='11-11c'?'✓':'✗ alt'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
