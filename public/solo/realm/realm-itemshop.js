@@ -1,6 +1,6 @@
 /* Item-Shop: mystische Items fuer Gold. Immer Perfekt, 0 Sterne, Faehigkeiten zufaellig (Wunderschmiede kann sie aendern). */
 (function(){
-var PRICE=25000,MUL=1.6,TY={weapon:'sword',armor:'armor',helm:'helm',ring:'ring',bow:'bow',staff:'staff',cape:'cape',hand:'hand',amulet:'amu',boots:'boots',quiver:'quiver',book:'book',shield:'shield'},TL={weapon:'Waffe',armor:'Rüstung',helm:'Helm',ring:'Ring',bow:'Bogen',staff:'Stab',cape:'Umhang',hand:'Handschuhe',book:'Buch',shield:'Schild',amulet:'Amulett',boots:'Schuhe',quiver:'Köcher'};
+var PRICE=25000,MUL=1.6,TY={shoulder:'shoulder',weapon:'sword',armor:'armor',helm:'helm',ring:'ring',bow:'bow',staff:'staff',cape:'cape',hand:'hand',amulet:'amu',boots:'boots',quiver:'quiver',book:'book',shield:'shield'},TL={shoulder:'Schulter',weapon:'Waffe',armor:'Rüstung',helm:'Helm',ring:'Ring',bow:'Bogen',staff:'Stab',cape:'Umhang',hand:'Handschuhe',book:'Buch',shield:'Schild',amulet:'Amulett',boots:'Schuhe',quiver:'Köcher'};
 function mk(){
   var L=[],have={};
   ITEMS.forEach(function(x){if(x.rarity==='mystisch'&&!x.fx)have[x.type]=x});
@@ -8,7 +8,7 @@ function mk(){
     var id=x.id+'m';if(!ITEMS.some(function(y){return y.id===id}))ITEMS.push({id:id,name:'Mythisch: '+x.name,type:x.type,rarity:'mystisch',atk:Math.round((x.atk||0)*MUL),hp:Math.round((x.hp||0)*MUL),desc:x.desc,m:1,cls:x.cls,sk:x.sk})}});
   ITEMS.forEach(function(x){if(x.rarity==='mystisch'&&!x.fx)L.push(x)});
   return L}
-function icon(b){var n=TY[b.type];if(b.type==='shield')n={turm:'tshield',rund:'shield',stachel:'buckler'}[b.sk||'turm'];return n?'items/'+n+(['boots','quiver','book','shield'].indexOf(b.type)>=0?'_r':'_o')+'.webp':null}
+function icon(b){var n=TY[b.type];if(b.type==='shield')n={turm:'tshield',rund:'shield',stachel:'buckler'}[b.sk||'turm'];return n?'items/'+n+'_r'+'.webp':null}
 function buy(id){
   var b=ITEMS.filter(function(x){return x.id===id})[0];if(!b||meta.gold<PRICE)return;
   meta.gold-=PRICE;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}
@@ -17,7 +17,7 @@ function buy(id){
   try{saveInventory()}catch(e){}try{updateUI()}catch(e){}
   try{toast('🛒 '+b.name+' (Perfekt) gekauft')}catch(e){}draw()}
 window.__kamShopBuy=buy;
-var SETS=[['Waffenset','⚔️',['weapon','bow','staff']],['Rüstungsset','🛡️',['armor','helm','cape','hand','boots']],['Schmuckset','💍',['ring','amulet','book','shield','quiver']]];
+var SETS=[['Waffenset','⚔️',['weapon','bow','staff']],['Rüstungsset','🛡️',['armor','helm','shoulder','cape','hand','boots']],['Schmuckset','💍',['ring','amulet','book','shield','quiver']]];
 function setItems(t){var L=mk();return t.map(function(ty){return L.filter(function(x){return x.type===ty})[0]}).filter(Boolean)}
 function setPrice(t){return Math.round(setItems(t).length*PRICE*.8)}
 window.__kamShopSet=function(i){var S=SETS[i],P=setPrice(S[2]);if(meta.gold<P)return;var L=setItems(S[2]);
