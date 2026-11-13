@@ -1965,7 +1965,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   function fit(){
     var R=real(),d=get();
     if(R!=='pc'){d=R;try{localStorage.setItem(K,R)}catch(e){}}
-    else if(!d)d=(innerWidth>=1100?'pc':(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone'));
+    else if(!d||d==='pc')d=(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone');
     var b=document.body;b.classList.toggle('dev-phone',d==='phone');b.classList.toggle('dev-tablet',d==='tablet');b.classList.toggle('dev-pc',d==='pc');
     var z=d==='tablet'?Math.max(1,Math.min(innerWidth/540,innerHeight/860,2.4)):1;
     document.documentElement.style.setProperty('--tz',String(z));
@@ -1973,13 +1973,13 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   }
   window.__kamCloudLoad=function(){try{if(!confirm('Cloud-Stand auf dieses Gerät laden? Der Stand auf diesem Gerät wird überschrieben.'))return;localStorage.setItem('robForceCloud','1');location.reload()}catch(e){}};
   window.__kamCloudSave=function(){try{if(!confirm('Stand dieses Geräts in die Cloud speichern? Der Cloud-Stand wird überschrieben.'))return;window.__forceSave=true;Promise.resolve(saveStateToFirebase()).then(function(){window.__forceSave=false;try{toast('☁ Gespeichert')}catch(e){}})}catch(e){}};
-  window.__kamSetDev=function(d){try{localStorage.setItem(K,d)}catch(e){}fit();paint()};
+  window.__kamSetDev=function(d){if(d==='pc')d='tablet';try{localStorage.setItem(K,d)}catch(e){}fit();paint()};
   function paint(){
     var d=fit(),box=document.getElementById('loginBox'),o=document.getElementById('loginOverlay');
     if(!box||!o)return;
     var w=document.getElementById('kamDev');
     if(!w){w=document.createElement('div');w.id='kamDev';
-      w.innerHTML='<button data-d="phone" onclick="__kamSetDev(\'phone\')">&#128241; Handy</button><button data-d="tablet" onclick="__kamSetDev(\'tablet\')">&#128223; Tablet</button><button data-d="pc" onclick="__kamSetDev(\'pc\')">&#128187; PC</button>';
+      w.innerHTML='<button data-d="phone" onclick="__kamSetDev(\'phone\')">&#128241; Handy</button><button data-d="tablet" onclick="__kamSetDev(\'tablet\')">&#128223; Tablet</button>';
       var go=[].slice.call(box.querySelectorAll('button')).filter(function(b){return /ABENTEUER/i.test(b.textContent)})[0];
       var sy=document.createElement('div');sy.id='kamSync';
       if(go&&go.parentNode===box){box.appendChild(sy);box.appendChild(w)}else{box.appendChild(sy);box.appendChild(w)}}
@@ -2086,7 +2086,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
      setH(L,lh);setH(P,ph)}catch(e){}}
   window.__pcPaint=paint;
   setInterval(paint,1000);setTimeout(paint,600);addEventListener('resize',function(){setTimeout(paint,100)});
-  document.addEventListener('keydown',function(e){if(mode()!=='pc')return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
+  document.addEventListener('keydown',function(e){if(mode()==='phone')return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
     if(e.code==='Space'){var d=$('actionBtn');if(d&&!d.disabled){e.preventDefault();d.click()}}
     else if(e.key==='i'||e.key==='I'){__kamOpenP('i',1)}
     else if(e.key==='p'||e.key==='P'){var b=$('kamPf');if(b)b.click()}
@@ -2112,7 +2112,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-13n';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-13o';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
