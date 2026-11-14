@@ -3,14 +3,14 @@
 var KEY='robCity';
 var IMG={mine:'mine',dia:'dia',smith:'smith',house:'house',bank:'bank',tower:'tower',arena:'arena',camp:'camp'};
 var B=[
- {id:'mine',  ic:'⛏️', n:'Goldmine',      d:'Bringt Gold pro Stunde',        max:20, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:14,y:12},
- {id:'dia',   ic:'💎', n:'Diamantenmine', d:'Bringt Diamanten pro Stunde',   max:20, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:70,y:10},
- {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2% Erfolgschance beim Schmieden pro Stufe und Barren pro Stunde: Silber (Eisen) ab Stufe 1, Grün ab 2, Blau ab 3, Lila ab 5, Gold ab 7, Rot ab 9. Je höher die Stufe, desto mehr',          max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:42,y:30},
- {id:'house', ic:'🏠', n:'Kaserne',       d:'+15 Leben pro Stufe',           max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:10,y:46},
- {id:'bank',  ic:'🏦', n:'Marktplatz',    d:'+4% Gold im Kampf und +2,5% besserer Loot pro Stufe. Im Marktplatz-Shop: bessere Angebote (weniger Grün, mehr Lila und Legendär, bessere Zustände) und +6% tägliche Münzen pro Stufe',   max:15, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:72,y:46},
- {id:'tower', ic:'🗼', n:'Magieturm',      d:'Lagert mehr Offline-Ertrag (4 Std. am Anfang, +0,8 Std. pro Stufe, max. 12 Std.)', max:10, cost:function(l){return Math.round(500*Math.pow(1.45,l));}, cur:'g', x:40,y:62},
- {id:'arena', ic:'⚔️', n:'Arena',         d:'Gegner schlagen 5% schwächer pro Stufe (Stufe 10: halbe Kampfkraft)', max:10, cost:function(l){return Math.round(1500*Math.pow(1.6,l));}, cur:'g', x:14,y:76},
- {id:'camp',  ic:'🔥', n:'Lagerfeuer',    d:'Mehr Lagerfeuer im Lauf: heilen 40% +6% pro Stufe, öfter pro Stufe', max:10, cost:function(l){return Math.round(500*Math.pow(1.5,l));}, cur:'g', x:68,y:76}
+ {id:'mine',  ic:'⛏️', n:'Goldmine',      d:'Bringt Gold pro Stunde',        max:20, cost:function(l){return (l<1?500:Math.round(1500*Math.pow(1.65,l-1)));}, cur:'g', x:14,y:12},
+ {id:'dia',   ic:'💎', n:'Diamantenmine', d:'Bringt Diamanten pro Stunde',   max:20, cost:function(l){return (l<1?500:Math.round(1500*Math.pow(1.65,l-1)));}, cur:'g', x:70,y:10},
+ {id:'smith', ic:'⚒️', n:'Schmiede',      d:'+2% Erfolgschance beim Schmieden pro Stufe und Barren pro Stunde: Silber (Eisen) ab Stufe 1, Grün ab 2, Blau ab 3, Lila ab 5, Gold ab 7, Rot ab 9. Je höher die Stufe, desto mehr',          max:10, cost:function(l){return (l<1?500:Math.round(1500*Math.pow(1.65,l-1)));}, cur:'g', x:42,y:30},
+ {id:'house', ic:'🏠', n:'Kaserne',       d:'+15 Leben pro Stufe',           max:10, cost:function(l){return (l<1?500:Math.round(1500*Math.pow(1.65,l-1)));}, cur:'g', x:10,y:46},
+ {id:'bank',  ic:'🏦', n:'Marktplatz',    d:'+4% Gold im Kampf und +2,5% besserer Loot pro Stufe. Im Marktplatz-Shop: bessere Angebote (weniger Grün, mehr Lila und Legendär, bessere Zustände) und +6% tägliche Münzen pro Stufe',   max:15, cost:function(l){return (l<1?500:Math.round(1500*Math.pow(1.65,l-1)));}, cur:'g', x:72,y:46},
+ {id:'tower', ic:'🗼', n:'Magieturm',      d:'Lagert mehr Offline-Ertrag (4 Std. am Anfang, +0,8 Std. pro Stufe, max. 12 Std.)', max:10, cost:function(l){return (l<1?500:Math.round(1400*Math.pow(1.6,l-1)));}, cur:'g', x:40,y:62},
+ {id:'arena', ic:'⚔️', n:'Arena',         d:'Gegner schlagen 5% schwächer pro Stufe (Stufe 10: halbe Kampfkraft)', max:10, cost:function(l){return (l<1?1500:Math.round(4500*Math.pow(1.9,l-1)));}, cur:'g', x:14,y:76},
+ {id:'camp',  ic:'🔥', n:'Lagerfeuer',    d:'Mehr Lagerfeuer im Lauf: heilen 40% +6% pro Stufe, öfter pro Stufe', max:10, cost:function(l){return (l<1?500:Math.round(1500*Math.pow(1.65,l-1)));}, cur:'g', x:68,y:76}
 ];
 function get(){ try{var o=JSON.parse(localStorage.getItem(KEY)||'{}'); o.b=o.b||{}; if(!o.last)o.last=Date.now(); if(!o.dlast)o.dlast=o.last; return o;}catch(e){return {b:{},last:Date.now()};} }
 function put(o){ try{localStorage.setItem(KEY,JSON.stringify(o));}catch(e){} if(typeof saveStateToFirebase==='function')saveStateToFirebase(); }
@@ -128,11 +128,11 @@ function offCalc(){
   var ms=Date.now()-last;if(ms<OFFMIN)return null;
   var mb=0;try{mb=(inventory&&inventory.stats&&inventory.stats.maxBoss)||0}catch(e){}
   var k=Math.max(1,Math.min(t,mb+1)),h=Math.min(ms/3600000,cap()),runs=h*4;
-  var g=Math.floor(runs*200*k),ir=Math.floor(runs*k);
+  var g=Math.floor(runs*50*k),ir=Math.floor(runs*k);
   var runs_=Math.max(1,Math.floor(runs)),st=0;try{st=((meta.maxHp||60)+(meta.attack||5)*8)/(250*k+100)}catch(e){st=.5}
   var pR=Math.max(.2,Math.min(.95,.25+.5*st)),pW=Math.max(.1,Math.min(.9,.2+.45*st)),rb=0,bw=0;
   for(var i=0;i<runs_;i++){if(Math.random()<pR){rb++;if(Math.random()<pW)bw++}}
-  return {runs:runs_,boss:rb,won:bw,lost:runs_-bw,died:runs_-rb,bl:rb-bw,cp:pending(),k:k,h:h,full:{g:g,ir:ir},half:{g:Math.floor(g/2),ir:Math.floor(ir/2)},price:Math.max(5,Math.ceil((g-Math.floor(g/2))/200))};
+  return {runs:runs_,boss:rb,won:bw,lost:runs_-bw,died:runs_-rb,bl:rb-bw,cp:pending(),k:k,h:h,full:{g:g,ir:ir},half:{g:Math.floor(g/2),ir:Math.floor(ir/2)},price:Math.max(5,Math.ceil((g-Math.floor(g/2))/50))};
 }
 function offHM(h){var m=Math.round(h*60);return Math.floor(m/60)+' Std. '+(m%60)+' Min.'}
 function offShow(){
@@ -174,4 +174,4 @@ addEventListener('pagehide',function(){if(!chk)return;try{localStorage.setItem(O
  if(!o){chk=true;clearInterval(iv);offTouch();return}
  if(lv('tower')>=1||up>25){chk=true;clearInterval(iv);offShow()}},1000)})();
 })();
-;window.__ver=window.__ver||{};window.__ver['city']='11-14a';
+;window.__ver=window.__ver||{};window.__ver['city']='11-14b';
