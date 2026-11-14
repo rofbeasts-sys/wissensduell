@@ -4338,7 +4338,7 @@ async function soloSubmit(token, game, val, diff, lang, extra) {
   return { ok: true, improved, zp };
 }
 // ===== Realm of Brain: Spielstand und Bestenliste (statt Firebase) =====
-const REALM_MAX_STATE = 60000;
+const REALM_MAX_STATE = 250000;
 // Reset fuer alle Realm-Konten: REALM_EPOCH um 1 erhoehen = alle starten neu. Der alte Stand wird in user.realm.backup aufgehoben,
 // gekaufte Diamanten (pendingDias) bleiben erhalten. Veraltete Clients (ohne passende Epoche) koennen nichts mehr speichern.
 const REALM_EPOCH = 1;
@@ -4362,9 +4362,10 @@ function realmSave(token, state) {
   user.realm = user.realm || {};
   if (user.realm.state === str) return { ok: true, same: true };
   if (Date.now() - (user.realm.at || 0) < 3000) return { ok: true, wait: true };
+  if (user.realm.state && Date.now() - (user.realm.prevAt || 0) > 600000) { user.realm.prev = user.realm.state; user.realm.prevAt = Date.now(); } // Notfall-Sicherung des vorherigen Stands, hoechstens alle 10 Minuten
   user.realm.state = str; user.realm.at = Date.now();
   saveUsers().catch(() => {});
-  return { ok: true };
+  return { ok: true, size: str.length };
 }
 function realmReset(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
@@ -8088,7 +8089,7 @@ const SECURITY_HEADERS = {
   "Referrer-Policy": "no-referrer",
   "Content-Security-Policy": "object-src 'none'; base-uri 'self'; frame-ancestors 'self' https://itch.io https://*.itch.io https://*.itch.zone https://*.hwcdn.net; form-action 'self'"
 };
-const MAX_API_BODY = 100000; // 100 KB reichen fuer alle API-Aufrufe locker
+const MAX_API_BODY = 300000; // Realm-Spielstaende koennen gross werden (Inventar), alles andere ist klein
 
 loadGameCfg();
 chessCorrLoad();

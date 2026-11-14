@@ -1993,7 +1993,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     w.style.display='none';
     var sy2=document.getElementById('kamSync');if(sy2){var s=window.__cloudState||{};
       sy2.className=s.ok?'ok':'bad';
-      var hh=(s.ahead?'☁ Cloud hat mehr Fortschritt als dieses Geraet – Seite neu laden':(s.ok?'☁ Cloud verbunden'+(s.user?' ('+s.user+')':''):'☁ Nicht mit Konto verbunden – Stand nur auf diesem Geraet'))+(s.ok?'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudLoad()">⬇ Cloud-Stand laden</button><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudSave()">⬆ Dieses Gerät speichern</button></div>':'');if(sy2.dataset.h!==hh){sy2.innerHTML=hh;sy2.dataset.h=hh}}
+      var hh=(s.fail?'⚠ Cloud-Speichern klappt nicht: '+s.fail+' ('+(s.kb||'?')+' KB). ':'')+(s.ahead?'☁ Cloud hat mehr Fortschritt als dieses Geraet – Seite neu laden':(s.ok?'☁ Cloud verbunden'+(s.user?' ('+s.user+')':''):'☁ Nicht mit Konto verbunden – Stand nur auf diesem Geraet'))+(s.ok?'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudLoad()">⬇ Cloud-Stand laden</button><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudSave()">⬆ Dieses Gerät speichern</button></div>':'');if(sy2.dataset.h!==hh){sy2.innerHTML=hh;sy2.dataset.h=hh}}
   }
   window.addEventListener('resize',fit);window.addEventListener('orientationchange',function(){setTimeout(fit,200)});
   fit();setInterval(function(){try{paint()}catch(e){}},900);
@@ -2123,7 +2123,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-14g';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-14h';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */

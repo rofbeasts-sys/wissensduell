@@ -2791,6 +2791,7 @@ async function _bpSaveCore() {
     };
     if (meta) state.meta = meta;
     var _r = await db.ref('players/' + onlineAccount.uid + '/state').set(state);
+    try { window.__cloudState.tooBig = !!(_r && _r.tooBig); window.__cloudState.fail = !_r ? 'Server nicht erreichbar' : (_r.tooBig ? 'Stand zu gross' : (_r.ok === false ? 'Speichern abgelehnt' : '')); window.__cloudState.kb = Math.round(JSON.stringify(state).length / 1024); if (window.__cloudState.fail && !window.__cloudState._lg) { window.__cloudState._lg = 1; log('\u26A0\uFE0F <span style="color:#ff8866">Cloud-Speichern klappt nicht: ' + window.__cloudState.fail + ' (' + window.__cloudState.kb + ' KB)</span>'); } } catch(e) {}
     if (_r && _r.ok && !_r.wait && !_r.stale) { try { localStorage.setItem('robStateSavedAt', String(state.savedAt)); } catch(e) {} return true; }
     return false;
   } catch(e) { return false; }
@@ -3377,4 +3378,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-14a';
+;window.__ver=window.__ver||{};window.__ver['game']='11-14b';
