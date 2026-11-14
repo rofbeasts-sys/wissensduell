@@ -181,7 +181,7 @@ var css=document.createElement('style');css.textContent=
 '#kamProf[data-tab=i] #menuPanel,#kamProf[data-tab=i] #kamQuick,#kamProf[data-tab=i] #kamReset,#kamProf[data-tab=i] #kamReset2{display:none!important}#kamInfoPane,#kamLogPane{display:none}#kamProf[data-tab=p] #kamLogPane{display:block}#kamProf[data-tab=i] #kamInfoPane{display:block}'+
 
 '#kamProf.invonly .tabs button[data-t=p],#kamProf.invonly .tabs button[data-t=m]{display:none}#kamProf.invonly .tabs button[data-t=i]{cursor:default}'+
-'body.dev-pc #kamProf .box,body.dev-tablet #kamProf .box{max-width:760px}'+
+'@media (min-width:900px){#kamProf .box{max-width:760px}#kamForge>div{max-width:860px!important}#kamForge{padding:24px!important}#kamForge div[style*="width:48%"]{width:23%!important}}'+
 '#kamProf[data-tab=m] #menuPanel{display:block!important}';
 document.head.appendChild(css);
 
@@ -392,7 +392,7 @@ function build(k){
 }
 function place(){
   updateVis();var o=K.cur,h=$('kamHero');h.style.left=(o.t==='boss'?-TS/2:px(o.c))+'px';h.style.bottom=(o.r*STEP)+'px';
-  var st=$('kam').clientHeight;$('kamWorld').style.transform='rotateX(30deg) translateY('+Math.max(0,o.r*STEP-st*0.2)+'px)';
+  var st=$('kam').clientHeight,kw=$('kam').clientWidth,kk=Math.max(1,Math.min(1.7,kw/360));$('kamWorld').style.transform='scale('+kk+') rotateX(30deg) translateY('+Math.max(0,o.r*STEP-st*0.2/kk)+'px)';
 }
 function msg(t){var m=$('kamMsg');if(m)m.textContent=t}
 function hud(){
@@ -1963,9 +1963,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   function real(){var ua=navigator.userAgent||'',mob=/Android|iPhone|iPad|iPod|Mobile/i.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);if(!mob)return 'pc';return Math.min(screen.width,screen.height)<600?'phone':'tablet'}
   window.__kamReal=real;
   function fit(){
-    var R=real(),d=get();
-    if(R!=='pc'){d=R;try{localStorage.setItem(K,R)}catch(e){}}
-    else if(!d||d==='pc')d=(Math.min(innerWidth,innerHeight)>=600?'tablet':'phone');
+    var d='phone';try{localStorage.setItem(K,'phone')}catch(e){}
     var b=document.body;b.classList.toggle('dev-phone',d==='phone');b.classList.toggle('dev-tablet',d==='tablet');b.classList.toggle('dev-pc',d==='pc');
     var z=d==='tablet'?Math.max(1,Math.min(innerWidth/540,innerHeight/860,2.4)):1;
     document.documentElement.style.setProperty('--tz',String(z));
@@ -1984,7 +1982,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
       var sy=document.createElement('div');sy.id='kamSync';
       if(go&&go.parentNode===box){box.appendChild(sy);box.appendChild(w)}else{box.appendChild(sy);box.appendChild(w)}}
     [].forEach.call(w.querySelectorAll('button'),function(b){b.classList.toggle('on',b.getAttribute('data-d')===d)});
-    w.style.display=real()==='pc'?'':'none';
+    w.style.display='none';
     var sy2=document.getElementById('kamSync');if(sy2){var s=window.__cloudState||{};
       sy2.className=s.ok?'ok':'bad';
       var hh=(s.ahead?'☁ Cloud hat mehr Fortschritt als dieses Geraet – Seite neu laden':(s.ok?'☁ Cloud verbunden'+(s.user?' ('+s.user+')':''):'☁ Nicht mit Konto verbunden – Stand nur auf diesem Geraet'))+(s.ok?'<div style="display:flex;gap:6px;margin-top:6px"><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudLoad()">⬇ Cloud-Stand laden</button><button class="btn btn-sm" style="flex:1;font-size:.6rem" onclick="__kamCloudSave()">⬆ Dieses Gerät speichern</button></div>':'');if(sy2.dataset.h!==hh){sy2.innerHTML=hh;sy2.dataset.h=hh}}
@@ -2086,7 +2084,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
      setH(L,lh);setH(P,ph)}catch(e){}}
   window.__pcPaint=paint;
   setInterval(paint,1000);setTimeout(paint,600);addEventListener('resize',function(){setTimeout(paint,100)});
-  document.addEventListener('keydown',function(e){if(mode()==='phone')return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
+  document.addEventListener('keydown',function(e){if(!window.__kamReal||window.__kamReal()!=='pc')return;var t=e.target&&e.target.tagName;if(t==='INPUT'||t==='TEXTAREA')return;
     if(e.code==='Space'){var d=$('actionBtn');if(d&&!d.disabled){e.preventDefault();d.click()}}
     else if(e.key==='i'||e.key==='I'){__kamOpenP('i',1)}
     else if(e.key==='p'||e.key==='P'){var b=$('kamPf');if(b)b.click()}
@@ -2112,7 +2110,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-13o';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-14c';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
@@ -2122,13 +2120,13 @@ setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||docu
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();inst=e;upd()});
   window.addEventListener('appinstalled',function(){inst=null;upd()});
   var st=document.createElement('style');
-  st.textContent='#kamFs{position:fixed;top:6px;left:8px;z-index:9000;display:none;gap:6px}body.dev-pc #kamFs,body.dev-tablet #kamFs{display:flex}#kamFs button{background:#140a08cc;color:#ffe9c4;border:1px solid #c8a000;border-radius:8px;padding:5px 10px;font-family:Cinzel,serif;font-size:.7rem;cursor:pointer}#kamFs button:hover{background:#7a1a00}';
+  st.textContent='#kamFs{position:fixed;top:6px;left:8px;z-index:9000;display:none;gap:6px}#kamFs button{background:#140a08cc;color:#ffe9c4;border:1px solid #c8a000;border-radius:8px;padding:5px 10px;font-family:Cinzel,serif;font-size:.7rem;cursor:pointer}#kamFs button:hover{background:#7a1a00}';
   document.head.appendChild(st);
   function standalone(){try{return matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||navigator.standalone}catch(e){return false}}
   function isFs(){return !!(document.fullscreenElement||document.webkitFullscreenElement)}
   window.__kamFs=function(){try{if(isFs()){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{var d=document.documentElement;(d.requestFullscreen||d.webkitRequestFullscreen).call(d)}}catch(e){}};
   window.__kamInstall=function(){if(inst){inst.prompt();inst.userChoice.then(function(){inst=null;upd()}).catch(function(){})}};
-  function upd(){var w=document.getElementById('kamFs');if(!w){w=document.createElement('div');w.id='kamFs';document.body.appendChild(w)}
+  function upd(){var w=document.getElementById('kamFs');if(!w){w=document.createElement('div');w.id='kamFs';document.body.appendChild(w)}w.style.display=(window.__kamReal&&window.__kamReal()==='pc')?'flex':'none';
     var h='<button onclick="__kamFs()" title="Vollbild (F11)">'+(isFs()?'⤢ Vollbild beenden':'⛶ Vollbild')+'</button>'+(inst&&!standalone()?'<button onclick="__kamInstall()" title="Als App installieren">⬇ Als App installieren</button>':'');
     if(w.dataset.h!==h){w.innerHTML=h;w.dataset.h=h}}
   document.addEventListener('fullscreenchange',upd);document.addEventListener('webkitfullscreenchange',upd);
