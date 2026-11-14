@@ -182,7 +182,7 @@ var css=document.createElement('style');css.textContent=
 
 '#kamProf.invonly .tabs button[data-t=p],#kamProf.invonly .tabs button[data-t=m]{display:none}#kamProf.invonly .tabs button[data-t=i]{cursor:default}'+
 '@media (min-width:1000px) and (orientation:landscape){#kamProf.on{align-items:center;padding:10px!important}#kamProf .box{max-width:min(1500px,96vw)!important;height:94vh;max-height:94vh!important;display:flex;flex-direction:column;overflow:hidden!important}#kamProf .box>.tabs{flex:none}#kamProfBody{flex:1;min-height:0;display:flex;flex-direction:column}#kamProf[data-tab=i] #kamInfoPane{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-auto-rows:min-content;gap:10px;flex:1;min-height:0;overflow-y:auto;align-content:start;scrollbar-width:thin}#kamInfoPane>div{margin:0!important}#kamInfoPane>div:nth-child(2){grid-column:1;grid-row:1/span 5}#kamInfoPane>div:nth-child(1),#kamInfoPane>div:nth-child(n+3){grid-column:2}#kamInfoPane div[style*="max-height:380px"]{max-height:none!important}}'+
-'@media (min-width:900px){#kamProf .box{max-width:760px}#kamForge>div{max-width:860px!important}#kamForge{padding:24px!important}#kamForge div[style*="width:48%"]{width:23%!important}}'+
+'body.dev-tablet #kamLevels .tb button:nth-child(3),body.dev-tablet #kamQuick .btn:first-child{display:none!important}#kamForge .kfg{display:block}@media (min-width:900px){body.dev-tablet #kamForge>div{max-width:1180px!important}body.dev-tablet #kamForge .kfg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}body.dev-tablet #kamForge .kfg>div{margin-bottom:0!important}}@media (min-width:900px){#kamProf .box{max-width:760px}#kamForge>div{max-width:860px!important}#kamForge{padding:24px!important}#kamForge div[style*="width:48%"]{width:23%!important}}'+
 '#kamProf[data-tab=m] #menuPanel{display:block!important}';
 document.head.appendChild(css);
 
@@ -1139,13 +1139,15 @@ function levelsUI(){
 var LH=[];window.__kamLvBack=function(){SHS=0;SHL=0;LH=[];document.getElementById('kamLevels').style.display='none';var pf=document.getElementById('kamPf');if(pf)pf.click()};
 function questsTab(){var L=(typeof QUEST_LIST!=='undefined')?QUEST_LIST:[],cats=[],done=0;
  L.forEach(function(q){if(cats.indexOf(q.cat)<0)cats.push(q.cat)});
- var h='';cats.forEach(function(cat){var qs=L.filter(function(q){return q.cat===cat});
-  h+='<div style="font-size:.62rem;color:#c8a070;letter-spacing:2px;margin:14px 0 6px">'+cat+'</div>';
+ var h='<div class="qg">';var ORD=['Kampf','Wirtschaft','Shop','Fortschritt','Spezial'];cats.sort(function(a,b){function k(c){for(var i=0;i<ORD.length;i++)if(c.indexOf(ORD[i])>=0)return i;return 9}return k(a)-k(b)});
+ cats.forEach(function(cat){var qs=L.filter(function(q){return q.cat===cat});
+  h+='<div class="qc"><div style="font-size:.7rem;color:#f0c040;letter-spacing:2px;margin:14px 0 6px;font-weight:800">'+cat+'</div>';
   qs.forEach(function(q){var v=0;try{v=Math.min(q.getValue(questTracking,heroData),q.target)}catch(e){}var dn=v>=q.target;if(dn)done++;
    if(q.secret&&!dn){var sc=false;try{sc=q.secret()}catch(e){}if(!sc){h+='<div style="border:1px dashed #4a3a6a;border-radius:8px;padding:8px 10px;margin-bottom:5px;background:#0004;font-size:.7rem;opacity:.6">🔒 Geheime Quest</div>';return}}
    var p=Math.min(100,Math.floor(v/q.target*100));
-   h+='<div style="border:1px solid '+(dn?'#44ff88':'#4a2a6a')+';border-radius:8px;padding:8px 10px;margin-bottom:5px;background:'+(dn?'#06200f99':'#0006')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-size:.72rem"><span style="color:'+(dn?'#44ff88':'#ffe9c4')+'">'+q.name+'</span><span style="color:'+(dn?'#44ff88':'#c9b79c')+';white-space:nowrap">'+(dn?'✓ fertig':v.toLocaleString('de')+' / '+q.target.toLocaleString('de'))+'</span></div>'+(dn?'':'<div style="height:5px;background:#0008;border-radius:3px;margin-top:5px;overflow:hidden"><div style="height:100%;width:'+p+'%;background:#a070e0"></div></div>')+'</div>'})});
+   h+='<div style="border:1px solid '+(dn?'#44ff88':'#4a2a6a')+';border-radius:8px;padding:8px 10px;margin-bottom:5px;background:'+(dn?'#06200f99':'#0006')+'"><div style="display:flex;justify-content:space-between;gap:8px;font-size:.72rem"><span style="color:'+(dn?'#44ff88':'#ffe9c4')+'">'+q.name+'</span><span style="color:'+(dn?'#44ff88':'#c9b79c')+';white-space:nowrap">'+(dn?'✓ fertig':v.toLocaleString('de')+' / '+q.target.toLocaleString('de'))+'</span></div>'+(dn?'':'<div style="height:5px;background:#0008;border-radius:3px;margin-top:5px;overflow:hidden"><div style="height:100%;width:'+p+'%;background:#a070e0"></div></div>')+'</div>'});h+='</div>'});h+='</div>'
  return '<div style="text-align:center;font-size:.8rem;margin:4px 0 2px">'+done+' von '+L.length+' Quests geschafft. Jede Quest gibt 1 Klassen-Level.</div>'+h}
+(function(){var st=document.createElement('style');st.textContent='@media (min-width:900px){body.dev-tablet #kamLevels .w{max-width:1400px}body.dev-tablet #kamLevels .tl,body.dev-tablet #kamLevels .hr,body.dev-tablet #kamLevels .tb,body.dev-tablet #kamLevels .how{max-width:560px;margin-left:auto;margin-right:auto}body.dev-tablet #kamLevels .qg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 18px;align-items:start}}';document.head.appendChild(st)})();
 window.__kamQO=function(){window.__kamQOpen=!window.__kamQOpen;levelsUI()};
 window.__kamLM=function(m){window.__kamQOpen=false;if(m!==LM)LH.push(LM);LM=m;levelsUI()};
 window.showLevels=function(){LM=1;LH=[];SHS=0;SHL=0;var m=document.getElementById('menuPanel');levelsUI()};
@@ -1703,12 +1705,17 @@ function craftUI(){var h=jobsUI()+'<div style="font-size:.68rem;color:#c8a070;te
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  var NMR={normal:'Normal',gruen:'Grün',blau:'Blau',episch:'Lila (Episch)',legendaer:'Legendär',mystisch:'Mystisch'};
  ['normal','gruen','blau','episch','legendaer','mystisch'].forEach(function(rar){var L=ITEMS.filter(function(x){return x.rarity===rar&&!x.m&&!x.fx});if(!L.length)return;
-  h+='<div style="margin:10px 0 4px;font-weight:800;font-size:.75rem;color:'+RARITY_COLOR[rar]+'">📦 '+NMR[rar]+'</div>';
+  var opn=!!(FS.open&&FS.open[rar]),nok=0;
+  L.forEach(function(x){var r0=recipe(x);if(r0.mat?(mats(r0.from).length>=r0.mat&&(!r0.ore||((inventory.ores||{})[r0.ore]||0)>=r0.on)):((inventory.iron||0)>=r0.iron))nok++});
+  h+='<div onclick="__kamFA(\''+rar+'\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;margin:8px 0 4px;padding:8px 10px;border:2px solid '+RARITY_COLOR[rar]+';border-radius:10px;background:'+(opn?'#2a1608':'#0006')+';font-weight:800;font-size:.78rem;color:'+RARITY_COLOR[rar]+'"><span>'+(opn?'▾':'▸')+'</span><span style="flex:1">📦 '+NMR[rar]+'</span><span style="font-size:.62rem;opacity:.8;font-weight:600;color:#ffe9c4">'+L.length+' Items'+(nok?' · <span style="color:#8fe08f">'+nok+' machbar</span>':'')+'</span></div>';
+  if(!opn)return;
+  h+='<div class="kfg">';
   L.forEach(function(x){var rc=recipe(x),have=rc.mat?mats(rc.from).length:0,ok,txt;
    if(rc.mat){txt=rc.mat+'× '+rc.from.name+' ('+have+')'+(rc.ore?' + '+oreI(rc.ore)+' '+rc.on+' ('+((inventory.ores||{})[rc.ore]||0)+')':'');ok=have>=rc.mat&&(!rc.ore||((inventory.ores||{})[rc.ore]||0)>=rc.on)}
    else{txt='<img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> '+rc.iron+' Eisenbarren ('+(inventory.iron||0)+')';ok=(inventory.iron||0)>=rc.iron}
-   h+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #4a2c10;border-radius:8px;padding:5px;margin-bottom:4px;background:#0006"><img src="'+ico(x.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.64rem;line-height:1.35"><b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> <span style="opacity:.7">· ⏱ '+fmtT(FT[x.rarity]||60)+'</span><br>'+txt+(rc.lv&&smithLv()<rc.lv?'<br><span style="color:#ff9a8a">🔒 Schmiede Stufe '+rc.lv+'</span>':'')+'</div><button class="btn btn-sm" '+(ok?'':'disabled ')+'onclick="__kamCraft(\''+x.id+'\')">HERSTELLEN</button></div>'})});
+   h+='<div style="display:flex;align-items:center;gap:8px;border:1px solid #4a2c10;border-radius:8px;padding:5px;margin-bottom:4px;background:#0006"><img src="'+ico(x.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.64rem;line-height:1.35"><b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> <span style="opacity:.7">· ⏱ '+fmtT(FT[x.rarity]||60)+'</span><br>'+txt+(rc.lv&&smithLv()<rc.lv?'<br><span style="color:#ff9a8a">🔒 Schmiede Stufe '+rc.lv+'</span>':'')+'</div><button class="btn btn-sm" '+(ok?'':'disabled ')+'onclick="__kamCraft(\''+x.id+'\')">HERSTELLEN</button></div>'});h+='</div>'});
  return h}
+window.__kamFA=function(r){FS.open=FS.open||{};FS.open[r]=!FS.open[r];forgeUI()};
 var FT={normal:60,gruen:300,blau:900,episch:2700,legendaer:7200,mystisch:21600},FSLOTS=3;
 function fmtT(sec){sec=Math.max(0,Math.ceil(sec));var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s2=sec%60;return h?h+' Std '+m+' Min':m?m+' Min '+('0'+s2).slice(-2)+' S':s2+' Sek'}
 function fjobs(){ens();return inventory.fjobs=inventory.fjobs||[]}
@@ -2116,7 +2123,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-14f';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-14g';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
