@@ -165,6 +165,7 @@ function offShow(){
 }
 window.__cityOff=offShow;window.__cityOffInfo=function(){var t=lv('tower'),o=null;try{o=offCalc()}catch(e){}return {tower:t,ready:!!o,h:o?o.h:0,k:o?o.k:0}};
 setInterval(offTouch,20000);
+window.__cityStamp=function(t){if(!chk)return;try{localStorage.setItem(OFFK,String(t||Date.now()))}catch(e){}};
 document.addEventListener('visibilitychange',function(){if(!chk)return;if(document.hidden){try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}}else setTimeout(offShow,400)});
 addEventListener('pagehide',function(){if(!chk)return;try{localStorage.setItem(OFFK,String(Date.now()))}catch(e){}});
 /* Erst pruefen, wenn eingeloggt und die Stadt geladen ist. Vorher wird die Zeit nie ueberschrieben. */
@@ -173,4 +174,4 @@ addEventListener('pagehide',function(){if(!chk)return;try{localStorage.setItem(O
  if(!o){chk=true;clearInterval(iv);offTouch();return}
  if(lv('tower')>=1||up>25){chk=true;clearInterval(iv);offShow()}},1000)})();
 })();
-;window.__ver=window.__ver||{};window.__ver['city']='11-11c';
+;window.__ver=window.__ver||{};window.__ver['city']='11-14a';

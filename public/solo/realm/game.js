@@ -393,7 +393,12 @@ function updateLoginLevels() {
 }
 
 // ===== START =====
-function goBackBP() { if (window.parent !== window) { try { parent.postMessage({ bpRealmBack: true }, location.origin); } catch (e) { location.href = '/'; } } else location.href = '/'; }
+function goBackBP() {
+  var go = function() { if (window.parent !== window) { try { parent.postMessage({ bpRealmBack: true }, location.origin); } catch (e) { location.href = '/'; } } else location.href = '/'; };
+  var done = false, once = function() { if (done) return; done = true; go(); };
+  try { Promise.resolve(window.__bpFlushNow ? window.__bpFlushNow() : 0).then(once, once); } catch (e) { once(); }
+  setTimeout(once, 3500); // Notausgang: auch wenn der Server haengt
+}
 function startGame() {
   try { startGameInner(); } catch (e) {
     var box = document.getElementById('startErr');
@@ -2742,15 +2747,23 @@ function _localScore() {
   return _progScore({ heroData: g('robHeroes'), prestigeData: g('robPrestige'), questTracking: g('robQuestTracking'),
     playerClassIds: playerClasses.map(function(c){ return c.id; }), inventory: inventory });
 }
+var _bpSaving = false;
 async function saveStateToFirebase() {
-  if (!onlineAccount || onlineAccount.isAnonymous) return;
-  if (!_cloudChecked) return; // erst Cloud-Stand pruefen, sonst koennte ein altes Geraet den neuen Stand ueberschreiben
+  if (_bpSaving) return false;
+  _bpSaving = true;
+  try { return await _bpSaveCore(); } finally { _bpSaving = false; }
+}
+async function _bpSaveCore() {
+  if (!onlineAccount || onlineAccount.isAnonymous) return false;
+  if (!_cloudChecked) return false; // erst Cloud-Stand pruefen, sonst koennte ein altes Geraet den neuen Stand ueberschreiben
   try {
     var _snap = await db.ref('players/' + onlineAccount.uid + '/state').once('value');
     var _cs = _snap.val();
-    if (!window.__forceSave && _cs && _progScore(_cs) > _localScore()) { window.__cloudState.ahead = true; return; }
+    var _ls = parseInt(localStorage.getItem('robStateSavedAt') || '0');
+    /* Nicht speichern, wenn ein anderes Geraet inzwischen neuer gespeichert hat oder dort mehr Fortschritt ist */
+    if (!window.__forceSave && _cs && (_progScore(_cs) > _localScore() || (_ls > 0 && _cs.savedAt && _cs.savedAt > _ls))) { window.__cloudState.ahead = true; return false; }
     window.__cloudState.ahead = false;
-  } catch(e) { return; }
+  } catch(e) { return false; }
   try {
     const state = {
       heroData: JSON.parse(localStorage.getItem('robHeroes') || '{}'),
@@ -2773,12 +2786,29 @@ async function saveStateToFirebase() {
       myBest: localStorage.getItem('robMyBest') || '0',
       monsterKills: monsterKills,
       monsterNextMilestone: monsterNextMilestone,
+      lastSeen: parseInt(localStorage.getItem('robOffLast') || '0') || Date.now(),
       savedAt: Date.now()
     };
     if (meta) state.meta = meta;
-    await db.ref('players/' + onlineAccount.uid + '/state').set(state);
-  } catch(e) {}
+    var _r = await db.ref('players/' + onlineAccount.uid + '/state').set(state);
+    if (_r && _r.ok && !_r.wait && !_r.stale) { try { localStorage.setItem('robStateSavedAt', String(state.savedAt)); } catch(e) {} return true; }
+    return false;
+  } catch(e) { return false; }
 }
+/* Sofort speichern (Ausloggen, Seite zu, Handy aus, AFK). Der Server nimmt hoechstens alle 3 Sekunden einen Stand an, darum einmal nachfassen. */
+window.__bpFlushNow = async function() {
+  try { if (window.__cityStamp) window.__cityStamp(); } catch(e) {}
+  var ok = false;
+  try { ok = await saveStateToFirebase(); } catch(e) {}
+  if (!ok && onlineAccount && _cloudChecked) {
+    await new Promise(function(r){ setTimeout(r, 3200); });
+    try { ok = await saveStateToFirebase(); } catch(e) {}
+  }
+  return ok;
+};
+document.addEventListener('visibilitychange', function() { if (document.hidden) { try { window.__bpFlushNow(); } catch(e) {} } });
+addEventListener('pagehide', function() { try { window.__bpFlushNow(); } catch(e) {} });
+
 
 async function loadStateFromFirebase() {
   if (!onlineAccount) return false;
@@ -2791,7 +2821,17 @@ async function loadStateFromFirebase() {
     const localSaved = parseInt(localStorage.getItem('robStateSavedAt') || '0');
     const _cloudSc = _progScore(state), _locSc = _localScore();
     var _fc = false; try { _fc = localStorage.getItem('robForceCloud') === '1'; localStorage.removeItem('robForceCloud'); } catch(e) {}
-    if (!_fc && (_cloudSc < _locSc || (_cloudSc === _locSc && state.savedAt && state.savedAt <= localSaved))) { _cloudChecked = true; return false; } // lokal hat mehr Fortschritt
+    /* Neuester Stand gewinnt: hat ein anderes Geraet nach meinem letzten Abgleich gespeichert, gilt die Cloud. Sonst gewinnt der hoehere Fortschritt. */
+    var _cloudNewer = !!(state.savedAt && localSaved > 0 && state.savedAt > localSaved);
+    if (!_fc && !_cloudNewer && (_cloudSc < _locSc || (_cloudSc === _locSc && state.savedAt && state.savedAt <= localSaved))) {
+      _cloudChecked = true;
+      try { if (state.savedAt) localStorage.setItem('robStateSavedAt', String(state.savedAt)); } catch(e) {} // Cloud-Stand gesehen, lokaler Stand darf ihn jetzt ersetzen
+      return false;
+    }
+    if (_cloudNewer && _locSc > _cloudSc) { // Sicherung, falls lokal mehr Fortschritt war
+      try { var _bk = {}; ['robHeroes','robQuestTracking','robPrestige','robGold','robDiamonds','robCity','robInventory','robShopBonuses','robDiaAttrs'].forEach(function(k){ var v = localStorage.getItem(k); if (v != null) _bk[k] = v; }); localStorage.setItem('robBackupLocal', JSON.stringify({ at: Date.now(), data: _bk })); } catch(e) {}
+    }
+    if (state.lastSeen) { try { localStorage.setItem('robOffLast', String(state.lastSeen)); } catch(e) {} } // Offline-Farm rechnet ab dem letzten Besuch auf irgendeinem Geraet
 
     // -- In localStorage schreiben --
     if (state.heroData && Object.keys(state.heroData).length > 0) localStorage.setItem('robHeroes', JSON.stringify(state.heroData));
@@ -2833,6 +2873,24 @@ async function loadStateFromFirebase() {
 }
 
 setInterval(saveStateToFirebase, 60000);
+
+/* AFK: nach 30 Minuten ohne Eingabe wird gespeichert und das Spiel geht zurueck in die Brain-Pulse-Lobby */
+(function(){
+  var IDLE = 30 * 60 * 1000, last = Date.now(), going = false;
+  function act() { last = Date.now(); }
+  ['pointerdown','keydown','touchstart','wheel','mousemove'].forEach(function(ev){ addEventListener(ev, act, { passive: true, capture: true }); });
+  window.__bpIdleTest = function(ms) { IDLE = ms; };
+  function check() {
+    if (going || !onlineAccount || onlineAccount.isAnonymous) return;
+    if (Date.now() - last < IDLE) return;
+    going = true;
+    try { if (window.__cityStamp) window.__cityStamp(last); } catch(e) {} // Offline-Farm zaehlt ab der letzten Eingabe
+    try { toast('Zu lange nichts gemacht. Dein Stand wurde gespeichert.'); } catch(e) {}
+    goBackBP();
+  }
+  setInterval(check, 20000);
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) setTimeout(check, 300); });
+})();
 
 // Live leaderboard
 db.ref('leaderboard').orderByChild('score').limitToLast(3).on('value', snap => {
@@ -2886,7 +2944,8 @@ async function sendMagicLink() {
 }
 
 async function accountLogout() {
-  await auth.signOut();
+  try { await auth.signOut(); } catch (e) {}
+  goBackBP(); // erst speichern, dann zurueck in die Brain-Pulse-Lobby
 }
 
 async function showLoggedIn(username, email) {
@@ -3318,4 +3377,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-11c';
+;window.__ver=window.__ver||{};window.__ver['game']='11-14a';
