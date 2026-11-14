@@ -604,6 +604,7 @@ function go(v){
   var p=plan(v);
   if(!p.length){msg('Du würfelst '+v+', aber es geht nicht weiter. Würfle nochmal.');busy=false;return}
   updateBtn();
+  try{questTracking.steps=(questTracking.steps||0)+p.length;saveQuestTracking()}catch(e){}
   if(window.runKick)try{runKick(p.length)}catch(e){}
   (function step(i){
     if(i>=p.length)return land();
@@ -2105,7 +2106,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   function gGold(f){var b=window.__kamGm?window.__kamGm():100;return Math.round(b*f)}
   function gList(){return [
     {id:'m',ic:'⏱',t:'Spiele ',n:gPick([20,30,45],0),u:' Minuten',key:'m',f:.6},
-    {id:'s',ic:'🏃',t:'Laufe ',n:gPick([1000,2500,5000],1),u:' Meter',key:'s',f:.6},
+    {id:'s',ic:'🏃',t:'Laufe ',n:gPick([1000,2500,5000],1),u:' Felder',key:'s',f:.6},
     {id:'k',ic:'⚔',t:'Besiege ',n:gPick([100,200,300],2),u:' Monster',key:'k',f:.6}]}
   function gSt(){var inv=null;try{inv=inventory}catch(e){}if(!inv)return null;var g=inv.goals;if(!g||g.day!==gTd()){g=inv.goals={day:gTd(),b:gNow(),c:[],ch:null};try{saveInventory()}catch(e){}}return g}
   function gSave(){try{saveInventory()}catch(e){}}
@@ -2184,7 +2185,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-14p';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-14q';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
