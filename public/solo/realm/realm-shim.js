@@ -34,7 +34,7 @@ Ref.prototype.set=function(v){
   var p=this.path;
   if(window.__bpEpoch==null) return Promise.resolve();
   if(p.indexOf("leaderboard/")===0){ try{ v.ep=window.__bpEpoch; }catch(e){} return api("/api/realm/score",{entry:v}); }
-  if(/\/state$/.test(p)){ try{ v.ep=window.__bpEpoch; }catch(e){} return api("/api/realm/save",{state:v}); }
+  if(/\/state$/.test(p)){ try{ v.ep=window.__bpEpoch; }catch(e){} return api("/api/realm/save",{state:v,final:window.__bpFinal===true}); }
   return Promise.resolve();
 };
 window.db={ ref:function(p){ return new Ref(p); } };
@@ -58,4 +58,4 @@ window.auth={
 };
 window.firebase={ auth:{ GoogleAuthProvider:function(){} } };
 })();
-;window.__ver=window.__ver||{};window.__ver['shim']='11-11c';
+;window.__ver=window.__ver||{};window.__ver['shim']='11-14c';

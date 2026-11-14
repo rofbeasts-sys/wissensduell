@@ -4351,7 +4351,7 @@ function realmEpoch(user) {
   return true;
 }
 function realmSweep() { let n = 0; for (const u of users) if (u && realmEpoch(u)) n++; if (n) { console.log("[Realm] Reset fuer " + n + " Konten (Epoche " + REALM_EPOCH + "), alte Staende gesichert."); saveUsers().catch(() => {}); } return n; }
-function realmSave(token, state) {
+function realmSave(token, state, final) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
   if (!state || typeof state !== "object" || Array.isArray(state)) return { ok: false };
@@ -4361,7 +4361,7 @@ function realmSave(token, state) {
   if (state.ep !== REALM_EPOCH) return { ok: false, stale: true, epoch: REALM_EPOCH };
   user.realm = user.realm || {};
   if (user.realm.state === str) return { ok: true, same: true };
-  if (Date.now() - (user.realm.at || 0) < 3000) return { ok: true, wait: true };
+  if (Date.now() - (user.realm.at || 0) < (final ? 400 : 3000)) return { ok: true, wait: true }; // final = Spiel wird verlassen: sofort annehmen
   if (user.realm.state && Date.now() - (user.realm.prevAt || 0) > 600000) { user.realm.prev = user.realm.state; user.realm.prevAt = Date.now(); } // Notfall-Sicherung des vorherigen Stands, hoechstens alle 10 Minuten
   user.realm.state = str; user.realm.at = Date.now();
   saveUsers().catch(() => {});
@@ -8164,7 +8164,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/tf/board") result = tfBoard(payload.token);
         else if (req.url === "/api/solo/submit") result = await soloSubmit(payload.token, payload.game, payload.val, payload.diff, lang, { win: payload.win, solved: payload.solved });
         else if (req.url === "/api/solo/board") result = soloBoard(payload.token, payload.game, payload.diff);
-        else if (req.url === "/api/realm/save") result = realmSave(payload.token, payload.state);
+        else if (req.url === "/api/realm/save") result = realmSave(payload.token, payload.state, payload.final === true);
         else if (req.url === "/api/realm/load") result = realmLoad(payload.token);
         else if (req.url === "/api/realm/reset") result = realmReset(payload.token);
         else if (req.url === "/api/realm/score") result = realmScore(payload.token, payload.entry);

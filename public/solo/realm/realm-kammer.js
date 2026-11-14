@@ -968,7 +968,7 @@ function chestChips(a){var h='';(a||[]).forEach(function(t){h+='<span class="lc 
 if(typeof QUEST_LIST==='undefined')return;
 function tr(f){return function(){try{return f()||0}catch(e){return 0}}}
 function cityB(){try{return JSON.parse(localStorage.getItem('robCity')||'{}').b||{}}catch(e){return {}}}
-var BL=['mine','dia','smith','house','bank','tower'];
+var BL=['mine','dia','smith','house','bank','tower','arena','camp'];
 function cSum(){var b=cityB(),t=0;BL.forEach(function(x){t+=b[x]||0});return t}
 function cBuilt(){var b=cityB(),t=0;BL.forEach(function(x){if((b[x]||0)>=1)t++});return t}
 function stt(k){return function(){ens();return (inventory.stats&&inventory.stats[k])||0}}
@@ -977,13 +977,13 @@ function perf(r){return function(){return insts().some(function(i){return i.c===
 var dTot=function(){return Object.keys(SD).length};
 var Q=[
  ['ct1','Baue dein erstes Gebäude','🏙️ Stadt',1,tr(function(){return cSum()>=1?1:0})],
- ['ct2','Baue alle 6 Gebäude','🏙️ Stadt',6,tr(cBuilt)],
+ ['ct2','Baue alle 8 Gebäude','🏙️ Stadt',8,tr(cBuilt)],
  ['ct3','Stadt-Gesamtstufe 15','🏙️ Stadt',15,tr(cSum)],
  ['ct4','Stadt-Gesamtstufe 30','🏙️ Stadt',30,tr(cSum)],
  ['ct5','Stadt-Gesamtstufe 60','🏙️ Stadt',60,tr(cSum)],
  ['ct6','Schmiede auf Stufe 5','🏙️ Stadt',5,tr(function(){return cityB().smith})],
  ['ct7','Kaserne auf Stufe 10','🏙️ Stadt',10,tr(function(){return cityB().house})],
- ['ct9','Maximiere deine Stadt','🔒 Geheim',90,tr(cSum),function(){return cBuilt()>=6}],
+ ['ct9','Maximiere deine Stadt','🔒 Geheim',90,tr(cSum),function(){return cBuilt()>=8}],
  ['dw7','Bringe den Stadtwürfel auf Stufe 2','🔒 Geheim',2,tr(cityTier),function(){return OWN.indexOf('city')>=0}],
  ['dw8','Bringe den Stadtwürfel auf Stufe 4','🔒 Geheim',4,tr(cityTier),function(){return OWN.indexOf('city')>=0}],
  ['dw9','Bringe den Stadtwürfel auf Stufe 6','🔒 Geheim',6,tr(cityTier),function(){return OWN.indexOf('city')>=0}],
@@ -1340,7 +1340,7 @@ function ownersOf(i){if(i.cls&&CLSOK[i.cls])return CLSOK[i.cls];if(i.type==='shi
  function st(){var d;try{d=JSON.parse(localStorage.getItem(DK)||'{}')}catch(e){d={}}if(d.d!==today()||d.v!==2){var cl=d.d===today()?d.claimed:0;d={d:today(),v:2,claimed:cl,bought:[],O:gen()};sv(d)}return d}
  function ML(){try{return cityBonus('market')||0}catch(e){return 0}}
  function pr(o){return o.p}
- function gm(){return Math.round(100*Math.pow(15,Math.min(15,ML())/15))}
+ function gm(){return Math.round(100*Math.pow(15,Math.min(15,ML())/15))};window.__kamGm=gm;
  function pay(p){if(meta.gold<p){toast('Zu wenig Münzen ('+p+')');return false}meta.gold-=p;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}try{updateUI()}catch(e){}return true}
  function rw(){var L=Math.min(15,ML()),o={g:gm(),iron:L>=3?(L-2)*5:0,orbs:{},souls:L>=12?L-11:0};if(L>=6)o.orbs.blau=1;if(L>=10)o.orbs.lila=1;if(L>=15)o.orbs.orange=1;return o}
  function rwTxt(o){var t=['💰 '+o.g];if(o.iron)t.push('<img src="items/ore_silver.webp?v=1113" style="height:1.15em;vertical-align:-.25em" alt=""> '+o.iron);for(var k in o.orbs)t.push(ORB[k][2]+' '+o.orbs[k]);if(o.souls)t.push('💜 '+o.souls);return t.join(' · ')}
@@ -2095,15 +2095,47 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     J.forEach(function(j){var rest=(j.end-Date.now())/1000,pc=Math.min(100,Math.max(0,100-rest/((j.end-j.st)/1000)*100));
       h+='<div class="jb"><img src="'+j.ico+'" alt=""><div style="flex:1;min-width:0"><b style="color:'+j.col+'">'+j.name+'</b><div class="bar"><i style="width:'+pc+'%"></i></div><small>'+(rest>0?'⏳ '+fmt(rest):'✅ Fertig')+'</small></div></div>'});
     return h+'<button class="btn btn-wide" style="margin-top:6px;font-size:.66rem" onclick="__pcClose();__kForge()">SCHMIEDE ÖFFNEN</button></div>'}
-  function pGoals(){var h='<div class="pcp"><h4>TAGESZIELE</h4>';
-    try{var d=window.__kamDailyState&&window.__kamDailyState();if(d)h+='<div class="r"><span>Tägliche Belohnung</span><b>'+(d.claimed?'✔ geholt':'bereit')+'</b></div>'}catch(e){}
+  /* ===== Tagesziele (3 pro Tag + 1 Zeit-Challenge), Stand liegt im Inventar -> Cloud ===== */
+  function gToast(t){var d=document.createElement('div');d.className='ktoast';d.innerHTML=t;document.body.appendChild(d);setTimeout(function(){d.remove()},3600)}
+  var CH_N=100,CH_MIN=10;
+  function gTd(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+  function gKills(){var t=0;try{for(var h in heroData)t+=heroData[h].kills||0}catch(e){}return t}
+  function gNow(){var q={};try{q=questTracking||{}}catch(e){}return {k:gKills(),m:q.playMinutes||0,s:q.steps||0}}
+  function gPick(a,off){var t=gTd(),h=0;for(var i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))|0;return a[Math.abs(h+off)%a.length]}
+  function gGold(f){var b=window.__kamGm?window.__kamGm():100;return Math.round(b*f)}
+  function gList(){return [
+    {id:'m',ic:'⏱',t:'Spiele ',n:gPick([20,30,45],0),u:' Minuten',key:'m',f:.6},
+    {id:'s',ic:'🏃',t:'Laufe ',n:gPick([1000,2500,5000],1),u:' Meter',key:'s',f:.6},
+    {id:'k',ic:'⚔',t:'Besiege ',n:gPick([100,200,300],2),u:' Monster',key:'k',f:.6}]}
+  function gSt(){var inv=null;try{inv=inventory}catch(e){}if(!inv)return null;var g=inv.goals;if(!g||g.day!==gTd()){g=inv.goals={day:gTd(),b:gNow(),c:[],ch:null};try{saveInventory()}catch(e){}}return g}
+  function gSave(){try{saveInventory()}catch(e){}}
+  function gPay(f,dia){meta.gold+=gGold(f);if(dia)meta.diamonds=(meta.diamonds||0)+dia;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}try{updateUI()}catch(e){}}
+  window.__goalClaim=function(id){var g=gSt();if(!g||g.c.indexOf(id)>=0)return;var L=gList(),n=gNow();
+    if(id==='c'){if(!g.ch||!g.ch.ok)return;gPay(1.5,2);g.c.push('c');gSave();gToast('🎁 Zeit-Challenge: 💰 '+gGold(1.5)+' · 💎 2');return}
+    var x=L.filter(function(q){return q.id===id})[0];if(!x||n[x.key]-g.b[x.key]<x.n)return;gPay(x.f,0);g.c.push(id);gSave();gToast('🎁 Tagesziel: 💰 '+gGold(x.f))};
+  window.__goalStart=function(){var g=gSt();if(!g||g.ch)return;g.ch={st:Date.now(),end:Date.now()+CH_MIN*60000,k0:gKills(),ok:0,fail:0};gSave();gToast('⏱ Los! '+CH_N+' Monster in '+CH_MIN+' Minuten')};
+  function gBar(txt,v,n,col,right){var p=Math.min(100,Math.round(v/n*100));return '<div style="margin-top:5px"><div class="r" style="border:0;padding:0"><span>'+txt+'</span><b>'+right+'</b></div><div class="bar"><i style="width:'+p+'%;background:'+col+'"></i></div></div>'}
+  function pGoals(){var h='<div class="pcp"><h4>QUESTS</h4>',g=gSt();
+    if(g){var n=gNow(),L=gList();
+      h+='<div style="font-size:.62rem;opacity:.7;margin-top:2px">HEUTE</div>';
+      L.forEach(function(q){var v=Math.min(q.n,Math.max(0,n[q.key]-g.b[q.key])),done=v>=q.n,cl=g.c.indexOf(q.id)>=0;
+        h+=gBar(q.ic+' '+q.t+q.n.toLocaleString('de')+q.u,v,q.n,cl?'#666':'#7ad06a',cl?'✔':v.toLocaleString('de')+'/'+q.n.toLocaleString('de'))+(done&&!cl?'<button class="btn btn-wide" style="margin-top:3px;font-size:.62rem;padding:4px" onclick="__goalClaim(\''+q.id+'\')">🎁 HOLEN · 💰 '+gGold(q.f).toLocaleString('de')+'</button>':'')});
+      var c=g.ch,kc=c?Math.max(0,gKills()-c.k0):0;
+      if(c&&!c.ok&&!c.fail){if(kc>=CH_N){c.ok=1;gSave()}else if(Date.now()>c.end){c.fail=1;gSave()}}
+      h+='<div style="margin-top:8px;border-top:1px solid #6b4a1f55;padding-top:6px"><div class="r" style="border:0;padding:0"><span>⏱ ZEIT-CHALLENGE</span><b>'+(c?(c.ok?'✔ geschafft':c.fail?'✖ Zeit um':fmt((c.end-Date.now())/1000)):'bereit')+'</b></div>'+
+        '<small style="opacity:.8">Besiege '+CH_N+' Monster in '+CH_MIN+' Minuten · 1 Versuch pro Tag</small>'+
+        (c&&!c.fail?gBar('Monster',Math.min(kc,CH_N),CH_N,c.ok?'#ffd24a':'#e0a040',Math.min(kc,CH_N)+'/'+CH_N):'')+
+        (!c?'<button class="btn btn-wide" style="margin-top:4px;font-size:.62rem;padding:4px" onclick="__goalStart()">▶ STARTEN</button>':'')+
+        (c&&c.ok&&g.c.indexOf('c')<0?'<button class="btn btn-wide" style="margin-top:4px;font-size:.62rem;padding:4px" onclick="__goalClaim(\'c\')">🎁 HOLEN · 💰 '+gGold(1.5).toLocaleString('de')+' · 💎 2</button>':'')+'</div>'}
+    h+='<div style="font-size:.62rem;opacity:.7;margin-top:8px">NÄCHSTE QUESTS</div>';
     try{var Q=[];QUEST_LIST.forEach(function(q){if(q.secret&&!q.secret())return;var v=Math.min(q.getValue(questTracking,heroData),q.target);if(v<q.target)Q.push([q,v])});
       Q.sort(function(a,b){return b[1]/b[0].target-a[1]/a[0].target});
       Q.slice(0,3).forEach(function(x){var q=x[0],p=Math.round(x[1]/q.target*100);h+='<div style="margin-top:5px"><div class="r" style="border:0;padding:0"><span>'+q.name+'</span><b>'+x[1].toLocaleString('de')+'/'+q.target.toLocaleString('de')+'</b></div><div class="bar"><i style="width:'+p+'%;background:#7ad06a"></i></div></div>'})}catch(e){}
-    return h+'<button class="btn btn-wide" style="margin-top:4px;font-size:.66rem" onclick="__pcClose();showQuestModal()">ALLE QUESTS</button></div>'}
+    return h+'<button class="btn btn-wide" style="margin-top:6px;font-size:.66rem" onclick="__pcClose();showQuestModal()">ALLE QUESTS</button></div>'}
+  setInterval(function(){var s=$('pcSheet');if(s&&s.classList.contains('on')&&s.dataset.t==='goals'){var b=s.querySelector('.box');if(b){var y=b.scrollTop;b.innerHTML='<button class="x" onclick="__pcClose()">✕</button>'+pGoals();b.scrollTop=y}}},2000);
   function pInv(){var inv=window.inventory||{},ores=inv.ores||{},on=0,k;for(k in ores)on+=ores[k]||0;var orb=0,o2=inv.orbs||{};for(k in o2)orb+=o2[k]||0;var gm=0,g2=inv.gems||{};for(k in g2)gm+=g2[k]||0;
     return '<div class="pcp"><h4>INVENTAR</h4><div class="r"><span><img src="items/ore_silver.webp" style="height:1.2em;vertical-align:-.25em" alt=""> Eisenbarren</span><b>'+(inv.iron||0)+'</b></div><div class="r"><span>⛏ Erze</span><b>'+on+'</b></div><div class="r"><span>🔮 Kugeln</span><b>'+orb+'</b></div><div class="r"><span>💠 Juwelen</span><b>'+gm+'</b></div><div class="r"><span>🛡 Ausrüstung</span><b>'+((inv.items||[]).length)+'</b></div><button class="btn btn-wide" style="margin-top:8px;font-size:.7rem" onclick="__pcClose();__kamOpenP(\'i\',1)">INVENTAR ÖFFNEN</button></div>'}
-  var PN={log:['LOG',function(){return pLog(6)}],inv:['INVENTAR',pInv],forge:['SCHMIEDE',pForge],goals:['ZIELE',pGoals]},ORD=['log','inv','forge','goals'];
+  var PN={log:['LOG',function(){return pLog(6)}],inv:['INVENTAR',pInv],forge:['SCHMIEDE',pForge],goals:['QUESTS',pGoals]},ORD=['log','inv','forge','goals'];
   window.__pcTab=window.__pcTab||'log';
   window.__pcClose=function(){var s=$('pcSheet');if(s)s.classList.remove('on')};
   window.__pcSetTab=function(t){window.__pcTab=t;paint()};
@@ -2152,7 +2184,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-14n';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-14p';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */

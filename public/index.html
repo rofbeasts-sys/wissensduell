@@ -5346,7 +5346,7 @@ function appConfirm(msg, onYes, yesLabel, noLabel, danger){
   appDialog(msg, [{ label: noLabel || L('Abbrechen','Cancel') }, { label: yesLabel || 'OK', cls: danger ? 'dng' : 'pri', fn: onYes }]);
 }
 window.alert = function(msg){ appDialog(msg, [{ label: 'OK', cls: 'pri' }]); };
-function renderApp(html){ document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} try{ zpMarkCards(); }catch(e){} }
+function renderApp(html){ try{ if(window.bpMusicHold) window.bpMusicHold(/src="\/solo\/realm\//.test(html)); }catch(e){} document.getElementById("app").innerHTML = html; try{ applyGameGates(); }catch(e){} try{ zpMarkCards(); }catch(e){} }
 /* ---- Brainups-Muenze (Grafik) ---- */
 let __buId = 0;
 function buPulse(sz, col){ // Brainups-Symbol: Puls-Linie
@@ -17396,10 +17396,15 @@ window.bpDrag = function(el, key){
     tone(freq, t, 3.2, 'triangle', vol * 0.8, delayNode); tone(freq * 2, t, 1.6, 'sine', vol * 0.25, delayNode);
     tone(freq, t, 2.4, 'sine', vol * 0.5, musicGain);
   }
+  let held = false; // Realm of Brain hat eigene Musik: Brain-Pulse-Musik und Knöpfe pausieren, solange das Spiel offen ist
+  window.bpMusicHold = function(h){ h = !!h; if(h === held) return; held = h;
+    try{ ['sfxMusicBtn','sfxBtn'].forEach(id => { const b = document.getElementById(id); if(b) b.style.display = h ? 'none' : ''; }); }catch(e){}
+    if(ctx){ if(h) ctx.suspend().catch(() => {}); else if(musicOn || sfxOn) ctx.resume().catch(() => {}); }
+    if(!h && musicOn && started && !musicTimer) musicTimer = setTimeout(phrase, 1500); };
   let lastIdx = 3;
   function phrase(){
     musicTimer = null;
-    if(!musicOn || !ctx || document.hidden){ if(musicOn) musicTimer = setTimeout(phrase, 4000); return; }
+    if(!musicOn || !ctx || document.hidden || held){ if(musicOn) musicTimer = setTimeout(phrase, 4000); return; }
     const t0 = ctx.currentTime + 0.1; let t = t0;
     if(Math.random() < 0.5) piano(LOW[Math.floor(Math.random() * LOW.length)], t, 0.22);
     const n = 2 + Math.floor(Math.random() * 4);

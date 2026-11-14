@@ -397,7 +397,7 @@ function goBackBP() {
   var go = function() { if (window.parent !== window) { try { parent.postMessage({ bpRealmBack: true }, location.origin); } catch (e) { location.href = '/'; } } else location.href = '/'; };
   var done = false, once = function() { if (done) return; done = true; go(); };
   try { Promise.resolve(window.__bpFlushNow ? window.__bpFlushNow() : 0).then(once, once); } catch (e) { once(); }
-  setTimeout(once, 3500); // Notausgang: auch wenn der Server haengt
+  setTimeout(once, 9000); // Notausgang: auch wenn der Server haengt
 }
 function startGame() {
   try { startGameInner(); } catch (e) {
@@ -564,7 +564,7 @@ function handleAction() {
 
   const steps = Math.floor(Math.random() * 4) + 1;
   log('👣 Du läufst <span style="color:#88aaff">' + steps + ' Meter</span> weiter.');
-  pos += steps; if (window.runKick) runKick(steps);
+  pos += steps; questTracking.steps = (questTracking.steps||0) + steps; if (window.runKick) runKick(steps);
   if (pos >= board.length) {
     meta.round++;
     prestigeData.points = (prestigeData.points || 0) + 1; savePrestige();
@@ -2800,11 +2800,18 @@ async function _bpSaveCore() {
 window.__bpFlushNow = async function() {
   try { if (window.__cityStamp) window.__cityStamp(); } catch(e) {}
   var ok = false;
-  try { ok = await saveStateToFirebase(); } catch(e) {}
-  if (!ok && onlineAccount && _cloudChecked) {
-    await new Promise(function(r){ setTimeout(r, 3200); });
-    try { ok = await saveStateToFirebase(); } catch(e) {}
-  }
+  window.__bpFinal = true; /* Server soll diesen Stand sofort annehmen (nicht erst nach 3 s) */
+  try {
+    for (var i = 0; i < 3 && !ok; i++) {
+      if (_bpSaving) { await new Promise(function(r){ setTimeout(r, 400); }); continue; } /* laeuft gerade ein Auto-Save: kurz warten, dann mit dem neuesten Stand nochmal */
+      try { ok = await saveStateToFirebase(); } catch(e) {}
+      if (!ok && !(onlineAccount && _cloudChecked)) break;
+    }
+    if (!ok && onlineAccount && _cloudChecked) { /* aelterer Server ohne Sofort-Annahme */
+      await new Promise(function(r){ setTimeout(r, 3200); });
+      try { ok = await saveStateToFirebase(); } catch(e) {}
+    }
+  } finally { setTimeout(function(){ window.__bpFinal = false; }, 1500); }
   return ok;
 };
 document.addEventListener('visibilitychange', function() { if (document.hidden) { try { window.__bpFlushNow(); } catch(e) {} } });
@@ -2890,7 +2897,23 @@ setInterval(saveStateToFirebase, 60000);
     goBackBP();
   }
   setInterval(check, 20000);
-  document.addEventListener('visibilitychange', function() { if (!document.hidden) setTimeout(check, 300); });
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) { setTimeout(check, 300); setTimeout(syncCheck, 600); } });
+  /* Anderes Geraet hat inzwischen neuer gespeichert: beim Zurueckkommen den Cloud-Stand laden, damit nichts ueberschrieben wird */
+  var _sync = false;
+  async function syncCheck() {
+    if (_sync || going || !onlineAccount || onlineAccount.isAnonymous || !_cloudChecked || _bpSaving) return;
+    _sync = true;
+    try {
+      var snap = await db.ref('players/' + onlineAccount.uid + '/state').once('value'), cs = snap.val();
+      var ls = parseInt(localStorage.getItem('robStateSavedAt') || '0');
+      if (cs && cs.savedAt && ls > 0 && cs.savedAt > ls) {
+        try { toast('Neuer Stand von deinem anderen Geraet wird geladen ...'); } catch(e) {}
+        try { localStorage.setItem('robForceCloud', '1'); } catch(e) {}
+        setTimeout(function(){ location.reload(); }, 1300);
+      }
+    } catch(e) {}
+    _sync = false;
+  }
 })();
 
 // Live leaderboard
@@ -3378,4 +3401,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-14b';
+;window.__ver=window.__ver||{};window.__ver['game']='11-14e';
