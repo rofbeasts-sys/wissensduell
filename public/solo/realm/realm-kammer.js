@@ -181,6 +181,7 @@ var css=document.createElement('style');css.textContent=
 '#kamProf[data-tab=i] #menuPanel,#kamProf[data-tab=i] #kamQuick,#kamProf[data-tab=i] #kamReset,#kamProf[data-tab=i] #kamReset2{display:none!important}#kamInfoPane,#kamLogPane{display:none}#kamProf[data-tab=p] #kamLogPane{display:block}#kamProf[data-tab=i] #kamInfoPane{display:block}'+
 
 '#kamProf.invonly .tabs button[data-t=p],#kamProf.invonly .tabs button[data-t=m]{display:none}#kamProf.invonly .tabs button[data-t=i]{cursor:default}'+
+'@media (min-width:1000px) and (orientation:landscape){#kamProf.on{align-items:center;padding:10px!important}#kamProf .box{max-width:min(1500px,96vw)!important;height:94vh;max-height:94vh!important;display:flex;flex-direction:column;overflow:hidden!important}#kamProf .box>.tabs{flex:none}#kamProfBody{flex:1;min-height:0;display:flex;flex-direction:column}#kamProf[data-tab=i] #kamInfoPane{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-auto-rows:min-content;gap:10px;flex:1;min-height:0;overflow-y:auto;align-content:start;scrollbar-width:thin}#kamInfoPane>div{margin:0!important}#kamInfoPane>div:nth-child(2){grid-column:1;grid-row:1/span 5}#kamInfoPane>div:nth-child(1),#kamInfoPane>div:nth-child(n+3){grid-column:2}#kamInfoPane div[style*="max-height:380px"]{max-height:none!important}}'+
 '@media (min-width:900px){#kamProf .box{max-width:760px}#kamForge>div{max-width:860px!important}#kamForge{padding:24px!important}#kamForge div[style*="width:48%"]{width:23%!important}}'+
 '#kamProf[data-tab=m] #menuPanel{display:block!important}';
 document.head.appendChild(css);
@@ -2115,7 +2116,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-14e';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-14f';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
