@@ -2709,7 +2709,7 @@ auth.onAuthStateChanged(async user => {
     onlineAccount = { username, email, uid: user.uid, isAnonymous: user.isAnonymous };
     showLoggedIn(username, email || 'Anonym');
     updateOnlineStatus(true);
-    await loadStateFromFirebase();
+    await _loadCloudWithRetry();
     _startGameFromSave(); // Spiel mit Cloud-Daten starten
     saveStateToFirebase();
   } else {
@@ -2726,6 +2726,26 @@ auth.onAuthStateChanged(async user => {
 });
 
 // ===== FIREBASE STATE SYNC =====
+/* Server schlaeft/startet gerade (Render): nicht mit leerem oder altem lokalen Stand loslegen, sondern auf den Cloud-Stand warten (bis ca. 3 Minuten) */
+async function _loadCloudWithRetry() {
+  var t0 = Date.now(), box = null;
+  try {
+    for (var n = 0; ; n++) {
+      window.__bpLoadOk = false;
+      await loadStateFromFirebase();
+      if (window.__bpLoadOk) break;
+      if (Date.now() - t0 > 180000) { try { toast('Cloud nicht erreichbar. Dein Stand wird erst gespeichert, wenn die Verbindung steht.'); } catch(e) {} break; }
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'bpLoadWait';
+        box.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#120a07;color:#f0d9a8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-family:serif;text-align:center;padding:20px';
+        box.innerHTML = '<div style="font-size:1.3rem;letter-spacing:2px">DEIN SPIELSTAND WIRD GELADEN</div><div style="opacity:.8;font-size:.9rem">Der Server wacht gerade auf. Das kann bis zu einer Minute dauern.<br>Bitte nichts schliessen.</div>';
+        document.body.appendChild(box);
+      }
+      await new Promise(function(r){ setTimeout(r, 3000); });
+    }
+  } finally { if (box) box.remove(); }
+}
 window.__cloudState = window.__cloudState || {};
 var _cloudChecked = false;
 function _progScore(o) {
@@ -3401,4 +3421,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-14e';
+;window.__ver=window.__ver||{};window.__ver['game']='11-15a';
