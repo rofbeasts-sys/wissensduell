@@ -1,6 +1,6 @@
 # BRAIN PULSE
 
-Erweiterung des bestehenden Brain-Pulse-Spiels (ehem. "Wissensduell") um einen echten **WLAN-/Internet-
+Erweiterung des bestehenden Brain-Pulse-Spiels (ehem. "Wissensduell") um einen echten **Internet-
 Mehrgeräte-Modus** ("Party-Raum") sowie einen Solo-Modus.
 
 ## 1. Starten
