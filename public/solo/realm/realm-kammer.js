@@ -2134,7 +2134,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
       Q.slice(0,3).forEach(function(x){var q=x[0],p=Math.round(x[1]/q.target*100);h+='<div style="margin-top:5px"><div class="r" style="border:0;padding:0"><span>'+q.name+'</span><b>'+x[1].toLocaleString('de')+'/'+q.target.toLocaleString('de')+'</b></div><div class="bar"><i style="width:'+p+'%;background:#7ad06a"></i></div></div>'})}catch(e){}
     return h+'<button class="btn btn-wide" style="margin-top:6px;font-size:.66rem" onclick="__pcClose();showQuestModal()">ALLE QUESTS</button></div>'}
   setInterval(function(){var s=$('pcSheet');if(s&&s.classList.contains('on')&&s.dataset.t==='goals'){var b=s.querySelector('.box');if(b){var y=b.scrollTop;b.innerHTML='<button class="x" onclick="__pcClose()">✕</button>'+pGoals();b.scrollTop=y}}},2000);
-  function pInv(){var inv=window.inventory||{},ores=inv.ores||{},on=0,k;for(k in ores)on+=ores[k]||0;var orb=0,o2=inv.orbs||{};for(k in o2)orb+=o2[k]||0;var gm=0,g2=inv.gems||{};for(k in g2)gm+=g2[k]||0;
+  function pInv(){var inv={};try{inv=inventory||{}}catch(e){}var ores=inv.ores||{},on=0,k;for(k in ores)on+=ores[k]||0;var orb=0,o2=inv.orbs||{};for(k in o2)orb+=o2[k]||0;var gm=0,g2=inv.gems||{};for(k in g2)gm+=g2[k]||0;
     return '<div class="pcp"><h4>INVENTAR</h4><div class="r"><span><img src="items/ore_silver.webp" style="height:1.2em;vertical-align:-.25em" alt=""> Eisenbarren</span><b>'+(inv.iron||0)+'</b></div><div class="r"><span>⛏ Erze</span><b>'+on+'</b></div><div class="r"><span>🔮 Kugeln</span><b>'+orb+'</b></div><div class="r"><span>💠 Juwelen</span><b>'+gm+'</b></div><div class="r"><span>🛡 Ausrüstung</span><b>'+((inv.items||[]).length)+'</b></div><button class="btn btn-wide" style="margin-top:8px;font-size:.7rem" onclick="__pcClose();__kamOpenP(\'i\',1)">INVENTAR ÖFFNEN</button></div>'}
   var PN={log:['LOG',function(){return pLog(6)}],inv:['INVENTAR',pInv],forge:['SCHMIEDE',pForge],goals:['QUESTS',pGoals]},ORD=['log','inv','forge','goals'];
   window.__pcTab=window.__pcTab||'log';
@@ -2185,7 +2185,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-14q';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-15a';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */

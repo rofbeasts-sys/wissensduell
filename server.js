@@ -3652,6 +3652,60 @@ function coinLedgerScan() {
     }
   }
 }
+/* ===== Realm-Staende einzeln in Upstash (nicht mehr im grossen Kontenblock) =====
+   Der Kontenblock wird bei jedem Speichern komplett nach Upstash geschickt. Mit grossen Spielstaenden (bis 250 KB pro Konto,
+   plus Sicherungskopien) kann er das Anfragelimit sprengen. Dann bleibt der neue Stand nur im Arbeitsspeicher und ist nach
+   jedem Neustart weg. Darum liegt jeder Realm-Stand unter einem eigenen Schluessel; im Block steht nur noch "ext". */
+const UPSTASH_REALM_PREFIX = "brainpulse_realm_";
+const realmPersisted = new WeakMap(); // Konto -> Kennung des zuletzt sicher gespeicherten Stands
+const realmHydrated = new WeakSet();
+let realmFlushTimer = null, realmFlushing = false, realmLastErr = "";
+function realmKey(u) { return UPSTASH_REALM_PREFIX + encodeURIComponent(String(u.username || "").toLowerCase()); }
+function realmSig(u) { const r = u.realm || {}; return [r.at || 0, r.prevAt || 0, r.backup ? (r.backup.at || 1) : 0, r.state ? r.state.length : 0, r.prev ? r.prev.length : 0, r.epoch || 0].join(":"); }
+function realmHeavy(u) { const r = u.realm; return !!(r && (r.state || r.prev || r.backup)); }
+function realmQueue() {
+  if (!USE_UPSTASH) return;
+  for (const u of users) { if (u && realmHeavy(u) && realmPersisted.get(u) !== realmSig(u)) { if (!realmFlushTimer) realmFlushTimer = setTimeout(() => { realmFlushTimer = null; realmFlush().catch(() => {}); }, 1500); break; } }
+}
+async function realmFlush() {
+  if (!USE_UPSTASH || realmFlushing) return;
+  realmFlushing = true;
+  try {
+    for (const u of users.slice()) {
+      if (!u || !realmHeavy(u)) continue;
+      const sig = realmSig(u); if (realmPersisted.get(u) === sig) continue;
+      const r = u.realm, body = JSON.stringify({ state: r.state || null, prev: r.prev || null, prevAt: r.prevAt || 0, backup: r.backup || null });
+      try {
+        const res = await fetch(`${UPSTASH_URL}/set/${realmKey(u)}`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body });
+        if (!res.ok) throw new Error("HTTP " + res.status + " (" + Math.round(body.length / 1024) + " KB)");
+        realmPersisted.set(u, sig); realmHydrated.add(u); realmLastErr = "";
+      } catch (e) { realmLastErr = e.message; console.error("[Realm] Speichern in Upstash fehlgeschlagen fuer " + u.username + ":", e.message); setTimeout(() => realmQueue(), 10000); }
+    }
+  } finally { realmFlushing = false; }
+  try { await saveUsers(); } catch (e) {} // Block neu schreiben, jetzt ohne die ausgelagerten Staende
+}
+async function realmEnsure(token) { // vor jedem Realm-Zugriff: ausgelagerten Stand aus Upstash holen
+  if (!USE_UPSTASH) return true;
+  const u = findUserByToken(token); if (!u || !u.realm || !u.realm.ext || realmHydrated.has(u)) return true;
+  try {
+    const res = await fetch(`${UPSTASH_URL}/get/${realmKey(u)}`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json(); if (!data || !("result" in data)) throw new Error("Unerwartete Antwort");
+    if (data.result) { const d = JSON.parse(data.result); u.realm.state = d.state || null; u.realm.prev = d.prev || null; u.realm.prevAt = d.prevAt || 0; u.realm.backup = d.backup || null; }
+    else console.error("[Realm] Kein Stand unter " + realmKey(u) + " gefunden, obwohl ausgelagert (" + u.username + ")");
+    delete u.realm.ext; realmHydrated.add(u); realmPersisted.set(u, realmSig(u));
+    return true;
+  } catch (e) { console.error("[Realm] Laden aus Upstash fehlgeschlagen fuer " + u.username + ":", e.message); return false; }
+}
+function usersForSave() { // Kontenblock ohne Realm-Staende, die nachweislich einzeln gesichert sind
+  return users.map(u => {
+    if (!u || !u.realm) return u;
+    if (u.realm.ext && !realmHydrated.has(u)) return u; // noch nicht geladen: unveraendert lassen (steht dort schon als ext)
+    if (!realmHeavy(u) || realmPersisted.get(u) !== realmSig(u)) return u;
+    const r = Object.assign({}, u.realm); delete r.state; delete r.prev; delete r.backup; r.ext = 1;
+    return Object.assign({}, u, { realm: r });
+  });
+}
 async function saveUsers() {
   try { coinLedgerScan(); } catch (e) { console.error("Muenz-Verlauf:", e.message); }
   if (!usersLoaded) { console.error("Speichern verweigert: Kontenliste wurde nicht sicher geladen."); return false; }
@@ -3660,9 +3714,10 @@ async function saveUsers() {
       const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" },
-        body: JSON.stringify(users)
+        body: JSON.stringify(usersForSave())
       });
-      if (!res.ok) { console.error("Upstash-Speichern fehlgeschlagen, Status:", res.status); return false; }
+      if (!res.ok) { console.error("Upstash-Speichern fehlgeschlagen, Status:", res.status, "(Block " + Math.round(JSON.stringify(users).length / 1024) + " KB)"); realmQueue(); return false; }
+      realmQueue();
       return true;
     } catch (e) {
       console.error("Konnte Nutzerdaten nicht in Upstash speichern:", e.message);
@@ -8164,10 +8219,10 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/tf/board") result = tfBoard(payload.token);
         else if (req.url === "/api/solo/submit") result = await soloSubmit(payload.token, payload.game, payload.val, payload.diff, lang, { win: payload.win, solved: payload.solved });
         else if (req.url === "/api/solo/board") result = soloBoard(payload.token, payload.game, payload.diff);
-        else if (req.url === "/api/realm/save") result = realmSave(payload.token, payload.state, payload.final === true);
-        else if (req.url === "/api/realm/load") result = realmLoad(payload.token);
-        else if (req.url === "/api/realm/reset") result = realmReset(payload.token);
-        else if (req.url === "/api/realm/score") result = realmScore(payload.token, payload.entry);
+        else if (req.url === "/api/realm/save") result = (await realmEnsure(payload.token)) ? realmSave(payload.token, payload.state, payload.final === true) : { ok: false, unavailable: true };
+        else if (req.url === "/api/realm/load") result = (await realmEnsure(payload.token)) ? realmLoad(payload.token) : { ok: false, unavailable: true };
+        else if (req.url === "/api/realm/reset") result = (await realmEnsure(payload.token)) ? realmReset(payload.token) : { ok: false, unavailable: true };
+        else if (req.url === "/api/realm/score") result = (await realmEnsure(payload.token)) ? realmScore(payload.token, payload.entry) : { ok: false, unavailable: true };
         else if (req.url === "/api/realm/board") result = realmBoard(payload.token, payload.n);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);
@@ -9166,6 +9221,11 @@ wss.on("connection", (ws, req) => {
     Promise.all([loadUsers(), loadConversations()]),
     new Promise(r => setTimeout(r, 12000))
   ]);
+  process.on("SIGTERM", async () => { // Render beendet den Server bei jedem Deploy: vorher alles sichern
+    console.log("SIGTERM: sichere Staende ...");
+    try { await Promise.race([(async () => { await realmFlush(); await saveUsers(); })(), new Promise(r => setTimeout(r, 8000))]); } catch (e) {}
+    process.exit(0);
+  });
   server.listen(PORT, () => {
     const nets = os.networkInterfaces();
     const addresses = [];

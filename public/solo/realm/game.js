@@ -2711,6 +2711,7 @@ auth.onAuthStateChanged(async user => {
     updateOnlineStatus(true);
     await _loadCloudWithRetry();
     _startGameFromSave(); // Spiel mit Cloud-Daten starten
+    try { if (window.__cloudState.retries) log('ℹ️ Spielstand erst nach ' + window.__cloudState.retries + ' Versuchen geladen (' + (window.__cloudState.why || '?') + ')'); } catch(e) {}
     saveStateToFirebase();
   } else {
     onlineAccount = null;
@@ -2733,7 +2734,7 @@ async function _loadCloudWithRetry() {
     for (var n = 0; ; n++) {
       window.__bpLoadOk = false;
       await loadStateFromFirebase();
-      if (window.__bpLoadOk) break;
+      if (window.__bpLoadOk) { if (n > 0) { window.__cloudState.retries = n; window.__cloudState.why = window.__bpLoadErr || ''; } break; }
       if (Date.now() - t0 > 180000) { try { toast('Cloud nicht erreichbar. Dein Stand wird erst gespeichert, wenn die Verbindung steht.'); } catch(e) {} break; }
       if (!box) {
         box = document.createElement('div');
@@ -3421,4 +3422,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-15a';
+;window.__ver=window.__ver||{};window.__ver['game']='11-15b';

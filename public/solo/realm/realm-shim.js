@@ -12,7 +12,7 @@ Ref.prototype.once=function(){
   if(p==="leaderboard") return api("/api/realm/board",{n:n}).then(function(r){ var t=r&&r.ok?r.top.slice().reverse():[]; return snap(t); });
   if(p.indexOf("leaderboard/")===0) return api("/api/realm/board",{n:1}).then(function(r){ return snap(r&&r.ok?r.mine:null); });
   if(/\/state$/.test(p)) return api("/api/realm/load",{}).then(function(r){
-    window.__bpLoadOk=!!(r&&r.ok);
+    window.__bpLoadOk=!!(r&&r.ok); if(!window.__bpLoadOk) window.__bpLoadErr=(r&&(r.error||(r.unavailable?"Server startet gerade":"nicht angemeldet")))||"keine Antwort";
     if(r&&r.ok&&r.epoch!=null){
       window.__bpEpoch=r.epoch;
       /* Reset fuer alle: wurde der Server-Stand zurueckgesetzt, wird auch der lokale Stand dieses Geraets geloescht (einmalig) */
@@ -58,4 +58,4 @@ window.auth={
 };
 window.firebase={ auth:{ GoogleAuthProvider:function(){} } };
 })();
-;window.__ver=window.__ver||{};window.__ver['shim']='11-14c';
+;window.__ver=window.__ver||{};window.__ver['shim']='11-15b';
