@@ -676,7 +676,7 @@ function kRestore(R){
   if(nd.t==='boss'){var below=K.N[key(nd.r-1,CM)];if(!below){for(var kk2 in K.N){var q=K.N[kk2];if(q.r===nd.r-1){below=q;break}}}if(below)K.cur=below}
   place();hud();msg('Willkommen zurück! Du stehst wieder auf deinem Platz.')}
 function saveRun(){try{
-  if(!K||!K.cur||!meta||meta.hp<=0||bossWon){return}
+  if(meta&&meta.hp<=0){localStorage.removeItem(RK);return}if(!K||!K.cur||!meta||bossWon){return}
   var ov=$('overlayMsg');if(ov&&getComputedStyle(ov).display!=='none'){localStorage.removeItem(RK);return}
   var used=[];for(var kk in K.N)if(K.N[kk].used)used.push(kk);
   var R={k:K.k,seed:K.seed,cur:[K.cur.r,K.cur.c],used:used,etage:K.etage,gb:K.gb,dieE:K.dieE,round:meta.round,hp:meta.hp,t:Date.now(),ah:{arc:{hp:AH.arc.hp,max:AH.arc.max},mag:{hp:AH.mag.hp,max:AH.mag.max}}};
@@ -1976,6 +1976,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   window.showDeath=function(){
     try{var G=JSON.parse(localStorage.getItem('robGM')||'null');if(G){localStorage.removeItem('robGM');var ern=Math.max(0,(meta.gold||0)-(G.g||0)),bo=ern*(G.m-1);if(bo>0){meta.gold+=bo;try{localStorage.setItem('robGold',String(meta.gold))}catch(e){}try{log('🪙 Golddieb x'+G.m+': +'+bo+' Gold')}catch(e){}}}}catch(e){}
     document.body.classList.add('kdead');
+    try{localStorage.removeItem(RK);var oi=document.getElementById('overlayIron');if(oi)oi.innerHTML='<img src="items/ore_silver.webp?v=1113" style="height:1.15em;vertical-align:-.25em" alt=""> '+((inventory&&inventory.iron)||0)+' Eisen'}catch(e){}
     var a=arguments;setTimeout(function(){try{oSD&&oSD.apply(window,a)}catch(e){}},1100)};
   var oRS=window.respawn;
   window.respawn=function(){
@@ -2210,7 +2211,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-15b';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-15c';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
