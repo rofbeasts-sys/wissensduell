@@ -858,7 +858,8 @@ function it(uid){ens();var n=inventory.inst[uid];if(!n)return null;var b=base(n.
 function bump(k,n){ens();var t=inventory.stats=inventory.stats||{};t[k]=(t[k]||0)+(n||1)}
 function give(bid,c){ens();bump('found');inventory.seen=inventory.seen||{};inventory.seen[bid]=1;var u='u'+inventory.nid++;inventory.inst[u]={b:bid,c:c,s:0};inventory.items.push(u);try{saveInventory()}catch(e){}return it(u)}
 function mul(i){return CM[i.c]*(1+.15*i.s)}
-function st(i){var m=mul(i);return{atk:Math.round((i.atk||0)*m),hp:Math.round((i.hp||0)*m)}}
+function st(i){var m=mul(i),f=gemFlat(i.id);return{atk:Math.round((i.atk||0)*m)+f.a,hp:Math.round((i.hp||0)*m)+f.h}}
+function gemFlat(uid){var a=0,h=0;try{var n=uid&&inventory.inst&&inventory.inst[uid];if(n&&n.gm){n.gm.forEach(function(k){if(!k)return;if(k[0]==='r')a+=GV.r[+k[1]-1];else if(k[0]==='g')h+=GV.g[+k[1]-1]})}}catch(e){}return{a:a,h:h}}
 function fxv(i){return i.fx?i.fx.v*CM[i.c]*(1+.07*i.s):0}
 function stars(i){return '★'.repeat(i.s)+'☆'.repeat(3-i.s)}
 function descOf(i){var d;if(i.fx){var f=FXD.filter(function(x){return x[0]===i.fx.k})[0],v=Math.round(fxv(i)*10)/10;
@@ -1432,7 +1433,7 @@ function render(){
  '.hst{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:6px;align-items:center;justify-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 12px 22px;overflow:hidden;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:16px}.hs{width:54px;height:54px;box-sizing:border-box;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important;width:40px!important;height:40px!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
  '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
  '<div class="hts">'+tabs+'</div>'+posbar()+'<div class="hst"><div class="hc">'+g(s.slice(0,5))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b><div style="margin-top:18px">'+g(s.slice(9))+'</div></div><div class="hc">'+g(s.slice(5,9))+'</div></div>';
- var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">'+(sel==='hero'?'Ben: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' Leben</b> | <b style="color:#ffaa44">'+meta.attack+' Angriff</b>':NN[sel]+': <b style="color:#ff6644">'+window.__kamAMax(sel)+' Leben</b> | <b style="color:#ffd24a">'+allyDmg(sel)+' Schaden</b>')+' <button class="btn btn-sm" style="font-size:.58rem;padding:2px 8px;margin-left:6px" onclick="__kamUnAll()">ALLES ABLEGEN</button> | <img src="items/ore_silver.webp?v=1113" style="height:1.15em;vertical-align:-.25em" alt=""> '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
+ var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">'+(sel==='hero'?'Ben: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' Leben</b> | <b style="color:#ffaa44">'+meta.attack+' Angriff</b>':NN[sel]+': <b style="color:#ff6644">'+window.__kamAMax(sel)+' Leben</b> | <b style="color:#ffd24a">'+allyDmg(sel)+' Schaden</b>')+' <button class="btn btn-sm" style="font-size:.58rem;padding:2px 8px;margin-left:6px" onclick="__kamUnAll()">ALLES ABLEGEN</button>'+(function(){var r=window.__kamGemSum(sel,'r'),g=window.__kamGemSum(sel,'g'),bb=window.__kamGemSum(sel,'b'),y=window.__kamGemSum(sel,'y');if(!(r||g||bb||y))return '';return '<div style="margin-top:4px">💎 Juwelen gesamt: '+(r?'<b style="color:#e53935">+'+r+' Angriff</b> · ':'')+(g?'<b style="color:#43a047">+'+g+' Leben</b> · ':'')+(bb?'<b style="color:#1e88e5">'+bb+' % weniger Schaden</b> · ':'')+(y?'<b style="color:#fdd835">'+y+' % Ausweichen</b>':'')+'<br><span style="opacity:.7">Angriff und Leben stecken schon in den Werten oben.</span></div>'})()+'</div><div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:0 0 8px"><img src="items/ore_silver.webp?v=1113" style="height:1.15em;vertical-align:-.25em" alt=""> '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
  var SRT=sorted(),OWNR={bow:'arc',staff:'mag',quiver:'arc',book:'mag',shield:'hero',club:'brutus',axe:'jeffrey',spear:'jamal',potion:'berta',fist:'luna'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
   h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?(ownersOf(i)?'🔒 nur für '+ownersOf(i).filter(function(z){return NM[z]}).map(function(z){return NM[z]}).join(', '):'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Heldenlevel '+NEED[OWNR[i.type]||'hero']+')':'')):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+(w?' <span onclick="event.stopPropagation();__kamLk(\''+i.id+'\')" style="font-size:.75rem;margin-left:4px">'+(inventory.lock&&inventory.lock[i.id]?'🔒':'🔓')+'</span>':'')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
@@ -1580,7 +1581,7 @@ function sideD(t,d){if(!t||t.hp<=1||d<1)return;t.hp=Math.max(1,t.hp-Math.round(d
 function healAbs(w,a){a=Math.max(1,Math.round(a));try{if(w==='hero'){if(meta.hp>0){meta.hp=Math.min(meta.maxHp,meta.hp+a);fl('+'+a+' ❤','#6fe08a')}}else if(AH[w]&&AH[w].hp>0)AH[w].hp=Math.min(AH[w].max,AH[w].hp+a)}catch(e){}}
 var WC={};
 function offIds(w){var g=gear(w)||{},r=[];[g[WSK[w]],g.hand,g.book].forEach(function(u){if(u)r.push(u)});return r}
-function strikeFx(w,d0){var ids=offIds(w),gR=gemSum(w,'r');if(!ids.length&&!gR)return 0;var tg=monstersInFight||[],m=tg[0];if(!m)return 0;
+function strikeFx(w,d0){var ids=offIds(w),gR=0;if(!ids.length&&!gR)return 0;var tg=monstersInFight||[],m=tg[0];if(!m)return 0;
  var L=[],sps=[],wt='weapon';ids.forEach(function(u){var F=wfx(u);if(!F)return;if((gear(w)||{})[WSK[w]]===u)wt=F.t;F.L.forEach(function(f){L.push(f)});if(F.sp)sps.push(F.sp)});
  var ex=0,all=wt==='staff',T=all?tg:[m],rest=tg.slice(1);WC[w]=(WC[w]||0)+1;var c=WC[w];
  L.forEach(function(f){var v=f.v,x=v/100;
@@ -1633,19 +1634,19 @@ window.__kamArmHit=function(w,dmg,m){try{var A=armOf(w),gP=gemSum(w,'b'),gD=gemS
  if(sp.will){var mx=w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||1,cur=w==='hero'?meta.hp:(AH[w]&&AH[w].hp)||0;if(cur<mx*.3)d*=.75}
  var th=A.thorn+(sp.dorn?15:0);if(th>0&&m)sideD(m,d*th/100);
  return Math.max(1,Math.round(d))}catch(e){return dmg}};
-function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var A=armOf(w)||{rheal:0,gheal:0,sp:{}};var p=Math.min(A.rheal,15)/10+(A.sp.quell?3:0)+gemSum(w,'g');if(p>0)healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*p/100);GH+=Math.min(A.gheal,15)/10+(A.sp.bheil?3:0)}catch(e){}});
+function armRound(){var GH=0;['hero','arc','mag'].forEach(function(w){try{if(!aliveA(w))return;var A=armOf(w)||{rheal:0,gheal:0,sp:{}};var p=Math.min(A.rheal,15)/10+(A.sp.quell?3:0);if(p>0)healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*p/100);GH+=Math.min(A.gheal,15)/10+(A.sp.bheil?3:0)}catch(e){}});
  if(GH>0)['hero','arc','mag'].forEach(function(w){try{if(aliveA(w))healAbs(w,(w==='hero'?meta.maxHp:(AH[w]&&AH[w].max)||50)*GH/100)}catch(e){}})}
 
 /* ---- Juwelen: Sockel statt Zufalls-Fähigkeiten ---- */
 var GC={r:['Rubin','Angriff','#e53935','🔴'],g:['Smaragd','Leben','#43a047','🟢'],b:['Saphir','Schutz','#1e88e5','🔵'],y:['Topas','Ausweichen','#fdd835','🟡']},
- GV={r:[2,4,7,11,16],g:[.2,.4,.7,1.1,1.6],b:[2,3,5,8,12],y:[2,3,5,7,10]},GCAP={r:150,g:8,b:60,y:40},GTN=['Rau','Geschliffen','Fein','Prächtig','Makellos'],
+ GV={r:[2,4,7,11,16],g:[10,20,35,55,80],b:[2,3,5,8,12],y:[2,3,5,7,10]},GCAP={r:99999,g:99999,b:60,y:40},GTN=['Rau','Geschliffen','Fein','Prächtig','Makellos'],
  GSN={gruen:1,blau:2,episch:3,legendaer:4,mystisch:4};
 function gemEns(){ens();inventory.gems=inventory.gems||{}}
 function sockN(i){return GSN[i.rarity]||0}
 function gmOf(uid){var n=inventory.inst&&inventory.inst[uid];if(!n)return [];var b=base(n.b);if(!b||SOCK.indexOf(b.type)<0)return [];var c=GSN[b.rarity]||0;if(!n.gm)n.gm=[];while(n.gm.length<c)n.gm.push(0);return n.gm}
 function gv(k){return GV[k[0]][+k[1]-1]}
-function gemSum(w,c){var g=gear(w)||{},s=0;try{for(var t in g){var u=g[t];if(!u)continue;gmOf(u).forEach(function(k){if(k&&k[0]===c)s+=gv(k)})}}catch(e){}return Math.min(GCAP[c],s)}
-function gemTxt(k){var c=GC[k[0]],v=gv(k);return k[0]==='r'?'+'+v+'% Schaden':k[0]==='g'?'Heilt '+v+'% Leben pro Runde':k[0]==='b'?v+'% weniger Schaden':v+'% Ausweichen'}
+window.__kamGemSum=function(w,c){return gemSum(w,c)};function gemSum(w,c){var g=gear(w)||{},s=0;try{for(var t in g){var u=g[t];if(!u)continue;gmOf(u).forEach(function(k){if(k&&k[0]===c)s+=gv(k)})}}catch(e){}return Math.min(GCAP[c],s)}
+function gemTxt(k){var c=GC[k[0]],v=gv(k);return k[0]==='r'?'+'+v+' Angriff':k[0]==='g'?'+'+v+' Leben':k[0]==='b'?v+'% weniger Schaden':v+'% Ausweichen'}
 function gemDot(k,sz){sz=sz||26;if(!k)return '<span style="display:inline-block;width:'+sz+'px;height:'+sz+'px;border-radius:50%;border:2px dashed #6a5a3a;box-sizing:border-box;vertical-align:middle"></span>';return '<span style="display:inline-block;position:relative;width:'+sz+'px;height:'+sz+'px;vertical-align:middle"><img src="items/gem_'+k+'.webp" alt="" style="width:100%;height:100%;object-fit:contain;mix-blend-mode:screen">'+(sz>=22?'<b style="position:absolute;right:-2px;bottom:-2px;min-width:'+Math.round(sz*.38)+'px;height:'+Math.round(sz*.38)+'px;line-height:'+Math.round(sz*.38)+'px;border-radius:50%;background:#000c;color:#ffe9a0;font:700 '+Math.round(sz*.28)+'px Georgia;text-align:center">'+k[1]+'</b>':'')+'</span>'}
 function gemName(k){return GTN[+k[1]-1]+'er '+GC[k[0]][0]}
 window.__gemGive=function(c,t,n){gemEns();c=c||'rgby'[Math.floor(Math.random()*4)];var k=c+t;inventory.gems[k]=(inventory.gems[k]||0)+(n||1);try{saveInventory()}catch(e){}return ' +'+gemDot(k,16)+' '+GC[c][1]};
@@ -1666,8 +1667,8 @@ function gemHtml(uid,info){var i=it(uid),n=sockN(i);if(!n)return '<div style="fo
   ks.forEach(function(k){h+='<div onclick="__gemIns(\''+uid+'\','+GP.j+',\''+k+'\')" style="display:flex;gap:8px;align-items:center;padding:5px;cursor:pointer;border-bottom:1px solid #ffffff14">'+gemDot(k,34)+'<span style="font-size:.68rem;flex:1">'+gemName(k)+' ×'+inventory.gems[k]+'<br><span style="opacity:.7">'+gemTxt(k)+'</span></span></div>'});h+='</div>'}
  else h+='<div style="font-size:.6rem;color:#a08060;text-align:center;margin-top:4px">Tippe auf einen Sockel, um ein Juwel einzusetzen oder zurückzunehmen.</div>';
  return h}
-window.__gemSock=function(uid,j){var g=gmOf(uid);if(g[j]){gemEns();inventory.gems[g[j]]=(inventory.gems[g[j]]||0)+1;g[j]=0;GP=null;try{saveInventory()}catch(e){}}else GP={uid:uid,j:j};window.__kamInfo(uid)};
-window.__gemIns=function(uid,j,k){gemEns();var g=gmOf(uid);if(!inventory.gems[k]||g[j])return;inventory.gems[k]--;g[j]=k;GP=null;try{saveInventory()}catch(e){}window.__kamInfo(uid)};
+window.__gemSock=function(uid,j){var g=gmOf(uid);if(g[j]){gemEns();restat(uid,function(){inventory.gems[g[j]]=(inventory.gems[g[j]]||0)+1;g[j]=0});GP=null;try{saveInventory()}catch(e){}}else GP={uid:uid,j:j};window.__kamInfo(uid)};
+window.__gemIns=function(uid,j,k){gemEns();var g=gmOf(uid);if(!inventory.gems[k]||g[j])return;restat(uid,function(){inventory.gems[k]--;g[j]=k});GP=null;try{saveInventory()}catch(e){}window.__kamInfo(uid)};
 function gemCh(t){return Math.min(98,[90,75,60,45][t-1]+smithLv()*2)}
 function gemForge(){var h='<div style="text-align:center;font-size:.75rem;margin-bottom:8px">💰 Gold: <b>'+(meta?meta.gold:0)+'</b></div><div style="font-size:.7rem;color:#c8a070;line-height:1.5;margin-bottom:8px">Rot = Angriff · Grün = Leben (Heilung) · Blau = Schutz · Gelb = Ausweichen.<br>Verschmelzen: 3 gleiche Juwelen werden 1 Juwel der nächsten Stufe. <b style="color:#ff9a8a">Es kann fehlschlagen, dann sind die 3 Juwelen kaputt und weg.</b> Umwandeln: gleiche Stufe, andere Farbe.</div>';gemEns();
  var ks=Object.keys(inventory.gems).filter(function(x){return inventory.gems[x]>0}).sort();
@@ -1885,7 +1886,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
   if(!B){B=document.createElement('div');B.id='kamBig';B.innerHTML='<i></i><b></b>';w.appendChild(B)}
   B.style.display='block';B.firstChild.style.width=Math.max(0,Math.min(100,bossM.hp/bossM.maxHp*100))+'%';
   var nm='';try{nm=bossM.isWorldBoss?('BOSS '+bossM.bossNum):(MONSTER_NAMES[bossM.type]||'BOSS')}catch(e){nm='BOSS'}B.lastChild.textContent=nm+'  '+Math.max(0,Math.round(bossM.hp))+' / '+bossM.maxHp}
- setInterval(function(){
+ setInterval(function(){try{if(meta&&meta.name&&inventory&&inventory.equipped&&document.getElementById('kam')){inventory.ms=inventory.ms||{};if(!inventory.ms.gf2){inventory.ms.gf2=1;var ta=0,th=0;Object.keys(inventory.equipped).forEach(function(t){var q=gemFlat(inventory.equipped[t]);ta+=q.a;th+=q.h});if(ta||th){meta.attack+=ta;meta.maxHp+=th;meta.hp=Math.min(meta.maxHp,meta.hp+th)}saveInventory();try{updateUI()}catch(e){}}}}catch(e){}
   var f=false;try{f=!!(inFight&&meta&&document.getElementById('kam'))}catch(e){}
   if(f){aInit();var hd=meta.hp<=0&&window.__kamTeamUp();document.body.classList.toggle('khd',hd);
    var ids=['hero'].concat(allyList().map(function(a){return a.id}));
@@ -2212,7 +2213,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-15e';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-15g';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
