@@ -1676,8 +1676,8 @@ function gemForge(){var h='<div style="text-align:center;font-size:.75rem;margin
   (t<5?'<button class="btn btn-sm" '+(cnt>=3&&meta&&meta.gold>=mc?'':'disabled ')+'onclick="__gemMerge(\''+k+'\')" style="font-size:.6rem">3→1 Stufe '+(t+1)+' · '+gemCh(t)+'% · '+mc+'💰</button>':'<span style="font-size:.6rem;color:#ff9800">MAX</span>')+
   'rgby'.split('').filter(function(c){return c!==k[0]}).map(function(c){return '<button class="btn btn-sm" '+(meta&&meta.gold>=cc?'':'disabled ')+'onclick="__gemConv(\''+k+'\',\''+c+'\')" style="font-size:.6rem">→'+GC[c][3]+' '+cc+'💰</button>'}).join('')+'</div></div>'});
  return h}
-window.__gemMerge=function(k){gemEns();var t=+k[1],mc=150*t;if(t>=5||(inventory.gems[k]||0)<3||!meta||meta.gold<mc)return;meta.gold-=mc;inventory.gems[k]-=3;var n=k[0]+(t+1);if(Math.random()*100<gemCh(t)){inventory.gems[n]=(inventory.gems[n]||0)+1;FS.msg='💎 Gelungen! '+gemName(n)}else FS.msg='💥 Fehlgeschlagen. Die 3 Juwelen sind kaputt.';try{saveInventory();updateUI()}catch(e){}forgeUI()};
-window.__gemConv=function(k,c){gemEns();var t=+k[1],cc=80*t;if((inventory.gems[k]||0)<1||!meta||meta.gold<cc)return;meta.gold-=cc;inventory.gems[k]--;var n=c+t;inventory.gems[n]=(inventory.gems[n]||0)+1;FS.msg='💎 Umgewandelt zu '+gemName(n);try{saveInventory();updateUI()}catch(e){}forgeUI()};
+window.__gemMerge=function(k){gemEns();var t=+k[1],mc=150*t;if(t>=5||(inventory.gems[k]||0)<3||!meta||meta.gold<mc)return;if(!jobRoom())return;meta.gold-=mc;inventory.gems[k]-=3;jobStart({y:'gm',k:k},FTG[t-1]||60,'Juwelen verschmelzen: '+gemName(k))};
+window.__gemConv=function(k,c){gemEns();var t=+k[1],cc=80*t;if((inventory.gems[k]||0)<1||!meta||meta.gold<cc)return;if(!jobRoom())return;meta.gold-=cc;inventory.gems[k]--;var n=c+t;jobStart({y:'gc',k:k,to:n},Math.max(60,Math.round((FTG[t-1]||60)/2)),'Juwel umwandeln: '+gemName(k))};
 window.__kamInfo=function(uid){var i=it(uid);if(!i)return;var M=document.getElementById('kamInfo');
  if(!M){M=document.createElement('div');M.id='kamInfo';M.style.cssText='position:fixed;inset:0;z-index:100002;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px';M.onclick=function(e){if(e.target===M)M.style.display='none'};document.body.appendChild(M)}
  var col=RARITY_COLOR[i.rarity],q=st(i);
@@ -1706,6 +1706,7 @@ function forgeUI(){
  if(FS.msg)h+='<div style="text-align:center;font-size:.8rem;padding:8px;margin-bottom:8px;border:1px solid #7a4a1a;border-radius:8px;background:#0006">'+FS.msg+'</div>';
  var cur=FS.mode||'star',md=cur==='eff';
  h+='<div style="display:flex;gap:6px;margin-bottom:10px">'+[['star','⚒️ Schmelzen'],['craft','🔨 Herstellen'],['eff','💎 Juwelen']].map(function(a){var on=a[0]===cur;return '<div onclick="__kamEM(\''+a[0]+'\')" style="flex:1;text-align:center;padding:7px;border-radius:10px;font-size:.75rem;cursor:pointer;border:2px solid '+(on?'#f0c040':'#7a4a1a')+';color:'+(on?'#000':'#ffe9c4')+';background:'+(on?'#f0c040':'#0006')+'">'+a[1]+'</div>'}).join('')+'</div>';
+ if(cur!=='craft')h+=jobsUI();
  if(cur==='craft'){h+=craftUI();h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
  if(md&&smithLv()<EFLV){h+='<div style="text-align:center;font-size:.8rem;line-height:1.6;padding:16px 8px">🔒 <b style="color:#f0c040">Juwelen-Schmiede</b><br>Hier verschmilzt und wandelst du Juwelen um.<br>Frei ab <b>Schmiede-Stufe '+EFLV+'</b> (dann kannst du auch Blau schmieden).<br>Du hast Stufe '+smithLv()+'. Baue die Schmiede in der Stadt aus.</div><button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
  if(md){h+=gemForge();h+='<button class="btn btn-wide" onclick="document.getElementById(\'kamForge\').style.display=\'none\'" style="width:100%;margin-top:10px">← ZURÜCK</button></div>';M.innerHTML=h;M.style.display='flex';return}
@@ -1718,7 +1719,7 @@ function forgeUI(){
    if(F){h+=card(F,'','__kamFF(null)',true)}else if(!cands.length)h+='<div style="font-size:.7rem;color:#a08060;padding:8px">Du brauchst ein zweites gleiches Item mit gleich vielen Sternen (nicht angelegt).</div>';
    else cands.forEach(function(x){h+=card(x,'','__kamFF(\''+x.id+'\')',false)})}
   if(F&&B.s<3){var cr=condResult(B,F),ok=(inventory.iron||0)>=cost(B);
-   h+='<div style="font-size:.75rem;margin:10px 0;line-height:1.5;text-align:center">Erfolg: <b>'+chance(B)+'%</b> (Schmiede +'+smithLv()*2+'%)<br>Kosten: <img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> '+cost(B)+'<br>'+(cr.perf?'Perfekt-Chance: <b style="color:#ffd24a">'+cr.perf+'%</b>':'Zustand wird '+CN[cr.base])+'<br><span style="color:#ff9a8a">Bei Fehlschlag geht das Futter verloren.</span></div>'+
+   h+='<div style="font-size:.75rem;margin:10px 0;line-height:1.5;text-align:center">Erfolg: <b>'+chance(B)+'%</b> (Schmiede +'+smithLv()*2+'%)<br>Kosten: <img src="items/ore_silver.webp" style="height:1.15em;vertical-align:-.25em" alt=""> '+cost(B)+' · Dauer: '+fmtT(FT[B.rarity]||60)+'<br>'+(cr.perf?'Perfekt-Chance: <b style="color:#ffd24a">'+cr.perf+'%</b>':'Zustand wird '+CN[cr.base])+'<br><span style="color:#ff9a8a">Bei Fehlschlag geht das Futter verloren.</span></div>'+
    '<button class="btn btn-wide" '+(ok?'':'disabled ')+'onclick="__kamDoForge()" style="width:100%">'+(ok?'⚒️ SCHMELZEN':'Zu wenig Eisenbarren')+'</button>'}
   if(B.s>=3){var nb=nextBase(B),oc=orbFor(B);
    h+='<div style="font-size:.75rem;margin:10px 0;text-align:center;line-height:1.5">★★★ Voll ausgebaut.<br>'+(nb?'Aufwerten zu <b style="color:'+RARITY_COLOR[nb.rarity]+'">'+nb.name+'</b> mit '+ORB[oc][2]+' '+ORB[oc][1]+' (du hast '+(inventory.orbs[oc]||0)+')':(B.rarity==='normal'?'Normale Items kannst du nur durch Schmelzen verbessern.':'Höher geht es nicht.'))+'</div>'+
@@ -1755,20 +1756,20 @@ window.__kamCraft=function(id){ens();var x=ITEMS.find(function(y){return y.id===
  else{if((inventory.iron||0)<rc.iron)return;inventory.iron-=rc.iron}
  var d=(FT[x.rarity]||60)*1000,n=Date.now();fjobs().push({id:x.id,st:n,end:n+d});
  FS.msg='🔨 Auftrag gestartet: <b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> · fertig in '+fmtT(d/1000);try{window.__kamLogR('Schmiede gestartet: '+x.name+' ('+fmtT(d/1000)+')')}catch(e){}saveInventory();forgeUI()};
-window.__kamCollect=function(i){var j=fjobs()[i];if(!j||Date.now()<j.end)return;var x=ITEMS.find(function(y){return y.id===j.id});fjobs().splice(i,1);if(!x){saveInventory();forgeUI();return}
+window.__kamCollect=function(i){var j=fjobs()[i];if(!j||Date.now()<j.end)return;if(j.y){fjobs().splice(i,1);var rs=jobDone(j);FS.msg=rs;try{window.__kamLogR(rs.replace(/<[^>]+>/g,''))}catch(e){}saveInventory();try{updateUI()}catch(e){}forgeUI();try{window.__kamInfoTab()}catch(e){}return}var x=ITEMS.find(function(y){return y.id===j.id});fjobs().splice(i,1);if(!x){saveInventory();forgeUI();return}
  var c=Math.floor(Math.random()*3);give(x.id,c);bump('crafted');if(c===2)bump('craftPerf');
  FS.msg='🔨 Hergestellt: <b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b> · <b style="color:'+CC[c]+'">'+CN[c]+'</b>';try{window.__kamLogR('Geschmiedet: '+x.name+' ('+CN[c]+')')}catch(e){}saveInventory();forgeUI();try{window.__kamInfoTab()}catch(e){}};
 window.__kamSpeed=function(i){var j=fjobs()[i];if(!j)return;var rest=(j.end-Date.now())/1000;if(rest<=0)return;var c=Math.max(1,Math.ceil(rest/600));if(!meta||(meta.diamonds||0)<c){FS.msg='Zu wenig Diamanten ('+c+' nötig).';forgeUI();return}
  meta.diamonds-=c;try{if(typeof globalDiamonds!=='undefined'){globalDiamonds-=c;saveDiamonds(globalDiamonds)}else localStorage.setItem('robDiamonds',String(meta.diamonds))}catch(e){}j.end=Date.now();saveInventory();try{updateUI()}catch(e){}forgeUI()};
 function jobsUI(){var J=fjobs(),h='<div id="kamFJ" style="border:2px solid #7a4a1a;border-radius:10px;padding:8px;margin-bottom:10px;background:#1a0d06"><div style="color:#ffd24a;font-weight:800;font-size:.75rem;margin-bottom:4px">⚒️ SCHMIEDE-AUFTRÄGE ('+J.length+'/'+FSLOTS+')</div>';
  if(!J.length)h+='<small style="opacity:.7">Kein Auftrag läuft. Starte unten ein Herstellen, es dauert je nach Seltenheit von 1 Minute bis 6 Stunden und läuft auch weiter, wenn du das Spiel schließt.</small>';
- J.forEach(function(j,i){var x=ITEMS.find(function(y){return y.id===j.id})||{name:j.id,rarity:'normal'},rest=(j.end-Date.now())/1000,tot=(j.end-j.st)/1000,pc=Math.min(100,Math.max(0,100-rest/tot*100));
-  h+='<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><img src="'+ico(x.id)+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.66rem"><b style="color:'+RARITY_COLOR[x.rarity]+'">'+x.name+'</b><div style="height:6px;background:#222;border-radius:3px;margin:3px 0;overflow:hidden"><i data-bar="'+i+'" style="display:block;height:100%;width:'+pc+'%;background:#ffb020"></i></div><span data-end="'+j.end+'" data-st="'+j.st+'" data-i="'+i+'">'+(rest>0?'⏳ '+fmtT(rest):'✅ Fertig')+'</span></div>'
+ J.forEach(function(j,i){var x=jobInfo(j),rest=(j.end-Date.now())/1000,tot=(j.end-j.st)/1000,pc=Math.min(100,Math.max(0,100-rest/tot*100));
+  h+='<div style="display:flex;align-items:center;gap:8px;margin:5px 0"><img src="'+x.ico+'" style="width:34px;height:34px;object-fit:contain"><div style="flex:1;font-size:.66rem"><b style="color:'+x.col+'">'+x.name+'</b><div style="height:6px;background:#222;border-radius:3px;margin:3px 0;overflow:hidden"><i data-bar="'+i+'" style="display:block;height:100%;width:'+pc+'%;background:#ffb020"></i></div><span data-end="'+j.end+'" data-st="'+j.st+'" data-i="'+i+'">'+(rest>0?'⏳ '+fmtT(rest):'✅ Fertig')+'</span></div>'
   +(rest>0?'<button class="btn btn-sm" style="font-size:.58rem;padding:3px 6px" onclick="__kamSpeed('+i+')">⚡ '+Math.max(1,Math.ceil(rest/600))+'💎</button>':'<button class="btn btn-sm" onclick="__kamCollect('+i+')">ABHOLEN</button>')+'</div>'});
  return h+'</div>'}
 function jobTick(){var els=document.querySelectorAll('#kamFJ [data-end]');if(!els.length){return}var fin=false;els.forEach(function(e){var rest=(+e.dataset.end-Date.now())/1000;if(rest<=0){if(e.textContent.indexOf('Fertig')<0)fin=true}else{e.textContent='⏳ '+fmtT(rest);var bar=document.querySelector('#kamFJ [data-bar="'+e.dataset.i+'"]');if(bar)bar.style.width=Math.min(100,100-rest/((+e.dataset.end-+e.dataset.st)/1000)*100)+'%'}});if(fin)forgeUI()}
 setInterval(jobTick,1000);
-window.__kamJobs=function(){return fjobs().map(function(j){var x=ITEMS.find(function(y){return y.id===j.id})||{name:j.id,rarity:'normal'};return {id:j.id,name:x.name,col:RARITY_COLOR[x.rarity],ico:ico(x.id),st:j.st,end:j.end}})};
+window.__kamJobs=function(){return fjobs().map(function(j){var x=jobInfo(j);return {id:j.id||j.u||j.k,name:x.name,col:x.col,ico:x.ico,st:j.st,end:j.end}})};
 window.__kamEM=function(m){FS.mode=m;FS.msg='';forgeUI()};
 window.__kamEB=function(u){FS.eb=u;FS.msg='';forgeUI()};
 window.__kamEL=function(j){var n=efOf(FS.eb);if(!n||smithLv()<EFLV)return;n.k[j]=n.k[j]?0:1;saveInventory();forgeUI()};
@@ -1779,16 +1780,29 @@ window.__kamEU=function(j){var n=efOf(FS.eb);if(smithLv()<EFLV||!n||!n.e[j]||n.e
 window.__kForge=function(){FS={b:null,f:null,msg:'',mode:FS.mode,eb:null};forgeUI()};
 window.__kamFB=function(u){FS.b=u;FS.f=null;FS.msg='';forgeUI()};
 window.__kamFF=function(u){FS.f=u;forgeUI()};
-window.__kamDoForge=function(){var B=it(FS.b),F=it(FS.f);if(!B||!F||B.s>=3||(inventory.iron||0)<cost(B))return;
- inventory.iron-=cost(B);var ok=Math.random()*100<chance(B),cr=condResult(B,F);
- delete inventory.inst[F.id];inventory.items.splice(inventory.items.indexOf(F.id),1);FS.f=null;
- if(ok){bump('forged');restat(B.id,function(){var n=inventory.inst[B.id];n.s++;n.c=cr.perf?(Math.random()*100<cr.perf?2:1):cr.base});
-  var nb=it(B.id);FS.msg='✨ Gelungen! <b style="color:'+CC[nb.c]+'">'+CN[nb.c]+'</b> '+stars(nb)}
- else FS.msg='💥 Fehlgeschlagen. Das Futter ist weg.';
- saveInventory();forgeUI()};
-window.__kamDoUp=function(){var B=it(FS.b);if(!B||B.s<3)return;var nb=nextBase(B),oc=orbFor(B);if(!nb||(inventory.orbs[oc]||0)<1||smithLv()<UPLV[B.rarity])return;
- inventory.orbs[oc]--;bump('upgraded');restat(B.id,function(){var n=inventory.inst[B.id];n.b=nb.id;n.s=0});
- FS.msg='✨ Aufgewertet zu '+nb.name+'!';saveInventory();forgeUI()};
+var FTG=[60,300,900,2700,7200];
+function jobRoom(){if(fjobs().length>=FSLOTS){FS.msg='Alle '+FSLOTS+' Schmiedeplätze sind belegt. Hole fertige Aufträge ab oder warte.';forgeUI();return false}return true}
+function jobHold(uid){var n=inventory.inst[uid];if(wearer(uid))unw(uid);var cp=JSON.parse(JSON.stringify(inventory.inst[uid]));delete inventory.inst[uid];var k=inventory.items.indexOf(uid);if(k>=0)inventory.items.splice(k,1);return cp}
+function jobStart(j,secs,txt){var n=Date.now();j.st=n;j.end=n+secs*1000;fjobs().push(j);FS.msg='⏳ Auftrag gestartet: '+txt+' · Ergebnis in '+fmtT(secs)+' (du siehst es erst am Ende)';try{window.__kamLogR('Schmiede gestartet: '+txt+' ('+fmtT(secs)+')')}catch(e){}saveInventory();try{updateUI()}catch(e){}forgeUI()}
+window.__kamDoForge=function(){var B=it(FS.b),F=it(FS.f);if(!B||!F||B.s>=3||(inventory.iron||0)<cost(B))return;if(!jobRoom())return;
+ inventory.iron-=cost(B);var cf=F.c,bid=B.id;delete inventory.inst[F.id];inventory.items.splice(inventory.items.indexOf(F.id),1);FS.f=null;FS.b=null;
+ var bb=B,nm=B.name;var n=jobHold(bid);jobStart({y:'fz',u:bid,n:n,cf:cf},FT[bb.rarity]||60,'Schmelzen: '+nm)};
+window.__kamDoUp=function(){var B=it(FS.b);if(!B||B.s<3)return;var nb=nextBase(B),oc=orbFor(B);if(!nb||(inventory.orbs[oc]||0)<1||smithLv()<UPLV[B.rarity])return;if(!jobRoom())return;
+ inventory.orbs[oc]--;var bid=B.id,nm=B.name,rar=B.rarity;FS.b=null;var n=jobHold(bid);jobStart({y:'up',u:bid,n:n,to:nb.id},FT[nb.rarity]||60,'Aufwerten: '+nm)};
+function jobBack(j){inventory.inst[j.u]=j.n;if(inventory.items.indexOf(j.u)<0)inventory.items.push(j.u)}
+function jobDone(j){ // Ergebnis wird erst jetzt gewürfelt und gezeigt
+ if(j.y==='fz'){jobBack(j);var B=it(j.u),ok=Math.random()*100<chance(B),cr=condResult({c:B.c},{c:j.cf});
+  if(ok){bump('forged');var n=inventory.inst[j.u];n.s++;n.c=cr.perf?(Math.random()*100<cr.perf?2:1):cr.base;var nb=it(j.u);return '✨ Geschmolzen! '+B.name+' <b style="color:'+CC[nb.c]+'">'+CN[nb.c]+'</b> '+stars(nb)}
+  return '💥 Fehlgeschlagen. Das Futter ist weg, '+B.name+' bleibt ('+stars(B)+').'}
+ if(j.y==='up'){jobBack(j);var nb2=ITEMS.find(function(y){return y.id===j.to});bump('upgraded');var n2=inventory.inst[j.u];n2.b=j.to;n2.s=0;return '✨ Aufgewertet zu <b style="color:'+RARITY_COLOR[nb2.rarity]+'">'+nb2.name+'</b>!'}
+ if(j.y==='gm'){gemEns();var t=+j.k[1];if(Math.random()*100<gemCh(t)){var n3=j.k[0]+(t+1);inventory.gems[n3]=(inventory.gems[n3]||0)+1;return '💎 Gelungen! '+gemName(n3)}return '💥 Fehlgeschlagen. Die 3 Juwelen sind kaputt.'}
+ if(j.y==='gc'){gemEns();inventory.gems[j.to]=(inventory.gems[j.to]||0)+1;return '💎 Umgewandelt zu '+gemName(j.to)}
+ return ''}
+function jobInfo(j){var x;
+ if(j.y==='fz'||j.y==='up'){var b=base(j.n.b)||{name:j.u,rarity:'normal'};return{name:(j.y==='fz'?'Schmelzen: ':'Aufwerten: ')+b.name,col:RARITY_COLOR[b.rarity],ico:ico(j.n.b)}}
+ if(j.y==='gm'||j.y==='gc'){return{name:(j.y==='gm'?'Juwelen verschmelzen: ':'Juwel umwandeln: ')+gemName(j.k),col:GC[j.k[0]][2],ico:'items/gem_'+j.k+'.webp'}}
+ x=ITEMS.find(function(y){return y.id===j.id})||{name:j.id,rarity:'normal'};return{name:x.name,col:RARITY_COLOR[x.rarity],ico:ico(x.id)}}
+window.__jobDone=jobDone;window.__jobInfo=jobInfo;
 ens();
 })();
 
@@ -2046,6 +2060,17 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
    '#pcSheet{position:fixed;inset:0;z-index:430;background:#000c;display:none;align-items:flex-start;justify-content:center;padding:34px 12px 12px}#pcSheet.on{display:flex}#pcSheet .box{width:100%;max-width:460px;max-height:90vh;overflow:auto;background:#0b0505;border:2px solid #6b4a1f;border-radius:14px;padding:10px}#pcSheet .x{float:right;background:#600;color:#fff;border:1px solid var(--gold2);border-radius:8px;padding:6px 12px;font-weight:800;cursor:pointer}',
    /* Handy: Heldenleiste oben, Reiter unten */
    'body.dev-phone #pcLeft{order:-5}body.dev-phone #pcInfo{order:40}',
+   /* Handy: alles auf einen Bildschirm (Titel, Spielfeld, Wuerfeln, Faehigkeiten, Knopfreihe) */
+   'body.dev-phone{overflow:hidden}',
+   'body.dev-phone #kamFs{display:none!important}',
+   'body.dev-phone #gameWrapper{display:flex!important;flex-direction:column;height:100vh;height:100dvh;max-height:100dvh;padding:2px 8px 6px!important;gap:5px;box-sizing:border-box;overflow:hidden}',
+   'body.dev-phone #gameWrapper>.game-title{margin:0!important;padding:3px 0!important;font-size:.95rem!important;letter-spacing:3px!important;flex:none;line-height:1.2}',
+   'body.dev-phone #pcLeft{display:none!important}',
+   'body.dev-phone #gameWrapper>.pcMid{flex:1;min-height:0;display:flex!important;flex-direction:column;gap:5px}',
+   'body.dev-phone #battlePanel{flex:1;min-height:0;margin:0!important}',
+   'body.dev-phone #kam{height:100%!important;min-height:0!important}',
+   'body.dev-phone #kamBar,body.dev-phone #kamLow{flex:none;margin:0!important}',
+   'body.dev-phone #gameWrapper>.pcRight{flex:none;display:block!important;margin:0!important}body.dev-phone .ptb{margin:0!important}',
    /* PC */
    'body.dev-pc{overflow:hidden}',
    'body.dev-pc #gameWrapper{display:grid!important;grid-template-columns:minmax(240px,1fr) clamp(320px,calc(100vh - 270px),640px) minmax(260px,1fr);grid-template-rows:auto minmax(0,1fr);gap:16px;width:100%!important;max-width:1700px!important;margin:0 auto!important;height:100vh;padding:4px 16px 8px!important;box-sizing:border-box;align-items:start}',
@@ -2185,7 +2210,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-15a';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-15b';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
@@ -2202,7 +2227,7 @@ setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||docu
   window.__kamFs=function(){try{if(isFs()){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else{var d=document.documentElement;(d.requestFullscreen||d.webkitRequestFullscreen).call(d)}}catch(e){}};
   window.__kamInstall=function(){if(inst){inst.prompt();inst.userChoice.then(function(){inst=null;upd()}).catch(function(){})}};
   function upd(){var w=document.getElementById('kamFs');if(!w){w=document.createElement('div');w.id='kamFs';document.body.appendChild(w)}w.style.display=(window.__kamReal&&window.__kamReal()==='pc')?'flex':'none';
-    var h='<button onclick="__kamFs()" title="Vollbild (F11)">'+(isFs()?'⤢ Vollbild beenden':'⛶ Vollbild')+'</button>'+(inst&&!standalone()?'<button onclick="__kamInstall()" title="Als App installieren">⬇ Als App installieren</button>':'');
+    var h=(inst&&!standalone()?'<button onclick="__kamInstall()" title="Als App installieren">⬇ Als App installieren</button>':'');
     if(w.dataset.h!==h){w.innerHTML=h;w.dataset.h=h}}
   document.addEventListener('fullscreenchange',upd);document.addEventListener('webkitfullscreenchange',upd);
   setInterval(upd,1500);setTimeout(upd,500);
