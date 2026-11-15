@@ -5,7 +5,7 @@
 'use strict';
 var COLS=5,CM=2,TS=54,GAP=6,STEP=TS+GAP,ETG=10,ROWS=ETG*10,FACES='⚀⚁⚂⚃⚄⚅';
 var $=function(i){return document.getElementById(i)};
-var K=null,busy=false,fightBoss=false,bossWon=false;window.__K=function(){return K};
+var K=null,busy=false,fightBoss=false,bossWon=false;window.__K=function(){return K};window.__kamNoBoss=function(){fightBoss=false;bossWon=false};
 var THEMES=[
  {n:'Gefängniskammer',a:'#c9b79a',bg:'#0f0d12',t:'#2a2530',w:'#1b1720'},
  {n:'Feuerkammer',a:'#ff6a1a',bg:'#1a0707',t:'#3a1208',w:'#2a0c07'},
@@ -1079,6 +1079,9 @@ Q.forEach(function(x){if(QUEST_LIST.some(function(y){return y.id===x[0]}))return
  if(x[5])o.secret=x[5];
  if(x[6]){Object.defineProperty(o,'target',{get:x[6]})}
  QUEST_LIST.push(o)});
+/* Einmal geschafft = fuer immer erledigt (auch wenn man z. B. Ausruestung wieder auszieht) */
+QUEST_LIST.forEach(function(q){if(q.__lt)return;q.__lt=1;var og=q.getValue,dyn=false;try{var pd0=Object.getOwnPropertyDescriptor(q,'target');dyn=!!(pd0&&pd0.get)}catch(e){}if(dyn)return;
+ q.getValue=function(){var v=og.apply(this,arguments),done=false;try{ens();var m=inventory.ms=inventory.ms||{};m.qd=m.qd||{};done=!!m.qd[q.id];if(!done&&v>=q.target){m.qd[q.id]=1;try{saveInventory()}catch(e){}done=true}}catch(e){}return done?Math.max(v,q.target):v}});
 })();
 
 /* ---- Prestige: Seelen ---- */
@@ -2013,6 +2016,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
     f.style.opacity='1';var a=arguments;
     setTimeout(function(){
       var B=document.body;B.classList.add('kfall');
+      try{window.__kamNoBoss&&window.__kamNoBoss()}catch(e){}
       try{oRS&&oRS.apply(window,a)}catch(e){}
       try{aInit(true)}catch(e){}
       B.classList.remove('kdead');
@@ -2240,7 +2244,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-15k';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-15m';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */
