@@ -127,7 +127,7 @@ var css=document.createElement('style');css.textContent=
 '#kamCube .f i{border-radius:50%;margin:1px}#kamCube .f i.p{background:radial-gradient(circle at 35% 30%,#e33,#800)}'+
 '#kamCube .f1{transform:translateZ(26px)}#kamCube .f2{transform:rotateY(90deg) translateZ(26px)}#kamCube .f6{transform:rotateY(180deg) translateZ(26px)}#kamCube .f5{transform:rotateY(-90deg) translateZ(26px)}#kamCube .f3{transform:rotateX(90deg) translateZ(26px)}#kamCube .f4{transform:rotateX(-90deg) translateZ(26px)}'+
 
-'#battleScene .monster-slot img.kdie{animation:kdie .8s ease-in forwards}@keyframes kdie{0%{transform:scaleX(-1) translateY(0);opacity:1;filter:brightness(1)}35%{transform:scaleX(-1) translateY(4px) rotate(3deg);filter:brightness(2.2)}100%{transform:scaleX(-1) translateY(34px) rotate(9deg);opacity:0;filter:brightness(.4)}}#battleScene .monster-slot img.kenter{animation:kenter .7s ease-out}@keyframes kenter{from{transform:scaleX(-1) translateX(-170px);opacity:0}to{transform:scaleX(-1) translateX(0);opacity:1}}'+
+'#battleScene .monster-slot img.kdie2{animation:kdie .42s ease-in forwards}#battleScene .monster-slot img.kdie{animation:kdie .8s ease-in forwards}@keyframes kdie{0%{transform:scaleX(-1) translateY(0);opacity:1;filter:brightness(1)}35%{transform:scaleX(-1) translateY(4px) rotate(3deg);filter:brightness(2.2)}100%{transform:scaleX(-1) translateY(34px) rotate(9deg);opacity:0;filter:brightness(.4)}}#battleScene .monster-slot img.kenter{animation:kenter .7s ease-out}@keyframes kenter{from{transform:scaleX(-1) translateX(-170px);opacity:0}to{transform:scaleX(-1) translateX(0);opacity:1}}'+
 '#battleScene .monster-slot img.kanim[alt^="worldboss"]{width:190px!important;height:150px!important}#battleScene .monster-slot img.kanim[alt^="worldboss"]{transform:scaleX(-1);position:relative;left:26px}body.kamn2 #battleScene .monster-slot img.kanim[alt^="worldboss"]{width:140px!important;height:112px!important}#battleScene .monster-slot img.kanim{object-fit:contain!important;border:none!important;background:none!important;box-shadow:none!important;border-radius:0!important;width:124px;height:124px;filter:drop-shadow(0 6px 5px #000a)}'+
 'body.kamn2 #battleScene,body.kamn3 #battleScene{padding:0!important}'+
 'body.kamn2 #battleScene .monster-slot,body.kamn3 #battleScene .monster-slot{position:absolute!important;transform:none!important;margin:0!important;opacity:1!important}'+
@@ -891,7 +891,8 @@ window.__kamMonHit=function(m,md){
  if(Math.random()*100<fxSum('dodge')){fl('💨 Ausgewichen','#cfe');return 0}
  var er=Math.min(60,fxSum('erde')*2);if(er>0)md=Math.max(1,Math.round(md*(1-er/100)));return md};
 function kamStrike(){
- var m=monstersInFight&&monstersInFight[0];if(!m||meta.hp<=0)return;
+ var m=monstersInFight&&monstersInFight[0];if(!m)return;
+ if(meta.hp<=0){if(window.__kamTeamUp&&window.__kamTeamUp()){try{allyStrike()}catch(e){}}return}
  var bf=fxSum('feuer');if(bf>0){var b=Math.max(1,Math.round(m.maxHp*(bf/100)*(m.isBoss?.5:1)));m.hp=Math.max(1,m.hp-b);fl('🔥 -'+b,'#ff8a3a')}
  var bs=meta.attack;
  monstersInFight.forEach(function(t){if(t.__dot&&t.__dot.n>0&&t.hp>1){sideD(t,t.__dot.d);t.__dot.n--;fl('☣️ -'+t.__dot.d,'#9fdc5a')}});
@@ -900,9 +901,9 @@ function kamStrike(){
  try{allyStrike()}catch(e){}
  if(ex>0){meta.attack+=ex;setTimeout(function(){meta.attack-=ex},0)}
  if(Math.random()*100<fxSum('donner','hero')*2){meta.attack+=bs;setTimeout(function(){meta.attack-=bs},0);fl('⚡ Doppeltreffer','#ffe14a')}}
-window.__kamStrike=kamStrike;
+window.__kamStrike=kamStrike;window.__kamKillDelay=function(){return document.getElementById('kam')?720:0};window.__kamKillAnim=function(){document.querySelectorAll('#battleScene .monster-slot img').forEach(function(i){i.classList.add('kdie2')})};
 allyStrike=function(){var L=allyList().filter(function(a){return aliveA(a.id)});if(!L.length)return;allyRound++;var d=0;
- L.forEach(function(a,k){var dm=Math.max(1,Math.round(Math.max(1,meta.attack-window.__kamHG().atk)*a.mult)+window.__kamAllyBonus(a.id));
+ L.forEach(function(a,k){var dm=Math.max(1,Math.round(Math.max(1,(window.__kamAtkBase||meta.attack)-window.__kamHG().atk)*a.mult)+window.__kamAllyBonus(a.id));
   if(Math.random()*100<fxSum('donner',a.id)*2)dm*=2;
   try{dm+=strikeFx(a.id,dm)}catch(e){}
   d+=dm;setTimeout(function(){animAlly(a,dm)},170+k*230)});
@@ -1431,7 +1432,7 @@ function render(){
  '.hst{display:grid;grid-template-columns:54px minmax(0,1fr) 54px;gap:6px;align-items:center;justify-items:center;border:2px solid #7a4a1a;border-radius:16px;padding:12px 12px 22px;overflow:hidden;background:linear-gradient(#0003,#000a),url(dung/floor.webp) center/cover}.hc{display:flex;flex-direction:column;gap:16px}.hs{width:54px;height:54px;box-sizing:border-box;border:2px solid;border-radius:12px;background:#000a;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}.hs img{margin:0!important;width:40px!important;height:40px!important}.hs em{position:absolute;bottom:-14px;font-size:9px;font-style:normal;color:#ffe9c4;opacity:.75;white-space:nowrap}.hs.e{border-style:dashed;opacity:.65;font-size:10px;color:#ffe9c4}'+
  '.hh{display:flex;flex-direction:column;align-items:center}.hh img{width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 6px 8px #000)}.hh .d{width:104px;height:24px;border-radius:50%;background:radial-gradient(#f0c04066,#0000 70%);margin-top:-16px}.hh b{color:#f0c040;font-size:14px;margin-top:4px}</style>'+
  '<div class="hts">'+tabs+'</div>'+posbar()+'<div class="hst"><div class="hc">'+g(s.slice(0,5))+'</div><div class="hh"><img id="hAn" src="'+hi+'"><div class="d"></div><b>'+NN[sel]+'</b><div style="margin-top:18px">'+g(s.slice(9))+'</div></div><div class="hc">'+g(s.slice(5,9))+'</div></div>';
- var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">Stats: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' HP</b> | <b style="color:#ffaa44">'+meta.attack+' ATK</b>'+(sel!=='hero'?' | '+NN[sel]+': <b style="color:#ffd24a">'+allyDmg(sel)+' Schaden</b> <span style="opacity:.7">('+Math.round(ALLY.filter(function(z){return z.id===sel})[0].mult*100)+'% von Ben + '+window.__kamAllyBonus(sel)+' Ausrüstung)</span>':'')+' | <img src="items/ore_silver.webp?v=1113" style="height:1.15em;vertical-align:-.25em" alt=""> '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
+ var b=document.getElementById('invBonus');if(b){b.innerHTML=meta?'<div style="font-size:0.65rem;color:#44ddff;text-align:center;margin:12px 0 8px">'+(sel==='hero'?'Ben: <b style="color:#ff6644">'+meta.hp+'/'+meta.maxHp+' Leben</b> | <b style="color:#ffaa44">'+meta.attack+' Angriff</b>':NN[sel]+': <b style="color:#ff6644">'+window.__kamAMax(sel)+' Leben</b> | <b style="color:#ffd24a">'+allyDmg(sel)+' Schaden</b>')+' <button class="btn btn-sm" style="font-size:.58rem;padding:2px 8px;margin-left:6px" onclick="__kamUnAll()">ALLES ABLEGEN</button> | <img src="items/ore_silver.webp?v=1113" style="height:1.15em;vertical-align:-.25em" alt=""> '+(inventory.iron||0)+'</div>':'<div style="height:10px"></div>'}
  var h='<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px">BEUTEL für '+NN[sel].toUpperCase()+'</div>'+filt(),n=0;
  var SRT=sorted(),OWNR={bow:'arc',staff:'mag',quiver:'arc',book:'mag',shield:'hero',club:'brutus',axe:'jeffrey',spear:'jamal',potion:'berta',fist:'luna'};SRT=SRT.filter(function(i){return (FT==='all'||tg(i)===FT)&&(FR==='all'||i.rarity===FR)});SRT=SRT.filter(function(i){return can(sel,i)}).concat(SRT.filter(function(i){return !can(sel,i)}));SRT.forEach(function(i){var cn=can(sel,i);n++;var w=wearer(i.id),mine=w===sel;
   h+=card(i,'<div style="font-size:0.5rem;color:'+(mine?'#44ff88':w?'#ffaa44':'#446688')+'">'+(!cn?(ownersOf(i)?'🔒 nur für '+ownersOf(i).filter(function(z){return NM[z]}).map(function(z){return NM[z]}).join(', '):'🔒 für '+NM[OWNR[i.type]||'hero']+(NEED[OWNR[i.type]||'hero']?' (ab Heldenlevel '+NEED[OWNR[i.type]||'hero']+')':'')):mine?'ANGELEGT · tippen zum Ablegen':w?'trägt: '+NN[w]:'anlegen')+(w?' <span onclick="event.stopPropagation();__kamLk(\''+i.id+'\')" style="font-size:.75rem;margin-left:4px">'+(inventory.lock&&inventory.lock[i.id]?'🔒':'🔓')+'</span>':'')+'</div>'+(w?'':'<div onclick="event.stopPropagation();__kamSell(\''+i.id+'\')" style="font-size:0.55rem;color:'+(window.__kamSellArm===i.id?'#ff8a8a':'#e0c070')+';margin-top:3px;text-decoration:underline">'+(window.__kamSellArm===i.id?'Sicher? +'+price(i)+' Gold':'verkaufen ('+price(i)+')')+'</div>'),cn?'equipItem(\''+i.id+'\')':'',mine&&cn)});
@@ -1475,7 +1476,7 @@ function chDraw(){
   if(CPK&&CPK!=='hero')h+='<div class="d"><b style="color:#f0c040">'+NN[CPK]+'</b><div style="color:#9a8cc0;font-size:12px;margin-top:4px">Einsetzen auf:</div>'+pl(CPK)+'</div>'}
  m.innerHTML=h+'</div>'}
 window.__kamLk=function(uid){ens();inventory.lock=inventory.lock||{};if(inventory.lock[uid])delete inventory.lock[uid];else inventory.lock[uid]=1;saveInventory();render()};
-window.__kamSel=function(w){sel=w;render()};
+window.__kamSel=function(w){sel=w;render()};window.__kamUnAll=function(){var g=gear(sel);Object.keys(g).slice().forEach(function(t){var u=g[t];if(u&&it(u))unw(u)});saveInventory();render()};
 window.renderInventoryModal=render;
 window.showInventory=function(){sel='hero';render();document.getElementById('inventoryModal').style.display='flex'};
 window.__kamHA=function(w){if(locked(w)){try{toast('🔒 Neuer Held ab Heldenlevel '+NEED[w]+'.')}catch(e){}return}
@@ -1848,7 +1849,7 @@ window.__kamDieSet=function(id){if(busy||inFight||dieLocked())return;EQ=id;saveD
 /* ---------- Eigene Lebensleisten ---------- */
 var AH={arc:{hp:0,max:0},mag:{hp:0,max:0}},wasF=false;
 var PATT={wolf:'double',snake:'back',spider:'back',hexe:'back',inferno:'all'};
-function aMax(id){var base=Math.max(10,(meta&&meta.maxHp||20)-window.__kamHG().hp);return Math.max(10,Math.round(base*.8)+(id?window.__kamAGH(id):0))}
+window.__kamAMax=function(id){return aMax(id)};function aMax(id){var base=Math.max(10,(meta&&meta.maxHp||20)-window.__kamHG().hp);return Math.max(10,Math.round(base*.5)+(id?window.__kamAGH(id):0))}
 window.__kamAMax=aMax;
 function aInit(force){['arc','mag'].forEach(function(k){var m=aMax(k),a=AH[k];if(force||!a.max){a.max=m;a.hp=m}else if(a.max!==m){a.hp=Math.round(a.hp/a.max*m);a.max=m}})}
 function onTeam(id){return id==='hero'||allyList().some(function(a){return a.id===id})}
@@ -1866,8 +1867,8 @@ window.__kamRoute=function(md,m){
   var hd=0;tg.forEach(function(x){if(window.__kamArmHit)x[1]=window.__kamArmHit(x[0],x[1],m);if(x[0]==='hero')hd+=x[1];else AH[x[0]].hp=Math.max(0,AH[x[0]].hp-x[1])});
   return hd}catch(e){return md}};
 var oAtk2=window.attack;
-if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(),sv=meta&&meta.attack;if(down)meta.attack=0;
- try{return oAtk2.apply(this,arguments)}finally{if(down)setTimeout(function(){meta.attack=sv},60)}};
+if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(),sv=meta&&meta.attack;if(down){window.__kamAtkBase=sv;meta.attack=0}
+ try{return oAtk2.apply(this,arguments)}finally{if(down)setTimeout(function(){meta.attack=sv;window.__kamAtkBase=0},60)}};
 (function(){
  var st=document.createElement('style');
  st.textContent='body.khd #runImg{filter:grayscale(1) brightness(.45)!important;transform:rotate(-90deg) translate(0,-6px)!important;transform-origin:50% 100%;animation:none!important}#kamAl img.dn{filter:grayscale(1) brightness(.45)!important;transform:rotate(-90deg) translate(0,-4px);transform-origin:50% 100%}.kbar{position:absolute;width:46px;height:6px;border-radius:4px;background:#000a;border:1px solid #fff4;overflow:hidden;z-index:30;pointer-events:none}.kbar.kf{width:50px}#kamBig{position:absolute;top:6px;left:50%;width:min(86%,300px);height:18px;transform:translateX(-50%);background:#000b;border:2px solid #b8862b;border-radius:10px;z-index:31;overflow:hidden;pointer-events:none}#kamBig i{display:block;height:100%;background:linear-gradient(#ff5a4a,#b3201a);transition:width .25s}#kamBig b{position:absolute;inset:0;text-align:center;font:700 11px/18px system-ui;letter-spacing:.1em;color:#fff;text-shadow:0 1px 2px #000}body.kamfight #battleScene .monster-hp{display:none!important}body.kamfight #fightHud{display:none!important}.kbar i{display:block;height:100%;transition:width .25s}';
@@ -2211,7 +2212,7 @@ if(oAtk2)window.attack=function(){var down=meta&&meta.hp<=0&&window.__kamTeamUp(
  var o=document.createElement('div');o.className='stat';o.id='statOreBox';o.style.cssText='display:none;gap:6px';n.parentNode.insertBefore(o,n.nextSibling)}
  function upd(){try{mkHud();var e=document.getElementById('statIron');if(e)e.textContent=(inventory&&inventory.iron)||0;var o=document.getElementById('statOreBox');if(o){var h='',t=0;['green','blue','purple','gold','red'].forEach(function(k){var v=((inventory&&inventory.ores)||{})[k]||0;if(v){t++;h+='<span style="margin-right:6px"><img src="items/ore_'+k+'.webp?v=1113" style="height:1.2em;vertical-align:-.25em" alt=""> '+v+'</span>'}});o.innerHTML=h;o.style.display=t?'block':'none'}}catch(x){}}
  setInterval(upd,1000);setTimeout(upd,300)})();
-;window.__ver=window.__ver||{};window.__ver['kammer']='11-15c';
+;window.__ver=window.__ver||{};window.__ver['kammer']='11-15e';
 setInterval(function(){try{var q=document.getElementById('kamQuick');if(!q||document.getElementById('kamVer'))return;var d=document.createElement('div');d.id='kamVer';d.style.cssText='width:100%;text-align:center;font-size:.55rem;opacity:.6;margin-top:6px;grid-column:1/-1';var V=window.__ver||{},o=[];['game','city','itemshop','kammer','shim'].forEach(function(k){o.push(k+' '+(V[k]||'?'))});d.textContent='Dateien: '+o.join(' · ');q.appendChild(d)}catch(e){}},1200);
 
 /* ---------- Vollbild-Knopf + App-Installation (PC) ---------- */

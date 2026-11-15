@@ -909,17 +909,28 @@ function attack() {
   }
 
   if (monstersInFight.length === 0) {
-    inFight = false;
-    // World Boss: neue Runde starten
-    if (pendingBossNum === 0 && meta._wasWorldBoss) {
-      meta._wasWorldBoss = false;
-      generateBoard();
-      log('👹 <span style="color:var(--gold)">Runde ' + meta.round + ' wird fortgesetzt!</span>');
-    } else {
-      board[pos] = 'empty';
+    var _endFight = function() {
+      inFight = false;
+      // World Boss: neue Runde starten
+      if (pendingBossNum === 0 && meta._wasWorldBoss) {
+        meta._wasWorldBoss = false;
+        generateBoard();
+        log('👹 <span style="color:var(--gold)">Runde ' + meta.round + ' wird fortgesetzt!</span>');
+      } else {
+        board[pos] = 'empty';
+      }
+      renderFight();
+      updateUI();
+    };
+    // Kammer-Ansicht: Angriff und Sterben des Monsters erst zeigen, dann den Kampf beenden
+    var _dl = 0; try { _dl = window.__kamKillDelay ? window.__kamKillDelay() : 0; } catch(e) {}
+    if (_dl > 0) {
+      window.__turnLock = true;
+      setTimeout(function() { try { window.__kamKillAnim && window.__kamKillAnim(); } catch(e) {} }, Math.round(_dl * 0.4));
+      setTimeout(function() { window.__turnLock = false; _endFight(); }, _dl);
+      return;
     }
-    renderFight();
-    updateUI();
+    _endFight();
     return;
   }
 
@@ -3422,4 +3433,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-15b';
+;window.__ver=window.__ver||{};window.__ver['game']='11-15c';
