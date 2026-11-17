@@ -2780,6 +2780,30 @@ function _localScore() {
     playerClassIds: playerClasses.map(function(c){ return c.id; }), inventory: inventory });
 }
 var _bpSaving = false;
+function _progInfo(o) {
+  var hl = 0, kl = 0;
+  try { var hd = (o && o.heroData) || {}; Object.keys(hd).forEach(function(h){ hl = Math.max(hl, Math.min(100, Math.floor((hd[h].kills||0)/150))); });
+    var qt = (o && o.questTracking) || {}; kl = QUEST_LIST.filter(function(q){ try { return q.getValue(qt, hd) >= q.target; } catch(e) { return false; } }).length; } catch(e) {}
+  return { hl: hl, kl: kl };
+}
+function _localInfo() { var g = function(k){ try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch(e) { return null; } }; return _progInfo({ heroData: g('robHeroes'), questTracking: g('robQuestTracking') }); }
+/* Zwei Staende (Cloud und dieses Geraet) sind verschieden: Spieler entscheidet. Liefert 'cloud' oder 'local'. */
+function __bpAsk(cs) {
+  return new Promise(function(res) {
+    try {
+      var c = _progInfo(cs), l = _localInfo(), d = document.createElement('div');
+      d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px';
+      d.innerHTML = '<div style="max-width:420px;width:100%;background:#1b0f0a;border:2px solid #ffd24a;border-radius:14px;padding:16px;color:#ffe9c4;font-family:inherit;text-align:center">'
+        + '<div style="font-size:1.1rem;font-weight:800;color:#ffd24a;margin-bottom:8px">Zwei verschiedene Spielstände</div>'
+        + '<div style="font-size:.85rem;margin-bottom:12px">Auf deinem Konto (Cloud) und auf diesem Gerät steht ein anderer Stand. Welchen willst du behalten? Der andere wird überschrieben.</div>'
+        + '<div style="display:flex;gap:8px;margin-bottom:12px;font-size:.8rem"><div style="flex:1;border:1px solid #5a3a1a;border-radius:10px;padding:8px">☁ <b>Cloud</b><br>Heldenlevel ' + c.hl + '<br>Klassenlevel ' + c.kl + '</div><div style="flex:1;border:1px solid #5a3a1a;border-radius:10px;padding:8px">📱 <b>Dieses Gerät</b><br>Heldenlevel ' + l.hl + '<br>Klassenlevel ' + l.kl + '</div></div>'
+        + '<button id="bpAskC" class="btn" style="width:100%;margin-bottom:6px">☁ Cloud-Stand laden</button><button id="bpAskL" class="btn" style="width:100%">📱 Stand von diesem Gerät behalten</button></div>';
+      document.body.appendChild(d);
+      d.querySelector('#bpAskC').onclick = function(){ d.remove(); res('cloud'); };
+      d.querySelector('#bpAskL').onclick = function(){ d.remove(); res('local'); };
+    } catch(e) { res('cloud'); }
+  });
+}
 async function saveStateToFirebase() {
   if (_bpSaving) return false;
   _bpSaving = true;
@@ -2863,6 +2887,10 @@ async function loadStateFromFirebase() {
     var _fc = false; try { _fc = localStorage.getItem('robForceCloud') === '1'; localStorage.removeItem('robForceCloud'); } catch(e) {}
     /* Neuester Stand gewinnt: hat ein anderes Geraet nach meinem letzten Abgleich gespeichert, gilt die Cloud. Sonst gewinnt der hoehere Fortschritt. */
     var _cloudNewer = !!(state.savedAt && localSaved > 0 && state.savedAt > localSaved);
+    if (!_fc && _cloudNewer && _locSc > _cloudSc) { // anderes Geraet neuer, aber hier mehr Fortschritt: Spieler fragen
+      var _ch = await __bpAsk(state);
+      if (_ch === 'local') { _cloudChecked = true; try { localStorage.setItem('robStateSavedAt', String(state.savedAt)); } catch(e) {} return false; }
+    }
     if (!_fc && !_cloudNewer && (_cloudSc < _locSc || (_cloudSc === _locSc && state.savedAt && state.savedAt <= localSaved))) {
       _cloudChecked = true;
       try { if (state.savedAt) localStorage.setItem('robStateSavedAt', String(state.savedAt)); } catch(e) {} // Cloud-Stand gesehen, lokaler Stand darf ihn jetzt ersetzen
@@ -2938,7 +2966,11 @@ setInterval(saveStateToFirebase, 60000);
     try {
       var snap = await db.ref('players/' + onlineAccount.uid + '/state').once('value'), cs = snap.val();
       var ls = parseInt(localStorage.getItem('robStateSavedAt') || '0');
-      if (cs && cs.savedAt && ls > 0 && cs.savedAt > ls) {
+      if (cs && cs.savedAt && ls > 0 && cs.savedAt > ls && _progScore(cs) < _localScore()) {
+        var _ch2 = await __bpAsk(cs);
+        if (_ch2 === 'local') { try { localStorage.setItem('robStateSavedAt', String(cs.savedAt)); } catch(e) {} }
+        else { try { localStorage.setItem('robForceCloud', '1'); } catch(e) {} setTimeout(function(){ location.reload(); }, 300); }
+      } else if (cs && cs.savedAt && ls > 0 && cs.savedAt > ls) {
         try { toast('Neuer Stand von deinem anderen Geraet wird geladen ...'); } catch(e) {}
         try { localStorage.setItem('robForceCloud', '1'); } catch(e) {}
         setTimeout(function(){ location.reload(); }, 1300);
@@ -3433,4 +3465,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-15c';
+;window.__ver=window.__ver||{};window.__ver['game']='11-17a';
