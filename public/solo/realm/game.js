@@ -2792,11 +2792,13 @@ function __bpAsk(cs) {
   return new Promise(function(res) {
     try {
       var c = _progInfo(cs), l = _localInfo(), d = document.createElement('div');
+      var fmt = function(t){ t = parseInt(t || 0); if (!t) return 'unbekannt'; var x = new Date(t); return ('0'+x.getDate()).slice(-2)+'.'+('0'+(x.getMonth()+1)).slice(-2)+'. '+('0'+x.getHours()).slice(-2)+':'+('0'+x.getMinutes()).slice(-2)+' Uhr'; };
+      var cT = fmt(cs && cs.savedAt), lT = fmt(localStorage.getItem('robStateSavedAt'));
       d.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000c;display:flex;align-items:center;justify-content:center;padding:16px';
       d.innerHTML = '<div style="max-width:420px;width:100%;background:#1b0f0a;border:2px solid #ffd24a;border-radius:14px;padding:16px;color:#ffe9c4;font-family:inherit;text-align:center">'
         + '<div style="font-size:1.1rem;font-weight:800;color:#ffd24a;margin-bottom:8px">Zwei verschiedene Spielstände</div>'
         + '<div style="font-size:.85rem;margin-bottom:12px">Auf deinem Konto (Cloud) und auf diesem Gerät steht ein anderer Stand. Welchen willst du behalten? Der andere wird überschrieben.</div>'
-        + '<div style="display:flex;gap:8px;margin-bottom:12px;font-size:.8rem"><div style="flex:1;border:1px solid #5a3a1a;border-radius:10px;padding:8px">☁ <b>Cloud</b><br>Heldenlevel ' + c.hl + '<br>Klassenlevel ' + c.kl + '</div><div style="flex:1;border:1px solid #5a3a1a;border-radius:10px;padding:8px">📱 <b>Dieses Gerät</b><br>Heldenlevel ' + l.hl + '<br>Klassenlevel ' + l.kl + '</div></div>'
+        + '<div style="display:flex;gap:8px;margin-bottom:12px;font-size:.8rem"><div style="flex:1;border:1px solid #5a3a1a;border-radius:10px;padding:8px">☁ <b>Cloud</b><br>Heldenlevel ' + c.hl + '<br>Klassenlevel ' + c.kl + '<br><span style="opacity:.7;font-size:.7rem">gespeichert ' + cT + '</span></div><div style="flex:1;border:1px solid #5a3a1a;border-radius:10px;padding:8px">📱 <b>Dieses Gerät</b><br>Heldenlevel ' + l.hl + '<br>Klassenlevel ' + l.kl + '<br><span style="opacity:.7;font-size:.7rem">gespeichert ' + lT + '</span></div></div>'
         + '<button id="bpAskC" class="btn" style="width:100%;margin-bottom:6px">☁ Cloud-Stand laden</button><button id="bpAskL" class="btn" style="width:100%">📱 Stand von diesem Gerät behalten</button></div>';
       document.body.appendChild(d);
       d.querySelector('#bpAskC').onclick = function(){ d.remove(); res('cloud'); };
@@ -2852,6 +2854,17 @@ async function _bpSaveCore() {
     return false;
   } catch(e) { return false; }
 }
+/* Antippen der roten Warnung: Cloud und Geraet vergleichen, Spieler waehlt */
+window.__bpChoose = async function() {
+  try {
+    if (!onlineAccount) return;
+    var snap = await db.ref('players/' + onlineAccount.uid + '/state').once('value'), cs = snap.val();
+    if (!cs) { try { toast('In der Cloud liegt noch kein Stand.'); } catch(e) {} return; }
+    var ch = await __bpAsk(cs);
+    if (ch === 'cloud') { try { localStorage.setItem('robForceCloud', '1'); } catch(e) {} location.reload(); }
+    else { window.__forceSave = true; try { await saveStateToFirebase(); } finally { window.__forceSave = false; } try { toast('☁ Stand von diesem Gerät gespeichert'); } catch(e) {} }
+  } catch(e) {}
+};
 /* Sofort speichern (Ausloggen, Seite zu, Handy aus, AFK). Der Server nimmt hoechstens alle 3 Sekunden einen Stand an, darum einmal nachfassen. */
 window.__bpFlushNow = async function() {
   try { if (window.__cityStamp) window.__cityStamp(); } catch(e) {}
@@ -2887,9 +2900,10 @@ async function loadStateFromFirebase() {
     var _fc = false; try { _fc = localStorage.getItem('robForceCloud') === '1'; localStorage.removeItem('robForceCloud'); } catch(e) {}
     /* Neuester Stand gewinnt: hat ein anderes Geraet nach meinem letzten Abgleich gespeichert, gilt die Cloud. Sonst gewinnt der hoehere Fortschritt. */
     var _cloudNewer = !!(state.savedAt && localSaved > 0 && state.savedAt > localSaved);
-    if (!_fc && _cloudNewer && _locSc > _cloudSc) { // anderes Geraet neuer, aber hier mehr Fortschritt: Spieler fragen
+    if (!_fc && _locSc > 0 && _cloudSc !== _locSc && (_cloudNewer || _locSc > _cloudSc)) { // Cloud und Geraet verschieden: Spieler waehlt immer selbst
       var _ch = await __bpAsk(state);
       if (_ch === 'local') { _cloudChecked = true; try { localStorage.setItem('robStateSavedAt', String(state.savedAt)); } catch(e) {} return false; }
+      _fc = true; // Spieler hat den Cloud-Stand gewaehlt: ohne weitere Vergleiche laden
     }
     if (!_fc && !_cloudNewer && (_cloudSc < _locSc || (_cloudSc === _locSc && state.savedAt && state.savedAt <= localSaved))) {
       _cloudChecked = true;
@@ -2921,6 +2935,12 @@ async function loadStateFromFirebase() {
     // -- In-Memory Variablen aktualisieren --
     heroData = loadHeroData();
     globalDiamonds = loadDiamonds();
+    /* Auch Inventar, Quests, Prestige, Shop und Diamant-Werte neu aus dem frisch geladenen Stand holen. Sonst bleibt der alte Stand von Seitenstart im Speicher und wird beim naechsten Speichern wieder in die Cloud geschrieben (Ausruestung/Quests weg). */
+    try { var _ni = loadInventory(); Object.keys(inventory).forEach(function(k){ delete inventory[k]; }); Object.assign(inventory, _ni); } catch(e) {}
+    try { questTracking = loadQuestTracking(); } catch(e) {}
+    try { prestigeData = loadPrestige(); } catch(e) {}
+    try { shopBonuses = loadShopBonuses(); shopPrices = loadShopPrices(); } catch(e) {}
+    try { diaAttrs = loadDiaAttrs(); } catch(e) {}
     if (state.monsterKills) { monsterKills = state.monsterKills; saveMonsterKills(); }
     if (state.monsterNextMilestone) { monsterNextMilestone = state.monsterNextMilestone; saveMonsterMilestones(); }
     if (state.bossFirstKills && Array.isArray(state.bossFirstKills)) { bossFirstKills = state.bossFirstKills; saveBossFirstKills(); }
@@ -3465,4 +3485,4 @@ function claimPendingDias() {
 }
 setTimeout(claimPendingDias, 3500);
 setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
-;window.__ver=window.__ver||{};window.__ver['game']='11-17c';
+;window.__ver=window.__ver||{};window.__ver['game']='11-17e';
