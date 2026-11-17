@@ -4305,6 +4305,8 @@ async function toggleTesterMode(){
   renderSettingsModal();
   try{ renderMainMenu(); }catch(e){}
 }
+function modPillHidden(){ try{ return localStorage.getItem('bp_modpill_hide') === '1'; }catch(e){ return false; } }
+function toggleModPill(){ try{ localStorage.setItem('bp_modpill_hide', modPillHidden() ? '0' : '1'); }catch(e){} try{ renderModPill(); }catch(e){} try{ renderSettingsModal(); }catch(e){} }
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
 function adminViewOn(){ try{ return !!adminKeyStored() && localStorage.getItem('bp_admin_view') === '1'; }catch(e){ return false; } }
 let adminOkFlag = false;
@@ -4587,7 +4589,7 @@ async function modApi(path, extra){
 }
 function renderModPill(){
   let b = document.getElementById('modPill');
-  if(!modActive()){ if(b) b.remove(); const pn = document.getElementById('modPanel'); if(pn) pn.remove(); return; }
+  if(!modActive() || modPillHidden()){ if(b) b.remove(); const pn = document.getElementById('modPanel'); if(pn) pn.remove(); return; }
   if(b) return;
   b = document.createElement('div'); b.id = 'modPill'; b.textContent = '🛡️'; b.title = 'Mod';
   b.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99998;width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;background:#0b1020;border:2px solid #38bdf8;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.5)';
@@ -6241,6 +6243,7 @@ function renderSettingsModal(){
   const feedCard = account ? card('✨ ' + L('Live-Feed','Live feed'), `<button class="btn ${account.profile.feedOptIn ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleFeedOptIn()">${account.profile.feedOptIn ? L('Name wird gezeigt','Name shown') : L('Anonym','Anonymous')}</button>
     <div class="settings-track" style="margin-top:8px;">${L('Wenn an, erscheint dein Name bei Live-Meldungen im Chat und im Hauptmenü (z. B. „Mia hat Klasse 2 erreicht“). Sonst steht dort „Ein Spieler“.','If on, your name appears in live notices in the chat and main menu (e.g. “Mia reached Class 2”). Otherwise it says “A player”.')}</div>`) : '';
   const testerCard = (account && account.profile && account.profile.canTest && (isTesterMode() || !adminKeyStored())) ? card('🧪 ' + (account.profile.role === 'mod' ? 'Mod' : L('Tester','Tester')), `<button class="btn ${isTesterMode() ? 'btn-primary' : 'btn-ghost'} btn-block" onclick="toggleTesterMode()">${isTesterMode() ? '🧪 ' + L('Aktiv (zum Beenden tippen)','Active (tap to end)') : '🧪 ' + (account.profile.role === 'mod' ? L('Mod-Modus aktivieren','Activate mod mode') : L('Tester aktivieren','Activate tester'))}</button>
+${account.profile.role === 'mod' && isTesterMode() ? `<button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="toggleModPill()">🛡️ ${modPillHidden() ? L('Mod-Symbol anzeigen','Show mod icon') : L('Mod-Symbol verbergen','Hide mod icon')}</button>` : ''}
     <div class="settings-track" style="margin-top:8px;">${account.profile.role === 'mod' ? L('Du hast das Mod-Recht. Aktiviert siehst du alle gesperrten Spiele, die nicht in Wartung sind, und kannst sie ausprobieren.','You have the mod right. When active you can see and try all locked games that are not under maintenance.') : L('Du bist Tester. Aktiviert siehst du die Spiele, die gerade im Test sind, und kannst sie ausprobieren.','You are a tester. When active you can see and try the games that are currently in testing.')}</div>`) : '';
   overlay.innerHTML = `
     <div class="settings-panel" onclick="event.stopPropagation()">

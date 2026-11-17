@@ -3661,8 +3661,8 @@ const realmPersisted = new WeakMap(); // Konto -> Kennung des zuletzt sicher ges
 const realmHydrated = new WeakSet();
 let realmFlushTimer = null, realmFlushing = false, realmLastErr = "";
 function realmKey(u) { return UPSTASH_REALM_PREFIX + encodeURIComponent(String(u.username || "").toLowerCase()); }
-function realmSig(u) { const r = u.realm || {}; return [r.at || 0, r.prevAt || 0, r.backup ? (r.backup.at || 1) : 0, r.state ? r.state.length : 0, r.prev ? r.prev.length : 0, r.epoch || 0].join(":"); }
-function realmHeavy(u) { const r = u.realm; return !!(r && (r.state || r.prev || r.backup)); }
+function realmSig(u) { const r = u.realm || {}; return [r.at || 0, r.prevAt || 0, r.backup ? (r.backup.at || 1) : 0, r.state ? r.state.length : 0, r.prev ? r.prev.length : 0, r.epoch || 0, r.best ? (r.best.at || 1) : 0].join(":"); }
+function realmHeavy(u) { const r = u.realm; return !!(r && (r.state || r.prev || r.backup || r.best)); }
 function realmQueue() {
   if (!USE_UPSTASH) return;
   for (const u of users) { if (u && realmHeavy(u) && realmPersisted.get(u) !== realmSig(u)) { if (!realmFlushTimer) realmFlushTimer = setTimeout(() => { realmFlushTimer = null; realmFlush().catch(() => {}); }, 1500); break; } }
@@ -3674,7 +3674,7 @@ async function realmFlush() {
     for (const u of users.slice()) {
       if (!u || !realmHeavy(u)) continue;
       const sig = realmSig(u); if (realmPersisted.get(u) === sig) continue;
-      const r = u.realm, body = JSON.stringify({ state: r.state || null, prev: r.prev || null, prevAt: r.prevAt || 0, backup: r.backup || null });
+      const r = u.realm, body = JSON.stringify({ state: r.state || null, prev: r.prev || null, prevAt: r.prevAt || 0, backup: r.backup || null, best: r.best || null });
       try {
         const res = await fetch(`${UPSTASH_URL}/set/${realmKey(u)}`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body });
         if (!res.ok) throw new Error("HTTP " + res.status + " (" + Math.round(body.length / 1024) + " KB)");
@@ -3691,7 +3691,7 @@ async function realmEnsure(token) { // vor jedem Realm-Zugriff: ausgelagerten St
     const res = await fetch(`${UPSTASH_URL}/get/${realmKey(u)}`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json(); if (!data || !("result" in data)) throw new Error("Unerwartete Antwort");
-    if (data.result) { const d = JSON.parse(data.result); u.realm.state = d.state || null; u.realm.prev = d.prev || null; u.realm.prevAt = d.prevAt || 0; u.realm.backup = d.backup || null; }
+    if (data.result) { const d = JSON.parse(data.result); u.realm.state = d.state || null; u.realm.prev = d.prev || null; u.realm.prevAt = d.prevAt || 0; u.realm.backup = d.backup || null; u.realm.best = d.best || null; }
     else console.error("[Realm] Kein Stand unter " + realmKey(u) + " gefunden, obwohl ausgelagert (" + u.username + ")");
     delete u.realm.ext; realmHydrated.add(u); realmPersisted.set(u, realmSig(u));
     return true;
@@ -3702,7 +3702,7 @@ function usersForSave() { // Kontenblock ohne Realm-Staende, die nachweislich ei
     if (!u || !u.realm) return u;
     if (u.realm.ext && !realmHydrated.has(u)) return u; // noch nicht geladen: unveraendert lassen (steht dort schon als ext)
     if (!realmHeavy(u) || realmPersisted.get(u) !== realmSig(u)) return u;
-    const r = Object.assign({}, u.realm); delete r.state; delete r.prev; delete r.backup; r.ext = 1;
+    const r = Object.assign({}, u.realm); delete r.state; delete r.prev; delete r.backup; delete r.best; r.ext = 1;
     return Object.assign({}, u, { realm: r });
   });
 }
@@ -4402,10 +4402,21 @@ function realmEpoch(user) {
   user.realm = user.realm || {};
   if ((user.realm.epoch | 0) >= REALM_EPOCH) return false;
   if (user.realm.state || user.realm.entry) user.realm.backup = { epoch: user.realm.epoch | 0, state: user.realm.state || null, entry: user.realm.entry || null, at: Date.now() };
-  user.realm.state = null; delete user.realm.entry; user.realm.at = 0; user.realm.epoch = REALM_EPOCH;
+  user.realm.state = null; user.realm.best = null; delete user.realm.entry; user.realm.at = 0; user.realm.epoch = REALM_EPOCH;
   return true;
 }
 function realmSweep() { let n = 0; for (const u of users) if (u && realmEpoch(u)) n++; if (n) { console.log("[Realm] Reset fuer " + n + " Konten (Epoche " + REALM_EPOCH + "), alte Staende gesichert."); saveUsers().catch(() => {}); } return n; }
+// Fortschritts-Punkte eines Staendes (nur zum Vergleich): Kills, Bosse, Prestige, Items, Spielzeit
+function realmProg(st) {
+  try {
+    let sc = 0; const hd = st.heroData || {};
+    for (const h of Object.keys(hd)) sc += ((hd[h] && hd[h].kills) || 0) + ((hd[h] && hd[h].bossKills) || 0) * 10;
+    sc += ((st.prestigeData && st.prestigeData.count) || 0) * 1000;
+    sc += ((st.inventory && Array.isArray(st.inventory.items)) ? st.inventory.items.length : 0) * 3;
+    sc += Math.floor(((st.questTracking && st.questTracking.playMinutes) || 0) / 10);
+    return sc;
+  } catch (e) { return 0; }
+}
 function realmSave(token, state, final) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
@@ -4419,6 +4430,7 @@ function realmSave(token, state, final) {
   if (Date.now() - (user.realm.at || 0) < (final ? 400 : 3000)) return { ok: true, wait: true }; // final = Spiel wird verlassen: sofort annehmen
   if (user.realm.state && Date.now() - (user.realm.prevAt || 0) > 600000) { user.realm.prev = user.realm.state; user.realm.prevAt = Date.now(); } // Notfall-Sicherung des vorherigen Stands, hoechstens alle 10 Minuten
   user.realm.state = str; user.realm.at = Date.now();
+  if (!state.reset) { const sc = realmProg(state); if (sc > 0 && (!user.realm.best || sc > (user.realm.best.sc || 0))) user.realm.best = { sc, at: Date.now(), state: str }; } // bester je gespeicherter Stand: wird nie von einem schlechteren ueberschrieben
   saveUsers().catch(() => {});
   return { ok: true, size: str.length };
 }
@@ -4426,9 +4438,27 @@ function realmReset(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
   user.realm = user.realm || {};
-  user.realm.state = null; user.realm.at = Date.now(); delete user.realm.entry; user.realm.epoch = REALM_EPOCH;
+  user.realm.state = null; user.realm.best = null; user.realm.at = Date.now(); delete user.realm.entry; user.realm.epoch = REALM_EPOCH;
   saveUsers().catch(() => {});
   return { ok: true, epoch: REALM_EPOCH };
+}
+function realmBestInfo(token) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  const b = user.realm && user.realm.best; if (!b || !b.state) return { ok: true, none: true };
+  let st = null; try { st = JSON.parse(b.state); } catch (e) {}
+  const hd = (st && st.heroData) || {}; let hl = 0; for (const h of Object.keys(hd)) hl = Math.max(hl, Math.min(100, Math.floor(((hd[h] && hd[h].kills) || 0) / 150)));
+  return { ok: true, at: b.at, sc: b.sc, heroLevel: hl, items: (st && st.inventory && st.inventory.items ? st.inventory.items.length : 0), gold: st && st.gold };
+}
+function realmRestoreBest(token) {
+  if (!usersLoaded) return { ok: false, unavailable: true };
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  const b = user.realm && user.realm.best; if (!b || !b.state) return { ok: false, none: true };
+  if (user.realm.state) { user.realm.prev = user.realm.state; user.realm.prevAt = Date.now(); }
+  let st = null; try { st = JSON.parse(b.state); st.savedAt = Date.now(); user.realm.state = JSON.stringify(st); } catch (e) { return { ok: false }; }
+  user.realm.at = Date.now();
+  saveUsers().catch(() => {});
+  return { ok: true };
 }
 function realmLoad(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
@@ -8221,6 +8251,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/solo/board") result = soloBoard(payload.token, payload.game, payload.diff);
         else if (req.url === "/api/realm/save") result = (await realmEnsure(payload.token)) ? realmSave(payload.token, payload.state, payload.final === true) : { ok: false, unavailable: true };
         else if (req.url === "/api/realm/load") result = (await realmEnsure(payload.token)) ? realmLoad(payload.token) : { ok: false, unavailable: true };
+        else if (req.url === "/api/realm/best-info") result = (await realmEnsure(payload.token)) ? realmBestInfo(payload.token) : { ok: false, unavailable: true };
+        else if (req.url === "/api/realm/restore-best") result = (await realmEnsure(payload.token)) ? realmRestoreBest(payload.token) : { ok: false, unavailable: true };
         else if (req.url === "/api/realm/reset") result = (await realmEnsure(payload.token)) ? realmReset(payload.token) : { ok: false, unavailable: true };
         else if (req.url === "/api/realm/score") result = (await realmEnsure(payload.token)) ? realmScore(payload.token, payload.entry) : { ok: false, unavailable: true };
         else if (req.url === "/api/realm/board") result = realmBoard(payload.token, payload.n);
