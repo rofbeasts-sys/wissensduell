@@ -846,6 +846,9 @@ function roomStateForClient(room) {
     roundCount: room.roundCount,
     roundMode: room.roundMode,
     olympiadTheme: room.olympiadTheme || "fussball",
+    tabooVariant: room.tabooVariant || "ffa",
+    tabooSecs: Math.round(tabooCfgOf(room).ms / 1000),
+    tabooVoice: tabooCfgOf(room).voice,
     olympiadThemes: OLYMPIAD_THEMES.map(t => ({ id: t.id, label: room.language === "de" ? t.de : t.en })),
     gameMode: room.gameMode,
     roundDefs: room.roundDefs.map(r => r ? ({ id: r.id, kind: r.kind, label: r.label, categories: r.categories }) : null),
@@ -889,6 +892,22 @@ function olympiadPool(room) {
 function randomizeRoundDefs(room) {
   let availablePool = roundDefPoolForLanguage(room.language, room.gameMode);
   const defs = [];
+  if (room.roundMode === "minimatch" || room.roundMode === "taboo") {
+    // Fertige Spielrunden: "Mini Match" wechselt Mini Games ab, "taboo" spielt nur Taboo.
+    const ids = room.roundMode === "taboo"
+      ? [room.tabooVariant === "team" ? "taboo" : "taboo_ffa"]
+      : ["tictactoe", "tictactoe_quantum", "tictactoe_quizmix", "fourups"].filter(id => id !== "tictactoe_quantum" || !featureLocked("ttt_quantum"));
+    const mp = ids.map(id => availablePool.find(d => d.id === id)).filter(Boolean);
+    if (mp.length) {
+      let bag = [], last = null;
+      for (let i = 0; i < room.roundCount; i++) {
+        if (!bag.length) { bag = mp.slice().sort(() => Math.random() - 0.5); if (bag.length > 1 && bag[bag.length - 1].id === last) bag.reverse(); }
+        const d = bag.pop(); defs.push(d); last = d.id;
+      }
+      room.roundDefs = defs;
+      return;
+    }
+  }
   if (room.roundMode === "olympiad") {
     const op = olympiadPool(room);
     if (op.length) {
@@ -8994,9 +9013,10 @@ wss.on("connection", (ws, req) => {
         break;
       case "setRoundMode":
         if (isHost && room.phase === "lobby") {
-          room.roundMode = msg.mode === "custom" ? "custom" : (msg.mode === "olympiad" ? "olympiad" : "random");
+          room.roundMode = msg.mode === "custom" ? "custom" : (["olympiad", "minimatch", "taboo"].includes(msg.mode) ? msg.mode : "random");
           if (room.roundMode === "olympiad") room.olympiadTheme = olympiadThemeById(msg.theme || room.olympiadTheme).id;
-          if (room.roundMode === "random" || room.roundMode === "olympiad") randomizeRoundDefs(room);
+          if (room.roundMode === "taboo") room.tabooVariant = msg.variant === "team" ? "team" : "ffa";
+          if (room.roundMode !== "custom") randomizeRoundDefs(room);
           else room.roundDefs = Array.from({ length: room.roundCount }, () => null); // "Noch nicht gewählt"
           pushRoomState(room);
         }
@@ -9083,7 +9103,7 @@ wss.on("connection", (ws, req) => {
         // Rundenstart passend zur Raumsprache aufgeloest (Deutsch / Englisch).
         if (isHost && room.phase === "lobby") {
           room.language = SUPPORTED_LANGS.includes(msg.language) ? msg.language : "de";
-          if (room.roundMode === "random" || room.roundMode === "olympiad") {
+          if (room.roundMode !== "custom") {
             randomizeRoundDefs(room);
           } else {
             // Bereits gewählte Runden, die mit der neuen Sprache nicht mehr
@@ -9177,7 +9197,7 @@ wss.on("connection", (ws, req) => {
         handleTabooOk(room, ws.playerId, msg.by, msg.ci);
         break;
       case "tabooConfig":
-        if (isHost && room.phase === "lobby") room.tabooCfg = { ms: Math.max(30, Math.min(300, Math.floor(Number(msg.secs) || 90))) * 1000, voice: msg.voice === true };
+        if (isHost && room.phase === "lobby") { room.tabooCfg = { ms: Math.max(30, Math.min(300, Math.floor(Number(msg.secs) || 90))) * 1000, voice: msg.voice === true }; pushRoomState(room); }
         break;
       case "fourupsMove":
         if (room.runtime && room.runtime.kind === "fourupsGame") handlePartyFourupsMove(room, ws.playerId, msg.col);

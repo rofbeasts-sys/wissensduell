@@ -14588,7 +14588,58 @@ function roundCountChipsHtml(room){
     </div>
   `;
 }
-function partySetOlympiad(theme){ partySend({action:'setRoundMode', mode:'olympiad', theme}); }
+function partyRemember(patch){ try{ const o = JSON.parse(localStorage.getItem('bp_party_last') || '{}'); Object.assign(o, patch); localStorage.setItem('bp_party_last', JSON.stringify(o)); }catch(e){} }
+function partySetOlympiad(theme){ partyRemember({mode:'olympiad', theme}); partySend({action:'setRoundMode', mode:'olympiad', theme}); }
+function partySetMini(){ partyRemember({mode:'minimatch'}); partySend({action:'setRoundMode', mode:'minimatch'}); }
+function partyTabooAvail(room){
+  const ids = (room.availableRoundDefs || []).map(d => d.id);
+  return { ffa: ids.indexOf('taboo_ffa') !== -1, team: ids.indexOf('taboo') !== -1 };
+}
+function partySetTabooMode(variant){
+  const room = party.room, av = room ? partyTabooAvail(room) : {ffa:true, team:true};
+  if(variant === 'team' && !av.team) variant = 'ffa';
+  if(variant !== 'team' && !av.ffa && av.team) variant = 'team';
+  partyRemember({mode:'taboo', variant});
+  partySend({action:'setRoundMode', mode:'taboo', variant});
+  if(variant === 'team') partySend({action:'setTeamMode', teamMode:'2v2'});
+}
+function partySetTabooSecs(n){ partyRemember({secs:n}); const r = party.room; partySend({action:'tabooConfig', secs:n, voice: !!(r && r.tabooVoice)}); }
+function partySetTabooVoice(v){ const r = party.room; partySend({action:'tabooConfig', secs:(r && r.tabooSecs) || 90, voice:v}); }
+function partyTabooOptsHtml(room){
+  const av = partyTabooAvail(room), secs = [45,60,90,120,180];
+  const chip = (on, js, txt) => `<div class="chip-btn ${on?'active':''}" onclick="${js}">${txt}</div>`;
+  return `
+    ${av.ffa && av.team ? `<div class="settings-row"><span class="label">${L('Spielart','Game type')}</span><div class="chip-group">
+      ${chip(room.tabooVariant!=='team', "partySetTabooMode('ffa')", L('Wettbewerb','Competition'))}
+      ${chip(room.tabooVariant==='team', "partySetTabooMode('team')", L('Team gegen Team','Team vs team'))}
+    </div></div>` : ''}
+    <div class="settings-row"><span class="label">${L('Zeit pro Erklärer','Time per explainer')}</span><div class="chip-group">
+      ${secs.map(n => chip(room.tabooSecs===n, 'partySetTabooSecs('+n+')', n>=120 ? (n/60)+' Min' : n+' s')).join('')}
+    </div></div>
+    <div class="settings-row"><span class="label">${L('Wie wird geraten?','How do players guess?')}</span><div class="chip-group">
+      ${chip(!room.tabooVoice, 'partySetTabooVoice(false)', L('Tippen','Typing'))}
+      ${chip(room.tabooVoice, 'partySetTabooVoice(true)', L('Laut rufen','Shout it'))}
+    </div></div>`;
+}
+function partyModeCardsHtml(room){
+  const mixed = room.gameMode === 'mixed', av = partyTabooAvail(room);
+  const card = (on, js, title, sub) => `<div onclick="${js}" style="cursor:pointer;margin-top:8px;padding:11px 14px;border-radius:14px;border:1.5px solid ${on?'var(--accent)':'var(--line)'};background:${on?'rgba(198,255,61,.10)':'var(--bg-alt)'}"><b style="font-size:15px">${title}</b><div style="color:var(--text-dim);font-size:12px;margin-top:2px;line-height:1.35">${sub}</div></div>`;
+  return `<div class="settings-row" style="display:block"><span class="label" style="display:block;margin-bottom:2px">${L('Was spielen wir?','What do we play?')}</span>
+    ${mixed ? card(room.roundMode==='minimatch', 'partySetMini()', L('Olympiade Mini Match','Olympics Mini Match'), L('Fertig. Tic Tac Toe, 4 gewinnt und Quiz Mix im Wechsel','Ready to go. Tic Tac Toe, 4 in a row and quiz mix in turns')) : ''}
+    ${mixed && room.olympiadThemes ? card(room.roundMode==='olympiad', "partySetOlympiad('"+(room.olympiadTheme||'fussball')+"')", L('Olympiade Quiz','Olympics Quiz'), L('Fertig. Ein Thema wählen, zum Beispiel Fußball','Ready to go. Pick a topic, for example football')) : ''}
+    ${mixed && (av.ffa || av.team) ? card(room.roundMode==='taboo', "partySetTabooMode('"+(room.tabooVariant||'ffa')+"')", 'Taboo', L('Erklären und raten, Team oder Wettbewerb','Explain and guess, team or competition')) : ''}
+    ${card(room.roundMode==='random', "partySetRoundMode('random')", t('lobby_random'), L('Gemischte Runden aus allem','Mixed rounds from everything'))}
+    ${card(room.roundMode==='custom', "partySetRoundMode('custom')", t('lobby_custom'), L('Für alle, die es genau wollen','For those who want it exact'))}
+  </div>`;
+}
+function partyApplyLast(room){
+  let o = {}; try{ o = JSON.parse(localStorage.getItem('bp_party_last') || '{}') || {}; }catch(e){}
+  if(!o || room.gameMode !== 'mixed' || room.roundMode !== 'random') return;
+  if([5,10,15,20].indexOf(o.count) !== -1 && o.count !== room.roundCount) partySend({action:'setRoundCount', count:o.count});
+  if(o.mode === 'olympiad' && room.olympiadThemes && room.olympiadThemes.some(x => x.id === o.theme)) partySend({action:'setRoundMode', mode:'olympiad', theme:o.theme});
+  else if(o.mode === 'minimatch') partySend({action:'setRoundMode', mode:'minimatch'});
+  else if(o.mode === 'taboo'){ const av = partyTabooAvail(room); if(av.ffa || av.team){ const v = (o.variant === 'team' && av.team) ? 'team' : (av.ffa ? 'ffa' : 'team'); partySend({action:'setRoundMode', mode:'taboo', variant:v}); if(v === 'team') partySend({action:'setTeamMode', teamMode:'2v2'}); if(o.secs) partySend({action:'tabooConfig', secs:o.secs, voice:false}); } }
+}
 function roundPlanBlockHtml(room, returnTo){
   if(room.roundMode === 'olympiad'){
     return `
@@ -14602,6 +14653,20 @@ function roundPlanBlockHtml(room, returnTo){
       <div class="round-plan-list">
         ${room.roundDefs.map((r,i)=>`<div class="round-plan-item"><span class="idx">${i+1}</span>${r ? esc(r.label) : '…'}</div>`).join("")}
       </div>
+    `;
+  }
+  if(room.roundMode === 'taboo'){
+    return partyTabooOptsHtml(room);
+  }
+  if(room.roundMode === 'minimatch'){
+    return `
+      <div class="settings-row"><span class="label">${L('So läuft es','How it runs')}</span>
+        <button class="btn btn-ghost" style="padding:8px 14px; font-size:12px;" onclick="partySetMini()">${t('lobby_reshuffle')}</button>
+      </div>
+      <div class="round-plan-list">
+        ${room.roundDefs.map((r,i)=>`<div class="round-plan-item"><span class="idx">${i+1}</span>${r ? esc(r.label) : '…'}</div>`).join("")}
+      </div>
+      <p class="picker-sub" style="margin:8px 0 0">${L('Schach ist nicht dabei, weil eine Partie zu lang dauert.','Chess is not included because a game takes too long.')}</p>
     `;
   }
   if(room.roundMode === 'random'){
@@ -14885,6 +14950,7 @@ function renderPartyLobby(){
   const room = party.room;
   const me = room.players.find(p => p.id === party.playerId);
   const isHost = party.isHost;
+  if(isHost && party._lastFor !== room.code){ party._lastFor = room.code; try{ partyApplyLast(room); }catch(e){} }
 
   const teamModeLabels = { ffa:t('team_ffa'), "2v2":"2 vs 2", "3v3":"3 vs 3", "2v2v2":"2 vs 2 vs 2" };
 
@@ -14944,7 +15010,7 @@ function renderPartyLobby(){
       <div class="lb-card">
       ${isHost ? renderPartyHostSettings(room) : `
         <div class="settings-row"><span class="label">${t('lobby_rounds_label')}</span><span>${room.roundCount}</span></div>
-        <div class="settings-row"><span class="label">${t('lobby_round_selection')}</span><span>${room.roundMode === 'random' ? t('lobby_random') : room.roundMode === 'olympiad' ? '🏅 ' + L('Olympiade','Olympics') : t('lobby_custom')}</span></div>
+        <div class="settings-row"><span class="label">${t('lobby_round_selection')}</span><span>${room.roundMode === 'random' ? t('lobby_random') : room.roundMode === 'olympiad' ? L('Olympiade Quiz','Olympics Quiz') : room.roundMode === 'minimatch' ? L('Olympiade Mini Match','Olympics Mini Match') : room.roundMode === 'taboo' ? 'Taboo' : t('lobby_custom')}</span></div>
         <div class="settings-row"><span class="label">${t('lobby_teams')}</span><span>${teamModeLabels[room.teamMode]}</span></div>
         <div class="settings-row"><span class="label">${t('lobby_point_system')}</span><span>${room.pointSystem}</span></div>
         <p style="color:var(--text-dim); text-align:center; margin-top:16px;">${t('lobby_waiting_host')}</p>
@@ -14997,14 +15063,7 @@ function renderPartyHostSettings(room){
 
   return `
     ${roundCountChipsHtml(room)}
-    <div class="settings-row">
-      <span class="label">${t('lobby_round_selection')}</span>
-      <div class="chip-group">
-        <div class="chip-btn ${room.roundMode==='random'?'active':''}" onclick="partySetRoundMode('random')">${t('lobby_random')}</div>
-        <div class="chip-btn ${room.roundMode==='custom'?'active':''}" onclick="partySetRoundMode('custom')">${t('lobby_custom')}</div>
-        ${room.gameMode==='mixed' && room.olympiadThemes ? `<div class="chip-btn ${room.roundMode==='olympiad'?'active':''}" onclick="partySetOlympiad('${room.olympiadTheme||'fussball'}')">🏅 ${L('Olympiade','Olympics')}</div>` : ''}
-      </div>
-    </div>
+    ${partyModeCardsHtml(room)}
     ${roundPlanBlockHtml(room, 'renderPartyLobby')}
 
     <div class="settings-row">
@@ -15042,8 +15101,8 @@ function renderPartyHostSettings(room){
   `;
 }
 
-function partySetRoundCount(n){ partySend({action:'setRoundCount', count:n}); }
-function partySetRoundMode(mode){ partySend({action:'setRoundMode', mode}); }
+function partySetRoundCount(n){ partyRemember({count:n}); partySend({action:'setRoundCount', count:n}); }
+function partySetRoundMode(mode){ if(mode === 'random') partyRemember({mode:'random'}); partySend({action:'setRoundMode', mode}); }
 function partyRandomizeRounds(){ partySend({action:'randomizeRounds'}); }
 function partySetRoundDef(index, defId){ partySend({action:'setRoundDef', index, defId}); }
 
@@ -15969,7 +16028,7 @@ function startTabooHub(){
   document.querySelectorAll('.tbh .opt[data-tg]').forEach(o => { const g = o.dataset.tg; if(hiddenFeatures.indexOf(g) !== -1){ o.remove(); return; } if(featureLocked(g)){ o.removeAttribute('onclick'); o.style.opacity = '.45'; o.style.cursor = 'default'; const sp = o.querySelector('.s'); if(sp) sp.textContent = gateText(g); } });
   if(featureLocked('zp')){ const d = document.querySelector('.tbh .d'); if(d) d.remove(); }
 }
-let tbCfg = { secs: 90, voice: false, def: 'taboo_ffa' };
+let tbCfg = { secs: 90, voice: false, def: 'taboo_ffa', rounds: 5 };
 function partyTabooSetup(){
   if(!account || (location.protocol !== 'http:' && location.protocol !== 'https:')){ startPartyFlow(); return; }
   tabooHubCss();
@@ -15982,6 +16041,7 @@ function partyTabooSetup(){
     ${opt(tbCfg.def === 'taboo_ffa', '🏆', L('Jeder gegen jeden','Free-for-all'), L('Jeder erklärt einmal, alle raten. Wer schneller ist, bekommt mehr Punkte.','Everyone explains once, all guess. Faster = more points.'), "tbCfg.def='taboo_ffa'")}
     ${opt(tbCfg.def === 'taboo', '👥', L('Team gegen Team','Team vs team'), L('Zwei Teams, Tabu-Wächter aus dem Gegnerteam.','Two teams, taboo watcher from the other team.'), "tbCfg.def='taboo'")}` : ''}
     <p style="margin:16px 0 4px;font-weight:800">${L('Zeit pro Erklärer','Time per explainer')}</p><div>${sb}</div>
+    <p style="margin:16px 0 4px;font-weight:800">${L('Runden','Rounds')}</p><div>${[5,10,15,20].map(n => `<button class="btn ${tbCfg.rounds === n ? 'btn-primary' : 'btn-ghost'}" style="padding:10px 14px;margin:4px 4px 0 0" onclick="tbCfg.rounds=${n};partyTabooSetup()">${n}</button>`).join('')}</div>
     <p style="margin:16px 0 4px;font-weight:800">${L('Wie wird geraten?','How do players guess?')}</p>
     ${opt(!tbCfg.voice, '📱', L('Tippen','Typing'), L('Die Rater tippen ihre Antwort in die App. Für online mit Freunden.','Guessers type their answer in the app. For playing online.'), 'tbCfg.voice=false')}
     ${opt(tbCfg.voice, '🗣️', L('Nur erklären (im selben Raum)','Explain only (same room)'), L('Die Rater rufen die Antwort laut. Der Erklärer drückt ✔, wenn sie stimmt, und der Gegner TABU.','Guessers shout the answer. The explainer taps ✔ when it is right, the opponent taps TABU.'), 'tbCfg.voice=true')}
@@ -15995,7 +16055,7 @@ function partyTabooStart(defId){
     () => {
       party.gameMode = 'mixed';
       party.afterJoin = () => {
-        partySend({action:'setRoundCount', count:1}); partySend({action:'setRoundMode', mode:'custom'}); partySend({action:'setRoundDef', index:0, defId}); partySend({action:'tabooConfig', secs: tbCfg.secs, voice: tbCfg.voice});
+        partySend({action:'setRoundCount', count: tbCfg.rounds || 5}); partySend({action:'setRoundMode', mode:'taboo', variant: defId === 'taboo' ? 'team' : 'ffa'}); partySend({action:'tabooConfig', secs: tbCfg.secs, voice: tbCfg.voice});
         if(defId === 'taboo') partySend({action:'setTeamMode', teamMode:'2v2'});
       };
       party.ws.send(JSON.stringify({ action:'createRoom', name: account.profile.username, language: currentLang, gameMode:'mixed' }));
