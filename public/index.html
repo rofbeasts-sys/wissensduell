@@ -5142,10 +5142,68 @@ function startFriendsFlow(){
   connectFriendsWs();
   loadAndRenderFriendsList();
 }
+/* ---- Zuschauen (nur Freunde), Planung freigeben, 2 gegen 2 ---- */
+let liveCfgC = { watch:true, planAll:false, planFriends:[] }, liveGamesC = [], liveTimer = null;
+function liveStyle(){
+  if(document.getElementById('liveCss')) return;
+  const st = document.createElement('style'); st.id = 'liveCss';
+  st.textContent = `.ttt-cell.lastmv{ box-shadow:inset 0 0 0 3px #ffd65a, 0 0 14px rgba(255,214,90,.45); }
+  .ttt-cell.plan{ outline:3px dashed #8c6bff; outline-offset:-5px; background-image:radial-gradient(circle,rgba(140,107,255,.35),transparent 70%); }
+  .fu-col.plan{ box-shadow:inset 0 0 0 3px #8c6bff; border-radius:12px; }
+  .live-banner{ margin:8px auto; max-width:360px; padding:8px 12px; border-radius:10px; text-align:center; font-size:13px; font-weight:700; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); color:var(--text-dim); }
+  .live-banner.on{ border-color:#7c5cff; color:#d9ccff; background:#2a2150; }
+  .live-pill{ display:inline-block; background:rgba(255,255,255,.08); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:800; margin:2px 3px; color:var(--text-dim); }
+  .live-log{ max-width:360px; margin:10px auto 0; text-align:left; background:rgba(0,0,0,.25); border-radius:12px; padding:8px 12px; font-size:13px; line-height:1.7; color:var(--text-dim); max-height:130px; overflow:auto; }
+  .live-log .last{ color:#ffd65a; font-weight:800; }
+  .live-box{ margin-top:12px; padding:10px 12px; border-radius:12px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); }`;
+  document.head.appendChild(st);
+}
+async function liveLoad(){
+  if(!account) return;
+  const [a, b] = await Promise.all([ apiCall('/api/live-settings', { token: account.token }), apiCall('/api/live-friends', { token: account.token }) ]);
+  if(a && a.ok) liveCfgC = { watch: a.watch, planAll: a.planAll, planFriends: a.planFriends || [] };
+  if(b && b.ok) liveGamesC = b.games || [];
+}
+async function liveSet(set){
+  const r = await apiCall('/api/live-settings', { token: account.token, set });
+  if(r && r.ok) liveCfgC = { watch: r.watch, planAll: r.planAll, planFriends: r.planFriends || [] };
+  if(friendsScreenOpen && !activeChatWith) renderFriendsList();
+}
+function liveGameName(k){ return k==='ttt' ? 'Tic Tac Toe' : k==='fu' ? L('4 gewinnt','Fourups') : L('Schach','Chess'); }
+function liveGamesHtml(){
+  if(!liveGamesC.length) return `<div class="settings-track" style="margin-top:6px;">${L('Gerade spielt kein Freund. Sobald einer spielt, kannst du hier zuschauen.','No friend is playing right now. Once one does, you can watch here.')}</div>`;
+  return liveGamesC.map(g => `<div class="friend-row"><span>🟢 <b>${esc(g.names.join(' · '))}</b><br><small style="color:var(--text-dim)">${liveGameName(g.kind)}${g.team?' · '+L('2 gegen 2','2 vs 2'):''}${g.watchers?' · '+L(g.watchers+' schauen zu',g.watchers+' watching'):''}</small></span>
+    <button class="btn btn-primary btn-sm" onclick="liveWatchJoin('${g.kind}','${esc(g.code)}')">👁 ${L('Zuschauen','Watch')}</button></div>`).join('');
+}
+function liveSettingsHtml(){
+  const on = (b) => b ? L('an','on') : L('aus','off');
+  return `<div class="live-box">
+    <div class="picker-sub" style="font-weight:800;margin:0 0 6px;">👁 ${L('Zuschauen','Watching')}</div>
+    <div class="friend-row"><span>${L('Freunde dürfen mir beim Spielen zuschauen','Friends may watch me play')}</span><button class="btn ${liveCfgC.watch?'btn-primary':'btn-ghost'} btn-sm" onclick="liveSet({watch:${!liveCfgC.watch}})">${on(liveCfgC.watch)}</button></div>
+    <div class="friend-row"><span>${L('Meine Planung (angehobene Figur, Pfeile) für alle Freunde zeigen','Show my planning (lifted piece, arrows) to all friends')}</span><button class="btn ${liveCfgC.planAll?'btn-primary':'btn-ghost'} btn-sm" onclick="liveSet({planAll:${!liveCfgC.planAll}})">${on(liveCfgC.planAll)}</button></div>
+    <div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${L('Standard: Zuschauer sehen nur fertige Züge. Du kannst die Planung auch bei einzelnen Freunden unten freischalten.','By default, watchers only see finished moves. You can also unlock planning for single friends below.')}</div>
+  </div>`;
+}
+function liveWatchJoin(kind, code){
+  liveStyle();
+  if(kind === 'ttt'){ tttOverviewProfile = accountAsProfile(); tttMpConnect(() => { tttMp.isHost = false; tttMp.spectator = true; tttMp.ws.send(JSON.stringify({action:'tttWatch', code})); }); }
+  else if(kind === 'fu'){ fuStyle(); fuMpClose(); fuMpConnect(() => { fuMp.spectator = true; fuMp.ws.send(JSON.stringify({action:'fuWatch', code})); }); }
+  else { renderChessFrame('/chess/online.html?watch=' + encodeURIComponent(code)); }
+}
+function liveStartPolling(){
+  clearInterval(liveTimer);
+  liveTimer = setInterval(async () => {
+    if(!friendsScreenOpen || activeChatWith || !account){ clearInterval(liveTimer); return; }
+    await liveLoad();
+    const el = document.getElementById('liveGamesBox'); if(el) el.innerHTML = liveGamesHtml();
+  }, 8000);
+}
 async function loadAndRenderFriendsList(){
   const r = await apiCall("/api/friends-list", { token: account.token });
   if(r.ok){ friendsDataCache = { friends: r.friends, incoming: r.incoming, outgoing: r.outgoing }; }
+  try{ await liveLoad(); }catch(e){}
   renderFriendsList();
+  liveStartPolling();
 }
 function renderFriendsList(){
   friendsScreenOpen = true; activeChatWith = null;
@@ -5156,6 +5214,9 @@ function renderFriendsList(){
       ${streamerMode ? `<div class="settings-track" style="margin-top:6px;">🎥 ${L('Streamer-Modus: Du bekommst keine Freundschaftsanfragen. Schickst du jemandem eine, der dir schon eine geschickt hat, seid ihr sofort Freunde.','Streamer mode: you will not receive friend requests. If you send one to someone who already sent you one, you become friends right away.')}</div>` : ``}
       <input id="friendSearchInput" type="text" placeholder="${L('Benutzername suchen…','Search username…')}" maxlength="20" style="margin-top:10px;" oninput="friendsSearchDebounced()">
       <div id="friendSearchResults"></div>
+      <div class="picker-sub" style="margin-top:18px; font-weight:800;">🔴 ${L('Freunde live','Friends live')}</div>
+      <div id="liveGamesBox">${liveGamesHtml()}</div>
+      ${liveSettingsHtml()}
       ${d.incoming.length ? `
         <div class="picker-sub" style="margin-top:18px; font-weight:800; color:var(--accent-2);">${L('Anfragen erhalten','Requests received')}</div>
         ${d.incoming.map(name => `
@@ -5195,6 +5256,7 @@ function renderFriendsList(){
           </div>
           <div class="friend-row-actions">
             <button class="btn btn-primary btn-sm" onclick="openChat('${esc(f.username)}')">Chat</button>
+            <button class="btn ${liveCfgC.planAll || liveCfgC.planFriends.includes(f.username.toLowerCase()) ? 'btn-primary' : 'btn-ghost'} btn-sm" ${liveCfgC.planAll ? 'disabled' : ''} title="${L('Darf meine Planung sehen','May see my planning')}" onclick="liveSet({friend:'${esc(f.username)}',on:${!liveCfgC.planFriends.includes(f.username.toLowerCase())}})">🧠 ${L('Planung','Planning')}: ${(liveCfgC.planAll || liveCfgC.planFriends.includes(f.username.toLowerCase())) ? L('an','on') : L('aus','off')}</button>
             <button class="btn btn-ghost btn-sm" onclick="removeFriendNow('${esc(f.username)}')">${L('Entfernen','Remove')}</button>
           </div>
         </div>`).join("")}
@@ -11773,7 +11835,7 @@ function fuRender(){
     </div></div>`);
 }
 /* ---------- 4 gewinnt online mit Freunden ---------- */
-let fuMp = null;
+let fuMp = null, fuMpTeams = false;
 function fuMpName(){ return (account && account.profile && account.profile.username) || L('Spieler','Player'); }
 function fuMpClose(){ if(fuMp && fuMp.ws){ try{ fuMp.ws.send(JSON.stringify({action:'fuLeave'})); }catch(e){} try{ fuMp.ws.close(); }catch(e){} } fuMp=null; inviteBoxOpen=false; }
 function fuMpMenu(msg){
@@ -11784,6 +11846,8 @@ function fuMpMenu(msg){
       <div class="picker-title">👥 FOURUPS ${L('MIT FREUNDEN','WITH FRIENDS')}</div>
       <div class="picker-sub">${L('Erstelle einen Raum und lade einen Freund ein, oder tritt mit einem Code bei.','Create a room and invite a friend, or join with a code.')}</div>
       <div id="fuMpErr" style="color:#ff8a8a;font-weight:700;min-height:20px;margin-top:6px">${msg?esc(msg):''}</div>
+      <button class="btn btn-ghost btn-block" style="margin-top:6px" onclick="fuMpTeams=!fuMpTeams; fuMpMenu();">👥 ${L('2 gegen 2','2 vs 2')}: ${fuMpTeams?L('an','on'):L('aus','off')}</button>
+      <div class="picker-sub" style="font-size:12px;margin:2px 0 0;">${fuMpTeams?L('4 Spieler, zwei Teams, die Teams und im Team die Spieler wechseln sich ab.','4 players, two teams. Teams alternate, and so do the players inside a team.'):''}</div>
       <button class="btn btn-block" style="margin-top:6px" onclick="fuMpCreate()">➕ ${L('Raum erstellen','Create room')}</button>
       <div class="picker-sub" style="margin-top:18px">${L('Oder Code eingeben','Or enter a code')}</div>
       <input id="fuMpCode" type="text" maxlength="8" placeholder="CODE" style="text-transform:uppercase;text-align:center;letter-spacing:4px;font-size:20px;margin-top:6px">
@@ -11795,11 +11859,11 @@ function fuMpConnect(onOpen){
   let ws; try{ ws = new WebSocket(wsUrl()); }catch(e){ fuMpMenu(L('Verbindung fehlgeschlagen.','Connection failed.')); return; }
   fuMp = { ws, code:null, you:0, st:null, left:false };
   const to = setTimeout(()=>{ if(ws.readyState!==WebSocket.OPEN){ try{ws.close();}catch(e){} fuMp=null; fuMpMenu(L('Der Server antwortet nicht.',"The server isn't responding.")); } },5000);
-  ws.onopen = ()=>{ clearTimeout(to); onOpen(); };
+  ws.onopen = ()=>{ clearTimeout(to); try{ if(account) ws.send(JSON.stringify({action:'liveIdent',token:account.token})); }catch(e){} onOpen(); };
   ws.onmessage = ev=>{ let m; try{ m=JSON.parse(ev.data); }catch(e){ return; } fuMpHandle(m); };
   ws.onclose = ()=>{ clearTimeout(to); if(fuMp && fuMp.ws===ws && !fuMp.left){ fuMp.left=true; fuMp.lost=true; if(document.getElementById('fuMpWrap')) fuMpRender(); } };
 }
-function fuMpCreate(){ fuMpConnect(()=>fuMp.ws.send(JSON.stringify({action:'fuCreateRoom',name:fuMpName()}))); }
+function fuMpCreate(){ fuMpConnect(()=>fuMp.ws.send(JSON.stringify({action:'fuCreateRoom',name:fuMpName(),teams:fuMpTeams}))); }
 function fuMpJoin(code){
   if(!account){ postLoginRedirect = ()=>fuMpJoin(code); renderAccountAuth('login'); return; }
   const c=String(code||'').trim().toUpperCase(); if(!c){ const e=document.getElementById('fuMpErr'); if(e) e.textContent=L('Bitte Code eingeben.','Please enter a code.'); return; }
@@ -11808,30 +11872,35 @@ function fuMpJoin(code){
 function fuMpHandle(m){
   if(!fuMp) return;
   if(m.type==='fuError'){ const msg=m.message||'Fehler'; fuMpClose(); fuMpMenu(msg); return; }
-  if(m.type==='fuJoined'){ fuMp.code=m.roomCode; fuMp.you=m.you; return; }
+  if(m.type==='fuWatching'){ liveStyle(); fuMp.spectator=true; fuMp.code=m.roomCode; fuMp.you=0; fuMpRender(); return; }
+  if(m.type==='fuPlan'){ fuMp.plan={cell:m.cell,by:m.by}; clearTimeout(fuMp.planT); fuMp.planT=setTimeout(()=>{ if(fuMp){ fuMp.plan=null; fuMpRender(); } },6000); fuMpRender(); return; }
+  if(m.type==='fuJoined'){ liveStyle(); fuMp.code=m.roomCode; fuMp.you=m.you; return; }
   if(m.type==='fuState'){ try{ const wasOver = fuMp.st && fuMp.st.over; if(m.over && !wasOver && m.winner===m.you){ let n=0; (m.board||[]).forEach(row=>row.forEach(v=>{ if(v===m.you) n++; })); const wc=m.winCells||[], a=wc[0], b2=wc[1]; achvRecord({ t:'four', hard:false, online:true, diag: !!(a&&b2&&a[0]!==b2[0]&&a[1]!==b2[1]), discs:n }); } }catch(e){}
-    fuMp.st=m; fuMp.you=m.you; fuMp.code=m.roomCode; fuMp.left=false; fuMpRender(); return; }
+    fuMp.st=m; fuMp.you=m.you; fuMp.code=m.roomCode; fuMp.left=false; fuMp.plan=null; if(m.spectator) fuMp.spectator=true; fuMpRender(); return; }
   if(m.type==='fuOpponentLeft'){ fuMp.left=true; fuMpRender(); return; }
 }
 function fuMpMove(c){
-  if(!fuMp||!fuMp.st||fuMp.st.over||!fuMp.st.full||fuMp.st.turn!==fuMp.you||fuMp.left) return;
-  fuMp.ws.send(JSON.stringify({action:'fuMove',col:c}));
+  if(!fuMp||fuMp.spectator||!fuMp.st||fuMp.st.over||!fuMp.st.full||!fuMp.st.yourTurn||fuMp.left) return;
+  fuPlanLast=-1; fuMp.ws.send(JSON.stringify({action:'fuMove',col:c}));
 }
+let fuPlanLast=-1;
+function fuMpPlan(c){ if(!fuMp||fuMp.spectator||!fuMp.st||fuMp.st.over||!fuMp.st.yourTurn||fuPlanLast===c) return; fuPlanLast=c; try{ fuMp.ws.send(JSON.stringify({action:'fuPlan',cell:c})); }catch(e){} }
 function fuMpRematch(){ if(fuMp&&fuMp.ws) fuMp.ws.send(JSON.stringify({action:'fuRematch'})); }
-function fuMpLeaveBtn(){ fuMpClose(); startFourupsFlow(); }
+function fuMpLeaveBtn(){ const sp=fuMp&&fuMp.spectator; if(sp&&fuMp.ws){ try{ fuMp.ws.send(JSON.stringify({action:'liveUnwatch'})); }catch(e){} } fuMpClose(); if(sp){ if(account) startFriendsFlow(); else renderMainMenu(); return; } startFourupsFlow(); }
 function fuMpRender(){
   if(!fuMp||!fuMp.st) return;
-  const st=fuMp.st, k=fuSkin(), me=fuMp.you, opp=3-me;
+  const st=fuMp.st, k=fuSkin(), spec=!!fuMp.spectator, me=spec?1:fuMp.you, opp=3-me, isTeam=(st.size||2)===4;
   const nm=p=>st.names[p-1]||(p===me?L('Du','You'):L('Freund','Friend'));
   const dot=p=>`<span class="fu-dot" style="background:${p===1?k.c1:k.c2}"></span>`;
   let status;
   if(fuMp.left||fuMp.lost) status=fuMp.lost?L('Verbindung verloren.','Connection lost.'):L('Dein Freund hat das Spiel verlassen.','Your friend left the game.');
-  else if(!st.full) status=L('Warte auf deinen Freund …','Waiting for your friend …');
-  else if(st.over) status=st.winner==='draw'?L('Unentschieden!','Draw!'):`${dot(st.winner)}${st.winner===me?L('Du gewinnst! 🎉','You win! 🎉'):nm(st.winner)+' '+L('gewinnt!','wins!')}`;
-  else status=`${dot(st.turn)}${st.turn===me?L('Du bist dran','Your move'):nm(st.turn)+' '+L('ist dran','to move')}`;
+  else if(!st.full) status=isTeam?L('Warte auf Mitspieler','Waiting for players')+' ('+(st.count||1)+'/4)':L('Warte auf deinen Freund …','Waiting for your friend …');
+  else if(st.over) status=st.winner==='draw'?L('Unentschieden!','Draw!'):`${dot(st.winner)}${spec?nm(st.winner)+' '+L('gewinnt!','wins!'):st.winner===me?(isTeam?L('Dein Team gewinnt! 🎉','Your team wins! 🎉'):L('Du gewinnst! 🎉','You win! 🎉')):nm(st.winner)+' '+L('gewinnt!','wins!')}`;
+  else status=`${dot(st.turn)}${spec?(st.turnName||nm(st.turn))+' '+L('ist dran','to move'):st.yourTurn?L('Du bist dran','Your move'):((isTeam&&st.turnName)?st.turnName:nm(st.turn))+' '+L('ist dran','to move')}`;
   const winSet=new Set((st.winCells||[]).map(c=>c[0]+','+c[1]));
   const sym=v=>(v===1?k.s1:k.s2);
-  const canPlay=st.full&&!st.over&&st.turn===me&&!fuMp.left;
+  const canPlay=st.full&&!st.over&&!!st.yourTurn&&!spec&&!fuMp.left;
+  liveStyle();
   let cols='';
   for(let c=0;c<FU_COLS;c++){
     let cells='';
@@ -11839,7 +11908,7 @@ function fuMpRender(){
       const v=st.board[r][c], isLast=st.last&&st.last[0]===r&&st.last[1]===c;
       cells+=`<div class="fu-cell">${v?`<div class="fu-disc p${v}${winSet.has(r+','+c)?' win':''}${isLast?' last':''}${isLast&&!st.over?' drop':''}" ${isLast&&!st.over?`style="--from:-${(r+1)*112}%"`:''}>${sym(v)?`<span>${sym(v)}</span>`:''}</div>`:''}</div>`;
     }
-    cols+=`<div class="fu-col${canPlay?'':' off'}" onclick="fuMpMove(${c})"><div class="fu-ghost p${me}">${sym(me)}</div>${cells}</div>`;
+    cols+=`<div class="fu-col${canPlay?'':' off'}${fuMp.plan&&fuMp.plan.cell===c?' plan':''}" onclick="fuMpMove(${c})" ${canPlay?`onpointerenter="fuMpPlan(${c})"`:''}><div class="fu-ghost p${spec?st.turn:me}">${sym(spec?st.turn:me)}</div>${cells}</div>`;
   }
   const waiting=!st.full&&!fuMp.left;
   renderApp(`
@@ -11848,10 +11917,13 @@ function fuMpRender(){
       ${waiting?`<div class="picker-sub">${L('Raumcode','Room code')}: <b style="font-size:24px;letter-spacing:4px;color:#ffd45a">${esc(fuMp.code||'')}</b></div>`:''}
       <div style="font-size:13px;color:var(--text-dim)">${dot(me)}${nm(me)} ${st.scores[me]} &nbsp;·&nbsp; ${dot(opp)}${nm(opp)} ${st.scores[opp]} &nbsp;·&nbsp; ${L('Remis','Draws')} ${st.scores.d}</div>
       <div class="fu-status">${status}</div>
+      ${spec?`<div style="text-align:center"><span class="live-pill">👁 ${L('Du schaust zu','You are watching')}</span>${st.watchers?`<span class="live-pill">${st.watchers} ${L('schauen zu','watching')}</span>`:''}</div>`:''}
       <div class="fu-stage"><div class="fu-board">${cols}</div></div>
-      ${waiting?renderInviteFriendsBox('fourups',fuMp.code):''}
+      ${spec&&st.full?`<div class="live-banner ${fuMp.plan?'on':''}">${fuMp.plan?esc(fuMp.plan.by)+L(' zeigt dir seine Planung',' is showing you their plan'):L('Planung: aus, du siehst nur fertige Züge.','Planning: off, you only see finished moves.')}</div>`:(isTeam&&fuMp.plan?`<div class="live-banner on">${esc(fuMp.plan.by)}${L(' überlegt mit (Teamplanung)',' is thinking (team planning)')}</div>`:'')}
+      ${(spec||isTeam)&&st.log&&st.log.length&&st.full?`<div class="live-log">${st.log.map((e,i)=>`<div class="${i===st.log.length-1?'last':''}">${e.n}. ${esc(e.who)}: ${L('Spalte','Column')} ${e.col+1}</div>`).join('')}</div>`:''}
+      ${waiting&&!spec?renderInviteFriendsBox('fourups',fuMp.code):''}
       <div class="actions-row" style="margin-top:12px;">
-        ${st.over&&st.full&&!fuMp.left?`<button class="btn" onclick="fuMpRematch()">${L('Nochmal','Again')}</button>`:''}
+        ${st.over&&st.full&&!fuMp.left&&!spec?`<button class="btn" onclick="fuMpRematch()">${L('Nochmal','Again')}</button>`:''}
         <button class="btn btn-ghost" onclick="fuMpLeaveBtn()">${t('btn_back')}</button>
       </div>
     </div></div>`);
@@ -12541,7 +12613,7 @@ function tttResetRank(ok){
 /*      getrennt von "party" - braucht keine der Quiz-Rundenlogik) ---- */
 let tttMp = null; // { ws, roomCode, mySymbol, board, turnSymbol, gameOver, winner, opponentLeft, isHost }
 
-let tttMpSelectedMode = "classic";
+let tttMpSelectedMode = "classic", tttMpTeams = false;
 if(featureLocked('ttt_quantum') && tttMpSelectedMode==='quantum') tttMpSelectedMode='classic';
 function tttStartMultiplayer(profile){
   tttOverviewProfile = profile;
@@ -12570,6 +12642,8 @@ function tttStartMultiplayer(profile){
           <p>${L('Höchstens 3 Symbole, das älteste verschwindet beim vierten Zug.','At most 3 symbols, the oldest vanishes on the fourth move.')}</p>
         </div>`}
       </div>
+      ${tttMpSelectedMode==='quizmix' ? '' : `<div class="actions-row" style="margin:14px 0 0;"><button class="btn ${tttMpTeams?'btn-primary':'btn-ghost'}" onclick="tttMpTeams=!tttMpTeams; tttStartMultiplayer(tttOverviewProfile);">👥 ${L('2 gegen 2','2 vs 2')}: ${tttMpTeams?L('an','on'):L('aus','off')}</button></div>
+      <div class="picker-sub" style="margin-top:4px;font-size:12px;">${tttMpTeams?L('4 Spieler, zwei Teams, die Teams und im Team die Spieler wechseln sich ab.','4 players, two teams. Teams alternate, and so do the players inside a team.'):''}</div>`}
       <div class="actions-row" style="margin:18px 0;">
         <button class="btn btn-primary" onclick="tttMpCreateRoom()">${L('RAUM ERSTELLEN','CREATE ROOM')}</button>
       </div>
@@ -12594,7 +12668,7 @@ function tttMpConnect(onOpen){
   const timeout = setTimeout(() => {
     if(ws.readyState !== WebSocket.OPEN){ ws.close(); tttMp = null; tttMpShowError(L("Der Server antwortet nicht.","The server isn't responding.")); }
   }, 5000);
-  ws.onopen = () => { clearTimeout(timeout); onOpen(); };
+  ws.onopen = () => { clearTimeout(timeout); try{ if(account) ws.send(JSON.stringify({action:'liveIdent',token:account.token})); }catch(e){} onOpen(); };
   ws.onmessage = (ev) => tttMpHandleMessage(JSON.parse(ev.data));
   ws.onclose = () => { clearTimeout(timeout); };
 }
@@ -12607,7 +12681,7 @@ function tttMpShowError(message){
 function tttMpCreateRoom(){
   tttMpConnect(() => {
     tttMp.isHost = true;
-    tttMp.ws.send(JSON.stringify({action:"tttCreateRoom", name: tttOverviewProfile.name, mode: tttMpSelectedMode}));
+    tttMp.ws.send(JSON.stringify({action:"tttCreateRoom", name: tttOverviewProfile.name, mode: tttMpSelectedMode, teams: tttMpTeams && tttMpSelectedMode !== "quizmix"}));
   });
 }
 function tttMpJoinRoom(){
@@ -12621,7 +12695,17 @@ function tttMpJoinRoom(){
 
 function tttMpHandleMessage(msg){
   if(!tttMp) return;
+  if(msg.type === "tttWatching"){
+    liveStyle(); tttMp.spectator = true; tttMp.roomCode = msg.roomCode; tttMp.mode = msg.mode || "classic"; tttMp.size = msg.size || 2;
+    renderTttMpGame(); return;
+  }
+  if(msg.type === "tttPlan"){
+    tttMp.plan = { cell: msg.cell, by: msg.by, at: Date.now() };
+    clearTimeout(tttMp.planT); tttMp.planT = setTimeout(() => { if(tttMp){ tttMp.plan = null; if(!tttMp.duel) renderTttMpGame(); } }, 6000);
+    if(!tttMp.duel) renderTttMpGame(); return;
+  }
   if(msg.type === "tttJoined"){
+    liveStyle(); tttMp.size = msg.size || 2;
     tttMp.roomCode = msg.roomCode;
     tttMp.mySymbol = msg.symbol;
     tttMp.mode = msg.mode || "classic";
@@ -12651,12 +12735,14 @@ function tttMpHandleMessage(msg){
     tttMp.players = msg.players;
     tttMp.mode = msg.mode || tttMp.mode;
     tttMp.mySymbol = msg.yourSymbol; // kann sich nach einem Rematch ändern (Tausch)
-    tttMp.opponentConnected = msg.players.length===2 && msg.players.every(p=>p.connected);
+    tttMp.size = msg.size || 2; tttMp.yourTurn = !!msg.yourTurn; tttMp.turnName = msg.turnName || null; tttMp.last = msg.last == null ? null : msg.last;
+    tttMp.log = msg.log || []; tttMp.watchers = msg.watchers || 0; tttMp.spectator = !!msg.spectator; tttMp.plan = null; tttMp.opponentLeft = false;
+    tttMp.opponentConnected = msg.players.length===tttMp.size && msg.players.every(p=>p.connected);
     tttMp.duel = null;
     // Online-Siege/Niederlagen/Unentschieden zählen jetzt für denselben
     // Gürtel-Aufstieg wie im Bot-Modus (auf Wunsch) - genau einmal je
     // beendetem Spiel anwenden.
-    if(msg.gameOver && !tttMp.rankApplied){
+    if(msg.gameOver && !tttMp.rankApplied && !msg.spectator && (msg.size||2) === 2){
       tttMp.rankApplied = true;
       const outcome = msg.winner === "draw" ? "draw" : (msg.winner === msg.yourSymbol ? "win" : "loss");
       tttMp.rankResultText = tttApplyRankOutcome(tttOverviewProfile, tttMp.rankIndex, outcome);
@@ -12755,37 +12841,47 @@ function tttMpDuelAnswer(i){
 }
 
 function renderTttMpGame(){
-  const waiting = !tttMp.players || tttMp.players.length < 2;
+  const waiting = !tttMp.players || tttMp.players.length < (tttMp.size || 2);
   const isQuizmix = tttMp.mode === "quizmix";
+  liveStyle();
   if(tttMp.duel && !waiting && tttMp.duel.type === "math"){ renderTttMpSprintDuel(); return; }
   if(tttMp.duel && !waiting){ renderTttDuelPopup(); return; }
   const cellClickable = (i) => {
-    if(tttMp.board[i] || tttMp.gameOver) return false;
-    return tttMp.turnSymbol === tttMp.mySymbol;
+    if(tttMp.board[i] || tttMp.gameOver || tttMp.spectator) return false;
+    return tttMp.yourTurn !== undefined ? !!tttMp.yourTurn : tttMp.turnSymbol === tttMp.mySymbol;
   };
+  const isTeam = (tttMp.size || 2) === 4, spec = !!tttMp.spectator;
+  const symName = s => (tttMp.players || []).filter(p => p.symbol === s).map(p => p.name).join(' + ');
+  const teamInfo = (isTeam || spec) && tttMp.players && !waiting ? `<div style="text-align:center;margin-top:6px;">${isTeam?`<span class="live-pill">X: ${esc(symName('X'))}</span><span class="live-pill">O: ${esc(symName('O'))}</span>`:`<span class="live-pill">${esc((tttMp.players[0]||{}).name||'')} vs ${esc((tttMp.players[1]||{}).name||'')}</span>`}${spec&&tttMp.watchers?`<span class="live-pill">👁 ${tttMp.watchers}</span>`:''}</div>` : '';
+  const specBanner = spec && !waiting ? `<div class="live-banner ${tttMp.plan?'on':''}">${tttMp.plan ? esc(tttMp.plan.by)+L(' zeigt dir seine Planung',' is showing you their plan') : L('Du schaust zu. Planung: aus, du siehst nur fertige Züge.','You are watching. Planning: off, you only see finished moves.')}</div>` : (isTeam && tttMp.plan && !waiting ? `<div class="live-banner on">${esc(tttMp.plan.by)}${L(' überlegt mit (Teamplanung)',' is thinking (team planning)')}</div>` : '');
+  const cellNames = [L('oben links','top left'),L('oben Mitte','top middle'),L('oben rechts','top right'),L('Mitte links','middle left'),L('Mitte','center'),L('Mitte rechts','middle right'),L('unten links','bottom left'),L('unten Mitte','bottom middle'),L('unten rechts','bottom right')];
+  const logHtml = (spec || isTeam) && tttMp.log && tttMp.log.length && !waiting ? `<div class="live-log">${tttMp.log.map((e,k)=>`<div class="${k===tttMp.log.length-1?'last':''}">${e.n}. ${esc(e.who)}: ${e.sym} ${L('auf','on')} ${cellNames[e.i]}</div>`).join('')}</div>` : '';
+  const turnText = spec ? (tttMp.turnName ? tttMp.turnName : tttMp.turnSymbol) + L(' ist dran',' to move') : isTeam ? (tttMp.yourTurn ? L('Du bist dran','Your turn') : (tttMp.turnName||'') + L(' ist dran (',' to move (') + tttMp.turnSymbol + ')') : (tttMp.turnSymbol===tttMp.mySymbol ? L('Du bist dran','Your turn') : L('Die andere Person ist dran …','The other player\'s turn …'));
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE, ${isQuizmix ? 'QUIZMIX' : (tttMp.mode==='quantum' ? 'QUANTUM' : L('ONLINE-MODUS','ONLINE MODE'))}</div>
-      <div class="picker-sub">${L('Raum-Code','Room code')}: <b>${codeText(tttMp.roomCode)}</b>${codeCopyBtn(tttMp.roomCode)}${tttMp.mySymbol ? ' · '+L('Du spielst','You play')+': '+tttMp.mySymbol : ''}</div>
-      ${!waiting && tttMp.rankIndex !== undefined ? `<div class="picker-sub" style="margin-top:4px;">${tttRankPillHtml(tttMp.rankIndex)}</div>` : ``}
+      <div class="picker-sub">${L('Raum-Code','Room code')}: <b>${codeText(tttMp.roomCode)}</b>${codeCopyBtn(tttMp.roomCode)}${spec ? ' · 👁 '+L('Du schaust zu','You are watching') : (tttMp.mySymbol ? ' · '+L('Du spielst','You play')+': '+tttMp.mySymbol : '')}${isTeam && !spec ? ' · 👥 2 '+L('gegen','vs')+' 2' : ''}</div>
+      ${!waiting && tttMp.rankIndex !== undefined && !spec && !isTeam ? `<div class="picker-sub" style="margin-top:4px;">${tttRankPillHtml(tttMp.rankIndex)}</div>` : ``}
       ${waiting ? `
-        <div class="explanation" style="margin-top:14px;">${L('Warte auf eine zweite Person … Teile den Code','Waiting for a second player … Share the code')} <b>${codeText(tttMp.roomCode)}</b>.</div>
-        ${renderInviteFriendsBox('ttt', tttMp.roomCode)}
+        <div class="explanation" style="margin-top:14px;">${spec ? L('Warte auf das Spiel …','Waiting for the game …') : isTeam ? L('Warte auf Mitspieler','Waiting for players')+' ('+((tttMp.players||[]).length||1)+'/4) … '+L('Teile den Code','Share the code') : L('Warte auf eine zweite Person … Teile den Code','Waiting for a second player … Share the code')} <b>${codeText(tttMp.roomCode)}</b>.</div>
+        ${spec ? '' : renderInviteFriendsBox('ttt', tttMp.roomCode)}
       ` : `
         <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
           ${tttMp.board.map((c,i) => `
-            <div onclick="${isQuizmix ? 'tttQuizmixTap('+i+')' : 'tttMpMove('+i+')'}" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${cellClickable(i)?'pointer':'default'};">${tttMark(c)}</div>
+            <div onclick="${isQuizmix ? 'tttQuizmixTap('+i+')' : 'tttMpMove('+i+')'}" ${cellClickable(i) && !isQuizmix ? `onpointerenter="tttMpPlan(${i})"` : ''} class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}${tttMp.last===i&&c?' lastmv':''}${tttMp.plan&&tttMp.plan.cell===i&&!c?' plan':''}" style="cursor:${cellClickable(i)?'pointer':'default'};">${tttMark(c)}</div>
           `).join("")}
         </div>
+        ${teamInfo}${specBanner}
         ${tttMp.opponentLeft ? `
           <div class="explanation" style="text-align:center; border-color:var(--danger);">${L('Die andere Person hat den Raum verlassen.','The other player has left the room.')}</div>
         ` : tttMp.gameOver ? `
-          <div class="explanation" style="text-align:center;">${tttMp.winner==='draw' ? L('Unentschieden!','Draw!') : (tttMp.winner===tttMp.mySymbol ? L('🎉 Du hast gewonnen!','🎉 You won!') : L('Verloren, nächstes Mal klappt\'s!','Lost, you\'ll get it next time!'))}</div>
-          ${tttMp.rankResultText ? `<div class="explanation" style="text-align:center; margin-top:8px;">${tttMp.rankResultText}</div>` : ``}
-          <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttMpRematch()">${L('NOCHMAL','AGAIN')}</button>
+          <div class="explanation" style="text-align:center;">${tttMp.winner==='draw' ? L('Unentschieden!','Draw!') : spec ? (symName(tttMp.winner)||tttMp.winner)+L(' gewinnt!',' wins!') : (tttMp.winner===tttMp.mySymbol ? (isTeam?L('🎉 Dein Team hat gewonnen!','🎉 Your team won!'):L('🎉 Du hast gewonnen!','🎉 You won!')) : L('Verloren, nächstes Mal klappt\'s!','Lost, you\'ll get it next time!'))}</div>
+          ${tttMp.rankResultText && !spec ? `<div class="explanation" style="text-align:center; margin-top:8px;">${tttMp.rankResultText}</div>` : ``}
+          ${spec ? '' : `<button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttMpRematch()">${L('NOCHMAL','AGAIN')}</button>`}
         ` : `
-          <div class="picker-sub" style="text-align:center;">${isQuizmix ? L('Tippe auf ein leeres Feld, um es per Duell zu erkämpfen.','Tap an empty square to fight for it in a duel.') : (tttMp.turnSymbol===tttMp.mySymbol ? L('Du bist dran','Your turn') : L('Die andere Person ist dran …','The other player\'s turn …'))}</div>
+          <div class="picker-sub" style="text-align:center;">${isQuizmix ? L('Tippe auf ein leeres Feld, um es per Duell zu erkämpfen.','Tap an empty square to fight for it in a duel.') : turnText}</div>
         `}
+        ${logHtml}
       `}
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttMpLeave()">${t('btn_leave_room')||'RAUM VERLASSEN'}</button>
     </div>
@@ -12852,8 +12948,11 @@ function tttQuizmixTap(i){
   tttMp.ws.send(JSON.stringify({action:"tttQuizmixTap", index:i}));
 }
 
+let tttPlanLast = -1;
+function tttMpPlan(i){ if(!tttMp || tttMp.spectator || tttMp.gameOver || tttMp.board[i] || !tttMp.yourTurn || tttPlanLast === i) return; tttPlanLast = i; try{ tttMp.ws.send(JSON.stringify({action:"tttPlan", cell:i})); }catch(e){} }
 function tttMpMove(i){
-  if(!tttMp || tttMp.gameOver || tttMp.board[i] || tttMp.turnSymbol !== tttMp.mySymbol) return;
+  tttPlanLast = -1;
+  if(!tttMp || tttMp.spectator || tttMp.gameOver || tttMp.board[i] || !(tttMp.yourTurn !== undefined ? tttMp.yourTurn : tttMp.turnSymbol === tttMp.mySymbol)) return;
   tttMp.ws.send(JSON.stringify({action:"tttMove", index:i}));
 }
 function tttMpRematch(){
@@ -12861,8 +12960,10 @@ function tttMpRematch(){
   tttMp.ws.send(JSON.stringify({action:"tttRematch"}));
 }
 function tttMpLeave(){
-  if(tttMp && tttMp.ws){ try{ tttMp.ws.send(JSON.stringify({action:"tttLeave"})); tttMp.ws.close(); }catch(e){} }
+  if(tttMp && tttMp.ws){ try{ tttMp.ws.send(JSON.stringify({action: tttMp.spectator ? "liveUnwatch" : "tttLeave"})); tttMp.ws.close(); }catch(e){} }
+  const wasSpec = tttMp && tttMp.spectator;
   tttMp = null;
+  if(wasSpec){ if(account) startFriendsFlow(); else renderMainMenu(); return; }
   tttStartMultiplayer(tttOverviewProfile);
 }
 

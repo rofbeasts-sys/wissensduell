@@ -551,20 +551,19 @@ function tttBroadcastState(room) {
     if (res) room.zpRes = { [p0.symbol]: res.a, [p1.symbol]: res.b };
   }
   const playersPublic = room.players.map(p => ({ name: p.name, symbol: p.symbol, connected: p.connected }));
+  const team = (room.size || 2) === 4, cur = team && room.players.length === 4 ? tttSeq(room, room.turnN) : null;
+  const common = { type: "tttState", board: room.board, turnSymbol: room.turnSymbol, gameOver: room.gameOver, winner: room.winner || null,
+    mode: room.mode, players: playersPublic, size: room.size || 2, turnName: cur ? cur.name : null, last: room.last == null ? null : room.last,
+    log: (room.log || []).slice(-40), watchers: liveSpecCount(room) };
   room.players.forEach(p => {
-    send(p.ws, {
+    send(p.ws, Object.assign({}, common, {
       achv: tttAchvInfo(room, p.symbol),
-      type: "tttState",
-      board: room.board,
-      turnSymbol: room.turnSymbol,
-      gameOver: room.gameOver,
-      winner: room.winner || null,
       zp: (room.zpRes && room.zpRes[p.symbol]) || null,
       yourSymbol: p.symbol, // personalisiert - wichtig nach einem Rematch, bei dem Symbole tauschen
-      mode: room.mode,
-      players: playersPublic
-    });
+      yourTurn: team ? cur === p : p.symbol === room.turnSymbol
+    }));
   });
+  (room.specs || []).forEach(s => { if (s.readyState === 1) send(s, Object.assign({}, common, { achv: null, zp: null, yourSymbol: null, yourTurn: false, spectator: true })); });
 }
 
 
@@ -808,10 +807,8 @@ function tttHandleDisconnect(ws) {
   if (room.duel) { clearTimeout(room.duel.timer); room.duel = null; }
   const player = room.players.find(p => p.ws === ws);
   if (player) player.connected = false;
-  const other = room.players.find(p => p.ws !== ws);
-  if (other) {
-    send(other.ws, { type: "tttOpponentLeft" });
-  }
+  room.players.forEach(o => { if (o.ws !== ws && o.connected) send(o.ws, { type: "tttOpponentLeft" }); });
+  (room.specs || []).forEach(sp => { if (sp.readyState === 1) send(sp, { type: "tttOpponentLeft" }); });
   // Raum sofort entfernen, wenn niemand mehr verbunden ist; sonst kurz
   // stehen lassen, falls die Person nur kurz die Verbindung verliert und
   // die Seite neu lädt (kommt dann aber als neue Verbindung rein, ein
@@ -2936,21 +2933,120 @@ function fuBroadcast(room) {
     const p1 = room.players.find(p => p.num === 1), p2 = room.players.find(p => p.num === 2), mv = room.board.reduce((n, row) => n + row.filter(v => v).length, 0);
     if (p1 && p2) { const res = zpDuel("fourups", { username: p1.ws && p1.ws.accountUsername }, { username: p2.ws && p2.ws.accountUsername }, room.winner === "draw" ? "draw" : (room.winner === 1 ? "a" : "b"), mv, 6); if (res) room.zpRes = { 1: res.a, 2: res.b }; }
   }
-  const names = room.players.map(p => p.num === 1 ? p.name : null), n2 = room.players.find(p => p.num === 2);
-  const n1 = room.players.find(p => p.num === 1);
+  const team = (room.size || 2) === 4, full = room.players.length === (room.size || 2);
+  const nm = num => room.players.filter(p => p.num === num).map(p => p.name).join(" + ");
+  const cur = team && full ? fuSeq(room, room.turnN) : null;
+  const common = { type: "fuState", roomCode: room.code, board: room.board, turn: room.turn, over: room.over, winner: room.winner, winCells: room.winCells, last: room.last,
+    names: [nm(1), nm(2)], scores: room.scores, full, count: room.players.length, size: room.size || 2, turnName: cur ? cur.name : null, log: (room.log || []).slice(-40), watchers: liveSpecCount(room) };
   room.players.forEach(p => {
     if (!p.connected) return;
-    send(p.ws, { type: "fuState", roomCode: room.code, you: p.num, board: room.board, turn: room.turn, over: room.over, winner: room.winner, winCells: room.winCells, last: room.last, zp: (room.zpRes && room.zpRes[p.num]) || null,
-      names: [n1 ? n1.name : "", n2 ? n2.name : ""], scores: room.scores, full: room.players.length === 2 });
+    send(p.ws, Object.assign({}, common, { you: p.num, zp: (room.zpRes && room.zpRes[p.num]) || null, yourTurn: full && !room.over && (team ? cur === p : p.num === room.turn) }));
   });
+  (room.specs || []).forEach(s => { if (s.readyState === 1) send(s, Object.assign({}, common, { you: 0, zp: null, yourTurn: false, spectator: true })); });
 }
 function fuHandleDisconnect(ws) {
   const code = ws.fuRoomCode; if (!code) return;
   const room = fuRooms.get(code); ws.fuRoomCode = null; if (!room) return;
   const pl = room.players.find(p => p.ws === ws); if (pl) pl.connected = false;
-  const other = room.players.find(p => p.ws !== ws && p.connected);
-  if (other) send(other.ws, { type: "fuOpponentLeft" });
+  room.players.forEach(o => { if (o.ws !== ws && o.connected) send(o.ws, { type: "fuOpponentLeft" }); });
+  (room.specs || []).forEach(sp => { if (sp.readyState === 1) send(sp, { type: "fuOpponentLeft" }); });
   if (room.players.every(p => !p.connected)) fuRooms.delete(code);
+}
+/* ---- Zuschauen (nur Freunde), Planungs-Freigabe und 2 gegen 2 ----------- */
+// Zuschauer sind WebSockets ohne Zug-Recht. Sie bekommen exakt denselben Stand
+// wie die Spieler (ohne Verzoegerung), aber NIE die Planung: Planung (Figur
+// anheben, Pfeile, Spalte ueberlegen) geht nur an Freunde, die der Spieler dafuer
+// freigeschaltet hat (user.live.planFriends) oder an alle Freunde (planAll).
+function liveUser(ws) { const n = ws && (ws.liveName || ws.accountUsername); return n ? findUserByName(n) : null; }
+function liveCfg(u) { const l = (u && u.live) || {}; return { watch: l.watch !== false, planAll: l.planAll === true, planFriends: Array.isArray(l.planFriends) ? l.planFriends : [] }; }
+function livePlanAllows(owner, viewerName) {
+  const v = viewerName ? findUserByName(viewerName) : null;
+  if (!owner || !v || !areFriends(owner, v)) return false;
+  const c = liveCfg(owner);
+  return c.planAll || c.planFriends.includes(v.username.toLowerCase());
+}
+// Zuschauen darf, wer mit mindestens einem Spieler befreundet ist; sagt ein Spieler "kein Zuschauen", ist der Raum zu.
+function liveWatchOk(playerUsers, me) {
+  if (!me || !playerUsers.length) return false;
+  if (playerUsers.some(u => !liveCfg(u).watch)) return false;
+  return playerUsers.some(u => u.username.toLowerCase() !== me.username.toLowerCase() && areFriends(u, me));
+}
+function liveSpecCount(room) { return (room.specs || []).filter(s => s.readyState === 1).length; }
+function liveLog(room, entry) { (room.log = room.log || []).push(entry); if (room.log.length > 80) room.log.shift(); }
+function liveSpecAdd(room, ws, kind) {
+  room.specs = (room.specs || []).filter(s => s.readyState === 1 && s !== ws);
+  room.specs.push(ws); ws.liveKind = kind; ws.liveCode = room.code;
+}
+function liveSpecDrop(ws) {
+  const kind = ws.liveKind, code = ws.liveCode; if (!kind) return;
+  ws.liveKind = null; ws.liveCode = null;
+  const room = (kind === "ttt" ? tttRooms : fuRooms).get(code);
+  if (room && room.specs) { room.specs = room.specs.filter(s => s !== ws); if (kind === "ttt") tttBroadcastState(room); else fuBroadcast(room); }
+}
+// Planung eines Spielers: geht an freigeschaltete Zuschauer und (2 gegen 2) an das eigene Team
+function livePlanRelay(room, fromWs, kind, data) {
+  const owner = liveUser(fromWs), me = room.players.find(p => p.ws === fromWs);
+  if (!me) return;
+  const out = Object.assign({ type: kind + "Plan", by: me.name }, data);
+  (room.specs || []).forEach(s => { if (s.readyState === 1 && livePlanAllows(owner, s.liveName || s.accountUsername)) send(s, out); });
+  if ((room.size || 2) === 4) room.players.forEach(p => { if (p !== me && p.connected && (kind === "ttt" ? p.symbol === me.symbol : p.num === me.num)) send(p.ws, out); });
+}
+function liveShuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+// 2 gegen 2, Tic Tac Toe: X, O, X, O ... und in jedem Team wechseln die zwei Spieler sich ab
+function tttSeq(room, n) { const list = n % 2 === 0 ? room.orderX : room.orderO; return list[Math.floor(n / 2) % list.length]; }
+function tttTeamStart(room) {
+  room.orderX = liveShuffle(room.players.filter(p => p.symbol === "X"));
+  room.orderO = liveShuffle(room.players.filter(p => p.symbol === "O"));
+  room.turnN = 0; room.turnSymbol = "X";
+}
+function fuSeq(room, n) { const list = n % 2 === 0 ? room.order1 : room.order2; return list[Math.floor(n / 2) % list.length]; }
+function fuTeamStart(room) {
+  room.order1 = liveShuffle(room.players.filter(p => p.num === 1));
+  room.order2 = liveShuffle(room.players.filter(p => p.num === 2));
+  room.turnN = 0; room.turn = 1;
+}
+function liveSettingsResult(user) { const c = liveCfg(user); return { ok: true, watch: c.watch, planAll: c.planAll, planFriends: c.planFriends }; }
+async function liveSettings(payload, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const user = findUserByToken(payload && payload.token);
+  if (!user) return errObj("notLoggedIn", lang);
+  const s = payload && payload.set;
+  if (s && typeof s === "object") {
+    const l = user.live = Object.assign({ watch: true, planAll: false, planFriends: [] }, user.live || {});
+    if (!Array.isArray(l.planFriends)) l.planFriends = [];
+    const before = JSON.stringify(l);
+    if (typeof s.watch === "boolean") l.watch = s.watch;
+    if (typeof s.planAll === "boolean") l.planAll = s.planAll;
+    if (typeof s.friend === "string") {
+      const f = findUserByName(s.friend);
+      if (!f || !areFriends(user, f)) return errObj("inviteNotFriend", lang);
+      const k = f.username.toLowerCase(), has = l.planFriends.includes(k);
+      if (s.on === true && !has) l.planFriends.push(k);
+      if (s.on !== true && has) l.planFriends = l.planFriends.filter(x => x !== k);
+    }
+    if (JSON.stringify(l) !== before && !(await saveUsers())) return serviceDownMsg(lang);
+  }
+  return liveSettingsResult(user);
+}
+// Welche Freunde spielen gerade und dürfen angeschaut werden?
+async function liveFriends(payload, lang) {
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const me = findUserByToken(payload && payload.token);
+  if (!me) return errObj("notLoggedIn", lang);
+  const out = [];
+  const add = (kind, code, users, extra) => {
+    if (users.some(u => u.username.toLowerCase() === me.username.toLowerCase())) return;
+    if (!liveWatchOk(users, me)) return;
+    const f = users.find(u => areFriends(u, me));
+    out.push(Object.assign({ kind, code, friend: f.username, avatar: f.avatar || null, names: users.map(u => u.username) }, extra));
+  };
+  for (const r of tttRooms.values()) { if (r.players.length !== (r.size || 2)) continue; add("ttt", r.code, r.players.map(p => liveUser(p.ws)).filter(Boolean), { team: (r.size || 2) === 4, mode: r.mode, watchers: liveSpecCount(r) }); }
+  for (const r of fuRooms.values()) { if (r.players.length !== (r.size || 2)) continue; add("fu", r.code, r.players.map(p => liveUser(p.ws)).filter(Boolean), { team: (r.size || 2) === 4, watchers: liveSpecCount(r) }); }
+  for (const g of chessOnlineGames.values()) {
+    if (g.status !== "playing") continue;
+    add("chess", g.code, [g.w, g.b, g.w2, g.b2].filter(Boolean).map(n => findUserByName(n)).filter(Boolean), { team: !!g.team, corr: !!g.corr, timed: !!g.timed, watchers: chessWatcherCount(g) });
+  }
+  return { ok: true, games: out };
 }
 /* ---- Brain Royale (Raumcode-Duell + Zufallsgegner, Fragen je Spieler in eigener Sprache) ---- */
 const BR = require("./lib/brainRoyale");
@@ -7067,7 +7163,7 @@ const CHESS_ELO_START = 1000, CHESS_ELO_K = 32, CHESS_PAIR_DAILY_MAX = 5;
 const chessPairCount = new Map(); // "a|b|Tag" -> Anzahl gewerteter Partien
 function chessEloOf(u) { return (u && u.stats && Number.isFinite(u.stats.chessElo)) ? u.stats.chessElo : CHESS_ELO_START; }
 function chessEloApply(g, winner) {
-  if (g.rated || !g.w || !g.b || g.w === g.b) return;
+  if (g.rated || g.team || !g.w || !g.b || g.w === g.b) return;
   const uw = findUserByName(g.w), ub = findUserByName(g.b);
   if (!uw || !ub) return;
   if ((g.log || []).length < 4) return; // ganz kurze Partien (Aufgabe nach 1-2 Zuegen) zaehlen nicht
@@ -7101,12 +7197,32 @@ function chessOnlineCheckTimeout(g) {
   }
   if (Date.now() - g.moveAt > CHESS_ONLINE_MOVE_MS) chessOnlineFinish(g, g.turn === "w" ? "b" : "w", "time");
 }
+// 2 gegen 2: Plaetze w, w2 (Weiss) und b, b2 (Schwarz). Die zwei Spieler einer Seite ziehen abwechselnd.
+function chessSide(g, me) { return (g.w === me || g.w2 === me) ? "w" : (g.b === me || g.b2 === me) ? "b" : null; }
+function chessIn(g, me) { return !!chessSide(g, me); }
+function chessSideMoves(g, c) { const n = (g.log || []).length; return c === "w" ? Math.ceil(n / 2) : Math.floor(n / 2); }
+function chessMover(g, c) { // wer auf dieser Seite jetzt ziehen darf
+  if (!g.team) return c === "w" ? g.w : g.b;
+  const pair = c === "w" ? [g.w, g.w2] : [g.b, g.b2];
+  return pair[chessSideMoves(g, c) % 2];
+}
+const CHESS_WATCH_TTL_MS = 9000;
+function chessWatcherCount(g) { const now = Date.now(); return Object.keys(g.watch || {}).filter(k => now - g.watch[k] < CHESS_WATCH_TTL_MS).length; }
+function chessPlanFor(g, me) { // Planung nur fuer Teampartner oder freigeschaltete Freunde
+  const pl = g.plan; if (!pl || Date.now() - pl.at > 20000) return null;
+  const owner = findUserByName(pl.by);
+  const mySide = chessSide(g, me);
+  if (mySide) return (g.team && mySide === pl.side && pl.by !== me) ? pl : null;
+  return livePlanAllows(owner, me) ? pl : null;
+}
 function chessOnlineView(g, me) {
   chessOnlineCheckTimeout(g);
   const E = getChessEngine();
-  const color = g.w === me ? "w" : g.b === me ? "b" : null;
+  const color = chessSide(g, me);
   return {
-    ok: true, code: g.code, rev: g.rev, w: g.w, b: g.b, color, status: g.status, random: !!g.random,
+    ok: true, code: g.code, rev: g.rev, me, w: g.w, b: g.b, w2: g.w2 || null, b2: g.b2 || null, team: !!g.team, spectator: !color,
+    mover: g.status === "playing" ? chessMover(g, g.turn) : null, watchers: chessWatcherCount(g), plan: chessPlanFor(g, me),
+    color, status: g.status, random: !!g.random,
     eloW: chessEloOf(findUserByName(g.w || "")), eloB: chessEloOf(findUserByName(g.b || "")), rated: !!g.rated, zp: g.zp || null, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
     board: g.board, turn: g.turn, last: g.last, log: g.log, capW: g.capW, capB: g.capB,
     check: g.status === "playing" && E.isInCheck(g.board, g.turn),
@@ -7140,11 +7256,12 @@ async function chessOnlineApi0(action, payload, lang) {
   if (action === "create") {
     const corr = payload.corr === true;
     if (corr && chessCorrList().filter(x => (x.w === me || x.b === me) && x.status !== "over").length >= CHESS_CORR_MAX) return msg("Du hast schon " + CHESS_CORR_MAX + " Fernpartien. Beende erst eine.", "You already have " + CHESS_CORR_MAX + " correspondence games. Finish one first.");
-    if (!corr) for (const x of chessOnlineGames.values()) if (!x.corr && (x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
+    if (!corr) for (const x of chessOnlineGames.values()) if (!x.corr && chessIn(x, me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
       if (x.status === "waiting" && x.w === me) { chessOnlineGames.delete(x.code); } else return { ...msg("Du hast schon eine laufende Partie.", "You already have a game in progress."), code: x.code };
     }
+    const team = payload.team === true && !corr; // 2 gegen 2
     let invited = null;
-    if (typeof payload.invite === "string" && payload.invite) {
+    if (!team && typeof payload.invite === "string" && payload.invite) {
       const target = findUserByName(payload.invite);
       if (!target || !areFriends(user, target)) return msg("Das ist keiner deiner Freunde.", "That is not one of your friends.");
       invited = target.username;
@@ -7154,14 +7271,14 @@ async function chessOnlineApi0(action, payload, lang) {
     const E = getChessEngine();
     const first = Math.random() < 0.5 ? "w" : "b";
     const timed = payload.timed === true && !corr;
-    const game = { code: newCode, corr, w: first === "w" ? me : null, b: first === "b" ? me : null, invited, status: "waiting", rev: 1, timed, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS },
+    const game = { code: newCode, corr, team, w: first === "w" ? me : null, b: first === "b" ? me : null, invited, status: "waiting", rev: 1, timed, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS },
       board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
     game.seen[chessPosKey(game)] = 1;
     chessOnlineGames.set(newCode, game);
     return chessOnlineView(game, me);
   }
   if (action === "queue") { // Zufallsgegner: eine wartende Zufalls-Partie uebernehmen, sonst selbst eine eroeffnen
-    for (const x of chessOnlineGames.values()) if (!x.corr && (x.w === me || x.b === me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
+    for (const x of chessOnlineGames.values()) if (!x.corr && chessIn(x, me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
       if (x.status === "waiting" && x.w === me && x.random) { x.updated = Date.now(); return chessOnlineView(x, me); }
       if (x.status === "waiting" && x.w === me) { chessOnlineGames.delete(x.code); } else return { ...msg("Du hast schon eine laufende Partie.", "You already have a running game."), code: x.code };
     }
@@ -7204,34 +7321,63 @@ async function chessOnlineApi0(action, payload, lang) {
   }
   if (!g) return msg("Diese Partie gibt es nicht (mehr).", "This game does not exist (anymore).");
   if (action === "join") {
-    if (g.w === me || g.b === me) return chessOnlineView(g, me);
+    if (chessIn(g, me)) return chessOnlineView(g, me);
     if (g.status !== "waiting") return msg("Die Partie ist schon voll.", "The game is already full.");
     if (g.invited && g.invited !== me) return msg("Diese Einladung gilt für jemand anderen.", "This invitation is for someone else.");
+    if (g.team) { // 2 gegen 2: Seiten abwechselnd auffuellen, losgehen tut es mit dem vierten Spieler
+      const nw = (g.w ? 1 : 0) + (g.w2 ? 1 : 0), nb = (g.b ? 1 : 0) + (g.b2 ? 1 : 0);
+      const side = nw < nb ? "w" : nb < nw ? "b" : (g.w ? "b" : "w");
+      if (side === "w") { if (!g.w) g.w = me; else g.w2 = me; } else { if (!g.b) g.b = me; else g.b2 = me; }
+      if (g.w && g.w2 && g.b && g.b2) {
+        if (Math.random() < 0.5) [g.w, g.w2] = [g.w2, g.w]; // wer in jedem Team zuerst zieht, entscheidet der Zufall
+        if (Math.random() < 0.5) [g.b, g.b2] = [g.b2, g.b];
+        g.status = "playing"; g.moveAt = Date.now();
+      }
+      g.rev++; g.updated = Date.now();
+      return chessOnlineView(g, me);
+    }
     if (!g.w) g.w = me; else g.b = me;
     g.status = "playing"; g.rev++; g.moveAt = Date.now(); g.updated = Date.now();
+    return chessOnlineView(g, me);
+  }
+  if (action === "watch") { // Zuschauen: nur Freunde, ohne Verzoegerung (gleiche Abfrage wie die Spieler)
+    if (chessIn(g, me)) return chessOnlineView(g, me);
+    const pls = [g.w, g.b, g.w2, g.b2].filter(Boolean).map(n => findUserByName(n)).filter(Boolean);
+    if (g.status === "waiting" || !liveWatchOk(pls, user)) return msg("Zuschauen ist hier nicht möglich (nur für Freunde).", "Watching is not possible here (friends only).");
+    (g.watch = g.watch || {})[me] = Date.now();
     return chessOnlineView(g, me);
   }
   if (action === "decline") {
     if (g.invited === me && g.status === "waiting") chessOnlineGames.delete(code);
     return { ok: true };
   }
-  if (g.w !== me && g.b !== me) return msg("Du bist nicht in dieser Partie.", "You are not in this game.");
+  if (!chessIn(g, me)) return msg("Du bist nicht in dieser Partie.", "You are not in this game.");
+  if (action === "plan") { // Planung: angehobene Figur + Zielfeld (geht nur an Teampartner und freigeschaltete Freunde)
+    const side = chessSide(g, me), n = (v) => Number.isInteger(v) && v >= 0 && v < 8;
+    if (g.status !== "playing" || g.turn !== side || chessMover(g, side) !== me) return { ok: true };
+    if (payload.clear === true) { g.plan = null; return { ok: true }; }
+    if (!n(payload.fr) || !n(payload.fc)) return { ok: true };
+    const hasTo = n(payload.tr) && n(payload.tc);
+    g.plan = { by: me, side, fr: payload.fr, fc: payload.fc, tr: hasTo ? payload.tr : null, tc: hasTo ? payload.tc : null, at: Date.now() };
+    return { ok: true };
+  }
   if (action === "state") { if (g.status === "waiting") g.updated = Date.now(); return chessOnlineView(g, me); }
   if (action === "leave") {
     if (g.corr && g.status === "playing") return { ok: true };   // Fernpartie: Fenster zu heisst nicht aufgeben
     if (g.status === "waiting") chessOnlineGames.delete(code);
-    else if (g.status === "playing") chessOnlineFinish(g, g.w === me ? "b" : "w", "resign");
+    else if (g.status === "playing") chessOnlineFinish(g, chessSide(g, me) === "w" ? "b" : "w", "resign");
     return { ok: true };
   }
   if (action === "resign") {
-    if (g.status === "playing") chessOnlineFinish(g, g.w === me ? "b" : "w", "resign");
+    if (g.status === "playing") chessOnlineFinish(g, chessSide(g, me) === "w" ? "b" : "w", "resign");
     return chessOnlineView(g, me);
   }
   if (action === "move") {
     chessOnlineCheckTimeout(g);
     if (g.status !== "playing") return { ...msg("Die Partie läuft nicht.", "The game is not running."), ...chessOnlineView(g, me), ok: false };
-    const color = g.w === me ? "w" : "b";
+    const color = chessSide(g, me);
     if (g.turn !== color) return msg("Du bist nicht dran.", "It is not your turn.");
+    if (g.team && chessMover(g, color) !== me) return msg("Dein Teampartner ist dran.", "It is your teammate's turn.");
     if (g.timed) { // verbrauchte Zeit abziehen; wer bei 0 ist, verliert
       g.clock[color] -= Date.now() - g.moveAt;
       if (g.clock[color] <= 0) { g.clock[color] = 0; chessOnlineFinish(g, color === "w" ? "b" : "w", "time"); return chessOnlineView(g, me); }
@@ -7265,7 +7411,7 @@ async function chessOnlineApi0(action, payload, lang) {
     else if (g.seen[k] >= 3) { g.log.push(note); chessOnlineFinish(g, "draw", "threefold"); }
     else { g.log.push(note + (E.isInCheck(g.board, g.turn) ? "+" : "")); g.rev++; }
     if (g.timed && g.status === "playing") g.clock[color] += CHESS_CLOCK_INC_MS;
-    g.moveAt = Date.now(); g.updated = Date.now();
+    g.plan = null; g.moveAt = Date.now(); g.updated = Date.now();
     return chessOnlineView(g, me);
   }
   return errObj("invalidInput", lang);
@@ -8364,6 +8510,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/chat-public-list") result = await chatPublicList(payload.since, payload.room, payload.token, payload.adminKey, ip);
         else if (req.url === "/api/chat-public-send") result = await chatPublicSend(payload.token, payload.text, lang, payload.room);
         else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
+        else if (req.url === "/api/live-settings") result = await liveSettings(payload, lang);
+        else if (req.url === "/api/live-friends") result = await liveFriends(payload, lang);
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
         else if (req.url === "/api/public-stats") result = publicStats();
@@ -8461,7 +8609,7 @@ wss.on("connection", (ws, req) => {
     if (Date.now() - ws.lastSeen > WS_DEAD_AFTER_MS) { ws.terminate(); return; }
     ws.ping();
   }, WS_PING_EVERY_MS);
-  ws.on("close", () => { clearInterval(keepAlive); tttHandleDisconnect(ws); fuHandleDisconnect(ws); brHandleDisconnect(ws, false); dmHandleDisconnect(ws, false); accountDisconnect(ws); });
+  ws.on("close", () => { clearInterval(keepAlive); liveSpecDrop(ws); tttHandleDisconnect(ws); fuHandleDisconnect(ws); brHandleDisconnect(ws, false); dmHandleDisconnect(ws, false); accountDisconnect(ws); });
 
   ws.on("message", (raw) => {
     // Nachrichten-Eimer: zu schnelle Nachrichten werden verworfen, Dauerfeuer kappt die Verbindung
@@ -8568,11 +8716,13 @@ wss.on("connection", (ws, req) => {
         mode: (msg.mode === "quizmix" || msg.mode === "quantum") ? msg.mode : "classic",
         duel: null,
         counters: tttFreshCounters(),
-        xPieces: [], oPieces: [] // nur für Quantum-Modus genutzt (Zug-Reihenfolge je Symbol)
+        xPieces: [], oPieces: [], // nur für Quantum-Modus genutzt (Zug-Reihenfolge je Symbol)
+        size: 2, turnN: 0, log: [], last: null
       };
+      if (msg.teams === true && room.mode !== "quizmix") room.size = 4; // 2 gegen 2 (QuizMix bleibt 1 gegen 1)
       tttRooms.set(code, room);
       ws.tttRoomCode = code;
-      send(ws, { type: "tttJoined", roomCode: code, symbol: hostSymbol, mode: room.mode });
+      send(ws, { type: "tttJoined", roomCode: code, symbol: hostSymbol, mode: room.mode, size: room.size });
       return;
     }
     if (msg.action === "tttQueue") {
@@ -8603,11 +8753,13 @@ wss.on("connection", (ws, req) => {
       if (rlWait("j|" + ws.ip)) return send(ws, { type: "tttError", message: "Zu viele falsche Codes. Bitte kurz warten." });
       const room = tttRooms.get(cleanCode(msg.code));
       if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "tttError", message: "Raum nicht gefunden." }); }
-      if (room.players.length >= 2) return send(ws, { type: "tttError", message: "Der Raum ist schon voll." });
-      const guestSymbol = room.players[0].symbol === "X" ? "O" : "X";
+      if (room.players.length >= (room.size || 2)) return send(ws, { type: "tttError", message: "Der Raum ist schon voll." });
+      const nX = room.players.filter(p => p.symbol === "X").length, nO = room.players.length - nX;
+      const guestSymbol = nX < nO ? "X" : nO < nX ? "O" : (room.players[room.players.length - 1].symbol === "X" ? "O" : "X");
       room.players.push({ ws, name: cleanStr(msg.name, 20) || "Spieler", symbol: guestSymbol, connected: true });
       ws.tttRoomCode = room.code;
-      send(ws, { type: "tttJoined", roomCode: room.code, symbol: guestSymbol, mode: room.mode });
+      if ((room.size || 2) === 4 && room.players.length === 4) tttTeamStart(room);
+      send(ws, { type: "tttJoined", roomCode: room.code, symbol: guestSymbol, mode: room.mode, size: room.size || 2 });
       tttBroadcastState(room);
       return;
     }
@@ -8615,7 +8767,9 @@ wss.on("connection", (ws, req) => {
       const room = tttRooms.get(ws.tttRoomCode);
       if (!room || room.gameOver) return;
       const player = room.players.find(p => p.ws === ws);
-      if (!player || player.symbol !== room.turnSymbol) return; // nicht am Zug
+      const team = (room.size || 2) === 4;
+      if (team && room.players.length < 4) return; // 2 gegen 2 startet erst, wenn alle 4 da sind
+      if (!player || (team ? tttSeq(room, room.turnN) !== player : player.symbol !== room.turnSymbol)) return; // nicht am Zug
       const i = msg.index;
       if (typeof i !== "number" || i < 0 || i > 8 || room.board[i]) return;
       if (room.mode === "quantum") {
@@ -8624,10 +8778,13 @@ wss.on("connection", (ws, req) => {
         room.board[i] = player.symbol;
       }
       room.counters.moves[player.symbol]++;
+      room.last = i; liveLog(room, { n: room.counters.moves.X + room.counters.moves.O, who: player.name, sym: player.symbol, i });
       const winner = tttCheckWinner(room.board);
       if (winner) {
         room.gameOver = true;
         room.winner = winner; // "X" | "O" | "draw"
+      } else if (team) {
+        room.turnN++; room.turnSymbol = room.turnN % 2 === 0 ? "X" : "O";
       } else {
         room.turnSymbol = room.turnSymbol === "X" ? "O" : "X";
       }
@@ -8673,22 +8830,60 @@ wss.on("connection", (ws, req) => {
       room.xPieces = []; room.oPieces = []; // Quantum-Modus: Zug-Reihenfolge zurücksetzen
       room.gameOver = false;
       room.winner = null;
+      room.last = null; room.log = [];
       // Wer beginnt, wird jedes Mal neu zufällig verteilt (nicht einfach
       // nur getauscht) - auf Wunsch, damit es nicht immer "der/die andere"
       // ist, sondern wirklich zufällig.
-      if (Math.random() < 0.5) {
-        [room.players[0].symbol, room.players[1].symbol] = [room.players[1].symbol, room.players[0].symbol];
+      if ((room.size || 2) === 4) {
+        if (Math.random() < 0.5) room.players.forEach(p => { p.symbol = p.symbol === "X" ? "O" : "X"; });
+        if (room.players.length === 4) tttTeamStart(room);
+      } else {
+        if (Math.random() < 0.5) {
+          [room.players[0].symbol, room.players[1].symbol] = [room.players[1].symbol, room.players[0].symbol];
+        }
+        room.turnSymbol = "X";
       }
-      room.turnSymbol = "X";
       tttBroadcastState(room);
       return;
+    }
+    if (msg.action === "tttWatch" || msg.action === "fuWatch") {
+      const kind = msg.action === "tttWatch" ? "ttt" : "fu";
+      const room = (kind === "ttt" ? tttRooms : fuRooms).get(cleanCode(msg.code));
+      const me = liveUser(ws);
+      const fail = text => send(ws, { type: kind + "Error", message: text });
+      if (!me) return fail("Zum Zuschauen musst du angemeldet sein.");
+      if (!room) return fail("Raum nicht gefunden.");
+      if (room.players.some(p => p.ws === ws)) return fail("Du spielst selbst mit.");
+      if (!liveWatchOk(room.players.map(p => liveUser(p.ws)).filter(Boolean), me)) return fail("Zuschauen ist hier nicht möglich (nur für Freunde).");
+      if (ws.tttRoomCode) tttHandleDisconnect(ws);
+      if (ws.fuRoomCode) fuHandleDisconnect(ws);
+      liveSpecDrop(ws);
+      liveSpecAdd(room, ws, kind);
+      send(ws, { type: kind + "Watching", roomCode: room.code, size: room.size || 2, mode: room.mode || null });
+      if (kind === "ttt") tttBroadcastState(room); else fuBroadcast(room);
+      return;
+    }
+    if (msg.action === "tttPlan" || msg.action === "fuPlan") {
+      const kind = msg.action === "tttPlan" ? "ttt" : "fu";
+      const room = (kind === "ttt" ? tttRooms : fuRooms).get(kind === "ttt" ? ws.tttRoomCode : ws.fuRoomCode);
+      if (!room || room.over || room.gameOver) return;
+      const v = msg.cell == null ? null : Number(msg.cell);
+      if (v !== null && !(Number.isInteger(v) && v >= 0 && v < (kind === "ttt" ? 9 : FOURUPS_COLS))) return;
+      if (rlHit("plan|" + ws.ip, 40, 3000, 3000).lockedUntil > Date.now()) return;
+      livePlanRelay(room, ws, kind, { cell: v });
+      return;
+    }
+    if (msg.action === "liveUnwatch") { liveSpecDrop(ws); return; }
+    if (msg.action === "liveIdent") { // Spiel-Verbindung meldet, zu welchem Konto sie gehoert (nur fuer Zuschauen/Freunde-Pruefung, kein Online-Status)
+      const u = findUserByToken(typeof msg.token === "string" ? msg.token : "");
+      ws.liveName = u ? u.username.toLowerCase() : null; return;
     }
     if (msg.action === "fuCreateRoom") {
       if (ws.fuRoomCode) fuHandleDisconnect(ws);
       const code = fuMakeCode();
-      const room = { code, players: [{ ws, name: cleanStr(msg.name, 20) || "Host", num: Math.random() < 0.5 ? 1 : 2, connected: true }], board: fuFreshBoard(), turn: 1, over: false, winner: null, winCells: null, last: null, scores: { 1: 0, 2: 0, d: 0 } };
+      const room = { code, players: [{ ws, name: cleanStr(msg.name, 20) || "Host", num: Math.random() < 0.5 ? 1 : 2, connected: true }], board: fuFreshBoard(), turn: 1, over: false, winner: null, winCells: null, last: null, scores: { 1: 0, 2: 0, d: 0 }, size: msg.teams === true ? 4 : 2, turnN: 0, log: [] };
       fuRooms.set(code, room); ws.fuRoomCode = code;
-      send(ws, { type: "fuJoined", roomCode: code, you: room.players[0].num });
+      send(ws, { type: "fuJoined", roomCode: code, you: room.players[0].num, size: room.size });
       fuBroadcast(room);
       return;
     }
@@ -8696,38 +8891,44 @@ wss.on("connection", (ws, req) => {
       if (rlWait("j|" + ws.ip)) return send(ws, { type: "fuError", message: "Zu viele falsche Codes. Bitte kurz warten." });
       const room = fuRooms.get(cleanCode(msg.code));
       if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "fuError", message: "Raum nicht gefunden." }); }
-      if (room.players.length >= 2) return send(ws, { type: "fuError", message: "Der Raum ist schon voll." });
+      if (room.players.length >= (room.size || 2)) return send(ws, { type: "fuError", message: "Der Raum ist schon voll." });
       if (ws.fuRoomCode) fuHandleDisconnect(ws);
-      const num = room.players[0].num === 1 ? 2 : 1;
+      const n1 = room.players.filter(p => p.num === 1).length, n2 = room.players.length - n1;
+      const num = n1 < n2 ? 1 : n2 < n1 ? 2 : (room.players[room.players.length - 1].num === 1 ? 2 : 1);
       room.players.push({ ws, name: cleanStr(msg.name, 20) || "Spieler", num, connected: true });
       ws.fuRoomCode = room.code;
-      send(ws, { type: "fuJoined", roomCode: room.code, you: num });
+      if ((room.size || 2) === 4 && room.players.length === 4) fuTeamStart(room);
+      send(ws, { type: "fuJoined", roomCode: room.code, you: num, size: room.size || 2 });
       fuBroadcast(room);
       return;
     }
     if (msg.action === "fuMove") {
       const room = fuRooms.get(ws.fuRoomCode);
-      if (!room || room.over || room.players.length < 2) return;
+      const team = room && (room.size || 2) === 4;
+      if (!room || room.over || room.players.length < (room.size || 2)) return;
       const me = room.players.find(p => p.ws === ws);
-      if (!me || me.num !== room.turn) return;
+      if (!me || (team ? fuSeq(room, room.turnN) !== me : me.num !== room.turn)) return;
       const col = Number(msg.col);
       if (!Number.isInteger(col) || col < 0 || col >= FOURUPS_COLS) return;
       let row = -1; for (let r = FOURUPS_ROWS - 1; r >= 0; r--) if (!room.board[r][col]) { row = r; break; }
       if (row < 0) return;
       room.board[row][col] = me.num; room.last = [row, col];
+      liveLog(room, { n: room.board.reduce((n, rw) => n + rw.filter(v => v).length, 0), who: me.name, num: me.num, col });
       const w = fourupsWinCells(room.board, row, col);
       if (w) { room.over = true; room.winner = me.num; room.winCells = w; room.scores[me.num]++; }
       else if (room.board[0].every(v => v)) { room.over = true; room.winner = "draw"; room.scores.d++; }
+      else if (team) { room.turnN++; room.turn = room.turnN % 2 === 0 ? 1 : 2; }
       else room.turn = 3 - room.turn;
       fuBroadcast(room);
       return;
     }
     if (msg.action === "fuRematch") {
       const room = fuRooms.get(ws.fuRoomCode);
-      if (!room || !room.over || room.players.length < 2) return;
-      room.board = fuFreshBoard(); room.over = false; room.winner = null; room.winCells = null; room.last = null; room.zpDone = false; room.zpRes = null;
+      if (!room || !room.over || room.players.length < (room.size || 2)) return;
+      room.board = fuFreshBoard(); room.over = false; room.winner = null; room.winCells = null; room.last = null; room.zpDone = false; room.zpRes = null; room.log = [];
       if (Math.random() < 0.5) room.players.forEach(p => { p.num = 3 - p.num; });
       room.turn = 1;
+      if ((room.size || 2) === 4) fuTeamStart(room);
       fuBroadcast(room);
       return;
     }
