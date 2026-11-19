@@ -399,6 +399,7 @@ function showEnd(){
   if(shownEnd) return; shownEnd = true; rememberCode(null);
   const res = S.spectator ? "spec" : S.winner === "draw" ? "draw" : (S.winner === S.color || false) ? "win" : "loss";
   if(res !== "spec") try{ parent.sfxResult(res === 'win', res === 'draw'); }catch(e){}
+  if(res === 'win' && S.why === 'mate' && window.BpSets) BpSets.earn('kristall');
   const whyMap = { mate:T.mate, stalemate:T.stalemate, insufficient:T.insufficient, fifty:T.fifty, threefold:T.threefold, resign:T.resign_, time:T.time };
   $("endTitle").textContent = res === "spec" ? (S.winner === "draw" ? "🤝 " + T.draw : "🏁 " + (S.winner === "w" ? T.winsW : T.winsB)) : (res === "win" ? "🏆 " : res === "loss" ? "💀 " : "🤝 ") + (res === "win" ? T.win : res === "loss" ? T.loss : T.draw);
   let extra = "";
@@ -443,6 +444,7 @@ async function sendMove(mv, promTo){
   const pre = { board:S.board, last:S.last, col:S.color, move:Object.assign({}, mv, promTo ? { promTo } : {}) };
   const r = await api("move", { fr:mv.fr, fc:mv.fc, tr:mv.tr, tc:mv.tc, promTo });
   busy = false; sel = null; moves = [];
+  if(r.ok && window.BpSets){ if(mv.castle) BpSets.earn('wald'); if(promTo) BpSets.earn('zoo'); }
   if(r.ok){ REC.push(pre); S = r; S._t = Date.now(); draw(); } else { poll(); }
 }
 $("resignBtn").onclick = async () => { if(!S || S.status !== "playing" || !confirm(T.confirmResign)) return; const r = await api("resign"); if(r.ok){ S = r; draw(); } };

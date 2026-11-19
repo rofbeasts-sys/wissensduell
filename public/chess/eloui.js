@@ -23,7 +23,7 @@
       var ok = me >= x.elo;
       return '<div style="display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:10px;margin-bottom:4px;background:' + (ok ? 'rgba(198,255,61,.12)' : 'rgba(255,255,255,.05)') + '"><img src="/chess/sets/' + x.id + '/wN.png" style="width:38px;height:38px;' + (ok ? '' : 'opacity:.5;filter:grayscale(.6)') + '" alt=""><b style="flex:1">' + (de ? x.de : x.en) + '</b><span style="color:#ffd45a;font-weight:800">ab ' + x.elo + '</span><span style="width:20px;text-align:center">' + (ok ? '✅' : '🔒') + '</span></div>';
     }).join('');
-    return '<div style="margin:0 0 14px"><div style="font-weight:800;margin:4px 0 2px">🏅 ' + (de ? 'Elo-Rangliste' : 'Elo ranks') + '</div>'
+    return '<div style="margin:0 0 14px"><div style="font-weight:800;margin:4px 0 2px">🏅 ' + (de ? 'Elo-Rangliste (Ränge)' : 'Elo ranks') + '</div>'
       + '<div style="opacity:.75;font-size:13px;margin-bottom:8px">' + (de ? 'Deine höchste Online-Elo: ' : 'Your highest online Elo: ') + '<b style="color:#ffd45a">' + me + '</b></div>' + rows2 + '</div>';
   }
   function panel(r, lang){
@@ -55,11 +55,11 @@
     var ov = document.createElement('div'); ov.id = 'bpStyleOv';
     ov.style.cssText = 'position:fixed;inset:0;z-index:99997;background:#05081a;overflow:auto;font-family:system-ui,sans-serif;color:#fff;padding:16px';
     var eo = document.getElementById('bpEloOv'); if(eo) eo.remove();
-    var buy = null, msg = '', coins = null;
+    var buy = null, msg = '', coins = null, hint = '';
     function draw(){
       var cur = S.get(), bd = S.board().id, me = S.maxElo();
       var sets = S.list.map(function(x){
-        var lock = !S.unlocked(x.id), sub = lock ? (x.price ? '🪙 ' + x.price : '🔒 ' + (de ? 'ab ' : 'from ') + x.elo + ' Elo') : (x.elo ? '✓ ' + x.elo + '+' : (x.price ? '✓ ' + (de ? 'gekauft' : 'owned') : '')), img = x.id === 'alt' ? '<div style="height:64px;display:flex;align-items:center;justify-content:center;font-size:40px">♞</div>' : '<img src="/chess/sets/' + x.id + '/wN.png" style="width:64px;height:64px;display:block;margin:0 auto" alt="">';
+        var lock = !S.unlocked(x.id), sub = lock ? (x.price ? '🪙 ' + x.price : '🔒 ' + (de ? 'erspielen' : 'earn it')) : (x.price ? '✓ ' + (de ? 'gekauft' : 'owned') : (x.earn ? '✓ ' + (de ? 'erspielt' : 'earned') : '')), img = x.id === 'alt' ? '<div style="height:64px;display:flex;align-items:center;justify-content:center;font-size:40px">♞</div>' : '<img src="/chess/sets/' + x.id + '/wN.png" style="width:64px;height:64px;display:block;margin:0 auto" alt="">';
         return '<div data-set="' + x.id + '">' + tile(img, de ? x.de : x.en, sub, cur === x.id, lock && !x.price) + '</div>';
       }).join('');
       var boards = S.boards.map(function(b){
@@ -68,13 +68,13 @@
       var bx = buy ? S.list.filter(function(q){ return q.id === buy; })[0] : null;
       var buyBar = bx ? '<div style="margin:12px 0;padding:12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1)"><b>' + (de ? bx.de : bx.en) + '</b> ' + (de ? 'für ' : 'for ') + '<b style="color:#ffd45a">' + bx.price + ' 🪙</b> ' + (de ? 'kaufen?' : 'buy?') + (coins != null ? ' <span style="opacity:.7">(' + (de ? 'du hast ' : 'you have ') + coins + ')</span>' : '') + (msg ? '<div style="color:#ff8aa8;margin-top:6px">' + esc(msg) + '</div>' : '') + '<div style="display:flex;gap:8px;margin-top:10px"><button id="bpBuyYes" style="flex:1;padding:10px;border-radius:10px;border:0;background:#c6ff3d;color:#08110c;font-weight:900;cursor:pointer">' + (de ? 'Kaufen' : 'Buy') + '</button><button id="bpBuyNo" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;cursor:pointer">' + (de ? 'Abbrechen' : 'Cancel') + '</button></div></div>' : '';
       ov.innerHTML = '<div style="max-width:520px;margin:0 auto"><div style="font-size:22px;font-weight:900;margin-bottom:4px">🎨 ' + (de ? 'Figuren und Brett' : 'Pieces and board') + '</div>'
-        + '<div style="opacity:.7;font-size:13px;margin-bottom:12px">' + (de ? 'Deine höchste Online-Elo: ' : 'Your highest online Elo: ') + '<b style="color:#ffd45a">' + me + '</b>. ' + (de ? 'Mit mehr Elo schaltest du neue Figuren frei.' : 'Reach a higher Elo to unlock new pieces.') + '</div>'
-        + '<div style="font-weight:800;margin:6px 0">♟ ' + (de ? 'Figuren' : 'Pieces') + '</div><div style="display:flex;flex-wrap:wrap;gap:8px">' + sets + '</div>' + buyBar
+        + '<div style="opacity:.7;font-size:13px;margin-bottom:12px">' + (de ? 'Deine höchste Online-Elo: ' : 'Your highest online Elo: ') + '<b style="color:#ffd45a">' + me + '</b>. ' + (de ? 'Bronze bis Rubin kannst du immer nutzen. Wald, Kristall und Zoo musst du erspielen, Fantasie, Waldtiere und Weltraum kaufen.' : 'Bronze to Ruby are always usable. Earn Forest, Crystal and Zoo; buy Fantasy, Forest animals and Space.') + '</div>'
+        + (hint ? '<div style="margin:8px 0;padding:10px 12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1);font-size:14px">' + esc(hint) + '</div>' : '') + '<div style="font-weight:800;margin:6px 0">♟ ' + (de ? 'Figuren' : 'Pieces') + '</div><div style="display:flex;flex-wrap:wrap;gap:8px">' + sets + '</div>' + buyBar
         + '<div style="font-weight:800;margin:18px 0 6px">▦ ' + (de ? 'Brettfarbe' : 'Board colour') + '</div><div style="display:flex;flex-wrap:wrap;gap:10px">' + boards + '</div>'
         + '<button id="bpStyleClose" style="margin-top:20px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:16px;cursor:pointer">' + (de ? 'Fertig' : 'Done') + '</button></div>';
       ov.querySelectorAll('[data-set]').forEach(function(el){ el.onclick = function(){
         var id = el.getAttribute('data-set'), x = S.list.filter(function(q){ return q.id === id; })[0];
-        if(S.set(id)){ buy = null; again(); draw(); } else if(x && x.price){ buy = id; draw(); } }; });
+        if(S.set(id)){ buy = null; hint = ''; again(); draw(); } else if(x && x.price){ buy = id; hint = ''; draw(); } else if(x && x.earn){ buy = null; hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? x.hd : x.he); draw(); } }; });
       var bb = ov.querySelector('#bpBuyYes'); if(bb) bb.onclick = function(){
         var id = buy; bb.disabled = true; bb.textContent = '…';
         post('/api/pieceset-buy', { id: id, lang: lang }).then(function(r){

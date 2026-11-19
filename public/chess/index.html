@@ -122,7 +122,7 @@
   </div>
   <div class="log" id="log"></div>
   <div class="stats" id="stats"></div>
-  <div style="text-align:center;font-size:10px;opacity:.35;margin-top:6px">Version 10 · PC-Layout · Figuren-Sets</div>
+  <div style="text-align:center;font-size:10px;opacity:.35;margin-top:6px">Version 11 · PC-Layout · Figuren-Sets</div>
 </div>
   </div>
 </div>
@@ -261,6 +261,7 @@ function tryMove(mv){
 function doMove(mv, byPlayer){
   if(byPlayer){ G.history.push(snapshot()); G.rec.push({ board:G.board, last:G.last, col:"w", move:Object.assign({}, mv) }); }
   const mover = G.board[mv.fr][mv.fc];
+  if(byPlayer && window.BpSets){ if(mv.castle) BpSets.earn('wald'); if(mv.promTo) BpSets.earn('zoo'); }
   const target = G.board[mv.tr][mv.tc];
   let captured = target ? target.t : null;
   if(mv.ep){ captured = "P"; }
@@ -310,6 +311,7 @@ function botMove(){
 
 function finish(res){
   G.over = true; G.busy = false;
+  if(res.result === 'win' && res.why === T.mate && window.BpSets) BpSets.earn('kristall');
   try{ parent.sfxResult(res.result === 'win', res.result === 'draw'); }catch(e){}
   render();
   const title = res.result === "win" ? T.win : res.result === "loss" ? T.loss : T.draw;

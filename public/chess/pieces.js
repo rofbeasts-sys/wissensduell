@@ -22,9 +22,9 @@ var _uid=0;
 var SETS=[
  {id:'normal', de:'Standard', en:'Standard', elo:0},
  {id:'alt', de:'Klassisch (alt)', en:'Classic (old)', elo:0},
- {id:'wald', de:'Wald', en:'Forest', elo:0},
- {id:'kristall', de:'Kristall', en:'Crystal', elo:0},
- {id:'zoo', de:'Zoo', en:'Zoo', elo:0},
+ {id:'wald', de:'Wald', en:'Forest', elo:0, earn:1, hd:'Rochiere einmal (König und Turm tauschen).', he:'Castle once (king and rook swap).'},
+ {id:'kristall', de:'Kristall', en:'Crystal', elo:0, earn:1, hd:'Setze einen Gegner schachmatt.', he:'Checkmate an opponent.'},
+ {id:'zoo', de:'Zoo', en:'Zoo', elo:0, earn:1, hd:'Bringe einen Bauern auf die andere Seite (Umwandlung).', he:'Get a pawn to the far side (promotion).'},
  {id:'bronze', de:'Bronze', en:'Bronze', elo:1500},
  {id:'silber', de:'Silber', en:'Silver', elo:1650},
  {id:'gold', de:'Gold', en:'Gold', elo:1800},
@@ -35,14 +35,14 @@ var SETS=[
  {id:'waldtiere', de:'Waldtiere', en:'Forest animals', elo:0, price:10000},
  {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:10000}];
 var BOARDS=[
+ {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
+ {id:'holzblau', de:'Holzrahmen blau', en:'Wood frame blue', img:'/chess/boards/holzblau.jpg', pf:0.0470, co:'#000', cs:'none'},
  {id:'gruen', de:'Grün', en:'Green', l:'#eeeed2', d:'#769656'},
  {id:'blau', de:'Blau', en:'Blue', l:'#dee3e6', d:'#8ca2ad'},
  {id:'holz', de:'Holz', en:'Wood', l:'#f0d9b5', d:'#b58863'},
  {id:'violett', de:'Violett', en:'Purple', l:'#e8e0f5', d:'#8a6fb8'},
  {id:'grau', de:'Grau', en:'Grey', l:'#e5e5e5', d:'#7d8a99'},
- {id:'nacht', de:'Nacht', en:'Night', l:'#c9d4e8', d:'#4a5f86'},
- {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
- {id:'marmor', de:'Marmor und Diamanten', en:'Marble and diamonds', img:'/chess/boards/marmor.jpg', pf:0.0792, co:'#e01010', cs:'0 0 2px #fff,0 0 2px #fff,0 0 3px #fff'}];
+ {id:'nacht', de:'Nacht', en:'Night', l:'#c9d4e8', d:'#4a5f86'}];
 function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 var BS=window.BpSets={ list:SETS, boards:BOARDS,
@@ -51,10 +51,14 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
   admin:function(){ return !!ls('bp_admin_key'); },
   owned:function(){ try{ return JSON.parse(ls('bp_sets_owned')||'[]'); }catch(e){ return []; } },
   setOwned:function(a){ lset('bp_sets_owned',JSON.stringify(a||[])); },
-  unlocked:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return false; if(BS.admin()) return true; if(x.price) return BS.owned().indexOf(id)>=0; return x.elo<=BS.maxElo(); },
+  earned:function(){ try{ return JSON.parse(ls('bp_sets_earned')||'[]'); }catch(e){ return []; } },
+  earn:function(id){ var a=BS.earned(); if(a.indexOf(id)>=0) return; a.push(id); lset('bp_sets_earned',JSON.stringify(a));
+    var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return;
+    try{ var t=document.createElement('div'); t.textContent='🎉 Neues Figuren-Set freigeschaltet: '+x.de; t.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:99999;background:#c6ff3d;color:#08110c;font:800 15px system-ui,sans-serif;padding:12px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw;text-align:center'; document.body.appendChild(t); setTimeout(function(){ t.remove(); },5000); }catch(e){} },
+  unlocked:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return false; if(x.price) return BS.owned().indexOf(id)>=0; if(x.earn) return BS.earned().indexOf(id)>=0; return true; },
   get:function(){ var id=ls('bp_piece_set')||'normal'; return BS.unlocked(id)?id:'normal'; },
   set:function(id){ if(BS.unlocked(id)){ lset('bp_piece_set',id); BS.preload(); return true; } return false; },
-  board:function(){ var id=ls('bp_board_theme')||'gruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },
+  board:function(){ var id=ls('bp_board_theme')||'holzgruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },
   setBoard:function(id){ lset('bp_board_theme',id); BS.applyBoard(); },
   applyBoard:function(){ var b=BS.board(), de=document.documentElement, st=de.style;
     if(b.img){ de.classList.add('bd-img'); st.setProperty('--bd-url','url('+b.img+')'); st.setProperty('--pf',String(b.pf)); st.setProperty('--co',b.co||'#fff'); st.setProperty('--cs',b.cs||'0 0 3px #000'); st.setProperty('--k',String(1+2*b.pf)); }
