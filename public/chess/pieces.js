@@ -32,14 +32,17 @@ var SETS=[
  {id:'diamant', de:'Diamant', en:'Diamond', elo:1800},
  {id:'kristall', de:'Kristall', en:'Crystal', elo:0, price:5000},
  {id:'waldtiere', de:'Waldtiere', en:'Forest animals', elo:0, price:5000},
- {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:5000}];
+ {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:5000},
+ {id:'zoo', de:'Zoo', en:'Zoo', elo:0, price:5000}];
 var BOARDS=[
  {id:'gruen', de:'Grün', en:'Green', l:'#eeeed2', d:'#769656'},
  {id:'blau', de:'Blau', en:'Blue', l:'#dee3e6', d:'#8ca2ad'},
  {id:'holz', de:'Holz', en:'Wood', l:'#f0d9b5', d:'#b58863'},
  {id:'violett', de:'Violett', en:'Purple', l:'#e8e0f5', d:'#8a6fb8'},
  {id:'grau', de:'Grau', en:'Grey', l:'#e5e5e5', d:'#7d8a99'},
- {id:'nacht', de:'Nacht', en:'Night', l:'#c9d4e8', d:'#4a5f86'}];
+ {id:'nacht', de:'Nacht', en:'Night', l:'#c9d4e8', d:'#4a5f86'},
+ {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
+ {id:'marmor', de:'Marmor und Diamanten', en:'Marble and diamonds', img:'/chess/boards/marmor.jpg', pf:0.0792, co:'#e01010', cs:'0 0 2px #fff,0 0 2px #fff,0 0 3px #fff'}];
 function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 var BS=window.BpSets={ list:SETS, boards:BOARDS,
@@ -53,7 +56,9 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
   set:function(id){ if(BS.unlocked(id)){ lset('bp_piece_set',id); BS.preload(); return true; } return false; },
   board:function(){ var id=ls('bp_board_theme')||'gruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },
   setBoard:function(id){ lset('bp_board_theme',id); BS.applyBoard(); },
-  applyBoard:function(){ var b=BS.board(), st=document.documentElement.style; st.setProperty('--sq-light',b.l); st.setProperty('--sq-dark',b.d); },
+  applyBoard:function(){ var b=BS.board(), de=document.documentElement, st=de.style;
+    if(b.img){ de.classList.add('bd-img'); st.setProperty('--bd-url','url('+b.img+')'); st.setProperty('--pf',String(b.pf)); st.setProperty('--co',b.co||'#fff'); st.setProperty('--cs',b.cs||'0 0 3px #000'); st.setProperty('--k',String(1+2*b.pf)); }
+    else { de.classList.remove('bd-img'); st.setProperty('--k','1'); st.setProperty('--sq-light',b.l); st.setProperty('--sq-dark',b.d); } },
   preload:function(){ var id=BS.get(); if(id==='alt') return; ['K','Q','R','B','N','P'].forEach(function(t){ ['w','b'].forEach(function(c){ var i=new Image(); i.src='/chess/sets/'+id+'/'+c+t+'.png'; }); }); }
 };
 BS.applyBoard(); BS.preload();

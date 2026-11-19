@@ -51,21 +51,69 @@
   .promo{ display:flex; gap:8px; justify-content:center; margin-top:8px; }
   .promo button svg{ width:100%; height:100%; } .promo button{ padding:4px; width:64px; height:64px; font-size:42px; border-radius:14px; border:1.5px solid var(--line); background:var(--bg-alt); color:#fff; text-shadow:0 0 2px #000; cursor:pointer; }
   .stats{ color:var(--text-dim); font-size:12px; text-align:center; margin-top:14px; }
+
+  /* PC: grosses Brett links, Bedienfeld rechts (wie bei grossen Schach-Seiten) */
+  @media (min-width:760px){
+    .wrap{ max-width:1180px; padding-top:18px; }
+    .cols{ display:grid; grid-template-columns:auto minmax(330px,390px); grid-template-rows:auto 1fr; column-gap:30px; align-items:start; }
+    .bc{ grid-column:1; grid-row:1 / span 2; }
+    .sc1{ grid-column:2; grid-row:1; background:var(--panel); border:1.5px solid var(--line); border-radius:18px; padding:14px 16px 6px; }
+    .sc2{ grid-column:2; grid-row:2; background:var(--panel); border:1.5px solid var(--line); border-radius:18px; padding:2px 16px 14px; margin-top:14px; }
+    .sc2:empty{ display:none; }
+    .boardwrap{ width:auto; }
+    #board{ --cell:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8); border-radius:10px; }
+    .log{ max-height:260px; }
+    #lobby{ max-width:480px; margin:0 auto; }
+  }
+
+  /* Seitenleiste: huebscher */
+  #oppBar{ display:flex; align-items:center; gap:12px; text-align:left !important; margin:8px 0 10px !important; padding:10px 12px; border:1.5px solid var(--line); border-radius:16px; background:linear-gradient(135deg,rgba(124,92,255,.16),rgba(61,224,255,.08)); }
+  #oppBar:empty{ display:none; }
+  #oppBar img{ width:62px; height:62px; object-fit:cover; border-radius:14px; box-shadow:0 4px 14px rgba(0,0,0,.45); border:2px solid rgba(255,255,255,.25); }
+  #oppBar .oi{ flex:1; display:flex; flex-direction:column; min-width:0; } #oppBar .oi b{ font-size:16px; } #oppBar .oi small{ color:var(--text-dim); font-size:12px; margin-top:2px; }
+  #oppBar .oelo{ background:rgba(255,212,69,.16); color:#ffd45a; border:1px solid rgba(255,212,69,.4); border-radius:999px; padding:4px 11px; font-weight:900; font-size:14px; }
+  .stylebtn{ width:100%; flex:none; margin:0 0 10px; border-color:rgba(198,255,61,.5); background:linear-gradient(135deg,rgba(198,255,61,.14),rgba(61,224,255,.08)); }
+  .btn{ transition:transform .12s, border-color .12s, background .12s; } .btn:hover:not(:disabled){ transform:translateY(-1px); border-color:var(--accent); }
+  #status{ display:inline-block; padding:6px 16px; border-radius:999px; background:rgba(255,255,255,.07); border:1px solid var(--line); margin:6px auto 4px; min-height:0; }
+  #status:empty{ display:none; }
+  #eloBar:hover{ border-color:var(--accent) !important; background:rgba(198,255,61,.1) !important; }
+  @media (min-width:760px){
+    .sc1{ background:linear-gradient(160deg,#1b2340 0%,#131a2c 60%); box-shadow:0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06); padding:16px 18px 10px; }
+    .sc2{ background:linear-gradient(160deg,#18203a 0%,#121828 70%); box-shadow:0 10px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.05); }
+    .sc1 .sub{ font-size:12px; margin:8px 2px 10px; }
+    .sc1 #status, .sc1 #moveMode{ text-align:center; } .sc1 #status{ display:block; width:fit-content; }
+    .btn{ padding:13px 10px; font-size:15px; }
+  }
+
+  /* Bildbretter mit Rahmen */
+  html.bd-img .boardwrap{ --cellb:calc(min(100vw - 32px, 448px) / 8 / var(--k)); width:fit-content; margin:0 auto; padding:calc(var(--cellb) * 8 * var(--pf)); background:var(--bd-url) center/100% 100% no-repeat; box-sizing:content-box; border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,.5); }
+  html.bd-img #board{ --cell:var(--cellb); border:0 !important; box-shadow:none !important; background:none !important; border-radius:0 !important; overflow:visible !important; }
+  html.bd-img .sq.l, html.bd-img .sq.d{ background:none !important; }
+  html.bd-img .sq .coord, html.bd-img .sq .rk, html.bd-img .sq .fl{ color:var(--co) !important; text-shadow:var(--cs); font-weight:800; }
+  html.bd-img #planSvg{ left:calc(var(--cellb) * 8 * var(--pf)); top:calc(var(--cellb) * 8 * var(--pf)); width:calc(var(--cellb) * 8); height:calc(var(--cellb) * 8); }
+  @media (min-width:760px){ html.bd-img .boardwrap{ --cellb:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8 / var(--k)); } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="top"><a class="back" href="/" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}">←</a><h1 id="title">Chess</h1></div>
+  <div class="cols">
+<div class="sc1">
   <div id="eloBar"></div>
+  <button class="btn stylebtn" id="styleBtn2"></button>
   <div class="sub" id="sub"></div>
   <div class="row" id="onlineRow" style="margin:0 0 10px"><button class="btn" id="rndBtn"></button><button class="btn" id="frBtn"></button></div>
   <div class="chips" id="ladderRow"></div>
   <div id="oppBar" style="text-align:center;font-size:14px;font-weight:700;margin:2px 0 6px"></div>
   <div class="chips" id="moveMode"></div>
   <div id="status"></div>
+</div>
+<div class="bc">
   <div class="cap" id="capBlack"></div>
   <div class="boardwrap"><div id="board"></div></div>
   <div class="cap" id="capWhite"></div>
+</div>
+<div class="sc2">
   <div class="row">
     <button class="btn primary" id="newBtn"></button>
     <button class="btn" id="undoBtn"></button>
@@ -74,6 +122,9 @@
   </div>
   <div class="log" id="log"></div>
   <div class="stats" id="stats"></div>
+  <div style="text-align:center;font-size:10px;opacity:.35;margin-top:6px">Version 9 · PC-Layout · Figuren-Sets</div>
+</div>
+  </div>
 </div>
 
 <div class="overlay" id="promoOv"><div class="card"><h2 id="promoTitle"></h2><div class="promo" id="promoBtns"></div></div></div>
@@ -286,7 +337,8 @@ function buildUi(){
   lb.onclick = () => BpLadder.open("chess", LANG, (i) => { OPP = i; try{ localStorage.setItem("bp_chess_opp", String(i)); }catch(e){} buildUi(); newGame(); }, OPP);
   lr.appendChild(lb);
   const ob = $("oppBar");
-  if(OPP != null){ const o = BpLadder.info("chess", OPP, LANG); ob.innerHTML = '<img src="' + o.img + '" alt="" style="height:46px;border-radius:8px;vertical-align:middle;margin-right:8px">'; ob.appendChild(document.createTextNode(o.name + " · " + o.title + " · " + o.elo)); } else ob.textContent = "";
+  if(OPP != null){ const o = BpLadder.info("chess", OPP, LANG); ob.innerHTML = '<img src="' + o.img + '" alt=""><div class="oi"><b>' + o.name + '</b><small>' + o.title + '</small></div><span class="oelo">' + o.elo + '</span>'; } else ob.textContent = "";
+  $("styleBtn2").textContent = "🎨 " + (LANG === "de" ? "Figuren und Brett wählen" : "Choose pieces and board"); $("styleBtn2").onclick = () => BpElo.stylePanel(LANG);
   $("newBtn").textContent = T.newGame; $("undoBtn").textContent = T.undo; $("resignBtn").textContent = T.resign;
   $("anaBtn").textContent = "🔎"; $("endAna").textContent = "🔎 " + bpAnalysis.label; $("endNew").textContent = T.again; $("endClose").textContent = T.close;
 }

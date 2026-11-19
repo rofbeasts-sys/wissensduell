@@ -4694,7 +4694,7 @@ async function ladderBuy(token, id, lang) {
   return ladderState(token);
 }
 // ---- Figuren-Sets zum Kaufen (Schach): gekaufte Sets gehoeren dem Konto ----
-const PIECE_SET_SHOP = { kristall: 5000, waldtiere: 5000, weltraum: 5000 };
+const PIECE_SET_SHOP = { kristall: 5000, waldtiere: 5000, weltraum: 5000, zoo: 5000 };
 function pieceSetState(token) {
   const user = findUserByToken(token); if (!user) return { ok: false };
   return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, prices: PIECE_SET_SHOP };

@@ -71,7 +71,7 @@
   .pill{ display:inline-block; background:var(--panel-2); border:1px solid var(--line); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:800; color:var(--text-dim); margin:0 3px; }
 
   /* PC: grosses Brett links, Bedienfeld rechts (wie bei grossen Schach-Seiten) */
-  @media (min-width:900px){
+  @media (min-width:760px){
     .wrap{ max-width:1180px; padding-top:18px; }
     .cols{ display:grid; grid-template-columns:auto minmax(330px,390px); grid-template-rows:auto 1fr; column-gap:30px; align-items:start; }
     .bc{ grid-column:1; grid-row:1 / span 2; }
@@ -79,10 +79,18 @@
     .sc2{ grid-column:2; grid-row:2; background:var(--panel); border:1.5px solid var(--line); border-radius:18px; padding:2px 16px 14px; margin-top:14px; }
     .sc2:empty{ display:none; }
     .boardwrap{ width:auto; }
-    #board{ --cell:calc(max(300px, min(100vh - 210px, 100vw - 540px, 760px)) / 8); border-radius:10px; }
+    #board{ --cell:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8); border-radius:10px; }
     .log{ max-height:260px; }
     #lobby{ max-width:480px; margin:0 auto; }
   }
+
+  /* Bildbretter mit Rahmen */
+  html.bd-img .boardwrap{ --cellb:calc(min(100vw - 32px, 448px) / 8 / var(--k)); width:fit-content; margin:0 auto; padding:calc(var(--cellb) * 8 * var(--pf)); background:var(--bd-url) center/100% 100% no-repeat; box-sizing:content-box; border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,.5); }
+  html.bd-img #board{ --cell:var(--cellb); border:0 !important; box-shadow:none !important; background:none !important; border-radius:0 !important; overflow:visible !important; }
+  html.bd-img .sq.l, html.bd-img .sq.d{ background:none !important; }
+  html.bd-img .sq .coord, html.bd-img .sq .rk, html.bd-img .sq .fl{ color:var(--co) !important; text-shadow:var(--cs); font-weight:800; }
+  html.bd-img #planSvg{ left:calc(var(--cellb) * 8 * var(--pf)); top:calc(var(--cellb) * 8 * var(--pf)); width:calc(var(--cellb) * 8); height:calc(var(--cellb) * 8); }
+  @media (min-width:760px){ html.bd-img .boardwrap{ --cellb:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8 / var(--k)); } }
 </style>
 </head>
 <body>

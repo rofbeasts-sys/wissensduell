@@ -11144,11 +11144,17 @@ window.addEventListener('load', () => setTimeout(() => { try{ const c = new URLS
    ============================================================================ */
 const DM_SKINS = [
   { id:'wood',  wins:0,  de:'Klassisch Holz', en:'Classic wood' },
+  { id:'i_holz', wins:1, de:'Holz Deluxe',    en:'Wood deluxe' },
   { id:'neon',  wins:3,  de:'Neon',           en:'Neon' },
+  { id:'i_bronze', wins:5, de:'Bronze',       en:'Bronze' },
   { id:'glass', wins:8,  de:'Glas',           en:'Glass' },
+  { id:'i_silber', wins:12, de:'Silber',      en:'Silver' },
   { id:'flat',  wins:15, de:'Flach',          en:'Flat' },
+  { id:'i_gold', wins:20, de:'Gold',          en:'Gold' },
   { id:'metal', wins:30, de:'Gold & Silber',  en:'Gold & silver' },
-  { id:'pulse', wins:50, de:'Brain-Pulse',    en:'Brain Pulse' }
+  { id:'i_smaragd', wins:40, de:'Smaragd',    en:'Emerald' },
+  { id:'pulse', wins:50, de:'Brain-Pulse',    en:'Brain Pulse' },
+  { id:'i_rubin', wins:70, de:'Rubin',        en:'Ruby' }
 ];
 let dm = null, dmTimers = [], dmIv = null;
 function dmT(fn, ms){ const id = setTimeout(fn, ms); dmTimers.push(id); return id; }
@@ -11159,12 +11165,16 @@ function dmSkinUnlocked(id){ if(adminViewOn()) return true; const s = DM_SKINS.f
 function dmSkin(){ let id = 'wood'; try{ id = localStorage.getItem('dm_skin') || 'wood'; }catch(e){} return dmSkinUnlocked(id) ? id : 'wood'; }
 function dmSetSkin(id){ if(!dmSkinUnlocked(id)) return; try{ localStorage.setItem('dm_skin', id); }catch(e){} if(dm && dm.board) dmRender(); else if(document.getElementById('brIntroMark')) brIntro(); else if(document.getElementById('dmSkinScr')) dmSkinScreen(); else dmIntro(); }
 function dmSquares(skin){
-  if(skin === 'wood' || skin === 'metal') return ['#ebdcbc', '#7a5537'];
+  if(skin === 'wood' || skin === 'metal' || skin === 'i_holz' || skin === 'i_bronze' || skin === 'i_gold') return ['#ebdcbc', '#7a5537'];
+  if(skin === 'i_silber') return ['#e1e8f5', '#8696b8'];
+  if(skin === 'i_smaragd') return ['#d9efe0', '#2d6a4a'];
+  if(skin === 'i_rubin') return ['#e9dcdc', '#5a2a30'];
   if(skin === 'flat') return ['#e1e8f5', '#96aad0'];
   if(skin === 'glass') return ['#32426b', '#16203c'];
   return ['#3c486e', '#1b2444'];
 }
 function dmStone(skin, color, king, pct){
+  if(String(skin).indexOf('i_') === 0){ const wd = Math.min(100, pct * 1.12); return `<div style="width:${pct}%;aspect-ratio:1;display:flex;align-items:center;justify-content:center"><img src="/chess/dame/${String(skin).slice(2)}/${color}${king ? 'k' : 's'}.png" draggable="false" alt="" style="width:${wd / pct * 100}%;height:${wd / pct * 100}%;object-fit:contain;pointer-events:none"></div>`; }
   const w = color === 'w'; let bg, bd, sh, gc;
   if(skin === 'neon'){ const c = w ? '#50dcff' : '#ff5da2'; bg = '#0a0e1e'; bd = '4px solid ' + c; sh = `0 0 10px ${c}99, inset 0 0 0 7px #0a0e1e, inset 0 0 0 9px ${c}66`; gc = c; }
   else if(skin === 'glass'){ const a = w ? '#c8f5ff' : '#ffcde1', b = w ? '#1e8cc8' : '#be2864'; bg = `radial-gradient(ellipse at 35% 22%, rgba(255,255,255,.75) 0 16%, transparent 18%), radial-gradient(circle at 35% 30%, ${a}, ${b})`; bd = '2px solid rgba(255,255,255,.5)'; sh = '0 3px 6px rgba(0,0,0,.5)'; gc = '#fff'; }

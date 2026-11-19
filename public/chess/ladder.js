@@ -1,5 +1,5 @@
 /* Gegner-Leiter fuer Schach, Dame, 4 gewinnt, Muehle und Tic Tac Toe (Original, Quantum, QuizMix): 30 benannte Gegner von leicht bis schwer.
-   Die ersten 10 sind frei, die naechsten 10 schaltet man durch Siege frei, die letzten 10 kosten je 1000 Muenzen (gilt fuer beide Spiele).
+   Die ersten 10 sind frei, die naechsten 10 schaltet man durch Siege frei, die letzten 10 kosten je 5000 Muenzen (gilt fuer beide Spiele).
    Die Leiter-Wertung ist NUR lokal und hat nichts mit der Online-Elo zu tun (niemand kann sich online Punkte "erspielen"). */
 (function(root){
   // id, Name, Beiname (de), Name, Beiname (en)
@@ -14,7 +14,7 @@
     ['kalle','Käpt\'n Kalle','Der Taktiker','Captain Kalle','The Tactician'], ['ninja','Ninja Leo','Der Schatten','Ninja Leo','The Shadow'], ['otto','Professor Otto','Der Denker','Professor Otto','The Thinker'],
     ['dieter','Dieter','Der Großmeister','Dieter','The Grandmaster'], ['koenigin','Königin Sophie','Die Strategin','Queen Sophie','The Strategist'], ['koenig','König Felix','Der Herrscher','King Felix','The Ruler'], ['lukas','Magier Lukas','Der Zauberer','Wizard Lukas','The Sorcerer']
   ];
-  var PRICE = 1000;
+  var PRICE = 5000;
   var LIST = RAW.map(function(r, i){
     return { id: r[0], de: [r[1], r[2]], en: [r[3], r[4]], elo: 400 + i * 50, tier: i < 10 ? 'free' : i < 20 ? 'earn' : 'buy', img: '/chess/opp/' + r[0] + '.jpg' };
   });
