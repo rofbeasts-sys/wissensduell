@@ -25,12 +25,58 @@
       + '<div style="font-size:42px;font-weight:900;color:#ffd45a">' + r.elo + '</div>'
       + '<div style="opacity:.7;margin-bottom:14px">' + r.games + ' ' + (de ? 'Online-Partien' : 'online games') + (r.pos ? ' · ' + (de ? 'Platz ' : 'Rank ') + r.pos : '') + '</div>'
       + '<label style="display:flex;gap:10px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.2);border-radius:12px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="bpEloHide" style="width:20px;height:20px"' + (hidden() ? ' checked' : '') + '><span><b>' + (de ? 'Gegner-Elo verbergen' : 'Hide opponent Elo') + '</b><br><small style="opacity:.7">' + (de ? 'Ich sehe die Elo meines Gegners nicht, so spiele ich wie immer. Meine eigene sehe ich weiter.' : "I won't see my opponent's Elo, so I play like always. I still see my own.") + '</small></span></label>'
+      + '<button id="bpStyleBtn" style="width:100%;padding:12px;border-radius:12px;border:1px solid #c6ff3d;background:rgba(198,255,61,.12);color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:14px">🎨 ' + (de ? 'Figuren und Brett wählen' : 'Choose pieces and board') + '</button>'
       + '<div style="font-weight:800;margin:8px 0 2px">👥 ' + (de ? 'Freunde' : 'Friends') + '</div>' + rows(r.friends, de, r.name)
       + '<div style="font-weight:800;margin:16px 0 2px">🏆 ' + (de ? 'Bestenliste' : 'Leaderboard') + '</div>' + rows(r.top, de, r.name)
       + '<button id="bpEloClose" style="margin-top:18px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:16px;cursor:pointer">' + (de ? 'Schließen' : 'Close') + '</button></div>';
     document.body.appendChild(ov);
     document.getElementById('bpEloHide').onchange = function(){ setHidden(this.checked); };
     document.getElementById('bpEloClose').onclick = function(){ ov.remove(); };
+    document.getElementById('bpStyleBtn').onclick = function(){ stylePanel(lang); };
+  }
+
+  function tile(inner, label, sub, on, locked){
+    return '<div style="width:92px;text-align:center;opacity:' + (locked ? '.45' : '1') + ';cursor:' + (locked ? 'default' : 'pointer') + ';border:2px solid ' + (on ? '#c6ff3d' : 'rgba(255,255,255,.18)') + ';border-radius:12px;padding:6px 4px;background:rgba(255,255,255,.05)">' + inner + '<div style="font-size:12px;font-weight:800;margin-top:2px">' + label + '</div><div style="font-size:10px;opacity:.7;min-height:12px">' + sub + '</div></div>';
+  }
+  function stylePanel(lang){
+    var S = root.BpSets; if(!S) return;
+    var de = lang !== 'en', old = document.getElementById('bpStyleOv'); if(old) old.remove();
+    var ov = document.createElement('div'); ov.id = 'bpStyleOv';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99997;background:#05081a;overflow:auto;font-family:system-ui,sans-serif;color:#fff;padding:16px';
+    var eo = document.getElementById('bpEloOv'); if(eo) eo.remove();
+    var buy = null, msg = '', coins = null;
+    function draw(){
+      var cur = S.get(), bd = S.board().id, me = S.maxElo();
+      var sets = S.list.map(function(x){
+        var lock = !S.unlocked(x.id), sub = lock ? (x.price ? '🪙 ' + x.price : '🔒 ' + (de ? 'ab ' : 'from ') + x.elo + ' Elo') : (x.elo ? '✓ ' + x.elo + '+' : (x.price ? '✓ ' + (de ? 'gekauft' : 'owned') : '')), img = x.id === 'alt' ? '<div style="height:64px;display:flex;align-items:center;justify-content:center;font-size:40px">♞</div>' : '<img src="/chess/sets/' + x.id + '/wN.png" style="width:64px;height:64px;display:block;margin:0 auto" alt="">';
+        return '<div data-set="' + x.id + '">' + tile(img, de ? x.de : x.en, sub, cur === x.id, lock && !x.price) + '</div>';
+      }).join('');
+      var boards = S.boards.map(function(b){
+        return '<div data-bd="' + b.id + '" style="cursor:pointer;text-align:center"><div style="width:64px;height:64px;border-radius:10px;border:2px solid ' + (bd === b.id ? '#c6ff3d' : 'rgba(255,255,255,.18)') + ';overflow:hidden;display:grid;grid-template-columns:1fr 1fr"><i style="background:' + b.l + '"></i><i style="background:' + b.d + '"></i><i style="background:' + b.d + '"></i><i style="background:' + b.l + '"></i></div><div style="font-size:12px;font-weight:800;margin-top:2px">' + (de ? b.de : b.en) + '</div></div>';
+      }).join('');
+      var bx = buy ? S.list.filter(function(q){ return q.id === buy; })[0] : null;
+      var buyBar = bx ? '<div style="margin:12px 0;padding:12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1)"><b>' + (de ? bx.de : bx.en) + '</b> ' + (de ? 'für ' : 'for ') + '<b style="color:#ffd45a">' + bx.price + ' 🪙</b> ' + (de ? 'kaufen?' : 'buy?') + (coins != null ? ' <span style="opacity:.7">(' + (de ? 'du hast ' : 'you have ') + coins + ')</span>' : '') + (msg ? '<div style="color:#ff8aa8;margin-top:6px">' + esc(msg) + '</div>' : '') + '<div style="display:flex;gap:8px;margin-top:10px"><button id="bpBuyYes" style="flex:1;padding:10px;border-radius:10px;border:0;background:#c6ff3d;color:#08110c;font-weight:900;cursor:pointer">' + (de ? 'Kaufen' : 'Buy') + '</button><button id="bpBuyNo" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;cursor:pointer">' + (de ? 'Abbrechen' : 'Cancel') + '</button></div></div>' : '';
+      ov.innerHTML = '<div style="max-width:520px;margin:0 auto"><div style="font-size:22px;font-weight:900;margin-bottom:4px">🎨 ' + (de ? 'Figuren und Brett' : 'Pieces and board') + '</div>'
+        + '<div style="opacity:.7;font-size:13px;margin-bottom:12px">' + (de ? 'Deine höchste Online-Elo: ' : 'Your highest online Elo: ') + '<b style="color:#ffd45a">' + me + '</b>. ' + (de ? 'Mit mehr Elo schaltest du neue Figuren frei.' : 'Reach a higher Elo to unlock new pieces.') + '</div>'
+        + '<div style="font-weight:800;margin:6px 0">♟ ' + (de ? 'Figuren' : 'Pieces') + '</div><div style="display:flex;flex-wrap:wrap;gap:8px">' + sets + '</div>' + buyBar
+        + '<div style="font-weight:800;margin:18px 0 6px">▦ ' + (de ? 'Brettfarbe' : 'Board colour') + '</div><div style="display:flex;flex-wrap:wrap;gap:10px">' + boards + '</div>'
+        + '<button id="bpStyleClose" style="margin-top:20px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:16px;cursor:pointer">' + (de ? 'Fertig' : 'Done') + '</button></div>';
+      ov.querySelectorAll('[data-set]').forEach(function(el){ el.onclick = function(){
+        var id = el.getAttribute('data-set'), x = S.list.filter(function(q){ return q.id === id; })[0];
+        if(S.set(id)){ buy = null; again(); draw(); } else if(x && x.price){ buy = id; draw(); } }; });
+      var bb = ov.querySelector('#bpBuyYes'); if(bb) bb.onclick = function(){
+        var id = buy; bb.disabled = true; bb.textContent = '…';
+        post('/api/pieceset-buy', { id: id, lang: lang }).then(function(r){
+          if(r && r.ok){ S.setOwned(r.bought); coins = r.coins; S.set(id); buy = null; msg = ''; again(); }
+          else msg = (r && r.error) || (de ? 'Kauf nicht möglich.' : 'Could not buy.');
+          draw(); }).catch(function(){ msg = de ? 'Keine Verbindung.' : 'No connection.'; draw(); }); };
+      var bn = ov.querySelector('#bpBuyNo'); if(bn) bn.onclick = function(){ buy = null; msg = ''; draw(); };
+      ov.querySelectorAll('[data-bd]').forEach(function(el){ el.onclick = function(){ S.setBoard(el.getAttribute('data-bd')); draw(); }; });
+      ov.querySelector('#bpStyleClose').onclick = function(){ ov.remove(); again(); };
+    }
+    function again(){ try{ if(typeof root.render === 'function') root.render(); }catch(e){} }
+    document.body.appendChild(ov); draw();
+    if(token()) post('/api/pieceset-status', {}).then(function(r){ if(r && r.ok){ S.setOwned(r.bought); coins = r.coins; draw(); } }).catch(function(){});
   }
   function mount(el, game, lang){
     if(typeof el === 'string') el = document.getElementById(el);
@@ -41,9 +87,10 @@
     if(!token()){ el.textContent = '👤 ' + (de ? 'Melde dich an, um deine Elo zu sehen' : 'Log in to see your Elo'); el.style.cursor = 'default'; el.onclick = null; return; }
     post('/api/chess/elo-rank', { game: game }).then(function(r){
       if(!r || !r.ok){ el.textContent = '👤 Elo ?'; return; }
+      try{ if(root.BpSets) root.BpSets.noteElo(r.elo); }catch(e){}
       el.innerHTML = '<span>👤 ' + esc(r.name) + '</span><span style="margin-left:auto;color:#ffd45a">Elo ' + r.elo + '</span><span style="opacity:.6">›</span>';
       el.onclick = function(){ panel(r, lang); };
     }).catch(function(){ el.textContent = '👤 Elo ?'; });
   }
-  root.BpElo = { mount: mount, hidden: hidden, setHidden: setHidden };
+  root.BpElo = { mount: mount, stylePanel: stylePanel, hidden: hidden, setHidden: setHidden };
 })(typeof window !== 'undefined' ? window : this);

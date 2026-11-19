@@ -69,6 +69,20 @@
   .banner{ margin:6px 0; padding:8px 12px; border-radius:10px; text-align:center; font-size:13px; font-weight:700; background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); }
   .banner.on{ border-color:#7c5cff; color:#d9ccff; background:#2a2150; }
   .pill{ display:inline-block; background:var(--panel-2); border:1px solid var(--line); border-radius:999px; padding:3px 10px; font-size:12px; font-weight:800; color:var(--text-dim); margin:0 3px; }
+
+  /* PC: grosses Brett links, Bedienfeld rechts (wie bei grossen Schach-Seiten) */
+  @media (min-width:900px){
+    .wrap{ max-width:1180px; padding-top:18px; }
+    .cols{ display:grid; grid-template-columns:auto minmax(330px,390px); grid-template-rows:auto 1fr; column-gap:30px; align-items:start; }
+    .bc{ grid-column:1; grid-row:1 / span 2; }
+    .sc1{ grid-column:2; grid-row:1; background:var(--panel); border:1.5px solid var(--line); border-radius:18px; padding:14px 16px 6px; }
+    .sc2{ grid-column:2; grid-row:2; background:var(--panel); border:1.5px solid var(--line); border-radius:18px; padding:2px 16px 14px; margin-top:14px; }
+    .sc2:empty{ display:none; }
+    .boardwrap{ width:auto; }
+    #board{ --cell:calc(max(300px, min(100vh - 210px, 100vw - 540px, 760px)) / 8); border-radius:10px; }
+    .log{ max-height:260px; }
+    #lobby{ max-width:480px; margin:0 auto; }
+  }
 </style>
 </head>
 <body>
@@ -80,6 +94,7 @@
     <div class="msg err" id="loginMsg" style="display:none"></div>
     <div id="lobbyBody">
       <div class="h2" id="hElo"></div><div class="item" id="eloBox"></div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="styleBtn"></button></div>
       <div class="row" style="margin-top:10px"><button class="btn primary" id="rndBtn"></button></div>
       <div class="h2" id="hCorr"></div><div class="list" id="corrList"></div>
       <div class="h2" id="hLive"></div><div class="list" id="liveList"></div>
@@ -95,22 +110,28 @@
     </div>
   </div>
 
-  <div id="game" style="display:none">
+  <div id="game" style="display:none"><div class="cols">
+    <div class="sc1">
     <div class="chips" id="moveMode"></div>
     <div id="status"></div>
+    </div>
+    <div class="bc">
     <div class="clk" id="clkTop"></div>
     <div class="cap" id="capTop"></div>
     <div class="boardwrap"><div id="board"></div><svg id="planSvg" xmlns="http://www.w3.org/2000/svg"></svg></div>
     <div class="banner" id="specBanner" style="display:none"></div>
     <div class="cap" id="capBot"></div>
     <div class="clk" id="clkBot"></div>
+    </div>
+    <div class="sc2">
     <div id="waitBox" style="display:none">
       <div class="msg" id="waitTxt"></div><div class="big" id="waitCode"></div>
       <div class="row"><button class="btn" id="copyBtn"></button><button class="btn" id="cancelBtn"></button></div><div class="row"><button class="btn" id="laterBtn2" style="display:none"></button></div>
     </div>
     <div class="row" id="gameBtns"><button class="btn" id="laterBtn" style="display:none"></button><button class="btn" id="resignBtn"></button></div>
     <div class="log" id="log"></div>
-  </div>
+    </div>
+  </div></div>
 </div>
 
 <div class="overlay" id="promoOv"><div class="card"><h2 id="promoTitle"></h2><div class="promo" id="promoBtns"></div></div></div>
@@ -164,7 +185,7 @@ $("backLink").onclick = (e) => { if(window.parent !== window){ e.preventDefault(
 function texts(){
   $("title").textContent = T.title; $("sub").textContent = T.sub;
   $("hInv").textContent = T.hInv; $("hFr").textContent = T.hFr; $("hCode").textContent = T.hCode;
-  $("hElo").textContent = T.hElo; $("hLive").textContent = T.hLive; $("tmTeam").textContent = T.team; $("tmTeam").title = T.teamTip; $("hTop").textContent = T.hTop; $("rndBtn").textContent = T.random;
+  $("styleBtn").textContent = "🎨 " + (LANG === "de" ? "Figuren und Brett" : "Pieces and board"); $("styleBtn").onclick = () => BpElo.stylePanel(LANG); $("hElo").textContent = T.hElo; $("hLive").textContent = T.hLive; $("tmTeam").textContent = T.team; $("tmTeam").title = T.teamTip; $("hTop").textContent = T.hTop; $("rndBtn").textContent = T.random;
   $("tmOn").textContent = T.withTime; $("tmOff").textContent = T.noTime; $("tmCorr").textContent = T.corr; $("hMode").textContent = T.hMode; $("hCorr").textContent = T.hCorr; $("laterBtn").textContent = T.later; $("laterBtn2").textContent = T.later; paintTime();
   $("mkCode").textContent = T.mkCode; $("joinBtn").textContent = T.join;
   $("copyBtn").textContent = T.copy; $("cancelBtn").textContent = T.cancel; $("resignBtn").textContent = T.resign;
@@ -191,6 +212,7 @@ async function refreshLobby(){
     d.appendChild(b); cb.appendChild(d);
   });
   if(rk && rk.ok){
+    try{ BpSets.noteElo(rk.elo); }catch(e){}
     $("eloBox").innerHTML = `<span class="nm">${rk.elo}</span><span style="color:var(--text-dim);font-size:13px">${rk.games} ${T.games}${rk.pos ? " · " + T.rank + " " + rk.pos : ""} · ${rk.wins}-${rk.losses}</span>`;
     const tl = $("topList"); tl.innerHTML = rk.top.length ? "" : `<div class="msg">${T.noTop}</div>`;
     rk.top.forEach(x => { const d = document.createElement("div"); d.className = "item"; d.innerHTML = `<span class="nm">${x.pos}. ${esc(x.name)}</span><span style="font-weight:800">${x.elo}</span>`; tl.appendChild(d); });
@@ -291,6 +313,7 @@ function legalFor(r, c){
 }
 var __lm = null, __cnt = null;
 function bpSound(){ try{ if(!S || !S.board) return; let n = 0; S.board.forEach(r => r.forEach(x => { if(x) n++; })); const sig = S.last ? [S.last.fr, S.last.fc, S.last.tr, S.last.tc].join() : ''; if(__lm !== null && sig && sig !== __lm) parent.sfx(n < __cnt ? 'capture' : 'move'); __lm = sig; __cnt = n; }catch(e){} }
+window.render = function(){ try{ draw(); }catch(e){} };
 function draw(){
   bpSound();
   const b = $("board"), flip = S.color === "b";

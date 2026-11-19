@@ -4693,6 +4693,24 @@ async function ladderBuy(token, id, lang) {
   if (!(await saveUsers())) { user.stats.coins += LADDER_PRICE; user.ladder.bought = user.ladder.bought.filter(x => x !== id); return serviceDownMsg(lang); }
   return ladderState(token);
 }
+// ---- Figuren-Sets zum Kaufen (Schach): gekaufte Sets gehoeren dem Konto ----
+const PIECE_SET_SHOP = { kristall: 5000, waldtiere: 5000, weltraum: 5000 };
+function pieceSetState(token) {
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, prices: PIECE_SET_SHOP };
+}
+async function pieceSetBuy(token, id, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  if (typeof id !== "string" || !PIECE_SET_SHOP[id]) return { ok: false, error: lang === "en" ? "Unknown set." : "Unbekanntes Set." };
+  if (!Array.isArray(user.pieceSets)) user.pieceSets = [];
+  if (user.pieceSets.includes(id)) return pieceSetState(token);
+  const price = PIECE_SET_SHOP[id];
+  if ((user.stats.coins || 0) < price) return errObj("notEnoughCoins", lang);
+  user.stats.coins -= price; user.pieceSets.push(id);
+  if (!(await saveUsers())) { user.stats.coins += price; user.pieceSets = user.pieceSets.filter(x => x !== id); return serviceDownMsg(lang); }
+  return pieceSetState(token);
+}
 async function realmClaimDias(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
   const user = findUserByToken(token); if (!user) return { ok: false };
@@ -8565,6 +8583,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/realm/buy-dias") result = await realmBuyDias(payload.token, payload.pack, lang);
         else if (req.url === "/api/ladder-state") result = ladderState(payload.token);
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang);
+        else if (req.url === "/api/pieceset-status") result = pieceSetState(payload.token);
+        else if (req.url === "/api/pieceset-buy") result = await pieceSetBuy(payload.token, payload.id, lang);
         else if (req.url === "/api/realm/claim-dias") result = await realmClaimDias(payload.token);
         else if (req.url === "/api/realm/news") result = realmNewsPublic();
         else if (req.url === "/api/admin-realm-news") result = await adminRealmNews(payload.key, ip, payload);

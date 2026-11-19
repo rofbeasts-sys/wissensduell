@@ -18,7 +18,47 @@ function rankMarks(rank,c){ if(rank===undefined||rank===null||c!=='w') return ''
   if(rank>=3) o+='<g transform="translate(80,10)"><path d="M-9 8L-8 -3L-4 3L0 -5L4 3L8 -3L9 8Z" fill="'+(rank===4?'#ffd84a':'#ffe9a0')+'" stroke="#000a" stroke-width="1"/></g>';
   return o; }
 var _uid=0;
+/* Figuren-Sets (Bilder) und Brettfarben. Auswahl liegt im Browser; Elo-Sets werden ab einer Online-Elo frei. */
+var SETS=[
+ {id:'normal', de:'Standard', en:'Standard', elo:0},
+ {id:'alt', de:'Klassisch (alt)', en:'Classic (old)', elo:0},
+ {id:'bronze', de:'Bronze', en:'Bronze', elo:1050},
+ {id:'silber', de:'Silber', en:'Silver', elo:1100},
+ {id:'wald', de:'Wald', en:'Forest', elo:1150},
+ {id:'gold', de:'Gold', en:'Gold', elo:1250},
+ {id:'fantasie', de:'Fantasie', en:'Fantasy', elo:0},
+ {id:'smaragd', de:'Smaragd', en:'Emerald', elo:1400},
+ {id:'rubin', de:'Rubin', en:'Ruby', elo:1600},
+ {id:'diamant', de:'Diamant', en:'Diamond', elo:1800},
+ {id:'kristall', de:'Kristall', en:'Crystal', elo:0, price:5000},
+ {id:'waldtiere', de:'Waldtiere', en:'Forest animals', elo:0, price:5000},
+ {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:5000}];
+var BOARDS=[
+ {id:'gruen', de:'Grün', en:'Green', l:'#eeeed2', d:'#769656'},
+ {id:'blau', de:'Blau', en:'Blue', l:'#dee3e6', d:'#8ca2ad'},
+ {id:'holz', de:'Holz', en:'Wood', l:'#f0d9b5', d:'#b58863'},
+ {id:'violett', de:'Violett', en:'Purple', l:'#e8e0f5', d:'#8a6fb8'},
+ {id:'grau', de:'Grau', en:'Grey', l:'#e5e5e5', d:'#7d8a99'},
+ {id:'nacht', de:'Nacht', en:'Night', l:'#c9d4e8', d:'#4a5f86'}];
+function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+var BS=window.BpSets={ list:SETS, boards:BOARDS,
+  maxElo:function(){ return parseInt(ls('bp_max_elo'),10)||0; },
+  noteElo:function(e){ e=parseInt(e,10)||0; if(e>BS.maxElo()) lset('bp_max_elo',String(e)); },
+  admin:function(){ return !!ls('bp_admin_key'); },
+  owned:function(){ try{ return JSON.parse(ls('bp_sets_owned')||'[]'); }catch(e){ return []; } },
+  setOwned:function(a){ lset('bp_sets_owned',JSON.stringify(a||[])); },
+  unlocked:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return false; if(BS.admin()) return true; if(x.price) return BS.owned().indexOf(id)>=0; return x.elo<=BS.maxElo(); },
+  get:function(){ var id=ls('bp_piece_set')||'normal'; return BS.unlocked(id)?id:'normal'; },
+  set:function(id){ if(BS.unlocked(id)){ lset('bp_piece_set',id); BS.preload(); return true; } return false; },
+  board:function(){ var id=ls('bp_board_theme')||'gruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },
+  setBoard:function(id){ lset('bp_board_theme',id); BS.applyBoard(); },
+  applyBoard:function(){ var b=BS.board(), st=document.documentElement.style; st.setProperty('--sq-light',b.l); st.setProperty('--sq-dark',b.d); },
+  preload:function(){ var id=BS.get(); if(id==='alt') return; ['K','Q','R','B','N','P'].forEach(function(t){ ['w','b'].forEach(function(c){ var i=new Image(); i.src='/chess/sets/'+id+'/'+c+t+'.png'; }); }); }
+};
+BS.applyBoard(); BS.preload();
 window.chessPieceSVG=function(t,c,theme,opts){
+  if(!(opts&&(opts.accent||opts.body||opts.rank!==undefined))&&(!theme||theme==='classic')){ var sid=BS.get(); if(sid!=='alt') return '<svg viewBox="0 0 100 100" class="pcs" style="filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))"><image href="/chess/sets/'+sid+'/'+c+t+'.png" x="6" y="6" width="88" height="88"/></svg>'; }
   opts=opts||{}; var th=(TH[theme]||TH.classic)[c], id='pg'+(++_uid)+(theme||'c')+c+t+(opts.accent?opts.accent.replace('#',''):'')+(opts.body?opts.body.join('').replace(/#/g,''):'');
   var stroke=opts.accent||th.s, a=th.a, b=th.b;
   if(opts.accent && c==='w' && !opts.body){ a='#ffffff'; b=opts.accent; }
