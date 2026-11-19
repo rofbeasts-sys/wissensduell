@@ -87,7 +87,7 @@
   }
   const LEVELS = { easy: { depth: 2, ms: 150, rnd: 0.3 }, normal: { depth: 4, ms: 500, rnd: 0 }, hard: { depth: 6, ms: 1100, rnd: 0 } };
   function botMove(st, color, level) {
-    const cfg = LEVELS[level] || LEVELS.normal;
+    const cfg = (level && typeof level === 'object') ? level : (LEVELS[level] || LEVELS.normal);
     const moves = legalMoves(st, color); if (!moves.length) return null;
     if (cfg.rnd && Math.random() < cfg.rnd) return moves[Math.floor(Math.random() * moves.length)];
     const t0 = Date.now(); let timeUp = false;

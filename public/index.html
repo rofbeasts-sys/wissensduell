@@ -6003,6 +6003,7 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
 });
 function openChessWorld(){ if(featureLocked('chess_fantasy')){ renderChessHub(); return; } renderChessFrame('/chess/world/index.html'); }
 function openChessOriginal(){ renderChessFrame('/chess/index.html'); }
+function openChessLadder(){ renderChessFrame('/chess/index.html?ladder=1'); }
 // Chess Online: Freunde einladen oder per Raumcode (Konto noetig).
 function openChessOnline(code, mode){
   if(featureLocked('chess_online')){ renderChessHub(); return; }
@@ -6086,6 +6087,11 @@ function renderChessHub(){
           <h3>${L('Dame','Checkers')}</h3>
           <p data-gate="dame">${gateText('dame')}</p>
         </div>`}
+      </div>
+      <div class="picker-sub" style="margin-top:14px;">${L('Gegner-Listen: 30 Gegner mit Namen und Elo','Opponent ladders: 30 named opponents with Elo')}</div>
+      <div class="menu-grid" style="margin-top:6px;">
+        <div class="mode-card" onclick="openChessLadder()"><div class="icon">🏆</div><h3>${L('Schach-Gegner','Chess opponents')}</h3><p>${L('Von Tim bis König Felix.','From Tim to King Felix.')}</p></div>
+        ${dmAllowed() ? `<div class="mode-card" onclick="dmLadder()"><div class="icon">🏆</div><h3>${L('Dame-Gegner','Checkers opponents')}</h3><p>${L('Von Tim bis König Felix.','From Tim to King Felix.')}</p></div>` : ''}
       </div>
       <div id="chessInviteBox"></div>
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -8029,6 +8035,11 @@ function renderMainMenu(){
 
     <div class="menu-section-title">${L('Modi','Modes')}</div>
     <div class="menu-grid">
+      <div class="mode-card ${(currentLang==='de'||currentLang==='en') ? '' : 'locked'}" onclick="${(currentLang==='de'||currentLang==='en') ? 'startChem()' : ''}" style="${(currentLang==='de'||currentLang==='en') ? '' : 'opacity:.45; cursor:default;'}">
+        <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><path d="M19 6H29M21 6V20L9 40C8 42 9 44 11 44H37C39 44 40 42 39 40L27 20V6" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M14 33H34" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="38" r="2" fill="#3de0ff"/><circle cx="29" cy="28" r="2" fill="#c6ff3d"/></svg></div>
+        <h3>Brainchimie</h3>
+        <p>${currentLang==='de' ? 'Kombiniere Elemente.' : (currentLang==='en' ? 'Combine elements.' : 'Only available in German')}</p>
+      </div>
       <div class="mode-card" onclick="startSpeedMathFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 8V40M8 24H40" stroke="#c6ff3d" stroke-width="6" stroke-linecap="round"/></svg></div>
         <h3>Speed Math</h3>
@@ -8089,11 +8100,6 @@ ${currentLang === 'de' ? `
         <div class="icon"><svg viewBox="0 0 40 40" width="38" height="38"><path d="M5 5L19 19M19 5L5 19" stroke="#ff4d5a" stroke-width="4" stroke-linecap="round"/><circle cx="29" cy="29" r="7" fill="none" stroke="#ff4d5a" stroke-width="4"/></svg></div>
         <h3>Tic Tac Toe</h3>
         <p>${L('Vom weißen bis zum Meister-Gürtel.','From white to master belt.')}</p>
-      </div>
-      <div class="mode-card ${(currentLang==='de'||currentLang==='en') ? '' : 'locked'}" onclick="${(currentLang==='de'||currentLang==='en') ? 'startChem()' : ''}" style="${(currentLang==='de'||currentLang==='en') ? '' : 'opacity:.45; cursor:default;'}">
-        <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><path d="M19 6H29M21 6V20L9 40C8 42 9 44 11 44H37C39 44 40 42 39 40L27 20V6" fill="none" stroke="#c6ff3d" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M14 33H34" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><circle cx="22" cy="38" r="2" fill="#3de0ff"/><circle cx="29" cy="28" r="2" fill="#c6ff3d"/></svg></div>
-        <h3>Brainchimie</h3>
-        <p>${currentLang==='de' ? 'Kombiniere Elemente.' : (currentLang==='en' ? 'Combine elements.' : 'Only available in German')}</p>
       </div>
       <div class="mode-card ${currentLang==='de' ? '' : 'locked'}" onclick="${currentLang==='de' ? 'startTabooHub()' : ''}" style="${currentLang==='de' ? '' : 'opacity:.45; cursor:default;'}">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="7" y="5" width="34" height="38" rx="5" fill="#fff"/><rect x="7" y="5" width="34" height="11" rx="5" fill="#c6ff3d"/><path d="M14 24H34M14 30H34M14 36H34" stroke="#c0243a" stroke-width="3" stroke-linecap="round"/></svg></div>
@@ -11547,7 +11553,8 @@ function muIntro(msg){
         <p>${L('9 Steine setzen, dann ziehen. Drei in einer Reihe = Mühle = gegnerischen Stein entfernen. Mit nur 3 Steinen darfst du springen.','Place 9 pieces, then move. Three in a row = mill = remove an enemy piece. With only 3 pieces you may fly.')}</p></div>
       <div style="color:#ff8a8a;font-weight:700;min-height:18px;text-align:center">${msg ? esc(msg) : ''}</div>
       <div class="mm-cd"><h4>🤖 ${L('Gegen den Bot','Against the bot')}</h4><small>${L('Wähle die Stärke','Choose the level')}</small>
-        <div class="mm-seg"><button onclick="muStartBot('easy')">${L('Leicht','Easy')}</button><button onclick="muStartBot('normal')">${L('Normal','Normal')}</button><button onclick="muStartBot('hard')">${L('Schwer','Hard')}</button></div></div>
+        <div class="mm-seg"><button onclick="muStartBot('easy')">${L('Leicht','Easy')}</button><button onclick="muStartBot('normal')">${L('Normal','Normal')}</button><button onclick="muStartBot('hard')">${L('Schwer','Hard')}</button></div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="muLadder()">🏆 ${L('Gegner-Leiter (30 Gegner)','Opponent ladder (30 opponents)')}</button></div>
       <div class="mm-cd"><h4>🌐 Online</h4><small>${L('Spiel live gegen einen zufälligen Gegner','Play live against a random opponent')}</small>
         <button class="btn btn-primary" style="width:100%" onclick="muMpQueue()">${L('Gegner suchen','Find opponent')}</button></div>
       <div class="mm-cd"><h4>👥 ${L('Mit Freunden','With friends')}</h4><small>${L('Raum mit Code erstellen, 1 gegen 1 oder 2 gegen 2','Create a room with a code, 1 vs 1 or 2 vs 2')}</small>
@@ -11555,11 +11562,18 @@ function muIntro(msg){
       <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" style="width:100%" onclick="startTicTacToeFlow()">${t('btn_back')}</button></div>
     </div>`);
 }
-function muStartBot(level){
+function muLadder(){ BpLadder.open('muehle', LANG_DM(), i => muStartBot(null, i), mu && mu.mode==='bot' ? mu.opp : null); }
+function muLadderNote(win, draw){
+  if(!mu || mu.mode!=='bot' || mu.opp==null || mu.ladderDone || (mu.plies||0) < 4) return '';
+  mu.ladderDone = true;
+  try{ const lr = BpLadder.result('muehle', mu.opp, win ? 'win' : draw ? 'draw' : 'loss'); return `<div style="margin-top:10px;color:#ffd45a;font-weight:800;white-space:pre-line">${esc(BpLadder.endNote('muehle', mu.opp, lr, LANG_DM()))}</div>`; }catch(e){ return ''; }
+}
+function muStartBot(level, opp){
   if(!muAllowed()) return;
   muClearTimers();
   const st = Mill.initial();
-  mu = { mode:'bot', level, ...st, you:'w', over:false, winner:null, why:null, last:null, plies:0, sel:null, pending:null, busy:false, names:[muName() || L('Du','You'), L('Bot','Bot')], full:true };
+  const od = (opp != null && BpLadder.list[opp]) ? BpLadder.info('muehle', opp, LANG_DM()) : null;
+  mu = { mode:'bot', level: od ? od.ai : level, opp: od ? opp : null, ...st, you:'w', over:false, winner:null, why:null, last:null, plies:0, sel:null, pending:null, busy:false, names:[muName() || L('Du','You'), od ? od.name : L('Bot','Bot')], full:true };
   muRender();
 }
 function muState(){ return { b: mu.b, hand: mu.hand, turn: mu.turn, quiet: mu.quiet || 0 }; }
@@ -11680,7 +11694,7 @@ function muClockStart(){
 function muAchv(){
   if(!mu || mu.achvDone) return; mu.achvDone = true;
   const win = mu.winner === mu.you;
-  achvRecord({ t:'mill', won:win, hard: mu.mode==='bot' && mu.level==='hard', online: mu.mode==='mp', mills: mu.myMills||0 });
+  achvRecord({ t:'mill', won:win, hard: mu.mode==='bot' && (mu.level==='hard' || (mu.opp != null && mu.opp >= 20)), online: mu.mode==='mp', mills: mu.myMills||0 });
 }
 function muFinishUi(){
   if(document.getElementById('muOv')) return;
@@ -11702,13 +11716,13 @@ function muFinishUi(){
     : win ? L('Dein Gegner hat nur noch 2 Steine oder kann nicht mehr ziehen!','Your opponent has 2 pieces left or cannot move!') : L('Du hast nur noch 2 Steine oder kannst nicht mehr ziehen.','You have 2 pieces left or cannot move.');
   ov.innerHTML = `<div style="background:#101a2b;border:3px solid ${win ? '#7cff8c' : draw ? '#ffc446' : '#ff5d8f'};border-radius:18px;padding:22px;max-width:380px;width:100%;color:#fff;text-align:center;font-family:system-ui,sans-serif">
     <div style="font-size:34px;font-weight:900;color:${win ? '#7cff8c' : draw ? '#ffc446' : '#ff8aa0'}">${draw ? L('UNENTSCHIEDEN','DRAW') : win ? L('SIEG!','VICTORY!') : L('NIEDERLAGE','DEFEAT')}</div>
-    <div style="margin:10px 0 6px">${why}</div>
+    <div style="margin:10px 0 6px">${why}</div>${muLadderNote(win, draw)}
     <div style="display:flex;gap:8px;justify-content:center;margin-top:16px"><button class="btn btn-primary" onclick="muAgain()">${L('Nochmal','Again')}</button><button class="btn btn-ghost" onclick="muQuit()">${t('braintest_main_menu')}</button></div></div>`;
   document.body.appendChild(ov);
 }
 function muAgain(){
   if(!mu) return;
-  if(mu.mode === 'bot'){ const lv = mu.level; const o = document.getElementById('muOv'); if(o) o.remove(); muStartBot(lv); }
+  if(mu.mode === 'bot'){ const lv = mu.level, op = mu.opp; const o = document.getElementById('muOv'); if(o) o.remove(); muStartBot(lv, op); }
   else if(mu.ws && !mu.left && !mu.lost) mu.ws.send(JSON.stringify({ action:'muRematch' }));
 }
 function muResign(){ if(mu && mu.mode === 'mp' && mu.ws) mu.ws.send(JSON.stringify({ action:'muResign' })); }
@@ -11869,6 +11883,7 @@ async function fuModeMenu(){
         <div class="mode-card" onclick="fuStart('bot',3)"><div class="icon">😈</div><h3>${L('Schwer','Hard')}</h3><p>${L('Gegen den Bot','Vs bot')}</p></div>
       </div>
       <div class="menu-grid" style="grid-template-columns:1fr; margin-top:8px;">
+        <div class="mode-card" onclick="fuLadder()"><div class="icon">🏆</div><h3>${L('Gegner-Leiter','Opponent ladder')}</h3><p>${L('30 Gegner mit Namen und Elo, von leicht bis Meister.','30 named opponents with Elo, from easy to master.')}</p></div>
         <div class="mode-card" onclick="fuStart('local',0)"><div class="icon">👥</div><h3>${L('Zu zweit','Two players')}</h3><p>${L('Am selben Gerät abwechselnd.','Take turns on the same device.')}</p></div>
       </div>
       <div class="picker-sub" style="margin-top:18px;">${L('Design wählen','Choose a design')}</div>
@@ -11876,17 +11891,27 @@ async function fuModeMenu(){
       <div class="actions-row" style="margin-top:18px;"><button class="btn btn-ghost" onclick="startFourupsFlow()">${t('btn_back')}</button></div>
     </div></div>`);
 }
-function fuStart(mode, level){
+function fuStart(mode, level, opp){
   fuStyle();
   const prev = fu;
-  fu = { mode, level, b: Array.from({length:FU_ROWS},()=>Array(FU_COLS).fill(0)), turn:1, over:false, win:null, busy:false, last:null,
-         starter: prev && prev.mode===mode ? (3 - prev.starter) : 1, score: prev && prev.mode===mode && prev.level===level ? prev.score : {1:0,2:0,d:0} };
+  const od = (opp != null && BpLadder.list[opp]) ? BpLadder.info('fourups', opp, LANG_DM()) : null;
+  const same = !!prev && prev.mode===mode && (od ? prev.opp===opp : (prev.opp==null && prev.level===level));
+  fu = { mode, level: od ? od.ai : level, opp: od ? opp : null, oppInfo: od, b: Array.from({length:FU_ROWS},()=>Array(FU_COLS).fill(0)), turn:1, over:false, win:null, busy:false, last:null,
+         starter: prev && prev.mode===mode ? (3 - prev.starter) : 1, score: same ? prev.score : {1:0,2:0,d:0} };
   fu.turn = fu.starter;
   fuRender();
   if(mode==='bot' && fu.turn===2) fuBotMove();
 }
 function fuNames(){
-  return fu.mode==='bot' ? [L('Du','You'), 'Bot'] : [L('Spieler 1','Player 1'), L('Spieler 2','Player 2')];
+  return fu.mode==='bot' ? [L('Du','You'), fu.oppInfo ? fu.oppInfo.name : 'Bot'] : [L('Spieler 1','Player 1'), L('Spieler 2','Player 2')];
+}
+function fuAgain(){ if(fu) fuStart(fu.mode, fu.opp!=null ? null : fu.level, fu.opp); }
+function fuLadder(){ BpLadder.open('fourups', LANG_DM(), i => fuStart('bot', null, i), fu && fu.mode==='bot' ? fu.opp : null); }
+function fuLadderNote(){
+  if(!fu || !fu.over || fu.mode!=='bot' || fu.opp==null) return '';
+  if(!fu.ladderDone){ fu.ladderDone = true; const res = fu.win ? (fu.win.p===1 ? 'win' : 'loss') : 'draw';
+    try{ fu.note = BpLadder.endNote('fourups', fu.opp, BpLadder.result('fourups', fu.opp, res), LANG_DM()); }catch(e){} }
+  return fu.note ? `<div style="margin-top:10px;color:#ffd45a;font-weight:800;white-space:pre-line">${esc(fu.note)}</div>` : '';
 }
 function fuRender(){
   const k = fuSkin(), n = fuNames();
@@ -11913,11 +11938,12 @@ function fuRender(){
   renderApp(`
     <div class="panel"><div class="fu-wrap" style="${fuVars(k)}">
       <div class="picker-title">FOURUPS</div>
+      ${fu.oppInfo ? `<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0"><img src="${fu.oppInfo.img}" alt="" style="height:38px;border-radius:8px"><b>${esc(fu.oppInfo.name)}</b><span style="color:var(--text-dim)">· ${esc(fu.oppInfo.title)} · Elo ${fu.oppInfo.elo}</span></div>` : ''}
       <div style="font-size:13px;color:var(--text-dim)">${dot(1)}${n[0]} ${fu.score[1]} &nbsp;·&nbsp; ${dot(2)}${n[1]} ${fu.score[2]} &nbsp;·&nbsp; ${L('Remis','Draws')} ${fu.score.d}</div>
-      <div class="fu-status">${status}</div>
+      <div class="fu-status">${status}</div>${fuLadderNote()}
       <div class="fu-stage"><div class="fu-board">${cols}</div></div>
       <div class="actions-row" style="margin-top:12px;">
-        ${fu.over?`<button class="btn" onclick="fuStart('${fu.mode}',${fu.level})">${L('Nochmal','Again')}</button>`:''}
+        ${fu.over?`<button class="btn" onclick="fuAgain()">${L('Nochmal','Again')}</button>`:''}
         <button class="btn btn-ghost" onclick="fuModeMenu()">${t('btn_back')}</button>
       </div>
       <div class="picker-sub" style="margin-top:14px;">${L('Design','Design')}</div>
@@ -12034,7 +12060,7 @@ function fuPlace(c){
   const w = fuCheck(fu.b,r,c);
   if(w){ fu.over=true; fu.win=w; fu.score[w.p]++;
     try{ if(fu.mode==='bot' && w.p===1){ let n=0; fu.b.forEach(row=>row.forEach(v=>{ if(v===1) n++; }));
-      const a=w.cells[0], b2=w.cells[1]; achvRecord({ t:'four', hard: fu.level>=3, online:false, diag: !!(a&&b2&&a[0]!==b2[0]&&a[1]!==b2[1]), discs:n }); } }catch(e){} }
+      const a=w.cells[0], b2=w.cells[1]; achvRecord({ t:'four', hard: (fu.opp!=null ? fu.opp>=20 : fu.level>=3), online:false, diag: !!(a&&b2&&a[0]!==b2[0]&&a[1]!==b2[1]), discs:n }); } }catch(e){} }
   else if(fu.b[0].every(v=>v)){ fu.over=true; fu.score.d++; }
   else fu.turn = 3 - fu.turn;
   return true;
@@ -12087,9 +12113,10 @@ function fuNegamax(b,depth,alpha,beta,p){
 }
 function fuBestMove(b,level){
   const valid=[0,1,2,3,4,5,6].filter(c=>b[0][c]===0);
-  const depth = level===1?2 : level===2?4 : 7;
+  const cfg = (level && typeof level === 'object') ? level : null; // Gegner-Leiter: { depth, rnd, noise }
+  const depth = cfg ? cfg.depth : (level===1?2 : level===2?4 : 7);
   // Leicht: manchmal zufällig
-  if(level===1 && Math.random()<0.35) return valid[Math.floor(Math.random()*valid.length)];
+  if(cfg ? Math.random() < cfg.rnd : (level===1 && Math.random()<0.35)) return valid[Math.floor(Math.random()*valid.length)];
   const bb=b.map(r=>r.slice());
   let bestC=valid[0], bestV=-Infinity;
   const cand=[...valid].sort((x,y)=>Math.abs(3-x)-Math.abs(3-y));
@@ -12097,7 +12124,7 @@ function fuBestMove(b,level){
     const r=fuDropRow(bb,c); bb[r][c]=2;
     let v = fuCheck(bb,r,c) ? 1000000+depth : -fuNegamax(bb,depth-1,-Infinity,Infinity,1);
     bb[r][c]=0;
-    if(level<3) v += Math.random()*(level===1?40:8);
+    if(cfg) v += Math.random()*cfg.noise; else if(level<3) v += Math.random()*(level===1?40:8);
     if(v>bestV){ bestV=v; bestC=c; }
   }
   return bestC;
@@ -12597,6 +12624,7 @@ function tttOppSelect(mode){
       <div class="picker-title">TIC TAC TOE · ${names[mode]}</div>
       <div class="picker-sub">${L('Gegen wen möchtest du spielen?','Who do you want to play against?')}</div>
       <button class="btn btn-primary btn-block" style="margin-top:12px;" onclick="tttProfileThen(${botFn})">🤖 ${L('Gegen Bot','Against the bot')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttLadder('${mode}')">🏆 ${L('Gegner-Leiter (30 Gegner mit Elo)','Opponent ladder (30 opponents with Elo)')}</button>
       ${MINI_ONLINE ? `<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttMpSelectedMode='${mode}';tttMpFixedMode=true;tttProfileThen(tttStartMultiplayer)">👥 ${L('Mit Freunden (Raum-Code)','With friends (room code)')}</button>
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="tttProfileThen(p => tttMpQueue(p,'${mode}'))">🌐 ${L('Online (zufälliger Gegner)','Online (random opponent)')}</button>
       <div style="margin-top:8px;font-size:12px;color:var(--accent);text-align:center;">${L('Online: Brainups gewinnen (Mitspielen 50, Sieg 100)','Online: win Brainups (playing 50, win 100)')}</div>` : ''}
@@ -13057,6 +13085,21 @@ function tttMpLeave(){
   tttStartMultiplayer(tttOverviewProfile);
 }
 
+function tttDiff(){ return (ttt.opp != null && ttt.diff != null) ? ttt.diff : TTT_RANKS[ttt.rankIndex].difficulty; }
+function startTttLadder(i){
+  const profile = tttOverviewProfile || (account ? accountAsProfile() : profiles[0]);
+  const od = BpLadder.info('ttt', i, LANG_DM());
+  const playerStarts = Math.random() < 0.5;
+  ttt = { profile, board: Array(9).fill(null), playerTurn: playerStarts, rankIndex: 0, gameOver: false, resultText: "", opp: i, diff: od.ai.d, oppInfo: od };
+  renderTttGame();
+  if(!playerStarts) setTimeout(() => { const move = tttPickBotMove(ttt.board, tttDiff()); ttt.board[move] = "O"; ttt.playerTurn = true; renderTttGame(); }, 500);
+}
+function tttLadder(mode){
+  const g = mode === 'quizmix' ? 'tttqm' : mode === 'quantum' ? 'tttqu' : 'ttt';
+  tttProfileThen(p => { tttOverviewProfile = p;
+    BpLadder.open(g, LANG_DM(), i => { if(mode === 'quizmix') tttQuizmixBotEntry(p, i); else if(mode === 'quantum') startTtqGame(0, i); else startTttLadder(i); }, null); });
+}
+function tttOppBadge(od){ return `<img src="${od.img}" alt="" style="height:34px;border-radius:8px;vertical-align:middle;margin-right:6px"><b>${esc(od.name)}</b> <span style="color:var(--text-dim)">· ${esc(od.title)} · Elo ${od.elo}</span>`; }
 function startTttGame(profile){
   const rankIndex = Math.min(profile.tttRank||0, TTT_RANKS.length-1);
   // Zufällig, wer beginnt - vorher stand immer die spielende Person zuerst
@@ -13066,7 +13109,7 @@ function startTttGame(profile){
   renderTttGame();
   if(!playerStarts){
     setTimeout(() => {
-      const move = tttPickBotMove(ttt.board, TTT_RANKS[ttt.rankIndex].difficulty);
+      const move = tttPickBotMove(ttt.board, tttDiff());
       ttt.board[move] = "O";
       ttt.playerTurn = true;
       renderTttGame();
@@ -13164,7 +13207,12 @@ const TTQ_DIFFICULTIES = [
 /*      Rang-Schwierigkeit simuliert, kein echtes "Wissen" nötig). ---- */
 let ttqb = null; // { board:[9], rankIndex, gameOver, winner, resultText, duel:null }
 
-function tttQuizmixBotEntry(profile){
+function tttqbDiff(){ return (ttqb.diff != null) ? ttqb.diff : TTT_RANKS[ttqb.rankIndex].difficulty; }
+function tttqbOutcome(outcome){
+  if(ttqb.opp != null){ try{ return BpLadder.endNote('tttqm', ttqb.opp, BpLadder.result('tttqm', ttqb.opp, outcome), LANG_DM()); }catch(e){ return ''; } }
+  return tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, outcome);
+}
+function tttQuizmixBotEntry(profile, opp){
   tttOverviewProfile = profile;
   const rankIndex = Math.min(profile.tttRank||0, TTT_RANKS.length-1);
   // Wer das naechste Feld waehlen darf, wechselt jetzt strikt ab (auf
@@ -13172,6 +13220,7 @@ function tttQuizmixBotEntry(profile){
   // zufaellig, genau wie bei "wer faengt an" in den anderen Modi.
   const turnSymbol = Math.random() < 0.5 ? "X" : "O";
   ttqb = { board: Array(9).fill(null), rankIndex, gameOver:false, winner:null, resultText:"", duel:null, turnSymbol, duelCount:0, wrong:0 };
+  if(opp != null && BpLadder.list[opp]){ const od = BpLadder.info('tttqm', opp, LANG_DM()); ttqb.opp = opp; ttqb.oppInfo = od; ttqb.diff = od.ai.d; }
   renderTtqbGame();
   if(turnSymbol === "O") setTimeout(tttQuizmixBotAutoPick, 600);
 }
@@ -13183,7 +13232,7 @@ function renderTtqbGame(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">${L('QUIZMIX GEGEN BOT','QUIZMIX VS BOT')}</div>
-      <div class="picker-sub">${tttRankPillHtml(ttqb.rankIndex)} · ${ttqb.gameOver ? '' : (myTurn ? L('Du bist dran, tippe auf ein leeres Feld.','Your turn, tap an empty square.') : L('Der Bot wählt gerade ein Feld …','The bot is picking a square …'))}</div>
+      <div class="picker-sub">${ttqb.oppInfo ? tttOppBadge(ttqb.oppInfo) : tttRankPillHtml(ttqb.rankIndex)} · ${ttqb.gameOver ? '' : (myTurn ? L('Du bist dran, tippe auf ein leeres Feld.','Your turn, tap an empty square.') : L('Der Bot wählt gerade ein Feld …','The bot is picking a square …'))}</div>
       <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttqb.board.map((c,i) => `
           <div onclick="tttQuizmixBotTap(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttqb.gameOver && myTurn)?'pointer':'default'};">${tttMark(c)}</div>
@@ -13191,8 +13240,8 @@ function renderTtqbGame(){
       </div>
       ${ttqb.gameOver ? `
         <div class="explanation" style="text-align:center;">${ttqb.winner==='draw' ? L('Unentschieden!','Draw!') : (ttqb.winner==='X' ? L('🎉 Du hast gewonnen!','🎉 You won!') : L('Verloren, nächstes Mal klappt\'s!','Lost, you\'ll get it next time!'))}</div>
-        ${ttqb.resultText ? `<div class="explanation" style="text-align:center; margin-top:8px;">${ttqb.resultText}</div>` : ``}
-        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttQuizmixBotEntry(tttOverviewProfile)">${L('NOCHMAL','AGAIN')}</button>
+        ${ttqb.resultText ? `<div class="explanation" style="text-align:center; margin-top:8px; white-space:pre-line;">${ttqb.resultText}</div>` : ``}
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="tttQuizmixBotEntry(tttOverviewProfile${ttqb.opp != null ? ',' + ttqb.opp : ''})">${L('NOCHMAL','AGAIN')}</button>
       ` : ``}
       <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderTttRankOverview(tttOverviewProfile)">${t('btn_back')}</button>
     </div>
@@ -13231,7 +13280,7 @@ async function tttQuizmixBotTap(i){
   ttqb.duel.questions = result.questions;
   // Bot "weiß" jede Frage unabhängig mit einer an den Rang gekoppelten
   // Wahrscheinlichkeit - kein echtes Wissen, nur eine Simulation.
-  ttqb.duel.botCorrectness = result.questions.map(() => Math.random() < TTT_RANKS[ttqb.rankIndex].difficulty);
+  ttqb.duel.botCorrectness = result.questions.map(() => Math.random() < tttqbDiff());
   renderTtqbGame();
 }
 
@@ -13245,7 +13294,7 @@ const TTT_MATH_SPRINT_SEC = 60;
 function tttQuizmixBotStartMathSprint(cellIndex){
   const attempts = 8 + Math.floor(Math.random()*8); // 8-15 Versuche in einer Minute
   let botCorrect = 0;
-  for(let k=0;k<attempts;k++){ if(Math.random() < TTT_RANKS[ttqb.rankIndex].difficulty) botCorrect++; }
+  for(let k=0;k<attempts;k++){ if(Math.random() < tttqbDiff()) botCorrect++; }
   ttqb.duel = {
     cellIndex, type:"math",
     scores:{X:0,O:0},
@@ -13332,12 +13381,12 @@ function tttQuizmixBotFinishMathSprint(){
       if(w && w !== "draw"){
         ttqb.gameOver = true;
         ttqb.winner = w;
-        ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, w==="X"?"win":"loss");
+        ttqb.resultText = tttqbOutcome(w==="X"?"win":"loss");
         if(w === "X") achvTttBotQuizmixWin();
       } else if(ttqb.board.every(c=>c)){
         ttqb.gameOver = true;
         ttqb.winner = "draw";
-        ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, "draw");
+        ttqb.resultText = tttqbOutcome("draw");
       }
     }
     ttqb.duel = null;
@@ -13425,12 +13474,12 @@ function tttQuizmixBotFinishDuel(){
     if(w && w !== "draw"){
       ttqb.gameOver = true;
       ttqb.winner = w;
-      ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, w==="X"?"win":"loss");
+      ttqb.resultText = tttqbOutcome(w==="X"?"win":"loss");
         if(w === "X") achvTttBotQuizmixWin();
     } else if(ttqb.board.every(c=>c)){
       ttqb.gameOver = true;
       ttqb.winner = "draw";
-      ttqb.resultText = tttApplyRankOutcome(tttOverviewProfile, ttqb.rankIndex, "draw");
+      ttqb.resultText = tttqbOutcome("draw");
     }
   }
   ttqb.duel = null;
@@ -13459,9 +13508,10 @@ function tttQuantumEntry(profile){
   `);
 }
 
-function startTtqGame(difficultyIndex){
+function startTtqGame(difficultyIndex, opp){
   const playerStarts = Math.random() < 0.5;
   ttq = { board: Array(9).fill(null), xPieces:[], oPieces:[], playerTurn: playerStarts, difficulty: TTQ_DIFFICULTIES[difficultyIndex].value, difficultyName: TTQ_DIFFICULTIES[difficultyIndex].name, gameOver:false, winner:null, totalMoves:0, lastRemoved:null };
+  if(opp != null && BpLadder.list[opp]){ const od = BpLadder.info('tttqu', opp, LANG_DM()); ttq.difficulty = od.ai.d; ttq.difficultyName = od.name; ttq.opp = opp; ttq.oppInfo = od; }
   renderTtqGame();
   if(!playerStarts) setTimeout(tttQuantumBotMove, 500);
 }
@@ -13520,7 +13570,7 @@ function renderTtqGame(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">QUANTUM-MODUS</div>
-      <div class="picker-sub">${L('Schwierigkeit','Difficulty')}: ${ttq.difficultyName} · ${L('höchstens 3 Symbole je Seite','at most 3 symbols per side')}</div>
+      <div class="picker-sub">${ttq.oppInfo ? L('Gegen','Against') + ': ' + tttOppBadge(ttq.oppInfo) : L('Schwierigkeit','Difficulty') + ': ' + ttq.difficultyName} · ${L('höchstens 3 Symbole je Seite','at most 3 symbols per side')}</div>
       <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttq.board.map((c,i) => `
           <div onclick="ttqPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && !ttq.gameOver && ttq.playerTurn)?'pointer':'default'};">${tttMark(c)}</div>
@@ -13528,7 +13578,8 @@ function renderTtqGame(){
       </div>
       ${ttq.gameOver ? `
         <div class="explanation" style="margin-top:10px; text-align:center;">${ttq.winner==='draw' ? L(`Unentschieden nach ${TTQ_MOVE_LIMIT} Zügen!`,`Draw after ${TTQ_MOVE_LIMIT} moves!`) : (ttq.winner==='X' ? L('🎉 Du hast gewonnen!','🎉 You won!') : L('Verloren, nächstes Mal klappt\'s!','Lost, you\'ll get it next time!'))}</div>
-        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="startTtqGame(TTQ_DIFFICULTIES.findIndex(d=>d.name===ttq.difficultyName))">${L('NOCHMAL','AGAIN')}</button>
+        ${ttq.note ? `<div class="explanation" style="margin-top:8px; text-align:center; white-space:pre-line;">${esc(ttq.note)}</div>` : ''}
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="${ttq.opp != null ? 'startTtqGame(0,' + ttq.opp + ')' : 'startTtqGame(TTQ_DIFFICULTIES.findIndex(d=>d.name===ttq.difficultyName))'}">${L('NOCHMAL','AGAIN')}</button>
       ` : `
         <div class="picker-sub" style="text-align:center;">${ttq.playerTurn ? L('Du bist dran','Your turn') : L('Bot ist dran …','Bot\'s turn …')}${ttq.xPieces && ttq.xPieces.length>=3 ? ' · '+L('dein nächstes Symbol lässt dein ältestes verschwinden','your next mark makes your oldest vanish') : ''}</div>
       `}
@@ -13563,6 +13614,7 @@ function tttQuantumBotMove(){
 function ttqFinish(winner){
   ttq.gameOver = true;
   ttq.winner = winner;
+  if(ttq.opp != null && !ttq.ladderDone){ ttq.ladderDone = true; try{ ttq.note = BpLadder.endNote('tttqu', ttq.opp, BpLadder.result('tttqu', ttq.opp, winner === 'X' ? 'win' : winner === 'draw' ? 'draw' : 'loss'), LANG_DM()); }catch(e){} }
   if(winner === "X") achvRecord({ t:"ttt", mode:"quantum", in3: (ttq.playerMoves||0) === 3 });
   // Quantum laeuft eigenstaendig ohne Guertel-Auf-/Abstieg (siehe
   // tttApplyRankOutcome) - bekommt hier seinen eigenen Statistik-Zaehler.
@@ -13577,19 +13629,19 @@ function renderTttGame(){
   renderApp(`
     <div class="panel">
       <div class="picker-title">TIC TAC TOE</div>
-      <div class="picker-sub">${L('Gegen','Against')}: ${tttRankPillHtml(ttt.rankIndex)}</div>
+      <div class="picker-sub">${L('Gegen','Against')}: ${ttt.oppInfo ? tttOppBadge(ttt.oppInfo) : tttRankPillHtml(ttt.rankIndex)}</div>
       <div class="ttt-board ${tttStyleCls()}" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; max-width:280px; margin:16px auto;">
         ${ttt.board.map((c,i) => `
           <div onclick="tttPlayerMove(${i})" class="ttt-cell ${c==='X'?'x':c==='O'?'o':''}" style="cursor:${(!c && ttt.playerTurn && !ttt.gameOver)?'pointer':'default'};">${tttMark(c)}</div>
         `).join("")}
       </div>
       ${ttt.gameOver ? `
-        <div class="explanation" style="margin-top:10px; text-align:center;">${ttt.resultText}</div>
-        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="startTttGame(ttt.profile)">NOCHMAL</button>
+        <div class="explanation" style="margin-top:10px; text-align:center; white-space:pre-line;">${ttt.resultText}</div>
+        <button class="btn btn-primary btn-block" style="margin-top:10px;" onclick="${ttt.opp != null ? 'startTttLadder(ttt.opp)' : 'startTttGame(ttt.profile)'}">NOCHMAL</button>
       ` : `
         <div class="picker-sub" style="text-align:center; margin-top:8px;">${ttt.playerTurn ? L('Du bist dran (X)','Your turn (X)') : L('Bot ist dran (O) …','Bot\'s turn (O) …')}</div>
       `}
-      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="renderTttRankOverview(ttt.profile)">${t('btn_back')}</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="${ttt.opp != null ? "tttOppSelect('classic')" : 'renderTttRankOverview(ttt.profile)'}">${t('btn_back')}</button>
     </div>
   `);
 }
@@ -13603,7 +13655,7 @@ function tttPlayerMove(i){
   ttt.playerTurn = false;
   renderTttGame();
   setTimeout(() => {
-    const move = tttPickBotMove(ttt.board, TTT_RANKS[ttt.rankIndex].difficulty);
+    const move = tttPickBotMove(ttt.board, tttDiff());
     ttt.board[move] = "O";
     const w2 = tttCheckWinner(ttt.board);
     if(w2){ tttFinishGame(w2); return; }
@@ -13660,6 +13712,11 @@ function tttFinishGame(winner){
   ttt.gameOver = true;
   const profile = ttt.profile;
   const outcome = winner === "X" ? "win" : (winner === "draw" ? "draw" : "loss");
+  if(ttt.opp != null){
+    try{ ttt.resultText = esc(BpLadder.endNote('ttt', ttt.opp, BpLadder.result('ttt', ttt.opp, outcome), LANG_DM())); }catch(e){ ttt.resultText = ""; }
+    if(winner === "X") achvRecord({ t:"ttt", mode:"classic", in3: (ttt.moves||0) === 3 }, profile);
+    renderTttGame(); return;
+  }
   ttt.resultText = tttApplyRankOutcome(profile, ttt.rankIndex, outcome);
   if(winner === "X") achvRecord({ t:"ttt", mode:"classic", in3: (ttt.moves||0) === 3 }, profile);
   renderTttGame();
@@ -17759,7 +17816,7 @@ window.bpDrag = function(el, key){
   const btn = document.createElement('button'); btn.id = 'sfxBtn'; btn.type = 'button'; btn.style.cssText = BS; btn.onclick = () => window.sfxToggle('sfx');
   [mbtn, sl, sbtn, btn].forEach(x => bar.appendChild(x));
   document.body.appendChild(bar);
-  try{ const st = document.createElement('style'); st.textContent = "@media (max-width:700px){ #app{ padding-top:58px !important } }"; document.head.appendChild(st); }catch(e){}
+  try{ const st = document.createElement('style'); st.textContent = "#app{ padding-top:58px !important }"; document.head.appendChild(st); }catch(e){}
   faces();
   // kleiner Klick bei Buttons/Karten
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('.btn, .mode-card'); if(t) sfx('tap'); }, true);
