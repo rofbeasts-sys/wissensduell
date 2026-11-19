@@ -55,10 +55,10 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="top"><a class="back" href="/" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}">←</a><h1 id="title">Chess Original</h1></div>
+  <div class="top"><a class="back" href="/" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}">←</a><h1 id="title">Chess</h1></div>
+  <div id="eloBar"></div>
   <div class="sub" id="sub"></div>
   <div class="row" id="onlineRow" style="margin:0 0 10px"><button class="btn" id="rndBtn"></button><button class="btn" id="frBtn"></button></div>
-  <div class="chips" id="levels"></div>
   <div class="chips" id="ladderRow"></div>
   <div id="oppBar" style="text-align:center;font-size:14px;font-weight:700;margin:2px 0 6px"></div>
   <div class="chips" id="moveMode"></div>
@@ -84,17 +84,18 @@
 <script src="/chess/pieces.js"></script>
 <script src="/chess/drag.js"></script>
 <script src="/chess/ladder.js"></script>
+<script src="/chess/eloui.js"></script>
 <script src="/chess/arrows.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
 const T = {
-  de:{ title:"Chess Original", sub:"Klassisches Schach gegen den Bot. Du spielst Weiß.", level:"Stärke", l1:"Anfänger", l2:"Leicht", l3:"Mittel", l4:"Schwer",
+  de:{ title:"Chess", sub:"Wähle einen Gegner aus der Gegner-Leiter. Du spielst Weiß.", level:"Stärke", l1:"Anfänger", l2:"Leicht", l3:"Mittel", l4:"Schwer",
     yourTurn:"Du bist dran", thinking:"Bot denkt …", check:"Schach!", newGame:"Neu", undo:"Zurück", resign:"Aufgeben",
     win:"Gewonnen!", loss:"Verloren", draw:"Remis", mate:"Schachmatt", stalemate:"Patt", insufficient:"Zu wenig Material", fifty:"50-Züge-Regel", threefold:"Dreifache Stellungswiederholung",
     youWin:"Du hast den Bot besiegt.", youLose:"Der Bot war diesmal besser.", youDraw:"Unentschieden.", resigned:"Du hast aufgegeben.", again:"Nochmal", close:"Schließen",
     promo:"Umwandeln in", stats:(s)=>`Bilanz: ${s.games} Partien · ${s.wins} Siege · ${s.draws} Remis · ${s.losses} Niederlagen`, confirmResign:"Wirklich aufgeben?" },
-  en:{ title:"Chess Original", sub:"Classic chess against the bot. You play White.", level:"Strength", l1:"Beginner", l2:"Easy", l3:"Medium", l4:"Hard",
+  en:{ title:"Chess", sub:"Pick an opponent from the opponent ladder. You play White.", level:"Strength", l1:"Beginner", l2:"Easy", l3:"Medium", l4:"Hard",
     yourTurn:"Your move", thinking:"Bot is thinking …", check:"Check!", newGame:"New", undo:"Undo", resign:"Resign",
     win:"You won!", loss:"You lost", draw:"Draw", mate:"Checkmate", stalemate:"Stalemate", insufficient:"Insufficient material", fifty:"50-move rule", threefold:"Threefold repetition",
     youWin:"You beat the bot.", youLose:"The bot was better this time.", youDraw:"It's a draw.", resigned:"You resigned.", again:"Play again", close:"Close",
@@ -111,7 +112,8 @@ const LEVELS = {
 const STATS_KEY = "bp_chess_orig", LEVEL_KEY = "bp_chess_level";
 function loadStats(){ try{ const s = JSON.parse(localStorage.getItem(STATS_KEY) || "null"); if(s && typeof s.games === "number") return s; }catch(e){} return { games:0, wins:0, losses:0, draws:0 }; }
 function saveStats(s){ try{ localStorage.setItem(STATS_KEY, JSON.stringify(s)); }catch(e){} }
-let OPP = null; // Index in der Gegner-Leiter oder null (freie Stärke)
+let OPP = 0; // Index in der Gegner-Leiter (zuletzt gewaehlter Gegner)
+try{ const o = parseInt(localStorage.getItem("bp_chess_opp"), 10); if(o >= 0 && o < BpLadder.list.length && BpLadder.unlocked("chess", o)) OPP = o; }catch(e){}
 let level = 2; try{ const l = parseInt(localStorage.getItem(LEVEL_KEY), 10); if(l >= 1 && l <= 4) level = l; }catch(e){}
 
 const SYM = { K:"♚︎", Q:"♛︎", R:"♜︎", B:"♝︎", N:"♞︎", P:"♟︎" };
@@ -279,15 +281,9 @@ function finish(res){
 
 function buildUi(){
   $("title").textContent = T.title; $("sub").textContent = T.sub;
-  const lv = $("levels"); lv.innerHTML = "";
-  [1,2,3,4].forEach(i => {
-    const b = document.createElement("div"); b.className = "chip" + (OPP == null && i === level ? " active" : ""); b.textContent = T["l"+i];
-    b.onclick = () => { const was = OPP; OPP = null; level = i; try{ localStorage.setItem(LEVEL_KEY, String(i)); }catch(e){} buildUi(); if(was != null) newGame(); };
-    lv.appendChild(b);
-  });
   const lr = $("ladderRow"); lr.innerHTML = "";
   const lb = document.createElement("div"); lb.className = "chip" + (OPP != null ? " active" : ""); lb.textContent = "🏆 " + (LANG === "de" ? "Gegner-Leiter" : "Opponent ladder");
-  lb.onclick = () => BpLadder.open("chess", LANG, (i) => { OPP = i; buildUi(); newGame(); }, OPP);
+  lb.onclick = () => BpLadder.open("chess", LANG, (i) => { OPP = i; try{ localStorage.setItem("bp_chess_opp", String(i)); }catch(e){} buildUi(); newGame(); }, OPP);
   lr.appendChild(lb);
   const ob = $("oppBar");
   if(OPP != null){ const o = BpLadder.info("chess", OPP, LANG); ob.innerHTML = '<img src="' + o.img + '" alt="" style="height:46px;border-radius:8px;vertical-align:middle;margin-right:8px">'; ob.appendChild(document.createTextNode(o.name + " · " + o.title + " · " + o.elo)); } else ob.textContent = "";
@@ -303,7 +299,8 @@ $("endAna").onclick = () => { $("endOv").classList.remove("show"); bpAnalysis.sh
 $("endClose").onclick = () => { $("endOv").classList.remove("show"); };
 
 buildUi(); newGame();
-try{ if(/[?&]ladder=1/.test(location.search)) BpLadder.open("chess", LANG, (i) => { OPP = i; buildUi(); newGame(); }, OPP); }catch(e){}
+try{ BpElo.mount("eloBar", "chess", LANG); }catch(e){}
+try{ if(/[?&]ladder=1/.test(location.search)) BpLadder.open("chess", LANG, (i) => { OPP = i; try{ localStorage.setItem("bp_chess_opp", String(i)); }catch(e){} buildUi(); newGame(); }, OPP); }catch(e){}
 
 // Online spielen: Zufallsgegner (mit Elo-Punkten) oder Freunde. Die Hauptseite oeffnet die Online-Lobby.
 (function(){

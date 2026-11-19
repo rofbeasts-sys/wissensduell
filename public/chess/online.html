@@ -116,6 +116,7 @@
 <div class="overlay" id="promoOv"><div class="card"><h2 id="promoTitle"></h2><div class="promo" id="promoBtns"></div></div></div>
 <div class="overlay" id="endOv"><div class="card"><h2 id="endTitle"></h2><p id="endText"></p><div class="row"><button class="btn primary" id="endLobby"></button><button class="btn" id="endAna"></button><button class="btn" id="endClose"></button></div></div></div>
 
+<script src="/chess/eloui.js"></script>
 <script src="engine.js"></script>
 <script src="analysis.js"></script>
 <script src="/chess/pieces.js"></script>
@@ -268,7 +269,8 @@ async function poll(){
   if(S.corr){ rememberCode(null); if(!slowPoll){ slowPoll = true; clearInterval(timer); timer = setInterval(poll, 3000); } }
   draw();
 }
-const nameOfSide = (c) => (c === "w" ? [S.w, S.w2] : [S.b, S.b2]).filter(Boolean).join(" + ");
+const eloTag = (c) => { if(!S || S.team) return ""; const e = c === "w" ? S.eloW : S.eloB; if(!e) return ""; if(!S.spectator && c !== S.color && window.BpElo && BpElo.hidden()) return ""; return " (" + e + ")"; };
+const nameOfSide = (c) => { const n = (c === "w" ? [S.w, S.w2] : [S.b, S.b2]).filter(Boolean).join(" + "); return n ? n + eloTag(c) : n; };
 const myTurnNow = () => !!S && !S.spectator && S.status === "playing" && S.turn === S.color && (!S.team || S.mover === S.me);
 function fmtClock(ms){ ms = Math.max(0, ms); const t = Math.ceil(ms / 1000), m = Math.floor(t / 60), s = t % 60; return m + ":" + String(s).padStart(2, "0"); }
 function paintClocks(){
@@ -280,7 +282,7 @@ function paintClocks(){
   const mineC = S.color === "b" ? "B" : "W", theirC = mineC === "W" ? "B" : "W"; // Zuschauer: Weiß unten
   const val = (c) => Math.max(0, S["clock" + c] - (S.status === "playing" && S.turn === c.toLowerCase() ? el : 0));
   const paint = (node, c, who) => { const v = val(c); node.className = "clk" + (S.status === "playing" && S.turn === c.toLowerCase() ? " run" : "") + (v < 30000 ? " low" : ""); node.innerHTML = `<small>${who}</small><span>${fmtClock(v)}</span>`; };
-  const specV = S.spectator; paint(top, theirC, nameOfSide(theirC.toLowerCase())); paint(bot, mineC, specV || S.team ? nameOfSide(mineC.toLowerCase()) : T.you);
+  const specV = S.spectator; paint(top, theirC, nameOfSide(theirC.toLowerCase())); paint(bot, mineC, specV || S.team ? nameOfSide(mineC.toLowerCase()) : T.you + eloTag(S.color));
 }
 setInterval(paintClocks, 250);
 function legalFor(r, c){

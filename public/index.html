@@ -545,6 +545,7 @@
 <script src="/core/linePuzzles.js"></script>
 <script src="/chess/dame-engine.js"></script>
 <script src="/chess/ladder.js"></script>
+<script src="/chess/eloui.js"></script>
 <script src="/chess/muehle-engine.js"></script>
 <script src="/solo/backgammon.js"></script>
 <script src="/online/evduel.js"></script>
@@ -6070,8 +6071,8 @@ function renderChessHub(){
       <div class="menu-grid" style="margin-top:10px;">
         <div class="mode-card" onclick="openChessOriginal()">
           <div class="icon">♟</div>
-          <h3>Chess Original</h3>
-          <p>${L('Klassisches Schach: Bot (4 Stufen), Freunde oder zufälliger Gegner. Online gibt es Brainups.','Classic chess: bot (4 levels), friends or a random opponent. Online games give Brainups.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
+          <h3>Chess</h3>
+          <p>${L('Klassisches Schach: 30 Gegner mit Elo, Freunde oder zufälliger Gegner. Online gibt es Brainups.','Classic chess: 30 opponents with Elo, friends or a random opponent. Online games give Brainups.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
         </div>
         <div data-gid="chess_fantasy" class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
           <div class="icon">🐉</div>
@@ -6087,11 +6088,6 @@ function renderChessHub(){
           <h3>${L('Dame','Checkers')}</h3>
           <p data-gate="dame">${gateText('dame')}</p>
         </div>`}
-      </div>
-      <div class="picker-sub" style="margin-top:14px;">${L('Gegner-Listen: 30 Gegner mit Namen und Elo','Opponent ladders: 30 named opponents with Elo')}</div>
-      <div class="menu-grid" style="margin-top:6px;">
-        <div class="mode-card" onclick="openChessLadder()"><div class="icon">🏆</div><h3>${L('Schach-Gegner','Chess opponents')}</h3><p>${L('Von Tim bis König Felix.','From Tim to King Felix.')}</p></div>
-        ${dmAllowed() ? `<div class="mode-card" onclick="dmLadder()"><div class="icon">🏆</div><h3>${L('Dame-Gegner','Checkers opponents')}</h3><p>${L('Von Tim bis König Felix.','From Tim to King Felix.')}</p></div>` : ''}
       </div>
       <div id="chessInviteBox"></div>
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -8249,7 +8245,7 @@ function chessOriginalStatHtml(){
   const s = chessOriginalSummary();
   if(!s) return "";
   return `<div class="mode-stat-grid" style="margin-top:10px;"><div class="mode-stat-card" style="--mc:#3de0ff; grid-column:1 / -1;">
-    <div class="title">♟ Chess Original</div>
+    <div class="title">♟ Chess</div>
     <div class="values"><span><span class="n">${s.games}</span><br><span class="l">${L('gespielt','played')}</span></span><span><span class="n">${s.wins}</span><br><span class="l">${L('Siege','wins')}</span></span><span><span class="n">${s.draws}</span><br><span class="l">${L('Remis','draws')}</span></span></div>
   </div></div>`;
 }
@@ -11230,10 +11226,10 @@ function dmIntro(msg){
   renderApp(`${DM2_CSS}
     <div class="panel dm2">
       <div class="hd"><div class="ic">♛</div><div><h1>${L('DAME','CHECKERS')} </h1><div class="sub">${L('Deutsche Dame: Schlagzwang, Damen ziehen beliebig weit.','German draughts: captures are mandatory, kings fly.')}</div></div></div>
+      <div id="bpEloBar" style="margin-top:12px"></div>
       <div style="color:#ff8a8a;font-weight:700;min-height:${msg ? 18 : 0}px;margin-top:8px">${msg ? esc(msg) : ''}</div>
       <button class="big" style="margin-top:16px" onclick="dmSkinScreen()"><div class="e" style="gap:0"><div style="width:20px">${dmStone(sk.id, 'w', false, 100)}</div><div style="width:20px;margin-left:-4px">${dmStone(sk.id, 'b', false, 100)}</div></div><div style="flex:1;min-width:0"><b>${L('Steine','Pieces')}: ${L(sk.de, sk.en)}</b><span>${nx.txt}</span><div class="bar"><i style="width:${nx.pct}%"></i></div></div><div class="ar">›</div></button>
       <div class="lab">${L('GEGEN DEN BOT','VS THE BOT')}</div>
-      <div class="bots"><button class="b" onclick="dmStartBot('easy')">🤖 ${L('Leicht','Easy')}<small>★☆☆</small></button><button class="b m" onclick="dmStartBot('normal')">🤖 ${L('Normal','Normal')}<small>★★☆</small></button><button class="b h" onclick="dmStartBot('hard')">🤖 ${L('Schwer','Hard')}<small>★★★</small></button></div>
       <button class="big" style="margin-top:8px" onclick="dmLadder()"><div class="e">🏆</div><div><b>${L('Gegner-Leiter','Opponent ladder')}</b><span>${L('Von Schüler bis Meisterin, jeder Gegner mit Namen','From pupil to grandmaster, every opponent with a name')}</span></div><div class="ar">›</div></button>
       <div class="lab">${L('ONLINE SPIELEN','PLAY ONLINE')}</div>
       <div style="font-size:12px;color:var(--accent);margin:-4px 0 8px">${L('Brainups gewinnen: Sieg 100, Remis 50','Win Brainups: win 100, draw 50')}</div>
@@ -11243,6 +11239,7 @@ function dmIntro(msg){
       <div class="code"><input id="dmCodeIn" type="text" maxlength="8" placeholder="CODE"><button onclick="dmJoinScreen(document.getElementById('dmCodeIn').value.trim().toUpperCase())">${L('Beitreten','Join')}</button></div>
       <button class="back" onclick="renderChessHub()">← ${t('btn_back')}</button>
     </div>`);
+  try{ BpElo.mount('bpEloBar', 'dame', LANG_DM()); }catch(e){}
 }
 /* ---------- Spiel (Bot + Online teilen sich Anzeige und Zuglogik) ---------- */
 function dmStartBot(level, opp){
@@ -11340,7 +11337,8 @@ function dmRender(){
     cells += `<div onclick="dmCell(${dr},${dc})" style="aspect-ratio:1;background:${dark ? sq[1] : sq[0]};display:flex;align-items:center;justify-content:center;cursor:pointer;${ring}">${inner}</div>`;
   }
   const ct = Dame.counts(dm.board);
-  const me = dm.names[0] || L('Du','You'), op = dm.names[1] || L('Gegner','Opponent');
+  let me = dm.names[0] || L('Du','You'), op = dm.names[1] || L('Gegner','Opponent');
+  if(dm.mode === 'mp' && dm.size === 2 && !dm.spectator){ if(dm.eloNow) me += ' (' + dm.eloNow + ')'; if(dm.eloOpp && !(window.BpElo && BpElo.hidden())) op += ' (' + dm.eloOpp + ')'; }
   const yw = dm.you !== 'b', mine = yw ? ct.w : ct.b, theirs = yw ? ct.b : ct.w;
   let info = '';
   if(dm.mode === 'mp' && !dm.full && dm.code && !dm.lost){
@@ -11520,7 +11518,7 @@ function dmMpHandle(m){
     dm.code = m.roomCode; dm.board = m.board; dm.turn = m.turn; dm.you = m.you; dm.over = m.over; dm.winner = m.winner; dm.why = m.why;
     dm.last = m.last; dm.plies = m.plies; dm.names = m.names; dm.full = m.full; dm.left = false; dm.lost = false; dm.queued = false; dm.busy = false;
     dm.deadline = m.remaining != null ? Date.now() + m.remaining : null; dm.credited = m.credited;
-    dm.elo = m.elo || null; dm.spectator = !!m.spectator; dm.size = m.size || 2; dm.yourTurn = !!m.yourTurn; dm.turnName = m.turnName || null; dm.log = m.log || []; dm.watchers = m.watchers || 0; dm.count = m.count || 1; dm.plan = null; dmPlanSig = '';
+    dm.elo = m.elo || null; dm.eloNow = m.eloNow == null ? null : m.eloNow; dm.eloOpp = m.eloOpp == null ? null : m.eloOpp; dm.spectator = !!m.spectator; dm.size = m.size || 2; dm.yourTurn = !!m.yourTurn; dm.turnName = m.turnName || null; dm.log = m.log || []; dm.watchers = m.watchers || 0; dm.count = m.count || 1; dm.plan = null; dmPlanSig = '';
     if(m.dameWins != null && account && account.profile) account.profile.dameWins = m.dameWins;
     const sess = dmSessGet(); if(sess) dmSessSave(sess.code, sess.key);
     if(!(dm.path && dm.yourTurn)){ dm.sel = null; dm.path = null; }

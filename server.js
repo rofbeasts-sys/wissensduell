@@ -2958,6 +2958,10 @@ function fuHandleDisconnect(ws) {
 // anheben, Pfeile, Spalte ueberlegen) geht nur an Freunde, die der Spieler dafuer
 // freigeschaltet hat (user.live.planFriends) oder an alle Freunde (planAll).
 function liveUser(ws) { const n = ws && (ws.liveName || ws.accountUsername); return n ? findUserByName(n) : null; }
+function livePU(p) { return liveUser(p.ws) || (p.username ? findUserByName(p.username) : null); } // Konto eines Spielers im Raum
+function liveKinds() { return { ttt: { rooms: tttRooms, bc: tttBroadcastState }, fu: { rooms: fuRooms, bc: fuBroadcast }, dm: { rooms: dmRooms, bc: dmBroadcast }, mu: { rooms: muRooms, bc: muBroadcast } }; }
+function liveOver(room) { return !!(room.over || room.gameOver || (room.st && room.st.over)); }
+const liveTeamKey = p => p.symbol != null ? p.symbol : p.num != null ? p.num : p.color;
 function liveCfg(u) { const l = (u && u.live) || {}; return { watch: l.watch !== false, planAll: l.planAll === true, planFriends: Array.isArray(l.planFriends) ? l.planFriends : [] }; }
 function livePlanAllows(owner, viewerName) {
   const v = viewerName ? findUserByName(viewerName) : null;
@@ -2980,17 +2984,30 @@ function liveSpecAdd(room, ws, kind) {
 function liveSpecDrop(ws) {
   const kind = ws.liveKind, code = ws.liveCode; if (!kind) return;
   ws.liveKind = null; ws.liveCode = null;
-  const room = (kind === "ttt" ? tttRooms : fuRooms).get(code);
-  if (room && room.specs) { room.specs = room.specs.filter(s => s !== ws); if (kind === "ttt") tttBroadcastState(room); else fuBroadcast(room); }
+  const K = liveKinds()[kind], room = K && K.rooms.get(code);
+  if (room && room.specs) { room.specs = room.specs.filter(s => s !== ws); K.bc(room); }
 }
 // Planung eines Spielers: geht an freigeschaltete Zuschauer und (2 gegen 2) an das eigene Team
 function livePlanRelay(room, fromWs, kind, data) {
-  const owner = liveUser(fromWs), me = room.players.find(p => p.ws === fromWs);
+  const me = room.players.find(p => p.ws === fromWs);
   if (!me) return;
+  const owner = livePU(me);
   const out = Object.assign({ type: kind + "Plan", by: me.name }, data);
   (room.specs || []).forEach(s => { if (s.readyState === 1 && livePlanAllows(owner, s.liveName || s.accountUsername)) send(s, out); });
-  if ((room.size || 2) === 4) room.players.forEach(p => { if (p !== me && p.connected && (kind === "ttt" ? p.symbol === me.symbol : p.num === me.num)) send(p.ws, out); });
+  if ((room.size || 2) === 4) room.players.forEach(p => { if (p !== me && p.connected && liveTeamKey(p) === liveTeamKey(me)) send(p.ws, out); });
 }
+// 2 gegen 2 bei Dame und Muehle: Weiss, Schwarz, Weiss, Schwarz ... und in jedem Team wechseln die zwei Spieler
+function colorSeq(room, n) { const list = n % 2 === 0 ? room.orderW : room.orderB; return list[Math.floor(n / 2) % list.length]; }
+function colorTeamStart(room) {
+  room.orderW = liveShuffle(room.players.filter(p => p.color === "w"));
+  room.orderB = liveShuffle(room.players.filter(p => p.color === "b"));
+  room.turnN = 0;
+}
+function colorJoin(room) { // Farbe fuer den naechsten Spieler: Seiten abwechselnd auffuellen
+  const nw = room.players.filter(p => p.color === "w").length, nb = room.players.length - nw;
+  return nw < nb ? "w" : nb < nw ? "b" : (room.players[room.players.length - 1].color === "w" ? "b" : "w");
+}
+const colorNames = (room, c) => room.players.filter(x => x.color === c).map(x => x.name).join(" + ");
 function liveShuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 // 2 gegen 2, Tic Tac Toe: X, O, X, O ... und in jedem Team wechseln die zwei Spieler sich ab
 function tttSeq(room, n) { const list = n % 2 === 0 ? room.orderX : room.orderO; return list[Math.floor(n / 2) % list.length]; }
@@ -3029,19 +3046,23 @@ async function liveSettings(payload, lang) {
   return liveSettingsResult(user);
 }
 // Welche Freunde spielen gerade und dürfen angeschaut werden?
-async function liveFriends(payload, lang) {
+async function liveFriends(payload, lang, ip) {
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const me = findUserByToken(payload && payload.token);
   if (!me) return errObj("notLoggedIn", lang);
   const out = [];
   const add = (kind, code, users, extra) => {
+    const gateName = kind === "dm" ? "dame" : kind === "mu" ? "muehle" : null;
+    if (gateName && !gateOk(gateName, payload.adminKey, ip)) return;
     if (users.some(u => u.username.toLowerCase() === me.username.toLowerCase())) return;
     if (!liveWatchOk(users, me)) return;
     const f = users.find(u => areFriends(u, me));
     out.push(Object.assign({ kind, code, friend: f.username, avatar: f.avatar || null, names: users.map(u => u.username) }, extra));
   };
-  for (const r of tttRooms.values()) { if (r.players.length !== (r.size || 2)) continue; add("ttt", r.code, r.players.map(p => liveUser(p.ws)).filter(Boolean), { team: (r.size || 2) === 4, mode: r.mode, watchers: liveSpecCount(r) }); }
-  for (const r of fuRooms.values()) { if (r.players.length !== (r.size || 2)) continue; add("fu", r.code, r.players.map(p => liveUser(p.ws)).filter(Boolean), { team: (r.size || 2) === 4, watchers: liveSpecCount(r) }); }
+  for (const r of tttRooms.values()) { if (r.players.length !== (r.size || 2)) continue; add("ttt", r.code, r.players.map(livePU).filter(Boolean), { team: (r.size || 2) === 4, mode: r.mode, watchers: liveSpecCount(r) }); }
+  for (const r of fuRooms.values()) { if (r.players.length !== (r.size || 2)) continue; add("fu", r.code, r.players.map(livePU).filter(Boolean), { team: (r.size || 2) === 4, watchers: liveSpecCount(r) }); }
+  for (const r of dmRooms.values()) { if (r.players.length !== (r.size || 2) || r.st.over) continue; add("dm", r.code, r.players.map(livePU).filter(Boolean), { team: (r.size || 2) === 4, watchers: liveSpecCount(r) }); }
+  for (const r of muRooms.values()) { if (r.players.length !== (r.size || 2) || r.st.over) continue; add("mu", r.code, r.players.map(livePU).filter(Boolean), { team: (r.size || 2) === 4, watchers: liveSpecCount(r) }); }
   for (const g of chessOnlineGames.values()) {
     if (g.status !== "playing") continue;
     add("chess", g.code, [g.w, g.b, g.w2, g.b2].filter(Boolean).map(n => findUserByName(n)).filter(Boolean), { team: !!g.team, corr: !!g.corr, timed: !!g.timed, watchers: chessWatcherCount(g) });
@@ -3152,17 +3173,44 @@ const dmPairDay = new Map(); // "tag|a|b" -> gezaehlte Siege
 function dameAllowed(adminKey, ip) { return gateOk("dame", adminKey, ip); }
 function dmMakeCode() { let c; do { c = randomRoomCode(); } while (dmRooms.has(c) || brRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
 function dmFreshState() { return { board: Dame.initialBoard(), turn: "w", plies: 0, quiet: 0, over: false, winner: null, why: null, last: null }; }
-function dmView(room, p) {
-  const opp = room.players.find(x => x !== p);
-  const wins = p.username && findUserByName(p.username) ? (findUserByName(p.username).stats.dameWins || 0) : null;
-  return { type: "dmState", roomCode: room.code, you: p.color, board: room.st.board, turn: room.st.turn, over: room.st.over, winner: room.st.winner, why: room.st.why,
-    plies: room.st.plies, last: room.st.last, names: [p.name, opp ? opp.name : ""], full: room.players.length === 2, remaining: room.deadline ? Math.max(0, room.deadline - Date.now()) : null,
-    credited: p.credited ? { wins } : null, dameWins: wins, zp: (room.zpRes && room.zpRes[p.color]) || null };
+// Dame-Elo (wie Schach: Start 1000, K=32, nur echte Online-Partien 1 gegen 1 zwischen zwei Konten, nie gegen den Bot)
+function dameEloOf(u) { return (u && u.stats && Number.isFinite(u.stats.dameElo)) ? u.stats.dameElo : CHESS_ELO_START; }
+function dameEloApply(room) {
+  if (room.eloRes || room.size === 4 || room.players.length !== 2) return;
+  const st = room.st; if (!st.winner || (st.plies || 0) < DM_MIN_PLIES_FOR_CREDIT) return;
+  const [a, b] = room.players; if (!a.username || !b.username || a.username.toLowerCase() === b.username.toLowerCase()) return;
+  const ua = findUserByName(a.username), ub = findUserByName(b.username); if (!ua || !ub || isRestricted(ua) || isRestricted(ub)) return;
+  const day = new Date().toISOString().slice(0, 10), pk = "elo|" + day + "|" + [a.username.toLowerCase(), b.username.toLowerCase()].sort().join("|");
+  const n = dmPairDay.get(pk) || 0; if (n >= CHESS_PAIR_DAILY_MAX) return; dmPairDay.set(pk, n + 1);
+  const ra = dameEloOf(ua), rb = dameEloOf(ub), sa = st.winner === "draw" ? 0.5 : (st.winner === a.color ? 1 : 0);
+  const da = Math.round(CHESS_ELO_K * (sa - 1 / (1 + Math.pow(10, (rb - ra) / 400)))), db = -da;
+  ua.stats.dameElo = Math.max(100, ra + da); ub.stats.dameElo = Math.max(100, rb + db);
+  for (const [u, won, lost] of [[ua, sa === 1, sa === 0], [ub, sa === 0, sa === 1]]) {
+    u.stats.dameGames = (u.stats.dameGames || 0) + 1;
+    if (won) u.stats.dameOnWins = (u.stats.dameOnWins || 0) + 1; else if (lost) u.stats.dameOnLosses = (u.stats.dameOnLosses || 0) + 1;
+  }
+  room.eloRes = { [a.color]: { delta: da, after: ua.stats.dameElo }, [b.color]: { delta: db, after: ub.stats.dameElo } };
+  saveUsers().catch(() => {});
 }
-function dmBroadcast(room) { room.players.forEach(p => { if (p.connected) send(p.ws, dmView(room, p)); }); }
+function dmView(room, p) { // p = null: Zuschauer
+  const size = room.size || 2, team = size === 4, full = room.players.length === size, st = room.st;
+  const cur = team && full && !st.over ? colorSeq(room, room.turnN || 0) : null;
+  const wins = p && p.username && findUserByName(p.username) ? (findUserByName(p.username).stats.dameWins || 0) : null;
+  return { type: "dmState", roomCode: room.code, you: p ? p.color : null, spectator: !p, board: st.board, turn: st.turn, over: st.over, winner: st.winner, why: st.why,
+    plies: st.plies, last: st.last, names: p ? [colorNames(room, p.color), colorNames(room, Dame.other(p.color))] : [colorNames(room, "w"), colorNames(room, "b")], full, size, count: room.players.length,
+    turnName: cur ? cur.name : null, yourTurn: !!p && full && !st.over && (team ? cur === p : p.color === st.turn), log: (room.log || []).slice(-40), watchers: liveSpecCount(room),
+    remaining: room.deadline ? Math.max(0, room.deadline - Date.now()) : null,
+    credited: p && p.credited ? { wins } : null, dameWins: wins, zp: p ? ((room.zpRes && room.zpRes[p.color]) || null) : null,
+    elo: p && room.eloRes ? (room.eloRes[p.color] || null) : null, eloNow: p && p.username && findUserByName(p.username) && size === 2 ? dameEloOf(findUserByName(p.username)) : null,
+    eloOpp: (() => { if (!p || size !== 2) return null; const o = room.players.find(x => x !== p); const ou = o && o.username ? findUserByName(o.username) : null; return ou ? dameEloOf(ou) : null; })() };
+}
+function dmBroadcast(room) {
+  room.players.forEach(p => { if (p.connected) send(p.ws, dmView(room, p)); });
+  (room.specs || []).forEach(s => { if (s.readyState === 1) send(s, dmView(room, null)); });
+}
 function dmArm(room) {
   clearTimeout(room.timer); room.deadline = null;
-  if (room.st.over || room.players.length < 2) return;
+  if (room.st.over || room.players.length < (room.size || 2)) return;
   room.deadline = Date.now() + DM_MOVE_MS;
   const turnAt = room.st.plies;
   room.timer = setTimeout(() => { if (!room.st.over && room.st.plies === turnAt) dmEnd(room, Dame.other(room.st.turn), "timeout"); }, DM_MOVE_MS + 200);
@@ -3182,6 +3230,7 @@ function dmCredit(room) {
       const [d0, d1] = room.players, res = zpDuel("dame", d0, d1, st.winner === "draw" || !st.winner ? "draw" : (st.winner === d0.color ? "a" : "b"), st.plies || 0, DM_MIN_PLIES_FOR_CREDIT);
       if (res) room.zpRes = { [d0.color]: res.a, [d1.color]: res.b };
     }
+    dameEloApply(room);
     if (!st.winner || st.winner === "draw" || room.players.length !== 2 || st.plies < DM_MIN_PLIES_FOR_CREDIT) return;
     const win = room.players.find(p => p.color === st.winner), lose = room.players.find(p => p !== win);
     if (!win.username || !lose.username || win.username.toLowerCase() === lose.username.toLowerCase()) return;
@@ -3196,13 +3245,13 @@ function dmCredit(room) {
   } catch (e) { console.error("dmCredit", e); }
 }
 function dmQueueRemove(ws) { dmQueue = dmQueue.filter(q => q.ws !== ws); }
-function dmNewRoom(p1, p2) {
+function dmNewRoom(p1, p2, size) {
   const code = dmMakeCode();
   const colors = Math.random() < 0.5 ? ["w", "b"] : ["b", "w"];
   const mk = (p, color) => ({ ws: p.ws, name: p.name, username: p.username, color, connected: true, key: crypto.randomBytes(8).toString("hex") });
-  const room = { code, players: p2 ? [mk(p1, colors[0]), mk(p2, colors[1])] : [mk(p1, "w")], st: dmFreshState(), timer: null, deadline: null };
+  const room = { code, players: p2 ? [mk(p1, colors[0]), mk(p2, colors[1])] : [mk(p1, size === 4 ? colors[0] : "w")], st: dmFreshState(), timer: null, deadline: null, size: size === 4 ? 4 : 2, turnN: 0, log: [] };
   dmRooms.set(code, room);
-  room.players.forEach(pl => { pl.ws.dmRoomCode = code; send(pl.ws, { type: "dmJoined", roomCode: code, key: pl.key }); });
+  room.players.forEach(pl => { pl.ws.dmRoomCode = code; send(pl.ws, { type: "dmJoined", roomCode: code, key: pl.key, size: room.size }); });
   dmArm(room);
   dmBroadcast(room);
   return room;
@@ -3213,16 +3262,17 @@ function dmHandleDisconnect(ws, leaveForGood) {
   const room = dmRooms.get(code); ws.dmRoomCode = null; if (!room) return;
   const pl = room.players.find(p => p.ws === ws); if (!pl) return;
   pl.connected = false;
-  const other = room.players.find(p => p !== pl && p.connected);
-  if (other) send(other.ws, { type: "dmOpponentLeft", graceSec: leaveForGood ? 0 : Math.round(DM_GRACE_MS / 1000) });
+  const full = room.players.length === (room.size || 2), other = { color: Dame.other(pl.color) };
+  room.players.forEach(o => { if (o !== pl && o.connected) send(o.ws, { type: "dmOpponentLeft", graceSec: leaveForGood ? 0 : Math.round(DM_GRACE_MS / 1000) }); });
+  (room.specs || []).forEach(sp => { if (sp.readyState === 1) send(sp, { type: "dmOpponentLeft", graceSec: 0 }); });
   clearTimeout(pl.graceTimer);
   if (room.players.every(p => !p.connected)) {
     if (leaveForGood) { clearTimeout(room.timer); dmRooms.delete(code); return; }
     pl.graceTimer = setTimeout(() => { if (room.players.every(p => !p.connected)) { clearTimeout(room.timer); dmRooms.delete(code); } }, DM_GRACE_MS);
     return;
   }
-  if (leaveForGood) { if (!room.st.over && room.players.length === 2) dmEnd(room, other ? other.color : null, "left"); return; }
-  pl.graceTimer = setTimeout(() => { if (!pl.connected && !room.st.over && room.players.length === 2) dmEnd(room, other ? other.color : null, "left"); }, DM_GRACE_MS);
+  if (leaveForGood) { if (!room.st.over && full) dmEnd(room, other.color, "left"); return; }
+  pl.graceTimer = setTimeout(() => { if (!pl.connected && !room.st.over && full) dmEnd(room, other.color, "left"); }, DM_GRACE_MS);
 }
 /* ---- MUEHLE (Neun-Maenner-Muehle, serverautoritativ): Raumcode-Duell + Zufallsgegner. Nur Admin, solange "muehle" gesperrt ist. ---- */
 const Mill = require("./public/chess/muehle-engine.js");
@@ -3232,15 +3282,21 @@ let muQueue = [];
 function muehleAllowed(adminKey, ip) { return gateOk("muehle", adminKey, ip); }
 function muMakeCode() { let c; do { c = randomRoomCode(); } while (muRooms.has(c) || brRooms.has(c) || dmRooms.has(c) || fuRooms.has(c) || tttRooms.has(c)); return c; }
 function muFreshState() { return { ...Mill.initial(), plies: 0, over: false, winner: null, why: null, last: null }; }
-function muView(room, p) {
-  const opp = room.players.find(x => x !== p), st = room.st;
-  return { type: "muState", roomCode: room.code, you: p.color, b: st.b, hand: st.hand, turn: st.turn, over: st.over, winner: st.winner, why: st.why,
-    plies: st.plies, last: st.last, names: [p.name, opp ? opp.name : ""], full: room.players.length === 2, remaining: room.deadline ? Math.max(0, room.deadline - Date.now()) : null };
+function muView(room, p) { // p = null: Zuschauer
+  const st = room.st, size = room.size || 2, team = size === 4, full = room.players.length === size;
+  const cur = team && full && !st.over ? colorSeq(room, room.turnN || 0) : null;
+  return { type: "muState", roomCode: room.code, you: p ? p.color : null, spectator: !p, b: st.b, hand: st.hand, turn: st.turn, over: st.over, winner: st.winner, why: st.why,
+    plies: st.plies, last: st.last, names: p ? [colorNames(room, p.color), colorNames(room, Mill.other(p.color))] : [colorNames(room, "w"), colorNames(room, "b")], full, size, count: room.players.length,
+    turnName: cur ? cur.name : null, yourTurn: !!p && full && !st.over && (team ? cur === p : p.color === st.turn), log: (room.log || []).slice(-40), watchers: liveSpecCount(room),
+    remaining: room.deadline ? Math.max(0, room.deadline - Date.now()) : null };
 }
-function muBroadcast(room) { room.players.forEach(p => { if (p.connected) send(p.ws, muView(room, p)); }); }
+function muBroadcast(room) {
+  room.players.forEach(p => { if (p.connected) send(p.ws, muView(room, p)); });
+  (room.specs || []).forEach(s => { if (s.readyState === 1) send(s, muView(room, null)); });
+}
 function muArm(room) {
   clearTimeout(room.timer); room.deadline = null;
-  if (room.st.over || room.players.length < 2) return;
+  if (room.st.over || room.players.length < (room.size || 2)) return;
   room.deadline = Date.now() + MU_MOVE_MS;
   const turnAt = room.st.plies;
   room.timer = setTimeout(() => { if (!room.st.over && room.st.plies === turnAt) muEnd(room, Mill.other(room.st.turn), "timeout"); }, MU_MOVE_MS + 200);
@@ -3251,13 +3307,13 @@ function muEnd(room, winnerColor, why) {
   muBroadcast(room);
 }
 function muQueueRemove(ws) { muQueue = muQueue.filter(q => q.ws !== ws); }
-function muNewRoom(p1, p2) {
+function muNewRoom(p1, p2, size) {
   const code = muMakeCode();
   const colors = Math.random() < 0.5 ? ["w", "b"] : ["b", "w"];
   const mk = (p, color) => ({ ws: p.ws, name: p.name, color, connected: true, key: crypto.randomBytes(8).toString("hex") });
-  const room = { code, players: p2 ? [mk(p1, colors[0]), mk(p2, colors[1])] : [mk(p1, "w")], st: muFreshState(), timer: null, deadline: null };
+  const room = { code, players: p2 ? [mk(p1, colors[0]), mk(p2, colors[1])] : [mk(p1, size === 4 ? colors[0] : "w")], st: muFreshState(), timer: null, deadline: null, size: size === 4 ? 4 : 2, turnN: 0, log: [] };
   muRooms.set(code, room);
-  room.players.forEach(pl => { pl.ws.muRoomCode = code; send(pl.ws, { type: "muJoined", roomCode: code, key: pl.key }); });
+  room.players.forEach(pl => { pl.ws.muRoomCode = code; send(pl.ws, { type: "muJoined", roomCode: code, key: pl.key, size: room.size }); });
   muArm(room);
   muBroadcast(room);
   return room;
@@ -3268,16 +3324,17 @@ function muHandleDisconnect(ws, leaveForGood) {
   const room = muRooms.get(code); ws.muRoomCode = null; if (!room) return;
   const pl = room.players.find(p => p.ws === ws); if (!pl) return;
   pl.connected = false;
-  const other = room.players.find(p => p !== pl && p.connected);
-  if (other) send(other.ws, { type: "muOpponentLeft", graceSec: leaveForGood ? 0 : Math.round(MU_GRACE_MS / 1000) });
+  const full = room.players.length === (room.size || 2), other = { color: Mill.other(pl.color) };
+  room.players.forEach(o => { if (o !== pl && o.connected) send(o.ws, { type: "muOpponentLeft", graceSec: leaveForGood ? 0 : Math.round(MU_GRACE_MS / 1000) }); });
+  (room.specs || []).forEach(sp => { if (sp.readyState === 1) send(sp, { type: "muOpponentLeft", graceSec: 0 }); });
   clearTimeout(pl.graceTimer);
   if (room.players.every(p => !p.connected)) {
     if (leaveForGood) { clearTimeout(room.timer); muRooms.delete(code); return; }
     pl.graceTimer = setTimeout(() => { if (room.players.every(p => !p.connected)) { clearTimeout(room.timer); muRooms.delete(code); } }, MU_GRACE_MS);
     return;
   }
-  if (leaveForGood) { if (!room.st.over && room.players.length === 2) muEnd(room, other ? other.color : null, "left"); return; }
-  pl.graceTimer = setTimeout(() => { if (!pl.connected && !room.st.over && room.players.length === 2) muEnd(room, other ? other.color : null, "left"); }, MU_GRACE_MS);
+  if (leaveForGood) { if (!room.st.over && full) muEnd(room, other.color, "left"); return; }
+  pl.graceTimer = setTimeout(() => { if (!pl.connected && !room.st.over && full) muEnd(room, other.color, "left"); }, MU_GRACE_MS);
 }
 function fuFreshBoard() { return Array.from({ length: FOURUPS_ROWS }, () => Array(FOURUPS_COLS).fill(0)); }
 function startPartyFourupsRound(room, def) {
@@ -4617,6 +4674,24 @@ async function realmBuyDias(token, pack, lang) {
   user.realm.pendingDias = (user.realm.pendingDias | 0) + p.dias;
   if (!(await saveUsers())) { user.stats.coins += p.coins; user.realm.pendingDias -= p.dias; return serviceDownMsg(lang); }
   return { ok: true, coins: user.stats.coins, dias: p.dias, pending: user.realm.pendingDias };
+}
+// ---- Gegner-Leiter (Schach und Dame): die 10 staerksten Gegner kosten je 1000 Muenzen, einmal gekauft gelten sie fuer beide Spiele ----
+const LADDER_BUY_IDS = ["gerda", "witzig", "ritter", "kalle", "ninja", "otto", "dieter", "koenigin", "koenig", "lukas"], LADDER_PRICE = 1000;
+function ladderState(token) {
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  return { ok: true, bought: (user.ladder && Array.isArray(user.ladder.bought)) ? user.ladder.bought.filter(id => LADDER_BUY_IDS.includes(id)) : [], coins: user.stats.coins || 0, price: LADDER_PRICE };
+}
+async function ladderBuy(token, id, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  if (typeof id !== "string" || !LADDER_BUY_IDS.includes(id)) return { ok: false, error: lang === "en" ? "Unknown opponent." : "Unbekannter Gegner." };
+  user.ladder = user.ladder && typeof user.ladder === "object" ? user.ladder : {};
+  if (!Array.isArray(user.ladder.bought)) user.ladder.bought = [];
+  if (user.ladder.bought.includes(id)) return ladderState(token);
+  if ((user.stats.coins || 0) < LADDER_PRICE) return errObj("notEnoughCoins", lang);
+  user.stats.coins -= LADDER_PRICE; user.ladder.bought.push(id);
+  if (!(await saveUsers())) { user.stats.coins += LADDER_PRICE; user.ladder.bought = user.ladder.bought.filter(x => x !== id); return serviceDownMsg(lang); }
+  return ladderState(token);
 }
 async function realmClaimDias(token) {
   if (!usersLoaded) return { ok: false, unavailable: true };
@@ -6993,6 +7068,16 @@ async function chessApi(action, payload, lang) {
   if (!user) return errObj("notLoggedIn", lang);
   const c = chessState(user);
   if (action === "state") return { ok: true, ...chessPublic(user) };
+  if (action === "elo-rank") { // Profil-Elo mit Bestenliste und Freunden (Schach oder Dame)
+    const dame = payload.game === "dame";
+    const eloOf = dame ? dameEloOf : chessEloOf;
+    const gamesOf = u => ((u && u.stats && (dame ? u.stats.dameGames : u.stats.chessGames)) | 0);
+    const list = users.filter(u => gamesOf(u) > 0).sort((a, b) => eloOf(b) - eloOf(a));
+    const pos = list.findIndex(u => u === user);
+    const friends = (user.friends || []).map(n => findUserByName(n)).filter(Boolean).map(f => ({ name: f.username, elo: eloOf(f), games: gamesOf(f) })).sort((a, b) => b.elo - a.elo);
+    return { ok: true, name: user.username, elo: eloOf(user), games: gamesOf(user), pos: pos >= 0 ? pos + 1 : null,
+      top: list.slice(0, 10).map((u, i) => ({ pos: i + 1, name: u.username, elo: eloOf(u), games: gamesOf(u) })), friends };
+  }
   if (action === "quest-claim") {
     // Aufgaben-Belohnung in Schluesseln: einmal je Aufgabe, Hoehe kommt aus der Server-Tabelle (nicht vom Client).
     const id = String(payload.id || ""), want = CHESS_QUEST_KEYS[id];
@@ -8476,6 +8561,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
         else if (req.url === "/api/realm/buy-dias" && !(gateOk("braining_lane", payload.adminKey, ip) && gateOk("shop_dias", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/realm/buy-dias") result = await realmBuyDias(payload.token, payload.pack, lang);
+        else if (req.url === "/api/ladder-state") result = ladderState(payload.token);
+        else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang);
         else if (req.url === "/api/realm/claim-dias") result = await realmClaimDias(payload.token);
         else if (req.url === "/api/realm/news") result = realmNewsPublic();
         else if (req.url === "/api/admin-realm-news") result = await adminRealmNews(payload.key, ip, payload);
@@ -8511,7 +8598,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/chat-public-send") result = await chatPublicSend(payload.token, payload.text, lang, payload.room);
         else if (req.url === "/api/friends-list") result = await friendsList(payload.token, lang);
         else if (req.url === "/api/live-settings") result = await liveSettings(payload, lang);
-        else if (req.url === "/api/live-friends") result = await liveFriends(payload, lang);
+        else if (req.url === "/api/live-friends") result = await liveFriends(payload, lang, ip);
         else if (req.url === "/api/friends-search") result = await friendsSearch(payload.token, payload.query, lang);
         else if (req.url === "/api/friends-request") result = await friendsRequest(payload.token, payload.username, lang);
         else if (req.url === "/api/public-stats") result = publicStats();
@@ -8846,31 +8933,42 @@ wss.on("connection", (ws, req) => {
       tttBroadcastState(room);
       return;
     }
-    if (msg.action === "tttWatch" || msg.action === "fuWatch") {
-      const kind = msg.action === "tttWatch" ? "ttt" : "fu";
-      const room = (kind === "ttt" ? tttRooms : fuRooms).get(cleanCode(msg.code));
+    if (/^(ttt|fu|dm|mu)Watch$/.test(msg.action)) {
+      const kind = msg.action.slice(0, -5), K = liveKinds()[kind];
+      const room = K.rooms.get(cleanCode(msg.code));
       const me = liveUser(ws);
       const fail = text => send(ws, { type: kind + "Error", message: text });
       if (!me) return fail("Zum Zuschauen musst du angemeldet sein.");
       if (!room) return fail("Raum nicht gefunden.");
+      const gateName = kind === "dm" ? "dame" : kind === "mu" ? "muehle" : null;
+      if (gateName && !gateOk(gateName, msg.adminKey, ws.ip)) return fail("Nicht verfügbar."); // gesperrte Spiele bleiben auch fuer Zuschauer zu
       if (room.players.some(p => p.ws === ws)) return fail("Du spielst selbst mit.");
-      if (!liveWatchOk(room.players.map(p => liveUser(p.ws)).filter(Boolean), me)) return fail("Zuschauen ist hier nicht möglich (nur für Freunde).");
+      if (!liveWatchOk(room.players.map(livePU).filter(Boolean), me)) return fail("Zuschauen ist hier nicht möglich (nur für Freunde).");
       if (ws.tttRoomCode) tttHandleDisconnect(ws);
       if (ws.fuRoomCode) fuHandleDisconnect(ws);
+      if (ws.dmRoomCode) dmHandleDisconnect(ws, true);
+      if (ws.muRoomCode) muHandleDisconnect(ws, true);
       liveSpecDrop(ws);
       liveSpecAdd(room, ws, kind);
       send(ws, { type: kind + "Watching", roomCode: room.code, size: room.size || 2, mode: room.mode || null });
-      if (kind === "ttt") tttBroadcastState(room); else fuBroadcast(room);
+      K.bc(room);
       return;
     }
-    if (msg.action === "tttPlan" || msg.action === "fuPlan") {
-      const kind = msg.action === "tttPlan" ? "ttt" : "fu";
-      const room = (kind === "ttt" ? tttRooms : fuRooms).get(kind === "ttt" ? ws.tttRoomCode : ws.fuRoomCode);
-      if (!room || room.over || room.gameOver) return;
-      const v = msg.cell == null ? null : Number(msg.cell);
-      if (v !== null && !(Number.isInteger(v) && v >= 0 && v < (kind === "ttt" ? 9 : FOURUPS_COLS))) return;
+    if (/^(ttt|fu|dm|mu)Plan$/.test(msg.action)) {
+      const kind = msg.action.slice(0, -4), K = liveKinds()[kind];
+      const room = K.rooms.get(ws[kind + "RoomCode"]);
+      if (!room || liveOver(room)) return;
+      const iv = (v, max) => v == null ? null : (Number.isInteger(v) && v >= 0 && v < max ? v : NaN);
+      let data;
+      if (kind === "ttt" || kind === "fu") { const v = iv(msg.cell == null ? null : Number(msg.cell), kind === "ttt" ? 9 : FOURUPS_COLS); if (Number.isNaN(v)) return; data = { cell: v }; }
+      else if (kind === "mu") { const f = iv(msg.from, 24), t2 = iv(msg.to, 24); if (Number.isNaN(f) || Number.isNaN(t2)) return; data = { from: f, to: t2 }; }
+      else { // Dame: Weg als Liste von Feldern
+        const path = Array.isArray(msg.path) ? msg.path.slice(0, 10) : [];
+        if (!path.every(q => Array.isArray(q) && q.length === 2 && iv(q[0], 8) !== null && !Number.isNaN(iv(q[0], 8)) && iv(q[1], 8) !== null && !Number.isNaN(iv(q[1], 8)))) return;
+        data = { path: path.map(q => [q[0], q[1]]) };
+      }
       if (rlHit("plan|" + ws.ip, 40, 3000, 3000).lockedUntil > Date.now()) return;
-      livePlanRelay(room, ws, kind, { cell: v });
+      livePlanRelay(room, ws, kind, data);
       return;
     }
     if (msg.action === "liveUnwatch") { liveSpecDrop(ws); return; }
@@ -9019,20 +9117,21 @@ wss.on("connection", (ws, req) => {
       if (ws.dmRoomCode) dmHandleDisconnect(ws, true);
       dmQueueRemove(ws);
       const u = findUserByToken(msg.token);
-      dmNewRoom({ ws, name: cleanStr(msg.name, 20) || (u && u.username) || "Host", username: u ? u.username : null }, null);
+      dmNewRoom({ ws, name: cleanStr(msg.name, 20) || (u && u.username) || "Host", username: u ? u.username : null }, null, msg.teams === true ? 4 : 2);
       return;
     }
     if (msg.action === "dmJoinRoom") {
       if (rlWait("j|" + ws.ip)) return send(ws, { type: "dmError", message: "Zu viele falsche Codes. Bitte kurz warten." });
       const room = dmRooms.get(cleanCode(msg.code));
       if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "dmError", message: "Raum nicht gefunden." }); }
-      if (room.players.length >= 2) return send(ws, { type: "dmError", message: "Der Raum ist schon voll." });
+      if (room.players.length >= (room.size || 2)) return send(ws, { type: "dmError", message: "Der Raum ist schon voll." });
       if (ws.dmRoomCode) dmHandleDisconnect(ws, true);
       dmQueueRemove(ws);
       const u = findUserByToken(msg.token);
-      const pl = { ws, name: cleanStr(msg.name, 20) || (u && u.username) || "Spieler", username: u ? u.username : null, color: room.players[0].color === "w" ? "b" : "w", connected: true, key: crypto.randomBytes(8).toString("hex") };
+      const pl = { ws, name: cleanStr(msg.name, 20) || (u && u.username) || "Spieler", username: u ? u.username : null, color: colorJoin(room), connected: true, key: crypto.randomBytes(8).toString("hex") };
       room.players.push(pl); ws.dmRoomCode = room.code;
-      send(ws, { type: "dmJoined", roomCode: room.code, key: pl.key });
+      if ((room.size || 2) === 4 && room.players.length === 4) colorTeamStart(room);
+      send(ws, { type: "dmJoined", roomCode: room.code, key: pl.key, size: room.size || 2 });
       dmArm(room); dmBroadcast(room);
       return;
     }
@@ -9063,14 +9162,16 @@ wss.on("connection", (ws, req) => {
     if (msg.action === "dmQueueCancel") { dmQueueRemove(ws); return; }
     if (msg.action === "dmMove") {
       const room = dmRooms.get(ws.dmRoomCode);
-      if (!room || room.st.over || room.players.length < 2) return;
-      const me = room.players.find(p => p.ws === ws); if (!me || me.color !== room.st.turn) return;
+      if (!room || room.st.over || room.players.length < (room.size || 2)) return;
+      const team = (room.size || 2) === 4;
+      const me = room.players.find(p => p.ws === ws); if (!me || me.color !== room.st.turn || (team && colorSeq(room, room.turnN) !== me)) return;
       const mv = Dame.findMove(room.st.board, me.color, msg.path);
       if (!mv) return send(ws, { type: "dmIllegal" });
       const st = room.st, moved = st.board[mv.path[0][0]][mv.path[0][1]];
       st.board = Dame.applyMove(st.board, mv); st.plies++; st.last = mv.path;
       st.quiet = (mv.captured.length || !moved.k) ? 0 : st.quiet + 1;
-      st.turn = Dame.other(st.turn);
+      (room.log = room.log || []).push({ n: st.plies, who: me.name, color: me.color, path: mv.path, cap: mv.captured.length }); if (room.log.length > 80) room.log.shift();
+      st.turn = Dame.other(st.turn); room.turnN = (room.turnN || 0) + 1;
       const res = Dame.result(st.board, st.turn);
       if (res) { dmEnd(room, res, "done"); return; }
       if (st.quiet >= DM_QUIET_LIMIT) { dmEnd(room, "draw", "draw"); return; }
@@ -9078,17 +9179,18 @@ wss.on("connection", (ws, req) => {
       return;
     }
     if (msg.action === "dmResign") {
-      const room = dmRooms.get(ws.dmRoomCode); if (!room || room.st.over || room.players.length < 2) return;
+      const room = dmRooms.get(ws.dmRoomCode); if (!room || room.st.over || room.players.length < (room.size || 2)) return;
       const me = room.players.find(p => p.ws === ws); if (!me) return;
       dmEnd(room, Dame.other(me.color), "resign");
       return;
     }
     if (msg.action === "dmRematch") {
       const room = dmRooms.get(ws.dmRoomCode);
-      if (!room || !room.st.over || room.players.length < 2 || room.players.some(p => !p.connected)) return;
+      if (!room || !room.st.over || room.players.length < (room.size || 2) || room.players.some(p => !p.connected)) return;
       clearTimeout(room.timer);
-      room.st = dmFreshState(); room.zpDone = false; room.zpRes = null;
+      room.st = dmFreshState(); room.zpDone = false; room.zpRes = null; room.log = []; room.turnN = 0;
       if (Math.random() < 0.5) room.players.forEach(p => { p.color = Dame.other(p.color); });
+      if ((room.size || 2) === 4) colorTeamStart(room);
       room.players.forEach(p => { p.credited = false; });
       dmArm(room); dmBroadcast(room);
       return;
@@ -9098,19 +9200,20 @@ wss.on("connection", (ws, req) => {
       if (!muehleAllowed(msg.adminKey, ws.ip)) return send(ws, { type: "muError", message: "Nicht verfügbar." });
       if (ws.muRoomCode) muHandleDisconnect(ws, true);
       muQueueRemove(ws);
-      muNewRoom({ ws, name: cleanStr(msg.name, 20) || "Host" }, null);
+      muNewRoom({ ws, name: cleanStr(msg.name, 20) || "Host" }, null, msg.teams === true ? 4 : 2);
       return;
     }
     if (msg.action === "muJoinRoom") {
       if (rlWait("j|" + ws.ip)) return send(ws, { type: "muError", message: "Zu viele falsche Codes. Bitte kurz warten." });
       const room = muRooms.get(cleanCode(msg.code));
       if (!room) { rlHit("j|" + ws.ip, JOIN_MAX_FAILS_IP, 300000, 300000); return send(ws, { type: "muError", message: "Raum nicht gefunden." }); }
-      if (room.players.length >= 2) return send(ws, { type: "muError", message: "Der Raum ist schon voll." });
+      if (room.players.length >= (room.size || 2)) return send(ws, { type: "muError", message: "Der Raum ist schon voll." });
       if (ws.muRoomCode) muHandleDisconnect(ws, true);
       muQueueRemove(ws);
-      const pl = { ws, name: cleanStr(msg.name, 20) || "Spieler", color: room.players[0].color === "w" ? "b" : "w", connected: true, key: crypto.randomBytes(8).toString("hex") };
+      const pl = { ws, name: cleanStr(msg.name, 20) || "Spieler", color: colorJoin(room), connected: true, key: crypto.randomBytes(8).toString("hex") };
       room.players.push(pl); ws.muRoomCode = room.code;
-      send(ws, { type: "muJoined", roomCode: room.code, key: pl.key });
+      if ((room.size || 2) === 4 && room.players.length === 4) colorTeamStart(room);
+      send(ws, { type: "muJoined", roomCode: room.code, key: pl.key, size: room.size || 2 });
       muArm(room); muBroadcast(room);
       return;
     }
@@ -9140,14 +9243,16 @@ wss.on("connection", (ws, req) => {
     if (msg.action === "muQueueCancel") { muQueueRemove(ws); return; }
     if (msg.action === "muMove") {
       const room = muRooms.get(ws.muRoomCode);
-      if (!room || room.st.over || room.players.length < 2) return;
-      const me = room.players.find(p => p.ws === ws); if (!me || me.color !== room.st.turn) return;
+      if (!room || room.st.over || room.players.length < (room.size || 2)) return;
+      const team = (room.size || 2) === 4;
+      const me = room.players.find(p => p.ws === ws); if (!me || me.color !== room.st.turn || (team && colorSeq(room, room.turnN) !== me)) return;
       const iv = v => (v === null || v === undefined) ? null : (Number.isInteger(v) && v >= 0 && v < 24 ? v : NaN);
       const from = iv(msg.from), to = iv(msg.to), rm = iv(msg.rm);
       const mv = (to === null || Number.isNaN(from) || Number.isNaN(to) || Number.isNaN(rm)) ? null : Mill.findMove(room.st, me.color, from, to, rm);
       if (!mv) return send(ws, { type: "muIllegal" });
       const st = room.st, ns = Mill.apply(st, mv);
-      st.b = ns.b; st.hand = ns.hand; st.turn = ns.turn; st.quiet = ns.quiet; st.plies++; st.last = { from: mv.from, to: mv.to, rm: mv.rm };
+      st.b = ns.b; st.hand = ns.hand; st.turn = ns.turn; st.quiet = ns.quiet; st.plies++; st.last = { from: mv.from, to: mv.to, rm: mv.rm }; room.turnN = (room.turnN || 0) + 1;
+      (room.log = room.log || []).push({ n: st.plies, who: me.name, color: me.color, from: mv.from, to: mv.to, rm: mv.rm }); if (room.log.length > 80) room.log.shift();
       const res = Mill.result(st);
       if (res) { muEnd(room, res, "done"); return; }
       if (st.quiet >= MU_QUIET_LIMIT) { muEnd(room, "draw", "draw"); return; }
@@ -9155,17 +9260,18 @@ wss.on("connection", (ws, req) => {
       return;
     }
     if (msg.action === "muResign") {
-      const room = muRooms.get(ws.muRoomCode); if (!room || room.st.over || room.players.length < 2) return;
+      const room = muRooms.get(ws.muRoomCode); if (!room || room.st.over || room.players.length < (room.size || 2)) return;
       const me = room.players.find(p => p.ws === ws); if (!me) return;
       muEnd(room, Mill.other(me.color), "resign");
       return;
     }
     if (msg.action === "muRematch") {
       const room = muRooms.get(ws.muRoomCode);
-      if (!room || !room.st.over || room.players.length < 2 || room.players.some(p => !p.connected)) return;
+      if (!room || !room.st.over || room.players.length < (room.size || 2) || room.players.some(p => !p.connected)) return;
       clearTimeout(room.timer);
-      room.st = muFreshState();
+      room.st = muFreshState(); room.log = []; room.turnN = 0;
       if (Math.random() < 0.5) room.players.forEach(p => { p.color = Mill.other(p.color); });
+      if ((room.size || 2) === 4) colorTeamStart(room);
       muArm(room); muBroadcast(room);
       return;
     }
