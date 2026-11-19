@@ -16,6 +16,16 @@
       return '<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="width:26px;opacity:.6">' + (x.pos || (i + 1)) + '.</span><span style="flex:1;' + (x.name === me ? 'color:#7cff8c;font-weight:800' : '') + '">' + esc(x.name) + '</span><b style="color:#ffd45a">' + x.elo + '</b></div>';
     }).join('');
   }
+  function tierList(r, de){
+    var S = root.BpSets; if(!S) return '';
+    var me = Math.max(S.maxElo(), r.elo || 0), t = S.list.filter(function(x){ return x.elo > 0; }).sort(function(a, b){ return a.elo - b.elo; });
+    var rows2 = t.map(function(x){
+      var ok = me >= x.elo;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:10px;margin-bottom:4px;background:' + (ok ? 'rgba(198,255,61,.12)' : 'rgba(255,255,255,.05)') + '"><img src="/chess/sets/' + x.id + '/wN.png" style="width:38px;height:38px;' + (ok ? '' : 'opacity:.5;filter:grayscale(.6)') + '" alt=""><b style="flex:1">' + (de ? x.de : x.en) + '</b><span style="color:#ffd45a;font-weight:800">ab ' + x.elo + '</span><span style="width:20px;text-align:center">' + (ok ? '✅' : '🔒') + '</span></div>';
+    }).join('');
+    return '<div style="margin:0 0 14px"><div style="font-weight:800;margin:4px 0 2px">🏅 ' + (de ? 'Elo-Rangliste' : 'Elo ranks') + '</div>'
+      + '<div style="opacity:.75;font-size:13px;margin-bottom:8px">' + (de ? 'Deine höchste Online-Elo: ' : 'Your highest online Elo: ') + '<b style="color:#ffd45a">' + me + '</b></div>' + rows2 + '</div>';
+  }
   function panel(r, lang){
     var de = lang !== 'en', old = document.getElementById('bpEloOv'); if(old) old.remove();
     var ov = document.createElement('div'); ov.id = 'bpEloOv';
@@ -25,6 +35,7 @@
       + '<div style="font-size:42px;font-weight:900;color:#ffd45a">' + r.elo + '</div>'
       + '<div style="opacity:.7;margin-bottom:14px">' + r.games + ' ' + (de ? 'Online-Partien' : 'online games') + (r.pos ? ' · ' + (de ? 'Platz ' : 'Rank ') + r.pos : '') + '</div>'
       + '<label style="display:flex;gap:10px;align-items:center;padding:12px;border:1px solid rgba(255,255,255,.2);border-radius:12px;margin-bottom:14px;cursor:pointer"><input type="checkbox" id="bpEloHide" style="width:20px;height:20px"' + (hidden() ? ' checked' : '') + '><span><b>' + (de ? 'Gegner-Elo verbergen' : 'Hide opponent Elo') + '</b><br><small style="opacity:.7">' + (de ? 'Ich sehe die Elo meines Gegners nicht, so spiele ich wie immer. Meine eigene sehe ich weiter.' : "I won't see my opponent's Elo, so I play like always. I still see my own.") + '</small></span></label>'
+      + tierList(r, de)
       + '<button id="bpStyleBtn" style="width:100%;padding:12px;border-radius:12px;border:1px solid #c6ff3d;background:rgba(198,255,61,.12);color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:14px">🎨 ' + (de ? 'Figuren und Brett wählen' : 'Choose pieces and board') + '</button>'
       + '<div style="font-weight:800;margin:8px 0 2px">👥 ' + (de ? 'Freunde' : 'Friends') + '</div>' + rows(r.friends, de, r.name)
       + '<div style="font-weight:800;margin:16px 0 2px">🏆 ' + (de ? 'Bestenliste' : 'Leaderboard') + '</div>' + rows(r.top, de, r.name)
