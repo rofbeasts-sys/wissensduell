@@ -4676,7 +4676,7 @@ async function realmBuyDias(token, pack, lang) {
   return { ok: true, coins: user.stats.coins, dias: p.dias, pending: user.realm.pendingDias };
 }
 // ---- Gegner-Leiter (Schach und Dame): die 10 staerksten Gegner kosten je 1000 Muenzen, einmal gekauft gelten sie fuer beide Spiele ----
-const LADDER_BUY_IDS = ["gerda", "witzig", "ritter", "kalle", "ninja", "otto", "dieter", "koenigin", "koenig", "lukas"], LADDER_PRICE = 1000;
+const LADDER_BUY_IDS = ["gerda", "witzig", "ritter", "kalle", "ninja", "otto", "dieter", "koenigin", "koenig", "lukas"], LADDER_PRICE = 5000;
 function ladderState(token) {
   const user = findUserByToken(token); if (!user) return { ok: false };
   return { ok: true, bought: (user.ladder && Array.isArray(user.ladder.bought)) ? user.ladder.bought.filter(id => LADDER_BUY_IDS.includes(id)) : [], coins: user.stats.coins || 0, price: LADDER_PRICE };
@@ -7506,9 +7506,11 @@ async function chessOnlineApi0(action, payload, lang) {
 // Auswertung fuer den Betreiber: Konten mit Manipulationsversuchen. Nur mit
 // ADMIN_KEY (Umgebungsvariable auf Render); ohne gesetzten Key ist der
 // Endpunkt aus. Ratenbegrenzt gegen Raten des Keys.
+// Der Wert aus der Umgebungsvariable wird von Leerzeichen/Zeilenumbruechen am Rand befreit (beim Einfuegen in Render rutscht oft eines mit rein).
+function ADMIN_KEY_ENV() { const v = process.env.ADMIN_KEY; return typeof v === "string" ? v.trim().replace(/^["']|["']$/g, "") : v; }
 function adminAuth(key, ip) {
   if (testerKeyOk(key)) return false; // Tester-Schluessel: kein Admin, aber kein Fehlversuch
-  const adminKey = process.env.ADMIN_KEY;
+  const adminKey = ADMIN_KEY_ENV();
   if (!adminKey || adminKey.length < 12) return false;
   const lk = "adm|" + ip, e = rlStore.get(lk);
   if (e && e.lockedUntil > Date.now()) return false;
@@ -7556,7 +7558,7 @@ function modKeyUser(key) {
 }
 function adminOk(key, ip) {
   if (testerKeyOk(key)) return false; // Tester-Schluessel ist kein Admin-Schluessel, zaehlt aber nicht als Fehlversuch
-  const ak = process.env.ADMIN_KEY;
+  const ak = ADMIN_KEY_ENV();
   if (!ak || ak.length < 12 || typeof key !== "string" || !key) return false;
   const lk = "admv|" + ip;
   const e = rlStore.get(lk);
@@ -7686,7 +7688,7 @@ async function adminUserAction(key, ip, username, action, amount, minutes, reaso
   return { ok: true, note, user: adminUserRow(u) };
 }
 function adminCheaters(key, ip) {
-  const adminKey = process.env.ADMIN_KEY;
+  const adminKey = ADMIN_KEY_ENV();
   if (!adminKey || adminKey.length < 12) return { ok: false, error: "Nicht verfügbar." };
   if (rlHit("adm|" + ip, 6, 10 * 60 * 1000, 10 * 60 * 1000).lockedUntil > Date.now()) return { ok: false, error: "Zu viele Versuche." };
   const a = Buffer.from(String(key || "")), b = Buffer.from(adminKey);
@@ -8486,7 +8488,7 @@ const server = http.createServer((req, res) => {
         if (modU) {
           if (req.url === "/api/admin-verify") { result = { ok: true, role: "mod", name: modU.username }; modBlocked = true; }
           else if (!MOD_URLS.has(req.url) || (req.url === "/api/admin-reports" && payload.del) || (req.url === "/api/admin-user-action" && (!MOD_ACTIONS.has(payload.action) || ((findUserByName(String(payload.username || "")) || {}).role === "mod")))) { result = { ok: false, error: "Das darf nur der Admin." }; modBlocked = true; }
-          else { console.log("[Mod] " + modU.username + " " + req.url + (payload.action ? " " + payload.action + " " + payload.username : "")); payload.key = payload.adminKey = process.env.ADMIN_KEY; payload._mod = modU.username; }
+          else { console.log("[Mod] " + modU.username + " " + req.url + (payload.action ? " " + payload.action + " " + payload.username : "")); payload.key = payload.adminKey = ADMIN_KEY_ENV(); payload._mod = modU.username; }
         }
         if (modBlocked) { /* Ergebnis steht schon */ }
         else if (req.url === "/api/register") result = await registerUser(payload.username, payload.password, ip, lang, payload.loginName);
@@ -8524,7 +8526,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/admin-reset-decide") result = await adminResetDecide(payload.adminKey, ip, payload.username, payload.action, payload.newPassword, lang);
         else if (req.url === "/api/admin-set-password") { result = adminOk(payload.adminKey, ip) ? await adminSetPassword(payload.username, payload.newPassword, lang) : { ok: false, error: lang === "en" ? "Wrong admin key." : "Admin-Key falsch." }; }
         else if (req.url === "/api/admin-reset-all") { result = adminOk(payload.adminKey, ip) ? await adminResetAll(payload.confirm, lang) : errObj("invalidInput", lang); }
-        else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true, role: "admin" } : { ok: false, error: process.env.ADMIN_KEY ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
+        else if (req.url === "/api/admin-verify") { const adm = adminOk(payload.key, ip); result = adm ? { ok: true, role: "admin" } : { ok: false, error: ADMIN_KEY_ENV() ? "Falscher Schlüssel." : "ADMIN_KEY ist auf dem Server nicht gesetzt." }; }
         else if (req.url.startsWith("/api/chess-online/") && !gateOk("chess_online", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if ((req.url === "/api/arena-status" || req.url === "/api/arena-start-match" || req.url === "/api/arena-buy-heart" || req.url === "/api/arena-finish-match") && !gateOk("arena", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if ((req.url === "/api/shop-create-checkout" || req.url === "/api/shop-packages") && !gateOk("shop", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
