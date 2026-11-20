@@ -59,14 +59,14 @@ function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 var BS=window.BpSets={ list:SETS, boards:BOARDS,
   maxElo:function(){ return parseInt(ls('bp_max_elo'),10)||0; },
-  noteElo:function(e){ e=parseInt(e,10)||0; if(e>BS.maxElo()) lset('bp_max_elo',String(e)); },
+  noteElo:function(e){ e=parseInt(e,10)||0; var old=BS.maxElo(); if(e>old){ lset('bp_max_elo',String(e)); try{ var _de=(ls('wq_lang')!=='en'); SETS.filter(function(q){return q.elo>0&&q.elo>old&&q.elo<=e;}).forEach(function(q){ if(window.bpNotify) window.bpNotify({icon:'🏆',title:_de?'Elo-Figuren freigeschaltet':'Elo pieces unlocked',text:(_de?q.de:q.en)+' (Elo '+q.elo+')',color:'#ffd45a'}); }); }catch(x){} } },
   admin:function(){ return !!ls('bp_admin_key'); },
   owned:function(){ try{ return JSON.parse(ls('bp_sets_owned')||'[]'); }catch(e){ return []; } },
   setOwned:function(a){ lset('bp_sets_owned',JSON.stringify(a||[])); },
   earned:function(){ try{ return JSON.parse(ls('bp_sets_earned')||'[]'); }catch(e){ return []; } },
   earn:function(id){ var a=BS.earned(); if(a.indexOf(id)>=0) return; a.push(id); lset('bp_sets_earned',JSON.stringify(a));
     var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return;
-    try{ var t=document.createElement('div'); t.textContent='🎉 Neues Figuren-Set freigeschaltet: '+x.de; t.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:99999;background:#c6ff3d;color:#08110c;font:800 15px system-ui,sans-serif;padding:12px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw;text-align:center'; document.body.appendChild(t); setTimeout(function(){ t.remove(); },5000); }catch(e){} },
+    try{ var _de=(ls('wq_lang')!=='en'); if(window.bpNotify) window.bpNotify({icon:'♟',title:_de?'Figuren freigeschaltet':'Pieces unlocked',text:(_de?x.de:x.en),color:'#c6ff3d'}); }catch(e){} },
   unlocked:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return false; if(x.price) return BS.owned().indexOf(id)>=0; if(x.earn) return BS.earned().indexOf(id)>=0; if(x.elo>0) return BS.maxElo()>=x.elo; return true; },
   get:function(){ var id=ls('bp_piece_set')||'normal'; return BS.unlocked(id)?id:'normal'; },
   set:function(id){ if(BS.unlocked(id)){ lset('bp_piece_set',id); BS.preload(); return true; } return false; },

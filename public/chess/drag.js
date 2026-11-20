@@ -1,20 +1,7 @@
-/* Schach: Zugart "Tippen" (Figur, dann Feld) oder "Ziehen" (Figur mit dem Finger/der Maus bewegen) */
+/* Schach: Tippen (Figur, dann Feld) und Ziehen (Figur mit Finger/Maus bewegen) gleichzeitig, ohne Umschalten. */
 (function(){
-  var KEY = 'bp_chess_move', mode = 'tap';
-  try{ if(localStorage.getItem(KEY) === 'drag') mode = 'drag'; }catch(e){}
-  window.bpMoveMode = function(){ return mode; };
-  window.bpMoveUI = function(box){
-    var de = /^de/.test(document.documentElement.lang || navigator.language || '');
-    function paint(){
-      box.innerHTML = '';
-      [['tap', de ? '👆 Tippen' : '👆 Tap'], ['drag', de ? '✋ Ziehen' : '✋ Drag']].forEach(function(o){
-        var b = document.createElement('button'); b.className = 'chip' + (mode === o[0] ? ' active' : ''); b.textContent = o[1];
-        b.onclick = function(){ mode = o[0]; try{ localStorage.setItem(KEY, mode); }catch(e){} paint(); if(window.bpMoveChanged) window.bpMoveChanged(); };
-        box.appendChild(b);
-      });
-    }
-    paint();
-  };
+  window.bpMoveMode = function(){ return 'both'; };
+  window.bpMoveUI = function(box){ try{ box.innerHTML = ''; box.style.display = 'none'; }catch(e){} };
   window.bpDragInit = function(o){
     var board = o.board, d = null;
     function clean(){ if(d){ try{ if(d.ghost.parentNode) d.ghost.remove(); }catch(x){} d = null; } window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cn); document.querySelectorAll('.bp-ghost').forEach(function(g){ g.remove(); }); }
@@ -31,8 +18,8 @@
     function up(e){ end(e, false); }
     function cn(e){ end(e, true); }
     board.addEventListener('pointerdown', function(e){
-      if(mode !== 'drag') return;
       if(e.isPrimary === false) return;
+      if(e.pointerType === 'mouse' && e.button !== 0) return;
       clean();
       var sq = e.target.closest('.sq'); if(!sq) return;
       var r = +sq.dataset.r, c = +sq.dataset.c; if(!o.canPick(r, c)) return;
@@ -44,8 +31,8 @@
       d = { r: r, c: c, ghost: ghost, id: e.pointerId };
       window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cn);
     });
-    function sync(){ board.style.touchAction = mode === 'drag' ? 'none' : 'manipulation'; }
-    var old = window.bpMoveChanged; window.bpMoveChanged = function(){ sync(); if(old) old(); };
-    sync();
+    board.style.touchAction = 'none';
+    // Langes Halten ohne Bewegen startet einen Pfeil (arrows.js): dann kein Figuren-Ziehen
+    window.addEventListener('bp-arrow-start', function(){ if(d){ clean(); o.cancel(); } });
   };
 })();

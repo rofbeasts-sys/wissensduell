@@ -541,6 +541,7 @@
 <div id="app"></div>
 <div id="settingsOverlay" class="settings-overlay hidden"></div>
 
+<script src="/notify.js"></script>
 <script src="/core/achievements.js"></script>
 <script src="/core/linePuzzles.js"></script>
 <script src="/chess/dame-engine.js"></script>
@@ -5719,6 +5720,7 @@ function achvToastNext(){
   if(!d) return achvToastNext();
   achvLastToast = d.title;
   if(typeof document === "undefined" || !document.body || !document.createElement) return;
+  if(window.bpNotify){ window.bpNotify({ icon:d.icon, title: currentLang === "en" ? "Achievement unlocked!" : "Erfolg freigeschaltet!", text: Achv.getTitle(d.id, currentLang), color:'#ffd45a' }); setTimeout(achvToastNext, 700); return; }
   achvToastBusy = true;
   const el = document.createElement("div");
   el.className = "achv-toast";

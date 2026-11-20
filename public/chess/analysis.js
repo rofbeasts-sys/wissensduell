@@ -36,11 +36,17 @@
   var VAL = { P:1, N:3, B:3, R:5, Q:9, K:0 };
   var PN = { de:{ P:"Bauer", N:"Springer", B:"Läufer", R:"Turm", Q:"Dame", K:"König" }, en:{ P:"pawn", N:"knight", B:"bishop", R:"rook", Q:"queen", K:"king" } }[LANG];
   var W = {
-    de:{ mateAllowed:"Dein Zug erlaubt dem Gegner Schachmatt.", mateMissed:"Mit %b hättest du Schachmatt gesetzt.", hang:"Nach deinem Zug kann der Gegner deinen %p auf %s schlagen und gewinnt Material.", hangBest:"Dein %p auf %s war angegriffen. %b bringt ihn in Sicherheit.", wins:"%b gewinnt einen %p (Wert %v).", winsMore:"%b gewinnt den %p, dein Zug nur einen %q.", check:"%b setzt den König unter Druck (Schach).", pawns:"Die Engine sieht die Stellung nach %b etwa %n Bauern besser.", because:"weil " },
-    en:{ mateAllowed:"Your move allows the opponent to checkmate.", mateMissed:"%b would have been checkmate.", hang:"After your move the opponent can take your %p on %s and wins material.", hangBest:"Your %p on %s was attacked. %b puts it to safety.", wins:"%b wins a %p (worth %v).", winsMore:"%b wins the %p, your move only a %q.", check:"%b puts the king under pressure (check).", pawns:"The engine rates the position after %b about %n pawns better.", because:"because " }
+    de:{ mateAllowed:"Dein Zug erlaubt dem Gegner Schachmatt.", mateMissed:"Mit %b hättest du Schachmatt gesetzt.", hang:"Nach deinem Zug kann der Gegner %pk auf %s schlagen und gewinnt Material.", hangBest:"%pn auf %s war angegriffen. %b bringt die Figur in Sicherheit.", wins:"%b gewinnt %pe (Wert %v).", winsMore:"%b gewinnt %pk, dein Zug nur %qe.", check:"%b setzt den König unter Druck (Schach).", pawns:"Die Engine sieht die Stellung nach %b etwa %n Bauern besser.", because:"weil " },
+    en:{ mateAllowed:"Your move allows the opponent to checkmate.", mateMissed:"%b would have been checkmate.", hang:"After your move the opponent can take %pk on %s and wins material.", hangBest:"%pn on %s was attacked. %b puts it to safety.", wins:"%b wins %pe (worth %v).", winsMore:"%b wins the piece, your move only %qe.", check:"%b puts the king under pressure (check).", pawns:"The engine rates the position after %b about %n pawns better.", because:"because " }
   }[LANG];
+  var FEM = { de:{ Q:1 } };
+  function art(t, kind){ // kind: k = deinen/deine, n = Dein/Deine, e = einen/eine
+    if(LANG !== "de") return kind === "k" ? "your " + PN[t] : kind === "n" ? "Your " + PN[t] : "a " + PN[t];
+    var f = !!FEM.de[t], w = kind === "k" ? (f ? "deine" : "deinen") : kind === "n" ? (f ? "Deine" : "Dein") : (f ? "eine" : "einen");
+    return w + " " + PN[t];
+  }
   function oppC(c){ return c === "w" ? "b" : "w"; }
-  function fill(t, o){ return t.replace(/%(\w)/g, function(m, k){ return o[k] != null ? o[k] : m; }); }
+  function fill(t, o){ return t.replace(/%([a-z]+)/g, function(m, k){ return o[k] != null ? o[k] : m; }); }
   function mates(nb, defCol, mv){ try{ return isInCheck(nb, defCol) && getAllLegalMoves(nb, defCol, mv).length === 0; }catch(e){ return false; } }
   function canMate(nb, col, last){
     try{ var ms = getAllLegalMoves(nb, col, last); for(var i = 0; i < ms.length; i++){ var n2 = applyMove(nb, ms[i]); if(mates(n2, oppC(col), ms[i])) return true; } }catch(e){}
@@ -69,15 +75,15 @@
       if(mates(nbB, o, best)) out.push(fill(W.mateMissed, { b: bt }));
       if(!out.length){
         var tp = threat(nbP, col, pm), tb = threat(nbB, col, best);
-        if(tp.net >= 1 && tp.net > tb.net) out.push(fill(W.hang, { p: PN[tp.tgt.t], s: sq(tp.r, tp.c) }));
+        if(tp.net >= 1 && tp.net > tb.net) out.push(fill(W.hang, { pk: art(tp.tgt.t, "k"), s: sq(tp.r, tp.c) }));
         else {
           var t0 = threat(e.board, col, e.last);   // war schon vorher etwas angegriffen?
-          if(t0.net >= 1 && tb.net < t0.net && tp.net >= t0.net) out.push(fill(W.hangBest, { p: PN[t0.tgt.t], s: sq(t0.r, t0.c), b: bt }));
+          if(t0.net >= 1 && tb.net < t0.net && tp.net >= t0.net) out.push(fill(W.hangBest, { pn: art(t0.tgt.t, "n"), s: sq(t0.r, t0.c), b: bt }));
         }
       }
       if(out.length < 1){
         var cb = e.board[best.tr][best.tc], cp = e.board[pm.tr][pm.tc];
-        if(cb && cb.col === o && (!cp || (VAL[cb.t] || 0) > (VAL[cp.t] || 0))) out.push(cp ? fill(W.winsMore, { b: bt, p: PN[cb.t], q: PN[cp.t] }) : fill(W.wins, { b: bt, p: PN[cb.t], v: VAL[cb.t] }));
+        if(cb && cb.col === o && (!cp || (VAL[cb.t] || 0) > (VAL[cp.t] || 0))) out.push(cp ? fill(W.winsMore, { b: bt, pk: art(cb.t, "e").replace(/^(einen|eine)/, function(m){ return m === "einen" ? "den" : "die"; }), qe: art(cp.t, "e") }) : fill(W.wins, { b: bt, pe: art(cb.t, "e"), v: VAL[cb.t] }));
         else if(isInCheck(nbB, o)) out.push(fill(W.check, { b: bt }));
       }
       if(out.length < 1) out.push(fill(W.pawns, { b: bt, n: (loss / 100).toFixed(1).replace(".", LANG === "de" ? "," : ".") }));
@@ -111,9 +117,9 @@
       + "#bpAnaClose{margin:8px 12px 12px;border:none;border-radius:12px;padding:12px;font-weight:800;font-size:14px;cursor:pointer;background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#08110c}"
       + ".bpAnaNote{padding:0 18px 8px;font-size:11px;color:#6d7699}"
       + "#bpAnaBoardWrap{padding:6px 14px 4px;display:flex;flex-direction:column;align-items:center;gap:6px}"
-      + "#bpAnaBoard{position:relative;width:100%;max-width:300px;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,1fr);border-radius:8px;overflow:hidden;box-shadow:0 0 0 2px #262e46}"
-      + "#bpAnaBoard .sq{position:relative;display:flex;align-items:center;justify-content:center}#bpAnaBoard .sq.hl::after{content:'';position:absolute;inset:0;background:rgba(246,246,105,.6)}"
-      + "#bpAnaBoard .sq svg{position:relative;z-index:1;width:92%;height:92%;transition:transform .15s}"
+      + "#bpAnaBoard{position:relative;width:100%;max-width:300px;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));border-radius:8px;overflow:hidden;box-shadow:0 0 0 2px #262e46}"
+      + "#bpAnaBoard .sq{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden}#bpAnaBoard .sq.hl::after{content:'';position:absolute;inset:0;background:rgba(246,246,105,.6)}"
+      + "#bpAnaBoard .sq svg{position:relative;z-index:1;width:92%;height:92%;max-width:92%;max-height:92%;flex:none;transition:transform .15s}"
       + "#bpAnaBoard .co{position:absolute;font-size:8px;font-weight:700;opacity:.75;z-index:2;pointer-events:none}"
       + "#bpAnaArrow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}"
       + "#bpAnaCap{font-size:13px;font-weight:700;text-align:center;min-height:34px;line-height:1.3}#bpAnaCap small{display:block;font-weight:400;font-size:11px;color:#9aa3c0}"

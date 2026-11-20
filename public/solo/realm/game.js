@@ -3498,3 +3498,20 @@ setTimeout(claimPendingDias, 3500);
 setTimeout(claimPendingKeys, 4200);
 setInterval(function () { if (!document.hidden) { claimPendingDias(); claimPendingKeys(); } }, 20000);
 ;window.__ver=window.__ver||{};window.__ver['game']='11-17e';
+
+/* Info oben rechts, sobald eine Quest geschafft ist (erste Pruefung nur merken, nichts melden) */
+(function(){
+  var K = 'robQuestSeen';
+  function done(){ try{ return QUEST_LIST.filter(function(q){ return q.getValue(questTracking, heroData) >= q.target; }); }catch(e){ return null; } }
+  setInterval(function(){
+    var d = done(); if(!d) return;
+    var seen = null; try{ seen = JSON.parse(localStorage.getItem(K) || 'null'); }catch(e){}
+    var ids = d.map(function(q){ return q.id; });
+    if(!Array.isArray(seen)){ try{ localStorage.setItem(K, JSON.stringify(ids)); }catch(e){} return; }
+    var fresh = d.filter(function(q){ return seen.indexOf(q.id) < 0; });
+    if(fresh.length){ try{ localStorage.setItem(K, JSON.stringify(ids)); }catch(e){}
+      fresh.slice(0, 3).forEach(function(q){ if(window.bpNotify) window.bpNotify({ icon:'🏆', title:'Quest geschafft', text:q.name, color:'#c6ff3d' }); });
+      if(fresh.length > 3 && window.bpNotify) window.bpNotify({ icon:'🏆', title:'Quests', text:'+' + (fresh.length - 3) + ' weitere geschafft', color:'#c6ff3d' });
+    }
+  }, 3000);
+})();

@@ -16,7 +16,7 @@
     var css = 'padding:10px 16px;border-radius:12px;border:1px solid #3a4a6a;background:#14203a;color:#e8eefc;font:600 14px system-ui,sans-serif;cursor:pointer';
     btn.style.cssText = css; clr.style.cssText = css; btn.type = clr.type = 'button';
     clr.textContent = en ? 'Clear' : 'Löschen';
-    function label(){ btn.textContent = (en ? 'Arrows: ' : 'Pfeile: ') + (mode ? (en ? 'ON' : 'AN') : (en ? 'off' : 'aus')); btn.style.background = mode ? '#1e5fd0' : '#14203a'; board.style.touchAction = mode ? 'none' : ''; }
+    function label(){ btn.textContent = (en ? 'Arrows: ' : 'Pfeile: ') + (mode ? (en ? 'ON' : 'AN') : (en ? 'off' : 'aus')); btn.style.background = mode ? '#1e5fd0' : '#14203a'; board.style.touchAction = 'none'; }
     btn.onclick = function(){ mode = !mode; cur = null; label(); };
     clr.onclick = function(){ items = []; cur = null; paint(); };
     bar.appendChild(btn); bar.appendChild(clr);
@@ -68,7 +68,7 @@
       if(i >= 0) items.splice(i, 1); else items.push({ a: cur.a, b: cur.b, k: kindAt(cur.a) });
       cur = null; paint();
     }
-    function begin(x, y){ var s = sqAt(x, y); if(!s) return false; cur = { a: s, b: s, k: kindAt(s) }; paint(); return true; }
+    function begin(x, y){ var s = sqAt(x, y); if(!s) return false; cur = { a: s, b: s, k: kindAt(s) }; paint(); try{ window.dispatchEvent(new Event('bp-arrow-start')); }catch(e){} return true; }
     function track(x, y){ if(!cur) return; var s = sqAt(x, y); if(s && !same(s, cur.b)){ cur.b = s; paint(); } }
     board.addEventListener('contextmenu', function(e){ e.preventDefault(); });
     board.addEventListener('pointerdown', function(e){
