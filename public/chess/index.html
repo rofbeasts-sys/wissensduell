@@ -106,6 +106,7 @@
   <div class="chips" id="ladderRow"></div>
   <div id="oppBar" style="text-align:center;font-size:14px;font-weight:700;margin:2px 0 6px"></div>
   <div class="chips" id="moveMode"></div>
+  <div id="botClock" style="display:none;text-align:center;font-weight:800;font-size:16px;margin:4px 0"></div>
   <div id="status"></div>
 </div>
 <div class="bc">
@@ -172,15 +173,32 @@ const SYM = { K:"♚︎", Q:"♛︎", R:"♜︎", B:"♝︎", N:"♞︎", P:"♟
 const $ = (id) => document.getElementById(id);
 let G; // Spielstand
 let ME = "w"; // Farbe des Spielers in der laufenden Partie
+let TIME_PREF = "off"; try{ if(localStorage.getItem("bp_chess_botclock") === "on") TIME_PREF = "on"; }catch(e){}
+const CLK_MS = 10 * 60 * 1000, CLK_INC = 5000;
+function fmtClk(ms){ ms = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(ms / 60) + ":" + String(ms % 60).padStart(2, "0"); }
+function clkPaint(){
+  const el = $("botClock"); if(!el) return;
+  if(!G || !G.clk){ el.style.display = "none"; return; }
+  el.style.display = "block"; el.textContent = "⚪ " + fmtClk(G.clk.w) + "   ⚫ " + fmtClk(G.clk.b);
+  el.style.color = (G.clk[G.turn] < 30000 && !G.over) ? "var(--bad)" : "var(--accent)";
+}
+setInterval(function(){
+  if(!G || !G.clk || G.over) return;
+  const now = Date.now(), dt = now - (G.clkAt || now); G.clkAt = now;
+  if(G.rec.length === 0 && ME === "w" && G.turn === "w") return; // Uhr startet mit dem ersten Zug
+  G.clk[G.turn] -= dt; clkPaint();
+  if(G.clk[G.turn] <= 0){ G.clk[G.turn] = 0; clkPaint(); finish({ result: G.turn === ME ? "loss" : "win", why: LANG === "de" ? "Zeit abgelaufen" : "Out of time" }); }
+}, 250);
 let COLOR_PREF = "w"; try{ const cp = localStorage.getItem("bp_chess_color"); if(cp === "w" || cp === "b" || cp === "r") COLOR_PREF = cp; }catch(e){}
 const OTHER = (c) => c === "w" ? "b" : "w";
 
 function newGame(){
   ME = COLOR_PREF === "r" ? (Math.random() < 0.5 ? "w" : "b") : COLOR_PREF;
   G = { board: initBoard(), turn:"w", last:null, selected:null, moves:[], over:false, log:[], capW:[], capB:[], history:[], half:0, seen:{}, busy:false, counted:false, rec:[] };
+  if(TIME_PREF === "on"){ G.clk = { w: CLK_MS, b: CLK_MS }; G.clkAt = Date.now(); }
   G.seen[posKey()] = 1;
   buildUi();
-  render(); setStatus();
+  render(); setStatus(); clkPaint();
   if(ME === "b"){ G.busy = true; render(); setStatus(); setTimeout(botMove, 500); } // Schwarz: der Bot fängt an
 }
 function posKey(){
@@ -281,6 +299,7 @@ function doMove(mv, byPlayer){
   try{ parent.sfx(captured ? 'capture' : 'move'); }catch(e){}
   if(captured){ (mover.col === "w" ? G.capW : G.capB).push(captured); }
   G.half = (mover.t === "P" || captured) ? 0 : G.half + 1;
+  if(G.clk){ G.clk[mover.col] += CLK_INC; }
   G.last = mv; G.turn = OTHER(mover.col); G.selected = null; G.moves = [];
   const k = posKey(); G.seen[k] = (G.seen[k] || 0) + 1;
   const reply = endCheck();
@@ -322,6 +341,7 @@ function botMove(){
 function finish(res){
   G.over = true; G.busy = false;
   if(res.result === 'win' && res.why === T.mate && window.BpSets) BpSets.earn('kristall');
+  if(res.result === 'win' && window.BpSets) BpSets.noteWin();
   try{ parent.sfxResult(res.result === 'win', res.result === 'draw'); }catch(e){}
   render();
   const title = res.result === "win" ? T.win : res.result === "loss" ? T.loss : T.draw;
@@ -352,6 +372,11 @@ function buildUi(){
     const cb = document.createElement("div"); cb.className = "chip" + (COLOR_PREF === o[0] ? " active" : ""); cb.textContent = o[1];
     cb.onclick = () => { if(COLOR_PREF === o[0] && G && !G.over && G.rec.length === 0) return; COLOR_PREF = o[0]; try{ localStorage.setItem("bp_chess_color", o[0]); }catch(e){} newGame(); };
     lr.appendChild(cb);
+  });
+  [["off", "⏱ " + (LANG === "de" ? "Ohne Zeit" : "No clock")], ["on", "⏱ " + (LANG === "de" ? "Mit Zeit (10 Min + 5 s)" : "Timed (10 min + 5 s)")]].forEach(function(o){
+    const tb = document.createElement("div"); tb.className = "chip" + (TIME_PREF === o[0] ? " active" : ""); tb.textContent = o[1];
+    tb.onclick = () => { if(TIME_PREF === o[0]) return; TIME_PREF = o[0]; try{ localStorage.setItem("bp_chess_botclock", o[0]); }catch(e){} newGame(); };
+    lr.appendChild(tb);
   });
   const cl = document.createElement("div"); cl.style.cssText = "width:100%;font-size:12px;opacity:.75;margin-top:2px"; cl.textContent = ME === "b" ? (LANG === "de" ? "Du spielst Schwarz, der Bot fängt an." : "You play Black, the bot starts.") : (LANG === "de" ? "Du spielst Weiß." : "You play White."); lr.appendChild(cl);
   const ob = $("oppBar");

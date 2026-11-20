@@ -4740,12 +4740,14 @@ const SHOP_DEFAULTS = (() => {
   SET("kristall", "Kristall", "Erspielbar", { fixed: true, note: "Schachmatt setzen" });
   SET("zoo", "Zoo", "Erspielbar", { fixed: true, note: "Bauernumwandlung" });
   [["bronze", "Bronze", 1500], ["silber", "Silber", 1650], ["gold", "Gold", 1800], ["diamant", "Diamant", 1950], ["smaragd", "Smaragd", 2100], ["rubin", "Rubin", 2300]].forEach(x => SET(x[0], x[1], "Elo-Figuren", { fixed: true, note: "ab Elo " + x[2] }));
+  SET("ritter", "Ritter", "Erspielbar", { fixed: true, note: "5 Partien gewinnen" });
+  SET("voelker", "Völker", "Erspielbar", { fixed: true, note: "15 Partien gewinnen" });
   PSET("waldtiere", "Waldtiere", "shop");
   PSET("weltraum", "Weltraum", "shop");
   PSET("fantasie", "Fantasie", "fantasy");
   PSET("drache", "Drachen", "fantasy");
   PSET("ozean", "Ozean", "fantasy");
-  [["engel", "Engel"], ["untote1", "Untote 1"], ["untote2", "Untote 2"], ["anime", "Anime"], ["untote3", "Untote 3"], ["neon", "Neon"], ["voelker", "Völker"], ["ritter", "Ritter"], ["goblin", "Goblins"]]
+  [["engel", "Engel"], ["untote1", "Untote 1"], ["untote2", "Untote 2"], ["anime", "Anime"], ["untote3", "Untote 3"], ["neon", "Neon"], ["goblin", "Goblins"]]
     .forEach(x => PSET(x[0], x[1], "new"));
   PSET("ozean2", "Ozean (zweite Version)", "bp");
   // ---- Spiele: Gegner-Bundles je Spiel, Spielsteine ----
@@ -7343,10 +7345,10 @@ async function chessApi(action, payload, lang) {
     const dame = payload.game === "dame";
     const eloOf = dame ? dameEloOf : chessEloOf;
     const gamesOf = u => ((u && u.stats && (dame ? u.stats.dameGames : u.stats.chessGames)) | 0);
-    const list = users.filter(u => gamesOf(u) > 0).sort((a, b) => eloOf(b) - eloOf(a));
+    const list = users.filter(u => dame ? gamesOf(u) > 0 : chessPlaced(u)).sort((a, b) => eloOf(b) - eloOf(a));
     const pos = list.findIndex(u => u === user);
     const friends = (user.friends || []).map(n => findUserByName(n)).filter(Boolean).map(f => ({ name: f.username, elo: eloOf(f), games: gamesOf(f) })).sort((a, b) => b.elo - a.elo);
-    return { ok: true, name: user.username, elo: eloOf(user), games: gamesOf(user), pos: pos >= 0 ? pos + 1 : null,
+    return { ok: true, placed: dame ? true : chessPlaced(user), name: user.username, elo: eloOf(user), games: gamesOf(user), pos: pos >= 0 ? pos + 1 : null,
       top: list.slice(0, 10).map((u, i) => ({ pos: i + 1, name: u.username, elo: eloOf(u), games: gamesOf(u) })), friends };
   }
   if (action === "quest-claim") {
@@ -7516,12 +7518,16 @@ function chessOnlineNewCode() {
 }
 // Elo (Start 1000, K=32). Zaehlt nur bei echten Online-Partien (nie gegen den Bot, damit niemand Punkte "erspielt").
 const CHESS_ELO_START = 1000, CHESS_ELO_K = 32, CHESS_PAIR_DAILY_MAX = 5;
+const CHESS_PLACE_GAMES = 5, CHESS_PLACE_K = 64, CHESS_RANK_UNLOCK_WINS = 10; // 10 Siege gegen Zufallsgegner ohne Rang, dann 5 Platzierungsspiele (doppelte Elo-Schritte)
+const chessRankOpen = u => !!(u && u.stats && (u.stats.chessCasualWins | 0) >= CHESS_RANK_UNLOCK_WINS);
+const chessPlaced = u => !!(u && u.stats && (u.stats.chessGames | 0) >= CHESS_PLACE_GAMES);
 const chessPairCount = new Map(); // "a|b|Tag" -> Anzahl gewerteter Partien
 function chessEloOf(u) { return (u && u.stats && Number.isFinite(u.stats.chessElo)) ? u.stats.chessElo : CHESS_ELO_START; }
 function chessEloApply(g, winner) {
-  if (g.rated || g.team || !g.w || !g.b || g.w === g.b) return;
+  if (g.rated || g.casual || g.team || !g.w || !g.b || g.w === g.b) return;
   const uw = findUserByName(g.w), ub = findUserByName(g.b);
   if (!uw || !ub) return;
+  if (!chessRankOpen(uw) || !chessRankOpen(ub)) return; // Wertung erst nach 10 Siegen in Zufallsspielen ohne Rang
   if ((g.log || []).length < 4) return; // ganz kurze Partien (Aufgabe nach 1-2 Zuegen) zaehlen nicht
   const day = new Date().toISOString().slice(0, 10), pk = [g.w.toLowerCase(), g.b.toLowerCase()].sort().join("|") + "|" + day;
   const n = chessPairCount.get(pk) || 0;
@@ -7530,7 +7536,8 @@ function chessEloApply(g, winner) {
   if (chessPairCount.size > 5000) chessPairCount.clear();
   const rw = chessEloOf(uw), rb = chessEloOf(ub);
   const ew = 1 / (1 + Math.pow(10, (rb - rw) / 400)), sw = winner === "draw" ? 0.5 : (winner === "w" ? 1 : 0);
-  const dw = Math.round(CHESS_ELO_K * (sw - ew)), db = -dw;
+  const kw = chessPlaced(uw) ? CHESS_ELO_K : CHESS_PLACE_K, kb = chessPlaced(ub) ? CHESS_ELO_K : CHESS_PLACE_K;
+  const dw = Math.round(kw * (sw - ew)), db = Math.round(kb * ((1 - sw) - (1 - ew)));
   uw.stats.chessElo = Math.max(100, rw + dw); ub.stats.chessElo = Math.max(100, rb + db);
   for (const [u, won, lost] of [[uw, sw === 1, sw === 0], [ub, sw === 0, sw === 1]]) {
     u.stats.chessGames = (u.stats.chessGames || 0) + 1;
@@ -7541,6 +7548,7 @@ function chessEloApply(g, winner) {
 }
 function chessOnlineFinish(g, winner, why) {
   g.status = "over"; g.winner = winner; g.why = why; g.rev++; g.updated = Date.now();
+  try { if (g.random && g.casual && !g.team && (g.log || []).length >= 4 && (winner === "w" || winner === "b")) { const wu = findUserByName(winner === "w" ? g.w : g.b); if (wu) { wu.stats.chessCasualWins = (wu.stats.chessCasualWins | 0) + 1; saveUsers().catch(() => {}); } } } catch (e) { console.error("casualWin:", e.message); }
   try { chessEloApply(g, winner); } catch (e) { console.error("Elo:", e.message); }
   try { if (!g.zp && g.random && g.w && g.b) { const z = zpDuel("chess", { username: g.w }, { username: g.b }, winner === "draw" ? "draw" : (winner === "w" ? "a" : "b"), (g.log || []).length, 4); if (z) g.zp = { w: z.a, b: z.b }; } } catch (e) { console.error("zpChess:", e.message); }
 }
@@ -7578,7 +7586,7 @@ function chessOnlineView(g, me) {
   return {
     ok: true, code: g.code, rev: g.rev, me, w: g.w, b: g.b, w2: g.w2 || null, b2: g.b2 || null, team: !!g.team, spectator: !color,
     mover: g.status === "playing" ? chessMover(g, g.turn) : null, watchers: chessWatcherCount(g), plan: chessPlanFor(g, me),
-    color, status: g.status, random: !!g.random,
+    color, status: g.status, random: !!g.random, casual: !!g.casual,
     eloW: chessEloOf(findUserByName(g.w || "")), eloB: chessEloOf(findUserByName(g.b || "")), rated: !!g.rated, zp: g.zp || null, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
     board: g.board, turn: g.turn, last: g.last, log: g.log, capW: g.capW, capB: g.capB,
     check: g.status === "playing" && E.isInCheck(g.board, g.turn),
@@ -7633,31 +7641,46 @@ async function chessOnlineApi0(action, payload, lang) {
     chessOnlineGames.set(newCode, game);
     return chessOnlineView(game, me);
   }
-  if (action === "queue") { // Zufallsgegner: eine wartende Zufalls-Partie uebernehmen, sonst selbst eine eroeffnen
+  if (action === "queue") { // Zufallsgegner: Wertung (Elo) oder ohne, mit Zeit / ohne Zeit / Fernschach (Tage). Es paaren sich nur gleiche Einstellungen.
+    const corr = payload.corr === true, casual = payload.casual === true, timed = !corr && payload.timed !== false;
+    if (!casual && !chessRankOpen(user)) return msg("Mit Rang spielst du erst, wenn du 10 Spiele gegen Zufallsgegner ohne Rang gewonnen hast (" + Math.min(CHESS_RANK_UNLOCK_WINS, user.stats.chessCasualWins | 0) + "/" + CHESS_RANK_UNLOCK_WINS + ").", "Ranked play unlocks after you win 10 unranked random games (" + Math.min(CHESS_RANK_UNLOCK_WINS, user.stats.chessCasualWins | 0) + "/" + CHESS_RANK_UNLOCK_WINS + ").");
+    const mkGame = (code0) => {
+      const E = getChessEngine();
+      const game = { code: code0, corr, casual, w: me, b: null, invited: null, random: true, timed, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS }, status: "waiting", rev: 1,
+        board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
+      game.seen[chessPosKey(game)] = 1; return game;
+    };
+    if (corr) {
+      const mine = chessCorrList().filter(x => (x.w === me || x.b === me) && x.status !== "over");
+      const wait = mine.find(x => x.status === "waiting" && x.random && x.w === me && !!x.casual === casual);
+      if (wait) { wait.updated = Date.now(); return chessOnlineView(wait, me); }
+      if (mine.length >= CHESS_CORR_MAX) return msg("Du hast schon " + CHESS_CORR_MAX + " Fernpartien. Beende erst eine.", "You already have " + CHESS_CORR_MAX + " correspondence games. Finish one first.");
+      const open = chessCorrList().find(x => x.random && x.status === "waiting" && x.w && x.w !== me && !!x.casual === casual);
+      if (open) { open.b = me; open.status = "playing"; open.rev++; open.moveAt = Date.now(); open.updated = Date.now(); chessCorrSaveSoon(); return chessOnlineView(open, me); }
+      const nc = chessOnlineNewCode(); if (!nc) return msg("Gerade keine freie Partie möglich.", "No free game right now.");
+      const cg = mkGame(nc); chessOnlineGames.set(nc, cg); chessCorrSaveSoon(); return chessOnlineView(cg, me);
+    }
     for (const x of chessOnlineGames.values()) if (!x.corr && chessIn(x, me) && x.status !== "over" && Date.now() - x.updated < CHESS_ONLINE_IDLE_MS) {
-      if (x.status === "waiting" && x.w === me && x.random) { x.updated = Date.now(); return chessOnlineView(x, me); }
+      if (x.status === "waiting" && x.w === me && x.random && !!x.casual === casual && !!x.timed === timed) { x.updated = Date.now(); return chessOnlineView(x, me); }
       if (x.status === "waiting" && x.w === me) { chessOnlineGames.delete(x.code); } else return { ...msg("Du hast schon eine laufende Partie.", "You already have a running game."), code: x.code };
     }
     let best = null;
     for (const x of chessOnlineGames.values()) {
-      if (x.random && x.status === "waiting" && x.w && x.w !== me && Date.now() - x.updated < 15000) {
+      if (x.random && !x.corr && x.status === "waiting" && x.w && x.w !== me && !!x.casual === casual && !!x.timed === timed && Date.now() - x.updated < 15000) {
         if (!best || Math.abs(chessEloOf(findUserByName(x.w)) - chessEloOf(user)) < Math.abs(chessEloOf(findUserByName(best.w)) - chessEloOf(user))) best = x;
       }
     }
     if (best) { best.b = me; best.status = "playing"; best.rev++; best.moveAt = Date.now(); best.updated = Date.now(); return chessOnlineView(best, me); }
     const newCode = chessOnlineNewCode();
     if (!newCode) return msg("Gerade keine freie Partie möglich.", "No free game right now.");
-    const E = getChessEngine();
-    const game = { code: newCode, w: me, b: null, invited: null, random: true, timed: true, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS }, status: "waiting", rev: 1,
-      board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
-    game.seen[chessPosKey(game)] = 1;
+    const game = mkGame(newCode);
     chessOnlineGames.set(newCode, game);
     return chessOnlineView(game, me);
   }
   if (action === "ranking") {
-    const list = users.filter(u => (u.stats && u.stats.chessGames > 0)).sort((a, b) => chessEloOf(b) - chessEloOf(a));
+    const list = users.filter(u => chessPlaced(u)).sort((a, b) => chessEloOf(b) - chessEloOf(a));
     const pos = list.findIndex(u => u === user);
-    return { ok: true, elo: chessEloOf(user), games: user.stats.chessGames || 0, wins: user.stats.chessWins || 0, losses: user.stats.chessLosses || 0, pos: pos >= 0 ? pos + 1 : null,
+    return { ok: true, placed: chessPlaced(user), placeNeed: CHESS_PLACE_GAMES, rankOpen: chessRankOpen(user), casualWins: user.stats.chessCasualWins | 0, unlockNeed: CHESS_RANK_UNLOCK_WINS, elo: chessEloOf(user), games: user.stats.chessGames || 0, wins: user.stats.chessWins || 0, losses: user.stats.chessLosses || 0, pos: pos >= 0 ? pos + 1 : null,
       top: list.slice(0, 10).map((u, i) => ({ pos: i + 1, name: u.username, elo: chessEloOf(u), games: u.stats.chessGames || 0 })) };
   }
   if (action === "inbox") {

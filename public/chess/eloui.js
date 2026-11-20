@@ -114,8 +114,8 @@
     if(!token()){ el.textContent = '👤 ' + (de ? 'Melde dich an, um deine Elo zu sehen' : 'Log in to see your Elo'); el.style.cursor = 'default'; el.onclick = null; return; }
     post('/api/chess/elo-rank', { game: game }).then(function(r){
       if(!r || !r.ok){ el.textContent = '👤 Elo ?'; return; }
-      try{ if(root.BpSets) root.BpSets.noteElo(r.elo); }catch(e){}
-      el.innerHTML = '<span>👤 ' + esc(r.name) + '</span><span style="margin-left:auto;color:#ffd45a">Elo ' + r.elo + '</span><span style="opacity:.6">›</span>';
+      try{ if(root.BpSets && r.placed !== false) root.BpSets.noteElo(r.elo); }catch(e){}
+      el.innerHTML = '<span>👤 ' + esc(r.name) + '</span><span style="margin-left:auto;color:#ffd45a">' + (r.placed === false ? (de ? 'Platzierung läuft' : 'In placement') : 'Elo ' + r.elo) + '</span><span style="opacity:.6">›</span>';
       el.onclick = function(){ panel(r, lang); };
     }).catch(function(){ el.textContent = '👤 Elo ?'; });
   }

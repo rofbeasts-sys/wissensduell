@@ -103,7 +103,7 @@
     <div id="lobbyBody">
       <div class="h2" id="hElo"></div><div class="item" id="eloBox"></div>
       <div class="row" style="margin-top:8px"><button class="btn" id="styleBtn"></button></div>
-      <div class="row" style="margin-top:10px"><button class="btn primary" id="rndBtn"></button></div>
+      <div class="h2" id="hRnd"></div><div class="chips" id="rndRank" style="margin:2px 0 6px"><button class="chip" id="rkOn"></button><button class="chip" id="rkOff"></button></div><div class="chips" id="rndTime" style="margin:2px 0 6px"><button class="chip" id="rtOn"></button><button class="chip" id="rtOff"></button><button class="chip" id="rtCorr"></button></div><div class="row" style="margin-top:6px"><button class="btn primary" id="rndBtn"></button></div>
       <div class="h2" id="hCorr"></div><div class="list" id="corrList"></div>
       <div class="h2" id="hLive"></div><div class="list" id="liveList"></div>
       <div class="h2" id="hMode"></div>
@@ -194,8 +194,7 @@ $("backLink").onclick = (e) => { if(window.parent !== window){ e.preventDefault(
 function texts(){
   $("title").textContent = T.title; $("sub").textContent = T.sub;
   $("hInv").textContent = T.hInv; $("hFr").textContent = T.hFr; $("hCode").textContent = T.hCode;
-  $("styleBtn").textContent = "🎨 " + (LANG === "de" ? "Figuren und Brett" : "Pieces and board"); $("styleBtn").onclick = () => BpElo.stylePanel(LANG); $("hElo").textContent = T.hElo; $("hLive").textContent = T.hLive; $("tmTeam").textContent = T.team; $("tmTeam").title = T.teamTip; $("hTop").textContent = T.hTop; $("rndBtn").textContent = T.random;
-  $("tmOn").textContent = T.withTime; $("tmOff").textContent = T.noTime; $("tmCorr").textContent = T.corr; $("hMode").textContent = T.hMode; $("hCorr").textContent = T.hCorr; $("laterBtn").textContent = T.later; $("laterBtn2").textContent = T.later; paintTime();
+  $("styleBtn").textContent = "🎨 " + (LANG === "de" ? "Figuren und Brett" : "Pieces and board"); $("styleBtn").onclick = () => BpElo.stylePanel(LANG); $("hElo").textContent = T.hElo; $("hLive").textContent = T.hLive; $("tmTeam").textContent = T.team; $("tmTeam").title = T.teamTip; $("hTop").textContent = T.hTop; $("tmOn").textContent = T.withTime; $("tmOff").textContent = T.noTime; $("tmCorr").textContent = T.corr; $("hMode").textContent = T.hMode; $("hCorr").textContent = T.hCorr; $("laterBtn").textContent = T.later; $("laterBtn2").textContent = T.later; paintTime();
   $("mkCode").textContent = T.mkCode; $("joinBtn").textContent = T.join;
   $("copyBtn").textContent = T.copy; $("cancelBtn").textContent = T.cancel; $("resignBtn").textContent = T.resign;
   $("endAna").textContent = "🔎"; $("endLobby").textContent = T.toLobby; $("endClose").textContent = T.close;
@@ -221,8 +220,12 @@ async function refreshLobby(){
     d.appendChild(b); cb.appendChild(d);
   });
   if(rk && rk.ok){
-    try{ BpSets.noteElo(rk.elo); }catch(e){}
-    $("eloBox").innerHTML = `<span class="nm">${rk.elo}</span><span style="color:var(--text-dim);font-size:13px">${rk.games} ${T.games}${rk.pos ? " · " + T.rank + " " + rk.pos : ""} · ${rk.wins}-${rk.losses}</span>`;
+    try{ if(rk.placed) BpSets.noteElo(rk.elo); }catch(e){}
+    const de0 = LANG === "de";
+    const stat = !rk.rankOpen ? (de0 ? `🔒 Rang: ${rk.casualWins}/${rk.unlockNeed} Siege ohne Rang` : `🔒 Ranked: ${rk.casualWins}/${rk.unlockNeed} unranked wins`)
+      : !rk.placed ? (de0 ? `📊 Platzierung ${Math.min(rk.games, rk.placeNeed)}/${rk.placeNeed}` : `📊 Placement ${Math.min(rk.games, rk.placeNeed)}/${rk.placeNeed}`) : "";
+    $("eloBox").innerHTML = `<span class="nm">${rk.placed ? rk.elo : "?"}</span><span style="color:var(--text-dim);font-size:13px">${rk.games} ${T.games}${rk.pos ? " · " + T.rank + " " + rk.pos : ""} · ${rk.wins}-${rk.losses}${stat ? "<br>" + stat : ""}</span>`;
+    window.__rk = rk; try{ paintRnd(); }catch(e){}
     const tl = $("topList"); tl.innerHTML = rk.top.length ? "" : `<div class="msg">${T.noTop}</div>`;
     rk.top.forEach(x => { const d = document.createElement("div"); d.className = "item"; d.innerHTML = `<span class="nm">${x.pos}. ${esc(x.name)}</span><span style="font-weight:800">${x.elo}</span>`; tl.appendChild(d); });
   }
@@ -267,9 +270,25 @@ async function joinCode(c){
   if(!r.ok){ code = null; lobbyErr(r); return; }
   enterGame();
 }
+let rndCasual = false, rndTime = "timed";
+try{ rndCasual = localStorage.getItem("bp_chess_rnd_casual") === "1"; const v = localStorage.getItem("bp_chess_rnd_time"); if(v === "timed" || v === "quick" || v === "corr") rndTime = v; }catch(e){}
+function paintRnd(){
+  const de = LANG === "de";
+  $("hRnd").textContent = de ? "Zufälliger Gegner" : "Random opponent";
+  $("rkOn").textContent = de ? "🏅 Mit Rang (Elo)" : "🏅 Ranked (Elo)"; $("rkOff").textContent = de ? "☕ Ohne Rang" : "☕ Unranked";
+  $("rtOn").textContent = de ? "⏱ Mit Zeit" : "⏱ Timed"; $("rtOff").textContent = de ? "∞ Ohne Zeit" : "∞ No clock"; $("rtCorr").textContent = de ? "🕰️ Fernschach (Tage)" : "🕰️ Correspondence (days)";
+  const rk0 = window.__rk; if(rk0 && rk0.ok && !rk0.rankOpen){ rndCasual = true; $("rkOn").textContent = (de ? "🔒 Mit Rang " : "🔒 Ranked ") + rk0.casualWins + "/" + rk0.unlockNeed; } else if(rk0 && rk0.ok && !rk0.placed){ $("rkOn").textContent = (de ? "🏅 Mit Rang (Platzierung " : "🏅 Ranked (placement ") + Math.min(rk0.games, rk0.placeNeed) + "/" + rk0.placeNeed + ")"; }
+  $("rkOn").classList.toggle("active", !rndCasual); $("rkOff").classList.toggle("active", rndCasual);
+  $("rtOn").classList.toggle("active", rndTime === "timed"); $("rtOff").classList.toggle("active", rndTime === "quick"); $("rtCorr").classList.toggle("active", rndTime === "corr");
+  $("rndBtn").textContent = (de ? "🌐 Gegner suchen" : "🌐 Find opponent");
+}
+function setRnd(c, t){ if(c === false && window.__rk && window.__rk.ok && !window.__rk.rankOpen){ lobbyErr({ error: LANG === "de" ? `Mit Rang geht erst nach ${window.__rk.unlockNeed} Siegen gegen Zufallsgegner ohne Rang (${window.__rk.casualWins}/${window.__rk.unlockNeed}).` : `Ranked unlocks after ${window.__rk.unlockNeed} unranked random wins (${window.__rk.casualWins}/${window.__rk.unlockNeed}).` }); return; } if(c != null) rndCasual = c; if(t) rndTime = t; try{ localStorage.setItem("bp_chess_rnd_casual", rndCasual ? "1" : "0"); localStorage.setItem("bp_chess_rnd_time", rndTime); }catch(e){} paintRnd(); }
+$("rkOn").onclick = () => setRnd(false); $("rkOff").onclick = () => setRnd(true);
+$("rtOn").onclick = () => setRnd(null, "timed"); $("rtOff").onclick = () => setRnd(null, "quick"); $("rtCorr").onclick = () => setRnd(null, "corr");
+paintRnd();
 async function queueRandom(){
   lobbyErr(); code = null;
-  const r = await api("queue");
+  const r = await api("queue", { casual: rndCasual, corr: rndTime === "corr", timed: rndTime === "timed" });
   if(!r.ok){ if(r.code){ code = r.code; enterGame(); return; } lobbyErr(r); return; }
   code = r.code; enterGame();
 }
@@ -401,6 +420,7 @@ function showEnd(){
   const res = S.spectator ? "spec" : S.winner === "draw" ? "draw" : (S.winner === S.color || false) ? "win" : "loss";
   if(res !== "spec") try{ parent.sfxResult(res === 'win', res === 'draw'); }catch(e){}
   if(res === 'win' && S.why === 'mate' && window.BpSets) BpSets.earn('kristall');
+  if(res === 'win' && window.BpSets) BpSets.noteWin();
   const whyMap = { mate:T.mate, stalemate:T.stalemate, insufficient:T.insufficient, fifty:T.fifty, threefold:T.threefold, resign:T.resign_, time:T.time };
   $("endTitle").textContent = res === "spec" ? (S.winner === "draw" ? "🤝 " + T.draw : "🏁 " + (S.winner === "w" ? T.winsW : T.winsB)) : (res === "win" ? "🏆 " : res === "loss" ? "💀 " : "🤝 ") + (res === "win" ? T.win : res === "loss" ? T.loss : T.draw);
   let extra = "";
@@ -465,7 +485,7 @@ if(STREAMER) $("codeIn").type = "password";
   if(wp && token()){ watchGame(wp); return; }
   const qp = new URLSearchParams(location.search).get("code");
   if(qp && token()){ joinCode(qp); return; }
-  if(new URLSearchParams(location.search).get("mode") === "random" && token() && !saved){ queueRandom(); return; }
+  /* Zufallsgegner: Optionen (Rang, Zeit) werden jetzt in der Lobby gewaehlt */
   if(saved && token()){ code = saved; enterGame(); return; }
   refreshLobby(); lobbyTimer = setInterval(refreshLobby, 4000);
 })();

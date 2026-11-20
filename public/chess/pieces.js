@@ -43,8 +43,8 @@ var SETS=[
  {id:'anime', de:'Anime', en:'Anime', elo:0, price:10000, fprice:500, off:1},
  {id:'untote3', de:'Untote 3', en:'Undead 3', elo:0, price:10000, fprice:500, off:1},
  {id:'neon', de:'Neon', en:'Neon', elo:0, price:10000, fprice:500, off:1},
- {id:'voelker', de:'Völker', en:'Peoples', elo:0, price:10000, fprice:500, off:1},
- {id:'ritter', de:'Ritter', en:'Knights', elo:0, price:10000, fprice:500, off:1},
+ {id:'voelker', de:'Völker', en:'Peoples', elo:0, earn:1, hd:'Gewinne 15 Partien (gegen Bots oder online).', he:'Win 15 games (against bots or online).'},
+ {id:'ritter', de:'Ritter', en:'Knights', elo:0, earn:1, hd:'Gewinne 5 Partien (gegen Bots oder online).', he:'Win 5 games (against bots or online).'},
  {id:'goblin', de:'Goblins', en:'Goblins', elo:0, price:10000, fprice:500, off:1}];
 var BOARDS=[
  {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
@@ -64,6 +64,7 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
   owned:function(){ try{ return JSON.parse(ls('bp_sets_owned')||'[]'); }catch(e){ return []; } },
   setOwned:function(a){ lset('bp_sets_owned',JSON.stringify(a||[])); },
   earned:function(){ try{ return JSON.parse(ls('bp_sets_earned')||'[]'); }catch(e){ return []; } },
+  noteWin:function(){ var n=(parseInt(ls('bp_chess_wins'),10)||0)+1; lset('bp_chess_wins',String(n)); if(n>=5) BS.earn('ritter'); if(n>=15) BS.earn('voelker'); return n; },
   earn:function(id){ var a=BS.earned(); if(a.indexOf(id)>=0) return; a.push(id); lset('bp_sets_earned',JSON.stringify(a));
     var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return;
     try{ var _de=(ls('wq_lang')!=='en'); if(window.bpNotify) window.bpNotify({icon:'♟',title:_de?'Figuren freigeschaltet':'Pieces unlocked',text:(_de?x.de:x.en),color:'#c6ff3d'}); }catch(e){} },
