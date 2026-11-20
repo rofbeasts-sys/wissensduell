@@ -5647,8 +5647,8 @@ function achvBerlinToday(){
 // reiht sich da natuerlich ein.
 const ACHV_COIN_REWARD = 5;      // pro neu freigeschaltetem Erfolg
 const HAUPTTEST_COIN_REWARD = 10; // pro bestandenem Haupttest (auch Wiederholungen)
-const ARENA_HEART_COST_CLIENT = 20; // nur fuer die Anzeige im Shop, die eigentliche Pruefung ist serverseitig
-const MILESTONE_HEART_COST = 15;
+let ARENA_HEART_COST_CLIENT = 20; // nur fuer die Anzeige im Shop, die eigentliche Pruefung ist serverseitig
+let MILESTONE_HEART_COST = 15;
 function awardCoins(owner, amount){
   if(!owner || !amount) return;
   owner.coins = (owner.coins||0) + amount;
@@ -7713,6 +7713,8 @@ function bOn(id){ const c = SHOPCFG[id]; return !c || c.on; }
 function applyShopCfg(items){
   Object.keys(items || {}).forEach(k => { SHOPCFG[k] = items[k]; });
   [].concat(FRUIT_BOOSTERS, GAME_BOOSTERS.flatMap(g => g.items)).forEach(b => { const c = SHOPCFG[b.id]; if(c) b.cost = c.coins === null ? 1e12 : c.coins; });
+  const hs = SHOPCFG.heart_speedmath; if(hs && hs.coins !== null) MILESTONE_HEART_COST = hs.coins;
+  const ha = SHOPCFG.heart_arena; if(ha && ha.coins !== null) ARENA_HEART_COST_CLIENT = ha.coins;
   const sl = SHOPCFG.slot; if(sl){ FRUIT_SLOT_COST = sl.coins === null ? 1e12 : sl.coins; window.FRUIT_SLOT_COST = FRUIT_SLOT_COST; FUNKEN_SLOT = sl.funken === null ? 1e12 : sl.funken; }
 }
 async function loadShopCfg(){ try{ const r = await apiCall('/api/shop-config', {}); if(r && r.ok) applyShopCfg(r.items); }catch(e){} }
@@ -8614,17 +8616,17 @@ function renderShopScreen(){
 
       ${hiddenFeatures.indexOf('shop_coins') !== -1 ? '' : `<div class="bs-sec">${L('Pulsfunken kaufen','Buy Pulse sparks')}</div>` + (featureLocked('shop_coins') || !shopPackages.length || !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">🪙 ${featureLocked('shop_coins') ? gateText('shop_coins') : (profile.isAccount ? L('Gerade nicht verfügbar.','Currently unavailable.') : L('Zum Kaufen bitte anmelden.','Please log in to buy.'))}</p>` : `<label style="display:flex;gap:8px;font-size:12px;color:var(--text-dim);margin:6px 0"><input type="checkbox" id="shopConsent"> <span>${L('Ich stimme zu, dass die Pulsfunken sofort bereitgestellt werden, und weiß, dass dadurch mein Widerrufsrecht erlischt.','I agree the Pulse sparks are delivered immediately and understand my right of withdrawal expires.')}</span></label>` + shopPackages.map(k => `<div class="bs-card" style="--c:#ff9f1c"><span class="ic">✨</span><div class="info"><div class="nm">${esc(k.label)}</div><div class="ds">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</div></div><button class="bs-buy" onclick="shopBuyCoins('${esc(k.id)}')">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</button></div>`).join(''))}
 
-      ${(hiddenFeatures.indexOf('braining_lane') !== -1 || hiddenFeatures.indexOf('shop_dias') !== -1) ? '' : `<div class="bs-sec">⚔️ Realm of Brain · ${L('Diamanten kaufen','Buy diamonds')}</div>` + ((featureLocked('braining_lane') || featureLocked('shop_dias')) ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${gateText(featureLocked('shop_dias') ? 'shop_dias' : 'braining_lane')}</p>` : !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto.','You need an account for this.')}</p>` : [['s',100,50],['m',400,200],['l',1000,500]].map(p => { const c = SHOPCFG['dias_' + p[0]]; return c ? [p[0], c.coins === null ? 1e12 : c.coins, p[2], c.on] : [p[0], p[1], p[2], true]; }).filter(p => p[3]).map(p => `<div class="bs-card" style="--c:#44ddff"><span class="ic">💎</span><div class="info"><div class="nm">${p[2]} ${L('Diamanten','Diamonds')}</div><div class="ds">${L('Für Realm of Brain. Du holst sie im Spiel ab.','For Realm of Brain. You collect them in the game.')}</div></div><button class="bs-buy" ${(profile.coins||0) < p[1] ? 'disabled' : ''} onclick="shopBuyRealmDias('${p[0]}')">🪙 ${p[1] >= 1e12 ? '–' : p[1]}</button></div>`).join(''))}
+      ${(hiddenFeatures.indexOf('braining_lane') !== -1 || (!bOn('keys_s') && !bOn('keys_l'))) ? '' : `<div class="bs-sec">⚔️ Realm of Brain · ${L('Schlüssel kaufen','Buy keys')}</div>` + (featureLocked('braining_lane') ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${gateText('braining_lane')}</p>` : !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto.','You need an account for this.')}</p>` : [['s',20],['l',100]].filter(p => bOn('keys_' + p[0])).map(p => { const c = SHOPCFG['keys_' + p[0]] || {}, cc = c.coins, ff = c.funken; return `<div class="bs-card" style="--c:#ffd45a"><span class="ic">🔑</span><div class="info"><div class="nm">${p[1]} ${L('Schlüssel','Keys')}</div><div class="ds">${L('Für Realm of Brain. Du holst sie im Spiel ab.','For Realm of Brain. You collect them in the game.')}</div></div>${cc !== null && cc !== undefined ? `<button class="bs-buy" ${(profile.coins||0) < cc ? 'disabled' : ''} onclick="shopBuyRealmKeys('${p[0]}','coins')">🪙 ${cc}</button>` : ''}${ff !== null && ff !== undefined ? `<button class="bs-buy" ${funkenOf() < ff ? 'disabled' : ''} onclick="shopBuyRealmKeys('${p[0]}','funken')">✨ ${ff}</button>` : ''}</div>`; }).join(''))}
 
       <div class="bs-sec">${L('Herzen','Hearts')}</div>
-      ${shopGate('shop_speedmath','🧮',L('Speed-Math-Herz','Speed Math heart'),`
+      ${!bOn('heart_speedmath') ? '' : shopGate('shop_speedmath','🧮',L('Speed-Math-Herz','Speed Math heart'),`
       <div class="bs-card" style="--c:#7be0ff">
         <span class="ic">🧮</span>
         <div class="info"><div class="nm">${L('Speed-Math-Herz','Speed Math heart')}</div><div class="ds">${msHearts} / ${SPEEDMATH_DAILY_HEARTS} ${L('Herzen heute','hearts today')}</div></div>
         <button class="bs-buy" ${msFull||!msAfford?'disabled':''} onclick="shopBuyMilestoneHeart()">${msFull ? '✓ ' + L('Voll','Full') : `🪙 ${MILESTONE_HEART_COST}`}</button>
       </div>
 `)}
-      ${arenaShopOn() ? `
+      ${arenaShopOn() && bOn('heart_arena') ? `
       <div class="bs-card" style="--c:#bb55ff; ${profile.isAccount ? '' : 'opacity:.55'}">
         <span class="ic">🏆</span>
         <div class="info"><div class="nm">${L('Arena-Herz','Arena heart')}</div><div class="ds">${profile.isAccount ? `${shopArenaInfo ? shopArenaInfo.hearts : '…'} / ${shopArenaInfo ? shopArenaInfo.maxHearts : '…'} ${L('Herzen heute','hearts today')}` : L('Dafür brauchst du ein Konto.','You need an account for this.')}</div></div>
@@ -8701,11 +8703,11 @@ async function shopBuyCoins(packageId){
     renderShopScreen(); shopFeedback(result.error || L("Kauf konnte nicht gestartet werden.","The purchase could not be started."), true);
   }
 }
-async function shopBuyRealmDias(pack){
-  const result = await apiCall("/api/realm/buy-dias", { token: account.token, pack });
-  if(result.ok){ shopProfile.coins = result.coins; account.profile.coins = result.coins; }
+async function shopBuyRealmKeys(pack, how){
+  const result = await apiCall("/api/realm/buy-keys", { token: account.token, pack, how });
+  if(result.ok){ shopProfile.coins = result.coins; account.profile.coins = result.coins; if(how === 'funken'){ account.profile.funken = result.funken; shopProfile.funken = result.funken; } }
   renderShopScreen();
-  shopFeedback(result.ok ? L("✓ " + result.dias + " Diamanten gekauft! Du holst sie in Realm of Brain ab.","✓ " + result.dias + " diamonds bought! Collect them in Realm of Brain.") : (result.error || L("Kauf fehlgeschlagen.","Purchase failed.")), !result.ok);
+  shopFeedback(result.ok ? L("✓ " + result.keys + " Schlüssel gekauft! Du holst sie in Realm of Brain ab.","✓ " + result.keys + " keys bought! Collect them in Realm of Brain.") : (result.error || L("Kauf fehlgeschlagen.","Purchase failed.")), !result.ok);
 }
 async function shopBuyArenaHeart(){
   const result = await apiCall("/api/arena-buy-heart", { token: account.token });

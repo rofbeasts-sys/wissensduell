@@ -58,7 +58,7 @@
     var buy = null, msg = '', coins = null, hint = '', funken = null;
     function draw(){
       var cur = S.get(), bd = S.board().id, me = S.maxElo();
-      var sets = S.list.filter(function(x){ return !x.off; }).map(function(x){
+      var sets = S.list.filter(function(x){ return !x.off || S.unlocked(x.id); }).map(function(x){
         var lock = !S.unlocked(x.id), sub = lock ? (x.price ? '🪙 ' + x.price : '🔒 ' + (de ? 'erspielen' : 'earn it')) : (x.price ? '✓ ' + (de ? 'gekauft' : 'owned') : (x.earn ? '✓ ' + (de ? 'erspielt' : 'earned') : '')), img = x.id === 'alt' ? '<div style="height:64px;display:flex;align-items:center;justify-content:center;font-size:40px">♞</div>' : '<img src="/chess/sets/' + x.id + '/wN.png" style="width:64px;height:64px;display:block;margin:0 auto" alt="">';
         return '<div data-set="' + x.id + '">' + tile(img, de ? x.de : x.en, sub, cur === x.id, lock && !x.price) + '</div>';
       }).join('');

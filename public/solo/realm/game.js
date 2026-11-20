@@ -2613,7 +2613,7 @@ function renderDiaShop() {
   }).join('');
   // Kisten-Shop Sektion
   var chestHtml = '<div style="border-top:1px solid #224;margin-top:10px;padding-top:10px">'
-    + '<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px;text-align:center">KISTEN KAUFEN</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+    + '<div style="font-size:0.65rem;color:#806040;letter-spacing:2px;margin-bottom:8px;text-align:center">KISTEN KAUFEN</div>' + (realmKeys() > 0 ? '<div style="text-align:center;color:#ffd45a;font-size:0.8rem;margin-bottom:8px">🔑 ' + realmKeys() + ' Schlüssel</div>' : '') + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
     + [
         { type:'wood',   icon:'<img src="items/chest_wood_0.webp" style="width:44px;height:auto" alt="">', name:'Holzkiste',        color:'#cc8844', cost:60,   desc:'Gold + Item (50%)' },
         { type:'dia',    icon:'<img src="items/chest_dia_0.webp" style="width:44px;height:auto" alt="">', name:'Diamant-Kiste',    color:'#44ddff', cost:300,  desc:'Gold + Dias + Item (85%, bis Blau)' },
@@ -3483,6 +3483,18 @@ function claimPendingDias() {
     try { renderDiaShop(); } catch (e) {}
   }).catch(function () {});
 }
+function realmKeys(){ try { return parseInt(localStorage.getItem('robKeys') || '0', 10) || 0; } catch (e) { return 0; } }
+function claimPendingKeys() {
+  var api = window.parent && window.parent !== window ? window.parent.tfApi : null;
+  if (!api || !(window.parent.tfHasAccount && window.parent.tfHasAccount())) return;
+  api('/api/realm/claim-keys', {}).then(function (r) {
+    if (!r || !r.ok || !(r.keys > 0)) return;
+    try { localStorage.setItem('robKeys', String(realmKeys() + r.keys)); } catch (e) {}
+    try { log('<span style="color:#ffd45a">🔑 +' + r.keys + ' Schlüssel aus dem Brain-Shop!</span>'); } catch (e) {}
+    try { renderDiaShop(); } catch (e) {}
+  }).catch(function () {});
+}
 setTimeout(claimPendingDias, 3500);
-setInterval(function () { if (!document.hidden) claimPendingDias(); }, 20000);
+setTimeout(claimPendingKeys, 4200);
+setInterval(function () { if (!document.hidden) { claimPendingDias(); claimPendingKeys(); } }, 20000);
 ;window.__ver=window.__ver||{};window.__ver['game']='11-17e';

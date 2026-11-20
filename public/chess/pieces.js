@@ -31,11 +31,20 @@ var SETS=[
  {id:'diamant', de:'Diamant', en:'Diamond', elo:1950},
  {id:'smaragd', de:'Smaragd', en:'Emerald', elo:2100},
  {id:'rubin', de:'Rubin', en:'Ruby', elo:2300},
- {id:'fantasie', de:'Fantasie', en:'Fantasy', elo:0, price:10000, fprice:500},
+ {id:'fantasie', de:'Fantasie', en:'Fantasy', elo:0, price:10000, fprice:500, off:1},
  {id:'waldtiere', de:'Waldtiere', en:'Forest animals', elo:0, price:10000, fprice:500},
  {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:10000, fprice:500},
- {id:'drache', de:'Drachen', en:'Dragons', elo:0, price:10000, fprice:500},
- {id:'ozean', de:'Ozean', en:'Ocean', elo:0, price:10000, fprice:500}];
+ {id:'drache', de:'Drachen', en:'Dragons', elo:0, price:10000, fprice:500, off:1},
+ {id:'ozean', de:'Ozean', en:'Ocean', elo:0, price:10000, fprice:500, off:1},
+ {id:'engel', de:'Engel', en:'Angels', elo:0, price:10000, fprice:500, off:1},
+ {id:'untote1', de:'Untote 1', en:'Undead 1', elo:0, price:10000, fprice:500, off:1},
+ {id:'untote2', de:'Untote 2', en:'Undead 2', elo:0, price:10000, fprice:500, off:1},
+ {id:'anime', de:'Anime', en:'Anime', elo:0, price:10000, fprice:500, off:1},
+ {id:'untote3', de:'Untote 3', en:'Undead 3', elo:0, price:10000, fprice:500, off:1},
+ {id:'neon', de:'Neon', en:'Neon', elo:0, price:10000, fprice:500, off:1},
+ {id:'voelker', de:'Völker', en:'Peoples', elo:0, price:10000, fprice:500, off:1},
+ {id:'ritter', de:'Ritter', en:'Knights', elo:0, price:10000, fprice:500, off:1},
+ {id:'goblin', de:'Goblins', en:'Goblins', elo:0, price:10000, fprice:500, off:1}];
 var BOARDS=[
  {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
  {id:'holzblau', de:'Holzrahmen blau', en:'Wood frame blue', img:'/chess/boards/holzblau.jpg', pf:0.0470, co:'#000', cs:'none'},

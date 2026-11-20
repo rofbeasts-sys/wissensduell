@@ -4663,43 +4663,62 @@ function realmScore(token, e) {
   return { ok: true, score };
 }
 // ---- Realm of Brain: Diamanten mit Brain-Muenzen kaufen (im Brain-Shop), im Spiel abholen ----
-const REALM_DIA_PACKS = { s: { coins: 100, dias: 50 }, m: { coins: 400, dias: 200 }, l: { coins: 1000, dias: 500 } }; // fester Kurs: 2 Muenzen = 1 Diamant, ohne Bonus (mit 120 Muenzen/Euro ergibt das 1/5/10/20 Euro fuer die Kisten)
-async function realmBuyDias(token, pack, lang) {
+async function realmBuyKeys(token, pack, how, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
-  const p0 = REALM_DIA_PACKS[String(pack)]; if (!p0) return { ok: false, error: "Unbekanntes Paket." };
-  const ri = shopItem("dias_" + String(pack)); if (!ri || !ri.on || ri.coins === null) return { ok: false, error: "Gerade nicht erhältlich." };
-  const p = { coins: ri.coins, dias: p0.dias };
-  if ((user.stats.coins || 0) < p.coins) return errObj("notEnoughCoins", lang);
-  user.stats.coins -= p.coins;
+  const it = shopItem("keys_" + String(pack)); if (!it || !it.keys && !SHOP_DEFAULTS.find(x => x.id === it.id).keys) return { ok: false, error: "Unbekanntes Paket." };
+  const n = SHOP_DEFAULTS.find(x => x.id === it.id).keys;
+  const useF = how === "funken", price = useF ? it.funken : it.coins;
+  if (!it.on || price === null) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
   user.realm = user.realm || {};
-  user.realm.pendingDias = (user.realm.pendingDias | 0) + p.dias;
-  if (!(await saveUsers())) { user.stats.coins += p.coins; user.realm.pendingDias -= p.dias; return serviceDownMsg(lang); }
-  return { ok: true, coins: user.stats.coins, dias: p.dias, pending: user.realm.pendingDias };
+  if (useF) { if ((user.stats.funken || 0) < price) return { ok: false, error: lang === "en" ? "Not enough Pulse sparks." : "Nicht genug Pulsfunken.", notEnough: true }; user.stats.funken -= price; }
+  else { if ((user.stats.coins || 0) < price) return errObj("notEnoughCoins", lang); user.stats.coins -= price; }
+  user.realm.pendingKeys = (user.realm.pendingKeys | 0) + n;
+  if (!(await saveUsers())) { if (useF) user.stats.funken += price; else user.stats.coins += price; user.realm.pendingKeys -= n; return serviceDownMsg(lang); }
+  return { ok: true, coins: user.stats.coins, funken: user.stats.funken || 0, keys: n, pending: user.realm.pendingKeys };
+}
+async function realmClaimKeys(token) {
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  const n = user.realm && user.realm.pendingKeys | 0;
+  if (n > 0) { user.realm.pendingKeys = 0; saveUsers().catch(() => {}); }
+  return { ok: true, keys: n > 0 ? n : 0 };
 }
 // ---- Shop-Katalog: Standardpreise im Code, Aenderungen des Admins liegen daneben (coins/funken null = so nicht kaeuflich, on false = ausgeblendet) ----
-const SHOP_DEFAULTS = [
-  { id: "hammer", name: "Hammer (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "broom", name: "Besen (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "shuffle", name: "Mischen (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "moves", name: "+5 Züge (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "gxRocket", name: "Rakete (Brain Galaxy)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "gxBomb", name: "Bombe (Brain Galaxy)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "jgHint", name: "Tipp (Brain Jong)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "jgShuf", name: "Mischen (Brain Jong)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "jgUndo", name: "Zurück (Brain Jong)", shop: "brain", coins: 5000, funken: 100 },
-  { id: "slot", name: "Zusatz-Speicher (Brain Fruit)", shop: "brain", coins: 50000, funken: 500 },
-  { id: "ladder", name: "Schach-Gegner freikaufen (je Gegner)", shop: "chess", coins: 5000, funken: 200 },
-  { id: "ladderAll", name: "Alle 10 Schach-Gegner zusammen", shop: "chess", coins: null, funken: 1500 },
-  { id: "set_fantasie", name: "Figuren: Fantasie", shop: "chess", coins: 10000, funken: 500 },
-  { id: "set_waldtiere", name: "Figuren: Waldtiere", shop: "chess", coins: 10000, funken: 500 },
-  { id: "set_weltraum", name: "Figuren: Weltraum", shop: "chess", coins: 10000, funken: 500 },
-  { id: "set_drache", name: "Figuren: Drachen", shop: "chess", coins: 10000, funken: 500 },
-  { id: "set_ozean", name: "Figuren: Ozean", shop: "chess", coins: 10000, funken: 500 },
-  { id: "dias_s", name: "50 Diamanten (Realm of Brain)", shop: "realm", coins: 100, funken: null },
-  { id: "dias_m", name: "200 Diamanten (Realm of Brain)", shop: "realm", coins: 400, funken: null },
-  { id: "dias_l", name: "500 Diamanten (Realm of Brain)", shop: "realm", coins: 1000, funken: null }
-];
+const SHOP_DEFAULTS = (() => {
+  const L = [];
+  const add = (o) => L.push(Object.assign({ coins: null, funken: null, on: true, fixed: false, canCoins: true, canFunken: true }, o));
+  const BO = (id, name, ic, grp, gate) => add({ id, name, shop: "brain", grp, gate, icon: ic, coins: 5000, funken: 100 });
+  // ---- Brain-Shop ----
+  add({ id: "heart_speedmath", name: "Speed-Math-Herz", shop: "brain", grp: "Herzen", gate: "shop_speedmath", icon: "🧮", coins: 15, canFunken: false });
+  add({ id: "heart_arena", name: "Arena-Herz", shop: "brain", grp: "Herzen", gate: "shop_arena", icon: "🏆", coins: 20, canFunken: false });
+  BO("hammer", "Hammer", "🔨", "Brain Fruit", "shop_fruit"); BO("broom", "Besen", "🧹", "Brain Fruit", "shop_fruit");
+  BO("shuffle", "Mischen", "🔀", "Brain Fruit", "shop_fruit"); BO("moves", "+5 Züge", "➕", "Brain Fruit", "shop_fruit");
+  add({ id: "slot", name: "Zusatz-Speicher (Brain Fruit)", shop: "brain", grp: "Brain Fruit", gate: "shop_fruit", icon: "📦", coins: 50000, funken: 500 });
+  BO("gxRocket", "Rakete", "🚀", "Brain Galaxy", "shop_fruit"); BO("gxBomb", "Bombe", "💣", "Brain Galaxy", "shop_fruit");
+  BO("jgHint", "Tipp", "💡", "Brain Jong", "shop_fruit"); BO("jgShuf", "Mischen", "🔀", "Brain Jong", "shop_fruit"); BO("jgUndo", "Zurück", "↩️", "Brain Jong", "shop_fruit");
+  // ---- Chess-Shop ----
+  add({ id: "ladder", name: "Schach-Gegner freikaufen (je Gegner)", shop: "chess", grp: "Schach-Gegner (Ladder)", gate: "shop_chess", icon: "♟️", coins: 5000, funken: 200 });
+  add({ id: "ladderAll", name: "Alle 10 Schach-Gegner zusammen", shop: "chess", grp: "Schach-Gegner (Ladder)", gate: "shop_chess", icon: "👑", coins: null, funken: 1500 });
+  const SET = (id, name, grp, o) => add(Object.assign({ id: "set_" + id, name, shop: "chess", grp, gate: "shop_chess", set: id, kind: "set" }, o || {}));
+  SET("normal", "Standard", "Standard-Figuren", { fixed: true, note: "immer frei" });
+  SET("alt", "Klassisch (alt)", "Standard-Figuren", { fixed: true, note: "immer frei" });
+  SET("wald", "Wald", "Erspielbar", { fixed: true, note: "Rochade spielen" });
+  SET("kristall", "Kristall", "Erspielbar", { fixed: true, note: "Schachmatt setzen" });
+  SET("zoo", "Zoo", "Erspielbar", { fixed: true, note: "Bauernumwandlung" });
+  [["bronze", "Bronze", 1500], ["silber", "Silber", 1650], ["gold", "Gold", 1800], ["diamant", "Diamant", 1950], ["smaragd", "Smaragd", 2100], ["rubin", "Rubin", 2300]].forEach(x => SET(x[0], x[1], "Elo-Figuren", { fixed: true, note: "ab Elo " + x[2] }));
+  SET("waldtiere", "Waldtiere", "Kaufbare Figuren", { coins: 10000, funken: 500 });
+  SET("weltraum", "Weltraum", "Kaufbare Figuren", { coins: 10000, funken: 500 });
+  SET("fantasie", "Fantasie", "Fantasy-Schach (erst mit Fantasy-Schach)", { coins: 10000, funken: 500, on: false });
+  SET("drache", "Drachen", "Fantasy-Schach (erst mit Fantasy-Schach)", { coins: 10000, funken: 500, on: false });
+  SET("ozean", "Ozean", "Fantasy-Schach (erst mit Fantasy-Schach)", { coins: 10000, funken: 500, on: false });
+  [["engel", "Engel"], ["untote1", "Untote 1"], ["untote2", "Untote 2"], ["anime", "Anime"], ["untote3", "Untote 3"], ["neon", "Neon"], ["voelker", "Völker"], ["ritter", "Ritter"], ["goblin", "Goblins"]]
+    .forEach(x => SET(x[0], x[1], "Neue Figuren (noch nicht freigegeben)", { coins: 10000, funken: 500, on: false }));
+  SET("ozean2", "Ozean 2", "Für den Battle Pass reserviert", { fixed: true, note: "kommt später in den Battle Pass" });
+  // ---- Realm of Brain ----
+  add({ id: "keys_s", name: "20 Schlüssel", shop: "realm", grp: "Schlüssel", gate: "braining_lane", icon: "🔑", coins: 2000, funken: 20, on: false, keys: 20 });
+  add({ id: "keys_l", name: "100 Schlüssel", shop: "realm", grp: "Schlüssel", gate: "braining_lane", icon: "🔑", coins: 10000, funken: 100, on: false, keys: 100 });
+  return L;
+})();
 let shopCfg = { items: {} };
 const SHOP_FILE = USERS_FILE + ".shop.json";
 async function loadShopCfg() {
@@ -4724,9 +4743,10 @@ function shopItem(id) {
   const d = SHOP_DEFAULTS.find(x => x.id === id); if (!d) return null;
   const o = (shopCfg.items && shopCfg.items[id]) || {};
   const pick = (k) => (o[k] === null || (Number.isFinite(o[k]) && o[k] >= 0)) ? o[k] : d[k];
-  return { id, name: d.name, shop: d.shop, coins: pick("coins"), funken: pick("funken"), on: o.on === undefined ? true : !!o.on };
+  return { id, name: d.name, shop: d.shop, grp: d.grp, gate: d.gate, icon: d.icon, set: d.set, note: d.note, fixed: d.fixed, canCoins: d.canCoins, canFunken: d.canFunken, coins: d.fixed || !d.canCoins ? d.coins : pick("coins"), funken: d.fixed || !d.canFunken ? d.funken : pick("funken"), on: o.on === undefined ? d.on : !!o.on, defOn: d.on };
 }
 function shopPublic() { const out = {}; SHOP_DEFAULTS.forEach(d => { const i = shopItem(d.id); out[d.id] = { coins: i.coins, funken: i.funken, on: i.on }; }); return out; }
+function shopAdminList() { return SHOP_DEFAULTS.map(d => ({ ...shopItem(d.id), defCoins: d.coins, defFunken: d.funken })); }
 async function adminShop(key, ip, payload, lang) {
   if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   const p = payload || {};
@@ -4735,15 +4755,20 @@ async function adminShop(key, ip, payload, lang) {
     for (const d of SHOP_DEFAULTS) {
       const v = p.items[d.id]; if (!v || typeof v !== "object") continue;
       const num = (x, max) => (x === null || x === "" ? null : (Number.isFinite(Number(x)) && Number(x) >= 0 && Number(x) <= max ? Math.round(Number(x)) : undefined));
-      const c = num(v.coins, 10000000), f = num(v.funken, 1000000);
-      const o = {}; if (c !== undefined) o.coins = c; if (f !== undefined) o.funken = f; o.on = v.on !== false;
+      const o = {};
+      if (!d.fixed) {
+        const c = num(v.coins, 10000000), f = num(v.funken, 1000000);
+        if (d.canCoins && c !== undefined) o.coins = c;
+        if (d.canFunken && f !== undefined) o.funken = f;
+      }
+      o.on = v.on !== false;
       next[d.id] = o;
     }
     const old = shopCfg; shopCfg = { items: next };
     if (!(await saveShopCfg())) { shopCfg = old; return serviceDownMsg(lang); }
   }
   if (p.reset === true) { const old = shopCfg; shopCfg = { items: {} }; if (!(await saveShopCfg())) { shopCfg = old; return serviceDownMsg(lang); } }
-  return { ok: true, items: SHOP_DEFAULTS.map(d => ({ ...shopItem(d.id), defCoins: d.coins, defFunken: d.funken })) };
+  return { ok: true, items: shopAdminList() };
 }
 // ---- Pulsfunken (Echtgeld-Waehrung): nur ueber Stripe zu bekommen, gibt man hier aus. 100 Funken = 1 Euro. ----
 const FUNKEN_PRICE = { booster: 100, slot: 500, ladder: 200, ladderAll: 1500, pieceset: 500 }; // nur noch Rueckfall, die echten Preise stehen in SHOP_DEFAULTS
@@ -4793,7 +4818,7 @@ async function ladderBuy(token, id, lang) {
   return ladderState(token);
 }
 // ---- Figuren-Sets zum Kaufen (Schach): gekaufte Sets gehoeren dem Konto ----
-const PIECE_SET_SHOP = { fantasie: 10000, waldtiere: 10000, weltraum: 10000, drache: 10000, ozean: 10000 };
+const PIECE_SET_SHOP = {}; SHOP_DEFAULTS.filter(x => x.kind === "set" && !x.fixed).forEach(x => { PIECE_SET_SHOP[x.set] = x.coins; });
 function pieceSetState(token) {
   const user = findUserByToken(token); if (!user) return { ok: false };
   return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, funken: user.stats.funken || 0, prices: PIECE_SET_SHOP, funkenPrice: FUNKEN_PRICE.pieceset, cfg: shopPublic() };
@@ -5323,12 +5348,16 @@ async function adminFunken(key, ip, payload, lang) {
   if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
   const p = payload || {}, u = typeof p.username === "string" ? findUserByName(p.username.trim()) : null;
-  const n = Math.round(Number(p.amount));
+  const n = Math.round(Number(p.amount)), cur = p.currency === "coins" ? "coins" : "funken";
+  const reason = typeof p.reason === "string" ? p.reason.trim().slice(0, 200) : "", game = typeof p.game === "string" ? p.game.trim().slice(0, 60) : "";
   if (!u) return { ok: false, error: "Nutzer nicht gefunden." };
-  if (!Number.isFinite(n) || Math.abs(n) > 100000) return { ok: false, error: "Menge muss zwischen -100000 und 100000 liegen." };
-  u.stats.funken = Math.max(0, (u.stats.funken || 0) + n);
+  if (!Number.isFinite(n) || n === 0 || Math.abs(n) > 100000) return { ok: false, error: "Menge muss zwischen -100000 und 100000 liegen (nicht 0)." };
+  if (!reason) return { ok: false, error: "Bitte einen Grund eintragen (z. B. Danke für dein Feedback)." };
+  u.stats[cur] = Math.max(0, (u.stats[cur] || 0) + n);
+  if (!Array.isArray(u.gifts)) u.gifts = [];
+  u.gifts.push({ t: Date.now(), cur, n, game, reason }); if (u.gifts.length > 50) u.gifts = u.gifts.slice(-50);
   if (!(await saveUsers())) return serviceDownMsg(lang);
-  return { ok: true, username: u.username, funken: u.stats.funken };
+  return { ok: true, username: u.username, funken: u.stats.funken || 0, coins: u.stats.coins || 0, gifts: u.gifts.slice(-8).reverse() };
 }
 async function adminBeta(key, ip, payload, lang) {
   if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -7841,9 +7870,11 @@ async function arenaBuyHeart(token, lang) {
   const user = findUserByToken(token);
   if (!user) return errObj("notLoggedIn", lang);
   refreshArenaHearts(user);
-  if ((user.stats.coins || 0) < ARENA_HEART_COST) return errObj("notEnoughCoins", lang);
+  const hi = shopItem("heart_arena"), cost = hi && hi.coins !== null ? hi.coins : ARENA_HEART_COST;
+  if (hi && !hi.on) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
+  if ((user.stats.coins || 0) < cost) return errObj("notEnoughCoins", lang);
   if (user.stats.arenaHearts >= ARENA_DAILY_HEARTS) return errObj("heartsAlreadyFull", lang);
-  user.stats.coins -= ARENA_HEART_COST;
+  user.stats.coins -= cost;
   user.stats.arenaHearts += 1;
   await saveUsers();
   return { ok: true, coins: user.stats.coins, hearts: user.stats.arenaHearts, maxHearts: ARENA_DAILY_HEARTS };
@@ -8060,8 +8091,7 @@ const GAME_DEFS = [
   { id: "shop_fruit", name: "Brain-Fruit-Booster + Speicher", group: "Shop", icon: "🍓" },
   { id: "shop_chess", name: "Chess-Shop", group: "Shop", icon: "♞" },
   { id: "shop_fourups", name: "Fourups-Kisten", group: "Shop", icon: "✨" },
-  { id: "shop_coins", name: "Münzen kaufen (Echtgeld)", group: "Shop", icon: "💶" },
-  { id: "shop_dias", name: "Realm-Diamanten kaufen", group: "Shop", icon: "💎" }
+  { id: "shop_coins", name: "Münzen kaufen (Echtgeld)", group: "Shop", icon: "💶" }
 ];
 const GAME_MODES = ["offline", "locked", "test", "open"];
 let gameCfg = { modes: {}, classOff: {} };
@@ -8256,7 +8286,7 @@ async function saveGameCfg() {
   try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 // Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
-const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "space", "politik", "braining_lane", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups", "shop_dias"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
+const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "space", "politik", "braining_lane", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : ((LOCKED_FEATURES.has(id) || DEFAULT_LOCKED_NEW.has(id)) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
@@ -8693,8 +8723,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/stat-hit") result = statHitApi(payload, ip);
         else if (req.url === "/api/news") result = newsPublic(payload.token);
         else if (req.url === "/api/news-seen") result = await newsMarkSeen(payload.token, payload.id);
-        else if (req.url === "/api/realm/buy-dias" && !(gateOk("braining_lane", payload.adminKey, ip) && gateOk("shop_dias", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
-        else if (req.url === "/api/realm/buy-dias") result = await realmBuyDias(payload.token, payload.pack, lang);
+        else if (req.url === "/api/realm/buy-keys" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
+        else if (req.url === "/api/realm/buy-keys") result = await realmBuyKeys(payload.token, payload.pack, payload.how, lang);
+        else if (req.url === "/api/realm/claim-keys") result = await realmClaimKeys(payload.token);
         else if (req.url === "/api/ladder-state") result = ladderState(payload.token);
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang);
         else if (req.url === "/api/pieceset-status") result = pieceSetState(payload.token);
