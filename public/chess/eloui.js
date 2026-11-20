@@ -60,10 +60,10 @@
       var cur = S.get(), bd = S.board().id, me = S.maxElo();
       function tl(x){
         var ok = S.unlocked(x.id), sub = '';
-        if(!ok) sub = x.elo > 0 ? '🔒 ' + (de ? 'ab Elo ' : 'from Elo ') + x.elo : '🔒 ' + (de ? 'erspielen' : 'earn it');
+        if(!ok){ var pg = S.progress && S.progress(x.id); sub = x.elo > 0 ? '🔒 ' + (de ? 'ab Elo ' : 'from Elo ') + x.elo : pg && pg.ec ? '🔒 ' + (pg.c != null ? pg.c + '/' + pg.n : (de ? 'Aufgabe' : 'Task')) : pg ? '🔒 ' + Math.min(pg.wb, pg.nb) + '/' + pg.nb + ' Bot · ' + Math.min(pg.wo, pg.no) + '/' + pg.no + ' Online' : '🔒 ' + (de ? 'erspielen' : 'earn it'); }
         else if(x.price) sub = '✓ ' + (de ? 'gekauft' : 'owned'); else if(x.earn) sub = '✓ ' + (de ? 'erspielt' : 'earned'); else if(x.elo > 0) sub = '✓ Elo ' + x.elo;
         var img = x.id === 'alt' ? '<div style="height:64px;display:flex;align-items:center;justify-content:center;font-size:40px">♞</div>' : '<img src="/chess/sets/' + x.id + '/wN.png" style="width:64px;height:64px;display:block;margin:0 auto" alt="">';
-        return '<div data-set="' + x.id + '">' + tile(img, de ? x.de : x.en, sub, cur === x.id, !ok) + '</div>';
+        return '<div data-set="' + x.id + '" style="position:relative">' + tile(img, de ? x.de : x.en, sub, cur === x.id, !ok) + '<span data-pv="' + x.id + '" title="' + (de ? 'Groß ansehen' : 'View large') + '" style="position:absolute;top:3px;right:5px;width:24px;height:24px;border-radius:12px;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer">🔍</span></div>';
       }
       function sec(t, arr){ return arr.length ? '<div style="font-weight:800;margin:14px 0 6px;opacity:.9">' + t + '</div><div style="display:flex;flex-wrap:wrap;gap:8px">' + arr.map(tl).join('') + '</div>' : ''; }
       var L = S.list;
@@ -82,9 +82,10 @@
         + (hint ? '<div style="margin:8px 0;padding:10px 12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1);font-size:14px">' + esc(hint) + '</div>' : '') + '' + sets + buyBar
         + '<div style="font-weight:800;margin:18px 0 6px">▦ ' + (de ? 'Brettfarbe' : 'Board colour') + '</div><div style="display:flex;flex-wrap:wrap;gap:10px">' + boards + '</div>'
         + '<button id="bpStyleClose" style="margin-top:20px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:16px;cursor:pointer">' + (de ? 'Fertig' : 'Done') + '</button></div>';
+      ov.querySelectorAll('[data-pv]').forEach(function(el){ el.onclick = function(e){ e.stopPropagation(); S.preview(el.getAttribute('data-pv'), lang); }; });
       ov.querySelectorAll('[data-set]').forEach(function(el){ el.onclick = function(){
         var id = el.getAttribute('data-set'), x = S.list.filter(function(q){ return q.id === id; })[0];
-        if(S.set(id)){ buy = null; hint = ''; again(); draw(); } else if(x && x.price){ buy = null; hint = '🛍 ' + (de ? 'Kaufe diese Figuren im Brain-Shop.' : 'Buy these pieces in the Brain Shop.'); draw(); } else if(x && x.elo > 0){ buy = null; hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? 'ab Elo ' : 'from Elo ') + x.elo + (de ? ' (deine höchste: ' : ' (your best: ') + S.maxElo() + ')'; draw(); } else if(x && x.earn){ buy = null; hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? x.hd : x.he); draw(); } }; });
+        if(S.set(id)){ buy = null; hint = ''; again(); draw(); } else if(x && x.price){ buy = null; hint = '🛍 ' + (de ? 'Kaufe diese Figuren im Brain-Shop.' : 'Buy these pieces in the Brain Shop.'); draw(); } else if(x && x.elo > 0){ buy = null; hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? 'ab Elo ' : 'from Elo ') + x.elo + (de ? ' (deine höchste: ' : ' (your best: ') + S.maxElo() + ')'; draw(); } else if(x && x.earn){ buy = null; var pg2 = S.progress && S.progress(x.id); hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? x.hd : x.he) + (pg2 && pg2.ec ? (pg2.c != null ? (de ? '  Stand: ' : '  Progress: ') + pg2.c + '/' + pg2.n + '.' : '') : pg2 ? (de ? '  Stand: ' + pg2.wb + '/' + pg2.nb + ' Siege gegen ' + pg2.tn + '-Bots, ' + pg2.wo + '/' + pg2.no + ' Online-Siege ab Elo ' + pg2.tn + '.' : '  Progress: ' + pg2.wb + '/' + pg2.nb + ' wins vs ' + pg2.tne + ' bots, ' + pg2.wo + '/' + pg2.no + ' online wins from ' + pg2.tne + ' Elo.') : ''); draw(); } }; });
       var bb = ov.querySelector('#bpBuyYes'); if(bb) bb.onclick = function(){
         var id = buy; bb.disabled = true; bb.textContent = '…';
         post('/api/pieceset-buy', { id: id, lang: lang }).then(function(r){
@@ -103,7 +104,7 @@
     }
     function again(){ try{ if(typeof root.render === 'function') root.render(); }catch(e){} }
     document.body.appendChild(ov); draw();
-    if(token()) post('/api/pieceset-status', {}).then(function(r){ if(r && r.ok){ S.setOwned(r.bought); coins = r.coins; funken = r.funken; if(r.cfg) S.list.forEach(function(x){ var c = r.cfg['set_' + x.id]; if(c && x.price){ x.price = c.coins === null ? -1 : c.coins; x.fprice = c.funken; x.off = !c.on; } }); draw(); } }).catch(function(){});
+    if(token()) post('/api/pieceset-status', {}).then(function(r){ if(r && r.ok){ if(r.earn) S.applyEarn(r.earn); S.setOwned(r.bought); coins = r.coins; funken = r.funken; if(r.cfg) S.list.forEach(function(x){ var c = r.cfg['set_' + x.id]; if(c && x.price){ x.price = c.coins === null ? -1 : c.coins; x.fprice = c.funken; x.off = !c.on; } }); draw(); } }).catch(function(){});
   }
   function mount(el, game, lang){
     if(typeof el === 'string') el = document.getElementById(el);
@@ -114,8 +115,10 @@
     if(!token()){ el.textContent = '👤 ' + (de ? 'Melde dich an, um deine Elo zu sehen' : 'Log in to see your Elo'); el.style.cursor = 'default'; el.onclick = null; return; }
     post('/api/chess/elo-rank', { game: game }).then(function(r){
       if(!r || !r.ok){ el.textContent = '👤 Elo ?'; return; }
-      try{ if(root.BpSets && r.placed !== false) root.BpSets.noteElo(r.elo); }catch(e){}
-      el.innerHTML = '<span>👤 ' + esc(r.name) + '</span><span style="margin-left:auto;color:#ffd45a">' + (r.placed === false ? (de ? 'Platzierung läuft' : 'In placement') : 'Elo ' + r.elo) + '</span><span style="opacity:.6">›</span>';
+      try{ if(r.placed !== false){ if(game === 'dame'){ if(root.dmNoteElo) root.dmNoteElo(r.elo); } else if(root.BpSets) root.BpSets.noteElo(r.elo); } }catch(e){}
+      var sub = (r.placed === false ? (de ? 'Platzierung ' : 'Placement ') + Math.min(r.games || 0, r.placeNeed || 5) + '/' + (r.placeNeed || 5) + ' · ' : '') + (r.games ? (r.wins || 0) + (de ? ' Siege · ' : ' wins · ') + (r.draws || 0) + (de ? ' Remis · ' : ' draws · ') + (r.losses || 0) + (de ? ' Niederl.' : ' losses') : (de ? 'Noch keine gewerteten Partien' : 'No rated games yet'));
+      el.style.flexWrap = 'wrap';
+      el.innerHTML = '<span>👤 ' + esc(r.name) + '</span><span style="margin-left:auto;color:#ffd45a">' + (r.placed === false ? (de ? 'Platzierung läuft' : 'In placement') : 'Elo ' + r.elo) + '</span><span style="opacity:.6">›</span><span style="flex-basis:100%;font-size:12px;font-weight:600;opacity:.75">' + sub + '</span>';
       el.onclick = function(){ panel(r, lang); };
     }).catch(function(){ el.textContent = '👤 Elo ?'; });
   }

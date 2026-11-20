@@ -6099,6 +6099,11 @@ function renderChessHub(){
           <h3>${L('Dame','Checkers')}</h3>
           <p data-gate="dame">${gateText('dame')}</p>
         </div>`}
+        ${muAllowed() ? `<div class="mode-card" onclick="muIntro()" style="${admSty('muehle')}">
+          <div class="icon"><svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg></div>
+          <h3>${L('Mühle','Morris')}</h3>${admTag('muehle')}
+          <p>${L('Klassische Mühle: 30 Gegner, Freunde oder zufälliger Gegner.','Classic morris: 30 opponents, friends or a random opponent.')}</p>
+        </div>` : ''}
       </div>
       <div id="chessInviteBox"></div>
       <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="renderMainMenu()">${t('btn_back')}</button>
@@ -8696,7 +8701,7 @@ async function openPieceShop(){
     const owned = st.bought || [], cfg = st.cfg || {};
     const items = S.list.filter(x => x.price).map(x => { const c = cfg['set_' + x.id]; return Object.assign({}, x, c ? { coins: c.coins, funken: c.funken, on: c.on } : { coins: x.price, funken: x.fprice, on: !x.off }); });
     const own = items.filter(x => owned.indexOf(x.id) >= 0), shop = items.filter(x => owned.indexOf(x.id) < 0 && x.on);
-    const card = x => '<div style="width:150px;padding:10px;border:1px solid rgba(255,255,255,.18);border-radius:14px;text-align:center;background:rgba(255,255,255,.04)"><img src="/chess/sets/' + x.id + '/wN.png" style="width:72px;height:72px" alt=""><div style="font-weight:800;margin:4px 0">' + (de ? x.de : x.en) + '</div>'
+    const card = x => '<div style="width:150px;padding:10px;border:1px solid rgba(255,255,255,.18);border-radius:14px;text-align:center;background:rgba(255,255,255,.04)"><img data-pv="' + x.id + '" src="/chess/sets/' + x.id + '/wN.png" style="width:72px;height:72px;cursor:zoom-in" alt=""><div data-pv="' + x.id + '" style="font-size:11px;opacity:.65;cursor:zoom-in;margin-top:-2px">🔍 ' + (de ? 'Groß ansehen' : 'View large') + '</div><div style="font-weight:800;margin:4px 0">' + (de ? x.de : x.en) + '</div>'
       + (owned.indexOf(x.id) >= 0 ? '<div style="color:#c6ff3d;font-weight:800">✓ ' + (de ? 'gekauft' : 'owned') + '</div>'
         : ((x.coins != null && x.coins >= 0 ? '<button data-c="' + x.id + '" style="width:100%;margin:3px 0;padding:8px;border:0;border-radius:9px;background:#c6ff3d;color:#08110c;font-weight:900;cursor:pointer">🪙 ' + x.coins + '</button>' : '') + (x.funken != null ? '<button data-f="' + x.id + '" style="width:100%;margin:3px 0;padding:8px;border:0;border-radius:9px;background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700;font-weight:900;cursor:pointer">✨ ' + x.funken + '</button>' : ''))) + '</div>';
     ov.innerHTML = '<div style="max-width:560px;margin:0 auto"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:20px">♟ ' + (de ? 'Schach-Figuren' : 'Chess pieces') + '</b><button id="psX" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;cursor:pointer">✕</button></div>'
@@ -8704,6 +8709,7 @@ async function openPieceShop(){
       + (shop.length ? '<div style="display:flex;flex-wrap:wrap;gap:10px">' + shop.map(card).join('') + '</div>' : '<div style="opacity:.7;margin:14px 0">' + (de ? 'Zurzeit gibt es keine neuen Figuren zu kaufen.' : 'No new pieces for sale right now.') + '</div>')
       + (own.length ? '<div style="font-weight:800;margin:18px 0 8px">🛍 ' + (de ? 'Gekauft' : 'Owned') + '</div><div style="display:flex;flex-wrap:wrap;gap:10px">' + own.map(card).join('') + '</div>' : '') + '</div>';
     ov.querySelector('#psX').onclick = () => ov.remove();
+    ov.querySelectorAll('[data-pv]').forEach(el => el.onclick = () => { try{ S.preview(el.dataset.pv, de ? 'de' : 'en'); }catch(e){} });
     ov.querySelectorAll('[data-c],[data-f]').forEach(b => b.onclick = async () => {
       const id = b.dataset.c || b.dataset.f; b.disabled = true; b.textContent = '…';
       let r; try{ r = b.dataset.c ? await apiCall('/api/pieceset-buy', { token: account.token, id, lang: de ? 'de' : 'en' }) : await apiCall('/api/funken-buy', { token: account.token, kind: 'pieceset', id, lang: de ? 'de' : 'en' }); }catch(e){ r = null; }
@@ -11220,22 +11226,26 @@ const DM_SKINS = [
   { id:'wood',  wins:0,  de:'Klassisch Holz', en:'Classic wood' },
   { id:'i_holz', wins:1, de:'Holz Deluxe',    en:'Wood deluxe' },
   { id:'neon',  wins:3,  de:'Neon',           en:'Neon' },
-  { id:'i_bronze', wins:5, de:'Bronze',       en:'Bronze' },
+  { id:'i_bronze', wins:0, elo:1500, de:'Bronze',       en:'Bronze' },
   { id:'glass', wins:8,  de:'Glas',           en:'Glass' },
-  { id:'i_silber', wins:12, de:'Silber',      en:'Silver' },
+  { id:'i_silber', wins:0, elo:1650, de:'Silber',      en:'Silver' },
   { id:'flat',  wins:15, de:'Flach',          en:'Flat' },
-  { id:'i_gold', wins:20, de:'Gold',          en:'Gold' },
+  { id:'i_gold', wins:0, elo:1800, de:'Gold',          en:'Gold' },
   { id:'metal', wins:30, de:'Gold & Silber',  en:'Gold & silver' },
-  { id:'i_smaragd', wins:40, de:'Smaragd',    en:'Emerald' },
+  { id:'i_smaragd', wins:0, elo:2100, de:'Smaragd',    en:'Emerald' },
   { id:'pulse', wins:50, de:'Brain-Pulse',    en:'Brain Pulse' },
-  { id:'i_rubin', wins:70, de:'Rubin',        en:'Ruby' }
+  { id:'i_rubin', wins:0, elo:2300, de:'Rubin',        en:'Ruby' }
 ];
 let dm = null, dmTimers = [], dmIv = null;
 function dmT(fn, ms){ const id = setTimeout(fn, ms); dmTimers.push(id); return id; }
 function dmClearTimers(){ dmTimers.forEach(clearTimeout); dmTimers = []; clearInterval(dmIv); dmIv = null; const o = document.getElementById('dmOv'); if(o) o.remove(); }
 function dmAllowed(){ return !featureLocked('dame') || adminViewOn(); }
 function dmWins(){ return (account && account.profile && account.profile.dameWins) || 0; }
-function dmSkinUnlocked(id){ if(adminViewOn()) return true; const s = DM_SKINS.find(x => x.id === id); return !!s && dmWins() >= s.wins; }
+function dmMaxElo(){ try{ return parseInt(localStorage.getItem('bp_max_elo_dame'), 10) || 0; }catch(e){ return 0; } }
+function dmNoteElo(e){ e = parseInt(e, 10) || 0; const old = dmMaxElo(); if(e <= old) return;
+  try{ localStorage.setItem('bp_max_elo_dame', String(e)); }catch(x){}
+  try{ DM_SKINS.filter(q => q.elo && q.elo > old && q.elo <= e).forEach(q => { if(window.bpNotify) window.bpNotify({ icon:'🏆', title:L('Dame-Steine freigeschaltet','Checkers pieces unlocked'), text:L(q.de, q.en) + ' (Elo ' + q.elo + ')', color:'#ffd45a' }); }); }catch(x){} }
+function dmSkinUnlocked(id){ if(adminViewOn()) return true; const s = DM_SKINS.find(x => x.id === id); if(!s) return false; return s.elo ? dmMaxElo() >= s.elo : dmWins() >= s.wins; }
 function dmSkin(){ let id = 'wood'; try{ id = localStorage.getItem('dm_skin') || 'wood'; }catch(e){} return dmSkinUnlocked(id) ? id : 'wood'; }
 function dmSetSkin(id){ if(!dmSkinUnlocked(id)) return; try{ localStorage.setItem('dm_skin', id); }catch(e){} if(dm && dm.board) dmRender(); else if(document.getElementById('brIntroMark')) brIntro(); else if(document.getElementById('dmSkinScr')) dmSkinScreen(); else dmIntro(); }
 function dmSquares(skin){
@@ -11260,15 +11270,20 @@ function dmStone(skin, color, king, pct){
 }
 function dmName(){ try{ return (account && account.profile && account.profile.username) || ''; }catch(e){ return ''; } }
 
-function dmSkinGrid(){
-  const skin = dmSkin();
-  return DM_SKINS.map(s => {
-    const un = dmSkinUnlocked(s.id), sel = skin === s.id;
-    return `<div onclick="dmSetSkin('${s.id}')" style="border:2px solid ${sel ? '#7cff8c' : 'rgba(255,255,255,.15)'};border-radius:12px;padding:8px 4px;text-align:center;opacity:${un ? 1 : .55};cursor:${un ? 'pointer' : 'default'}">
+function dmSkinTile(s, skin){
+  const un = dmSkinUnlocked(s.id), sel = skin === s.id, wins = dmWins();
+  const sub = un ? (sel ? '✓ ' + L('aktiv','active') : s.elo ? '✓ Elo ' + s.elo : s.wins ? '✓ ' + L('erspielt','earned') : '') : s.elo ? '🔒 ' + L('ab Elo ','from Elo ') + s.elo : '🔒 ' + Math.min(wins, s.wins) + '/' + s.wins + ' ' + L('Siege','wins');
+  return `<div onclick="dmSetSkin('${s.id}')" style="border:2px solid ${sel ? '#7cff8c' : 'rgba(255,255,255,.15)'};border-radius:12px;padding:8px 4px;text-align:center;opacity:${un ? 1 : .55};cursor:${un ? 'pointer' : 'default'}">
       <div style="display:flex;gap:2px;justify-content:center;width:80px;margin:0 auto">${dmStone(s.id, 'w', false, 48)}${dmStone(s.id, 'b', true, 48)}</div>
       <div style="font-size:12px;font-weight:800;margin-top:4px">${L(s.de, s.en)}</div>
-      <div style="font-size:11px;color:var(--text-dim)">${un ? (sel ? '✓ ' + L('aktiv','active') : (s.wins ? '🔓' : '')) : '🔒 ' + s.wins + ' ' + L('Siege','wins')}</div></div>`;
-  }).join('');
+      <div style="font-size:11px;color:var(--text-dim);min-height:14px">${sub}</div></div>`;
+}
+function dmSkinGrid(){
+  const skin = dmSkin();
+  const sec = (t, arr) => arr.length ? `<div class="lab">${t}</div><div class="grid">${arr.map(s => dmSkinTile(s, skin)).join('')}</div>` : '';
+  return sec('♟ ' + L('FREI','FREE'), DM_SKINS.filter(s => !s.elo && !s.wins))
+    + sec('🏆 ' + L('ELO-STEINE','ELO PIECES'), DM_SKINS.filter(s => s.elo))
+    + sec('⭐ ' + L('ERSPIELBAR','EARNABLE'), DM_SKINS.filter(s => !s.elo && s.wins));
 }
 const DM2_CSS = `<style>
 .dm2 .hd{display:flex;gap:12px;align-items:center}.dm2 .ic{width:54px;height:54px;flex:0 0 54px;border-radius:16px;background:linear-gradient(135deg,#c6ff3d,#3de0ff);display:grid;place-items:center;font-size:30px;color:#0b1024;box-shadow:0 6px 20px #3de0ff44}
@@ -11282,9 +11297,9 @@ const DM2_CSS = `<style>
 .dm2 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 </style>`;
 function dmNextInfo(){
-  const wins = dmWins(), next = DM_SKINS.find(s => s.wins > wins);
+  const wins = dmWins(), next = DM_SKINS.find(s => !s.elo && s.wins > wins);
   if(!next) return { txt:L('Alle Steine freigeschaltet','All pieces unlocked'), pct:100 };
-  const prev = [...DM_SKINS].reverse().find(s => s.wins <= wins) || DM_SKINS[0];
+  const prev = [...DM_SKINS].reverse().find(s => !s.elo && s.wins <= wins) || DM_SKINS[0];
   const pct = Math.max(0, Math.min(100, Math.round((wins - prev.wins) / (next.wins - prev.wins) * 100)));
   return { txt:L('Nächster Stein bei ' + next.wins + ' Siegen','Next pieces at ' + next.wins + ' wins'), pct };
 }
@@ -11294,8 +11309,8 @@ function dmSkinScreen(){
   renderApp(`${DM2_CSS}
     <div class="panel dm2" id="dmSkinScr">
       <div class="hd"><div class="ic">🎨</div><div><h1>${L('STEINE','PIECES')}</h1><div class="sub">${account ? wins + ' ' + L('Siege gegen echte Spieler','wins vs real players') : L('Zum Freischalten anmelden','Log in to unlock')}</div></div></div>
-      <div class="lab">${L('WÄHLE DEIN DESIGN','CHOOSE YOUR DESIGN')}</div>
-      <div class="grid">${dmSkinGrid()}</div>
+      <div class="sub" style="margin-top:12px">${L('Deine höchste Dame-Elo: ','Your highest checkers Elo: ')}<b style="color:#ffd45a">${dmMaxElo()}</b>. ${L('Die Elo-Steine (Bronze bis Rubin) schaltest du frei, wenn deine Elo erreicht ist.','You unlock the Elo pieces (Bronze to Ruby) once your Elo is reached.')}</div>
+      ${dmSkinGrid()}
       <div class="bar"><i style="width:${nx.pct}%"></i></div>
       <div class="sub" style="text-align:center;margin-top:6px">🏅 ${nx.txt}</div>
       <div class="sub" style="text-align:center;margin-top:4px">${L('Meilensteine zählen nur Siege gegen echte Spieler (Zufallsgegner oder Freund), nicht gegen den Bot.','Milestones only count wins against real players (random opponent or friend), not the bot.')}</div>
@@ -11473,6 +11488,7 @@ function dmFinishUi(){
     try{ const lr = BpLadder.result('dame', dm.opp, win ? 'win' : draw ? 'draw' : 'loss'); extra += `<div style="margin-top:10px;color:#ffd45a;font-weight:800;white-space:pre-line">${esc(BpLadder.endNote('dame', dm.opp, lr, LANG_DM()))}</div>`; }catch(e){}
   }
   if(dm.mode === 'mp' && dm.elo){
+    try{ dmNoteElo(dm.elo.after); }catch(e){}
     extra += `<div style="margin-top:10px;color:#9fe3ff;font-weight:800">📈 Elo: ${dm.elo.after} (${dm.elo.delta >= 0 ? '+' : ''}${dm.elo.delta})</div>`;
   }
   if(dm.mode === 'mp' && win){
@@ -11626,21 +11642,22 @@ function muStone(color, size){
   return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%, ${w ? '#fff6dc,#c9a45c' : '#6b4a35,#1c0f07'});border:2px solid ${w ? '#6b4a20' : '#000'};box-shadow:0 3px 5px rgba(0,0,0,.55);box-sizing:border-box"></div>`;
 }
 function muIntro(msg){
-  if(!muAllowed()){ startTicTacToeFlow(); return; }
+  if(!muAllowed()){ renderChessHub(); return; }
   muClearTimers();
-  renderApp(`
-    <div class="panel mu2">
-      <div class="mm-hd"><svg viewBox="0 0 40 40" width="46" height="46"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg><h2>${L('MÜHLE','NINE MEN\'S MORRIS')} </h2>
-        <p>${L('9 Steine setzen, dann ziehen. Drei in einer Reihe = Mühle = gegnerischen Stein entfernen. Mit nur 3 Steinen darfst du springen.','Place 9 pieces, then move. Three in a row = mill = remove an enemy piece. With only 3 pieces you may fly.')}</p></div>
-      <div style="color:#ff8a8a;font-weight:700;min-height:18px;text-align:center">${msg ? esc(msg) : ''}</div>
-      <div class="mm-cd"><h4>🤖 ${L('Gegen den Bot','Against the bot')}</h4><small>${L('Wähle die Stärke','Choose the level')}</small>
-        <div class="mm-seg"><button onclick="muStartBot('easy')">${L('Leicht','Easy')}</button><button onclick="muStartBot('normal')">${L('Normal','Normal')}</button><button onclick="muStartBot('hard')">${L('Schwer','Hard')}</button></div>
-        <button class="btn btn-ghost" style="width:100%;margin-top:8px" onclick="muLadder()">🏆 ${L('Gegner-Leiter (30 Gegner)','Opponent ladder (30 opponents)')}</button></div>
-      <div class="mm-cd"><h4>🌐 Online</h4><small>${L('Spiel live gegen einen zufälligen Gegner','Play live against a random opponent')}</small>
-        <button class="btn btn-primary" style="width:100%" onclick="muMpQueue()">${L('Gegner suchen','Find opponent')}</button></div>
-      <div class="mm-cd"><h4>👥 ${L('Mit Freunden','With friends')}</h4><small>${L('Raum mit Code erstellen, 1 gegen 1 oder 2 gegen 2','Create a room with a code, 1 vs 1 or 2 vs 2')}</small>
-        <div class="mm-seg"><button onclick="muMpTeams=false;muMpCreate()">${L('1 gegen 1','1 vs 1')}</button><button onclick="muMpTeams=true;muMpCreate()">${L('2 gegen 2','2 vs 2')}</button></div></div>
-      <div class="actions-row" style="margin-top:14px"><button class="btn btn-ghost" style="width:100%" onclick="startTicTacToeFlow()">${t('btn_back')}</button></div>
+  renderApp(`${DM2_CSS}
+    <div class="panel dm2">
+      <div class="hd"><div class="ic" style="background:#171e3a;box-shadow:0 6px 20px #c6ff3d33"><svg viewBox="0 0 40 40" width="34" height="34"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg></div><div><h1>${L('MÜHLE','MORRIS')}</h1><div class="sub">${L('9 Steine setzen, dann ziehen. Drei in einer Reihe = Mühle. Mit 3 Steinen darfst du springen.','Place 9 pieces, then move. Three in a row = mill. With 3 pieces you may fly.')}</div></div></div>
+      <div style="color:#ff8a8a;font-weight:700;min-height:${msg ? 18 : 0}px;margin-top:8px">${msg ? esc(msg) : ''}</div>
+      <div class="lab">${L('GEGEN DEN BOT','VS THE BOT')}</div>
+      <div class="bots"><button class="b" onclick="muStartBot('easy')">${L('Leicht','Easy')}</button><button class="b m" onclick="muStartBot('normal')">${L('Normal','Normal')}</button><button class="b" onclick="muStartBot('hard')">${L('Schwer','Hard')}</button></div>
+      <button class="big" onclick="muLadder()"><div class="e">🏆</div><div><b>${L('Gegner-Leiter','Opponent ladder')}</b><span>${L('Von Schüler bis Meisterin, jeder Gegner mit Namen','From pupil to grandmaster, every opponent with a name')}</span></div><div class="ar">›</div></button>
+      <div class="lab">${L('ONLINE SPIELEN','PLAY ONLINE')}</div>
+      <div style="font-size:12px;color:var(--accent);margin:-4px 0 8px">${L('Brainups gewinnen: Sieg 100, Remis 50','Win Brainups: win 100, draw 50')}</div>
+      <button class="big" style="margin-top:0" onclick="muMpQueue()"><div class="e">🎲</div><div><b>${L('Zufallsgegner','Random opponent')}</b><span>${L('Sofort gegen einen echten Spieler','Instantly vs a real player')}</span></div><div class="ar">›</div></button>
+      <button class="big" onclick="muMpTeams=!muMpTeams;muIntro()"><div class="e">👥</div><div><b>${L('2 gegen 2','2 vs 2')}: ${muMpTeams?L('an','on'):L('aus','off')}</b><span>${L('Vier Spieler, Teams wechseln sich ab','Four players, teams take turns')}</span></div><div class="ar">›</div></button>
+      <button class="big" onclick="muMpCreate()"><div class="e">👥</div><div><b>${muMpTeams?L('Raum für 4 erstellen','Create room for 4'):L('Gegen Freund','Vs friend')}</b><span>${L('Per Code oder Link einladen','Invite via code or link')}</span></div><div class="ar">›</div></button>
+      <div class="code"><input id="muCodeIn" type="text" maxlength="8" placeholder="CODE"><button onclick="muJoinScreen(document.getElementById('muCodeIn').value.trim().toUpperCase())">${L('Beitreten','Join')}</button></div>
+      <button class="back" onclick="renderChessHub()">← ${t('btn_back')}</button>
     </div>`);
 }
 function muLadder(){ BpLadder.open('muehle', LANG_DM(), i => muStartBot(null, i), mu && mu.mode==='bot' ? mu.opp : null); }
@@ -11815,7 +11832,7 @@ function muQuit(){
   if(sp){ if(account) startFriendsFlow(); else renderMainMenu(); return; }
   muIntroOrMenu();
 }
-function muIntroOrMenu(){ if(muAllowed()) muIntro(); else startTicTacToeFlow(); }
+function muIntroOrMenu(){ if(muAllowed()) muIntro(); else renderChessHub(); }
 /* ---------- Online ---------- */
 function muSessSave(code, key){ try{ localStorage.setItem('mu_sess', JSON.stringify({ code, key, t: Date.now() })); }catch(e){} }
 function muSessGet(){ try{ const x = JSON.parse(localStorage.getItem('mu_sess') || 'null'); if(x && x.code && x.key && Date.now() - x.t < 3*3600*1000) return x; }catch(e){} return null; }
@@ -12665,11 +12682,6 @@ function startTicTacToeFlow(){
           <h3>Original</h3>
           <p>${L('Klassisch, vom weißen bis zum Meister-Gürtel.','Classic, from white to master belt.')}</p>
         </div>
-        ${muAllowed() ? `<div class="mode-card" onclick="muIntro()" style="${admSty('muehle')}">
-          <div class="icon"><svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg></div>
-          <h3>${L('Mühle','Morris')}</h3>${admTag('muehle')}
-          <p>${L('Klassische Mühle, Bot, Freunde, Zufallsgegner.','Classic mills, bot, friends, random opponent.')}</p>
-        </div>` : ''}
         ${hiddenFeatures.indexOf('ttt_quantum') !== -1 ? '' : featureLocked('ttt_quantum') ? `<div class="mode-card locked" style="opacity:.45; cursor:default;">
           <div class="icon">⚡</div><h3>Quantum</h3><p data-gate="ttt_quantum">${gateText('ttt_quantum')}</p></div>` : `<div class="mode-card" onclick="tttOppSelect('quantum')">
           <div class="icon">⚡</div><h3>Quantum</h3>

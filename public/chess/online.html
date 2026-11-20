@@ -421,7 +421,8 @@ function showEnd(){
   const res = S.spectator ? "spec" : S.winner === "draw" ? "draw" : (S.winner === S.color || false) ? "win" : "loss";
   if(res !== "spec") try{ parent.sfxResult(res === 'win', res === 'draw'); }catch(e){}
   if(res === 'win' && S.why === 'mate' && window.BpSets) BpSets.earn('kristall');
-  if(res === 'win' && window.BpSets) BpSets.noteWin();
+  if(res === 'win' && window.BpSets) BpSets.noteWin({ online:true });
+  if(res !== 'spec' && window.BpSets) try{ BpSets.noteGame({ res: res, moves: Math.ceil(((S && S.log) || []).length / 2), mate: res === 'win' && S.why === 'mate', online: true }); }catch(e){}
   const whyMap = { mate:T.mate, stalemate:T.stalemate, insufficient:T.insufficient, fifty:T.fifty, threefold:T.threefold, resign:T.resign_, time:T.time };
   $("endTitle").textContent = res === "spec" ? (S.winner === "draw" ? "🤝 " + T.draw : "🏁 " + (S.winner === "w" ? T.winsW : T.winsB)) : (res === "win" ? "🏆 " : res === "loss" ? "💀 " : "🤝 ") + (res === "win" ? T.win : res === "loss" ? T.loss : T.draw);
   let extra = "";

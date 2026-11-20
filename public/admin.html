@@ -776,15 +776,15 @@ setTimeout(() => { try{ if(KEY) api('/api/admin-feedback', { action:'list' }).th
 /* ---- Shop-Preise ---- */
 let SHOPI = [];
 const SHOP_NAMES = { brain: '🍓 Brain-Shop', chess: '♞ Chess-Shop (Figuren)', games: '🎮 Spiele: Gegner und Steine', realm: '⚔️ Realm of Brain' };
-const PLACE_GRP = { shop: 'Kaufbare Figuren', fantasy: 'Fantasy-Schach (erst mit Fantasy-Schach)', new: 'Neue Figuren (noch nicht freigegeben)', bp: 'Für den Battle Pass reserviert' };
-const PLACE_NAME = { shop: '♞ Chess-Shop (kaufbar)', fantasy: '🧙 Fantasy-Schach', new: '🆕 Neu, noch nicht freigegeben', bp: '🎟️ Battle Pass (reserviert)' };
+const PLACE_GRP = { earn: 'Erspielbar (Aufgabe wird gewürfelt)', shop: 'Kaufbare Figuren', fantasy: 'Fantasy-Schach (erst mit Fantasy-Schach)', new: 'Neue Figuren (noch nicht freigegeben)', bp: 'Für den Battle Pass reserviert' };
+const PLACE_NAME = { earn: '⭐ Erspielbar (zufällige Aufgabe)', shop: '♞ Chess-Shop (kaufbar)', fantasy: '🧙 Fantasy-Schach', new: '🆕 Neu, noch nicht freigegeben', bp: '🎟️ Battle Pass (reserviert)' };
 const SHOP_ORDER = { brain: ['Herzen', 'Brain Fruit', 'Brain Galaxy', 'Brain Jong', 'Fourups-Kisten', 'Münzen kaufen (Echtgeld)'],
-  chess: ['Standard-Figuren', 'Erspielbar', 'Elo-Figuren', PLACE_GRP.shop, PLACE_GRP.fantasy, PLACE_GRP.new, PLACE_GRP.bp],
+  chess: ['Standard-Figuren', 'Erspielbar', PLACE_GRP.earn, 'Elo-Figuren', PLACE_GRP.shop, PLACE_GRP.fantasy, PLACE_GRP.new, PLACE_GRP.bp],
   games: ['Gegner freikaufen (je Spiel)', 'Tic-Tac-Toe-Steine', 'Dame-Steine', '4-gewinnt-Steine'],
   realm: ['Schlüssel'] };
 const SHOP_EXTRA = [{ shop: 'brain', grp: 'Fourups-Kisten', gate: 'shop_fourups', note: 'Die Kisten sind noch nicht im Spiel. Hier steht nur der Status, die Kisten kommen als Artikel dazu, sobald sie gebaut sind.' },
   { shop: 'brain', grp: 'Münzen kaufen (Echtgeld)', gate: 'shop_coins', note: 'Echtgeld: Die Pakete und Preise liegen bei Stripe, hier nur der Status.' }];
-const SHOP_NOTE = { [PLACE_GRP.fantasy]: 'Gehört zum Fantasy-Schach und wird erst verkauft, wenn das Fantasy-Schach freigegeben ist.', [PLACE_GRP.new]: 'Fertig ausgeschnitten, aber nicht im Shop. Wähle bei einer Figur „Zuordnung“, um sie freizugeben.', [PLACE_GRP.bp]: 'Nicht im Shop. Diese Figuren kannst du im Battle Pass als Belohnung eintragen.', 'Standard-Figuren': 'Immer frei.', 'Erspielbar': 'Werden im Spiel erspielt, nicht gekauft.', 'Elo-Figuren': 'Werden mit der Online-Elo freigeschaltet.', 'Schlüssel': 'Zweite Währung für Realm of Brain. Wird im Brain-Shop gekauft und im Spiel abgeholt.',
+const SHOP_NOTE = { [PLACE_GRP.earn]: 'Nicht kaufbar. Beim Speichern wird für jede Figur hier eine Aufgabe gewürfelt (z. B. „Gewinne 5 Partien in Folge“). Sie bleibt danach fest. „Aktiv“ muss angekreuzt sein, sonst sehen die Spieler die Figur nicht.', [PLACE_GRP.fantasy]: 'Gehört zum Fantasy-Schach und wird erst verkauft, wenn das Fantasy-Schach freigegeben ist.', [PLACE_GRP.new]: 'Fertig ausgeschnitten, aber nicht im Shop. Wähle bei einer Figur „Zuordnung“, um sie freizugeben.', [PLACE_GRP.bp]: 'Nicht im Shop. Diese Figuren kannst du im Battle Pass als Belohnung eintragen.', 'Standard-Figuren': 'Immer frei.', 'Erspielbar': 'Werden im Spiel erspielt, nicht gekauft.', 'Elo-Figuren': 'Werden mit der Online-Elo freigeschaltet.', 'Schlüssel': 'Zweite Währung für Realm of Brain. Wird im Brain-Shop gekauft und im Spiel abgeholt.',
   'Gegner freikaufen (je Spiel)': 'Gegner 21 bis 30 jeder Leiter. Jedes Spiel hat seinen eigenen Preis: erst einzeln, dann das Bundle mit allen 10. Wer vorher schon gekauft hat, behält seine Gegner.',
   'Tic-Tac-Toe-Steine': 'Heute werden sie durch Gürtel-Ränge freigeschaltet. Verkaufen oder Reservieren fürs Battle Pass geht für Steine noch nicht, die Liste dient zur Übersicht.', 'Dame-Steine': 'Heute durch Dame-Siege freigeschaltet. Nur zur Übersicht.', '4-gewinnt-Steine': 'Heute durch Fourups-Level freigeschaltet. Nur zur Übersicht.' };
 function itemGrp(i){ return i.placeable ? PLACE_GRP[i.place] : i.grp; }
@@ -808,6 +808,7 @@ function shopItemCard(i){
     + (i.fixed ? '<div class="dim" style="font-size:11px">' + esc(i.note || '') + '</div>' : '<div style="display:flex;gap:6px">' + inp('sc', i.coins, i.canCoins, i.defCoins) + inp('sf', i.funken, i.canFunken, i.defFunken) + '</div>')
     + sel
     + (i.fixed ? '' : '<label style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px;cursor:pointer"><input class="so" type="checkbox" ' + (i.on ? 'checked' : '') + ' style="flex:none;width:18px;height:18px"> Aktiv' + (i.defOn === false ? ' <span class="dim" style="font-size:10px">(Standard: aus)</span>' : '') + '</label>')
+    + (i.placeable && i.place === 'earn' ? '<div style="margin-top:6px;font-size:12px;color:var(--gold)">🎯 ' + (i.earn && !i.reroll ? esc(i.earn.de) : 'Aufgabe wird beim Speichern gewürfelt') + '</div><button type="button" onclick="shopReroll(\'' + i.id + '\')" style="margin-top:4px;padding:5px 9px;font-size:12px">🎲 Neu würfeln</button>' : '')
     + (i.placeable && i.place === 'fantasy' && i.on ? '<div class="dim" style="font-size:10px;margin-top:4px">Wird erst mit Fantasy-Schach verkauft.</div>' : '')
     + '</div>';
 }
@@ -819,7 +820,7 @@ function shopPaint(){
     h += '<div class="card"><h2 style="font-size:16px">' + SHOP_NAMES[sh] + '</h2>';
     grps.forEach(g => {
       const ex = SHOP_EXTRA.find(e => e.shop === sh && e.grp === g), items = rows.filter(i => itemGrp(i) === g), gate = ex ? ex.gate : (items.find(i => i.gate) || {}).gate;
-      const noGate = ['Standard-Figuren', 'Erspielbar', 'Elo-Figuren', PLACE_GRP.bp, PLACE_GRP.new].includes(g) || g.indexOf('-Steine') > 0;
+      const noGate = ['Standard-Figuren', 'Erspielbar', 'Elo-Figuren', PLACE_GRP.earn, PLACE_GRP.bp, PLACE_GRP.new].includes(g) || g.indexOf('-Steine') > 0;
       h += '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>' + esc(g) + '</b>' + (gate && !noGate ? gateBtns(gate) : '') + '</div>'
         + ((ex && ex.note) || SHOP_NOTE[g] ? '<div class="dim" style="font-size:12px;margin:4px 0">' + esc((ex && ex.note) || SHOP_NOTE[g]) + '</div>' : '')
         + '<div class="row" style="gap:8px;margin-top:6px;align-items:stretch">' + (items.length ? items.map(shopItemCard).join('') : '<span class="dim" style="font-size:12px">Gerade nichts hier.</span>') + '</div></div>';
@@ -845,10 +846,11 @@ async function shopLoad(){
 }
 function shopCollect(){
   shopSync(); const items = {};
-  SHOPI.forEach(i => { if(!i.fixed) items[i.id] = { coins: i.coins, funken: i.funken, on: i.on, place: i.place }; });
+  SHOPI.forEach(i => { if(!i.fixed) items[i.id] = { coins: i.coins, funken: i.funken, on: i.on, place: i.place, earn: i.earn, reroll: !!i.reroll }; });
   return items;
 }
 function shopPlace(id, v){ shopSync(); const i = SHOPI.find(x => x.id === id); if(i){ i.place = v; i.live = i.on && (v === 'shop' || v === 'fantasy'); } shopPaint(); $('shopMsg').style.color = 'var(--gold)'; $('shopMsg').textContent = 'Noch nicht gespeichert: Zuordnung geändert. Unten auf „Speichern, online machen“ klicken.'; }
+function shopReroll(id){ shopSync(); const i = SHOPI.find(x => x.id === id); if(i){ i.reroll = true; } shopPaint(); $('shopMsg').style.color = 'var(--gold)'; $('shopMsg').textContent = 'Noch nicht gespeichert: Aufgabe wird beim Speichern neu gewürfelt.'; }
 async function shopGate(id, mode){ shopSync(); await setGame(id, { mode, start: 0, hide: false }); shopPaint(); if(BPC){ const g = GAMES.find(x => x.id === 'battlepass'); $('bpGate').innerHTML = g ? gateBtns('battlepass') : ''; } }
 async function shopSave(){ const r = await api('/api/admin-shop', { items: shopCollect() }); if(r && r.ok){ SHOPI = r.items; shopPaint(); $('shopMsg').style.color = 'var(--ok)'; $('shopMsg').textContent = '✓ Gespeichert. Gilt sofort für alle Spieler.'; } else { $('shopMsg').style.color = 'var(--bad)'; $('shopMsg').textContent = '✗ ' + ((r && r.error) || 'Fehler'); } }
 async function shopReset(){ if(!await bpConfirm('Alle Shop-Preise und Haken auf Standard zurücksetzen?')) return; const r = await api('/api/admin-shop', { reset: true }); if(r && r.ok){ SHOPI = r.items; shopPaint(); $('shopMsg').style.color = 'var(--ok)'; $('shopMsg').textContent = '✓ Auf Standard zurückgesetzt.'; } }

@@ -43,8 +43,8 @@ var SETS=[
  {id:'anime', de:'Anime', en:'Anime', elo:0, price:10000, fprice:500, off:1},
  {id:'untote3', de:'Untote 3', en:'Undead 3', elo:0, price:10000, fprice:500, off:1},
  {id:'neon', de:'Neon', en:'Neon', elo:0, price:10000, fprice:500, off:1},
- {id:'voelker', de:'Völker', en:'Peoples', elo:0, earn:1, hd:'Gewinne 15 Partien (gegen Bots oder online).', he:'Win 15 games (against bots or online).'},
- {id:'ritter', de:'Ritter', en:'Knights', elo:0, earn:1, hd:'Gewinne 5 Partien (gegen Bots oder online).', he:'Win 5 games (against bots or online).'},
+ {id:'voelker', de:'Völker', en:'Peoples', elo:0, earn:1, te:1650, tn:'Silber', tne:'Silver', hd:'Gewinne 20 Partien gegen Silber-Bots (Stärke ab Elo 1650) oder 10 Online-Partien, wenn deine Elo mindestens Silber ist.', he:'Win 20 games against Silver bots (strength from Elo 1650) or 10 online games while your Elo is at least Silver.'},
+ {id:'ritter', de:'Ritter', en:'Knights', elo:0, earn:1, te:1800, tn:'Gold', tne:'Gold', hd:'Gewinne 20 Partien gegen Gold-Bots (Stärke ab Elo 1800) oder 10 Online-Partien, wenn deine Elo mindestens Gold ist.', he:'Win 20 games against Gold bots (strength from Elo 1800) or 10 online games while your Elo is at least Gold.'},
  {id:'goblin', de:'Goblins', en:'Goblins', elo:0, price:10000, fprice:500, off:1}];
 var BOARDS=[
  {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
@@ -59,7 +59,37 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
   owned:function(){ try{ return JSON.parse(ls('bp_sets_owned')||'[]'); }catch(e){ return []; } },
   setOwned:function(a){ lset('bp_sets_owned',JSON.stringify(a||[])); },
   earned:function(){ try{ return JSON.parse(ls('bp_sets_earned')||'[]'); }catch(e){ return []; } },
-  noteWin:function(){ var n=(parseInt(ls('bp_chess_wins'),10)||0)+1; lset('bp_chess_wins',String(n)); if(n>=5) BS.earn('ritter'); if(n>=15) BS.earn('voelker'); return n; },
+  preview:function(id, lang, info){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return; var de=(lang||ls('wq_lang'))!=='en';
+    var old=document.getElementById('bpPrevOv'); if(old) old.remove();
+    var ov=document.createElement('div'); ov.id='bpPrevOv';
+    ov.style.cssText='position:fixed;inset:0;z-index:100005;background:#05081a;overflow:auto;color:#fff;font-family:system-ui,sans-serif;padding:16px;display:flex;flex-direction:column;align-items:center';
+    var G={K:'♚',Q:'♛',R:'♜',B:'♝',N:'♞',P:'♟'}, sz='min(27vw,130px)';
+    function row(c){ return '<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin:6px 0;padding:10px;border-radius:16px;background:'+(c==='w'?'rgba(255,255,255,.10)':'rgba(255,255,255,.04)')+'">'+['K','Q','R','B','N','P'].map(function(t){
+      return id==='alt' ? '<div style="width:'+sz+';height:'+sz+';display:flex;align-items:center;justify-content:center;font-size:min(20vw,96px);color:'+(c==='w'?'#fff':'#111')+';text-shadow:'+(c==='w'?'0 0 3px #000':'0 0 3px #fff')+'">'+G[t]+'</div>' : '<img src="/chess/sets/'+id+'/'+c+t+'.png" alt="" style="width:'+sz+';height:'+sz+';object-fit:contain">'; }).join('')+'</div>'; }
+    ov.innerHTML='<div style="max-width:560px;width:100%"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><b style="font-size:22px">'+(de?x.de:x.en)+'</b><button id="bpPrevX" style="padding:8px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:15px;cursor:pointer">'+(de?'Schließen':'Close')+'</button></div>'
+      +(info?'<div style="opacity:.8;font-size:13px;margin:6px 0">'+info+'</div>':'')+'<div style="font-size:12px;opacity:.6;margin:8px 0 2px">'+(de?'Weiß':'White')+'</div>'+row('w')+'<div style="font-size:12px;opacity:.6;margin:8px 0 2px">'+(de?'Schwarz':'Black')+'</div>'+row('b')+'</div>';
+    ov.onclick=function(e){ if(e.target===ov||e.target.id==='bpPrevX') ov.remove(); };
+    document.body.appendChild(ov); },
+  earnCfg:function(){ try{ return JSON.parse(ls('bp_earn_cfg')||'{}'); }catch(e){ return {}; } },
+  applyEarn:function(map){ map=map||{}; try{ lset('bp_earn_cfg',JSON.stringify(map)); }catch(e){}
+    SETS.forEach(function(q){ var c=map[q.id]; if(c){ delete q.price; q.earn=1; q.ec=c; q.hd=c.de; q.he=c.en; q.off=0; } }); },
+  noteGame:function(c){ c=c||{}; var win=c.res==='win';
+    var st=parseInt(ls('bp_ea_streak'),10)||0; st=win?st+1:0; lset('bp_ea_streak',String(st));
+    var cfg=BS.earnCfg(), earned=BS.earned();
+    Object.keys(cfg).forEach(function(id){ if(earned.indexOf(id)>=0) return; var e=cfg[id], k='bp_ea_'+id, v=parseInt(ls(k),10)||0, done=false;
+      if(e.type==='wins'){ if(win) v++; done=v>=e.n; }
+      else if(e.type==='online'){ if(win&&c.online) v++; done=v>=e.n; }
+      else if(e.type==='mates'){ if(win&&c.mate) v++; done=v>=e.n; }
+      else if(e.type==='streak'){ v=st; done=v>=e.n; }
+      else if(e.type==='winFast'){ done=win&&c.moves>0&&c.moves<=e.n; }
+      else if(e.type==='winBotElo'){ done=win&&c.bot>=e.n; }
+      lset(k,String(v)); if(done) BS.earn(id); }); },
+  progress:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(x&&x.ec){ var c=x.ec, cnt=parseInt(ls('bp_ea_'+id),10)||0, counted=(c.type==='wins'||c.type==='online'||c.type==='mates'||c.type==='streak'); return { ec:true, c:counted?Math.min(cnt,c.n):null, n:c.n, de:c.de, en:c.en }; } if(!x||!x.te) return null; return { wb:parseInt(ls('bp_wb_'+id),10)||0, wo:parseInt(ls('bp_wo_'+id),10)||0, nb:20, no:10, te:x.te, tn:x.tn, tne:x.tne }; },
+  noteWin:function(ctx){ ctx=ctx||{}; var n=(parseInt(ls('bp_chess_wins'),10)||0)+1; lset('bp_chess_wins',String(n));
+    SETS.filter(function(q){return q.te;}).forEach(function(q){ var k, v;
+      if(ctx.bot>=q.te){ k='bp_wb_'+q.id; v=(parseInt(ls(k),10)||0)+1; lset(k,String(v)); if(v>=20) BS.earn(q.id); }
+      if(ctx.online && BS.maxElo()>=q.te){ k='bp_wo_'+q.id; v=(parseInt(ls(k),10)||0)+1; lset(k,String(v)); if(v>=10) BS.earn(q.id); } });
+    return n; },
   earn:function(id){ var a=BS.earned(); if(a.indexOf(id)>=0) return; a.push(id); lset('bp_sets_earned',JSON.stringify(a));
     var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return;
     try{ var _de=(ls('wq_lang')!=='en'); if(window.bpNotify) window.bpNotify({icon:'♟',title:_de?'Figuren freigeschaltet':'Pieces unlocked',text:(_de?x.de:x.en),color:'#c6ff3d'}); }catch(e){} },
@@ -73,6 +103,7 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
     else { de.classList.remove('bd-img'); de.classList.remove('bd-tr'); st.setProperty('--k','1'); st.setProperty('--sq-light',b.l); st.setProperty('--sq-dark',b.d); } },
   preload:function(){ var id=BS.get(); if(id==='alt') return; ['K','Q','R','B','N','P'].forEach(function(t){ ['w','b'].forEach(function(c){ var i=new Image(); i.src='/chess/sets/'+id+'/'+c+t+'.png'; }); }); }
 };
+try{ BS.applyEarn(BS.earnCfg()); var _tk=ls('wq_account_token'); if(_tk && typeof fetch==='function') fetch('/api/pieceset-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:_tk})}).then(function(r){return r.json();}).then(function(r){ if(r&&r.ok&&r.earn) BS.applyEarn(r.earn); }).catch(function(){}); }catch(e){}
 BS.applyBoard(); BS.preload();
 window.chessPieceSVG=function(t,c,theme,opts){
   if(!(opts&&(opts.accent||opts.body||opts.rank!==undefined))&&(!theme||theme==='classic')){ var sid=BS.get(); if(sid!=='alt') return '<svg viewBox="0 0 100 100" class="pcs" style="filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))"><image href="/chess/sets/'+sid+'/'+c+t+'.png" x="6" y="6" width="88" height="88"/></svg>'; }

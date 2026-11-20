@@ -4740,8 +4740,8 @@ const SHOP_DEFAULTS = (() => {
   SET("kristall", "Kristall", "Erspielbar", { fixed: true, note: "Schachmatt setzen" });
   SET("zoo", "Zoo", "Erspielbar", { fixed: true, note: "Bauernumwandlung" });
   [["bronze", "Bronze", 1500], ["silber", "Silber", 1650], ["gold", "Gold", 1800], ["diamant", "Diamant", 1950], ["smaragd", "Smaragd", 2100], ["rubin", "Rubin", 2300]].forEach(x => SET(x[0], x[1], "Elo-Figuren", { fixed: true, note: "ab Elo " + x[2] }));
-  SET("ritter", "Ritter", "Erspielbar", { fixed: true, note: "5 Partien gewinnen" });
-  SET("voelker", "Völker", "Erspielbar", { fixed: true, note: "15 Partien gewinnen" });
+  SET("ritter", "Ritter", "Erspielbar", { fixed: true, note: "20 Siege gegen Gold-Bots oder 10 Online-Siege ab Elo Gold" });
+  SET("voelker", "Völker", "Erspielbar", { fixed: true, note: "20 Siege gegen Silber-Bots oder 10 Online-Siege ab Elo Silber" });
   PSET("waldtiere", "Waldtiere", "shop");
   PSET("weltraum", "Weltraum", "shop");
   PSET("fantasie", "Fantasie", "fantasy");
@@ -4787,14 +4787,31 @@ async function saveShopCfg() {
   try { fs.mkdirSync(path.dirname(SHOP_FILE), { recursive: true }); fs.writeFileSync(SHOP_FILE, JSON.stringify(shopCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 loadShopCfg();
+// ---- Erspielbare Figuren mit Zufalls-Aufgabe: Der Admin stellt ein Set auf "Erspielbar", der Server wuerfelt die Aufgabe (bleibt danach fest, bis "neu wuerfeln"). Geprueft wird im Spiel am Partie-Ende. ----
+const EARN_TYPES = {
+  wins:      { nr: [3, 12, 1],    de: n => `Gewinne ${n} Partien (gegen Bots oder online).`, en: n => `Win ${n} games (against bots or online).` },
+  online:    { nr: [2, 6, 1],     de: n => `Gewinne ${n} Online-Partien gegen echte Spieler.`, en: n => `Win ${n} online games against real players.` },
+  mates:     { nr: [2, 6, 1],     de: n => `Setze ${n}-mal einen Gegner schachmatt.`, en: n => `Checkmate an opponent ${n} times.` },
+  streak:    { nr: [2, 4, 1],     de: n => `Gewinne ${n} Partien hintereinander.`, en: n => `Win ${n} games in a row.` },
+  winFast:   { nr: [20, 35, 5],   de: n => `Gewinne eine Partie in höchstens ${n} eigenen Zügen.`, en: n => `Win a game in at most ${n} of your own moves.` },
+  winBotElo: { nr: [800, 1600, 100], de: n => `Besiege einen Bot mit Stärke ab Elo ${n}.`, en: n => `Beat a bot with strength from Elo ${n}.` }
+};
+function earnRoll() {
+  const types = Object.keys(EARN_TYPES), type = types[Math.floor(Math.random() * types.length)], [lo, hi, st] = EARN_TYPES[type].nr;
+  const steps = Math.floor((hi - lo) / st) + 1;
+  return { type, n: lo + st * Math.floor(Math.random() * steps) };
+}
+const earnValid = e => !!(e && typeof e === "object" && EARN_TYPES[e.type] && Number.isFinite(e.n) && e.n >= EARN_TYPES[e.type].nr[0] && e.n <= EARN_TYPES[e.type].nr[1] * 5);
+const earnView = e => ({ type: e.type, n: e.n, de: EARN_TYPES[e.type].de(e.n), en: EARN_TYPES[e.type].en(e.n) });
 function shopItem(id) {
   const d = SHOP_DEFAULTS.find(x => x.id === id); if (!d) return null;
   const o = (shopCfg.items && shopCfg.items[id]) || {};
   const pick = (k) => (o[k] === null || (Number.isFinite(o[k]) && o[k] >= 0)) ? o[k] : d[k];
-  const place = d.placeable ? (["shop", "fantasy", "new", "bp"].includes(o.place) ? o.place : d.place) : undefined;
+  const place = d.placeable ? (["shop", "fantasy", "new", "bp", "earn"].includes(o.place) ? o.place : d.place) : undefined;
   const on = o.on === undefined ? d.on : !!o.on;
+  const earn = (d.placeable && place === "earn" && earnValid(o.earn)) ? earnView(o.earn) : undefined;
   const placeOk = !d.placeable || place === "shop" || (place === "fantasy" && !featureLocked("chess_fantasy"));
-  return { id, name: d.name, shop: d.shop, grp: d.grp, gate: d.gate, icon: d.icon, set: d.set, note: d.note, game: d.game, kind: d.kind, fixed: d.fixed, placeable: !!d.placeable, place, canCoins: d.canCoins, canFunken: d.canFunken, coins: d.fixed || !d.canCoins ? d.coins : pick("coins"), funken: d.fixed || !d.canFunken ? d.funken : pick("funken"), on, live: on && placeOk, defOn: d.on, defPlace: d.place };
+  return { id, name: d.name, shop: d.shop, grp: d.grp, gate: d.gate, icon: d.icon, set: d.set, note: d.note, game: d.game, kind: d.kind, fixed: d.fixed, placeable: !!d.placeable, place, earn, canCoins: d.canCoins, canFunken: d.canFunken, coins: d.fixed || !d.canCoins ? d.coins : pick("coins"), funken: d.fixed || !d.canFunken ? d.funken : pick("funken"), on, live: on && placeOk, defOn: d.on, defPlace: d.place };
 }
 function shopPublic() { const out = {}; SHOP_DEFAULTS.forEach(d => { const i = shopItem(d.id); out[d.id] = { coins: i.coins, funken: i.funken, on: i.live }; }); return out; }
 function shopAdminList() { return SHOP_DEFAULTS.map(d => ({ ...shopItem(d.id), defCoins: d.coins, defFunken: d.funken })); }
@@ -4813,7 +4830,11 @@ async function adminShop(key, ip, payload, lang) {
         if (d.canFunken && f !== undefined) o.funken = f;
       }
       o.on = v.on !== false;
-      if (d.placeable && ["shop", "fantasy", "new", "bp"].includes(v.place)) o.place = v.place;
+      if (d.placeable && ["shop", "fantasy", "new", "bp", "earn"].includes(v.place)) o.place = v.place;
+      if (d.placeable && o.place === "earn") { // Aufgabe: behalten, sonst (oder bei "neu wuerfeln") zufaellig waehlen
+        const prev = shopCfg.items && shopCfg.items[d.id] && shopCfg.items[d.id].earn;
+        o.earn = (v.reroll !== true && earnValid(v.earn)) ? { type: v.earn.type, n: Math.round(v.earn.n) } : (v.reroll !== true && earnValid(prev)) ? prev : earnRoll();
+      }
       next[d.id] = o;
     }
     const old = shopCfg; shopCfg = { items: next };
@@ -4932,9 +4953,10 @@ async function ladderBuy(token, id, lang, game) {
 }
 // ---- Figuren-Sets zum Kaufen (Schach): gekaufte Sets gehoeren dem Konto ----
 const PIECE_SET_SHOP = {}; SHOP_DEFAULTS.filter(x => x.kind === "set" && !x.fixed).forEach(x => { PIECE_SET_SHOP[x.set] = x.coins; });
+function earnPublic() { const out = {}; SHOP_DEFAULTS.forEach(d => { if (!d.placeable) return; const i = shopItem(d.id); if (i && i.place === "earn" && i.on !== false && i.earn) out[d.set] = i.earn; }); return out; }
 function pieceSetState(token) {
   const user = findUserByToken(token); if (!user) return { ok: false };
-  return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, funken: user.stats.funken || 0, prices: PIECE_SET_SHOP, funkenPrice: FUNKEN_PRICE.pieceset, cfg: shopPublic() };
+  return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, funken: user.stats.funken || 0, prices: PIECE_SET_SHOP, funkenPrice: FUNKEN_PRICE.pieceset, cfg: shopPublic(), earn: earnPublic() };
 }
 async function pieceSetBuy(token, id, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -7348,7 +7370,8 @@ async function chessApi(action, payload, lang) {
     const list = users.filter(u => dame ? gamesOf(u) > 0 : chessPlaced(u)).sort((a, b) => eloOf(b) - eloOf(a));
     const pos = list.findIndex(u => u === user);
     const friends = (user.friends || []).map(n => findUserByName(n)).filter(Boolean).map(f => ({ name: f.username, elo: eloOf(f), games: gamesOf(f) })).sort((a, b) => b.elo - a.elo);
-    return { ok: true, placed: dame ? true : chessPlaced(user), name: user.username, elo: eloOf(user), games: gamesOf(user), pos: pos >= 0 ? pos + 1 : null,
+    const stw = dame ? (user.stats.dameWins | 0) : (user.stats.chessWins | 0), stl = dame ? (user.stats.dameLosses | 0) : (user.stats.chessLosses | 0), stg = gamesOf(user);
+    return { ok: true, wins: stw, losses: stl, draws: Math.max(0, stg - stw - stl), placeNeed: CHESS_PLACE_GAMES, placed: dame ? true : chessPlaced(user), name: user.username, elo: eloOf(user), games: gamesOf(user), pos: pos >= 0 ? pos + 1 : null,
       top: list.slice(0, 10).map((u, i) => ({ pos: i + 1, name: u.username, elo: eloOf(u), games: gamesOf(u) })), friends };
   }
   if (action === "quest-claim") {
@@ -7483,7 +7506,7 @@ function getChessEngine() {
   const vm = require("vm");
   const src = fs.readFileSync(path.join(__dirname, "public", "chess", "engine.js"), "utf8");
   const ctx = vm.createContext({ console, Math });
-  vm.runInContext(src + "\n;this.__api={initBoard,getLegalMoves,getAllLegalMoves,applyMove,isInCheck,minimax};", ctx);
+  vm.runInContext(src + "\n;this.__api={initBoard,getLegalMoves,getAllLegalMoves,applyMove,isInCheck,minimax,getAIMove,setLevel:function(l){AI_LEVEL=l;}};", ctx);
   chessEngine = ctx.__api;
   return chessEngine;
 }
@@ -7525,6 +7548,19 @@ const chessPairCount = new Map(); // "a|b|Tag" -> Anzahl gewerteter Partien
 function chessEloOf(u) { return (u && u.stats && Number.isFinite(u.stats.chessElo)) ? u.stats.chessElo : CHESS_ELO_START; }
 function chessEloApply(g, winner) {
   if (g.rated || g.casual || g.team || !g.w || !g.b || g.w === g.b) return;
+  if (g.bot && g.bot.name) { // Ersatzgegner: Elo-Aenderung nur fuer den Menschen
+    const hc = g.bot.color === "w" ? "b" : "w", hu = findUserByName(hc === "w" ? g.w : g.b);
+    if (!hu || !chessRankOpen(hu) || (g.log || []).length < 4) return;
+    const rh = chessEloOf(hu), eh = 1 / (1 + Math.pow(10, (g.bot.elo - rh) / 400)), sh = winner === "draw" ? 0.5 : (winner === hc ? 1 : 0);
+    const dh = Math.round((chessPlaced(hu) ? CHESS_ELO_K : CHESS_PLACE_K) * (sh - eh));
+    hu.stats.chessElo = Math.max(100, rh + dh);
+    hu.stats.chessGames = (hu.stats.chessGames || 0) + 1;
+    if (sh === 1) hu.stats.chessWins = (hu.stats.chessWins || 0) + 1; else if (sh === 0) hu.stats.chessLosses = (hu.stats.chessLosses || 0) + 1;
+    const bd = -dh, bAfter = g.bot.elo + bd;
+    g.rated = true; g.eloDelta = hc === "w" ? { w: dh, b: bd } : { w: bd, b: dh }; g.eloAfter = hc === "w" ? { w: hu.stats.chessElo, b: bAfter } : { w: bAfter, b: hu.stats.chessElo };
+    saveUsers().catch(() => {});
+    return;
+  }
   const uw = findUserByName(g.w), ub = findUserByName(g.b);
   if (!uw || !ub) return;
   if (!chessRankOpen(uw) || !chessRankOpen(ub)) return; // Wertung erst nach 10 Siegen in Zufallsspielen ohne Rang
@@ -7580,6 +7616,7 @@ function chessPlanFor(g, me) { // Planung nur fuer Teampartner oder freigeschalt
   return livePlanAllows(owner, me) ? pl : null;
 }
 function chessOnlineView(g, me) {
+  chessBotTick(g);
   chessOnlineCheckTimeout(g);
   const E = getChessEngine();
   const color = chessSide(g, me);
@@ -7587,7 +7624,7 @@ function chessOnlineView(g, me) {
     ok: true, code: g.code, rev: g.rev, me, w: g.w, b: g.b, w2: g.w2 || null, b2: g.b2 || null, team: !!g.team, spectator: !color,
     mover: g.status === "playing" ? chessMover(g, g.turn) : null, watchers: chessWatcherCount(g), plan: chessPlanFor(g, me),
     color, status: g.status, random: !!g.random, casual: !!g.casual,
-    eloW: chessEloOf(findUserByName(g.w || "")), eloB: chessEloOf(findUserByName(g.b || "")), rated: !!g.rated, zp: g.zp || null, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
+    eloW: chessEloOfName(g, g.w), eloB: chessEloOfName(g, g.b), rated: !!g.rated, zp: g.zp || null, eloDelta: g.eloDelta || null, eloAfter: g.eloAfter || null, winner: g.winner || null, why: g.why || null,
     board: g.board, turn: g.turn, last: g.last, log: g.log, capW: g.capW, capB: g.capB,
     check: g.status === "playing" && E.isInCheck(g.board, g.turn),
     timed: !!g.timed, corr: !!g.corr, updated: g.updated,
@@ -7596,6 +7633,77 @@ function chessOnlineView(g, me) {
     moveSecondsLeft: (g.status === "playing" && !g.timed && !g.corr) ? Math.max(0, Math.round((CHESS_ONLINE_MOVE_MS - (Date.now() - g.moveAt)) / 1000)) : null
   };
 }
+function chessCommitMove(g, color, mv, promTo, now) { // fuehrt einen schon geprueften Zug aus (Mensch oder Ersatzgegner)
+  const E = getChessEngine();
+  const piece = g.board[mv.fr][mv.fc];
+    const move = Object.assign({}, mv);
+    if (piece.t === "P" && (move.tr === 0 || move.tr === 7)) move.promTo = ["Q", "R", "B", "N"].includes(promTo) ? promTo : "Q";
+    const target = g.board[move.tr][move.tc];
+    let captured = target ? target.t : null;
+    if (move.ep) captured = "P";
+    const names = { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" };
+    const sq = (r, c) => "abcdefgh"[c] + (8 - r);
+    let note = move.castle ? (move.castle === "k" ? "O-O" : "O-O-O") : `${names[piece.t]}${sq(move.fr, move.fc)}${captured ? "×" : "–"}${sq(move.tr, move.tc)}${move.promTo ? "=" + names[move.promTo] : ""}`;
+    g.board = E.applyMove(g.board, move);
+    if (captured) (color === "w" ? g.capW : g.capB).push(captured);
+    g.half = (piece.t === "P" || captured) ? 0 : g.half + 1;
+    g.last = move; g.turn = color === "w" ? "b" : "w";
+    const k = chessPosKey(g); g.seen[k] = (g.seen[k] || 0) + 1;
+    const legal = E.getAllLegalMoves(g.board, g.turn, g.last);
+    if (legal.length === 0) {
+      if (E.isInCheck(g.board, g.turn)) { g.log.push(note + "#"); chessOnlineFinish(g, color, "mate"); }
+      else { g.log.push(note); chessOnlineFinish(g, "draw", "stalemate"); }
+    } else if (chessInsufficient(g.board)) { g.log.push(note); chessOnlineFinish(g, "draw", "insufficient"); }
+    else if (g.half >= 100) { g.log.push(note); chessOnlineFinish(g, "draw", "fifty"); }
+    else if (g.seen[k] >= 3) { g.log.push(note); chessOnlineFinish(g, "draw", "threefold"); }
+    else { g.log.push(note + (E.isInCheck(g.board, g.turn) ? "+" : "")); g.rev++; }
+    if (g.timed && g.status === "playing") g.clock[color] += CHESS_CLOCK_INC_MS;
+  if (g.status === "playing" && g.bot && g.turn === g.bot.color) g.botMoveAt = now + 1500 + Math.floor(Math.random() * 4500) + Math.min(3000, (g.log || []).length * 40);
+  g.plan = null; g.moveAt = now; g.updated = now;
+}
+
+// Ersatzgegner: Wenn beim Zufallsgegner niemand online ist, spielt nach ein paar Sekunden ein "Spieler" mit Menschen-Namen und aehnlicher Elo (+-50).
+// Je hoeher die Elo, desto seltener. Kurz vor einer Rang-Grenze (weniger als ein Sieg entfernt) nie. Der Zug kommt erst beim naechsten Abruf der Partie (kein Timer noetig).
+const CHESS_BOT_NAMES = ["Tim", "Lena_K", "Jonas92", "mika", "Sophie.M", "Luca", "Felix_B", "Nele", "Paul_88", "Emil", "Hannah", "Ben_W", "Clara", "Leon_K", "Marie", "Finn", "Jule", "noah.s", "Lea", "Niklas", "Anton", "Greta", "Moritz", "Tom_H", "Lisa", "Jan", "Emma_W", "Theo", "Mia_1", "Max_R", "Sarah", "Elias", "Johanna", "Karl", "Amelie", "David_S", "Lotta", "Fabi", "Julia_B", "Oskar", "Anna.L", "Henry", "Paula", "Chris_M", "Ida", "Linus", "Mara", "Timo_7", "Charlotte", "Robin"];
+const CHESS_RANK_ELOS = [1500, 1650, 1800, 1950, 2100, 2300];
+function chessBotAllowed(user, casual) {
+  const e = chessEloOf(user);
+  if (CHESS_RANK_ELOS.some(t => e < t && t - e <= CHESS_ELO_K)) return false; // ein Sieg koennte einen neuen Rang bringen: nur echte Gegner
+  const p = Math.max(0.1, Math.min(0.9, 1 - (e - 1000) / 1300)); // 1000 -> 90 %, 1500 -> 62 %, 2000 -> 23 %, ab 2300 -> 10 %
+  return Math.random() < p;
+}
+function chessBotMake(user) {
+  let name = null;
+  for (let i = 0; i < 20 && !name; i++) { const n = CHESS_BOT_NAMES[Math.floor(Math.random() * CHESS_BOT_NAMES.length)]; if (!findUserByName(n)) name = n; }
+  if (!name) name = "Gast" + (100 + Math.floor(Math.random() * 900));
+  return { name, elo: Math.max(300, chessEloOf(user) + Math.floor(Math.random() * 101) - 50) };
+}
+function chessBotLevel(elo) { // gleiche Leiter wie die Gegner im Spiel (400 + 50 je Stufe); auf dem Server maximal Tiefe 2, damit der Server nicht blockiert
+  const t = Math.max(0, Math.min(1, (elo - 400) / 1450)), q = (1 - t) * (1 - t);
+  return { depth: t < 0.2 ? 1 : 2, jitter: Math.round(150 * q) + 2, blunderChance: Math.max(0.02, 0.5 * (1 - t * 1.6)) };
+}
+function chessBotTick(g) {
+  if (!g || !g.bot) return;
+  const now = Date.now();
+  if (g.status === "waiting" && g.botAt && now >= g.botAt && g.w && !g.b) { // Ersatzgegner setzt sich dazu
+    const user = findUserByName(g.w);
+    const bot = user ? chessBotMake(user) : null;
+    if (!bot) { g.bot = null; return; }
+    g.bot = { name: bot.name, elo: bot.elo, color: "b" };
+    if (Math.random() < 0.5) { g.b = g.w; g.w = bot.name; g.bot.color = "w"; } else g.b = bot.name;
+    g.status = "playing"; g.rev++; g.moveAt = now; g.updated = now;
+    if (g.bot.color === "w") g.botMoveAt = now + 2000 + Math.floor(Math.random() * 4000);
+    return;
+  }
+  if (g.status !== "playing" || g.turn !== g.bot.color || !g.botMoveAt || now < g.botMoveAt || !g.bot.name) return;
+  const E = getChessEngine(), color = g.bot.color, at = g.botMoveAt;
+  if (g.timed) { g.clock[color] -= Math.max(0, at - g.moveAt); if (g.clock[color] <= 0) { g.clock[color] = 0; chessOnlineFinish(g, color === "w" ? "b" : "w", "time"); return; } }
+  E.setLevel(chessBotLevel(g.bot.elo));
+  const mv = E.getAIMove(g.board, g.last, [], color);
+  if (!mv) return;
+  chessCommitMove(g, color, mv, "Q", at);
+}
+const chessEloOfName = (g, name) => (g && g.bot && g.bot.name && name === g.bot.name) ? g.bot.elo : chessEloOf(findUserByName(name || ""));
 function chessOnlineGet(payload, lang) {
   if (!usersLoaded) return { err: serviceDownMsg(lang) };
   const user = findUserByToken(payload.token);
@@ -7648,6 +7756,7 @@ async function chessOnlineApi0(action, payload, lang) {
       const E = getChessEngine();
       const game = { code: code0, corr, casual, w: me, b: null, invited: null, random: true, timed, clock: { w: CHESS_CLOCK_MS, b: CHESS_CLOCK_MS }, status: "waiting", rev: 1,
         board: E.initBoard(), turn: "w", last: null, half: 0, seen: {}, log: [], capW: [], capB: [], moveAt: Date.now(), updated: Date.now() };
+      if (!corr && chessBotAllowed(user, casual)) { game.bot = { name: null, elo: 0, color: null }; game.botAt = Date.now() + 7000 + Math.floor(Math.random() * 13000); }
       game.seen[chessPosKey(game)] = 1; return game;
     };
     if (corr) {
@@ -7670,7 +7779,7 @@ async function chessOnlineApi0(action, payload, lang) {
         if (!best || Math.abs(chessEloOf(findUserByName(x.w)) - chessEloOf(user)) < Math.abs(chessEloOf(findUserByName(best.w)) - chessEloOf(user))) best = x;
       }
     }
-    if (best) { best.b = me; best.status = "playing"; best.rev++; best.moveAt = Date.now(); best.updated = Date.now(); return chessOnlineView(best, me); }
+    if (best) { best.bot = null; best.botAt = null; best.b = me; best.status = "playing"; best.rev++; best.moveAt = Date.now(); best.updated = Date.now(); return chessOnlineView(best, me); }
     const newCode = chessOnlineNewCode();
     if (!newCode) return msg("Gerade keine freie Partie möglich.", "No free game right now.");
     const game = mkGame(newCode);
@@ -7768,29 +7877,7 @@ async function chessOnlineApi0(action, payload, lang) {
     if (!piece || piece.col !== color) return msg("Ungültiger Zug.", "Invalid move.");
     const mv = E.getLegalMoves(g.board, payload.fr, payload.fc, g.last).find(m => m.tr === payload.tr && m.tc === payload.tc);
     if (!mv) return msg("Ungültiger Zug.", "Invalid move.");
-    const move = Object.assign({}, mv);
-    if (piece.t === "P" && (move.tr === 0 || move.tr === 7)) move.promTo = ["Q", "R", "B", "N"].includes(payload.promTo) ? payload.promTo : "Q";
-    const target = g.board[move.tr][move.tc];
-    let captured = target ? target.t : null;
-    if (move.ep) captured = "P";
-    const names = { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" };
-    const sq = (r, c) => "abcdefgh"[c] + (8 - r);
-    let note = move.castle ? (move.castle === "k" ? "O-O" : "O-O-O") : `${names[piece.t]}${sq(move.fr, move.fc)}${captured ? "×" : "–"}${sq(move.tr, move.tc)}${move.promTo ? "=" + names[move.promTo] : ""}`;
-    g.board = E.applyMove(g.board, move);
-    if (captured) (color === "w" ? g.capW : g.capB).push(captured);
-    g.half = (piece.t === "P" || captured) ? 0 : g.half + 1;
-    g.last = move; g.turn = color === "w" ? "b" : "w";
-    const k = chessPosKey(g); g.seen[k] = (g.seen[k] || 0) + 1;
-    const legal = E.getAllLegalMoves(g.board, g.turn, g.last);
-    if (legal.length === 0) {
-      if (E.isInCheck(g.board, g.turn)) { g.log.push(note + "#"); chessOnlineFinish(g, color, "mate"); }
-      else { g.log.push(note); chessOnlineFinish(g, "draw", "stalemate"); }
-    } else if (chessInsufficient(g.board)) { g.log.push(note); chessOnlineFinish(g, "draw", "insufficient"); }
-    else if (g.half >= 100) { g.log.push(note); chessOnlineFinish(g, "draw", "fifty"); }
-    else if (g.seen[k] >= 3) { g.log.push(note); chessOnlineFinish(g, "draw", "threefold"); }
-    else { g.log.push(note + (E.isInCheck(g.board, g.turn) ? "+" : "")); g.rev++; }
-    if (g.timed && g.status === "playing") g.clock[color] += CHESS_CLOCK_INC_MS;
-    g.plan = null; g.moveAt = Date.now(); g.updated = Date.now();
+    chessCommitMove(g, color, mv, payload.promTo, Date.now());
     return chessOnlineView(g, me);
   }
   return errObj("invalidInput", lang);

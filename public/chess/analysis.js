@@ -36,8 +36,8 @@
   var VAL = { P:1, N:3, B:3, R:5, Q:9, K:0 };
   var PN = { de:{ P:"Bauer", N:"Springer", B:"Läufer", R:"Turm", Q:"Dame", K:"König" }, en:{ P:"pawn", N:"knight", B:"bishop", R:"rook", Q:"queen", K:"king" } }[LANG];
   var W = {
-    de:{ mateAllowed:"Dein Zug erlaubt dem Gegner Schachmatt.", mateMissed:"Mit %b hättest du Schachmatt gesetzt.", hang:"Nach deinem Zug kann der Gegner %pk auf %s schlagen und gewinnt Material.", hangBest:"%pn auf %s war angegriffen. %b bringt die Figur in Sicherheit.", wins:"%b gewinnt %pe (Wert %v).", winsMore:"%b gewinnt %pk, dein Zug nur %qe.", check:"%b setzt den König unter Druck (Schach).", pawns:"Die Engine sieht die Stellung nach %b etwa %n Bauern besser.", because:"weil " },
-    en:{ mateAllowed:"Your move allows the opponent to checkmate.", mateMissed:"%b would have been checkmate.", hang:"After your move the opponent can take %pk on %s and wins material.", hangBest:"%pn on %s was attacked. %b puts it to safety.", wins:"%b wins %pe (worth %v).", winsMore:"%b wins the piece, your move only %qe.", check:"%b puts the king under pressure (check).", pawns:"The engine rates the position after %b about %n pawns better.", because:"because " }
+    de:{ mateAllowed:"Dein Zug erlaubt dem Gegner Schachmatt.", mateMissed:"Mit %b hättest du Schachmatt gesetzt.", hang:"Nach deinem Zug kann der Gegner %pk auf %s schlagen und gewinnt Material.", hangBest:"%pn auf %s war angegriffen. %b bringt die Figur in Sicherheit.", wins:"%b gewinnt %pe (Wert %v).", winsMore:"%b gewinnt %pk, dein Zug nur %qe.", check:"%b setzt den König unter Druck (Schach).", pawns:"Nach %b steht die Stellung für dich etwa %n Bauern besser als nach deinem Zug (Material und Stellung zusammen).", huge:"%b hätte dir einen großen Vorteil gebracht (Matt oder sehr viel Material). Dein Zug hat das verspielt.", because:"weil " },
+    en:{ mateAllowed:"Your move allows the opponent to checkmate.", mateMissed:"%b would have been checkmate.", hang:"After your move the opponent can take %pk on %s and wins material.", hangBest:"%pn on %s was attacked. %b puts it to safety.", wins:"%b wins %pe (worth %v).", winsMore:"%b wins the piece, your move only %qe.", check:"%b puts the king under pressure (check).", pawns:"After %b the position is about %n pawns better for you than after your move (material and position combined).", huge:"%b would have given you a huge advantage (mate or a lot of material). Your move threw it away.", because:"because " }
   }[LANG];
   var FEM = { de:{ Q:1 } };
   function art(t, kind){ // kind: k = deinen/deine, n = Dein/Deine, e = einen/eine
@@ -86,6 +86,7 @@
         if(cb && cb.col === o && (!cp || (VAL[cb.t] || 0) > (VAL[cp.t] || 0))) out.push(cp ? fill(W.winsMore, { b: bt, pk: art(cb.t, "e").replace(/^(einen|eine)/, function(m){ return m === "einen" ? "den" : "die"; }), qe: art(cp.t, "e") }) : fill(W.wins, { b: bt, pe: art(cb.t, "e"), v: VAL[cb.t] }));
         else if(isInCheck(nbB, o)) out.push(fill(W.check, { b: bt }));
       }
+      if(out.length < 1 && loss >= 1400) out.push(fill(W.huge, { b: bt }));
       if(out.length < 1) out.push(fill(W.pawns, { b: bt, n: (loss / 100).toFixed(1).replace(".", LANG === "de" ? "," : ".") }));
       return out.slice(0, 2).join(" ");
     }catch(err){ return ""; }

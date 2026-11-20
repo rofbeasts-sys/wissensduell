@@ -385,11 +385,14 @@ function finish(res){
   G.over = true; G.busy = false;
   setTimeout(() => say(res.result === "win" ? "lose" : res.result === "loss" ? "win" : "draw", true), 600);
   if(res.result === 'win' && res.why === T.mate && window.BpSets) BpSets.earn('kristall');
-  if(res.result === 'win' && window.BpSets) BpSets.noteWin();
+  if(res.result === 'win' && window.BpSets){ var _be = 0; try{ if(OPP != null) _be = BpLadder.info('chess', OPP).elo; }catch(e){} BpSets.noteWin({ bot:_be }); }
+  if(window.BpSets){ var _bg = 0; try{ if(OPP != null) _bg = BpLadder.info('chess', OPP).elo; }catch(e){} try{ BpSets.noteGame({ res: res.result === 'win' ? 'win' : res.result === 'draw' ? 'draw' : 'loss', moves: Math.ceil((G.rec||[]).length / 2), mate: res.why === T.mate, bot: _bg }); }catch(e){} }
   try{ parent.sfxResult(res.result === 'win', res.result === 'draw'); }catch(e){}
   render();
   const title = res.result === "win" ? T.win : res.result === "loss" ? T.loss : T.draw;
-  const text = (res.why ? res.why + ", " : "") + (res.result === "win" ? T.youWin : res.result === "loss" ? T.youLose : T.youDraw);
+  const WHY = LANG === "de" ? { [T.mate]:"Der König stand im Schach und hatte keinen Ausweg.", [T.stalemate]:"Patt: Der König stand NICHT im Schach, aber der Spieler am Zug hatte keinen erlaubten Zug (jedes Feld ist bedroht oder besetzt). Das ist immer Remis, kein Matt. Tipp: Lass dem gegnerischen König ein Feld frei oder setze ihn direkt matt.", [T.insufficient]:"Mit dem übrigen Material kann keiner mehr matt setzen.", [T.fifty]:"50 Züge ohne Bauernzug und ohne Schlagen.", [T.threefold]:"Dieselbe Stellung stand zum dritten Mal auf dem Brett." }
+    : { [T.mate]:"The king was in check with no escape.", [T.stalemate]:"Stalemate: the king was NOT in check, but there was no legal move. That is always a draw, not a mate. Tip: leave the enemy king a square or checkmate directly.", [T.insufficient]:"Neither side has enough material to mate.", [T.fifty]:"50 moves without a pawn move or capture.", [T.threefold]:"The same position occurred three times." };
+  const text = (res.why ? res.why + ", " : "") + (res.result === "win" ? T.youWin : res.result === "loss" ? T.youLose : T.youDraw) + (res.why && WHY[res.why] ? "\n" + WHY[res.why] : "");
   setStatus(title, res.result === "win" ? "var(--accent)" : res.result === "loss" ? "var(--bad)" : "var(--accent-2)");
   if(!G.counted){
     G.counted = true;
