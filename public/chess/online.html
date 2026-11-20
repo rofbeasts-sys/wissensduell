@@ -396,7 +396,7 @@ function drawPlan(){
   }
 }
 function showEnd(){
-  if(shownEnd) return; shownEnd = true; rememberCode(null);
+  if(shownEnd) return; shownEnd = true; rememberCode(null); try{ bpAnalysis.save(REC); }catch(e){}
   const res = S.spectator ? "spec" : S.winner === "draw" ? "draw" : (S.winner === S.color || false) ? "win" : "loss";
   if(res !== "spec") try{ parent.sfxResult(res === 'win', res === 'draw'); }catch(e){}
   if(res === 'win' && S.why === 'mate' && window.BpSets) BpSets.earn('kristall');
@@ -420,6 +420,7 @@ $("board").addEventListener("click", (e) => {
   if(p && p.col === S.color){ sel = { r, c }; moves = legalFor(r, c); sendPlan(r, c); } else { sel = null; moves = []; sendPlan(null); }
   draw();
 });
+window.bpMyColor = () => (typeof S !== "undefined" && S && S.color) || "w";
 bpMoveUI($("moveMode")); if(window.bpArrows) bpArrows($("board"));
 bpDragInit({ board: $("board"),
   canPick: (r, c) => S && myTurnNow() && !busy && S.board[r][c] && S.board[r][c].col === S.color,

@@ -5465,13 +5465,22 @@ window.coinSvg = coinSvg;
 })();
 /* ---- Brainups-Kennzeichnung: Karten, bei denen man Punkte bekommt ---- */
 const ZP_MARKS = { 'startErdkunde(':'+50–100', 'startWeltall(':'+50–100', 'startPolitik(':'+50–100', 'KLO.open(':'+150', 'startKugelSolitaer(':'+10–500', 'startBrainingHub(':'+50–100', 'BGX.map(':'+50–100', 'startSoloFlow(':'+250', 'startBiologyFlow(':'+250', 'startVocab(':'+250', 'startSpeedMathFlow(':'+5–160', 'startTicTacToeFlow(':'+100', 'renderChessHub(':'+100', 'openChessOriginal(':'+100', 'startFourupsFlow(':'+100', "renderChessFrame('/fruit":'+50–100', "renderChessFrame('/brainmania/fruit":'+50–100', "renderChessFrame('/brainmania/jong":'+50–100', 'startTabooHub(':'+100', 'startBlitzTF(':'+10–50', 'startMinesucher(':'+10–30', 'start2048(':'+100–500', 'startBrick(':'+20–40', 'startHopper(':'+20–40', 'startFlappy(':'+20–40', 'startBlockPuzzle(':'+20–40', 'startMake24(':'+100 / Level', 'startPyramide(':'+150', 'startChem(':'+10 / Element' };
+const ZP_KEYMAP = { 'startErdkunde(':'geo', 'startWeltall(':'geo', 'startPolitik(':'geo', 'KLO.open(':'klondike', 'startKugelSolitaer(':'sol', 'startBrainingHub(':'fruit', 'BGX.map(':'galaxy', 'startSoloFlow(':'braintest', 'startBiologyFlow(':'bio', 'startVocab(':'vocab', 'startSpeedMathFlow(':'speedmath', 'startTicTacToeFlow(':'ttt', 'renderChessHub(':'chess', 'openChessOriginal(':'chess', 'startFourupsFlow(':'fourups', "renderChessFrame('/fruit":'fruit', "renderChessFrame('/brainmania/fruit":'fruit', "renderChessFrame('/brainmania/jong":'jong', 'startTabooHub(':'taboo', 'startBlitzTF(':'tf', 'startMinesucher(':'ms', 'start2048(':'g2048', 'startBrick(':'brick', 'startHopper(':'hopper', 'startFlappy(':'flappy', 'startBlockPuzzle(':'block', 'startMake24(':'make24', 'startPyramide(':'pyramide', 'startChem(':'chem' };
+let ZPG = null, zpgLoading = false;
+function zpScale(txt, pct){ return pct === 100 ? txt : txt.replace(/\d+/g, n => String(Math.round(Number(n) * pct / 100))); }
+async function zpLoadGames(){
+  if(zpgLoading) return; zpgLoading = true;
+  try{ const r = await apiCall('/api/zp-games', {}); if(r && r.ok){ ZPG = r.games || {}; document.querySelectorAll('.zpb').forEach(e => e.remove()); document.querySelectorAll('.mode-card[data-zpb]').forEach(c => { delete c.dataset.zpb; }); zpMarkCards(); } }catch(e){}
+  setTimeout(() => { zpgLoading = false; }, 60000);
+}
 function zpMarkCards(){
+  if(ZPG === null && !zpgLoading) zpLoadGames();
   if(!document.getElementById('zpbCss')){ const st = document.createElement('style'); st.id = 'zpbCss'; st.textContent = '.mode-card[data-zpb]{position:relative}.zpb{position:absolute;top:8px;right:8px;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:3px 8px;letter-spacing:.3px;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.35)}.zpb-i{display:inline-block;background:var(--accent);color:#10150a;font-weight:900;font-size:11px;border-radius:99px;padding:2px 8px;margin-left:6px;vertical-align:middle}'; document.head.appendChild(st); }
   if(featureLocked('zp')){ document.querySelectorAll('.zpb').forEach(e => e.remove()); return; }
   document.querySelectorAll('.mode-card:not(.locked)').forEach(c => {
     if(c.dataset.zpb) return;
     const oc = c.getAttribute('onclick') || '';
-    for(const fn in ZP_MARKS){ if(oc.trim().indexOf(fn) === 0){ c.dataset.zpb = '1'; c.insertAdjacentHTML('beforeend', '<span class="zpb">' + buPulse(13, '#10150a') + ' ' + ZP_MARKS[fn] + '</span>'); break; } }
+    for(const fn in ZP_MARKS){ if(oc.trim().indexOf(fn) === 0){ c.dataset.zpb = '1'; const gc = ZPG && ZPG[ZP_KEYMAP[fn]]; if(gc && !gc.on) break; c.insertAdjacentHTML('beforeend', '<span class="zpb">' + buPulse(13, '#10150a') + ' ' + (gc ? zpScale(ZP_MARKS[fn], gc.pct) : ZP_MARKS[fn]) + '</span>'); break; } }
   });
 }
 /* ---- Spiele-Schalter (Admin-App): gesperrte / in Wartung befindliche Spiele im Menue sperren ---- */
@@ -8606,6 +8615,7 @@ function renderShopScreen(){
         ${arenaShopOn() ? `<div style="--c:#bb55ff"><small>ARENA</small><b>${shopArenaInfo ? '❤️ ' + shopArenaInfo.hearts + '/' + shopArenaInfo.maxHearts : '–'}</b></div>` : ''}
       </div>
       ${hiddenFeatures.indexOf('shop_chess') !== -1 ? '' : `<button class="bs-link" ${fantasyOn ? 'onclick="openChessWorldShop()"' : 'disabled'}>♞ ${L('ZUM CHESS-SHOP','TO THE CHESS SHOP')}${fantasyOn ? '' : ' · ' + gateText('shop_chess')}</button>`}
+      ${hiddenFeatures.indexOf('shop_chess') !== -1 ? '' : `<button class="bs-link" onclick="openPieceShop()">♟ ${L('SCHACH-FIGUREN','CHESS PIECES')}</button>`}
       ${hiddenFeatures.indexOf('shop_fourups') !== -1 ? '' : `<button class="bs-link" disabled>✨ ${L('FOURUPS-KISTEN','FOURUPS CHESTS')} · ${gateText('shop_fourups')}</button>`}
 
       <p style="color:var(--text-dim); font-size:12px; text-align:center; margin-top:-6px;">${L(`Münzen verdienst du durch neu freigeschaltete Erfolge (+${ACHV_COIN_REWARD}) und bestandene Haupttests (+${HAUPTTEST_COIN_REWARD}).`,`You earn coins from newly unlocked achievements (+${ACHV_COIN_REWARD}) and passed main tests (+${HAUPTTEST_COIN_REWARD}).`)}</p>
@@ -8667,6 +8677,40 @@ function renderShopScreen(){
      </div>
     </div>
   `);
+}
+
+// ---- Schach-Figuren im Brain-Shop (kaufbare Sets; Auswahl danach im Schach unter "Gekauft") ----
+async function openPieceShop(){
+  const de = (typeof lang !== 'undefined' ? lang : 'de') !== 'en';
+  const ov = document.createElement('div'); ov.id = 'pieceShopOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:99990;background:#05081a;overflow:auto;color:#fff;font-family:system-ui,sans-serif;padding:16px';
+  document.body.appendChild(ov);
+  ov.innerHTML = '<div style="padding:30px;text-align:center">…</div>';
+  if(!window.BpSets){ await new Promise(r => { const sc = document.createElement('script'); sc.src = '/chess/pieces.js'; sc.onload = r; sc.onerror = r; document.head.appendChild(sc); }); }
+  let st = null; try{ st = await apiCall('/api/pieceset-status', { token: account.token }); }catch(e){}
+  let msg = '';
+  function draw(){
+    const S = window.BpSets; if(!S || !st || !st.ok){ ov.innerHTML = '<div style="padding:30px;text-align:center">' + (de ? 'Shop gerade nicht erreichbar.' : 'Shop unavailable.') + '</div><button id="psX" style="margin:auto;display:block;padding:10px 20px">OK</button>'; ov.querySelector('#psX').onclick = () => ov.remove(); return; }
+    const owned = st.bought || [], cfg = st.cfg || {};
+    const items = S.list.filter(x => x.price).map(x => { const c = cfg['set_' + x.id]; return Object.assign({}, x, c ? { coins: c.coins, funken: c.funken, on: c.on } : { coins: x.price, funken: x.fprice, on: !x.off }); });
+    const own = items.filter(x => owned.indexOf(x.id) >= 0), shop = items.filter(x => owned.indexOf(x.id) < 0 && x.on);
+    const card = x => '<div style="width:150px;padding:10px;border:1px solid rgba(255,255,255,.18);border-radius:14px;text-align:center;background:rgba(255,255,255,.04)"><img src="/chess/sets/' + x.id + '/wN.png" style="width:72px;height:72px" alt=""><div style="font-weight:800;margin:4px 0">' + (de ? x.de : x.en) + '</div>'
+      + (owned.indexOf(x.id) >= 0 ? '<div style="color:#c6ff3d;font-weight:800">✓ ' + (de ? 'gekauft' : 'owned') + '</div>'
+        : ((x.coins != null && x.coins >= 0 ? '<button data-c="' + x.id + '" style="width:100%;margin:3px 0;padding:8px;border:0;border-radius:9px;background:#c6ff3d;color:#08110c;font-weight:900;cursor:pointer">🪙 ' + x.coins + '</button>' : '') + (x.funken != null ? '<button data-f="' + x.id + '" style="width:100%;margin:3px 0;padding:8px;border:0;border-radius:9px;background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700;font-weight:900;cursor:pointer">✨ ' + x.funken + '</button>' : ''))) + '</div>';
+    ov.innerHTML = '<div style="max-width:560px;margin:0 auto"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:20px">♟ ' + (de ? 'Schach-Figuren' : 'Chess pieces') + '</b><button id="psX" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;cursor:pointer">✕</button></div>'
+      + '<div style="opacity:.75;margin:8px 0">🪙 ' + (st.coins != null ? st.coins : (profile.coins || 0)) + ' · ✨ ' + (st.funken != null ? st.funken : funkenOf()) + '</div>' + (msg ? '<div style="color:#ff8aa8;margin:6px 0">' + msg + '</div>' : '')
+      + (shop.length ? '<div style="display:flex;flex-wrap:wrap;gap:10px">' + shop.map(card).join('') + '</div>' : '<div style="opacity:.7;margin:14px 0">' + (de ? 'Zurzeit gibt es keine neuen Figuren zu kaufen.' : 'No new pieces for sale right now.') + '</div>')
+      + (own.length ? '<div style="font-weight:800;margin:18px 0 8px">🛍 ' + (de ? 'Gekauft' : 'Owned') + '</div><div style="display:flex;flex-wrap:wrap;gap:10px">' + own.map(card).join('') + '</div>' : '') + '</div>';
+    ov.querySelector('#psX').onclick = () => ov.remove();
+    ov.querySelectorAll('[data-c],[data-f]').forEach(b => b.onclick = async () => {
+      const id = b.dataset.c || b.dataset.f; b.disabled = true; b.textContent = '…';
+      let r; try{ r = b.dataset.c ? await apiCall('/api/pieceset-buy', { token: account.token, id, lang: de ? 'de' : 'en' }) : await apiCall('/api/funken-buy', { token: account.token, kind: 'pieceset', id, lang: de ? 'de' : 'en' }); }catch(e){ r = null; }
+      if(r && r.ok){ st.bought = r.bought || r.sets || st.bought; if(r.coins != null) st.coins = r.coins; if(r.funken != null) st.funken = r.funken; try{ window.BpSets.setOwned(st.bought); }catch(e){} msg = ''; }
+      else msg = (r && r.error) || (de ? 'Kauf nicht möglich.' : 'Could not buy.');
+      draw();
+    });
+  }
+  draw();
 }
 function openChessWorldShop(){
   if(featureLocked('chess_fantasy')) return;

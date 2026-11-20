@@ -32,6 +32,58 @@
     var v = minimax(nb, 2, -Infinity, Infinity, col === "w", mv);
     return col === "b" ? v : -v;
   }
+  // ---- Erklärung: warum wäre der andere Zug besser? ----
+  var VAL = { P:1, N:3, B:3, R:5, Q:9, K:0 };
+  var PN = { de:{ P:"Bauer", N:"Springer", B:"Läufer", R:"Turm", Q:"Dame", K:"König" }, en:{ P:"pawn", N:"knight", B:"bishop", R:"rook", Q:"queen", K:"king" } }[LANG];
+  var W = {
+    de:{ mateAllowed:"Dein Zug erlaubt dem Gegner Schachmatt.", mateMissed:"Mit %b hättest du Schachmatt gesetzt.", hang:"Nach deinem Zug kann der Gegner deinen %p auf %s schlagen und gewinnt Material.", hangBest:"Dein %p auf %s war angegriffen. %b bringt ihn in Sicherheit.", wins:"%b gewinnt einen %p (Wert %v).", winsMore:"%b gewinnt den %p, dein Zug nur einen %q.", check:"%b setzt den König unter Druck (Schach).", pawns:"Die Engine sieht die Stellung nach %b etwa %n Bauern besser.", because:"weil " },
+    en:{ mateAllowed:"Your move allows the opponent to checkmate.", mateMissed:"%b would have been checkmate.", hang:"After your move the opponent can take your %p on %s and wins material.", hangBest:"Your %p on %s was attacked. %b puts it to safety.", wins:"%b wins a %p (worth %v).", winsMore:"%b wins the %p, your move only a %q.", check:"%b puts the king under pressure (check).", pawns:"The engine rates the position after %b about %n pawns better.", because:"because " }
+  }[LANG];
+  function oppC(c){ return c === "w" ? "b" : "w"; }
+  function fill(t, o){ return t.replace(/%(\w)/g, function(m, k){ return o[k] != null ? o[k] : m; }); }
+  function mates(nb, defCol, mv){ try{ return isInCheck(nb, defCol) && getAllLegalMoves(nb, defCol, mv).length === 0; }catch(e){ return false; } }
+  function canMate(nb, col, last){
+    try{ var ms = getAllLegalMoves(nb, col, last); for(var i = 0; i < ms.length; i++){ var n2 = applyMove(nb, ms[i]); if(mates(n2, oppC(col), ms[i])) return true; } }catch(e){}
+    return false;
+  }
+  // Größter Materialgewinn, den der Gegner (nach nb) mit einem Schlag machen kann
+  function threat(nb, col, last){
+    var o = oppC(col), best = { net:0, tgt:null, r:0, c:0 };
+    try{
+      var ms = getAllLegalMoves(nb, o, last);
+      for(var i = 0; i < ms.length; i++){
+        var m = ms[i], tg = nb[m.tr][m.tc]; if(!tg || tg.col !== col) continue;
+        var at = nb[m.fr][m.fc], gain = VAL[tg.t] || 0, defended = sqAttacked(nb, m.tr, m.tc, col);
+        var net = defended ? gain - (VAL[at.t] || 0) : gain;
+        if(net > best.net){ best = { net:net, tgt:tg, r:m.tr, c:m.tc }; }
+      }
+    }catch(e){}
+    return best;
+  }
+  function explain(e, played, best, loss){
+    try{
+      var col = e.col, o = oppC(col), pm = played || e.move, bt = label(e.board, best);
+      var nbP = applyMove(e.board, pm), nbB = applyMove(e.board, best);
+      var out = [];
+      if(canMate(nbP, o, pm)) out.push(W.mateAllowed);
+      if(mates(nbB, o, best)) out.push(fill(W.mateMissed, { b: bt }));
+      if(!out.length){
+        var tp = threat(nbP, col, pm), tb = threat(nbB, col, best);
+        if(tp.net >= 1 && tp.net > tb.net) out.push(fill(W.hang, { p: PN[tp.tgt.t], s: sq(tp.r, tp.c) }));
+        else {
+          var t0 = threat(e.board, col, e.last);   // war schon vorher etwas angegriffen?
+          if(t0.net >= 1 && tb.net < t0.net && tp.net >= t0.net) out.push(fill(W.hangBest, { p: PN[t0.tgt.t], s: sq(t0.r, t0.c), b: bt }));
+        }
+      }
+      if(out.length < 1){
+        var cb = e.board[best.tr][best.tc], cp = e.board[pm.tr][pm.tc];
+        if(cb && cb.col === o && (!cp || (VAL[cb.t] || 0) > (VAL[cp.t] || 0))) out.push(cp ? fill(W.winsMore, { b: bt, p: PN[cb.t], q: PN[cp.t] }) : fill(W.wins, { b: bt, p: PN[cb.t], v: VAL[cb.t] }));
+        else if(isInCheck(nbB, o)) out.push(fill(W.check, { b: bt }));
+      }
+      if(out.length < 1) out.push(fill(W.pawns, { b: bt, n: (loss / 100).toFixed(1).replace(".", LANG === "de" ? "," : ".") }));
+      return out.slice(0, 2).join(" ");
+    }catch(err){ return ""; }
+  }
   function analyzeEntry(e){
     var moves = getAllLegalMoves(e.board, e.col, e.last);
     var played = null, best = null, bestV = -Infinity, playedV = -Infinity;
@@ -43,7 +95,8 @@
     if(!played){ playedV = bestV; }
     var loss = Math.max(0, Math.min(1500, bestV - playedV));
     var cls = CLS.find(function(c){ return loss <= c.max; });
-    return { text: label(e.board, e.move), cls: cls, loss: loss, best: best, bestText: best ? label(e.board, best) : "", sameAsBest: !!best && best.fr === e.move.fr && best.fc === e.move.fc && best.tr === e.move.tr && best.tc === e.move.tc };
+    var needWhy = !!best && cls.key !== "best" && cls.key !== "good" && !(best.fr === e.move.fr && best.fc === e.move.fc && best.tr === e.move.tr && best.tc === e.move.tc);
+    return { text: label(e.board, e.move), why: needWhy ? explain(e, played, best, loss) : "", cls: cls, loss: loss, best: best, bestText: best ? label(e.board, best) : "", sameAsBest: !!best && best.fr === e.move.fr && best.fc === e.move.fc && best.tr === e.move.tr && best.tc === e.move.tc };
   }
   function ensureUi(){
     if(document.getElementById("bpAnaOv")) return;
@@ -126,7 +179,7 @@
     else if(fr.kind === "opp"){ var p0 = fr.board[fr.hl.tr][fr.hl.tc]; t = T.opp + ": " + (p0 ? SYMS[p0.t] : "") + sq(fr.hl.fr, fr.hl.fc) + "–" + sq(fr.hl.tr, fr.hl.tc); }
     else {
       t = T.mine + " " + (fr.i + 1) + ": " + (row ? esc(row.text) : "…");
-      if(row){ t += '<small style="color:' + row.cls.color + '">' + row.cls.icon + " " + T[row.cls.key] + ((!row.sameAsBest && row.bestText && row.cls.key !== "best" && row.cls.key !== "good") ? " · " + T.better + ": " + esc(row.bestText) : "") + "</small>"; }
+      if(row){ t += '<small style="color:' + row.cls.color + '">' + row.cls.icon + " " + T[row.cls.key] + ((!row.sameAsBest && row.bestText && row.cls.key !== "best" && row.cls.key !== "good") ? " · " + T.better + ": " + esc(row.bestText) : "") + "</small>" + ((row.why && row.cls.key !== "best" && row.cls.key !== "good") ? '<small style="color:#c9d2ee;margin-top:2px">' + esc(row.why) + "</small>" : ""); }
     }
     cap.innerHTML = t;
     document.getElementById("bpAnaPos").textContent = (RP.cur + 1) + " / " + RP.frames.length;
@@ -156,7 +209,11 @@
     }); }
   }
   // entries: [{board, last, col, move}] - Stellung VOR dem eigenen Zug.
+  var LK = "bp_last_analysis";
+  function saveLast(entries){ try{ if(entries && entries.length) localStorage.setItem(LK, JSON.stringify(entries.slice(-80))); }catch(e){} }
+  function loadLast(){ try{ var a = JSON.parse(localStorage.getItem(LK) || "null"); return Array.isArray(a) && a.length ? a : null; }catch(e){ return null; } }
   function show(entries){
+    if(!entries || !entries.length) entries = loadLast() || entries; else saveLast(entries);
     ensureUi();
     var ov = document.getElementById("bpAnaOv"), body = ov.querySelector("#bpAnaBody"), sumEl = ov.querySelector("#bpAnaSum"), bar = ov.querySelector("#bpAnaBar i");
     ov.querySelector("h2").textContent = "🔎 " + T.title; ov.querySelector("#bpAnaClose").textContent = T.close; ov.querySelector(".bpAnaNote").textContent = T.note;
@@ -173,7 +230,7 @@
       try{ r = analyzeEntry(e); }catch(err){ r = { text:"?", cls:CLS[1], loss:0, bestText:"", sameAsBest:true }; }
       rows.push(r); RP.rows = rows;
       var d = document.createElement("div"); d.className = "bpAnaRow"; (function(ix){ d.onclick = function(){ stopPlay(); gotoFrame(2 * ix + 1); ov.querySelector("#bpAnaBoardWrap").scrollIntoView({block:"nearest"}); }; })(i);
-      var hint = (!r.sameAsBest && r.cls.key !== "best" && r.cls.key !== "good" && r.bestText) ? "<small>" + T.better + ": " + esc(r.bestText) + "</small>" : "";
+      var hint = (!r.sameAsBest && r.cls.key !== "best" && r.cls.key !== "good" && r.bestText) ? "<small>" + T.better + ": " + esc(r.bestText) + "</small>" + (r.why ? "<small style=\"color:#c9d2ee\">" + esc(r.why) + "</small>" : "") : "";
       d.innerHTML = '<span class="bpAnaN">' + (i + 1) + '.</span><span class="bpAnaIc" style="color:' + r.cls.color + '">' + r.cls.icon + '</span><span class="bpAnaTx">' + esc(r.text) + '<small style="color:' + r.cls.color + '">' + T[r.cls.key] + '</small>' + hint + '</span>';
       body.appendChild(d);
       i++; bar.style.width = Math.round(i / entries.length * 100) + "%";
@@ -187,5 +244,5 @@
     }
     setTimeout(step, 30);
   }
-  window.bpAnalysis = { show: show, analyzeEntry: analyzeEntry, summarize: summarize, label: T.btn, T: T };
+  window.bpAnalysis = { save: saveLast, hasLast: function(){ return !!loadLast(); }, show: show, analyzeEntry: analyzeEntry, summarize: summarize, label: T.btn, T: T };
 })();

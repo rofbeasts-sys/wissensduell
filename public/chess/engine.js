@@ -271,8 +271,9 @@ function minimax(board,depth,alpha,beta,isMax,lastMove){
 let AI_LEVEL = { depth: 2, jitter: 60, blunderChance: 0.10 };
 function getAIDifficulty(){ return AI_LEVEL; }
 
-function getAIMove(board,lastMove,frozenSquares){
-  let moves=getAllLegalMoves(board,'b',lastMove);if(!moves.length)return null;
+function getAIMove(board,lastMove,frozenSquares,aiCol){
+  const ac=aiCol==='w'?'w':'b'; // Standard: der Bot spielt Schwarz
+  let moves=getAllLegalMoves(board,ac,lastMove);if(!moves.length)return null;
   if(frozenSquares&&frozenSquares.length){
     moves=moves.filter(m=>!frozenSquares.some(f=>f.r===m.tr&&f.c===m.tc));
     if(!moves.length)return null;
@@ -288,7 +289,7 @@ function getAIMove(board,lastMove,frozenSquares){
   let best=null,bestScore=-Infinity;
   for(const m of ordered){
     const nb=applyMove(board,m);
-    const v=minimax(nb,depth,-Infinity,Infinity,false,m);
+    const v0=minimax(nb,depth,-Infinity,Infinity,ac==='w',m), v=ac==='w'?-v0:v0; // Weiss will die Bewertung (aus Sicht Schwarz) senken
     const j=(Math.random()-0.5)*jitter*2;
     if(v+j>bestScore){bestScore=v+j;best=m;}
   }

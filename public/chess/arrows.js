@@ -1,8 +1,8 @@
-/* Schach: Gedankenzüge. Rechte Maustaste ziehen (oder auf dem Handy lange drücken und ziehen) = blauer Pfeil.
-   Rechtsklick auf ein Feld = Kreis. Linksklick auf das Brett löscht alle Pfeile.
+/* Schach: Gedankenzüge. Rechte Maustaste ziehen (oder auf dem Handy lange drücken und ziehen) = Pfeil.
+   Farbe nach Start: eigene Figur blau, Figur des Gegners rot, leeres Feld grün. Rechtsklick auf ein Feld = Kreis (gleiche Farbregel). Linksklick auf das Brett löscht alle Pfeile.
    Die Pfeile liegen auf einer eigenen Ebene ueber dem Brett und aendern nichts am Spiel. */
 (function(){
-  var NS = 'http://www.w3.org/2000/svg', COL = 'rgba(40,120,255,.82)';
+  var NS = 'http://www.w3.org/2000/svg';
   window.bpArrows = function(board){
     var wrap = board.parentElement; if(!wrap) return;
     var svg = document.createElementNS(NS, 'svg');
@@ -33,36 +33,42 @@
       return q && board.contains(q) ? [+q.dataset.r, +q.dataset.c] : null;
     }
     function same(a, b){ return a[0] === b[0] && a[1] === b[1]; }
+    // Farbe nach Herkunft: Figur des Gegners = rot, eigene Figur = blau, leeres Feld = grün
+    var COLS = { mine: ['#2f7bff', 'rgba(47,123,255,.82)'], opp: ['#ef3b4a', 'rgba(239,59,74,.84)'], free: ['#22b573', 'rgba(34,181,115,.82)'] };
+    function kindAt(sq){
+      var e = sqEl(sq[0], sq[1]), pc = e && e.querySelector('.pc'); if(!pc) return 'free';
+      var mine = 'w'; try{ if(typeof window.bpMyColor === 'function') mine = window.bpMyColor() || 'w'; }catch(er){}
+      return pc.classList.contains(mine) ? 'mine' : (pc.classList.contains('w') || pc.classList.contains('b') ? 'opp' : 'free');
+    }
+    function el(n, at){ var e = document.createElementNS(NS, n); for(var k in at) e.setAttribute(k, at[k]); return e; }
     function paint(){
       svg.innerHTML = '';
-      var all = items.slice(); if(cur) all.push(cur);
+      var all = items.slice(); if(cur) all.push(Object.assign({ prev: true }, cur));
       all.forEach(function(it){
         var a = ctr(it.a[0], it.a[1]), b = ctr(it.b[0], it.b[1]); if(!a || !b) return;
+        var col = COLS[it.k || 'free'], op = it.prev ? .55 : 1, g = el('g', { opacity: op, style: 'filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))' });
         if(same(it.a, it.b)){
-          var ci = document.createElementNS(NS, 'circle');
-          ci.setAttribute('cx', a.x); ci.setAttribute('cy', a.y); ci.setAttribute('r', a.s * .44);
-          ci.setAttribute('fill', 'none'); ci.setAttribute('stroke', COL); ci.setAttribute('stroke-width', Math.max(3, a.s * .07));
-          svg.appendChild(ci); return;
+          g.appendChild(el('circle', { cx: a.x, cy: a.y, r: a.s * .43, fill: col[1].replace(/[\d.]+\)$/, '.14)'), stroke: col[1], 'stroke-width': Math.max(3, a.s * .075) }));
+          svg.appendChild(g); return;
         }
-        var dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy), ux = dx / len, uy = dy / len;
-        var w = Math.max(5, a.s * .17), head = a.s * .42, x1 = a.x + ux * a.s * .22, y1 = a.y + uy * a.s * .22, x2 = b.x - ux * head * .6, y2 = b.y - uy * head * .6;
-        var ln = document.createElementNS(NS, 'line');
-        ln.setAttribute('x1', x1); ln.setAttribute('y1', y1); ln.setAttribute('x2', x2); ln.setAttribute('y2', y2);
-        ln.setAttribute('stroke', COL); ln.setAttribute('stroke-width', w); ln.setAttribute('stroke-linecap', 'round');
-        svg.appendChild(ln);
-        var px = -uy, py = ux, tx = b.x - ux * a.s * .08, ty = b.y - uy * a.s * .08;
-        var pg = document.createElementNS(NS, 'polygon');
-        pg.setAttribute('points', [tx, ty, tx - ux * head + px * head * .5, ty - uy * head + py * head * .5, tx - ux * head - px * head * .5, ty - uy * head - py * head * .5].join(','));
-        pg.setAttribute('fill', COL); svg.appendChild(pg);
+        var dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy), ux = dx / len, uy = dy / len, px = -uy, py = ux;
+        var hw = Math.max(3.5, a.s * .085), hh = a.s * .27, hl = a.s * .36, off = a.s * .12;
+        var sx = a.x + ux * off, sy = a.y + uy * off, tx = b.x - ux * a.s * .1, ty = b.y - uy * a.s * .1, bx = tx - ux * hl, by = ty - uy * hl;
+        if((bx - sx) * ux + (by - sy) * uy < 0){ bx = sx; by = sy; }
+        var d = 'M' + (sx + px * hw) + ',' + (sy + py * hw) + ' L' + (bx + px * hw) + ',' + (by + py * hw) + ' L' + (bx + px * hh) + ',' + (by + py * hh) + ' L' + tx + ',' + ty
+          + ' L' + (bx - px * hh) + ',' + (by - py * hh) + ' L' + (bx - px * hw) + ',' + (by - py * hw) + ' L' + (sx - px * hw) + ',' + (sy - py * hw) + ' Z';
+        g.appendChild(el('path', { d: d, fill: col[1], stroke: col[1], 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+        g.appendChild(el('circle', { cx: sx, cy: sy, r: hw, fill: col[1] }));
+        svg.appendChild(g);
       });
     }
     function commit(){
       if(!cur) return;
       var i = -1; items.forEach(function(it, k){ if(same(it.a, cur.a) && same(it.b, cur.b)) i = k; });
-      if(i >= 0) items.splice(i, 1); else items.push({ a: cur.a, b: cur.b });
+      if(i >= 0) items.splice(i, 1); else items.push({ a: cur.a, b: cur.b, k: kindAt(cur.a) });
       cur = null; paint();
     }
-    function begin(x, y){ var s = sqAt(x, y); if(!s) return false; cur = { a: s, b: s }; paint(); return true; }
+    function begin(x, y){ var s = sqAt(x, y); if(!s) return false; cur = { a: s, b: s, k: kindAt(s) }; paint(); return true; }
     function track(x, y){ if(!cur) return; var s = sqAt(x, y); if(s && !same(s, cur.b)){ cur.b = s; paint(); } }
     board.addEventListener('contextmenu', function(e){ e.preventDefault(); });
     board.addEventListener('pointerdown', function(e){

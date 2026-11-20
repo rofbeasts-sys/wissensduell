@@ -67,7 +67,7 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
   earn:function(id){ var a=BS.earned(); if(a.indexOf(id)>=0) return; a.push(id); lset('bp_sets_earned',JSON.stringify(a));
     var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return;
     try{ var t=document.createElement('div'); t.textContent='🎉 Neues Figuren-Set freigeschaltet: '+x.de; t.style.cssText='position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:99999;background:#c6ff3d;color:#08110c;font:800 15px system-ui,sans-serif;padding:12px 18px;border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw;text-align:center'; document.body.appendChild(t); setTimeout(function(){ t.remove(); },5000); }catch(e){} },
-  unlocked:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return false; if(x.price) return BS.owned().indexOf(id)>=0; if(x.earn) return BS.earned().indexOf(id)>=0; return true; },
+  unlocked:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return false; if(x.price) return BS.owned().indexOf(id)>=0; if(x.earn) return BS.earned().indexOf(id)>=0; if(x.elo>0) return BS.maxElo()>=x.elo; return true; },
   get:function(){ var id=ls('bp_piece_set')||'normal'; return BS.unlocked(id)?id:'normal'; },
   set:function(id){ if(BS.unlocked(id)){ lset('bp_piece_set',id); BS.preload(); return true; } return false; },
   board:function(){ var id=ls('bp_board_theme')||'holzgruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },

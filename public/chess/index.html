@@ -141,12 +141,12 @@
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
 const T = {
-  de:{ title:"Chess", sub:"Wähle einen Gegner aus der Gegner-Leiter. Du spielst Weiß.", level:"Stärke", l1:"Anfänger", l2:"Leicht", l3:"Mittel", l4:"Schwer",
+  de:{ title:"Chess", sub:"Wähle einen Gegner aus der Gegner-Leiter und deine Farbe.", level:"Stärke", l1:"Anfänger", l2:"Leicht", l3:"Mittel", l4:"Schwer",
     yourTurn:"Du bist dran", thinking:"Bot denkt …", check:"Schach!", newGame:"Neu", undo:"Zurück", resign:"Aufgeben",
     win:"Gewonnen!", loss:"Verloren", draw:"Remis", mate:"Schachmatt", stalemate:"Patt", insufficient:"Zu wenig Material", fifty:"50-Züge-Regel", threefold:"Dreifache Stellungswiederholung",
     youWin:"Du hast den Bot besiegt.", youLose:"Der Bot war diesmal besser.", youDraw:"Unentschieden.", resigned:"Du hast aufgegeben.", again:"Nochmal", close:"Schließen",
     promo:"Umwandeln in", stats:(s)=>`Bilanz: ${s.games} Partien · ${s.wins} Siege · ${s.draws} Remis · ${s.losses} Niederlagen`, confirmResign:"Wirklich aufgeben?" },
-  en:{ title:"Chess", sub:"Pick an opponent from the opponent ladder. You play White.", level:"Strength", l1:"Beginner", l2:"Easy", l3:"Medium", l4:"Hard",
+  en:{ title:"Chess", sub:"Pick an opponent from the opponent ladder and your colour.", level:"Strength", l1:"Beginner", l2:"Easy", l3:"Medium", l4:"Hard",
     yourTurn:"Your move", thinking:"Bot is thinking …", check:"Check!", newGame:"New", undo:"Undo", resign:"Resign",
     win:"You won!", loss:"You lost", draw:"Draw", mate:"Checkmate", stalemate:"Stalemate", insufficient:"Insufficient material", fifty:"50-move rule", threefold:"Threefold repetition",
     youWin:"You beat the bot.", youLose:"The bot was better this time.", youDraw:"It's a draw.", resigned:"You resigned.", again:"Play again", close:"Close",
@@ -170,11 +170,17 @@ let level = 2; try{ const l = parseInt(localStorage.getItem(LEVEL_KEY), 10); if(
 const SYM = { K:"♚︎", Q:"♛︎", R:"♜︎", B:"♝︎", N:"♞︎", P:"♟︎" };
 const $ = (id) => document.getElementById(id);
 let G; // Spielstand
+let ME = "w"; // Farbe des Spielers in der laufenden Partie
+let COLOR_PREF = "w"; try{ const cp = localStorage.getItem("bp_chess_color"); if(cp === "w" || cp === "b" || cp === "r") COLOR_PREF = cp; }catch(e){}
+const OTHER = (c) => c === "w" ? "b" : "w";
 
 function newGame(){
+  ME = COLOR_PREF === "r" ? (Math.random() < 0.5 ? "w" : "b") : COLOR_PREF;
   G = { board: initBoard(), turn:"w", last:null, selected:null, moves:[], over:false, log:[], capW:[], capB:[], history:[], half:0, seen:{}, busy:false, counted:false, rec:[] };
   G.seen[posKey()] = 1;
+  buildUi();
   render(); setStatus();
+  if(ME === "b"){ G.busy = true; render(); setStatus(); setTimeout(botMove, 500); } // Schwarz: der Bot fängt an
 }
 function posKey(){
   let k = G.turn;
@@ -189,7 +195,8 @@ function sqName(r,c){ return "abcdefgh"[c] + (8-r); }
 function render(){
   const b = $("board"); b.innerHTML = "";
   const kingSq = isInCheck(G.board, G.turn) ? findKing(G.board, G.turn) : null;
-  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+  for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++){
+    const r = ME === "b" ? 7-rr : rr, c = ME === "b" ? 7-cc : cc;
     const d = document.createElement("div");
     let cls = "sq " + ((r+c)%2===0 ? "l" : "d");
     if(G.last && ((G.last.fr===r&&G.last.fc===c)||(G.last.tr===r&&G.last.tc===c))) cls += " last";
@@ -198,8 +205,8 @@ function render(){
     const mv = G.moves.find(m => m.tr===r && m.tc===c);
     if(mv) cls += " hint" + (G.board[r][c] || mv.ep ? " cap" : "");
     d.className = cls; d.dataset.r = r; d.dataset.c = c;
-    if(c===0) d.insertAdjacentHTML("beforeend", `<span class="coord rk">${8-r}</span>`);
-    if(r===7) d.insertAdjacentHTML("beforeend", `<span class="coord fl">${"abcdefgh"[c]}</span>`);
+    if(cc===0) d.insertAdjacentHTML("beforeend", `<span class="coord rk">${8-r}</span>`);
+    if(rr===7) d.insertAdjacentHTML("beforeend", `<span class="coord fl">${"abcdefgh"[c]}</span>`);
     const p = G.board[r][c];
     if(p) d.insertAdjacentHTML("beforeend", `<span class="pc ${p.col}">${chessPieceSVG(p.t,p.col,"classic")}</span>`);
     b.appendChild(d);
@@ -211,7 +218,8 @@ function render(){
   for(let i=0;i<G.log.length;i+=2) pairs.push(`<b>${i/2+1}.</b> ${G.log[i]}${G.log[i+1] ? "  " + G.log[i+1] : ""}`);
   lg.innerHTML = pairs.join(" &nbsp; "); lg.scrollTop = lg.scrollHeight;
   $("undoBtn").disabled = G.history.length === 0 || G.busy || G.over;
-  $("resignBtn").disabled = G.over; $("anaBtn").disabled = !G.over || !G.rec.length;
+  $("resignBtn").disabled = G.over; if(G.over && G.rec.length && G.__sv !== G.rec.length){ G.__sv = G.rec.length; try{ bpAnalysis.save(G.rec); }catch(e){} }
+  $("anaBtn").disabled = !((G.over && G.rec.length) || bpAnalysis.hasLast());
   $("stats").textContent = T.stats(loadStats());
 }
 function setStatus(txt, color){
@@ -221,34 +229,35 @@ function setStatus(txt, color){
     else txt = isInCheck(G.board, G.turn) ? T.check : T.yourTurn;
   }
   const el = $("status"); el.textContent = txt;
-  el.style.color = color || (isInCheck(G.board, "w") && !G.over ? "var(--bad)" : "var(--accent)");
+  el.style.color = color || (isInCheck(G.board, ME) && !G.over ? "var(--bad)" : "var(--accent)");
 }
 
 $("board").addEventListener("click", (e) => {
   if(bpMoveMode() === "drag") return;
-  const t = e.target.closest(".sq"); if(!t || G.over || G.busy || G.turn !== "w") return;
+  const t = e.target.closest(".sq"); if(!t || G.over || G.busy || G.turn !== ME) return;
   const r = +t.dataset.r, c = +t.dataset.c;
   const mv = G.moves.find(m => m.tr===r && m.tc===c);
   if(G.selected && mv){ tryMove(mv); return; }
   const p = G.board[r][c];
-  if(p && p.col === "w"){ G.selected = { r, c }; G.moves = getLegalMoves(G.board, r, c, G.last); }
+  if(p && p.col === ME){ G.selected = { r, c }; G.moves = getLegalMoves(G.board, r, c, G.last); }
   else { G.selected = null; G.moves = []; }
   render();
 });
 
+window.bpMyColor = () => ME;
 bpMoveUI($("moveMode")); if(window.bpArrows) bpArrows($("board"));
 bpDragInit({ board: $("board"),
-  canPick: (r, c) => !G.over && !G.busy && G.turn === "w" && G.board[r][c] && G.board[r][c].col === "w",
+  canPick: (r, c) => !G.over && !G.busy && G.turn === ME && G.board[r][c] && G.board[r][c].col === ME,
   pick: (r, c) => { G.selected = { r, c }; G.moves = getLegalMoves(G.board, r, c, G.last); render(); },
   drop: (r, c) => { const mv = G.moves.find(m => m.tr===r && m.tc===c); if(G.selected && mv){ tryMove(mv); return true; } return false; },
   cancel: () => { G.selected = null; G.moves = []; render(); } });
 function tryMove(mv){
   const p = G.board[mv.fr][mv.fc];
-  if(p.t === "P" && mv.tr === 0){
+  if(p.t === "P" && mv.tr === (ME === "w" ? 0 : 7)){
     // Umwandlung waehlen
     const box = $("promoBtns"); box.innerHTML = ""; $("promoTitle").textContent = T.promo;
     ["Q","R","B","N"].forEach(t => {
-      const b = document.createElement("button"); b.innerHTML = chessPieceSVG(t,"w","classic");
+      const b = document.createElement("button"); b.innerHTML = chessPieceSVG(t,ME,"classic");
       b.onclick = () => { $("promoOv").classList.remove("show"); doMove(Object.assign({}, mv, { promTo:t }), true); };
       box.appendChild(b);
     });
@@ -259,7 +268,7 @@ function tryMove(mv){
 }
 
 function doMove(mv, byPlayer){
-  if(byPlayer){ G.history.push(snapshot()); G.rec.push({ board:G.board, last:G.last, col:"w", move:Object.assign({}, mv) }); }
+  if(byPlayer){ G.history.push(snapshot()); G.rec.push({ board:G.board, last:G.last, col:ME, move:Object.assign({}, mv) }); }
   const mover = G.board[mv.fr][mv.fc];
   if(byPlayer && window.BpSets){ if(mv.castle) BpSets.earn('wald'); if(mv.promTo) BpSets.earn('zoo'); }
   const target = G.board[mv.tr][mv.tc];
@@ -271,19 +280,19 @@ function doMove(mv, byPlayer){
   try{ parent.sfx(captured ? 'capture' : 'move'); }catch(e){}
   if(captured){ (mover.col === "w" ? G.capW : G.capB).push(captured); }
   G.half = (mover.t === "P" || captured) ? 0 : G.half + 1;
-  G.last = mv; G.turn = mover.col === "w" ? "b" : "w"; G.selected = null; G.moves = [];
+  G.last = mv; G.turn = OTHER(mover.col); G.selected = null; G.moves = [];
   const k = posKey(); G.seen[k] = (G.seen[k] || 0) + 1;
   const reply = endCheck();
   if(reply){ G.log.push(note + (reply.why === T.mate ? "#" : "")); finish(reply); return; }
   G.log.push(note + (isInCheck(G.board, G.turn) ? "+" : ""));
-  if(G.turn === "b"){ G.busy = true; render(); setStatus(); setTimeout(botMove, 60); }
+  if(G.turn !== ME){ G.busy = true; render(); setStatus(); setTimeout(botMove, 60); }
   else { G.busy = false; render(); setStatus(); }
 }
 
 function endCheck(){
   const moves = getAllLegalMoves(G.board, G.turn, G.last);
   if(moves.length === 0){
-    if(isInCheck(G.board, G.turn)) return { result: G.turn === "b" ? "win" : "loss", why: T.mate };
+    if(isInCheck(G.board, G.turn)) return { result: G.turn !== ME ? "win" : "loss", why: T.mate };
     return { result: "draw", why: T.stalemate };
   }
   if(insufficient()) return { result:"draw", why:T.insufficient };
@@ -302,7 +311,7 @@ function insufficient(){
 
 function botMove(){
   AI_LEVEL = OPP != null ? BpLadder.ai('chess', OPP) : LEVELS[level];
-  const mv = getAIMove(G.board, G.last, []);
+  const mv = getAIMove(G.board, G.last, [], OTHER(ME));
   G.busy = false;
   if(!mv){ finish(endCheck() || { result:"draw", why:T.stalemate }); return; }
   // Der Bot wandelt immer in eine Dame um (applyMove-Standard)
@@ -323,7 +332,7 @@ function finish(res){
     if(res.result === "win") s.wins++; else if(res.result === "loss") s.losses++; else s.draws++;
     saveStats(s);
     $("stats").textContent = T.stats(s);
-    try{ const q = JSON.parse(localStorage.getItem("wq_achv_q") || "[]"); q.push({ t:"chess", won: res.result === "win", level: OPP != null ? Math.min(4, 1 + Math.floor(OPP / 8)) : level, moves: G.rec.length, lost: G.capB.length }); localStorage.setItem("wq_achv_q", JSON.stringify(q.slice(-50))); }catch(e){}
+    try{ const q = JSON.parse(localStorage.getItem("wq_achv_q") || "[]"); q.push({ t:"chess", won: res.result === "win", level: OPP != null ? Math.min(4, 1 + Math.floor(OPP / 8)) : level, moves: G.rec.length, lost: (ME === "w" ? G.capB : G.capW).length }); localStorage.setItem("wq_achv_q", JSON.stringify(q.slice(-50))); }catch(e){}
   }
   let ladderNote = '';
   if(OPP != null && G.ladderCounted !== true && G.rec.length >= 2){ G.ladderCounted = true; try{ ladderNote = '\n' + BpLadder.endNote('chess', OPP, BpLadder.result('chess', OPP, res.result), LANG); }catch(e){} buildUi(); }
@@ -338,6 +347,12 @@ function buildUi(){
   const lb = document.createElement("div"); lb.className = "chip" + (OPP != null ? " active" : ""); lb.textContent = "🏆 " + (LANG === "de" ? "Gegner-Leiter" : "Opponent ladder");
   lb.onclick = () => BpLadder.open("chess", LANG, (i) => { OPP = i; try{ localStorage.setItem("bp_chess_opp", String(i)); }catch(e){} buildUi(); newGame(); }, OPP);
   lr.appendChild(lb);
+  [["w", "⚪ " + (LANG === "de" ? "Weiß" : "White")], ["b", "⚫ " + (LANG === "de" ? "Schwarz" : "Black")], ["r", "🎲 " + (LANG === "de" ? "Zufall" : "Random")]].forEach(function(o){
+    const cb = document.createElement("div"); cb.className = "chip" + (COLOR_PREF === o[0] ? " active" : ""); cb.textContent = o[1];
+    cb.onclick = () => { if(COLOR_PREF === o[0] && G && !G.over && G.rec.length === 0) return; COLOR_PREF = o[0]; try{ localStorage.setItem("bp_chess_color", o[0]); }catch(e){} newGame(); };
+    lr.appendChild(cb);
+  });
+  const cl = document.createElement("div"); cl.style.cssText = "width:100%;font-size:12px;opacity:.75;margin-top:2px"; cl.textContent = ME === "b" ? (LANG === "de" ? "Du spielst Schwarz, der Bot fängt an." : "You play Black, the bot starts.") : (LANG === "de" ? "Du spielst Weiß." : "You play White."); lr.appendChild(cl);
   const ob = $("oppBar");
   if(OPP != null){ const o = BpLadder.info("chess", OPP, LANG); ob.innerHTML = '<img src="' + o.img + '" alt=""><div class="oi"><b>' + o.name + '</b><small>' + o.title + '</small></div><span class="oelo">' + o.elo + '</span>'; } else ob.textContent = "";
   $("styleBtn2").textContent = "🎨 " + (LANG === "de" ? "Figuren und Brett wählen" : "Choose pieces and board"); $("styleBtn2").onclick = () => BpElo.stylePanel(LANG);
@@ -348,7 +363,7 @@ $("newBtn").onclick = () => { newGame(); };
 $("undoBtn").onclick = () => { if(G.busy || !G.history.length) return; restore(G.history.pop()); G.rec.pop(); render(); setStatus(); };
 $("resignBtn").onclick = () => { if(G.over || !confirm(T.confirmResign)) return; finish({ result:"loss", why:T.resigned }); };
 $("endNew").onclick = () => { $("endOv").classList.remove("show"); newGame(); };
-$("anaBtn").onclick = () => { bpAnalysis.show(G.rec); };
+$("anaBtn").onclick = () => { bpAnalysis.show(G.over && G.rec.length ? G.rec : null); };
 $("endAna").onclick = () => { $("endOv").classList.remove("show"); bpAnalysis.show(G.rec); };
 $("endClose").onclick = () => { $("endOv").classList.remove("show"); };
 

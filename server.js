@@ -4255,12 +4255,46 @@ let ZP_DAY_TIERS = [{ p: 100, c: 20 }, { p: 250, c: 40 }, { p: 500, c: 80 }, { p
 let ZP_WEEK_TIERS = [{ p: 500, c: 100 }, { p: 1200, c: 200 }, { p: 2500, c: 400 }, { p: 4000, c: 800 }];
 let ZP_MONTH_REWARDS = [1500, 1000, 700, 500, 400, 300, 250, 200, 150, 100];
 const ZP_DEFAULTS = { cap: 1000, day: JSON.parse(JSON.stringify(ZP_DAY_TIERS)), week: JSON.parse(JSON.stringify(ZP_WEEK_TIERS)), month: ZP_MONTH_REWARDS.slice() };
+// Brainups pro Spiel: Katalog (key = Spielname in zpAdd), Admin kann je Spiel an/aus und die Menge in Prozent einstellen (100 = wie bisher)
+const ZP_CATALOG = [
+  { key: "braintest", name: "Brain Test", icon: "🎯", std: "Klasse bestanden: 250" },
+  { key: "speedmath", name: "Speed Math (Meilenstein)", icon: "➕", std: "150 je neuem Level" },
+  { key: "oos", name: "Order of Speed", icon: "🔢", std: "5 bis 160 je Level" },
+  { key: "bio", name: "Biology", icon: "🧬", std: "250 je neuem Thema" },
+  { key: "vocab", name: "Vocab", icon: "💬", std: "250 je Thema, einmalig" },
+  { key: "geo", name: "Erdkunde, Weltall, Politik", icon: "🌍", std: "50 ab 8 von 10, weitere 50 bei 10 von 10" },
+  { key: "fruit", name: "Brain Fruit", icon: "🍓", std: "50 je Level, jedes 10. = 100" },
+  { key: "galaxy", name: "Brain Galaxy", icon: "🪐", std: "50 je Level, jedes 10. = 100" },
+  { key: "jong", name: "Brain Jong", icon: "🀄", std: "50 je Level, jedes 10. = 100" },
+  { key: "sol", name: "Kugel-Solitär", icon: "⚫", std: "1. Sieg 500, danach 10" },
+  { key: "klondike", name: "Karten-Solitär (Klondike)", icon: "🃏", std: "150 je Sieg" },
+  { key: "pyramide", name: "Pyramide", icon: "🔺", std: "150 je Sieg" },
+  { key: "make24", name: "Make 24", icon: "♠️", std: "100 je gelöstem Level" },
+  { key: "tf", name: "Wahr oder Falsch Blitz", icon: "⚡", std: "50 erstmals, 10 für Bestleistung" },
+  { key: "ms", name: "Minesucher", icon: "💣", std: "10 bis 30, einmal pro Tag" },
+  { key: "g2048", name: "2048", icon: "🔢", std: "500 erstmals, danach 100 pro Tag" },
+  { key: "brick", name: "Brick Flieger", icon: "✈️", std: "20 bis 40, einmal pro Tag" },
+  { key: "hopper", name: "Hüpfer", icon: "⚪", std: "20 bis 40, einmal pro Tag" },
+  { key: "flappy", name: "Flappy-Flug", icon: "🕊️", std: "20 bis 40, einmal pro Tag" },
+  { key: "block", name: "Block Puzzle", icon: "🧩", std: "20 bis 40, einmal pro Tag" },
+  { key: "chem", name: "Brainchimie", icon: "⚗️", std: "10 je neuem Element" },
+  { key: "ttt", name: "Tic Tac Toe (Online-Duell)", icon: "❌", std: "Sieg 100, Remis 50" },
+  { key: "chess", name: "Schach und Dame (Online-Duell)", icon: "♟️", std: "Sieg 100, Remis 50" },
+  { key: "fourups", name: "4 gewinnt (Online-Duell)", icon: "🔴", std: "Sieg 100, Remis 50" },
+  { key: "muehle", name: "Mühle (Online-Duell)", icon: "⚪", std: "Sieg 100, Remis 50" },
+  { key: "taboo", name: "Taboo", icon: "🚫", std: "bis 100 je Runde" }
+];
+let ZP_GAMECFG = {};
+function zpGamesView() { return ZP_CATALOG.map(c => ({ ...c, on: !ZP_GAMECFG[c.key] || ZP_GAMECFG[c.key].on, pct: ZP_GAMECFG[c.key] ? ZP_GAMECFG[c.key].pct : 100 })); }
+function zpGamesPublic() { const o = {}; Object.keys(ZP_GAMECFG).forEach(k => { o[k] = { on: ZP_GAMECFG[k].on, pct: ZP_GAMECFG[k].pct }; }); return o; }
 function zpApplyCfg() {
   const c = gameCfg && gameCfg.zp || {};
   const tiers = (a, d) => Array.isArray(a) && a.length >= 1 && a.length <= 8 && a.every(x => x && x.p > 0 && x.c >= 0) ? a.map(x => ({ p: Math.floor(x.p), c: Math.floor(x.c) })).sort((m, n) => m.p - n.p) : d;
   ZP_DAY_CAP = c.cap >= 10 && c.cap <= 100000 ? Math.floor(c.cap) : ZP_DEFAULTS.cap;
   ZP_DAY_TIERS = tiers(c.day, ZP_DEFAULTS.day); ZP_WEEK_TIERS = tiers(c.week, ZP_DEFAULTS.week);
   ZP_MONTH_REWARDS = Array.isArray(c.month) && c.month.length === 10 && c.month.every(x => x >= 0) ? c.month.map(x => Math.floor(x)) : ZP_DEFAULTS.month.slice();
+  ZP_GAMECFG = {};
+  if (c.games && typeof c.games === "object") ZP_CATALOG.forEach(g => { const v = c.games[g.key]; if (v && typeof v === "object") { const pct = Number(v.pct); const on = v.on !== false, p = Number.isFinite(pct) && pct >= 0 && pct <= 1000 ? Math.round(pct) : 100; if (!on || p !== 100) ZP_GAMECFG[g.key] = { on, pct: p }; } });
 }
 const ZP_GAMES = ["ttt", "chess", "fourups", "muehle", "taboo"];   // eigene Spiel-Bestenlisten (Schach + Dame zaehlen zusammen als "chess")
 const zpMonthKey = () => todayDateString().slice(0, 7);
@@ -4282,6 +4316,7 @@ function zpAdd(user, pts, why, game) {
   try {
     if (!user || isRestricted(user) || featureLocked("zp")) return { gain: 0, total: 0 };
     pts = Math.max(0, Math.floor(Number(pts) || 0));
+    { const gc = ZP_GAMECFG[game || why]; if (gc) pts = gc.on ? Math.round(pts * gc.pct / 100) : 0; }
     const z = zpState(user);
     const gain = Math.min(pts, Math.max(0, ZP_DAY_CAP - z.dp));
     if (gain > 0) {
@@ -4786,12 +4821,13 @@ async function adminShop(key, ip, payload, lang) {
   return { ok: true, items: shopAdminList() };
 }
 // ---- Battle Pass: Level 1-100, je Level XP und bis zu 3 Belohnungen (Auswahl). Noch nicht im Spiel, der Admin traegt hier schon ein. ----
-const BP_LEVELS = 100, BP_SLOTS = 3, BP_TYPES = ["coins", "funken", "booster", "set", "other"];
-function bpDefaultCfg() { return { funken: 500, levels: Array.from({ length: BP_LEVELS }, (_, i) => ({ xp: 100 + i * 20, r: [] })) }; }
+const BP_LEVELS = 100, BP_SLOTS = 4, BP_TYPES = ["coins", "funken", "booster", "set", "other"];
+function bpDefaultCfg() { return { free: false, funken: 500, levels: Array.from({ length: BP_LEVELS }, (_, i) => ({ xp: 100 + i * 20, r: [] })) }; }
 let bpCfg = bpDefaultCfg();
 const BP_FILE = USERS_FILE + ".bp.json";
 function bpClean(raw) {
   const out = bpDefaultCfg(); if (!raw || typeof raw !== "object") return out;
+  out.free = raw.free === true;
   if (Number.isFinite(Number(raw.funken)) && Number(raw.funken) >= 0 && Number(raw.funken) <= 100000) out.funken = Math.round(Number(raw.funken));
   if (Array.isArray(raw.levels)) raw.levels.slice(0, BP_LEVELS).forEach((l, i) => {
     if (!l || typeof l !== "object") return;
@@ -4824,8 +4860,8 @@ loadBpCfg();
 async function adminBp(key, ip, payload, lang) {
   if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   const p = payload || {};
-  if (p.levels || p.funken !== undefined) {
-    const old = bpCfg; bpCfg = bpClean({ funken: p.funken !== undefined ? p.funken : old.funken, levels: p.levels || old.levels });
+  if (p.levels || p.funken !== undefined || p.free !== undefined) {
+    const old = bpCfg; bpCfg = bpClean({ free: p.free !== undefined ? p.free : old.free, funken: p.funken !== undefined ? p.funken : old.funken, levels: p.levels || old.levels });
     if (!(await saveBpCfg())) { bpCfg = old; return serviceDownMsg(lang); }
   }
   return { ok: true, cfg: bpCfg, sets: SHOP_DEFAULTS.filter(x => x.placeable).map(x => ({ id: x.set, name: x.name })), boosters: SHOP_DEFAULTS.filter(x => x.shop === "brain" && x.icon && x.coins === 5000 && x.canFunken).map(x => ({ id: x.id, name: x.name + " (" + x.grp + ")" })) };
@@ -5206,25 +5242,25 @@ async function saveUserStats(token, stats, lang) {
   }
   // Brainups: Klasse bestanden 250, Speed-Math-Meilenstein-Level 150, Order-of-Speed-Level 5 bis 160 (nach Stufen), Brain Fruit Level 50 (jedes 10. = 100), Biologie-Thema erstmals geschafft 250
   if (zpWas.synced && !isRestricted(user)) {
-    let zpt = 0;
-    zpt += 250 * Math.min(1, Math.max(0, (user.stats.klasse || 0) - oldKlasse));
-    zpt += 150 * Math.min(3, Math.max(0, (user.stats.speedMathLevel || 1) - zpWas.sm));
+    const zk = { braintest: 0, speedmath: 0, oos: 0, fruit: 0, galaxy: 0, jong: 0, bio: 0 };
+    zk.braintest += 250 * Math.min(1, Math.max(0, (user.stats.klasse || 0) - oldKlasse));
+    zk.speedmath += 150 * Math.min(3, Math.max(0, (user.stats.speedMathLevel || 1) - zpWas.sm));
     { // Order of Speed: neue Runde -> ZP je geschafftem Level nach Stufen (5 ... 160), begrenzt durch gespielte Zeit
       const o = user.stats.oosLast;
       if (o && o.t > (zpWas.oosT || 0) && o.t <= Date.now() + 120000) {
         const done = Math.min(15, Math.max(0, o.level - 1), Math.floor((o.sec || 0) / 6));
-        for (let L = 1; L <= done; L++) zpt += SM_ZP[Math.min(9, Math.floor((L - 1) / 5))];
+        for (let L = 1; L <= done; L++) zk.oos += SM_ZP[Math.min(9, Math.floor((L - 1) / 5))];
       }
     }
     const fl = (user.stats.fruit && user.stats.fruit.fruitLevel) || 1;
-    for (let L = zpWas.fruit; L < Math.min(fl, zpWas.fruit + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
+    for (let L = zpWas.fruit; L < Math.min(fl, zpWas.fruit + 20); L++) zk.fruit += L % 10 === 0 ? 100 : 50;
     const gl = (user.stats.fruit && user.stats.fruit.galaxyLevel) || 1;
-    for (let L = zpWas.galaxy; L < Math.min(gl, zpWas.galaxy + 20); L++) zpt += L % 10 === 0 ? 100 : 50;
+    for (let L = zpWas.galaxy; L < Math.min(gl, zpWas.galaxy + 20); L++) zk.galaxy += L % 10 === 0 ? 100 : 50;
     const jl = (user.stats.fruit && user.stats.fruit.jongLevel) || 1;
-    for (let L = zpWas.jong; L < Math.min(jl, zpWas.jong + 20); L++) zpt += L % 10 === 0 ? 100 : 50; // Brain Jong (Mahjong): wie Fruit und Galaxy pro Level
+    for (let L = zpWas.jong; L < Math.min(jl, zpWas.jong + 20); L++) zk.jong += L % 10 === 0 ? 100 : 50; // Brain Jong (Mahjong): wie Fruit und Galaxy pro Level
     const bioNow = Object.assign({}, user.stats.biologyBest || {}, user.stats.biologyPerfect || {});
-    zpt += 250 * Math.min(3, Object.keys(bioNow).filter(k => !(k in zpWas.bio)).length);
-    if (zpt > 0) zpAdd(user, zpt, "solo");
+    zk.bio += 250 * Math.min(3, Object.keys(bioNow).filter(k => !(k in zpWas.bio)).length);
+    for (const k of Object.keys(zk)) if (zk[k] > 0) zpAdd(user, zk[k], "solo", k);
   }
   await saveUsers();
   return { ok: true, profile: publicProfile(user) };
@@ -5529,7 +5565,7 @@ async function adminZp(key, ip, payload) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!usersLoaded) return { ok: false, error: "Konten noch nicht geladen." };
   const act = payload.action || "get", mk = zpMonthKey();
-  const cfgView = () => ({ cap: ZP_DAY_CAP, day: ZP_DAY_TIERS, week: ZP_WEEK_TIERS, month: ZP_MONTH_REWARDS, defaults: ZP_DEFAULTS, on: !featureLocked("zp"), boardsOn: !featureLocked("boards") });
+  const cfgView = () => ({ games: zpGamesView(), cap: ZP_DAY_CAP, day: ZP_DAY_TIERS, week: ZP_WEEK_TIERS, month: ZP_MONTH_REWARDS, defaults: ZP_DEFAULTS, on: !featureLocked("zp"), boardsOn: !featureLocked("boards") });
   const todayTop = zpTop(u => { const z = (u.stats.zp || {}); return z.day === todayDateString() ? (z.dp || 0) : 0; }, 10);
   if (act === "get") return { ok: true, cfg: cfgView(), top: zpTop(u => (u.stats.zp || {}).total || 0, 10), topMonth: zpTop(u => ((u.stats.zp || {}).mon || {})[mk] || 0, 10), topToday: todayTop, monthKey: mk };
   if (act === "set") {
@@ -5539,6 +5575,7 @@ async function adminZp(key, ip, payload) {
     const bad = a => !a.length || a.length > 8 || a.some(x => !(x.p > 0) || !(x.c >= 0)) || a.some((x, i) => i && x.p <= a[i - 1].p);
     if (bad(c.day) || bad(c.week)) return { ok: false, error: "Stufen: 1 bis 8, Punkte aufsteigend, Münzen ≥ 0." };
     if (c.month.length !== 10 || c.month.some(x => !(x >= 0))) return { ok: false, error: "Monatspreise: genau 10 Werte ≥ 0." };
+    if (payload.games && typeof payload.games === "object") c.games = payload.games; else if (gameCfg.zp && gameCfg.zp.games) c.games = gameCfg.zp.games;
     gameCfg.zp = c; zpApplyCfg();
     if (!(await saveGameCfg())) return { ok: false, error: "Speichern fehlgeschlagen." };
     console.log("[ZP] Einstellungen geändert"); return { ok: true, cfg: cfgView() };
@@ -8747,6 +8784,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/realm/score") result = (await realmEnsure(payload.token)) ? realmScore(payload.token, payload.entry) : { ok: false, unavailable: true };
         else if (req.url === "/api/realm/board") result = realmBoard(payload.token, payload.n);
         else if (req.url === "/api/braining/board") result = brainBoard(payload.token, payload.game);
+        else if (req.url === "/api/zp-games") result = { ok: true, on: !featureLocked("zp"), games: zpGamesPublic() };
         else if (req.url === "/api/zp") result = await zpApi(payload, lang);
         else if (req.url === "/api/taboo-solo" && !(gateOk("taboo", payload.adminKey, ip) && gateOk("taboo_solo", payload.adminKey, ip))) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/taboo-solo") { if (payload.action === "start") statHit("taboo_solo"); result = tabooSoloApi(payload, lang); }

@@ -58,23 +58,33 @@
     var buy = null, msg = '', coins = null, hint = '', funken = null;
     function draw(){
       var cur = S.get(), bd = S.board().id, me = S.maxElo();
-      var sets = S.list.filter(function(x){ return !x.off || S.unlocked(x.id); }).map(function(x){
-        var lock = !S.unlocked(x.id), sub = lock ? (x.price ? '🪙 ' + x.price : '🔒 ' + (de ? 'erspielen' : 'earn it')) : (x.price ? '✓ ' + (de ? 'gekauft' : 'owned') : (x.earn ? '✓ ' + (de ? 'erspielt' : 'earned') : '')), img = x.id === 'alt' ? '<div style="height:64px;display:flex;align-items:center;justify-content:center;font-size:40px">♞</div>' : '<img src="/chess/sets/' + x.id + '/wN.png" style="width:64px;height:64px;display:block;margin:0 auto" alt="">';
-        return '<div data-set="' + x.id + '">' + tile(img, de ? x.de : x.en, sub, cur === x.id, lock && !x.price) + '</div>';
-      }).join('');
+      function tl(x){
+        var ok = S.unlocked(x.id), sub = '';
+        if(!ok) sub = x.elo > 0 ? '🔒 ' + (de ? 'ab Elo ' : 'from Elo ') + x.elo : '🔒 ' + (de ? 'erspielen' : 'earn it');
+        else if(x.price) sub = '✓ ' + (de ? 'gekauft' : 'owned'); else if(x.earn) sub = '✓ ' + (de ? 'erspielt' : 'earned'); else if(x.elo > 0) sub = '✓ Elo ' + x.elo;
+        var img = x.id === 'alt' ? '<div style="height:64px;display:flex;align-items:center;justify-content:center;font-size:40px">♞</div>' : '<img src="/chess/sets/' + x.id + '/wN.png" style="width:64px;height:64px;display:block;margin:0 auto" alt="">';
+        return '<div data-set="' + x.id + '">' + tile(img, de ? x.de : x.en, sub, cur === x.id, !ok) + '</div>';
+      }
+      function sec(t, arr){ return arr.length ? '<div style="font-weight:800;margin:14px 0 6px;opacity:.9">' + t + '</div><div style="display:flex;flex-wrap:wrap;gap:8px">' + arr.map(tl).join('') + '</div>' : ''; }
+      var L = S.list;
+      var sets = sec('♟ ' + (de ? 'Frei' : 'Free'), L.filter(function(x){ return !x.price && !x.earn && !(x.elo > 0); }))
+        + sec('🏆 ' + (de ? 'Elo-Figuren' : 'Elo pieces'), L.filter(function(x){ return !x.price && !x.earn && x.elo > 0; }))
+        + sec('⭐ ' + (de ? 'Erspielbar' : 'Earnable'), L.filter(function(x){ return x.earn; }))
+        + sec('🛍 ' + (de ? 'Gekauft' : 'Owned'), L.filter(function(x){ return x.price && S.unlocked(x.id); }))
+        + (L.some(function(x){ return x.price && !S.unlocked(x.id) && !x.off; }) ? '<div style="opacity:.65;font-size:13px;margin-top:12px">🛍 ' + (de ? 'Weitere Figuren gibt es im Brain-Shop unter „Schach-Figuren“.' : 'More pieces are in the Brain Shop under “Chess pieces”.') + '</div>' : '');
       var boards = S.boards.map(function(b){
         return '<div data-bd="' + b.id + '" style="cursor:pointer;text-align:center"><div style="width:64px;height:64px;border-radius:10px;border:2px solid ' + (bd === b.id ? '#c6ff3d' : 'rgba(255,255,255,.18)') + ';overflow:hidden;' + (b.img ? 'background:url(' + b.img + ') center/cover' : 'display:grid;grid-template-columns:1fr 1fr') + '">' + (b.img ? '' : '<i style="background:' + b.l + '"></i><i style="background:' + b.d + '"></i><i style="background:' + b.d + '"></i><i style="background:' + b.l + '"></i>') + '</div><div style="font-size:12px;font-weight:800;margin-top:2px">' + (de ? b.de : b.en) + '</div></div>';
       }).join('');
       var bx = buy ? S.list.filter(function(q){ return q.id === buy; })[0] : null;
       var buyBar = bx ? '<div style="margin:12px 0;padding:12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1)"><b>' + (de ? bx.de : bx.en) + '</b> ' + (de ? 'für ' : 'for ') + '<b style="color:#ffd45a">' + bx.price + ' 🪙</b> ' + (de ? 'kaufen?' : 'buy?') + (coins != null ? ' <span style="opacity:.7">(' + (de ? 'du hast ' : 'you have ') + coins + ' 🪙' + (funken != null ? ', ' + funken + ' ✨' : '') + ')</span>' : '') + (msg ? '<div style="color:#ff8aa8;margin-top:6px">' + esc(msg) + '</div>' : '') + '<div style="display:flex;gap:8px;margin-top:10px">' + (bx.price >= 0 ? '<button id="bpBuyYes" style="flex:1;padding:10px;border-radius:10px;border:0;background:#c6ff3d;color:#08110c;font-weight:900;cursor:pointer">🪙 ' + bx.price + '</button>' : '') + (bx.fprice != null ? '<button id="bpBuyF" style="flex:1;padding:10px;border-radius:10px;border:0;background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700;font-weight:900;cursor:pointer">✨ ' + bx.fprice + '</button>' : '') + '<button id="bpBuyNo" style="flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;cursor:pointer">' + (de ? 'Abbrechen' : 'Cancel') + '</button></div></div>' : '';
       ov.innerHTML = '<div style="max-width:520px;margin:0 auto"><div style="font-size:22px;font-weight:900;margin-bottom:4px">🎨 ' + (de ? 'Figuren und Brett' : 'Pieces and board') + '</div>'
-        + '<div style="opacity:.7;font-size:13px;margin-bottom:12px">' + (de ? 'Deine höchste Online-Elo: ' : 'Your highest online Elo: ') + '<b style="color:#ffd45a">' + me + '</b>. ' + (de ? 'Bronze bis Rubin kannst du immer nutzen. Wald, Kristall und Zoo musst du erspielen, Fantasie, Waldtiere, Weltraum, Drachen und Ozean kaufen.' : 'Bronze to Ruby are always usable. Earn Forest, Crystal and Zoo; buy Fantasy, Forest animals, Space, Dragons and Ocean.') + '</div>'
-        + (hint ? '<div style="margin:8px 0;padding:10px 12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1);font-size:14px">' + esc(hint) + '</div>' : '') + '<div style="font-weight:800;margin:6px 0">♟ ' + (de ? 'Figuren' : 'Pieces') + '</div><div style="display:flex;flex-wrap:wrap;gap:8px">' + sets + '</div>' + buyBar
+        + '<div style="opacity:.7;font-size:13px;margin-bottom:12px">' + (de ? 'Deine höchste Online-Elo: ' : 'Your highest online Elo: ') + '<b style="color:#ffd45a">' + me + '</b>. ' + (de ? 'Die Elo-Figuren (Bronze bis Rubin) schaltest du frei, wenn deine Elo erreicht ist. Gekaufte Figuren stehen unter „Gekauft“.' : 'Elo pieces (Bronze to Ruby) unlock when you reach their Elo. Bought pieces are listed under “Owned”.') + '</div>'
+        + (hint ? '<div style="margin:8px 0;padding:10px 12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1);font-size:14px">' + esc(hint) + '</div>' : '') + '' + sets + buyBar
         + '<div style="font-weight:800;margin:18px 0 6px">▦ ' + (de ? 'Brettfarbe' : 'Board colour') + '</div><div style="display:flex;flex-wrap:wrap;gap:10px">' + boards + '</div>'
         + '<button id="bpStyleClose" style="margin-top:20px;width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:16px;cursor:pointer">' + (de ? 'Fertig' : 'Done') + '</button></div>';
       ov.querySelectorAll('[data-set]').forEach(function(el){ el.onclick = function(){
         var id = el.getAttribute('data-set'), x = S.list.filter(function(q){ return q.id === id; })[0];
-        if(S.set(id)){ buy = null; hint = ''; again(); draw(); } else if(x && x.price){ buy = id; hint = ''; draw(); } else if(x && x.earn){ buy = null; hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? x.hd : x.he); draw(); } }; });
+        if(S.set(id)){ buy = null; hint = ''; again(); draw(); } else if(x && x.price){ buy = null; hint = '🛍 ' + (de ? 'Kaufe diese Figuren im Brain-Shop.' : 'Buy these pieces in the Brain Shop.'); draw(); } else if(x && x.elo > 0){ buy = null; hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? 'ab Elo ' : 'from Elo ') + x.elo + (de ? ' (deine höchste: ' : ' (your best: ') + S.maxElo() + ')'; draw(); } else if(x && x.earn){ buy = null; hint = '🔒 ' + (de ? x.de : x.en) + ': ' + (de ? x.hd : x.he); draw(); } }; });
       var bb = ov.querySelector('#bpBuyYes'); if(bb) bb.onclick = function(){
         var id = buy; bb.disabled = true; bb.textContent = '…';
         post('/api/pieceset-buy', { id: id, lang: lang }).then(function(r){

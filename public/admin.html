@@ -158,8 +158,9 @@ button.mini{padding:4px 8px;font-size:12px}
     <div class="card"><b>🎟️ Battle Pass online</b>
       <div class="dim" style="font-size:12px;margin:4px 0 8px">Der Pass ist noch nicht im Spiel. Der Schalter ist schon da: <b>Offline</b> und <b>Gesperrt</b> = Spieler sehen ihn nicht, <b>Test</b> = nur Tester, <b>Offen</b> = alle. Gilt sofort.</div>
       <div id="bpGate" style="margin-bottom:10px"></div>
-      <div class="row" style="gap:8px;align-items:center"><label style="font-size:13px">Premium-Preis in ✨ Funken (500 = 4,99 €)</label><input id="bpFunken" type="number" min="0" style="max-width:120px"></div></div>
-    <div class="dim" style="font-size:12px;margin:0 0 8px">Pro Level: benötigte XP und bis zu 3 Belohnungen. Der Spieler wählt später <b>eine</b> aus. „Frei“ bekommt jeder, „Premium“ nur mit Pass. Leere Zeilen werden ignoriert. Figuren, die du im Shop dem Battle Pass zugeordnet hast, stehen bei „Figuren-Set“ zur Auswahl.</div>
+      <label style="display:flex;gap:8px;align-items:center;font-size:13px;cursor:pointer;margin-bottom:8px"><input id="bpFree" type="checkbox" onchange="bpFreeToggle()" style="flex:none;width:20px;height:20px"> <b>Der Pass ist komplett kostenlos</b> <span class="dim" style="font-size:12px">(kein Premium, alles für alle)</span></label>
+      <div id="bpPrem" class="row" style="gap:8px;align-items:center"><label style="font-size:13px">Premium-Preis in ✨ Funken (500 = 4,99 €)</label><input id="bpFunken" type="number" min="0" style="max-width:120px"></div></div>
+    <div class="dim" style="font-size:12px;margin:0 0 8px">Pro Level: benötigte XP und bis zu 4 Belohnungen. Mit „＋ Belohnung“ fügst du eine nach der anderen hinzu, mit ✕ nimmst du eine weg. Der Spieler wählt später <b>eine</b> aus. „Frei“ bekommt jeder, „Premium“ nur mit Pass (fällt weg, wenn der Pass komplett kostenlos ist). Figuren, die du im Shop dem Battle Pass zugeordnet hast, stehen bei „Figuren-Set“ zur Auswahl.</div>
     <div class="row" style="gap:8px;flex-wrap:wrap;margin:0 0 10px"><button onclick="bpSave()">💾 Speichern</button><span id="bpMsg" style="font-size:13px"></span></div>
     <div id="bpLevels">…</div>
     <div class="row" style="gap:8px;flex-wrap:wrap;margin:10px 0"><button onclick="bpSave()">💾 Speichern</button></div>
@@ -171,6 +172,12 @@ button.mini{padding:4px 8px;font-size:12px}
     <div class="card"><h2>SYSTEM</h2>
       <div id="zpSw" class="row" style="gap:8px;flex-wrap:wrap"></div>
       <div class="dim" style="font-size:12px;margin-top:6px">Aus = keine Punkte mehr, keine Abzeichen an den Karten, keine Brainups-Seite. Einzelne Spiele schaltest du im Reiter „Spiele“.</div>
+    </div>
+    <div class="card"><h2>BRAINUPS PRO SPIEL</h2>
+      <div class="dim" style="font-size:12px;margin-bottom:8px"><b>Aktiv</b> = das Spiel gibt Brainups. <b>Menge</b> in Prozent: 100 = so viel wie bisher, 200 = doppelt, 50 = halb. Die Standardmengen stehen daneben. Gilt nach <b>Speichern</b> sofort. Wenn du ein Spiel ausschaltest, gibt es dafür keine Brainups mehr (auch keine einmaligen Belohnungen).</div>
+      <div id="zpGames"></div>
+      <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><button onclick="zpSave()">💾 Speichern, online machen</button><span id="zpMsg2" style="font-size:13px"></span></div>
+      <div class="dim" style="font-size:12px;margin-top:12px"><b>Diese Spiele geben noch keine Brainups</b> (dafür muss ich sie erst anbinden): Brain Arrow, Brain Farm, Brainmania / Der Stein, Brain Duel, Brain Royale, Spider-Solitär, FreeCell, TriPeaks, Mau-Mau, Karten-Duell, Das schwerste Spiel der Welt (alle Minispiele), Backgammon, Ordering, Blitz, Dame gegen den Bot. Sag mir, welche du dabei haben willst und wie viel.</div>
     </div>
     <div class="card"><details><summary style="cursor:pointer;list-style:none"><h2 style="display:inline">EINSTELLUNGEN ▾</h2> <span class="dim" style="font-size:12px">(Tippen zum Auf-/Zuklappen)</span></summary>
       <div class="row" style="align-items:center;gap:8px;margin-top:8px"><span style="width:150px">Tageslimit (Punkte)</span><input id="zpCap" type="number" min="10" max="100000"></div>
@@ -273,6 +280,7 @@ button.mini{padding:4px 8px;font-size:12px}
   <div class="row" style="margin-top:6px"><button class="ghost" onclick="logout()">Abmelden</button></div>
 </div>
 
+<script src="/admin-previews.js"></script>
 <script>
 /* Schoenes Bestaetigungsfenster statt nativem Dialog */
 function bpConfirm(msg, opt){
@@ -553,6 +561,7 @@ function tierRow(id, i, t){ return `<div class="row" style="gap:6px;margin-botto
 function zpPaint(){
   const c = ZPC.cfg;
   $('zpSw').innerHTML = `<button class="btn2" onclick="zpSwitch('zp',${c.on?'false':'true'})">Brainups: <b>${c.on?'AN':'AUS'}</b></button><button class="btn2" onclick="zpSwitch('boards',${c.boardsOn?'false':'true'})">Online-Bestenlisten: <b>${c.boardsOn?'AN':'AUS'}</b></button>`;
+  $('zpGames').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px">' + (c.games || []).map(g => '<div class="zg" data-k="' + g.key + '" style="border:1px solid ' + (g.on ? 'var(--line)' : '#553') + ';border-radius:12px;padding:8px;background:#0d1426;opacity:' + (g.on ? 1 : .7) + '"><div style="font-weight:800;font-size:13px">' + g.icon + ' ' + esc(g.name) + '</div><div class="dim" style="font-size:11px;margin:2px 0 6px">Standard: ' + esc(g.std) + '</div><div style="display:flex;gap:8px;align-items:center"><label style="display:flex;gap:6px;align-items:center;font-size:12px;cursor:pointer"><input class="zg-on" type="checkbox" ' + (g.on ? 'checked' : '') + ' style="flex:none;width:18px;height:18px"> Aktiv</label><label style="font-size:12px;color:var(--dim);display:flex;gap:4px;align-items:center">Menge <input class="zg-p" type="number" min="0" max="1000" value="' + g.pct + '" style="width:70px;padding:5px;font-size:12px"> %</label></div></div>').join('') + '</div>';
   $('zpCap').value = c.cap;
   $('zpDay').innerHTML = c.day.map((t,i) => tierRow('d',i,t)).join('');
   $('zpWeek').innerHTML = c.week.map((t,i) => tierRow('w',i,t)).join('');
@@ -568,9 +577,10 @@ async function zpSwitch(id, on){
 function zpCollect(){
   const g = k => [...document.querySelectorAll('[data-k="'+k+'"]')].map(e => Number(e.value));
   const tiers = (a, b) => a.map((p,i) => ({ p, c: b[i] }));
-  return { action:'set', cap: Number($('zpCap').value), day: tiers(g('dp'), g('dc')), week: tiers(g('wp'), g('wc')), month: g('m') };
+  const games = {}; document.querySelectorAll('#zpGames .zg').forEach(e => { games[e.dataset.k] = { on: e.querySelector('.zg-on').checked, pct: Number(e.querySelector('.zg-p').value) }; });
+  return { action:'set', games, cap: Number($('zpCap').value), day: tiers(g('dp'), g('dc')), week: tiers(g('wp'), g('wc')), month: g('m') };
 }
-async function zpSave(){ const r = await api('/api/admin-zp', zpCollect()); $('zpMsg').style.color = r && r.ok ? 'var(--ok)' : '#ff5d8f'; $('zpMsg').textContent = r && r.ok ? 'Gespeichert. Gilt sofort.' : ((r && r.error) || 'Fehler'); if(r && r.ok){ ZPC.cfg = r.cfg; zpPaint(); } }
+async function zpSave(){ const r = await api('/api/admin-zp', zpCollect()); $('zpMsg').style.color = r && r.ok ? 'var(--ok)' : '#ff5d8f'; $('zpMsg').textContent = r && r.ok ? 'Gespeichert. Gilt sofort.' : ((r && r.error) || 'Fehler'); $('zpMsg2').style.color = r && r.ok ? 'var(--ok)' : '#ff5d8f'; $('zpMsg2').textContent = r && r.ok ? '✓ Gespeichert, gilt sofort.' : '✗ ' + ((r && r.error) || 'Fehler'); if(r && r.ok){ ZPC.cfg = r.cfg; zpPaint(); } }
 async function zpDefaults(){ if(!await bpConfirm('Auf Standardwerte zurücksetzen?')) return; const r = await api('/api/admin-zp', { action:'reset-cfg' }); if(r && r.ok){ ZPC.cfg = r.cfg; zpPaint(); $('zpMsg').style.color = 'var(--ok)'; $('zpMsg').textContent = 'Standardwerte aktiv.'; } }
 function zpShowPl(r){
   if(!r || !r.ok){ $('zpPl').textContent = (r && r.error) || 'Fehler'; $('zpAct').classList.add('hidden'); return; }
@@ -779,6 +789,7 @@ const SHOP_NOTE = { [PLACE_GRP.fantasy]: 'Gehört zum Fantasy-Schach und wird er
   'Tic-Tac-Toe-Steine': 'Heute werden sie durch Gürtel-Ränge freigeschaltet. Verkaufen oder Reservieren fürs Battle Pass geht für Steine noch nicht, die Liste dient zur Übersicht.', 'Dame-Steine': 'Heute durch Dame-Siege freigeschaltet. Nur zur Übersicht.', '4-gewinnt-Steine': 'Heute durch Fourups-Level freigeschaltet. Nur zur Übersicht.' };
 function itemGrp(i){ return i.placeable ? PLACE_GRP[i.place] : i.grp; }
 function shopImgs(i){
+  if(i.kind === 'stone' && typeof stonePv === 'function') return stonePv(i.id);
   if(!i.set) return '<span style="font-size:30px">' + (i.icon || '🛒') + '</span>';
   if(i.set === 'alt') return '<span style="font-size:36px">♞</span>';
   return ['wQ','wN','bN','bQ'].map(f => '<img loading="lazy" src="/chess/sets/' + i.set + '/' + f + '.png" alt="" style="width:34px;height:34px;object-fit:contain;flex:none">').join('');
@@ -844,17 +855,25 @@ async function shopReset(){ if(!await bpConfirm('Alle Shop-Preise und Haken auf 
 /* ---- Battle Pass ---- */
 let BPC = null, BPSETS = [], BPBOOST = [];
 function bpOpts(list, sel){ return '<option value="">– wählen –</option>' + list.map(x => '<option value="' + esc(x.id) + '"' + (x.id === sel ? ' selected' : '') + '>' + esc(x.name) + '</option>').join(''); }
-function bpSlot(lv, k, r){
+const BP_MAX = 4;
+function bpSlot(lv, r, free){
   r = r || { tr: 'free', ty: '', ref: '', n: 0 };
-  const ty = r.ty || '';
-  return '<div class="bps" data-l="' + lv + '" data-k="' + k + '" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;border:1px solid var(--line);border-radius:10px;padding:4px;background:#0a1124">'
-    + '<select class="b-tr" style="background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px"><option value="free"' + (r.tr === 'free' ? ' selected' : '') + '>Frei</option><option value="premium"' + (r.tr === 'premium' ? ' selected' : '') + '>Premium</option></select>'
-    + '<select class="b-ty" onchange="bpTy(this)" style="background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px"><option value="">– leer –</option>' + [['coins', '🪙 Münzen'], ['funken', '✨ Funken'], ['booster', '🍓 Booster'], ['set', '♞ Figuren-Set'], ['other', '✏️ Sonstiges']].map(t => '<option value="' + t[0] + '"' + (ty === t[0] ? ' selected' : '') + '>' + t[1] + '</option>').join('') + '</select>'
-    + '<select class="b-rs" data-for="booster" style="' + (ty === 'booster' ? '' : 'display:none;') + 'background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px;max-width:150px">' + bpOpts(BPBOOST, ty === 'booster' ? r.ref : '') + '</select>'
-    + '<select class="b-rs" data-for="set" style="' + (ty === 'set' ? '' : 'display:none;') + 'background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px;max-width:150px">' + bpOpts(BPSETS, ty === 'set' ? r.ref : '') + '</select>'
+  const ty = r.ty || '', st = 'background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px';
+  return '<div class="bps" data-l="' + lv + '" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;border:1px solid var(--line);border-radius:10px;padding:4px;background:#0a1124">'
+    + '<select class="b-tr" style="' + st + (free ? ';display:none' : '') + '"><option value="free"' + (r.tr === 'free' ? ' selected' : '') + '>Frei</option><option value="premium"' + (r.tr === 'premium' ? ' selected' : '') + '>Premium</option></select>'
+    + '<select class="b-ty" onchange="bpTy(this)" style="' + st + '"><option value="">– was gibt es? –</option>' + [['coins', '🪙 Münzen'], ['funken', '✨ Funken'], ['booster', '🍓 Booster'], ['set', '♞ Figuren-Set'], ['other', '✏️ Sonstiges']].map(t => '<option value="' + t[0] + '"' + (ty === t[0] ? ' selected' : '') + '>' + t[1] + '</option>').join('') + '</select>'
+    + '<select class="b-rs" data-for="booster" style="' + (ty === 'booster' ? '' : 'display:none;') + st + ';max-width:150px">' + bpOpts(BPBOOST, ty === 'booster' ? r.ref : '') + '</select>'
+    + '<select class="b-rs" data-for="set" style="' + (ty === 'set' ? '' : 'display:none;') + st + ';max-width:150px">' + bpOpts(BPSETS, ty === 'set' ? r.ref : '') + '</select>'
     + '<input class="b-rt" data-for="other" placeholder="Was gibt es?" value="' + (ty === 'other' ? esc(r.ref) : '') + '" style="' + (ty === 'other' ? '' : 'display:none;') + 'width:150px;padding:5px;font-size:12px">'
-    + '<input class="b-n" type="number" min="0" placeholder="Menge" value="' + (r.n || '') + '" style="width:70px;padding:5px;font-size:12px;' + (ty === 'set' || ty === 'other' || !ty ? 'display:none;' : '') + '"></div>';
+    + '<input class="b-n" type="number" min="0" placeholder="Menge" value="' + (r.n || '') + '" style="width:70px;padding:5px;font-size:12px;' + (ty === 'coins' || ty === 'funken' || ty === 'booster' ? '' : 'display:none;') + '">'
+    + '<button type="button" class="btn2" onclick="bpDel(this)" title="Entfernen" style="padding:3px 8px;font-size:12px">✕</button></div>';
 }
+function bpDel(btn){ const w = btn.closest('.bpw'); btn.closest('.bps').remove(); bpCount(w); }
+function bpAdd(l){
+  const w = document.querySelector('.bpw[data-l="' + l + '"]'); if(w.querySelectorAll('.bps').length >= BP_MAX) return;
+  w.querySelector('.bpl').insertAdjacentHTML('beforeend', bpSlot(l, null, $('bpFree').checked)); bpCount(w);
+}
+function bpCount(w){ w.querySelector('.bpadd').style.display = w.querySelectorAll('.bps').length >= BP_MAX ? 'none' : ''; }
 function bpTy(sel){
   const box = sel.closest('.bps'), t = sel.value;
   box.querySelectorAll('.b-rs').forEach(e => e.style.display = e.dataset.for === t ? '' : 'none');
@@ -862,28 +881,33 @@ function bpTy(sel){
   box.querySelector('.b-n').style.display = (t === 'coins' || t === 'funken' || t === 'booster') ? '' : 'none';
 }
 function bpPaint(){
-  const L = BPC.levels; let h = '';
+  const L = BPC.levels, free = !!BPC.free; let h = '';
   for(let b = 0; b < 10; b++){
     let rows = '', filled = 0;
     for(let i = b * 10; i < b * 10 + 10; i++){
       const lv = L[i]; filled += lv.r.length ? 1 : 0;
-      rows += '<div style="border-top:1px solid var(--line);padding:8px 0"><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><b style="min-width:70px;color:var(--gold)">Level ' + (i + 1) + '</b><label style="font-size:12px;color:var(--dim)">XP <input class="b-xp" data-l="' + i + '" type="number" min="0" value="' + lv.xp + '" style="width:90px;padding:5px;font-size:12px"></label></div>'
-        + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + [0, 1, 2].map(k => bpSlot(i, k, lv.r[k])).join('') + '</div></div>';
+      rows += '<div class="bpw" data-l="' + i + '" style="border-top:1px solid var(--line);padding:8px 0"><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><b style="min-width:70px;color:var(--gold)">Level ' + (i + 1) + '</b><label style="font-size:12px;color:var(--dim)">XP <input class="b-xp" data-l="' + i + '" type="number" min="0" value="' + lv.xp + '" style="width:90px;padding:5px;font-size:12px"></label></div>'
+        + '<div class="bpl" style="display:flex;gap:6px;flex-wrap:wrap">' + lv.r.map(r => bpSlot(i, r, free)).join('') + '</div>'
+        + '<button type="button" class="btn2 bpadd" onclick="bpAdd(' + i + ')" style="padding:4px 10px;font-size:12px;margin-top:6px;' + (lv.r.length >= BP_MAX ? 'display:none' : '') + '">＋ Belohnung</button></div>';
     }
     h += '<details class="card" style="padding:8px 12px"><summary style="cursor:pointer;font-weight:800">Level ' + (b * 10 + 1) + ' bis ' + (b * 10 + 10) + ' <span class="dim" style="font-weight:400;font-size:12px">(' + filled + ' von 10 gefüllt)</span></summary>' + rows + '</details>';
   }
   $('bpLevels').innerHTML = h;
-  $('bpFunken').value = BPC.funken;
+  $('bpFunken').value = BPC.funken; $('bpFree').checked = free; $('bpPrem').style.display = free ? 'none' : '';
   const g = GAMES.find(x => x.id === 'battlepass'); $('bpGate').innerHTML = g ? gateBtns('battlepass') : '';
 }
+function bpFreeToggle(){
+  const free = $('bpFree').checked; $('bpPrem').style.display = free ? 'none' : '';
+  document.querySelectorAll('#bpLevels .b-tr').forEach(e => { e.style.display = free ? 'none' : ''; if(free) e.value = 'free'; });
+}
 function bpCollect(){
-  const levels = BPC.levels.map((lv, i) => ({ xp: Number(document.querySelector('.b-xp[data-l="' + i + '"]').value) || 0, r: [] }));
+  const levels = BPC.levels.map((lv, i) => ({ xp: Number(document.querySelector('.b-xp[data-l="' + i + '"]').value) || 0, r: [] })), free = $('bpFree').checked;
   document.querySelectorAll('#bpLevels .bps').forEach(b => {
     const ty = b.querySelector('.b-ty').value; if(!ty) return;
     const ref = ty === 'booster' ? b.querySelector('.b-rs[data-for="booster"]').value : ty === 'set' ? b.querySelector('.b-rs[data-for="set"]').value : ty === 'other' ? b.querySelector('.b-rt').value.trim() : '';
     const n = Number(b.querySelector('.b-n').value) || 0;
     if((ty === 'coins' || ty === 'funken') && !n) return; if((ty === 'booster' || ty === 'set' || ty === 'other') && !ref) return;
-    levels[+b.dataset.l].r.push({ tr: b.querySelector('.b-tr').value, ty, ref, n });
+    levels[+b.dataset.l].r.push({ tr: free ? 'free' : b.querySelector('.b-tr').value, ty, ref, n });
   });
   return levels;
 }
@@ -892,7 +916,7 @@ async function bpLoad(){
   BPC = r.cfg; BPSETS = r.sets; BPBOOST = r.boosters; if(!GAMES.length) await loadGames(); bpPaint();
 }
 async function bpSave(){
-  const r = await api('/api/admin-bp', { funken: Number($('bpFunken').value) || 0, levels: bpCollect() });
+  const r = await api('/api/admin-bp', { funken: Number($('bpFunken').value) || 0, free: $('bpFree').checked, levels: bpCollect() });
   $('bpMsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)'; $('bpMsg').textContent = r && r.ok ? '✓ Gespeichert.' : '✗ ' + ((r && r.error) || 'Fehler');
   if(r && r.ok){ const open = [...document.querySelectorAll('#bpLevels details')].map(d => d.open); BPC = r.cfg; bpPaint(); document.querySelectorAll('#bpLevels details').forEach((d, i) => d.open = !!open[i]); }
 }
