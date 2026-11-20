@@ -49,12 +49,25 @@ var SETS=[
 var BOARDS=[
  {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
  {id:'holzblau', de:'Holzrahmen blau', en:'Wood frame blue', img:'/chess/boards/holzblau.jpg', pf:0.0470, co:'#000', cs:'none'},
- {id:'gruen', de:'Grün', en:'Green', l:'#eeeed2', d:'#769656'},
- {id:'blau', de:'Blau', en:'Blue', l:'#dee3e6', d:'#8ca2ad'},
- {id:'holz', de:'Holz', en:'Wood', l:'#f0d9b5', d:'#b58863'},
- {id:'violett', de:'Violett', en:'Purple', l:'#e8e0f5', d:'#8a6fb8'},
- {id:'grau', de:'Grau', en:'Grey', l:'#e5e5e5', d:'#7d8a99'},
- {id:'nacht', de:'Nacht', en:'Night', l:'#c9d4e8', d:'#4a5f86'}];
+ {id:'f_schaedel', de:'Totenschädel', en:'Skulls', img:'/chess/boards/f_schaedel.webp', pl:0.2122, pr:0.203, pt:0.3255, pb:0.1997, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_gold', de:'Königsgold', en:'Royal gold', img:'/chess/boards/f_gold.webp', pl:0.2174, pr:0.2119, pt:0.3412, pb:0.1929, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_schlange', de:'Schlangen', en:'Serpents', img:'/chess/boards/f_schlange.webp', pl:0.2259, pr:0.2148, pt:0.3111, pb:0.1963, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_eis', de:'Eis', en:'Ice', img:'/chess/boards/f_eis.webp', pl:0.2081, pr:0.1989, pt:0.3286, pb:0.192, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_feuer', de:'Feuer', en:'Fire', img:'/chess/boards/f_feuer.webp', pl:0.235, pr:0.2295, pt:0.3273, pb:0.1888, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_knochen', de:'Knochen', en:'Bones', img:'/chess/boards/f_knochen.webp', pl:0.2102, pr:0.1992, pt:0.3195, pb:0.1959, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_wald', de:'Dschungel', en:'Jungle', img:'/chess/boards/f_wald.webp', pl:0.2113, pr:0.1984, pt:0.2951, pb:0.1644, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_dunkel', de:'Dunkelkristall', en:'Dark crystal', img:'/chess/boards/f_dunkel.webp', pl:0.2165, pr:0.2073, pt:0.3255, pb:0.187, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_welle', de:'Ozean', en:'Ocean', img:'/chess/boards/f_welle.webp', pl:0.2284, pr:0.2173, pt:0.3039, pb:0.1713, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_koenig', de:'Königsbanner', en:'Royal banners', img:'/chess/boards/f_koenig.webp', pl:0.1595, pr:0.1584, pt:0.1879, pb:0.1846, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_drache', de:'Drache', en:'Dragon', img:'/chess/boards/f_drache.webp', pl:0.2448, pr:0.2448, pt:0.3427, pb:0.1883, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_engel', de:'Engel', en:'Angel', img:'/chess/boards/f_engel.webp', pl:0.2578, pr:0.2578, pt:0.3462, pb:0.1805, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_geist', de:'Geisterfeuer', en:'Ghost fire', img:'/chess/boards/f_geist.webp', pl:0.2177, pr:0.2214, pt:0.31, pb:0.1956, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_burg', de:'Burg', en:'Castle', img:'/chess/boards/f_burg.webp', pl:0.2741, pr:0.2664, pt:0.3205, pb:0.2201, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_maerchen', de:'Märchenwald', en:'Fairy forest', img:'/chess/boards/f_maerchen.webp', pl:0.2144, pr:0.2107, pt:0.2847, pb:0.2588, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_phoenix', de:'Phönix', en:'Phoenix', img:'/chess/boards/f_phoenix.webp', pl:0.2583, pr:0.2661, pt:0.3601, pb:0.2818, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_kristall', de:'Eiskristall', en:'Ice crystal', img:'/chess/boards/f_kristall.webp', pl:0.2288, pr:0.2362, pt:0.2731, pb:0.2325, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_daemon', de:'Dämon', en:'Demon', img:'/chess/boards/f_daemon.webp', pl:0.2364, pr:0.2402, pt:0.3002, pb:0.2251, tr:1, co:'#000', cs:'0 0 3px #fff'},
+ {id:'f_arkan', de:'Arkanmagie', en:'Arcane', img:'/chess/boards/f_arkan.webp', pl:0.2342, pr:0.2305, pt:0.2639, pb:0.2342, tr:1, co:'#000', cs:'0 0 3px #fff'}];
 function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 var BS=window.BpSets={ list:SETS, boards:BOARDS,
@@ -74,8 +87,8 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
   board:function(){ var id=ls('bp_board_theme')||'holzgruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },
   setBoard:function(id){ lset('bp_board_theme',id); BS.applyBoard(); },
   applyBoard:function(){ var b=BS.board(), de=document.documentElement, st=de.style;
-    if(b.img){ de.classList.add('bd-img'); st.setProperty('--bd-url','url('+b.img+')'); st.setProperty('--pf',String(b.pf)); st.setProperty('--co',b.co||'#fff'); st.setProperty('--cs',b.cs||'0 0 3px #000'); st.setProperty('--k',String(1+2*b.pf)); }
-    else { de.classList.remove('bd-img'); st.setProperty('--k','1'); st.setProperty('--sq-light',b.l); st.setProperty('--sq-dark',b.d); } },
+    if(b.img){ var pl=b.pl!=null?b.pl:b.pf, pr=b.pr!=null?b.pr:b.pf, pt=b.pt!=null?b.pt:b.pf, pb=b.pb!=null?b.pb:b.pf; de.classList.add('bd-img'); de.classList.toggle('bd-tr',!!b.tr); st.setProperty('--bd-url','url('+b.img+')'); st.setProperty('--pf',String(b.pf||0)); st.setProperty('--pl',String(pl)); st.setProperty('--pr',String(pr)); st.setProperty('--pt',String(pt)); st.setProperty('--pb',String(pb)); st.setProperty('--co',b.co||'#fff'); st.setProperty('--cs',b.cs||'0 0 3px #000'); st.setProperty('--k',String(1+pl+pr)); }
+    else { de.classList.remove('bd-img'); de.classList.remove('bd-tr'); st.setProperty('--k','1'); st.setProperty('--sq-light',b.l); st.setProperty('--sq-dark',b.d); } },
   preload:function(){ var id=BS.get(); if(id==='alt') return; ['K','Q','R','B','N','P'].forEach(function(t){ ['w','b'].forEach(function(c){ var i=new Image(); i.src='/chess/sets/'+id+'/'+c+t+'.png'; }); }); }
 };
 BS.applyBoard(); BS.preload();

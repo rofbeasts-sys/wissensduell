@@ -85,11 +85,12 @@
   }
 
   /* Bildbretter mit Rahmen */
-  html.bd-img .boardwrap{ --cellb:calc(min(100vw - 32px, 448px) / 8 / var(--k)); width:fit-content; margin:0 auto; padding:calc(var(--cellb) * 8 * var(--pf)); background:var(--bd-url) center/100% 100% no-repeat; box-sizing:content-box; border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,.5); }
+  html.bd-img .boardwrap{ --cellb:calc(min(100vw - 32px, 448px) / 8 / var(--k)); width:fit-content; margin:0 auto; padding:calc(var(--cellb) * 8 * var(--pt)) calc(var(--cellb) * 8 * var(--pr)) calc(var(--cellb) * 8 * var(--pb)) calc(var(--cellb) * 8 * var(--pl)); background:var(--bd-url) center/100% 100% no-repeat; box-sizing:content-box; border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,.5); }
+  html.bd-tr .boardwrap{ border-radius:0; box-shadow:none; filter:drop-shadow(0 8px 14px rgba(0,0,0,.55)); }
   html.bd-img #board{ --cell:var(--cellb); border:0 !important; box-shadow:none !important; background:none !important; border-radius:0 !important; overflow:visible !important; }
   html.bd-img .sq.l, html.bd-img .sq.d{ background:none !important; }
   html.bd-img .sq .coord, html.bd-img .sq .rk, html.bd-img .sq .fl{ color:var(--co) !important; text-shadow:var(--cs); font-weight:800; }
-  html.bd-img #planSvg{ left:calc(var(--cellb) * 8 * var(--pf)); top:calc(var(--cellb) * 8 * var(--pf)); width:calc(var(--cellb) * 8); height:calc(var(--cellb) * 8); }
+  html.bd-img #planSvg{ left:calc(var(--cellb) * 8 * var(--pl)); top:calc(var(--cellb) * 8 * var(--pt)); width:calc(var(--cellb) * 8); height:calc(var(--cellb) * 8); }
   @media (min-width:760px){ html.bd-img .boardwrap{ --cellb:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8 / var(--k)); } }
 </style>
 </head>
