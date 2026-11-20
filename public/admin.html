@@ -155,10 +155,15 @@ button.mini{padding:4px 8px;font-size:12px}
   </div>
 
   <div id="tab_bp" class="hidden">
-    <div class="card"><b>🎟️ Battle Pass</b>
-      <div style="font-size:13px;line-height:1.6;margin-top:8px">Der Pass ist noch <b>nicht im Spiel</b>. Sobald er gebaut ist, stellst du hier ein: Preis, Laufzeit, XP pro Aktion, die Belohnungen pro Level (bis zu 100 Level, immer eine Wahl aus mehreren) und das Battle-Shop-Angebot für die nicht gewählten Belohnungen.</div>
-      <div class="dim" style="font-size:12px;margin-top:8px">Geplant: Premium 4,99 € (= 500 Pulsfunken), 100 Level, Belohnung auswählen statt alles bekommen.</div></div>
-    <div class="card"><b>Für den Battle Pass vorgemerkt</b><div class="dim" style="font-size:12px;margin:4px 0 8px">Diese Sachen sind schon fertig und warten auf den Pass.</div>
+    <div class="card"><b>🎟️ Battle Pass online</b>
+      <div class="dim" style="font-size:12px;margin:4px 0 8px">Der Pass ist noch nicht im Spiel. Der Schalter ist schon da: <b>Offline</b> und <b>Gesperrt</b> = Spieler sehen ihn nicht, <b>Test</b> = nur Tester, <b>Offen</b> = alle. Gilt sofort.</div>
+      <div id="bpGate" style="margin-bottom:10px"></div>
+      <div class="row" style="gap:8px;align-items:center"><label style="font-size:13px">Premium-Preis in ✨ Funken (500 = 4,99 €)</label><input id="bpFunken" type="number" min="0" style="max-width:120px"></div></div>
+    <div class="dim" style="font-size:12px;margin:0 0 8px">Pro Level: benötigte XP und bis zu 3 Belohnungen. Der Spieler wählt später <b>eine</b> aus. „Frei“ bekommt jeder, „Premium“ nur mit Pass. Leere Zeilen werden ignoriert. Figuren, die du im Shop dem Battle Pass zugeordnet hast, stehen bei „Figuren-Set“ zur Auswahl.</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin:0 0 10px"><button onclick="bpSave()">💾 Speichern</button><span id="bpMsg" style="font-size:13px"></span></div>
+    <div id="bpLevels">…</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin:10px 0"><button onclick="bpSave()">💾 Speichern</button></div>
+    <div class="card"><b>Für den Battle Pass vorgemerkt (aus dem Shop)</b><div class="dim" style="font-size:12px;margin:4px 0 8px">Diese Figuren sind im Shop dem Battle Pass zugeordnet.</div>
       <div id="bpRes" class="row" style="gap:10px"></div></div>
   </div>
 
@@ -334,7 +339,7 @@ function setTab(t){
   TAB = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   ['live','players','games','req','rep','news','rnews','zp','stats','ev','fb','shop','bp'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'shop' || t === 'bp') shopLoad(); if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
+  if(t === 'shop' || t === 'bp') shopLoad(); if(t === 'bp') bpLoad(); if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
 }
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
@@ -760,13 +765,19 @@ setTimeout(() => { try{ if(KEY) api('/api/admin-feedback', { action:'list' }).th
 
 /* ---- Shop-Preise ---- */
 let SHOPI = [];
-const SHOP_NAMES = { brain: '🍓 Brain-Shop', chess: '♞ Chess-Shop', realm: '⚔️ Realm of Brain' };
+const SHOP_NAMES = { brain: '🍓 Brain-Shop', chess: '♞ Chess-Shop (Figuren)', games: '🎮 Spiele: Gegner und Steine', realm: '⚔️ Realm of Brain' };
+const PLACE_GRP = { shop: 'Kaufbare Figuren', fantasy: 'Fantasy-Schach (erst mit Fantasy-Schach)', new: 'Neue Figuren (noch nicht freigegeben)', bp: 'Für den Battle Pass reserviert' };
+const PLACE_NAME = { shop: '♞ Chess-Shop (kaufbar)', fantasy: '🧙 Fantasy-Schach', new: '🆕 Neu, noch nicht freigegeben', bp: '🎟️ Battle Pass (reserviert)' };
 const SHOP_ORDER = { brain: ['Herzen', 'Brain Fruit', 'Brain Galaxy', 'Brain Jong', 'Fourups-Kisten', 'Münzen kaufen (Echtgeld)'],
-  chess: ['Schach-Gegner (Ladder)', 'Standard-Figuren', 'Erspielbar', 'Elo-Figuren', 'Kaufbare Figuren', 'Fantasy-Schach (erst mit Fantasy-Schach)', 'Neue Figuren (noch nicht freigegeben)', 'Für den Battle Pass reserviert'],
+  chess: ['Standard-Figuren', 'Erspielbar', 'Elo-Figuren', PLACE_GRP.shop, PLACE_GRP.fantasy, PLACE_GRP.new, PLACE_GRP.bp],
+  games: ['Gegner freikaufen (je Spiel)', 'Tic-Tac-Toe-Steine', 'Dame-Steine', '4-gewinnt-Steine'],
   realm: ['Schlüssel'] };
-const SHOP_EXTRA = [{ shop: 'brain', grp: 'Fourups-Kisten', gate: 'shop_fourups', note: 'Die Kisten kommen später, hier nur der Status.' },
+const SHOP_EXTRA = [{ shop: 'brain', grp: 'Fourups-Kisten', gate: 'shop_fourups', note: 'Die Kisten sind noch nicht im Spiel. Hier steht nur der Status, die Kisten kommen als Artikel dazu, sobald sie gebaut sind.' },
   { shop: 'brain', grp: 'Münzen kaufen (Echtgeld)', gate: 'shop_coins', note: 'Echtgeld: Die Pakete und Preise liegen bei Stripe, hier nur der Status.' }];
-const SHOP_NOTE = { 'Fantasy-Schach (erst mit Fantasy-Schach)': 'Gehört zum Fantasy-Schach. Standardmäßig aus, bis das Fantasy-Schach freigegeben wird.', 'Neue Figuren (noch nicht freigegeben)': 'Fertig ausgeschnitten, aber standardmäßig aus. Zum Freigeben Haken setzen und speichern.', 'Standard-Figuren': 'Immer frei.', 'Erspielbar': 'Werden im Spiel erspielt, nicht gekauft.', 'Elo-Figuren': 'Werden mit der Online-Elo freigeschaltet.', 'Für den Battle Pass reserviert': 'Nicht im Shop, kommt in den Battle Pass.', 'Schlüssel': 'Zweite Währung für Realm of Brain. Wird im Brain-Shop gekauft und im Spiel abgeholt.' };
+const SHOP_NOTE = { [PLACE_GRP.fantasy]: 'Gehört zum Fantasy-Schach und wird erst verkauft, wenn das Fantasy-Schach freigegeben ist.', [PLACE_GRP.new]: 'Fertig ausgeschnitten, aber nicht im Shop. Wähle bei einer Figur „Zuordnung“, um sie freizugeben.', [PLACE_GRP.bp]: 'Nicht im Shop. Diese Figuren kannst du im Battle Pass als Belohnung eintragen.', 'Standard-Figuren': 'Immer frei.', 'Erspielbar': 'Werden im Spiel erspielt, nicht gekauft.', 'Elo-Figuren': 'Werden mit der Online-Elo freigeschaltet.', 'Schlüssel': 'Zweite Währung für Realm of Brain. Wird im Brain-Shop gekauft und im Spiel abgeholt.',
+  'Gegner freikaufen (je Spiel)': 'Gegner 21 bis 30 jeder Leiter. Jedes Spiel hat seinen eigenen Preis: erst einzeln, dann das Bundle mit allen 10. Wer vorher schon gekauft hat, behält seine Gegner.',
+  'Tic-Tac-Toe-Steine': 'Heute werden sie durch Gürtel-Ränge freigeschaltet. Verkaufen oder Reservieren fürs Battle Pass geht für Steine noch nicht, die Liste dient zur Übersicht.', 'Dame-Steine': 'Heute durch Dame-Siege freigeschaltet. Nur zur Übersicht.', '4-gewinnt-Steine': 'Heute durch Fourups-Level freigeschaltet. Nur zur Übersicht.' };
+function itemGrp(i){ return i.placeable ? PLACE_GRP[i.place] : i.grp; }
 function shopImgs(i){
   if(!i.set) return '<span style="font-size:30px">' + (i.icon || '🛒') + '</span>';
   if(i.set === 'alt') return '<span style="font-size:36px">♞</span>';
@@ -778,26 +789,29 @@ function gateBtns(id){
 }
 function shopItemCard(i){
   const inp = (cls, v, ok, def) => ok ? '<label style="font-size:11px;color:var(--dim)">' + (cls === 'sc' ? '🪙 Münzen' : '✨ Funken') + '<input class="' + cls + '" type="number" min="0" value="' + (v === null ? '' : v) + '" placeholder="–" style="width:100%;margin-top:2px;padding:7px"><span style="font-size:10px">Standard: ' + (def === null ? '–' : def) + '</span></label>' : '';
-  return '<div data-id="' + i.id + '" style="border:1px solid ' + (i.on ? 'var(--line)' : '#553') + ';border-radius:12px;padding:8px;width:210px;background:#0d1426;opacity:' + (i.on || i.fixed ? 1 : .75) + '">'
+  const sel = i.placeable ? '<label style="font-size:11px;color:var(--dim);display:block;margin-top:6px">Zuordnung<select class="sp" onchange="shopPlace(\'' + i.id + '\',this.value)" style="width:100%;margin-top:2px;background:#08121f;color:#fff;border:1px solid var(--acc);border-radius:10px;padding:7px;font-size:12px">' + Object.keys(PLACE_NAME).map(k => '<option value="' + k + '"' + (i.place === k ? ' selected' : '') + '>' + PLACE_NAME[k] + '</option>').join('') + '</select></label>' : '';
+  const off = !i.fixed && !i.live;
+  return '<div data-id="' + i.id + '" style="border:1px solid ' + (off ? '#553' : 'var(--line)') + ';border-radius:12px;padding:8px;width:210px;background:#0d1426;opacity:' + (off ? .8 : 1) + '">'
     + '<div style="display:flex;gap:2px;align-items:center;min-height:38px;flex-wrap:wrap">' + shopImgs(i) + '</div>'
     + '<div style="font-weight:800;font-size:13px;margin:4px 0">' + esc(i.name) + '</div>'
     + (i.fixed ? '<div class="dim" style="font-size:11px">' + esc(i.note || '') + '</div>' : '<div style="display:flex;gap:6px">' + inp('sc', i.coins, i.canCoins, i.defCoins) + inp('sf', i.funken, i.canFunken, i.defFunken) + '</div>')
-    + (i.fixed && i.grp !== 'Standard-Figuren' && i.grp !== 'Für den Battle Pass reserviert' ? '' : '')
-    + (i.grp === 'Standard-Figuren' || i.grp === 'Für den Battle Pass reserviert' ? '' : '<label style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px;cursor:pointer"><input class="so" type="checkbox" ' + (i.on ? 'checked' : '') + ' style="flex:none;width:18px;height:18px"> Aktiv' + (i.defOn === false ? ' <span class="dim" style="font-size:10px">(Standard: aus)</span>' : '') + '</label>')
+    + sel
+    + (i.fixed ? '' : '<label style="display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px;cursor:pointer"><input class="so" type="checkbox" ' + (i.on ? 'checked' : '') + ' style="flex:none;width:18px;height:18px"> Aktiv' + (i.defOn === false ? ' <span class="dim" style="font-size:10px">(Standard: aus)</span>' : '') + '</label>')
+    + (i.placeable && i.place === 'fantasy' && i.on ? '<div class="dim" style="font-size:10px;margin-top:4px">Wird erst mit Fantasy-Schach verkauft.</div>' : '')
     + '</div>';
 }
 function shopPaint(){
   let h = '';
   Object.keys(SHOP_NAMES).forEach(sh => {
     const rows = SHOPI.filter(i => i.shop === sh);
-    const grps = SHOP_ORDER[sh].filter(g => rows.some(i => i.grp === g) || SHOP_EXTRA.some(e => e.shop === sh && e.grp === g));
+    const grps = SHOP_ORDER[sh].filter(g => rows.some(i => itemGrp(i) === g) || SHOP_EXTRA.some(e => e.shop === sh && e.grp === g) || (sh === 'chess' && Object.values(PLACE_GRP).includes(g)));
     h += '<div class="card"><h2 style="font-size:16px">' + SHOP_NAMES[sh] + '</h2>';
     grps.forEach(g => {
-      const ex = SHOP_EXTRA.find(e => e.shop === sh && e.grp === g), gate = ex ? ex.gate : (rows.find(i => i.grp === g) || {}).gate;
-      const noGate = g === 'Standard-Figuren' || g === 'Erspielbar' || g === 'Elo-Figuren' || g === 'Für den Battle Pass reserviert';
+      const ex = SHOP_EXTRA.find(e => e.shop === sh && e.grp === g), items = rows.filter(i => itemGrp(i) === g), gate = ex ? ex.gate : (items.find(i => i.gate) || {}).gate;
+      const noGate = ['Standard-Figuren', 'Erspielbar', 'Elo-Figuren', PLACE_GRP.bp, PLACE_GRP.new].includes(g) || g.indexOf('-Steine') > 0;
       h += '<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:8px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>' + esc(g) + '</b>' + (gate && !noGate ? gateBtns(gate) : '') + '</div>'
         + ((ex && ex.note) || SHOP_NOTE[g] ? '<div class="dim" style="font-size:12px;margin:4px 0">' + esc((ex && ex.note) || SHOP_NOTE[g]) + '</div>' : '')
-        + '<div class="row" style="gap:8px;margin-top:6px;align-items:stretch">' + rows.filter(i => i.grp === g).map(shopItemCard).join('') + '</div></div>';
+        + '<div class="row" style="gap:8px;margin-top:6px;align-items:stretch">' + (items.length ? items.map(shopItemCard).join('') : '<span class="dim" style="font-size:12px">Gerade nichts hier.</span>') + '</div></div>';
     });
     h += '</div>';
   });
@@ -806,25 +820,83 @@ function shopPaint(){
 function shopSync(){
   document.querySelectorAll('#shopBox [data-id]').forEach(el => {
     const i = SHOPI.find(x => x.id === el.dataset.id); if(!i || i.fixed) return;
-    const c = el.querySelector('.sc'), f = el.querySelector('.sf'), o = el.querySelector('.so');
+    const c = el.querySelector('.sc'), f = el.querySelector('.sf'), o = el.querySelector('.so'), pl = el.querySelector('.sp');
     if(c) i.coins = c.value.trim() === '' ? null : Number(c.value);
     if(f) i.funken = f.value.trim() === '' ? null : Number(f.value);
     if(o) i.on = o.checked;
+    if(pl) i.place = pl.value;
   });
 }
 async function shopLoad(){
   if(!GAMES.length) await loadGames();
   const r = await api('/api/admin-shop'); if(r && r.ok){ SHOPI = r.items; shopPaint(); } else $('shopBox').textContent = (r && r.error) || 'Nicht erreichbar.';
-  const res = SHOPI.filter(i => i.grp === 'Für den Battle Pass reserviert'); $('bpRes').innerHTML = res.map(i => '<div style="border:1px solid var(--line);border-radius:12px;padding:8px;background:#0d1426"><div style="display:flex;gap:2px">' + shopImgs(i) + '</div><div style="font-weight:800;font-size:13px;margin-top:4px">Figuren: ' + esc(i.name) + '</div></div>').join('');
+  const res = SHOPI.filter(i => i.placeable && i.place === 'bp'); $('bpRes').innerHTML = res.map(i => '<div style="border:1px solid var(--line);border-radius:12px;padding:8px;background:#0d1426"><div style="display:flex;gap:2px">' + shopImgs(i) + '</div><div style="font-weight:800;font-size:13px;margin-top:4px">Figuren: ' + esc(i.name) + '</div></div>').join('');
 }
 function shopCollect(){
   shopSync(); const items = {};
-  SHOPI.forEach(i => { if(!i.fixed) items[i.id] = { coins: i.coins, funken: i.funken, on: i.on }; else if(i.grp !== 'Standard-Figuren' && i.grp !== 'Für den Battle Pass reserviert') items[i.id] = { on: i.on }; });
+  SHOPI.forEach(i => { if(!i.fixed) items[i.id] = { coins: i.coins, funken: i.funken, on: i.on, place: i.place }; });
   return items;
 }
-async function shopGate(id, mode){ shopSync(); await setGame(id, { mode, start: 0, hide: false }); shopPaint(); }
+function shopPlace(id, v){ shopSync(); const i = SHOPI.find(x => x.id === id); if(i){ i.place = v; i.live = i.on && (v === 'shop' || v === 'fantasy'); } shopPaint(); $('shopMsg').style.color = 'var(--gold)'; $('shopMsg').textContent = 'Noch nicht gespeichert: Zuordnung geändert. Unten auf „Speichern, online machen“ klicken.'; }
+async function shopGate(id, mode){ shopSync(); await setGame(id, { mode, start: 0, hide: false }); shopPaint(); if(BPC){ const g = GAMES.find(x => x.id === 'battlepass'); $('bpGate').innerHTML = g ? gateBtns('battlepass') : ''; } }
 async function shopSave(){ const r = await api('/api/admin-shop', { items: shopCollect() }); if(r && r.ok){ SHOPI = r.items; shopPaint(); $('shopMsg').style.color = 'var(--ok)'; $('shopMsg').textContent = '✓ Gespeichert. Gilt sofort für alle Spieler.'; } else { $('shopMsg').style.color = 'var(--bad)'; $('shopMsg').textContent = '✗ ' + ((r && r.error) || 'Fehler'); } }
 async function shopReset(){ if(!await bpConfirm('Alle Shop-Preise und Haken auf Standard zurücksetzen?')) return; const r = await api('/api/admin-shop', { reset: true }); if(r && r.ok){ SHOPI = r.items; shopPaint(); $('shopMsg').style.color = 'var(--ok)'; $('shopMsg').textContent = '✓ Auf Standard zurückgesetzt.'; } }
+/* ---- Battle Pass ---- */
+let BPC = null, BPSETS = [], BPBOOST = [];
+function bpOpts(list, sel){ return '<option value="">– wählen –</option>' + list.map(x => '<option value="' + esc(x.id) + '"' + (x.id === sel ? ' selected' : '') + '>' + esc(x.name) + '</option>').join(''); }
+function bpSlot(lv, k, r){
+  r = r || { tr: 'free', ty: '', ref: '', n: 0 };
+  const ty = r.ty || '';
+  return '<div class="bps" data-l="' + lv + '" data-k="' + k + '" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;border:1px solid var(--line);border-radius:10px;padding:4px;background:#0a1124">'
+    + '<select class="b-tr" style="background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px"><option value="free"' + (r.tr === 'free' ? ' selected' : '') + '>Frei</option><option value="premium"' + (r.tr === 'premium' ? ' selected' : '') + '>Premium</option></select>'
+    + '<select class="b-ty" onchange="bpTy(this)" style="background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px"><option value="">– leer –</option>' + [['coins', '🪙 Münzen'], ['funken', '✨ Funken'], ['booster', '🍓 Booster'], ['set', '♞ Figuren-Set'], ['other', '✏️ Sonstiges']].map(t => '<option value="' + t[0] + '"' + (ty === t[0] ? ' selected' : '') + '>' + t[1] + '</option>').join('') + '</select>'
+    + '<select class="b-rs" data-for="booster" style="' + (ty === 'booster' ? '' : 'display:none;') + 'background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px;max-width:150px">' + bpOpts(BPBOOST, ty === 'booster' ? r.ref : '') + '</select>'
+    + '<select class="b-rs" data-for="set" style="' + (ty === 'set' ? '' : 'display:none;') + 'background:#08121f;color:#fff;border:1px solid var(--line);border-radius:8px;padding:5px;font-size:12px;max-width:150px">' + bpOpts(BPSETS, ty === 'set' ? r.ref : '') + '</select>'
+    + '<input class="b-rt" data-for="other" placeholder="Was gibt es?" value="' + (ty === 'other' ? esc(r.ref) : '') + '" style="' + (ty === 'other' ? '' : 'display:none;') + 'width:150px;padding:5px;font-size:12px">'
+    + '<input class="b-n" type="number" min="0" placeholder="Menge" value="' + (r.n || '') + '" style="width:70px;padding:5px;font-size:12px;' + (ty === 'set' || ty === 'other' || !ty ? 'display:none;' : '') + '"></div>';
+}
+function bpTy(sel){
+  const box = sel.closest('.bps'), t = sel.value;
+  box.querySelectorAll('.b-rs').forEach(e => e.style.display = e.dataset.for === t ? '' : 'none');
+  box.querySelector('.b-rt').style.display = t === 'other' ? '' : 'none';
+  box.querySelector('.b-n').style.display = (t === 'coins' || t === 'funken' || t === 'booster') ? '' : 'none';
+}
+function bpPaint(){
+  const L = BPC.levels; let h = '';
+  for(let b = 0; b < 10; b++){
+    let rows = '', filled = 0;
+    for(let i = b * 10; i < b * 10 + 10; i++){
+      const lv = L[i]; filled += lv.r.length ? 1 : 0;
+      rows += '<div style="border-top:1px solid var(--line);padding:8px 0"><div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><b style="min-width:70px;color:var(--gold)">Level ' + (i + 1) + '</b><label style="font-size:12px;color:var(--dim)">XP <input class="b-xp" data-l="' + i + '" type="number" min="0" value="' + lv.xp + '" style="width:90px;padding:5px;font-size:12px"></label></div>'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + [0, 1, 2].map(k => bpSlot(i, k, lv.r[k])).join('') + '</div></div>';
+    }
+    h += '<details class="card" style="padding:8px 12px"><summary style="cursor:pointer;font-weight:800">Level ' + (b * 10 + 1) + ' bis ' + (b * 10 + 10) + ' <span class="dim" style="font-weight:400;font-size:12px">(' + filled + ' von 10 gefüllt)</span></summary>' + rows + '</details>';
+  }
+  $('bpLevels').innerHTML = h;
+  $('bpFunken').value = BPC.funken;
+  const g = GAMES.find(x => x.id === 'battlepass'); $('bpGate').innerHTML = g ? gateBtns('battlepass') : '';
+}
+function bpCollect(){
+  const levels = BPC.levels.map((lv, i) => ({ xp: Number(document.querySelector('.b-xp[data-l="' + i + '"]').value) || 0, r: [] }));
+  document.querySelectorAll('#bpLevels .bps').forEach(b => {
+    const ty = b.querySelector('.b-ty').value; if(!ty) return;
+    const ref = ty === 'booster' ? b.querySelector('.b-rs[data-for="booster"]').value : ty === 'set' ? b.querySelector('.b-rs[data-for="set"]').value : ty === 'other' ? b.querySelector('.b-rt').value.trim() : '';
+    const n = Number(b.querySelector('.b-n').value) || 0;
+    if((ty === 'coins' || ty === 'funken') && !n) return; if((ty === 'booster' || ty === 'set' || ty === 'other') && !ref) return;
+    levels[+b.dataset.l].r.push({ tr: b.querySelector('.b-tr').value, ty, ref, n });
+  });
+  return levels;
+}
+async function bpLoad(){
+  const r = await api('/api/admin-bp', {}); if(!r || !r.ok){ $('bpLevels').textContent = (r && r.error) || 'Nicht erreichbar.'; return; }
+  BPC = r.cfg; BPSETS = r.sets; BPBOOST = r.boosters; if(!GAMES.length) await loadGames(); bpPaint();
+}
+async function bpSave(){
+  const r = await api('/api/admin-bp', { funken: Number($('bpFunken').value) || 0, levels: bpCollect() });
+  $('bpMsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)'; $('bpMsg').textContent = r && r.ok ? '✓ Gespeichert.' : '✗ ' + ((r && r.error) || 'Fehler');
+  if(r && r.ok){ const open = [...document.querySelectorAll('#bpLevels details')].map(d => d.open); BPC = r.cfg; bpPaint(); document.querySelectorAll('#bpLevels details').forEach((d, i) => d.open = !!open[i]); }
+}
+
 async function shopGrant(){
   const r = await api('/api/admin-funken', { username: $('fgU').value.trim(), amount: Number($('fgN').value), currency: $('fgC').value, reason: $('fgR').value.trim() });
   $('fgMsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';

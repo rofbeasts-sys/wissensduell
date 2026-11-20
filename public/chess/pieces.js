@@ -36,6 +36,7 @@ var SETS=[
  {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:10000, fprice:500},
  {id:'drache', de:'Drachen', en:'Dragons', elo:0, price:10000, fprice:500, off:1},
  {id:'ozean', de:'Ozean', en:'Ocean', elo:0, price:10000, fprice:500, off:1},
+ {id:'ozean2', de:'Ozean 2', en:'Ocean 2', elo:0, price:10000, fprice:500, off:1},
  {id:'engel', de:'Engel', en:'Angels', elo:0, price:10000, fprice:500, off:1},
  {id:'untote1', de:'Untote 1', en:'Undead 1', elo:0, price:10000, fprice:500, off:1},
  {id:'untote2', de:'Untote 2', en:'Undead 2', elo:0, price:10000, fprice:500, off:1},

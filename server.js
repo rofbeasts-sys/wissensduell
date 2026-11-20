@@ -4669,7 +4669,7 @@ async function realmBuyKeys(token, pack, how, lang) {
   const it = shopItem("keys_" + String(pack)); if (!it || !it.keys && !SHOP_DEFAULTS.find(x => x.id === it.id).keys) return { ok: false, error: "Unbekanntes Paket." };
   const n = SHOP_DEFAULTS.find(x => x.id === it.id).keys;
   const useF = how === "funken", price = useF ? it.funken : it.coins;
-  if (!it.on || price === null) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
+  if (!it.live || price === null) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
   user.realm = user.realm || {};
   if (useF) { if ((user.stats.funken || 0) < price) return { ok: false, error: lang === "en" ? "Not enough Pulse sparks." : "Nicht genug Pulsfunken.", notEnough: true }; user.stats.funken -= price; }
   else { if ((user.stats.coins || 0) < price) return errObj("notEnoughCoins", lang); user.stats.coins -= price; }
@@ -4697,23 +4697,34 @@ const SHOP_DEFAULTS = (() => {
   BO("gxRocket", "Rakete", "🚀", "Brain Galaxy", "shop_fruit"); BO("gxBomb", "Bombe", "💣", "Brain Galaxy", "shop_fruit");
   BO("jgHint", "Tipp", "💡", "Brain Jong", "shop_fruit"); BO("jgShuf", "Mischen", "🔀", "Brain Jong", "shop_fruit"); BO("jgUndo", "Zurück", "↩️", "Brain Jong", "shop_fruit");
   // ---- Chess-Shop ----
-  add({ id: "ladder", name: "Schach-Gegner freikaufen (je Gegner)", shop: "chess", grp: "Schach-Gegner (Ladder)", gate: "shop_chess", icon: "♟️", coins: 5000, funken: 200 });
-  add({ id: "ladderAll", name: "Alle 10 Schach-Gegner zusammen", shop: "chess", grp: "Schach-Gegner (Ladder)", gate: "shop_chess", icon: "👑", coins: null, funken: 1500 });
   const SET = (id, name, grp, o) => add(Object.assign({ id: "set_" + id, name, shop: "chess", grp, gate: "shop_chess", set: id, kind: "set" }, o || {}));
+  const PSET = (id, name, place) => SET(id, name, "", { coins: 10000, funken: 500, placeable: true, place, on: place === "shop" });
   SET("normal", "Standard", "Standard-Figuren", { fixed: true, note: "immer frei" });
   SET("alt", "Klassisch (alt)", "Standard-Figuren", { fixed: true, note: "immer frei" });
   SET("wald", "Wald", "Erspielbar", { fixed: true, note: "Rochade spielen" });
   SET("kristall", "Kristall", "Erspielbar", { fixed: true, note: "Schachmatt setzen" });
   SET("zoo", "Zoo", "Erspielbar", { fixed: true, note: "Bauernumwandlung" });
   [["bronze", "Bronze", 1500], ["silber", "Silber", 1650], ["gold", "Gold", 1800], ["diamant", "Diamant", 1950], ["smaragd", "Smaragd", 2100], ["rubin", "Rubin", 2300]].forEach(x => SET(x[0], x[1], "Elo-Figuren", { fixed: true, note: "ab Elo " + x[2] }));
-  SET("waldtiere", "Waldtiere", "Kaufbare Figuren", { coins: 10000, funken: 500 });
-  SET("weltraum", "Weltraum", "Kaufbare Figuren", { coins: 10000, funken: 500 });
-  SET("fantasie", "Fantasie", "Fantasy-Schach (erst mit Fantasy-Schach)", { coins: 10000, funken: 500, on: false });
-  SET("drache", "Drachen", "Fantasy-Schach (erst mit Fantasy-Schach)", { coins: 10000, funken: 500, on: false });
-  SET("ozean", "Ozean", "Fantasy-Schach (erst mit Fantasy-Schach)", { coins: 10000, funken: 500, on: false });
+  PSET("waldtiere", "Waldtiere", "shop");
+  PSET("weltraum", "Weltraum", "shop");
+  PSET("fantasie", "Fantasie", "fantasy");
+  PSET("drache", "Drachen", "fantasy");
+  PSET("ozean", "Ozean", "fantasy");
   [["engel", "Engel"], ["untote1", "Untote 1"], ["untote2", "Untote 2"], ["anime", "Anime"], ["untote3", "Untote 3"], ["neon", "Neon"], ["voelker", "Völker"], ["ritter", "Ritter"], ["goblin", "Goblins"]]
-    .forEach(x => SET(x[0], x[1], "Neue Figuren (noch nicht freigegeben)", { coins: 10000, funken: 500, on: false }));
-  SET("ozean2", "Ozean 2", "Für den Battle Pass reserviert", { fixed: true, note: "kommt später in den Battle Pass" });
+    .forEach(x => PSET(x[0], x[1], "new"));
+  PSET("ozean2", "Ozean (zweite Version)", "bp");
+  // ---- Spiele: Gegner-Bundles je Spiel, Spielsteine ----
+  [["chess", "Schach", "♟️"], ["dame", "Dame", "♛"], ["fourups", "4 gewinnt", "🔴"], ["muehle", "Mühle", "⚪"], ["ttt", "Tic Tac Toe", "❌"]].forEach(g => {
+    add({ id: "ladder_" + g[0], name: g[1] + ": ein Gegner freikaufen", shop: "games", grp: "Gegner freikaufen (je Spiel)", gate: "shop_chess", icon: g[2], coins: 5000, funken: 200, game: g[0] });
+    add({ id: "ladderAll_" + g[0], name: g[1] + ": alle 10 Gegner (Bundle)", shop: "games", grp: "Gegner freikaufen (je Spiel)", gate: "shop_chess", icon: "👑", coins: null, funken: 1500, game: g[0] });
+  });
+  const STONE = (id, name, grp, ic, note) => add({ id, name, shop: "games", grp, icon: ic, fixed: true, kind: "stone", note });
+  [["neon", "Neon", "Weißer Gürtel", "⭕"], ["glass", "Kristall", "Gelber Gürtel", "💎"], ["wood", "Holz", "Oranger Gürtel", "🪵"], ["led", "LED", "Grüner Gürtel", "💡"], ["pixel", "Pixel", "Blauer Gürtel", "🟩"], ["chalk", "Kreide", "Brauner Gürtel", "🖍️"], ["galaxy", "Galaxie", "Meister-Gürtel", "🌌"]]
+    .forEach(x => STONE("stone_ttt_" + x[0], x[1], "Tic-Tac-Toe-Steine", x[3], "ab " + x[2]));
+  [["wood", "Klassisch Holz", 0], ["i_holz", "Holz Deluxe", 1], ["neon", "Neon", 3], ["i_bronze", "Bronze", 5], ["glass", "Glas", 8], ["i_silber", "Silber", 12], ["flat", "Flach", 15], ["i_gold", "Gold", 20], ["metal", "Gold & Silber", 30], ["i_smaragd", "Smaragd", 40], ["pulse", "Brain-Pulse", 50], ["i_rubin", "Rubin", 70]]
+    .forEach(x => STONE("stone_dame_" + x[0], x[1], "Dame-Steine", "⚫", x[2] ? "ab " + x[2] + " Dame-Siegen" : "von Anfang an"));
+  [["classic", "Klassisch", 0], ["neon", "Neon", 3], ["gold", "Gold & Silber", 7], ["fireice", "Feuer & Eis", 12], ["candy", "Candy", 18], ["space", "Weltraum", 24], ["wood", "Holz", 32]]
+    .forEach(x => STONE("stone_fu_" + x[0], x[1], "4-gewinnt-Steine", "🔴", x[2] ? "ab Fourups-Level " + x[2] : "von Anfang an"));
   // ---- Realm of Brain ----
   add({ id: "keys_s", name: "20 Schlüssel", shop: "realm", grp: "Schlüssel", gate: "braining_lane", icon: "🔑", coins: 2000, funken: 20, on: false, keys: 20 });
   add({ id: "keys_l", name: "100 Schlüssel", shop: "realm", grp: "Schlüssel", gate: "braining_lane", icon: "🔑", coins: 10000, funken: 100, on: false, keys: 100 });
@@ -4743,9 +4754,12 @@ function shopItem(id) {
   const d = SHOP_DEFAULTS.find(x => x.id === id); if (!d) return null;
   const o = (shopCfg.items && shopCfg.items[id]) || {};
   const pick = (k) => (o[k] === null || (Number.isFinite(o[k]) && o[k] >= 0)) ? o[k] : d[k];
-  return { id, name: d.name, shop: d.shop, grp: d.grp, gate: d.gate, icon: d.icon, set: d.set, note: d.note, fixed: d.fixed, canCoins: d.canCoins, canFunken: d.canFunken, coins: d.fixed || !d.canCoins ? d.coins : pick("coins"), funken: d.fixed || !d.canFunken ? d.funken : pick("funken"), on: o.on === undefined ? d.on : !!o.on, defOn: d.on };
+  const place = d.placeable ? (["shop", "fantasy", "new", "bp"].includes(o.place) ? o.place : d.place) : undefined;
+  const on = o.on === undefined ? d.on : !!o.on;
+  const placeOk = !d.placeable || place === "shop" || (place === "fantasy" && !featureLocked("chess_fantasy"));
+  return { id, name: d.name, shop: d.shop, grp: d.grp, gate: d.gate, icon: d.icon, set: d.set, note: d.note, game: d.game, kind: d.kind, fixed: d.fixed, placeable: !!d.placeable, place, canCoins: d.canCoins, canFunken: d.canFunken, coins: d.fixed || !d.canCoins ? d.coins : pick("coins"), funken: d.fixed || !d.canFunken ? d.funken : pick("funken"), on, live: on && placeOk, defOn: d.on, defPlace: d.place };
 }
-function shopPublic() { const out = {}; SHOP_DEFAULTS.forEach(d => { const i = shopItem(d.id); out[d.id] = { coins: i.coins, funken: i.funken, on: i.on }; }); return out; }
+function shopPublic() { const out = {}; SHOP_DEFAULTS.forEach(d => { const i = shopItem(d.id); out[d.id] = { coins: i.coins, funken: i.funken, on: i.live }; }); return out; }
 function shopAdminList() { return SHOP_DEFAULTS.map(d => ({ ...shopItem(d.id), defCoins: d.coins, defFunken: d.funken })); }
 async function adminShop(key, ip, payload, lang) {
   if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -4762,6 +4776,7 @@ async function adminShop(key, ip, payload, lang) {
         if (d.canFunken && f !== undefined) o.funken = f;
       }
       o.on = v.on !== false;
+      if (d.placeable && ["shop", "fantasy", "new", "bp"].includes(v.place)) o.place = v.place;
       next[d.id] = o;
     }
     const old = shopCfg; shopCfg = { items: next };
@@ -4770,52 +4785,112 @@ async function adminShop(key, ip, payload, lang) {
   if (p.reset === true) { const old = shopCfg; shopCfg = { items: {} }; if (!(await saveShopCfg())) { shopCfg = old; return serviceDownMsg(lang); } }
   return { ok: true, items: shopAdminList() };
 }
+// ---- Battle Pass: Level 1-100, je Level XP und bis zu 3 Belohnungen (Auswahl). Noch nicht im Spiel, der Admin traegt hier schon ein. ----
+const BP_LEVELS = 100, BP_SLOTS = 3, BP_TYPES = ["coins", "funken", "booster", "set", "other"];
+function bpDefaultCfg() { return { funken: 500, levels: Array.from({ length: BP_LEVELS }, (_, i) => ({ xp: 100 + i * 20, r: [] })) }; }
+let bpCfg = bpDefaultCfg();
+const BP_FILE = USERS_FILE + ".bp.json";
+function bpClean(raw) {
+  const out = bpDefaultCfg(); if (!raw || typeof raw !== "object") return out;
+  if (Number.isFinite(Number(raw.funken)) && Number(raw.funken) >= 0 && Number(raw.funken) <= 100000) out.funken = Math.round(Number(raw.funken));
+  if (Array.isArray(raw.levels)) raw.levels.slice(0, BP_LEVELS).forEach((l, i) => {
+    if (!l || typeof l !== "object") return;
+    if (Number.isFinite(Number(l.xp)) && Number(l.xp) >= 0 && Number(l.xp) <= 1000000) out.levels[i].xp = Math.round(Number(l.xp));
+    out.levels[i].r = (Array.isArray(l.r) ? l.r : []).slice(0, BP_SLOTS).map(r => ({
+      tr: r && r.tr === "premium" ? "premium" : "free", ty: r && BP_TYPES.includes(r.ty) ? r.ty : "other",
+      ref: String((r && r.ref) || "").slice(0, 60), n: Number.isFinite(Number(r && r.n)) ? Math.max(0, Math.min(1000000, Math.round(Number(r.n)))) : 0
+    })).filter(r => r.ref || r.n);
+  });
+  return out;
+}
+async function loadBpCfg() {
+  try {
+    let raw = null;
+    if (USE_UPSTASH) {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_bp`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+      const d = await res.json(); if (d && d.result) raw = JSON.parse(d.result);
+    } else if (fs.existsSync(BP_FILE)) raw = JSON.parse(fs.readFileSync(BP_FILE, "utf8"));
+    if (raw) bpCfg = bpClean(raw);
+  } catch (e) { console.error("Battle Pass nicht lesbar:", e.message); }
+}
+async function saveBpCfg() {
+  if (USE_UPSTASH) {
+    const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}_bp`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(bpCfg) });
+    return res.ok;
+  }
+  try { fs.mkdirSync(path.dirname(BP_FILE), { recursive: true }); fs.writeFileSync(BP_FILE, JSON.stringify(bpCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
+}
+loadBpCfg();
+async function adminBp(key, ip, payload, lang) {
+  if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const p = payload || {};
+  if (p.levels || p.funken !== undefined) {
+    const old = bpCfg; bpCfg = bpClean({ funken: p.funken !== undefined ? p.funken : old.funken, levels: p.levels || old.levels });
+    if (!(await saveBpCfg())) { bpCfg = old; return serviceDownMsg(lang); }
+  }
+  return { ok: true, cfg: bpCfg, sets: SHOP_DEFAULTS.filter(x => x.placeable).map(x => ({ id: x.set, name: x.name })), boosters: SHOP_DEFAULTS.filter(x => x.shop === "brain" && x.icon && x.coins === 5000 && x.canFunken).map(x => ({ id: x.id, name: x.name + " (" + x.grp + ")" })) };
+}
 // ---- Pulsfunken (Echtgeld-Waehrung): nur ueber Stripe zu bekommen, gibt man hier aus. 100 Funken = 1 Euro. ----
 const FUNKEN_PRICE = { booster: 100, slot: 500, ladder: 200, ladderAll: 1500, pieceset: 500 }; // nur noch Rueckfall, die echten Preise stehen in SHOP_DEFAULTS
-async function funkenBuy(token, kind, id, lang) {
+async function funkenBuy(token, kind, id, lang, game) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
-  const itemId = kind === "booster" ? id : kind === "pieceset" ? "set_" + id : kind;
+  const lg = ladderGame(game);
+  const itemId = kind === "booster" ? id : kind === "pieceset" ? "set_" + id : (kind === "ladder" || kind === "ladderAll") ? kind + "_" + lg : kind;
   const item = FUNKEN_PRICE[kind] ? shopItem(itemId) : null;
   if (!item || (kind === "booster" && item.shop !== "brain") || (kind === "booster" && itemId === "slot")) return { ok: false, error: lang === "en" ? "Unknown item." : "Unbekannter Artikel." };
-  if (!item.on || item.funken === null) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
+  if (!item.live || item.funken === null) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
   const price = item.funken;
   if (kind === "booster" && !(typeof id === "string" && /^[A-Za-z0-9]{2,16}$/.test(id))) return { ok: false, error: lang === "en" ? "Unknown item." : "Unbekannter Artikel." };
   if (kind === "ladder" && !LADDER_BUY_IDS.includes(id)) return { ok: false, error: lang === "en" ? "Unknown opponent." : "Unbekannter Gegner." };
   if (kind === "pieceset" && !PIECE_SET_SHOP[id]) return { ok: false, error: lang === "en" ? "Unknown set." : "Unbekanntes Set." };
   user.ladder = user.ladder && typeof user.ladder === "object" ? user.ladder : {};
   if (!Array.isArray(user.ladder.bought)) user.ladder.bought = [];
+  if (!user.ladder.by || typeof user.ladder.by !== "object") user.ladder.by = {};
+  if (!Array.isArray(user.ladder.by[lg])) user.ladder.by[lg] = [];
   if (!Array.isArray(user.pieceSets)) user.pieceSets = [];
-  if (kind === "ladder" && user.ladder.bought.includes(id)) return { ok: true, already: true, funken: user.stats.funken || 0 };
+  const owned = () => ladderOwned(user, lg);
+  if (kind === "ladder" && owned().includes(id)) return { ok: true, already: true, funken: user.stats.funken || 0 };
   if (kind === "pieceset" && user.pieceSets.includes(id)) return { ok: true, already: true, funken: user.stats.funken || 0 };
-  if (kind === "ladderAll" && LADDER_BUY_IDS.every(x => user.ladder.bought.includes(x))) return { ok: true, already: true, funken: user.stats.funken || 0 };
+  if (kind === "ladderAll" && LADDER_BUY_IDS.every(x => owned().includes(x))) return { ok: true, already: true, funken: user.stats.funken || 0 };
   if ((user.stats.funken || 0) < price) return { ok: false, error: lang === "en" ? "Not enough Pulse sparks." : "Nicht genug Pulsfunken.", notEnough: true };
-  const oldL = user.ladder.bought.slice(), oldP = user.pieceSets.slice();
+  const oldL = user.ladder.by[lg].slice(), oldP = user.pieceSets.slice();
   user.stats.funken = (user.stats.funken || 0) - price;
-  if (kind === "ladder") user.ladder.bought.push(id);
-  if (kind === "ladderAll") LADDER_BUY_IDS.forEach(x => { if (!user.ladder.bought.includes(x)) user.ladder.bought.push(x); });
+  if (kind === "ladder") user.ladder.by[lg].push(id);
+  if (kind === "ladderAll") LADDER_BUY_IDS.forEach(x => { if (!user.ladder.by[lg].includes(x)) user.ladder.by[lg].push(x); });
   if (kind === "pieceset") user.pieceSets.push(id);
-  if (!(await saveUsers())) { user.stats.funken += price; user.ladder.bought = oldL; user.pieceSets = oldP; return serviceDownMsg(lang); }
-  return { ok: true, funken: user.stats.funken, bought: user.ladder.bought.filter(x => LADDER_BUY_IDS.includes(x)), sets: user.pieceSets.filter(x => PIECE_SET_SHOP[x]) };
+  if (!(await saveUsers())) { user.stats.funken += price; user.ladder.by[lg] = oldL; user.pieceSets = oldP; return serviceDownMsg(lang); }
+  return { ok: true, funken: user.stats.funken, bought: owned(), sets: user.pieceSets.filter(x => PIECE_SET_SHOP[x]) };
 }
 // ---- Gegner-Leiter (Schach und Dame): die 10 staerksten Gegner kosten je 1000 Muenzen, einmal gekauft gelten sie fuer beide Spiele ----
 const LADDER_BUY_IDS = ["gerda", "witzig", "ritter", "kalle", "ninja", "otto", "dieter", "koenigin", "koenig", "lukas"], LADDER_PRICE = 5000;
-function ladderState(token) {
-  const user = findUserByToken(token); if (!user) return { ok: false };
-  return { ok: true, bought: (user.ladder && Array.isArray(user.ladder.bought)) ? user.ladder.bought.filter(id => LADDER_BUY_IDS.includes(id)) : [], coins: user.stats.coins || 0, funken: user.stats.funken || 0, price: shopItem("ladder").coins, funkenPrice: shopItem("ladder").funken, funkenAll: shopItem("ladderAll").funken, on: shopItem("ladder").on };
+const LADDER_GAMES = ["chess", "dame", "fourups", "muehle", "ttt"];
+function ladderGame(g) { return LADDER_GAMES.includes(g) ? g : "chess"; }
+// Wer vor der Aufteilung schon gekauft hat (alte Liste "bought"), behaelt die Gegner in allen Spielen.
+function ladderOwned(user, game) {
+  const l = user.ladder && typeof user.ladder === "object" ? user.ladder : {};
+  const a = Array.isArray(l.bought) ? l.bought : [], b = l.by && Array.isArray(l.by[game]) ? l.by[game] : [];
+  return LADDER_BUY_IDS.filter(id => a.includes(id) || b.includes(id));
 }
-async function ladderBuy(token, id, lang) {
+function ladderState(token, game) {
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  const g = ladderGame(game), one = shopItem("ladder_" + g), all = shopItem("ladderAll_" + g);
+  return { ok: true, game: g, bought: ladderOwned(user, g), coins: user.stats.coins || 0, funken: user.stats.funken || 0, price: one.coins, funkenPrice: one.funken, funkenAll: all.funken, coinsAll: all.coins, on: one.live, onAll: all.live };
+}
+async function ladderBuy(token, id, lang, game) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
   if (typeof id !== "string" || !LADDER_BUY_IDS.includes(id)) return { ok: false, error: lang === "en" ? "Unknown opponent." : "Unbekannter Gegner." };
+  const g = ladderGame(game);
   user.ladder = user.ladder && typeof user.ladder === "object" ? user.ladder : {};
-  if (!Array.isArray(user.ladder.bought)) user.ladder.bought = [];
-  if (user.ladder.bought.includes(id)) return ladderState(token);
-  const lp = shopItem("ladder"); if (!lp.on || lp.coins === null) return { ok: false, error: lang === "en" ? "Not available with coins." : "Mit Münzen gerade nicht erhältlich." };
+  if (!user.ladder.by || typeof user.ladder.by !== "object") user.ladder.by = {};
+  if (!Array.isArray(user.ladder.by[g])) user.ladder.by[g] = [];
+  if (ladderOwned(user, g).includes(id)) return ladderState(token, g);
+  const lp = shopItem("ladder_" + g); if (!lp.live || lp.coins === null) return { ok: false, error: lang === "en" ? "Not available with coins." : "Mit Münzen gerade nicht erhältlich." };
   if ((user.stats.coins || 0) < lp.coins) return errObj("notEnoughCoins", lang);
-  user.stats.coins -= lp.coins; user.ladder.bought.push(id);
-  if (!(await saveUsers())) { user.stats.coins += lp.coins; user.ladder.bought = user.ladder.bought.filter(x => x !== id); return serviceDownMsg(lang); }
-  return ladderState(token);
+  user.stats.coins -= lp.coins; user.ladder.by[g].push(id);
+  if (!(await saveUsers())) { user.stats.coins += lp.coins; user.ladder.by[g] = user.ladder.by[g].filter(x => x !== id); return serviceDownMsg(lang); }
+  return ladderState(token, g);
 }
 // ---- Figuren-Sets zum Kaufen (Schach): gekaufte Sets gehoeren dem Konto ----
 const PIECE_SET_SHOP = {}; SHOP_DEFAULTS.filter(x => x.kind === "set" && !x.fixed).forEach(x => { PIECE_SET_SHOP[x.set] = x.coins; });
@@ -4829,7 +4904,7 @@ async function pieceSetBuy(token, id, lang) {
   if (typeof id !== "string" || !PIECE_SET_SHOP[id]) return { ok: false, error: lang === "en" ? "Unknown set." : "Unbekanntes Set." };
   if (!Array.isArray(user.pieceSets)) user.pieceSets = [];
   if (user.pieceSets.includes(id)) return pieceSetState(token);
-  const si = shopItem("set_" + id); if (!si || !si.on || si.coins === null) return { ok: false, error: lang === "en" ? "Not available with coins." : "Mit Münzen gerade nicht erhältlich." };
+  const si = shopItem("set_" + id); if (!si || !si.live || si.coins === null) return { ok: false, error: lang === "en" ? "Not available with coins." : "Mit Münzen gerade nicht erhältlich." };
   const price = si.coins;
   if ((user.stats.coins || 0) < price) return errObj("notEnoughCoins", lang);
   user.stats.coins -= price; user.pieceSets.push(id);
@@ -7871,7 +7946,7 @@ async function arenaBuyHeart(token, lang) {
   if (!user) return errObj("notLoggedIn", lang);
   refreshArenaHearts(user);
   const hi = shopItem("heart_arena"), cost = hi && hi.coins !== null ? hi.coins : ARENA_HEART_COST;
-  if (hi && !hi.on) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
+  if (hi && !hi.live) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
   if ((user.stats.coins || 0) < cost) return errObj("notEnoughCoins", lang);
   if (user.stats.arenaHearts >= ARENA_DAILY_HEARTS) return errObj("heartsAlreadyFull", lang);
   user.stats.coins -= cost;
@@ -8086,6 +8161,7 @@ const GAME_DEFS = [
   { id: "blitz", name: "Blitz", group: "Minigames", icon: "⚡" },
   { id: "achievements", name: "Erfolge", group: "Menüleiste", icon: "🏅" },
   { id: "shop", name: "Shop", group: "Menüleiste", icon: "🛒" },
+  { id: "battlepass", name: "Battle Pass", group: "Menüleiste", icon: "🎟️" },
   { id: "shop_speedmath", name: "Speed-Math-Herz", group: "Shop", icon: "🧮" },
   { id: "shop_arena", name: "Arena-Herz", group: "Shop", icon: "🏆" },
   { id: "shop_fruit", name: "Brain-Fruit-Booster + Speicher", group: "Shop", icon: "🍓" },
@@ -8286,7 +8362,7 @@ async function saveGameCfg() {
   try { fs.mkdirSync(path.dirname(GAMES_FILE), { recursive: true }); fs.writeFileSync(GAMES_FILE, JSON.stringify(gameCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
 }
 // Gespeicherter Schalter, sonst Startwert aus LOCKED_FEATURES (Render). Test vor dem Startdatum zaehlt wie "gesperrt".
-const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "space", "politik", "braining_lane", "mania", "hard", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
+const DEFAULT_LOCKED_NEW = new Set(["backgammon", "geo", "space", "politik", "braining_lane", "mania", "hard", "battlepass", "shop_coins", "shop_chess", "shop_fourups"]); // neue Schalter starten gesperrt, egal was LOCKED_FEATURES sagt (Echtgeld nie aus Versehen offen)
 function gameModeRaw(id) { const c = gameCfg.modes[id]; return c && GAME_MODES.includes(c.mode) ? c.mode : ((LOCKED_FEATURES.has(id) || DEFAULT_LOCKED_NEW.has(id)) ? "locked" : "open"); }
 // Startdatum gilt fuer "Test" und "Offen": davor zaehlt das Spiel wie "gesperrt" (mit Countdown)
 function gameStart(id) { const m = gameModeRaw(id), c = gameCfg.modes[id]; return (c && (m === "test" || m === "open") && c.start && Date.now() < c.start) ? c.start : 0; }
@@ -8726,11 +8802,11 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/realm/buy-keys" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/realm/buy-keys") result = await realmBuyKeys(payload.token, payload.pack, payload.how, lang);
         else if (req.url === "/api/realm/claim-keys") result = await realmClaimKeys(payload.token);
-        else if (req.url === "/api/ladder-state") result = ladderState(payload.token);
-        else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang);
+        else if (req.url === "/api/ladder-state") result = ladderState(payload.token, payload.game);
+        else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang, payload.game);
         else if (req.url === "/api/pieceset-status") result = pieceSetState(payload.token);
         else if (req.url === "/api/pieceset-buy") result = await pieceSetBuy(payload.token, payload.id, lang);
-        else if (req.url === "/api/funken-buy") result = await funkenBuy(payload.token, payload.kind, payload.id, lang);
+        else if (req.url === "/api/funken-buy") result = await funkenBuy(payload.token, payload.kind, payload.id, lang, payload.game);
         else if (req.url === "/api/realm/claim-dias") result = await realmClaimDias(payload.token);
         else if (req.url === "/api/realm/news") result = realmNewsPublic();
         else if (req.url === "/api/admin-realm-news") result = await adminRealmNews(payload.key, ip, payload);
@@ -8750,6 +8826,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/social-handle") result = await socialHandle(payload, lang);
         else if (req.url === "/api/admin-funken") result = await adminFunken(payload.key, ip, payload, lang);
         else if (req.url === "/api/admin-shop") result = await adminShop(payload.key, ip, payload, lang);
+        else if (req.url === "/api/admin-bp") result = await adminBp(payload.key, ip, payload, lang);
         else if (req.url === "/api/shop-config") result = { ok: true, items: shopPublic() };
         else if (req.url === "/api/admin-beta") result = await adminBeta(payload.key, ip, payload, lang);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);

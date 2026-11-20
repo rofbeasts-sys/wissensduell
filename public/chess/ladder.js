@@ -27,7 +27,15 @@
     if(g === 'dame') return { depth: 1 + Math.round(t * 6), budget: 60 + Math.round(t * 840), rnd: Math.max(0, 0.5 * (1 - t * 2.2)), noise: Math.round(40 * q) };
     return { depth: t < 0.2 ? 1 : t < 0.6 ? 2 : 3, jitter: Math.round(150 * q) + 2, blunderChance: Math.max(0, 0.5 * (1 - t * 1.6)) };
   }
-  var START = 600, K = 32, bought = [];
+  var START = 600, K = 32, boughtBy = {};
+  function pg(g){ return g === 'tttqm' || g === 'tttqu' ? 'ttt' : (['chess','dame','fourups','muehle','ttt'].indexOf(g) >= 0 ? g : 'chess'); }
+  var asked = {};
+  function gb(g){
+    var k = pg(g);
+    if(!asked[k] && token()){ asked[k] = 1; post('/api/ladder-state', { game: k }).then(function(r){ if(r && r.ok) boughtBy[k] = r.bought || []; }).catch(function(){}); }
+    return boughtBy[k] || [];
+  }
+  var GNAME = { chess: ['Schach','chess'], dame: ['Dame','checkers'], fourups: ['4 gewinnt','Connect 4'], muehle: ['Mühle','Morris'], ttt: ['Tic Tac Toe','Tic Tac Toe'] };
   function key(g){ return 'bp_ladder2_' + g; }
   function load(g){
     var s = null; try{ s = JSON.parse(localStorage.getItem(key(g)) || 'null'); }catch(e){}
@@ -47,7 +55,7 @@
   function status(g, i){
     var o = LIST[i], s = load(g);
     if(o.tier === 'free') return 'open';
-    if(o.tier === 'buy') return bought.indexOf(o.id) >= 0 ? 'open' : 'buy';
+    if(o.tier === 'buy') return gb(g).indexOf(o.id) >= 0 ? 'open' : 'buy';
     return s.beaten.indexOf(LIST[i - 1].id) >= 0 ? 'open' : 'locked';
   }
   function unlocked(g, i){ return status(g, i) === 'open'; }
@@ -77,7 +85,7 @@
     function askHtml(){
       if(ask < 0) return '';
       var o = info(g, ask, lang), bt = 'flex:1;min-width:120px;padding:10px;border-radius:10px;border:0;font-weight:900;cursor:pointer;font-size:14px;font-family:inherit';
-      return '<div id="bpAsk" style="margin:10px 0;padding:12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1)"><b>' + esc(o.name) + '</b> ' + (de ? 'freikaufen? Gilt für Schach und Dame.' : 'unlock? Works for chess and checkers.')
+      return '<div id="bpAsk" style="margin:10px 0;padding:12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1)"><b>' + esc(o.name) + '</b> ' + (de ? 'freikaufen? Gilt nur für ' + GNAME[pg(g)][0] + '.' : 'unlock? Only for ' + GNAME[pg(g)][1] + '.')
         + (coins != null ? ' <span style="opacity:.7;font-size:12px">(' + coins + ' 🪙' + (funken != null ? ', ' + funken + ' ✨' : '') + ')</span>' : '')
         + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' + (PRICE != null ? '<button id="bpAskC" style="' + bt + ';background:#c6ff3d;color:#08110c">🪙 ' + PRICE + '</button>' : '') + (fOne != null ? '<button id="bpAskF" style="' + bt + ';background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700">✨ ' + fOne + '</button>' : '') + (fAll != null ? '<button id="bpAskA" style="' + bt + ';background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700">' + (de ? 'Alle 10: ✨ ' : 'All 10: ✨ ') + fAll + '</button>' : '') + '</div><button id="bpAskN" style="margin-top:8px;width:100%;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-family:inherit;cursor:pointer">' + (de ? 'Abbrechen' : 'Cancel') + '</button></div>';
     }
@@ -119,16 +127,16 @@
       ask = i; msg = ''; paint();
     }
     function doBuy(i, how){
-      var o = info(g, i, lang), url = how === 'coins' ? '/api/ladder-buy' : '/api/funken-buy', body = how === 'coins' ? { id: o.id } : { kind: how, id: o.id };
+      var o = info(g, i, lang), url = how === 'coins' ? '/api/ladder-buy' : '/api/funken-buy', body = how === 'coins' ? { id: o.id, game: pg(g) } : { kind: how, id: o.id, game: pg(g) };
       ask = -1;
       post(url, body).then(function(r){
-        if(r && r.ok){ bought = r.bought || bought; if(r.coins != null) coins = r.coins; if(r.funken != null) funken = r.funken; msg = (how === 'ladderAll' ? (de ? 'Alle Gegner freigekauft.' : 'All opponents unlocked.') : (de ? 'Freigekauft: ' : 'Unlocked: ') + o.name); try{ if(window.parent && window.parent.updateCoinsFromLadder) window.parent.updateCoinsFromLadder(r.coins); }catch(e){} }
+        if(r && r.ok){ boughtBy[pg(g)] = r.bought || gb(g); if(r.coins != null) coins = r.coins; if(r.funken != null) funken = r.funken; msg = (how === 'ladderAll' ? (de ? 'Alle Gegner freigekauft.' : 'All opponents unlocked.') : (de ? 'Freigekauft: ' : 'Unlocked: ') + o.name); try{ if(window.parent && window.parent.updateCoinsFromLadder) window.parent.updateCoinsFromLadder(r.coins); }catch(e){} }
         else msg = (r && r.error) || (de ? 'Kauf nicht möglich.' : 'Could not buy.');
         paint();
       }).catch(function(){ msg = de ? 'Keine Verbindung.' : 'No connection.'; paint(); });
     }
     paint();
-    if(loggedIn) post('/api/ladder-state', {}).then(function(r){ if(r && r.ok){ bought = r.bought || []; coins = r.coins; funken = r.funken; if(r.funkenPrice !== undefined) fOne = r.funkenPrice; if(r.funkenAll !== undefined) fAll = r.funkenAll; if(r.price !== undefined) PRICE = r.price; paint(); } }).catch(function(){});
+    if(loggedIn) post('/api/ladder-state', { game: pg(g) }).then(function(r){ if(r && r.ok){ boughtBy[pg(g)] = r.bought || []; coins = r.coins; funken = r.funken; if(r.funkenPrice !== undefined) fOne = r.funkenPrice; if(r.funkenAll !== undefined) fAll = r.funkenAll; if(r.price !== undefined) PRICE = r.price; paint(); } }).catch(function(){});
   }
   function endNote(g, i, r, lang){
     var de = lang !== 'en', t = (de ? 'Leiter-Wertung: ' : 'Ladder rating: ') + r.rating + ' (' + (r.delta >= 0 ? '+' : '') + r.delta + ')';
@@ -137,6 +145,6 @@
     else if(r.nextUnlocked != null) t += '\n🔓 ' + (de ? 'Freigeschaltet: ' : 'Unlocked: ') + info(g, r.nextUnlocked, lang).name + ' (' + info(g, r.nextUnlocked, lang).title + ')';
     return t;
   }
-  var api = { list: LIST, price: PRICE, ai: ai, load: load, status: status, unlocked: unlocked, result: result, info: info, open: open, endNote: endNote, setBought: function(a){ bought = a || []; } };
+  var api = { list: LIST, price: PRICE, ai: ai, load: load, status: status, unlocked: unlocked, result: result, info: info, open: open, endNote: endNote, setBought: function(a, g){ boughtBy[pg(g)] = a || []; } };
   if(typeof module !== 'undefined' && module.exports) module.exports = api; else root.BpLadder = api;
 })(typeof window !== 'undefined' ? window : this);
