@@ -7682,21 +7682,21 @@ async function dzSubmit(){
 
 /* ---- Braining: Level + Booster (Brain Fruit / Brain Hood laufen in einem iframe und holen sich das hier) ---- */
 const FRUIT_BOOSTERS = [
-  { id:'hammer',  ic:'🔨', cost:20, de:'Hammer',  en:'Hammer',  dDe:'Ein Feld zerschlagen',   dEn:'Smash one tile' },
-  { id:'broom',   ic:'🧹', cost:25, de:'Besen',   en:'Broom',   dDe:'Eine Reihe wegfegen',    dEn:'Sweep a row' },
-  { id:'shuffle', ic:'🔀', cost:15, de:'Mischen', en:'Shuffle', dDe:'Brett neu mischen',      dEn:'Reshuffle the board' },
-  { id:'moves',   ic:'➕', cost:30, de:'+5 Züge', en:'+5 moves', dDe:'Fünf Extra-Züge',        dEn:'Five extra moves' }
+  { id:'hammer',  ic:'🔨', cost:5000, de:'Hammer',  en:'Hammer',  dDe:'Ein Feld zerschlagen',   dEn:'Smash one tile' },
+  { id:'broom',   ic:'🧹', cost:5000, de:'Besen',   en:'Broom',   dDe:'Eine Reihe wegfegen',    dEn:'Sweep a row' },
+  { id:'shuffle', ic:'🔀', cost:5000, de:'Mischen', en:'Shuffle', dDe:'Brett neu mischen',      dEn:'Reshuffle the board' },
+  { id:'moves',   ic:'➕', cost:5000, de:'+5 Züge', en:'+5 moves', dDe:'Fünf Extra-Züge',        dEn:'Five extra moves' }
 ];
 window.FRUIT_BOOSTERS = FRUIT_BOOSTERS;
 window.ICO_SHUF='<svg viewBox="0 0 24 24" width="1.7em" height="1.7em" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.2em"><path d="M3 7h3.5c5 0 6 10 11 10H21"/><path d="M3 17h3.5c1.8 0 3-1.2 4-2.6M14 9.6c1-1.4 2.2-2.6 4-2.6H21"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/></svg>'; window.ICO_UNDO='<svg viewBox="0 0 24 24" width="1.7em" height="1.7em" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.2em"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H10"/></svg>';
 const GAME_BOOSTERS = [
   { game:'galaxy', c:'#7b5cff', gate:'shop_fruit', title:['Brain Galaxy Booster','Brain Galaxy boosters'], items:[
-    { id:'gxRocket', ic:'🚀', cost:30, de:'Rakete', en:'Rocket', dDe:'Extra-Rakete, wenn deine leer sind', dEn:'Extra rocket when yours run out' },
-    { id:'gxBomb',   ic:'💣', cost:25, de:'Bombe',  en:'Bomb',   dDe:'Extra-Bombe, wenn deine leer sind',  dEn:'Extra bomb when yours run out' } ] },
+    { id:'gxRocket', ic:'🚀', cost:5000, de:'Rakete', en:'Rocket', dDe:'Extra-Rakete, wenn deine leer sind', dEn:'Extra rocket when yours run out' },
+    { id:'gxBomb',   ic:'💣', cost:5000, de:'Bombe',  en:'Bomb',   dDe:'Extra-Bombe, wenn deine leer sind',  dEn:'Extra bomb when yours run out' } ] },
   { game:'jong', c:'#ff5c7a', gate:'braining_jong', title:['Brain Jong Booster','Brain Jong boosters'], items:[
-    { id:'jgHint', ic:'💡', cost:15, de:'Tipp',    en:'Tip',     dDe:'Zeigt dir ein freies Paar',     dEn:'Shows a free pair' },
-    { id:'jgShuf', ic:'<ICOS>', cost:20, de:'Mischen', en:'Shuffle', dDe:'Mischt die Steine neu',         dEn:'Reshuffles the tiles' },
-    { id:'jgUndo', ic:'<ICOU>', cost:15, de:'Zurück',  en:'Undo',    dDe:'Nimmt den letzten Zug zurück',  dEn:'Takes back the last move' } ] }
+    { id:'jgHint', ic:'💡', cost:5000, de:'Tipp',    en:'Tip',     dDe:'Zeigt dir ein freies Paar',     dEn:'Shows a free pair' },
+    { id:'jgShuf', ic:'<ICOS>', cost:5000, de:'Mischen', en:'Shuffle', dDe:'Mischt die Steine neu',         dEn:'Reshuffles the tiles' },
+    { id:'jgUndo', ic:'<ICOU>', cost:5000, de:'Zurück',  en:'Undo',    dDe:'Nimmt den letzten Zug zurück',  dEn:'Takes back the last move' } ] }
 ];
 window.GAME_BOOSTERS = GAME_BOOSTERS;
 function shopBuyGameItem(id){
@@ -7706,12 +7706,36 @@ function shopBuyGameItem(id){
   o.coins -= it.cost; f[id] = Math.min(999, (f[id]||0) + 1); fruitSave();
   return { ok:true };
 }
+let FUNKEN_SLOT = 500;
+const SHOPCFG = {};
+function bFk(b){ const c = SHOPCFG[b.id]; return c ? c.funken : 100; }
+function bOn(id){ const c = SHOPCFG[id]; return !c || c.on; }
+function applyShopCfg(items){
+  Object.keys(items || {}).forEach(k => { SHOPCFG[k] = items[k]; });
+  [].concat(FRUIT_BOOSTERS, GAME_BOOSTERS.flatMap(g => g.items)).forEach(b => { const c = SHOPCFG[b.id]; if(c) b.cost = c.coins === null ? 1e12 : c.coins; });
+  const sl = SHOPCFG.slot; if(sl){ FRUIT_SLOT_COST = sl.coins === null ? 1e12 : sl.coins; window.FRUIT_SLOT_COST = FRUIT_SLOT_COST; FUNKEN_SLOT = sl.funken === null ? 1e12 : sl.funken; }
+}
+async function loadShopCfg(){ try{ const r = await apiCall('/api/shop-config', {}); if(r && r.ok) applyShopCfg(r.items); }catch(e){} }
+function funkenOf(){ return (account && account.profile && account.profile.funken) || 0; }
+async function shopBuyFunken(kind, id){
+  if(!account){ shopFeedback(L('Zum Kaufen bitte anmelden.','Please log in to buy.'), true); return; }
+  const r = await apiCall('/api/funken-buy', { token: account.token, kind, id });
+  if(r && r.ok){
+    account.profile.funken = r.funken; if(shopProfile) shopProfile.funken = r.funken;
+    const f = fruitData();
+    if(kind === 'booster') f[id] = Math.min(999, (f[id]||0) + 1);
+    if(kind === 'slot') f.fruitSlot = true;
+    fruitSave();
+    if(kind === 'booster') achvRecord({ t:'shop', kind:'booster' });
+    renderShopScreen(); shopFeedback(L('✓ Gekauft mit Pulsfunken!','✓ Bought with Pulse sparks!'), false);
+  } else { renderShopScreen(); shopFeedback((r && r.error) || L('Kauf fehlgeschlagen.','Purchase failed.'), true); }
+}
 async function shopBuyGame(id){
   const r = shopBuyGameItem(id);
   if(r.ok) achvRecord({ t:'shop', kind:'booster' });
   renderShopScreen(); shopFeedback(r.ok ? L('✓ Booster gekauft!','✓ Booster bought!') : (r.why === 'coins' ? L('Nicht genug Münzen.','Not enough coins.') : L('Dafür brauchst du ein Profil.','You need a profile for this.')), !r.ok);
 }
-const FRUIT_SLOT_COST = 1500; window.FRUIT_SLOT_COST = FRUIT_SLOT_COST;
+let FRUIT_SLOT_COST = 50000; window.FRUIT_SLOT_COST = FRUIT_SLOT_COST;
 window.fruitBuySlot = function(){ const o = fruitOwner(), f = fruitData(); if(!o || f.guest) return { ok:false, why:'noprofile' }; if(f.fruitSlot) return { ok:true, already:true }; if((o.coins||0) < FRUIT_SLOT_COST) return { ok:false, why:'coins' }; o.coins -= FRUIT_SLOT_COST; f.fruitSlot = 1; fruitSave(); return { ok:true }; };
 window.fruitPay = function(n){ const o = fruitOwner(); if(!o || fruitData().guest) return { ok:false, why:'noprofile' }; if((o.coins||0) < n) return { ok:false, why:'coins' }; o.coins -= n; fruitSave(); return { ok:true, coins:o.coins }; };
 function fruitOwner(){ return account ? account.profile : achvOwner(); }
@@ -8504,6 +8528,7 @@ async function renderShop(profile){
   } else {
     shopArenaInfo = null;
   }
+  await loadShopCfg();
   if(!shopPackages.length){
     const pkgResult = await apiCall("/api/shop-packages", {});
     if(pkgResult.ok) shopPackages = pkgResult.packages;
@@ -8574,6 +8599,7 @@ function renderShopScreen(){
       </div>
       <div class="bs-bal">
         <div style="--c:#ffd45a"><small>${L('MÜNZEN','COINS')}</small><b>🪙 ${profile.coins||0}</b></div>
+        <div style="--c:#ff9f1c"><small>${L('PULSFUNKEN','PULSE SPARKS')}</small><b>✨ ${funkenOf()}</b></div>
         <div style="--c:#7be0ff"><small>${L('SPEED-MATH','SPEED MATH')}</small><b>❤️ ${msHearts}/${SPEEDMATH_DAILY_HEARTS}</b></div>
         ${arenaShopOn() ? `<div style="--c:#bb55ff"><small>ARENA</small><b>${shopArenaInfo ? '❤️ ' + shopArenaInfo.hearts + '/' + shopArenaInfo.maxHearts : '–'}</b></div>` : ''}
       </div>
@@ -8586,9 +8612,9 @@ function renderShopScreen(){
 
       ${noticeToShow === "cancel" ? `<div class="rank-up-banner" style="opacity:.8;">Kauf abgebrochen, es wurde nichts abgebucht.</div>` : ``}
 
-      ${hiddenFeatures.indexOf('shop_coins') !== -1 ? '' : `<div class="bs-sec">${L('Münzen kaufen','Buy coins')}</div>` + (featureLocked('shop_coins') || !shopPackages.length || !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">🪙 ${featureLocked('shop_coins') ? gateText('shop_coins') : (profile.isAccount ? L('Gerade nicht verfügbar.','Currently unavailable.') : L('Zum Kaufen bitte anmelden.','Please log in to buy.'))}</p>` : `<label style="display:flex;gap:8px;font-size:12px;color:var(--text-dim);margin:6px 0"><input type="checkbox" id="shopConsent"> <span>${L('Ich stimme zu, dass die Münzen sofort bereitgestellt werden, und weiß, dass dadurch mein Widerrufsrecht erlischt.','I agree the coins are delivered immediately and understand my right of withdrawal expires.')}</span></label>` + shopPackages.map(k => `<div class="bs-card" style="--c:#ffd45a"><span class="ic">🪙</span><div class="info"><div class="nm">${esc(k.label)}</div><div class="ds">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</div></div><button class="bs-buy" onclick="shopBuyCoins('${esc(k.id)}')">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</button></div>`).join(''))}
+      ${hiddenFeatures.indexOf('shop_coins') !== -1 ? '' : `<div class="bs-sec">${L('Pulsfunken kaufen','Buy Pulse sparks')}</div>` + (featureLocked('shop_coins') || !shopPackages.length || !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">🪙 ${featureLocked('shop_coins') ? gateText('shop_coins') : (profile.isAccount ? L('Gerade nicht verfügbar.','Currently unavailable.') : L('Zum Kaufen bitte anmelden.','Please log in to buy.'))}</p>` : `<label style="display:flex;gap:8px;font-size:12px;color:var(--text-dim);margin:6px 0"><input type="checkbox" id="shopConsent"> <span>${L('Ich stimme zu, dass die Pulsfunken sofort bereitgestellt werden, und weiß, dass dadurch mein Widerrufsrecht erlischt.','I agree the Pulse sparks are delivered immediately and understand my right of withdrawal expires.')}</span></label>` + shopPackages.map(k => `<div class="bs-card" style="--c:#ff9f1c"><span class="ic">✨</span><div class="info"><div class="nm">${esc(k.label)}</div><div class="ds">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</div></div><button class="bs-buy" onclick="shopBuyCoins('${esc(k.id)}')">${(k.priceCents/100).toFixed(2).replace('.', ',')} €</button></div>`).join(''))}
 
-      ${(hiddenFeatures.indexOf('braining_lane') !== -1 || hiddenFeatures.indexOf('shop_dias') !== -1) ? '' : `<div class="bs-sec">⚔️ Realm of Brain · ${L('Diamanten kaufen','Buy diamonds')}</div>` + ((featureLocked('braining_lane') || featureLocked('shop_dias')) ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${gateText(featureLocked('shop_dias') ? 'shop_dias' : 'braining_lane')}</p>` : !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto.','You need an account for this.')}</p>` : [['s',100,50],['m',400,200],['l',1000,500]].map(p => `<div class="bs-card" style="--c:#44ddff"><span class="ic">💎</span><div class="info"><div class="nm">${p[2]} ${L('Diamanten','Diamonds')}</div><div class="ds">${L('Für Realm of Brain. Du holst sie im Spiel ab.','For Realm of Brain. You collect them in the game.')}</div></div><button class="bs-buy" ${(profile.coins||0) < p[1] ? 'disabled' : ''} onclick="shopBuyRealmDias('${p[0]}')">🪙 ${p[1]}</button></div>`).join(''))}
+      ${(hiddenFeatures.indexOf('braining_lane') !== -1 || hiddenFeatures.indexOf('shop_dias') !== -1) ? '' : `<div class="bs-sec">⚔️ Realm of Brain · ${L('Diamanten kaufen','Buy diamonds')}</div>` + ((featureLocked('braining_lane') || featureLocked('shop_dias')) ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${gateText(featureLocked('shop_dias') ? 'shop_dias' : 'braining_lane')}</p>` : !profile.isAccount ? `<p style="color:var(--text-dim); font-size:13px; text-align:center;">${L('Dafür brauchst du ein Konto.','You need an account for this.')}</p>` : [['s',100,50],['m',400,200],['l',1000,500]].map(p => { const c = SHOPCFG['dias_' + p[0]]; return c ? [p[0], c.coins === null ? 1e12 : c.coins, p[2], c.on] : [p[0], p[1], p[2], true]; }).filter(p => p[3]).map(p => `<div class="bs-card" style="--c:#44ddff"><span class="ic">💎</span><div class="info"><div class="nm">${p[2]} ${L('Diamanten','Diamonds')}</div><div class="ds">${L('Für Realm of Brain. Du holst sie im Spiel ab.','For Realm of Brain. You collect them in the game.')}</div></div><button class="bs-buy" ${(profile.coins||0) < p[1] ? 'disabled' : ''} onclick="shopBuyRealmDias('${p[0]}')">🪙 ${p[1] >= 1e12 ? '–' : p[1]}</button></div>`).join(''))}
 
       <div class="bs-sec">${L('Herzen','Hearts')}</div>
       ${shopGate('shop_speedmath','🧮',L('Speed-Math-Herz','Speed Math heart'),`
@@ -8608,27 +8634,27 @@ function renderShopScreen(){
 ` : ''}
       ${shopGate('shop_fruit','🍓',L('Brain Fruit Booster','Brain Fruit boosters'),`
       <div class="bs-sec">${L('Brain Fruit Booster','Brain Fruit boosters')}</div>
-      ${FRUIT_BOOSTERS.map(b => { const f = fruitData(), have = f[b.id]||0, ok = (profile.coins||0) >= b.cost; return `
+      ${FRUIT_BOOSTERS.filter(b => bOn(b.id)).map(b => { const f = fruitData(), have = f[b.id]||0, ok = (profile.coins||0) >= b.cost; return `
       <div class="bs-card" style="--c:#c6ff3d">
         <span class="ic">${b.ic}</span>
         <div class="info"><div class="nm">${L(b.de,b.en)}</div><div class="ds">${L(b.dDe,b.dEn)} · ${L('du hast','you have')} ${have}</div></div>
-        <button class="bs-buy" ${ok ? '' : 'disabled'} onclick="shopBuyFruit('${b.id}')">🪙 ${b.cost}</button>
+        <button class="bs-buy" ${ok ? '' : 'disabled'} onclick="shopBuyFruit('${b.id}')">🪙 ${b.cost >= 1e12 ? '–' : b.cost}</button><button class="bs-buy" style="background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700" ${bFk(b) !== null && funkenOf() >= bFk(b) ? '' : 'disabled'} onclick="shopBuyFunken('booster','${b.id}')">✨ ${bFk(b) === null ? '–' : bFk(b)}</button>
       </div>`; }).join('')}
 
       ${(() => { const f = fruitData(), have = !!f.fruitSlot, ok = (profile.coins||0) >= FRUIT_SLOT_COST; return `
       <div class="bs-card" style="--c:#ffc446">
         <span class="ic">📦</span>
         <div class="info"><div class="nm">${L('Zusatz-Speicher','Extra storage')}</div><div class="ds">${L('Brain Fruit: ein zweites Hilfs-Objekt aus der Punkte-Leiste aufbewahren','Brain Fruit: keep a second helper from the points bar')}</div></div>
-        <button class="bs-buy" ${have || !ok ? 'disabled' : ''} onclick="shopBuySlot()">${have ? '✓' : '🪙 ' + FRUIT_SLOT_COST}</button>
+        <button class="bs-buy" ${have || !ok ? 'disabled' : ''} onclick="shopBuySlot()">${have ? '✓' : '🪙 ' + (FRUIT_SLOT_COST >= 1e12 ? '–' : FRUIT_SLOT_COST)}</button>${have ? '' : `<button class="bs-buy" style="background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700" ${funkenOf() >= FUNKEN_SLOT ? '' : 'disabled'} onclick="shopBuyFunken('slot','slot')">✨ ${FUNKEN_SLOT >= 1e12 ? '–' : FUNKEN_SLOT}</button>`}
       </div>`; })()}
 `)}
       ${GAME_BOOSTERS.map(g => shopGate(g.gate,'🛒',L(g.title[0],g.title[1]),`
       <div class="bs-sec">${L(g.title[0],g.title[1])}</div>
-      ${g.items.map(b => { const have = fruitData()[b.id]||0, ok = (profile.coins||0) >= b.cost; return `
+      ${g.items.filter(b => bOn(b.id)).map(b => { const have = fruitData()[b.id]||0, ok = (profile.coins||0) >= b.cost; return `
       <div class="bs-card" style="--c:${g.c}">
         <span class="ic">${b.ic==='<ICOS>'?ICO_SHUF:b.ic==='<ICOU>'?ICO_UNDO:b.ic}</span>
         <div class="info"><div class="nm">${L(b.de,b.en)}</div><div class="ds">${L(b.dDe,b.dEn)} · ${L('du hast','you have')} ${have}</div></div>
-        <button class="bs-buy" ${ok ? '' : 'disabled'} onclick="shopBuyGame('${b.id}')">🪙 ${b.cost}</button>
+        <button class="bs-buy" ${ok ? '' : 'disabled'} onclick="shopBuyGame('${b.id}')">🪙 ${b.cost >= 1e12 ? '–' : b.cost}</button><button class="bs-buy" style="background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700" ${bFk(b) !== null && funkenOf() >= bFk(b) ? '' : 'disabled'} onclick="shopBuyFunken('booster','${b.id}')">✨ ${bFk(b) === null ? '–' : bFk(b)}</button>
       </div>`; }).join('')}`)).join('')}
       <button class="bs-link" onclick="startUpgradeTree(()=>startShopFlow())">🌳 ${L('ZUM UPGRADE-BAUM','TO THE UPGRADE TREE')}</button>
       <div id="shopFeedback" class="explanation hidden"></div>

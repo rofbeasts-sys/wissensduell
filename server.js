@@ -4667,7 +4667,9 @@ const REALM_DIA_PACKS = { s: { coins: 100, dias: 50 }, m: { coins: 400, dias: 20
 async function realmBuyDias(token, pack, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
   const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
-  const p = REALM_DIA_PACKS[String(pack)]; if (!p) return { ok: false, error: "Unbekanntes Paket." };
+  const p0 = REALM_DIA_PACKS[String(pack)]; if (!p0) return { ok: false, error: "Unbekanntes Paket." };
+  const ri = shopItem("dias_" + String(pack)); if (!ri || !ri.on || ri.coins === null) return { ok: false, error: "Gerade nicht erhältlich." };
+  const p = { coins: ri.coins, dias: p0.dias };
   if ((user.stats.coins || 0) < p.coins) return errObj("notEnoughCoins", lang);
   user.stats.coins -= p.coins;
   user.realm = user.realm || {};
@@ -4675,11 +4677,107 @@ async function realmBuyDias(token, pack, lang) {
   if (!(await saveUsers())) { user.stats.coins += p.coins; user.realm.pendingDias -= p.dias; return serviceDownMsg(lang); }
   return { ok: true, coins: user.stats.coins, dias: p.dias, pending: user.realm.pendingDias };
 }
+// ---- Shop-Katalog: Standardpreise im Code, Aenderungen des Admins liegen daneben (coins/funken null = so nicht kaeuflich, on false = ausgeblendet) ----
+const SHOP_DEFAULTS = [
+  { id: "hammer", name: "Hammer (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "broom", name: "Besen (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "shuffle", name: "Mischen (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "moves", name: "+5 Züge (Brain Fruit)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "gxRocket", name: "Rakete (Brain Galaxy)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "gxBomb", name: "Bombe (Brain Galaxy)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "jgHint", name: "Tipp (Brain Jong)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "jgShuf", name: "Mischen (Brain Jong)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "jgUndo", name: "Zurück (Brain Jong)", shop: "brain", coins: 5000, funken: 100 },
+  { id: "slot", name: "Zusatz-Speicher (Brain Fruit)", shop: "brain", coins: 50000, funken: 500 },
+  { id: "ladder", name: "Schach-Gegner freikaufen (je Gegner)", shop: "chess", coins: 5000, funken: 200 },
+  { id: "ladderAll", name: "Alle 10 Schach-Gegner zusammen", shop: "chess", coins: null, funken: 1500 },
+  { id: "set_fantasie", name: "Figuren: Fantasie", shop: "chess", coins: 10000, funken: 500 },
+  { id: "set_waldtiere", name: "Figuren: Waldtiere", shop: "chess", coins: 10000, funken: 500 },
+  { id: "set_weltraum", name: "Figuren: Weltraum", shop: "chess", coins: 10000, funken: 500 },
+  { id: "set_drache", name: "Figuren: Drachen", shop: "chess", coins: 10000, funken: 500 },
+  { id: "set_ozean", name: "Figuren: Ozean", shop: "chess", coins: 10000, funken: 500 },
+  { id: "dias_s", name: "50 Diamanten (Realm of Brain)", shop: "realm", coins: 100, funken: null },
+  { id: "dias_m", name: "200 Diamanten (Realm of Brain)", shop: "realm", coins: 400, funken: null },
+  { id: "dias_l", name: "500 Diamanten (Realm of Brain)", shop: "realm", coins: 1000, funken: null }
+];
+let shopCfg = { items: {} };
+const SHOP_FILE = USERS_FILE + ".shop.json";
+async function loadShopCfg() {
+  let m = null;
+  try {
+    if (USE_UPSTASH) {
+      const res = await fetch(`${UPSTASH_URL}/get/${UPSTASH_USERS_KEY}_shop`, { headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } });
+      const d = await res.json(); if (d && d.result) m = JSON.parse(d.result);
+    } else if (fs.existsSync(SHOP_FILE)) m = JSON.parse(fs.readFileSync(SHOP_FILE, "utf8"));
+  } catch (e) { console.error("Shop-Preise nicht lesbar:", e.message); }
+  if (m && typeof m === "object" && m.items && typeof m.items === "object") shopCfg = { items: m.items };
+}
+async function saveShopCfg() {
+  if (USE_UPSTASH) {
+    const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}_shop`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" }, body: JSON.stringify(shopCfg) });
+    return res.ok;
+  }
+  try { fs.mkdirSync(path.dirname(SHOP_FILE), { recursive: true }); fs.writeFileSync(SHOP_FILE, JSON.stringify(shopCfg), "utf8"); return true; } catch (e) { console.error(e.message); return false; }
+}
+loadShopCfg();
+function shopItem(id) {
+  const d = SHOP_DEFAULTS.find(x => x.id === id); if (!d) return null;
+  const o = (shopCfg.items && shopCfg.items[id]) || {};
+  const pick = (k) => (o[k] === null || (Number.isFinite(o[k]) && o[k] >= 0)) ? o[k] : d[k];
+  return { id, name: d.name, shop: d.shop, coins: pick("coins"), funken: pick("funken"), on: o.on === undefined ? true : !!o.on };
+}
+function shopPublic() { const out = {}; SHOP_DEFAULTS.forEach(d => { const i = shopItem(d.id); out[d.id] = { coins: i.coins, funken: i.funken, on: i.on }; }); return out; }
+async function adminShop(key, ip, payload, lang) {
+  if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  const p = payload || {};
+  if (p.items && typeof p.items === "object") {
+    const next = {};
+    for (const d of SHOP_DEFAULTS) {
+      const v = p.items[d.id]; if (!v || typeof v !== "object") continue;
+      const num = (x, max) => (x === null || x === "" ? null : (Number.isFinite(Number(x)) && Number(x) >= 0 && Number(x) <= max ? Math.round(Number(x)) : undefined));
+      const c = num(v.coins, 10000000), f = num(v.funken, 1000000);
+      const o = {}; if (c !== undefined) o.coins = c; if (f !== undefined) o.funken = f; o.on = v.on !== false;
+      next[d.id] = o;
+    }
+    const old = shopCfg; shopCfg = { items: next };
+    if (!(await saveShopCfg())) { shopCfg = old; return serviceDownMsg(lang); }
+  }
+  if (p.reset === true) { const old = shopCfg; shopCfg = { items: {} }; if (!(await saveShopCfg())) { shopCfg = old; return serviceDownMsg(lang); } }
+  return { ok: true, items: SHOP_DEFAULTS.map(d => ({ ...shopItem(d.id), defCoins: d.coins, defFunken: d.funken })) };
+}
+// ---- Pulsfunken (Echtgeld-Waehrung): nur ueber Stripe zu bekommen, gibt man hier aus. 100 Funken = 1 Euro. ----
+const FUNKEN_PRICE = { booster: 100, slot: 500, ladder: 200, ladderAll: 1500, pieceset: 500 }; // nur noch Rueckfall, die echten Preise stehen in SHOP_DEFAULTS
+async function funkenBuy(token, kind, id, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(token); if (!user) return errObj("notLoggedIn", lang);
+  const itemId = kind === "booster" ? id : kind === "pieceset" ? "set_" + id : kind;
+  const item = FUNKEN_PRICE[kind] ? shopItem(itemId) : null;
+  if (!item || (kind === "booster" && item.shop !== "brain") || (kind === "booster" && itemId === "slot")) return { ok: false, error: lang === "en" ? "Unknown item." : "Unbekannter Artikel." };
+  if (!item.on || item.funken === null) return { ok: false, error: lang === "en" ? "Not available right now." : "Gerade nicht erhältlich." };
+  const price = item.funken;
+  if (kind === "booster" && !(typeof id === "string" && /^[A-Za-z0-9]{2,16}$/.test(id))) return { ok: false, error: lang === "en" ? "Unknown item." : "Unbekannter Artikel." };
+  if (kind === "ladder" && !LADDER_BUY_IDS.includes(id)) return { ok: false, error: lang === "en" ? "Unknown opponent." : "Unbekannter Gegner." };
+  if (kind === "pieceset" && !PIECE_SET_SHOP[id]) return { ok: false, error: lang === "en" ? "Unknown set." : "Unbekanntes Set." };
+  user.ladder = user.ladder && typeof user.ladder === "object" ? user.ladder : {};
+  if (!Array.isArray(user.ladder.bought)) user.ladder.bought = [];
+  if (!Array.isArray(user.pieceSets)) user.pieceSets = [];
+  if (kind === "ladder" && user.ladder.bought.includes(id)) return { ok: true, already: true, funken: user.stats.funken || 0 };
+  if (kind === "pieceset" && user.pieceSets.includes(id)) return { ok: true, already: true, funken: user.stats.funken || 0 };
+  if (kind === "ladderAll" && LADDER_BUY_IDS.every(x => user.ladder.bought.includes(x))) return { ok: true, already: true, funken: user.stats.funken || 0 };
+  if ((user.stats.funken || 0) < price) return { ok: false, error: lang === "en" ? "Not enough Pulse sparks." : "Nicht genug Pulsfunken.", notEnough: true };
+  const oldL = user.ladder.bought.slice(), oldP = user.pieceSets.slice();
+  user.stats.funken = (user.stats.funken || 0) - price;
+  if (kind === "ladder") user.ladder.bought.push(id);
+  if (kind === "ladderAll") LADDER_BUY_IDS.forEach(x => { if (!user.ladder.bought.includes(x)) user.ladder.bought.push(x); });
+  if (kind === "pieceset") user.pieceSets.push(id);
+  if (!(await saveUsers())) { user.stats.funken += price; user.ladder.bought = oldL; user.pieceSets = oldP; return serviceDownMsg(lang); }
+  return { ok: true, funken: user.stats.funken, bought: user.ladder.bought.filter(x => LADDER_BUY_IDS.includes(x)), sets: user.pieceSets.filter(x => PIECE_SET_SHOP[x]) };
+}
 // ---- Gegner-Leiter (Schach und Dame): die 10 staerksten Gegner kosten je 1000 Muenzen, einmal gekauft gelten sie fuer beide Spiele ----
 const LADDER_BUY_IDS = ["gerda", "witzig", "ritter", "kalle", "ninja", "otto", "dieter", "koenigin", "koenig", "lukas"], LADDER_PRICE = 5000;
 function ladderState(token) {
   const user = findUserByToken(token); if (!user) return { ok: false };
-  return { ok: true, bought: (user.ladder && Array.isArray(user.ladder.bought)) ? user.ladder.bought.filter(id => LADDER_BUY_IDS.includes(id)) : [], coins: user.stats.coins || 0, price: LADDER_PRICE };
+  return { ok: true, bought: (user.ladder && Array.isArray(user.ladder.bought)) ? user.ladder.bought.filter(id => LADDER_BUY_IDS.includes(id)) : [], coins: user.stats.coins || 0, funken: user.stats.funken || 0, price: shopItem("ladder").coins, funkenPrice: shopItem("ladder").funken, funkenAll: shopItem("ladderAll").funken, on: shopItem("ladder").on };
 }
 async function ladderBuy(token, id, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -4688,16 +4786,17 @@ async function ladderBuy(token, id, lang) {
   user.ladder = user.ladder && typeof user.ladder === "object" ? user.ladder : {};
   if (!Array.isArray(user.ladder.bought)) user.ladder.bought = [];
   if (user.ladder.bought.includes(id)) return ladderState(token);
-  if ((user.stats.coins || 0) < LADDER_PRICE) return errObj("notEnoughCoins", lang);
-  user.stats.coins -= LADDER_PRICE; user.ladder.bought.push(id);
-  if (!(await saveUsers())) { user.stats.coins += LADDER_PRICE; user.ladder.bought = user.ladder.bought.filter(x => x !== id); return serviceDownMsg(lang); }
+  const lp = shopItem("ladder"); if (!lp.on || lp.coins === null) return { ok: false, error: lang === "en" ? "Not available with coins." : "Mit Münzen gerade nicht erhältlich." };
+  if ((user.stats.coins || 0) < lp.coins) return errObj("notEnoughCoins", lang);
+  user.stats.coins -= lp.coins; user.ladder.bought.push(id);
+  if (!(await saveUsers())) { user.stats.coins += lp.coins; user.ladder.bought = user.ladder.bought.filter(x => x !== id); return serviceDownMsg(lang); }
   return ladderState(token);
 }
 // ---- Figuren-Sets zum Kaufen (Schach): gekaufte Sets gehoeren dem Konto ----
-const PIECE_SET_SHOP = { fantasie: 10000, waldtiere: 10000, weltraum: 10000 };
+const PIECE_SET_SHOP = { fantasie: 10000, waldtiere: 10000, weltraum: 10000, drache: 10000, ozean: 10000 };
 function pieceSetState(token) {
   const user = findUserByToken(token); if (!user) return { ok: false };
-  return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, prices: PIECE_SET_SHOP };
+  return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, funken: user.stats.funken || 0, prices: PIECE_SET_SHOP, funkenPrice: FUNKEN_PRICE.pieceset, cfg: shopPublic() };
 }
 async function pieceSetBuy(token, id, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -4705,7 +4804,8 @@ async function pieceSetBuy(token, id, lang) {
   if (typeof id !== "string" || !PIECE_SET_SHOP[id]) return { ok: false, error: lang === "en" ? "Unknown set." : "Unbekanntes Set." };
   if (!Array.isArray(user.pieceSets)) user.pieceSets = [];
   if (user.pieceSets.includes(id)) return pieceSetState(token);
-  const price = PIECE_SET_SHOP[id];
+  const si = shopItem("set_" + id); if (!si || !si.on || si.coins === null) return { ok: false, error: lang === "en" ? "Not available with coins." : "Mit Münzen gerade nicht erhältlich." };
+  const price = si.coins;
   if ((user.stats.coins || 0) < price) return errObj("notEnoughCoins", lang);
   user.stats.coins -= price; user.pieceSets.push(id);
   if (!(await saveUsers())) { user.stats.coins += price; user.pieceSets = user.pieceSets.filter(x => x !== id); return serviceDownMsg(lang); }
@@ -5218,6 +5318,18 @@ async function saveBetaMeta() {
 }
 function betaCounts() { const c = { 1: 0, 2: 0, 3: 0 }; for (const u of users) { const p = u.betaPhase | 0; if (p >= 1 && p <= BETA_MAX) c[p]++; } return c; }
 // Admin: Phase lesen/setzen (phase 0..3) und optional einem bestehenden Konto ein Abzeichen geben/entziehen (grantUser + grantPhase 0..3)
+// Admin: Pulsfunken gutschreiben oder abziehen (zum Testen, solange noch nicht ueber Stripe gekauft wird)
+async function adminFunken(key, ip, payload, lang) {
+  if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
+  if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
+  const p = payload || {}, u = typeof p.username === "string" ? findUserByName(p.username.trim()) : null;
+  const n = Math.round(Number(p.amount));
+  if (!u) return { ok: false, error: "Nutzer nicht gefunden." };
+  if (!Number.isFinite(n) || Math.abs(n) > 100000) return { ok: false, error: "Menge muss zwischen -100000 und 100000 liegen." };
+  u.stats.funken = Math.max(0, (u.stats.funken || 0) + n);
+  if (!(await saveUsers())) return serviceDownMsg(lang);
+  return { ok: true, username: u.username, funken: u.stats.funken };
+}
 async function adminBeta(key, ip, payload, lang) {
   if (!adminOk(key, ip)) return { ok: false, error: "Nicht verfügbar." };
   if (!(await ensureUsersLoaded())) return serviceDownMsg(lang);
@@ -7747,9 +7859,9 @@ async function arenaBuyHeart(token, lang) {
    Hinweis statt etwas kaputt zu machen.
    ============================================================================ */
 const COIN_PACKAGES = [
-  { id: "small", coins: 100, priceCents: 99, label: "100 Münzen" },
-  { id: "medium", coins: 600, priceCents: 499, label: "600 Münzen" },
-  { id: "large", coins: 1500, priceCents: 999, label: "1500 Münzen" }
+  { id: "small", funken: 100, priceCents: 99, label: "100 Pulsfunken" },
+  { id: "medium", funken: 500, priceCents: 499, label: "500 Pulsfunken" },
+  { id: "large", funken: 1300, priceCents: 999, label: "1300 Pulsfunken" }
 ];
 /* ---------------------------------------------------------------------------
    FEATURE-SCHALTER (Coming soon). Umgebungsvariable LOCKED_FEATURES, kommagetrennt.
@@ -8227,13 +8339,13 @@ async function shopCreateCheckout(token, packageId, origin, lang) {
     success_url: origin + "/?shop=success",
     cancel_url: origin + "/?shop=cancel",
     "metadata[username]": user.username,
-    "metadata[coins]": String(pkg.coins),
+    "metadata[funken]": String(pkg.funken),
     "metadata[packageId]": pkg.id,
     // Stripe "Managed Payments" verlangt je Produkt einen Steuercode (tax_code).
     // Wir verkaufen selbst und rechnen ohne Managed Payments ab - daher fuer
     // diese Sitzung ausschalten (Stripe nennt genau diesen Parameter in der Fehlermeldung).
     "managed_payments[enabled]": "false",
-    "custom_text[submit][message]": "Mit dem Kauf verlangst du die sofortige Bereitstellung der Münzen und bestätigst, dass du dadurch dein Widerrufsrecht verlierst (§ 356 Abs. 5 BGB)."
+    "custom_text[submit][message]": "Mit dem Kauf verlangst du die sofortige Bereitstellung der Pulsfunken und bestätigst, dass du dadurch dein Widerrufsrecht verlierst (§ 356 Abs. 5 BGB)."
   };
   let resp;
   try {
@@ -8280,19 +8392,21 @@ const STRIPE_PROCESSED_SESSIONS_KEEP = 20;
 async function creditStripeCoins(session) {
   const meta = session.metadata || {};
   const username = meta.username;
-  const coins = Number(meta.coins);
-  if (!username || !Number.isFinite(coins) || coins <= 0) return { ok: false, error: "Unvollständige Metadaten." };
+  const isFunken = meta.funken !== undefined;
+  const coins = Number(isFunken ? meta.funken : meta.coins);
+  if (!username || !Number.isFinite(coins) || coins <= 0 || coins > 100000) return { ok: false, error: "Unvollständige Metadaten." };
   const user = findUserByName(username);
   if (!user) return { ok: false, error: "Nutzer nicht gefunden." };
   user.processedCheckoutSessions = user.processedCheckoutSessions || [];
   if (user.processedCheckoutSessions.includes(session.id)) return { ok: true, alreadyProcessed: true };
-  user.stats.coins = (user.stats.coins || 0) + Math.round(coins);
+  if (isFunken) user.stats.funken = (user.stats.funken || 0) + Math.round(coins);
+  else user.stats.coins = (user.stats.coins || 0) + Math.round(coins);
   user.processedCheckoutSessions.push(session.id);
   if (user.processedCheckoutSessions.length > STRIPE_PROCESSED_SESSIONS_KEEP) {
     user.processedCheckoutSessions = user.processedCheckoutSessions.slice(-STRIPE_PROCESSED_SESSIONS_KEEP);
   }
   await saveUsers();
-  return { ok: true, coinsCredited: Math.round(coins), newBalance: user.stats.coins };
+  return { ok: true, coinsCredited: Math.round(coins), newBalance: isFunken ? user.stats.funken : user.stats.coins };
 }
 async function handleStripeWebhook(rawBody, sigHeader) {
   if (!stripeConfigured()) return { status: 503, body: "not configured" };
@@ -8585,6 +8699,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang);
         else if (req.url === "/api/pieceset-status") result = pieceSetState(payload.token);
         else if (req.url === "/api/pieceset-buy") result = await pieceSetBuy(payload.token, payload.id, lang);
+        else if (req.url === "/api/funken-buy") result = await funkenBuy(payload.token, payload.kind, payload.id, lang);
         else if (req.url === "/api/realm/claim-dias") result = await realmClaimDias(payload.token);
         else if (req.url === "/api/realm/news") result = realmNewsPublic();
         else if (req.url === "/api/admin-realm-news") result = await adminRealmNews(payload.key, ip, payload);
@@ -8602,6 +8717,9 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/totp-disable") result = await totpApi("disable", payload, lang);
         else if (req.url === "/api/admin-cloak") result = await adminCloak(payload, ip, lang);
         else if (req.url === "/api/social-handle") result = await socialHandle(payload, lang);
+        else if (req.url === "/api/admin-funken") result = await adminFunken(payload.key, ip, payload, lang);
+        else if (req.url === "/api/admin-shop") result = await adminShop(payload.key, ip, payload, lang);
+        else if (req.url === "/api/shop-config") result = { ok: true, items: shopPublic() };
         else if (req.url === "/api/admin-beta") result = await adminBeta(payload.key, ip, payload, lang);
         else if (req.url === "/api/arena-status") result = await arenaStatus(payload.token, lang);
         else if (req.url === "/api/arena-start-match") result = await arenaStartMatch(payload.token, lang, gateOk("arena", payload.adminKey, ip) && (testerKeyOk(payload.adminKey) === "mod" || (payload.adminKey && !testerKeyOk(payload.adminKey) && adminOk(payload.adminKey, ip))) ? "x" : "");

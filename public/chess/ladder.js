@@ -73,7 +73,14 @@
     var ov = document.createElement('div'); ov.id = 'bpLadderOv';
     ov.style.cssText = 'position:fixed;inset:0;z-index:99995;background:#0a0f1e;overflow:auto;font-family:system-ui,sans-serif;color:#fff;padding:14px';
     document.body.appendChild(ov);
-    var coins = null, loggedIn = !!token(), msg = '';
+    var coins = null, funken = null, fOne = 200, fAll = 1500, ask = -1, loggedIn = !!token(), msg = '';
+    function askHtml(){
+      if(ask < 0) return '';
+      var o = info(g, ask, lang), bt = 'flex:1;min-width:120px;padding:10px;border-radius:10px;border:0;font-weight:900;cursor:pointer;font-size:14px;font-family:inherit';
+      return '<div id="bpAsk" style="margin:10px 0;padding:12px;border:1px solid #ffd45a;border-radius:12px;background:rgba(255,212,90,.1)"><b>' + esc(o.name) + '</b> ' + (de ? 'freikaufen? Gilt für Schach und Dame.' : 'unlock? Works for chess and checkers.')
+        + (coins != null ? ' <span style="opacity:.7;font-size:12px">(' + coins + ' 🪙' + (funken != null ? ', ' + funken + ' ✨' : '') + ')</span>' : '')
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">' + (PRICE != null ? '<button id="bpAskC" style="' + bt + ';background:#c6ff3d;color:#08110c">🪙 ' + PRICE + '</button>' : '') + (fOne != null ? '<button id="bpAskF" style="' + bt + ';background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700">✨ ' + fOne + '</button>' : '') + (fAll != null ? '<button id="bpAskA" style="' + bt + ';background:linear-gradient(135deg,#ffd45a,#ff9f1c);color:#2a1700">' + (de ? 'Alle 10: ✨ ' : 'All 10: ✨ ') + fAll + '</button>' : '') + '</div><button id="bpAskN" style="margin-top:8px;width:100%;padding:8px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-family:inherit;cursor:pointer">' + (de ? 'Abbrechen' : 'Cancel') + '</button></div>';
+    }
     function paint(){
       var s = load(g);
       var cards = LIST.map(function(d, i){
@@ -84,7 +91,7 @@
           + '<img src="' + o.img + '" alt="' + esc(o.name) + '" style="display:block;width:100%;height:auto;' + (ok ? '' : 'filter:grayscale(.7)') + '" loading="lazy">' + lock
           + '<div style="font-size:11px;padding:4px 2px;font-weight:700"><span style="opacity:.8">' + o.elo + '</span> · ' + sub + '</div></button>';
       }).join('');
-      var secs = [[0, de ? 'Frei' : 'Free'], [10, de ? 'Durch Siege freischalten' : 'Unlock by winning'], [20, de ? 'Für Münzen freikaufen (' + PRICE + ' 🪙 je Gegner)' : 'Buy with coins (' + PRICE + ' 🪙 each)']];
+      var secs = [[0, de ? 'Frei' : 'Free'], [10, de ? 'Durch Siege freischalten' : 'Unlock by winning'], [20, de ? 'Freikaufen (' + PRICE + ' 🪙 oder ✨ Pulsfunken)' : 'Buy (' + PRICE + ' 🪙 or ✨ Pulse sparks)']];
       var grid = '';
       for(var k = 0; k < 3; k++){
         grid += '<div style="font-size:13px;font-weight:800;margin:14px 0 6px;opacity:.9">' + secs[k][1] + '</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + cards.split('</button>').slice(secs[k][0], secs[k][0] + 10).join('</button>') + '</button></div>';
@@ -92,9 +99,15 @@
       ov.innerHTML = '<div style="width:100%;max-width:440px;margin:0 auto"><div style="font-size:22px;font-weight:900;margin:2px 0 4px">🏆 ' + (de ? 'Gegner-Leiter' : 'Opponent ladder') + '</div>'
         + '<div style="font-size:13px;opacity:.8;margin-bottom:10px">' + (de ? 'Von leicht nach schwer. Die Leiter-Wertung zählt nur hier und nicht für die Online-Elo.' : 'From easy to hard. Your ladder rating counts only here, not for online Elo.') + '</div>'
         + '<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:13px"><span style="padding:6px 12px;border-radius:999px;background:rgba(124,255,140,.14)">' + (de ? 'Wertung' : 'Rating') + ' <b>' + s.rating + '</b></span><span style="padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08)">' + s.wins + ' ' + (de ? 'Siege' : 'wins') + ' · ' + s.draws + ' ' + (de ? 'Remis' : 'draws') + ' · ' + s.losses + ' ' + (de ? 'Niederlagen' : 'losses') + '</span>' + (coins != null ? '<span style="padding:6px 12px;border-radius:999px;background:rgba(255,196,70,.15)">🪙 <b>' + coins + '</b></span>' : '') + '</div>'
-        + (msg ? '<div style="margin-top:8px;color:#ffd45a;font-size:13px;font-weight:700">' + esc(msg) + '</div>' : '') + grid
+        + (msg ? '<div style="margin-top:8px;color:#ffd45a;font-size:13px;font-weight:700">' + esc(msg) + '</div>' : '') + askHtml() + grid
         + '<button id="bpLadderX" style="width:100%;padding:12px;border-radius:14px;border:2px solid rgba(255,255,255,.2);background:transparent;color:#fff;font:inherit;margin:14px 0 20px">' + (de ? 'Schließen' : 'Close') + '</button></div>';
       ov.querySelector('#bpLadderX').onclick = function(){ ov.remove(); };
+      var bq = ov.querySelector('#bpAsk'); if(bq){
+        var xC = ov.querySelector('#bpAskC'), xF = ov.querySelector('#bpAskF'), xA = ov.querySelector('#bpAskA'); if(xC) xC.onclick = function(){ if(coins != null && coins < PRICE){ msg = (de ? 'Dir fehlen ' : 'You need ') + (PRICE - coins) + (de ? ' Münzen.' : ' more coins.'); ask = -1; paint(); return; } doBuy(ask, 'coins'); };
+        if(xF) xF.onclick = function(){ doBuy(ask, 'ladder'); };
+        if(xA) xA.onclick = function(){ doBuy(ask, 'ladderAll'); };
+        ov.querySelector('#bpAskN').onclick = function(){ ask = -1; paint(); };
+      }
       Array.prototype.forEach.call(ov.querySelectorAll('button[data-i]'), function(b){ b.onclick = function(){ pick(+b.getAttribute('data-i')); }; });
     }
     function pick(i){
@@ -103,16 +116,19 @@
       if(st === 'locked'){ msg = (de ? 'Besiege zuerst ' : 'Beat ') + info(g, i - 1, lang).name + (de ? '.' : ' first.'); paint(); return; }
       // kaufen
       if(!loggedIn){ msg = de ? 'Melde dich an, um Gegner freizukaufen.' : 'Log in to buy opponents.'; paint(); return; }
-      if(coins != null && coins < PRICE){ msg = (de ? 'Dir fehlen ' : 'You need ') + (PRICE - coins) + (de ? ' Münzen für ' : ' more coins for ') + o.name + '.'; paint(); return; }
-      if(!confirm((de ? o.name + ' für ' + PRICE + ' Münzen freikaufen? Gilt für Schach und Dame.' : 'Buy ' + o.name + ' for ' + PRICE + ' coins? Works for chess and checkers.'))) return;
-      post('/api/ladder-buy', { id: o.id }).then(function(r){
-        if(r && r.ok){ bought = r.bought || bought; coins = r.coins; msg = (de ? 'Freigekauft: ' : 'Unlocked: ') + o.name; try{ if(window.parent && window.parent.updateCoinsFromLadder) window.parent.updateCoinsFromLadder(r.coins); }catch(e){} }
+      ask = i; msg = ''; paint();
+    }
+    function doBuy(i, how){
+      var o = info(g, i, lang), url = how === 'coins' ? '/api/ladder-buy' : '/api/funken-buy', body = how === 'coins' ? { id: o.id } : { kind: how, id: o.id };
+      ask = -1;
+      post(url, body).then(function(r){
+        if(r && r.ok){ bought = r.bought || bought; if(r.coins != null) coins = r.coins; if(r.funken != null) funken = r.funken; msg = (how === 'ladderAll' ? (de ? 'Alle Gegner freigekauft.' : 'All opponents unlocked.') : (de ? 'Freigekauft: ' : 'Unlocked: ') + o.name); try{ if(window.parent && window.parent.updateCoinsFromLadder) window.parent.updateCoinsFromLadder(r.coins); }catch(e){} }
         else msg = (r && r.error) || (de ? 'Kauf nicht möglich.' : 'Could not buy.');
         paint();
       }).catch(function(){ msg = de ? 'Keine Verbindung.' : 'No connection.'; paint(); });
     }
     paint();
-    if(loggedIn) post('/api/ladder-state', {}).then(function(r){ if(r && r.ok){ bought = r.bought || []; coins = r.coins; paint(); } }).catch(function(){});
+    if(loggedIn) post('/api/ladder-state', {}).then(function(r){ if(r && r.ok){ bought = r.bought || []; coins = r.coins; funken = r.funken; if(r.funkenPrice !== undefined) fOne = r.funkenPrice; if(r.funkenAll !== undefined) fAll = r.funkenAll; if(r.price !== undefined) PRICE = r.price; paint(); } }).catch(function(){});
   }
   function endNote(g, i, r, lang){
     var de = lang !== 'en', t = (de ? 'Leiter-Wertung: ' : 'Ladder rating: ') + r.rating + ' (' + (r.delta >= 0 ? '+' : '') + r.delta + ')';

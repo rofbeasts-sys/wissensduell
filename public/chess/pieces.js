@@ -31,9 +31,11 @@ var SETS=[
  {id:'diamant', de:'Diamant', en:'Diamond', elo:1950},
  {id:'smaragd', de:'Smaragd', en:'Emerald', elo:2100},
  {id:'rubin', de:'Rubin', en:'Ruby', elo:2300},
- {id:'fantasie', de:'Fantasie', en:'Fantasy', elo:0, price:10000},
- {id:'waldtiere', de:'Waldtiere', en:'Forest animals', elo:0, price:10000},
- {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:10000}];
+ {id:'fantasie', de:'Fantasie', en:'Fantasy', elo:0, price:10000, fprice:500},
+ {id:'waldtiere', de:'Waldtiere', en:'Forest animals', elo:0, price:10000, fprice:500},
+ {id:'weltraum', de:'Weltraum', en:'Space', elo:0, price:10000, fprice:500},
+ {id:'drache', de:'Drachen', en:'Dragons', elo:0, price:10000, fprice:500},
+ {id:'ozean', de:'Ozean', en:'Ocean', elo:0, price:10000, fprice:500}];
 var BOARDS=[
  {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
  {id:'holzblau', de:'Holzrahmen blau', en:'Wood frame blue', img:'/chess/boards/holzblau.jpg', pf:0.0470, co:'#000', cs:'none'},

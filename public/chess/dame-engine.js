@@ -173,14 +173,15 @@
     const moves = legalMoves(board, color);
     if (!moves.length) return null;
     if (moves.length === 1) return moves[0];
-    const depth = level === "easy" ? 2 : level === "hard" ? 7 : 4;
-    const budget = level === "hard" ? 900 : level === "easy" ? 200 : 500;
-    if (level === "easy" && Math.random() < 0.25) return moves[Math.floor(Math.random() * moves.length)];
-    const deadline = Date.now() + budget;
+    // level: "easy" | "normal" | "hard" oder ein Objekt { depth, budget, rnd, noise } (Gegner-Leiter)
+    const P = (level && typeof level === "object") ? level
+      : { depth: level === "easy" ? 2 : level === "hard" ? 7 : 4, budget: level === "hard" ? 900 : level === "easy" ? 200 : 500, rnd: level === "easy" ? 0.25 : 0, noise: level === "easy" ? 30 : 2 };
+    if (P.rnd && Math.random() < P.rnd) return moves[Math.floor(Math.random() * moves.length)];
+    const deadline = Date.now() + P.budget;
     let best = null, bv = -Infinity;
     const shuffled = moves.slice().sort(() => Math.random() - 0.5);
     for (const m of shuffled) {
-      const v = search(applyMove(board, m), color, other(color), depth - 1, -Infinity, Infinity, deadline) + Math.random() * (level === "easy" ? 30 : 2);
+      const v = search(applyMove(board, m), color, other(color), P.depth - 1, -Infinity, Infinity, deadline) + Math.random() * P.noise;
       if (v > bv) { bv = v; best = m; }
     }
     return best;

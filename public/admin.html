@@ -76,6 +76,7 @@ button.mini{padding:4px 8px;font-size:12px}
     <button data-t="rnews">Realm-News</button>
     <button data-t="fb">Feedback<span class="n hidden" id="nFb"></span></button>
     <button data-t="ev">Events</button>
+    <button data-t="shop">Shop</button>
     <button data-t="zp">Brainups</button>
     <button data-t="stats">Statistik</button>
   </div>
@@ -137,6 +138,17 @@ button.mini{padding:4px 8px;font-size:12px}
       <div class="gd" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn2" onclick="maniaAct('reset-bot','Bot komplett entfernen?')">Bot entfernen</button><button type="button" class="btn2" onclick="maniaAct('clear-reactions','Alle Reaktionen löschen?')">Reaktionen löschen</button><button type="button" class="btn2" onclick="maniaAct('clear-board','Die ganze Bestenliste (ohne Bot) löschen?')">Bestenliste leeren</button></div>
     </div>
     <div class="card"><h2>WIE LANGE BRAUCHT MAN?</h2><div style="font-size:13px;line-height:1.6">Eine Million Tipps am Stück:<br>3 Tipps/s: 92,6 Std · 5 Tipps/s: 55,6 Std · 8 Tipps/s: 34,7 Std · 10 Tipps/s: 27,8 Std.<br>Ein Mensch schafft auf Dauer meist 4 bis 6 Tipps/s, also rund 45 bis 70 Stunden reine Tippzeit. Die Stein-Stufen (geheim) sind darauf abgestimmt: unter 30 Std gibt es die besten Chancen, über 150 Std fast nur Braun.</div></div>
+  </div>
+
+  <div id="tab_shop" class="hidden">
+    <div class="dim" style="font-size:12px;margin-bottom:8px">Preise in <b>Münzen</b> und <b>Pulsfunken</b> für alle Shops. Feld leer lassen = so nicht kaufbar. Haken weg = Artikel wird ausgeblendet. <b>Speichern</b> gilt sofort für alle Spieler. Echtgeld-Pakete (Funken kaufen) stehen nicht hier.</div>
+    <div id="shopBox">…</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap;margin:10px 0"><button onclick="shopSave()">💾 Speichern, online machen</button><button class="ghost" onclick="shopReset()">Alles auf Standard</button></div>
+    <div id="shopMsg" style="min-height:18px;font-size:13px"></div>
+    <div class="card" style="margin-top:12px"><b>🎁 Funken gutschreiben (zum Testen)</b>
+      <div class="row" style="gap:8px;margin-top:8px;flex-wrap:wrap"><input id="fgU" placeholder="Spielername" style="min-width:140px"><input id="fgN" type="number" placeholder="Menge, z. B. 500" style="min-width:120px"><button onclick="shopGrant()">Gutschreiben</button></div>
+      <div id="fgMsg" class="dim" style="font-size:12px;margin-top:6px"></div></div>
+    <div class="dim" style="font-size:12px;margin-top:10px">Battle Pass: sobald der Pass im Spiel ist, kommt hier ein eigener Reiter dazu.</div>
   </div>
 
   <div id="tab_zp" class="hidden">
@@ -310,8 +322,8 @@ let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['live','players','games','req','rep','news','rnews','zp','stats','ev','fb'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
+  ['live','players','games','req','rep','news','rnews','zp','stats','ev','fb','shop'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'shop') shopLoad(); if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
 }
 document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
 const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
@@ -734,6 +746,34 @@ async function fbAct(action, id, state){
   if(r && r.ok){ FBD = r; fbPaint(); $('fbMsgA').style.color = 'var(--ok)'; $('fbMsgA').textContent = action === 'reward' ? 'Belohnung ist gutgeschrieben.' : ''; } else { $('fbMsgA').style.color = '#ff5d8f'; $('fbMsgA').textContent = (r && r.error) || 'Fehler'; }
 }
 setTimeout(() => { try{ if(KEY) api('/api/admin-feedback', { action:'list' }).then(r => { if(r && r.ok){ FBD = r; fbBadge(); } }); }catch(e){} }, 2500);
+
+/* ---- Shop-Preise ---- */
+let SHOPI = [];
+const SHOP_NAMES = { brain: '🍓 Brain-Shop', chess: '♞ Chess-Shop', realm: '⚔️ Realm of Brain' };
+function shopPaint(){
+  let h = '';
+  ['brain','chess','realm'].forEach(g => {
+    const rows = SHOPI.filter(i => i.shop === g); if(!rows.length) return;
+    h += '<div class="card"><b>' + SHOP_NAMES[g] + '</b><table style="width:100%;margin-top:8px;font-size:13px;border-collapse:collapse"><tr class="dim"><td>Artikel</td><td>🪙 Münzen</td><td>✨ Funken</td><td>Aktiv</td></tr>'
+      + rows.map(i => '<tr data-id="' + i.id + '" style="border-top:1px solid var(--line)"><td style="padding:6px 4px">' + i.name + '<div class="dim" style="font-size:11px">Standard: ' + (i.defCoins === null ? '–' : i.defCoins) + ' 🪙 / ' + (i.defFunken === null ? '–' : i.defFunken) + ' ✨</div></td>'
+        + '<td><input class="sc" type="number" min="0" value="' + (i.coins === null ? '' : i.coins) + '" style="width:92px;padding:6px"></td>'
+        + '<td><input class="sf" type="number" min="0" value="' + (i.funken === null ? '' : i.funken) + '" style="width:80px;padding:6px"></td>'
+        + '<td><input class="so" type="checkbox" ' + (i.on ? 'checked' : '') + ' style="flex:none;width:20px;height:20px"></td></tr>').join('')
+      + '</table>' + (g === 'realm' ? '<div class="dim" style="font-size:12px;margin-top:6px">Im Realm-Shop gibt es noch keine Funken-Preise. Die kommen mit dem Umbau.</div>' : '') + '</div>';
+  });
+  $('shopBox').innerHTML = h;
+}
+async function shopLoad(){ const r = await api('/api/admin-shop'); if(r && r.ok){ SHOPI = r.items; shopPaint(); } else $('shopBox').textContent = (r && r.error) || 'Nicht erreichbar.'; }
+function shopCollect(){
+  const items = {};
+  document.querySelectorAll('#shopBox tr[data-id]').forEach(tr => {
+    items[tr.dataset.id] = { coins: tr.querySelector('.sc').value.trim() === '' ? null : Number(tr.querySelector('.sc').value), funken: tr.querySelector('.sf').value.trim() === '' ? null : Number(tr.querySelector('.sf').value), on: tr.querySelector('.so').checked };
+  });
+  return items;
+}
+async function shopSave(){ const r = await api('/api/admin-shop', { items: shopCollect() }); if(r && r.ok){ SHOPI = r.items; shopPaint(); $('shopMsg').textContent = '✓ Gespeichert. Gilt sofort für alle Spieler.'; } else $('shopMsg').textContent = (r && r.error) || 'Speichern fehlgeschlagen.'; }
+async function shopReset(){ if(!await bpConfirm('Alle Shop-Preise auf Standard zurücksetzen?')) return; const r = await api('/api/admin-shop', { reset: true }); if(r && r.ok){ SHOPI = r.items; shopPaint(); $('shopMsg').textContent = '✓ Auf Standard gesetzt.'; } }
+async function shopGrant(){ const r = await api('/api/admin-funken', { username: $('fgU').value.trim(), amount: Number($('fgN').value) }); $('fgMsg').textContent = r && r.ok ? '✓ ' + r.username + ' hat jetzt ' + r.funken + ' Funken.' : ((r && r.error) || 'Fehlgeschlagen.'); }
 </script>
 </body>
 </html>
