@@ -4794,6 +4794,7 @@ const EARN_TYPES = {
   mates:     { nr: [2, 6, 1],     de: n => `Setze ${n}-mal einen Gegner schachmatt.`, en: n => `Checkmate an opponent ${n} times.` },
   streak:    { nr: [2, 4, 1],     de: n => `Gewinne ${n} Partien hintereinander.`, en: n => `Win ${n} games in a row.` },
   winFast:   { nr: [20, 35, 5],   de: n => `Gewinne eine Partie in höchstens ${n} eigenen Zügen.`, en: n => `Win a game in at most ${n} of your own moves.` },
+  challenges:{ nr: [3, 12, 1],    de: n => `Schließe ${n} Schach-Challenges ab.`, en: n => `Complete ${n} chess challenges.` },
   winBotElo: { nr: [800, 1600, 100], de: n => `Besiege einen Bot mit Stärke ab Elo ${n}.`, en: n => `Beat a bot with strength from Elo ${n}.` }
 };
 function earnRoll() {

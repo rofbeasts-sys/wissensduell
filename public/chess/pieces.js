@@ -70,6 +70,7 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
       +(info?'<div style="opacity:.8;font-size:13px;margin:6px 0">'+info+'</div>':'')+'<div style="font-size:12px;opacity:.6;margin:8px 0 2px">'+(de?'Weiß':'White')+'</div>'+row('w')+'<div style="font-size:12px;opacity:.6;margin:8px 0 2px">'+(de?'Schwarz':'Black')+'</div>'+row('b')+'</div>';
     ov.onclick=function(e){ if(e.target===ov||e.target.id==='bpPrevX') ov.remove(); };
     document.body.appendChild(ov); },
+  noteChallenges:function(total){ var cfg=BS.earnCfg(), earned=BS.earned(); Object.keys(cfg).forEach(function(id){ var e=cfg[id]; if(e.type==='challenges' && earned.indexOf(id)<0 && total>=e.n) BS.earn(id); }); },
   earnCfg:function(){ try{ return JSON.parse(ls('bp_earn_cfg')||'{}'); }catch(e){ return {}; } },
   applyEarn:function(map){ map=map||{}; try{ lset('bp_earn_cfg',JSON.stringify(map)); }catch(e){}
     SETS.forEach(function(q){ var c=map[q.id]; if(c){ delete q.price; q.earn=1; q.ec=c; q.hd=c.de; q.he=c.en; q.off=0; } }); },
@@ -84,7 +85,7 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
       else if(e.type==='winFast'){ done=win&&c.moves>0&&c.moves<=e.n; }
       else if(e.type==='winBotElo'){ done=win&&c.bot>=e.n; }
       lset(k,String(v)); if(done) BS.earn(id); }); },
-  progress:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(x&&x.ec){ var c=x.ec, cnt=parseInt(ls('bp_ea_'+id),10)||0, counted=(c.type==='wins'||c.type==='online'||c.type==='mates'||c.type==='streak'); return { ec:true, c:counted?Math.min(cnt,c.n):null, n:c.n, de:c.de, en:c.en }; } if(!x||!x.te) return null; return { wb:parseInt(ls('bp_wb_'+id),10)||0, wo:parseInt(ls('bp_wo_'+id),10)||0, nb:20, no:10, te:x.te, tn:x.tn, tne:x.tne }; },
+  progress:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(x&&x.ec){ var c=x.ec, cnt=parseInt(ls('bp_ea_'+id),10)||0, counted=(c.type==='wins'||c.type==='online'||c.type==='mates'||c.type==='streak'||c.type==='challenges'); if(c.type==='challenges'){ try{ cnt=Object.keys(JSON.parse(ls('bp_ch_done')||'{}')).length; }catch(e){ cnt=0; } } return { ec:true, c:counted?Math.min(cnt,c.n):null, n:c.n, de:c.de, en:c.en }; } if(!x||!x.te) return null; return { wb:parseInt(ls('bp_wb_'+id),10)||0, wo:parseInt(ls('bp_wo_'+id),10)||0, nb:20, no:10, te:x.te, tn:x.tn, tne:x.tne }; },
   noteWin:function(ctx){ ctx=ctx||{}; var n=(parseInt(ls('bp_chess_wins'),10)||0)+1; lset('bp_chess_wins',String(n));
     SETS.filter(function(q){return q.te;}).forEach(function(q){ var k, v;
       if(ctx.bot>=q.te){ k='bp_wb_'+q.id; v=(parseInt(ls(k),10)||0)+1; lset(k,String(v)); if(v>=20) BS.earn(q.id); }

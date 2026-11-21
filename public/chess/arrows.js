@@ -8,7 +8,7 @@
     var svg = document.createElementNS(NS, 'svg');
     svg.setAttribute('style', 'position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:6;overflow:visible');
     wrap.appendChild(svg);
-    var items = [], cur = null, timer = null, startPt = null, touchMode = false, mode = false;
+    var items = [], cur = null, timer = null, startPt = null, touchMode = false, mode = false, lstart = null, drew = false;
     var en = /^en/i.test((document.documentElement.lang || navigator.language || ''));
     var bar = document.createElement('div');
     bar.style.cssText = 'display:flex;gap:8px;justify-content:center;margin:10px 0';
@@ -75,7 +75,7 @@
       if(mode){ e.preventDefault(); e.stopPropagation(); if(begin(e.clientX, e.clientY)) touchMode = true; return; }
       if(e.pointerType === 'mouse'){
         if(e.button === 2){ e.preventDefault(); e.stopPropagation(); if(begin(e.clientX, e.clientY)){ touchMode = false; } return; }
-        if(e.button === 0 && items.length){ items = []; paint(); }
+        if(e.button === 0){ if(items.length){ items = []; paint(); } var s0 = sqAt(e.clientX, e.clientY); lstart = (s0 && kindAt(s0) !== 'mine') ? { x: e.clientX, y: e.clientY, s: s0 } : null; }
         return;
       }
       // Finger: lange (0,45 s) auf einem Feld bleiben, dann ziehen
@@ -85,17 +85,18 @@
       timer = setTimeout(function(){ if(startPt && begin(startPt.x, startPt.y)){ touchMode = true; try{ navigator.vibrate && navigator.vibrate(15); }catch(er){} } }, 450);
     }, true);
     window.addEventListener('pointermove', function(e){
+      if(!cur && lstart && (e.buttons & 1)){ var sn = sqAt(e.clientX, e.clientY); if(sn && !same(sn, lstart.s) && Math.abs(e.clientX - lstart.x) + Math.abs(e.clientY - lstart.y) > 10){ if(begin(lstart.x, lstart.y)){ touchMode = false; drew = true; } lstart = null; } }
       if(cur){ e.preventDefault(); track(e.clientX, e.clientY); return; }
       if(startPt && Math.abs(e.clientX - startPt.x) + Math.abs(e.clientY - startPt.y) > 10){ clearTimeout(timer); startPt = null; }
     }, { passive: false });
     function up(e){
-      clearTimeout(timer);
+      clearTimeout(timer); lstart = null; if(drew){ setTimeout(function(){ drew = false; }, 60); }
       if(cur){ track(e.clientX, e.clientY); commit(); touchMode = false; startPt = null; return; }
       if(startPt && e.pointerType !== 'mouse' && items.length && Date.now() - startPt.t < 450){ items = []; paint(); }
       startPt = null;
     }
     window.addEventListener('pointerup', up);
-    board.addEventListener('click', function(e){ if(mode){ e.stopPropagation(); e.preventDefault(); } }, true);
+    board.addEventListener('click', function(e){ if(drew){ e.stopPropagation(); e.preventDefault(); return; } if(mode){ e.stopPropagation(); e.preventDefault(); } }, true);
     window.addEventListener('pointercancel', function(){ clearTimeout(timer); cur = null; startPt = null; paint(); });
     document.addEventListener('touchmove', function(e){ if(cur && touchMode) e.preventDefault(); }, { passive: false });
     window.addEventListener('resize', paint);

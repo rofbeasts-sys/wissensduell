@@ -147,6 +147,7 @@
 <script src="/chess/banter.js"></script>
 <script src="/chess/eloui.js"></script>
 <script src="/chess/arrows.js"></script>
+<script src="/chess/challenges.js"></script>
 <script>
 "use strict";
 const LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "de" || !localStorage.getItem("wq_lang") ? "de" : "en"; }catch(e){ return "de"; } })();
@@ -204,7 +205,7 @@ const OTHER = (c) => c === "w" ? "b" : "w";
 let speechT = null, lastSayAt = 0;
 function say(cat, force){
   try{
-    if(OPP == null || !window.BpBanter || !window.BpLadder) return;
+    if(OPP == null || !window.BpBanter || !window.BpLadder || (window.BpCh && BpCh.active())) return;
     const now = Date.now(); if(!force && now - lastSayAt < 9000) return;
     const inf = BpLadder.info("chess", OPP, LANG), txt = BpBanter.pick(inf.id, cat, LANG); if(!txt) return;
     lastSayAt = now; const el = $("speech");
@@ -233,13 +234,15 @@ setInterval(() => {
   if(now - G.turnAt > lim){ G.nag = (G.nag || 0) + 1; G.turnAt = now; say("slow", true); }
 }, 1000);
 function newGame(){
-  ME = COLOR_PREF === "r" ? (Math.random() < 0.5 ? "w" : "b") : COLOR_PREF;
+  const CHA = window.BpCh && BpCh.active();
+  ME = CHA ? BpCh.me() : (COLOR_PREF === "r" ? (Math.random() < 0.5 ? "w" : "b") : COLOR_PREF);
   G = { board: initBoard(), turn:"w", last:null, selected:null, moves:[], over:false, log:[], capW:[], capB:[], history:[], half:0, seen:{}, busy:false, counted:false, rec:[] };
+  if(CHA) BpCh.setup(G);
   if(TIME_PREF === "on"){ G.clk = { w: CLK_MS, b: CLK_MS }; G.clkAt = Date.now(); }
   G.seen[posKey()] = 1; G.turnAt = Date.now(); G.nag = 0; badSince = 0; lastSayAt = 0;
   buildUi(); setTimeout(() => say("start", true), 700);
   render(); setStatus(); clkPaint();
-  if(ME === "b"){ G.busy = true; render(); setStatus(); setTimeout(botMove, 500); } // Schwarz: der Bot fängt an
+  if(G.turn !== ME){ G.busy = true; render(); setStatus(); setTimeout(botMove, 500); } // Schwarz: der Bot fängt an
 }
 function posKey(){
   let k = G.turn;
@@ -289,6 +292,7 @@ function setStatus(txt, color){
   }
   const el = $("status"); el.textContent = txt;
   el.style.color = color || (isInCheck(G.board, ME) && !G.over ? "var(--bad)" : "var(--accent)");
+  try{ window.BpCh && BpCh.paint(); }catch(e){}
 }
 
 $("board").addEventListener("click", (e) => {
@@ -327,6 +331,7 @@ function tryMove(mv){
 }
 
 function doMove(mv, byPlayer){
+  if(byPlayer && window.BpCh && BpCh.active()){ const bl = BpCh.block(mv); if(bl){ BpCh.toast(bl); G.selected = null; G.moves = []; render(); return; } }
   if(byPlayer){ G.history.push(snapshot()); G.rec.push({ board:G.board, last:G.last, col:ME, move:Object.assign({}, mv) }); }
   const mover = G.board[mv.fr][mv.fc];
   if(byPlayer && window.BpSets){ if(mv.castle) BpSets.earn('wald'); if(mv.promTo) BpSets.earn('zoo'); }
@@ -338,12 +343,14 @@ function doMove(mv, byPlayer){
   G.board = applyMove(G.board, mv);
   try{ parent.sfx(captured ? 'capture' : 'move'); }catch(e){}
   if(captured){ (mover.col === "w" ? G.capW : G.capB).push(captured); }
+  if(window.BpCh && BpCh.active()) BpCh.note(mv, mover, captured, byPlayer);
   G.half = (mover.t === "P" || captured) ? 0 : G.half + 1;
   if(G.clk){ G.clk[mover.col] += CLK_INC; }
   G.last = mv; G.turn = OTHER(mover.col); G.selected = null; G.moves = [];
   const k = posKey(); G.seen[k] = (G.seen[k] || 0) + 1;
   const reply = endCheck();
   if(reply){ G.log.push(note + (reply.why === T.mate ? "#" : "")); finish(reply); return; }
+  if(window.BpCh && BpCh.active()){ const chr = BpCh.verdict(); if(chr){ G.log.push(note); finish(chr); return; } }
   G.log.push(note + (isInCheck(G.board, G.turn) ? "+" : ""));
   const chk = isInCheck(G.board, G.turn), capV = captured ? (PV[captured.t] || 0) : 0;
   if(byPlayer){ if(capV >= 3 && Math.random() < .55) setTimeout(() => say("lost"), 500); }
@@ -373,6 +380,7 @@ function insufficient(){
 }
 
 function botMove(){
+  if(window.BpCh && BpCh.active()){ const lm = BpCh.lessonMove(); if(lm){ G.busy = false; doMove(lm, false); return; } }
   AI_LEVEL = OPP != null ? BpLadder.ai('chess', OPP) : LEVELS[level];
   const mv = getAIMove(G.board, G.last, [], OTHER(ME));
   G.busy = false;
@@ -382,11 +390,13 @@ function botMove(){
 }
 
 function finish(res){
+  const CH = window.BpCh && BpCh.active();
+  if(CH) res = BpCh.finalize(res);
   G.over = true; G.busy = false;
   setTimeout(() => say(res.result === "win" ? "lose" : res.result === "loss" ? "win" : "draw", true), 600);
-  if(res.result === 'win' && res.why === T.mate && window.BpSets) BpSets.earn('kristall');
-  if(res.result === 'win' && window.BpSets){ var _be = 0; try{ if(OPP != null) _be = BpLadder.info('chess', OPP).elo; }catch(e){} BpSets.noteWin({ bot:_be }); }
-  if(window.BpSets){ var _bg = 0; try{ if(OPP != null) _bg = BpLadder.info('chess', OPP).elo; }catch(e){} try{ BpSets.noteGame({ res: res.result === 'win' ? 'win' : res.result === 'draw' ? 'draw' : 'loss', moves: Math.ceil((G.rec||[]).length / 2), mate: res.why === T.mate, bot: _bg }); }catch(e){} }
+  if(!CH && res.result === 'win' && res.why === T.mate && window.BpSets) BpSets.earn('kristall');
+  if(!CH && res.result === 'win' && window.BpSets){ var _be = 0; try{ if(OPP != null) _be = BpLadder.info('chess', OPP).elo; }catch(e){} BpSets.noteWin({ bot:_be }); }
+  if(!CH && window.BpSets){ var _bg = 0; try{ if(OPP != null) _bg = BpLadder.info('chess', OPP).elo; }catch(e){} try{ BpSets.noteGame({ res: res.result === 'win' ? 'win' : res.result === 'draw' ? 'draw' : 'loss', moves: Math.ceil((G.rec||[]).length / 2), mate: res.why === T.mate, bot: _bg }); }catch(e){} }
   try{ parent.sfxResult(res.result === 'win', res.result === 'draw'); }catch(e){}
   render();
   const title = res.result === "win" ? T.win : res.result === "loss" ? T.loss : T.draw;
@@ -406,6 +416,7 @@ function finish(res){
   if(OPP != null && G.ladderCounted !== true && G.rec.length >= 2){ G.ladderCounted = true; try{ ladderNote = '\n' + BpLadder.endNote('chess', OPP, BpLadder.result('chess', OPP, res.result), LANG); }catch(e){} buildUi(); }
   $("endTitle").textContent = (res.result === "win" ? "🏆 " : res.result === "loss" ? "💀 " : "🤝 ") + title;
   $("endText").textContent = text + ladderNote; $("endText").style.whiteSpace = 'pre-line';
+  if(CH) BpCh.endUi(res);
   $("endOv").classList.add("show");
 }
 
@@ -415,6 +426,7 @@ function buildUi(){
   const lb = document.createElement("div"); lb.className = "chip" + (OPP != null ? " active" : ""); lb.textContent = "🏆 " + (LANG === "de" ? "Gegner-Leiter" : "Opponent ladder");
   lb.onclick = () => BpLadder.open("chess", LANG, (i) => { OPP = i; try{ localStorage.setItem("bp_chess_opp", String(i)); }catch(e){} buildUi(); newGame(); }, OPP);
   lr.appendChild(lb);
+  const chb = document.createElement("div"); chb.className = "chip"; chb.textContent = "🎯 " + (LANG === "de" ? "Challenges" : "Challenges"); chb.onclick = () => BpCh.open(); lr.appendChild(chb);
   [["w", "⚪ " + (LANG === "de" ? "Weiß" : "White")], ["b", "⚫ " + (LANG === "de" ? "Schwarz" : "Black")], ["r", "🎲 " + (LANG === "de" ? "Zufall" : "Random")]].forEach(function(o){
     const cb = document.createElement("div"); cb.className = "chip" + (COLOR_PREF === o[0] ? " active" : ""); cb.textContent = o[1];
     cb.onclick = () => { if(COLOR_PREF === o[0] && G && !G.over && G.rec.length === 0) return; COLOR_PREF = o[0]; try{ localStorage.setItem("bp_chess_color", o[0]); }catch(e){} newGame(); };
@@ -425,6 +437,7 @@ function buildUi(){
   if(OPP != null){ const o = BpLadder.info("chess", OPP, LANG); ob.innerHTML = '<img src="' + o.img + '" alt=""><div class="oi"><b>' + o.name + '</b><small>' + o.title + '</small></div><span class="oelo">' + o.elo + '</span>'; } else ob.textContent = "";
   $("styleBtn2").textContent = "🎨 " + (LANG === "de" ? "Figuren und Brett wählen" : "Choose pieces and board"); $("styleBtn2").onclick = () => BpElo.stylePanel(LANG);
   $("newBtn").textContent = T.newGame; $("undoBtn").textContent = T.undo; $("resignBtn").textContent = T.resign;
+  try{ window.BpCh && BpCh.paint(); }catch(e){}
   $("anaBtn").textContent = "🔎"; $("endAna").textContent = "🔎 " + bpAnalysis.label; $("endNew").textContent = T.again; $("endClose").textContent = T.close;
 }
 $("newBtn").onclick = () => { newGame(); };
