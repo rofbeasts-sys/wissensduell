@@ -3710,7 +3710,9 @@ async function loadUsersOnce() {
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       if (!data || typeof data !== "object" || !("result" in data)) throw new Error("Unerwartete Antwort: " + JSON.stringify(data).slice(0, 80));
-      const parsed = data.result ? JSON.parse(data.result) : []; // null = noch nie gespeichert
+      let raw = data.result;
+      if (typeof raw === "string" && raw.startsWith("gz1:")) raw = require("zlib").gunzipSync(Buffer.from(raw.slice(4), "base64")).toString("utf8"); // komprimierter Block
+      const parsed = raw ? JSON.parse(raw) : []; // null = noch nie gespeichert
       if (!Array.isArray(parsed)) throw new Error("Kontenliste ist kein Array");
       users = parsed;
       usersLoaded = true;
@@ -3878,20 +3880,49 @@ function usersForSave() { // Kontenblock ohne Realm-Staende, die nachweislich ei
     return Object.assign({}, u, { realm: r });
   });
 }
+/* Speicherzustand (fuer die Admin-Ansicht): damit man sieht, ob das Speichern in Upstash klappt. */
+const persistState = { ok: null, at: 0, okAt: 0, err: "", status: 0, kb: 0, gzKb: 0, fails: 0, saves: 0 };
+/* Mehrere gleichzeitige Speicheraufrufe werden zusammengefasst: laeuft schon eins, wird danach EIN weiteres mit dem neuesten Stand ausgefuehrt.
+   Vorher schickte jeder der ~100 Aufrufstellen den kompletten Block einzeln (viele Anfragen, Wettlauf zwischen aelteren und neueren Staenden). */
+let saveRunning = false, saveWaiters = [];
 async function saveUsers() {
+  if (saveRunning) return new Promise(res => saveWaiters.push(res));
+  saveRunning = true;
+  let ok = false;
+  try {
+    try { ok = await saveUsersNow(); } catch (e) { ok = false; console.error("Speichern:", e.message); }
+    while (saveWaiters.length) {
+      const w = saveWaiters; saveWaiters = [];
+      let ok2 = false; try { ok2 = await saveUsersNow(); } catch (e) { console.error("Speichern:", e.message); }
+      w.forEach(r => r(ok2)); ok = ok2;
+    }
+  } finally { saveRunning = false; }
+  return ok;
+}
+async function saveUsersNow() {
   try { coinLedgerScan(); } catch (e) { console.error("Muenz-Verlauf:", e.message); }
   if (!usersLoaded) { console.error("Speichern verweigert: Kontenliste wurde nicht sicher geladen."); return false; }
   if (USE_UPSTASH) {
     try {
+      const json = JSON.stringify(usersForSave());
+      const body = "gz1:" + require("zlib").gzipSync(json, { level: 6 }).toString("base64"); // komprimiert: der Block bleibt unter dem Anfragelimit
+      persistState.kb = Math.round(json.length / 1024); persistState.gzKb = Math.round(body.length / 1024); persistState.at = Date.now();
       const res = await fetch(`${UPSTASH_URL}/set/${UPSTASH_USERS_KEY}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${UPSTASH_TOKEN}`, "Content-Type": "text/plain" },
-        body: JSON.stringify(usersForSave())
+        body
       });
-      if (!res.ok) { console.error("Upstash-Speichern fehlgeschlagen, Status:", res.status, "(Block " + Math.round(JSON.stringify(users).length / 1024) + " KB)"); realmQueue(); return false; }
+      persistState.status = res.status;
+      if (!res.ok) {
+        let t = ""; try { t = (await res.text()).slice(0, 160); } catch (e) {}
+        persistState.ok = false; persistState.fails++; persistState.err = "HTTP " + res.status + " " + t;
+        console.error("Upstash-Speichern fehlgeschlagen, Status:", res.status, t, "(Block " + persistState.kb + " KB, komprimiert " + persistState.gzKb + " KB)"); realmQueue(); return false;
+      }
+      persistState.ok = true; persistState.okAt = Date.now(); persistState.err = ""; persistState.saves++;
       realmQueue();
       return true;
     } catch (e) {
+      persistState.ok = false; persistState.fails++; persistState.err = e.message;
       console.error("Konnte Nutzerdaten nicht in Upstash speichern:", e.message);
       return false;
     }
@@ -5583,7 +5614,7 @@ function adminStats(key, ip) {
   const sum = (arr, key) => arr.reduce((a, d) => a + (d[key] || 0), 0);
   const agg = (n) => { const o = {}; days.slice(0, n).forEach(d => { for (const g in d.p) o[g] = (o[g] || 0) + d.p[g]; }); return Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([id, n]) => ({ id, name: names[id] || id.replace(/^party_/, "Party: "), n })); };
   return { ok: true, today: days[0], week: { plays: sum(days.slice(0, 7), "plays"), reg: sum(days.slice(0, 7), "reg"), peak: Math.max(...days.slice(0, 7).map(d => d.peak)) }, month: { plays: sum(days, "plays"), reg: sum(days, "reg"), peak: Math.max(...days.map(d => d.peak)) },
-    top7: agg(7), top30: agg(30), days: days.map(d => ({ day: d.day, plays: d.plays, reg: d.reg, peak: d.peak, vis: d.vis })).reverse(), users: users.length, online: presenceCounts().online };
+    top7: agg(7), top30: agg(30), days: days.map(d => ({ day: d.day, plays: d.plays, reg: d.reg, peak: d.peak, vis: d.vis })).reverse(), users: users.length, online: presenceCounts().online, persist: Object.assign({ upstash: USE_UPSTASH, loaded: usersLoaded }, persistState) };
 }
 /* ---- ADMIN: BRAINUPS ---- */
 async function adminZp(key, ip, payload) {

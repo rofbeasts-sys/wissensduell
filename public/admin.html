@@ -595,7 +595,7 @@ async function zpReset(){ if(!await bpConfirm('Wirklich ALLE Brainups von ' + ZP
 async function stLoad(){
   const r = await api('/api/admin-stats'); if(!r || !r.ok){ $('stToday').textContent = (r && r.error) || 'Fehler'; return; }
   const P = (l, v) => `<div class="pill">${l} <b>${v}</b></div>`;
-  $('stToday').innerHTML = P('Spielstarts', r.today.plays) + P('Neue Konten', r.today.reg) + P('Besucher', r.today.vis) + P('Spitze online', r.today.peak) + P('Jetzt online', r.online) + P('Konten gesamt', r.users);
+  $('stToday').innerHTML = P('Spielstarts', r.today.plays) + P('Neue Konten', r.today.reg) + P('Besucher', r.today.vis) + P('Spitze online', r.today.peak) + P('Jetzt online', r.online) + P('Konten gesamt', r.users) + (r.persist ? P('Speichern', r.persist.upstash ? (r.persist.ok === false ? 'FEHLER ' + (r.persist.err || '') : r.persist.ok ? 'OK ' + r.persist.gzKb + ' KB' : 'noch nichts') : 'nur Datei') : '');
   $('stWeek').innerHTML = P('7 T Starts', r.week.plays) + P('7 T neu', r.week.reg) + P('7 T Spitze', r.week.peak) + P('30 T Starts', r.month.plays) + P('30 T neu', r.month.reg) + P('30 T Spitze', r.month.peak);
   const mx = Math.max(1, ...r.days.map(d => d.plays));
   $('stChart').innerHTML = r.days.map(d => `<div title="${d.day}: ${d.plays} Starts, ${d.reg} neu, Spitze ${d.peak}" style="flex:1;background:var(--acc);border-radius:3px 3px 0 0;min-height:2px;height:${Math.max(2, Math.round(d.plays / mx * 100))}%"></div>`).join('');
