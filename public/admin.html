@@ -38,6 +38,9 @@ button.mini{padding:4px 8px;font-size:12px}
 .tabs{display:flex;gap:6px;margin-bottom:12px;position:sticky;top:0;background:var(--bg);padding:6px 0;z-index:5;overflow-x:auto}
 .tabs button{background:#0f1f3a;color:#fff;border:1px solid var(--line);flex:1;white-space:nowrap}
 .tabs button.on{background:var(--acc);color:#08110c}
+@media(max-width:480px){#tabs button{padding:8px 8px;font-size:13px}}
+.mt{background:#0f1f3a;color:#fff;border:1px solid var(--line)}.mt.on{background:var(--acc);color:#08110c}.mt .n{background:var(--bad);color:#08110c;border-radius:99px;padding:0 6px;margin-left:4px;font-size:11px}
+#moreBtn.on{background:var(--acc);color:#08110c}
 .tabs button .n{background:var(--bad);color:#08110c;border-radius:99px;padding:0 6px;margin-left:4px;font-size:11px}
 .tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:99px;margin-right:4px}
 .acts{display:grid;gap:8px;margin-top:10px}
@@ -67,21 +70,41 @@ button.mini{padding:4px 8px;font-size:12px}
 
 <div id="main" class="hidden">
   <div class="tabs" id="tabs">
-    <button data-t="live" class="on">Live</button>
+    <button data-t="live" class="on">Übersicht</button>
     <button data-t="players">Spieler</button>
     <button data-t="games">Spiele</button>
     <button data-t="req">Anfragen<span class="n hidden" id="nReq"></span></button>
-    <button data-t="rep">Meldungen<span class="n hidden" id="nRep"></span></button>
-    <button data-t="news">News</button>
-    <button data-t="rnews">Realm-News</button>
-    <button data-t="fb">Feedback<span class="n hidden" id="nFb"></span></button>
-    <button data-t="ev">Events</button>
-    <button data-t="shop">Shop</button>
-    <button data-t="bp">Battle Pass</button>
-    <button data-t="zp">Brainups</button>
-    <button data-t="stats">Statistik</button>
+    <button type="button" id="moreBtn">Mehr<span class="n hidden" id="nMore"></span></button>
+  </div>
+  <div id="more" class="card hidden" style="margin-bottom:12px">
+    <div class="dim" style="font-size:12px;margin-bottom:4px">Menschen</div>
+    <div class="row" style="flex-wrap:wrap;margin-bottom:8px">
+      <button class="mt" data-t="rep">Meldungen<span class="n hidden" id="nRep"></span></button>
+      <button class="mt" data-t="fb">Feedback<span class="n hidden" id="nFb"></span></button>
+    </div>
+    <div class="dim" style="font-size:12px;margin-bottom:4px">Spiel</div>
+    <div class="row" style="flex-wrap:wrap;margin-bottom:8px">
+      <button class="mt" data-t="ev">Events</button>
+      <button class="mt" data-t="shop">Shop</button>
+      <button class="mt" data-t="bp">Battle Pass</button>
+      <button class="mt" data-t="zp">Brainups</button>
+    </div>
+    <div class="dim" style="font-size:12px;margin-bottom:4px">Inhalte</div>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="mt" data-t="news">News</button>
+      <button class="mt" data-t="rnews">Realm-News</button>
+    </div>
   </div>
   <div id="tab_live">
+  <div class="card"><h2>ZU TUN</h2><div class="row" style="gap:8px;flex-wrap:wrap">
+    <button class="ghost" onclick="setTab('req')">Anfragen <b id="tdReq">0</b></button>
+    <button class="ghost" onclick="setTab('rep')">Meldungen <b id="tdRep">0</b></button>
+    <button class="ghost" onclick="setTab('fb')">Feedback <b id="tdFb">0</b></button>
+  </div><div class="dim" style="font-size:12px;margin-top:6px">Solange überall 0 steht, ist nichts offen.</div></div>
+    <div class="card"><h2>HEUTE</h2><div id="stToday" class="row" style="gap:8px;flex-wrap:wrap"></div></div>
+    <div class="card"><h2>7 TAGE / 30 TAGE</h2><div id="stWeek" class="row" style="gap:8px;flex-wrap:wrap"></div></div>
+    <div class="card"><h2>LETZTE 30 TAGE (Spielstarts)</h2><div id="stChart" style="display:flex;align-items:flex-end;gap:3px;height:110px"></div><div class="dim" style="font-size:11px;margin-top:4px;display:flex;justify-content:space-between"><span id="stFrom"></span><span id="stTo"></span></div></div>
+    
   <div class="card">
     <h2>LIVE</h2>
     <div class="row" id="counts"></div>
@@ -100,6 +123,10 @@ button.mini{padding:4px 8px;font-size:12px}
     <div class="row" style="margin-top:8px"><input id="say" maxlength="200" placeholder="Als Admin schreiben …" onkeydown="if(event.key==='Enter')say()"><button onclick="say()">Senden</button></div>
     <div class="row" style="margin-top:8px"><button class="ghost" onclick="clearChat()">Ganzen Chat leeren</button></div>
   </div>
+<div class="card"><h2>BELIEBTESTE SPIELE (7 Tage)</h2><div id="stTop7" class="list">…</div></div>
+    <div class="card"><h2>BELIEBTESTE SPIELE (30 Tage)</h2><div id="stTop30" class="list">…</div></div>
+    <div class="dim" style="font-size:12px">Gezählt wird anonym, wie oft ein Spiel gestartet wird (Menü-Einstieg, Party-Runden, Taboo Solo). Zählung beginnt mit diesem Update.</div>
+
   <div class="card">
     <h2>ZULETZT GEFILTERT</h2>
     <div class="dim" style="font-size:12px;margin-bottom:6px">Nachrichten, die der Filter abgelehnt hat (Links, Beleidigung, Rassismus, 18+). Sie waren nie im Chat zu sehen.</div>
@@ -197,15 +224,6 @@ button.mini{padding:4px 8px;font-size:12px}
     <div class="card"><h2>TOP 10 GESAMT</h2><div id="zpTop" class="list">…</div></div>
     <div class="card"><h2>TOP 10 DIESER MONAT</h2><div id="zpTopM" class="list">…</div></div>
     <div class="card"><h2>TOP 10 HEUTE</h2><div id="zpTopT" class="list">…</div></div>
-  </div>
-
-  <div id="tab_stats" class="hidden">
-    <div class="card"><h2>HEUTE</h2><div id="stToday" class="row" style="gap:8px;flex-wrap:wrap"></div></div>
-    <div class="card"><h2>7 TAGE / 30 TAGE</h2><div id="stWeek" class="row" style="gap:8px;flex-wrap:wrap"></div></div>
-    <div class="card"><h2>LETZTE 30 TAGE (Spielstarts)</h2><div id="stChart" style="display:flex;align-items:flex-end;gap:3px;height:110px"></div><div class="dim" style="font-size:11px;margin-top:4px;display:flex;justify-content:space-between"><span id="stFrom"></span><span id="stTo"></span></div></div>
-    <div class="card"><h2>BELIEBTESTE SPIELE (7 Tage)</h2><div id="stTop7" class="list">…</div></div>
-    <div class="card"><h2>BELIEBTESTE SPIELE (30 Tage)</h2><div id="stTop30" class="list">…</div></div>
-    <div class="dim" style="font-size:12px">Gezählt wird anonym, wie oft ein Spiel gestartet wird (Menü-Einstieg, Party-Runden, Taboo Solo). Zählung beginnt mit diesem Update.</div>
   </div>
 
   <div id="tab_ev" class="hidden">
@@ -345,11 +363,14 @@ async function say(){ const i = $('say'), t = i.value.trim(); if(!t) return; i.v
 let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
-  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  ['live','players','games','req','rep','news','rnews','zp','stats','ev','fb','shop','bp'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'shop' || t === 'bp') shopLoad(); if(t === 'bp') bpLoad(); if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'stats') stLoad();
+  document.querySelectorAll('#tabs button[data-t], #more button[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  const mt = ['rep','fb','ev','shop','bp','zp','news','rnews'].indexOf(t) >= 0; $('moreBtn').classList.toggle('on', mt); if(!mt) $('more').classList.add('hidden');
+  ['live','players','games','req','rep','news','rnews','zp','ev','fb','shop','bp'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'shop' || t === 'bp') shopLoad(); if(t === 'bp') bpLoad(); if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'live') stLoad();
 }
-document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => setTab(b.dataset.t));
+document.querySelectorAll('#tabs button[data-t], #more button[data-t]').forEach(b => b.onclick = () => { setTab(b.dataset.t); $('more').classList.add('hidden'); });
+$('moreBtn').onclick = () => $('more').classList.toggle('hidden');
+setInterval(() => { const g = id => parseInt(($(id) || {}).textContent) || 0, r = g('nReq'), p = g('nRep'), f = g('nFb'); $('tdReq').textContent = r; $('tdRep').textContent = p; $('tdFb').textContent = f; setBadge('nMore', p + f); }, 1500);
 const fd = ts => ts ? new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }) : '–';
 const until = ts => new Date(ts).toLocaleString('de-DE', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
 let PL = [];
@@ -363,7 +384,7 @@ function paintPlayers(){
   $('plist').innerHTML = PL.length ? PL.map(u => {
     const tags = (u.banned ? '<span class="tag" style="background:#7a1020">BANN</span>' : '') + (u.bannedUntil ? '<span class="tag" style="background:#7a4a10">TIMEOUT ' + until(u.bannedUntil) + '</span>' : '') + (u.mutedUntil ? '<span class="tag" style="background:#4a3a7a">STUMM ' + until(u.mutedUntil) + '</span>' : '') + (u.restricted ? '<span class="tag" style="background:#5a4a10">EINGESCHRÄNKT</span>' : '') + (u.flags ? '<span class="tag" style="background:#7a3a10">⚠ ' + u.flags + '</span>' : '') + (u.role === 'mod' ? '<span class="tag" style="background:#3a6a10">🛡 MOD</span>' : '') + (u.role === 'tester' ? '<span class="tag" style="background:#10507a">🧪 TESTER</span>' : '');
     const op = openU === u.username, n = esc(u.username);
-    return `<div class="u ${op ? 'open' : ''}"><div data-row="${n}" style="display:flex;gap:8px;align-items:center;cursor:pointer"><span style="font-size:24px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center">${av(u.avatar)}</span><div style="flex:1;min-width:0"><b>${u.online ? '🟢 ' : ''}${n}</b><div class="dim" style="font-size:12px">🪙 ${u.coins} · Klasse ${u.klasse} · ${u.rounds} Runden · zuletzt ${fd(u.lastSeen)}</div>${u.data ? `<div class="dim" style="font-size:12px">Server hat: ♟ Elo ${u.data.chessElo == null ? '-' : u.data.chessElo} · ${u.data.chessGames} Schach-Partien · ${u.data.daily} Tagesrätsel · ${u.data.sets} Sets · ${u.data.wins} Siege · Erfolge ${u.data.achv ? 'ja' : 'nein'}</div>` : ''}</div></div>${tags ? '<div style="margin-top:6px">' + tags + '</div>' : ''}
+    return `<div class="u ${op ? 'open' : ''}"><div data-row="${n}" style="display:flex;gap:8px;align-items:center;cursor:pointer"><span style="font-size:24px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center">${av(u.avatar)}</span><div style="flex:1;min-width:0"><b>${u.online ? '🟢 ' : ''}${n}</b><div class="dim" style="font-size:12px">🪙 ${u.coins} · Klasse ${u.klasse} · ${u.rounds} Runden · zuletzt ${fd(u.lastSeen)}</div>${u.data ? `<div class="dim" style="font-size:12px">Server hat: ♟ Elo ${u.data.chessElo == null ? '-' : u.data.chessElo} · ${u.data.chessGames} Schach-Partien · ${u.data.daily} Tagesrätsel · ${u.data.sets} Sets · ${u.data.wins} Siege · Erfolge ${u.data.achv ? 'ja' : 'nein'} · Browser-Stand im Konto: ${u.data.cloud || 0} Einträge</div>` : ''}</div></div>${tags ? '<div style="margin-top:6px">' + tags + '</div>' : ''}
     ${op ? `<div class="acts" data-u="${n}">
       <div class="row"><input id="aAmt" type="number" inputmode="numeric" placeholder="Münzen (z. B. 500 oder -100)"><button class="btn2" data-a="coins">Geben</button></div>
       <div class="row"><input id="aMin" type="number" inputmode="numeric" value="60" style="max-width:90px"><button class="btn2" data-a="timeout">⏳ Timeout</button><button class="btn2" data-a="mute">🔇 Stumm</button></div>
@@ -495,7 +516,7 @@ async function loadGames(){
   if(!r || !r.ok){ $('glist').textContent = (r && r.error) || 'Fehler'; return; }
   GAMES = r.games; paintGames();
 }
-function av(a){ a = a || '🙂'; return /^img:[a-z0-9]+$/.test(a) ? '<img src="/avatars/' + a.slice(4) + '.webp" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover">' : esc(a); }
+function av(a){ a = a || '🙂'; if(/^king:[0-9]+$/.test(a)) return '<span style="display:inline-block;width:30px;height:30px;border-radius:50%;background:#1b2240;overflow:hidden"><img src="/brainmania/king' + a.slice(5) + '.png" alt="" style="width:100%;height:100%;object-fit:contain" onerror="this.style.display=\'none\'"></span>'; return /^img:[a-z0-9]+$/.test(a) ? '<img src="/avatars/' + a.slice(4) + '.webp" alt="" style="width:30px;height:30px;border-radius:50%;object-fit:cover">' : esc(a); }
 const MODES = [['offline','off','Offline'],['locked','l','Gesperrt'],['test','t','Test'],['open','o','Offen']];
 function toLocal(ts){ if(!ts) return ''; const d = new Date(ts - new Date().getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
 function cd(ms){ const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mi = m % 60; return d > 0 ? d + (d === 1 ? ' Tag ' : ' Tagen ') + h + ' Std' : (h > 0 ? h + ' Std ' + mi + ' Min' : Math.max(1, mi) + ' Min'); }
@@ -542,7 +563,7 @@ async function setGame(id, extra){
 }
 function setBadge(id, n){ const e = $(id); e.textContent = n; e.classList.toggle('hidden', !n); }
 async function badges(){ const a = await api('/api/admin-reset-list'); if(a && a.ok) setBadge('nReq', a.list.filter(q => q.status !== 'approved').length); const b = await api('/api/admin-reports'); if(b && b.ok) setBadge('nRep', b.open); }
-function start(){ show(false); clearInterval(timer); tick(); badges(); timer = setInterval(() => { if(!document.hidden){ if(TAB === 'live') tick(); else if(TAB === 'req') loadReqs(); } }, 3000); setInterval(() => { if(!document.hidden && KEY) badges(); }, 30000); }
+function start(){ show(false); clearInterval(timer); tick(); badges(); try{ stLoad(); }catch(e){} timer = setInterval(() => { if(!document.hidden){ if(TAB === 'live') tick(); else if(TAB === 'req') loadReqs(); } }, 3000); setInterval(() => { if(!document.hidden && KEY) badges(); }, 30000); }
 
 /* ---------- Brainmania-Einstellungen ---------- */
 async function maniaCfgLoad(){
