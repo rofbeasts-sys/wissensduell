@@ -4986,6 +4986,51 @@ async function ladderBuy(token, id, lang, game) {
 // ---- Figuren-Sets zum Kaufen (Schach): gekaufte Sets gehoeren dem Konto ----
 const PIECE_SET_SHOP = {}; SHOP_DEFAULTS.filter(x => x.kind === "set" && !x.fixed).forEach(x => { PIECE_SET_SHOP[x.set] = x.coins; });
 function earnPublic() { const out = {}; SHOP_DEFAULTS.forEach(d => { if (!d.placeable) return; const i = shopItem(d.id); if (i && i.place === "earn" && i.on !== false && i.earn) out[d.set] = i.earn; }); return out; }
+
+/* ===== Browser-Staende ans Konto haengen (Opera am PC, Chrome am Handy usw.) =====
+   Der Client schickt seine Schach-/Skin-Staende, der Server mischt sie mit dem Konto-Stand und gibt das Ergebnis zurueck.
+   Mischen: Zahlen = Maximum, Listen = Vereinigung, Haken (true) bleiben, Texte = zuletzt gesendeter Wert. Nichts wird kleiner. */
+const CLOUD_KEY_RE = /^(bp_ch_done|bp_sets_owned|bp_sets_earned|bp_piece_set|bp_board_theme|bp_max_elo|bp_max_elo_dame|bp_chess_wins|bp_chess_online_stats|bp_hide_opp_elo|bp_ttt_style|bp_ttt_maxrank|bp_fu_skin|bp_ln_done|dm_skin|bp_ea_[A-Za-z0-9_]*|bp_ladder2_[A-Za-z0-9_]*|bp_wo_[A-Za-z0-9_]*|bp_wb_[A-Za-z0-9_]*)$/;
+const CLOUD_MAX_BYTES = 120 * 1024;
+function cloudMergeVal(a, b, depth) {
+  depth = depth | 0; if (depth > 6) return b !== undefined ? b : a;
+  if (a === undefined || a === null) return b;
+  if (b === undefined || b === null) return a;
+  if (typeof a === "number" && typeof b === "number") return Math.max(a, b);
+  if (typeof a === "boolean" && typeof b === "boolean") return a || b;
+  if (Array.isArray(a) && Array.isArray(b)) { const seen = new Set(), out = []; a.concat(b).forEach(x => { const k = JSON.stringify(x); if (!seen.has(k)) { seen.add(k); out.push(x); } }); return out.slice(0, 2000); }
+  if (a && b && typeof a === "object" && typeof b === "object" && !Array.isArray(a) && !Array.isArray(b)) {
+    const out = {}; new Set(Object.keys(a).concat(Object.keys(b))).forEach(k => { if (k === "__proto__" || k === "constructor") return; out[k] = cloudMergeVal(a[k], b[k], depth + 1); }); return out;
+  }
+  return b;
+}
+function cloudMergeStr(oldS, newS) {
+  if (typeof oldS !== "string") return newS;
+  if (typeof newS !== "string") return oldS;
+  let a, b, pa = false, pb = false;
+  try { a = JSON.parse(oldS); pa = true; } catch (e) {}
+  try { b = JSON.parse(newS); pb = true; } catch (e) {}
+  if (pa && pb && a !== null && b !== null && typeof a === typeof b) return JSON.stringify(cloudMergeVal(a, b));
+  return newS;
+}
+function cloudSync(token, data) {
+  const user = findUserByToken(token); if (!user) return { ok: false };
+  if (!user.cloud || typeof user.cloud !== "object") user.cloud = {};
+  let changed = false;
+  if (data && typeof data === "object") {
+    for (const k of Object.keys(data)) {
+      if (!CLOUD_KEY_RE.test(k) || typeof data[k] !== "string" || data[k].length > 20000) continue;
+      const merged = cloudMergeStr(user.cloud[k], data[k]);
+      if (merged !== user.cloud[k]) {
+        const prev = user.cloud[k]; user.cloud[k] = merged;
+        if (JSON.stringify(user.cloud).length > CLOUD_MAX_BYTES) { if (prev === undefined) delete user.cloud[k]; else user.cloud[k] = prev; continue; }
+        changed = true;
+      }
+    }
+  }
+  if (changed) saveUsers();
+  return { ok: true, data: user.cloud };
+}
 function pieceSetState(token) {
   const user = findUserByToken(token); if (!user) return { ok: false };
   return { ok: true, bought: Array.isArray(user.pieceSets) ? user.pieceSets.filter(id => PIECE_SET_SHOP[id]) : [], coins: user.stats.coins || 0, funken: user.stats.funken || 0, prices: PIECE_SET_SHOP, funkenPrice: FUNKEN_PRICE.pieceset, cfg: shopPublic(), earn: earnPublic() };
@@ -9000,6 +9045,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/ladder-state") result = ladderState(payload.token, payload.game);
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang, payload.game);
         else if (req.url === "/api/pieceset-status") result = pieceSetState(payload.token);
+        else if (req.url === "/api/cloud-sync") result = cloudSync(payload.token, payload.data);
         else if (req.url === "/api/pieceset-buy") result = await pieceSetBuy(payload.token, payload.id, lang);
         else if (req.url === "/api/funken-buy") result = await funkenBuy(payload.token, payload.kind, payload.id, lang, payload.game);
         else if (req.url === "/api/realm/claim-dias") result = await realmClaimDias(payload.token);
