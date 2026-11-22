@@ -82,7 +82,7 @@
       if(items.length && e.pointerType !== 'mouse'){ /* ein Tippen loescht spaeter, siehe pointerup */ }
       startPt = { x: e.clientX, y: e.clientY, t: Date.now() };
       clearTimeout(timer);
-      timer = setTimeout(function(){ if(startPt && begin(startPt.x, startPt.y)){ touchMode = true; try{ navigator.vibrate && navigator.vibrate(15); }catch(er){} } }, 450);
+      // Kein langes Druecken mehr: Pfeile am Handy nur ueber den Knopf "Pfeile: AN" (sonst wurden Figuren beim laengeren Halten zu Pfeilen)
     }, true);
     window.addEventListener('pointermove', function(e){
       if(!cur && lstart && (e.buttons & 1)){ var sn = sqAt(e.clientX, e.clientY); if(sn && !same(sn, lstart.s) && Math.abs(e.clientX - lstart.x) + Math.abs(e.clientY - lstart.y) > 10){ if(begin(lstart.x, lstart.y)){ touchMode = false; drew = true; } lstart = null; } }
