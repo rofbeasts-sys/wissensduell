@@ -363,7 +363,7 @@ function paintPlayers(){
   $('plist').innerHTML = PL.length ? PL.map(u => {
     const tags = (u.banned ? '<span class="tag" style="background:#7a1020">BANN</span>' : '') + (u.bannedUntil ? '<span class="tag" style="background:#7a4a10">TIMEOUT ' + until(u.bannedUntil) + '</span>' : '') + (u.mutedUntil ? '<span class="tag" style="background:#4a3a7a">STUMM ' + until(u.mutedUntil) + '</span>' : '') + (u.restricted ? '<span class="tag" style="background:#5a4a10">EINGESCHRÄNKT</span>' : '') + (u.flags ? '<span class="tag" style="background:#7a3a10">⚠ ' + u.flags + '</span>' : '') + (u.role === 'mod' ? '<span class="tag" style="background:#3a6a10">🛡 MOD</span>' : '') + (u.role === 'tester' ? '<span class="tag" style="background:#10507a">🧪 TESTER</span>' : '');
     const op = openU === u.username, n = esc(u.username);
-    return `<div class="u ${op ? 'open' : ''}"><div data-row="${n}" style="display:flex;gap:8px;align-items:center;cursor:pointer"><span style="font-size:24px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center">${av(u.avatar)}</span><div style="flex:1;min-width:0"><b>${u.online ? '🟢 ' : ''}${n}</b><div class="dim" style="font-size:12px">🪙 ${u.coins} · Klasse ${u.klasse} · ${u.rounds} Runden · zuletzt ${fd(u.lastSeen)}</div></div></div>${tags ? '<div style="margin-top:6px">' + tags + '</div>' : ''}
+    return `<div class="u ${op ? 'open' : ''}"><div data-row="${n}" style="display:flex;gap:8px;align-items:center;cursor:pointer"><span style="font-size:24px;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center">${av(u.avatar)}</span><div style="flex:1;min-width:0"><b>${u.online ? '🟢 ' : ''}${n}</b><div class="dim" style="font-size:12px">🪙 ${u.coins} · Klasse ${u.klasse} · ${u.rounds} Runden · zuletzt ${fd(u.lastSeen)}</div>${u.data ? `<div class="dim" style="font-size:12px">Server hat: ♟ Elo ${u.data.chessElo == null ? '-' : u.data.chessElo} · ${u.data.chessGames} Schach-Partien · ${u.data.daily} Tagesrätsel · ${u.data.sets} Sets · ${u.data.wins} Siege · Erfolge ${u.data.achv ? 'ja' : 'nein'}</div>` : ''}</div></div>${tags ? '<div style="margin-top:6px">' + tags + '</div>' : ''}
     ${op ? `<div class="acts" data-u="${n}">
       <div class="row"><input id="aAmt" type="number" inputmode="numeric" placeholder="Münzen (z. B. 500 oder -100)"><button class="btn2" data-a="coins">Geben</button></div>
       <div class="row"><input id="aMin" type="number" inputmode="numeric" value="60" style="max-width:90px"><button class="btn2" data-a="timeout">⏳ Timeout</button><button class="btn2" data-a="mute">🔇 Stumm</button></div>
@@ -371,7 +371,7 @@ function paintPlayers(){
       <div class="row"><button class="btn2" data-a="unban">Entbannen</button><button class="btn2" data-a="unmute">Stumm aus</button><button class="btn2" data-a="${u.restricted ? 'unrestrict' : 'restrict'}">${u.restricted ? 'Einschränkung weg' : 'Einschränken'}</button><button class="btn2" data-a="kick">Abmelden</button></div>
       <div class="row"><button class="btn2" data-a="role_mod">🛡 Mod</button><button class="btn2" data-a="role_tester">🧪 Tester</button><button class="btn2" data-a="role_none">Rolle entziehen</button></div>
       <div class="row" style="flex-wrap:wrap"><span class="dim" style="font-size:12px">Beta-Rahmen:</span>${BETA_N.map(([n, k, c]) => `<button class="btn2" data-bg="${k}" style="padding:6px 9px;font-size:12px;${u.beta === k ? 'outline:2px solid ' + (c || '#888') + ';' : ''}">${k ? n : 'Keiner'}</button>`).join('')}</div>
-      <button class="btn2" data-a="coinlog">📜 Münz-Verlauf</button>
+      <button class="btn2" data-a="coinlog">📜 Münz-Verlauf</button><button class="btn2 red" data-a="delete">🗑 Konto löschen</button>
       ${coinlog && coinlog.u === u.username ? coinlogHtml(coinlog) : ''}
       ${u.lastCheat ? '<div class="dim" style="font-size:12px">Schummel-Hinweis: ' + esc(u.lastCheat.what) + '</div>' : ''}
       ${u.log && u.log.length ? '<div class="dim" style="font-size:11px">Zuletzt: ' + u.log.map(x => esc(x.n)).join(' · ') + '</div>' : ''}
@@ -391,10 +391,12 @@ async function doAct(act){
   if(act === 'coinlog'){ const r = await api('/api/admin-user-coins', { username: u }); if(r && r.ok) coinlog = Object.assign({ u }, r); else $('pmsg').textContent = (r && r.error) || 'Fehler'; paintPlayers(); return; }
   if(act === 'coins' && !amt){ $('pmsg').textContent = 'Bitte einen Betrag eingeben.'; return; }
   if(act === 'ban' && !await bpConfirm(u + ' dauerhaft bannen?')) return;
+  if(act === 'delete' && !await bpConfirm(u + ' für immer löschen? Das Konto und alle Daten sind danach weg. Das geht nicht rückgängig.')) return;
   const r = await api('/api/admin-user-action', { username: u, action: act, amount: amt, minutes: mins, reason: why });
   $('pmsg').style.color = r && r.ok ? 'var(--ok)' : 'var(--bad)';
   $('pmsg').textContent = r && r.ok ? '✓ ' + u + ': ' + r.note : '✗ ' + ((r && r.error) || 'Fehler');
-  if(r && r.ok && r.user){ const i = PL.findIndex(x => x.username === u); if(i >= 0) PL[i] = r.user; }
+  if(r && r.ok && r.deleted){ PL = PL.filter(x => x.username !== u); openU = null; }
+  else if(r && r.ok && r.user){ const i = PL.findIndex(x => x.username === u); if(i >= 0) PL[i] = r.user; }
   paintPlayers();
 }
 async function loadCheat(){

@@ -8054,7 +8054,8 @@ function adminUserRow(u) {
   return { username: u.username, avatar: u.avatar || st.avatar || null, online: accountIsOnline(u.username), coins: st.coins || 0,
     klasse: st.klasse || 0, rounds: st.roundsPlayed || 0, arenaPoints: st.arenaPoints || 0, flags: st.cheatFlags || 0, lastCheat: st.lastCheat || null,
     restricted: isRestricted(u), banned: u.banned === true, banReason: u.banReason || "", bannedUntil: u.bannedUntil && u.bannedUntil > Date.now() ? u.bannedUntil : 0,
-    mutedUntil: u.mutedUntil && u.mutedUntil > Date.now() ? u.mutedUntil : 0, beta: u.betaPhase | 0, tester: !!u.tester, role: userRole(u), createdAt: u.createdAt || 0, lastSeen: u.lastSeen || 0, log: (u.adminLog || []).slice(-5) };
+    mutedUntil: u.mutedUntil && u.mutedUntil > Date.now() ? u.mutedUntil : 0, beta: u.betaPhase | 0, tester: !!u.tester, role: userRole(u), createdAt: u.createdAt || 0, lastSeen: u.lastSeen || 0, log: (u.adminLog || []).slice(-5),
+    data: { chessElo: Number.isFinite(st.chessElo) ? st.chessElo : null, chessGames: st.chessGames || 0, chessWins: st.chessWins || 0, daily: Object.keys((st.daily && st.daily.solved) || {}).length, sets: Array.isArray(u.pieceSets) ? u.pieceSets.length : 0, wins: st.wins || 0, bestScore: st.bestScore || 0, achv: st.achv ? 1 : 0, brainups: (st.zp && st.zp.total) || st.brainups || 0 } };
 }
 function adminUsers(key, ip, query, onlineOnly) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -8093,6 +8094,20 @@ async function adminUserAction(key, ip, username, action, amount, minutes, reaso
     case "role_tester": u.role = "tester"; u.tester = false; note = "Tester-Recht gegeben"; break;
     case "role_none": case "untester": u.role = null; u.tester = false; note = "Rolle entzogen"; for (const [k, v] of testerKeys) if (v.un === u.username.toLowerCase()) testerKeys.delete(k); break;
     case "tester": u.role = "mod"; note = "Mod-Recht gegeben"; break;
+    case "delete": {
+      // Konto komplett loeschen. Sicherung: erst bannen (verhindert Versehen), Admin-Konten nie.
+      if (u.banned !== true) return { ok: false, error: "Erst bannen, dann löschen (Schutz vor Versehen)." };
+      if (userRole(u)) return { ok: false, error: "Erst die Rolle entziehen." };
+      const low = u.username.toLowerCase();
+      kickUser(u);
+      users = users.filter(x => x !== u);
+      users.forEach(x => ["friends", "incomingRequests", "outgoingRequests"].forEach(k => { if (Array.isArray(x[k])) x[k] = x[k].filter(n => String(n).toLowerCase() !== low); }));
+      for (const [k, v] of testerKeys) if (v.un === low) testerKeys.delete(k);
+      console.log("[Admin] Konto geloescht: " + u.username);
+      if (USE_UPSTASH) { try { await fetch(`${UPSTASH_URL}/del/${realmKey(u)}`, { method: "POST", headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` } }); } catch (e) {} }
+      const okSave = await saveUsers();
+      return okSave ? { ok: true, note: "Konto gelöscht", deleted: u.username } : { ok: false, error: "Gelöscht im Speicher, aber Speichern fehlgeschlagen. Bitte nochmal versuchen." };
+    }
     default: return { ok: false, error: "Aktion unbekannt." };
   }
   u.adminLog = (u.adminLog || []).concat([{ t: Date.now(), n: note }]).slice(-20);
