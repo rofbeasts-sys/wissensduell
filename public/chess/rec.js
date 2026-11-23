@@ -186,7 +186,7 @@
   /* ---------- Fenster ---------- */
   function ensureOv(){
     var ov = document.getElementById('recOv'); if(ov) return ov;
-    ov = document.createElement('div'); ov.className = 'overlay'; ov.id = 'recOv'; ov.innerHTML = '<div class="card" id="recCard"></div>'; document.body.appendChild(ov);
+    ov = document.createElement('div'); ov.className = 'overlay'; ov.id = 'recOv'; ov.style.paddingTop = 'max(64px, env(safe-area-inset-top))'; ov.style.alignItems = 'flex-start'; ov.style.overflowY = 'auto'; ov.style.webkitOverflowScrolling = 'touch'; ov.innerHTML = '<div class="card" id="recCard" style="margin:0 auto 24px;max-height:none;overflow:visible"></div>'; document.body.appendChild(ov);
     ov.addEventListener('click', function(e){ if(e.target === ov && !vidBusy) ov.classList.remove('show'); }); return ov;
   }
   function thumb(r){
@@ -228,7 +228,7 @@
       makeVideo(r, function(p){ var e = document.getElementById('recBar'); if(e) e.style.width = Math.round(p * 100) + '%'; }).then(function(blob){
         vidBusy = false; vidBlob = blob; vidUrl = URL.createObjectURL(blob);
         document.getElementById('recProg').style.display = 'none'; document.getElementById('recMsg').textContent = t ? 'Fertig! Schau es dir an und lade es herunter.' : 'Done! Preview it and download.';
-        document.getElementById('recVid').innerHTML = '<video controls playsinline src="' + vidUrl + '" style="width:100%;max-height:46vh;border-radius:10px;background:#000;margin-bottom:8px"></video>';
+        document.getElementById('recVid').innerHTML = '<video controls playsinline src="' + vidUrl + '" style="width:100%;max-height:38vh;border-radius:10px;background:#000;margin-bottom:8px"></video>';
         b.disabled = false; b.textContent = t ? '⬇️ Video herunterladen' : '⬇️ Download video';
       }).catch(function(err){ vidBusy = false; b.disabled = false; document.getElementById('recProg').style.display = 'none'; document.getElementById('recMsg').textContent = (t ? 'Das Video ging nicht: ' : 'Video failed: ') + (err && err.message ? err.message : ''); });
     };
