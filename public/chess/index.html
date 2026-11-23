@@ -35,6 +35,8 @@
   .pc{ pointer-events:none; }
   .pc svg, .pcs{ width:100%; height:100%; display:block; }
   .pc{ width:100%; height:100%; display:flex; }
+  .sq .pc{ transform:scale(1.22); transform-origin:50% 56%; }
+  .sq{ overflow:visible; }
   .cap svg{ width:26px; height:26px; vertical-align:middle; }
   .row{ display:flex; gap:8px; margin-top:12px; }
   .btn{ flex:1; border:1.5px solid var(--line); background:var(--bg-alt); color:var(--text); border-radius:14px; padding:12px 8px; font-size:14px; font-weight:800; cursor:pointer; }
@@ -156,6 +158,7 @@
   <div class="row" id="onlineRow" style="margin:0 0 10px"><button class="btn" id="rndBtn"></button><button class="btn" id="frBtn"></button></div>
   <div class="chips" id="ladderRow"></div>
   <div class="chips" id="moveMode"></div>
+  <div class="row" style="margin:10px 0 0"><button class="btn" id="recBtn" type="button"></button></div>
   </div>
   <div id="oppBar" style="text-align:center;font-size:14px;font-weight:700;margin:2px 0 6px"></div>
   <div id="speech"></div>
@@ -183,12 +186,13 @@
 </div>
 
 <div class="overlay" id="promoOv"><div class="card"><h2 id="promoTitle"></h2><div class="promo" id="promoBtns"></div></div></div>
-<div class="overlay" id="endOv"><div class="card"><h2 id="endTitle"></h2><p id="endText"></p><div class="row"><button class="btn primary" id="endNew"></button><button class="btn" id="endAna"></button><button class="btn" id="endClose"></button></div></div></div>
+<div class="overlay" id="endOv"><div class="card"><h2 id="endTitle"></h2><p id="endText"></p><div class="row"><button class="btn primary" id="endNew"></button><button class="btn" id="endAna"></button><button class="btn" id="endRec" style="display:none"></button><button class="btn" id="endClose"></button></div></div></div>
 
 <script src="engine.js"></script>
 <script src="analysis.js"></script>
 <script src="/notify.js"></script>
 <script src="/chess/pieces.js"></script>
+<script src="/chess/rec.js"></script>
 <script src="/cloudsync.js"></script>
 <script src="/chess/drag.js"></script>
 <script src="/chess/ladder.js"></script>
@@ -286,6 +290,8 @@ function newGame(){
   ME = CHA ? BpCh.me() : (COLOR_PREF === "r" ? (Math.random() < 0.5 ? "w" : "b") : COLOR_PREF);
   G = { board: initBoard(), turn:"w", last:null, selected:null, moves:[], over:false, log:[], capW:[], capB:[], history:[], half:0, seen:{}, busy:false, counted:false, rec:[] };
   if(CHA) BpCh.setup(G);
+  try{ if(window.BpRec) (function(){ const cfg = CHA ? BpCh.cfg() : null; if(cfg && cfg.lesson){ BpRec.start(null); return; }
+    BpRec.start({ me: ME, ch: cfg ? ((cfg[LANG === 'en' ? 'en' : 'de'] || [])[0] || cfg.id) : null, opp: OPP != null ? (function(){ const i = BpLadder.info('chess', OPP, LANG); return { name:i.name, elo:i.elo, img:i.img }; })() : { name:'Bot', elo:0, img:null } }, G.board); })(); }catch(e){}
   if(TIME_PREF === "on"){ G.clk = { w: CLK_MS, b: CLK_MS }; G.clkAt = Date.now(); }
   G.seen[posKey()] = 1; G.turnAt = Date.now(); G.nag = 0; badSince = 0; lastSayAt = 0;
   buildUi(); setTimeout(() => say("start", true), 700);
@@ -298,8 +304,8 @@ function posKey(){
   if(G.last && G.last.dbl) k += "e"+G.last.tc;
   return k;
 }
-function snapshot(){ return { board:G.board, turn:G.turn, last:G.last, log:G.log.slice(), capW:G.capW.slice(), capB:G.capB.slice(), half:G.half, seen:Object.assign({}, G.seen) }; }
-function restore(s){ G.board=s.board; G.turn=s.turn; G.last=s.last; G.log=s.log; G.capW=s.capW; G.capB=s.capB; G.half=s.half; G.seen=s.seen; G.selected=null; G.moves=[]; G.over=false; G.counted=false; }
+function snapshot(){ return { rn: window.BpRec ? BpRec.len() : 0, board:G.board, turn:G.turn, last:G.last, log:G.log.slice(), capW:G.capW.slice(), capB:G.capB.slice(), half:G.half, seen:Object.assign({}, G.seen) }; }
+function restore(s){ if(window.BpRec) BpRec.trunc(s.rn || 0); G.board=s.board; G.turn=s.turn; G.last=s.last; G.log=s.log; G.capW=s.capW; G.capB=s.capB; G.half=s.half; G.seen=s.seen; G.selected=null; G.moves=[]; G.over=false; G.counted=false; }
 
 function sqName(r,c){ return "abcdefgh"[c] + (8-r); }
 function render(){
@@ -388,6 +394,7 @@ function doMove(mv, byPlayer){
   if(mv.ep){ captured = "P"; }
   const sym = SYM[mover.t];
   let note = mv.castle ? (mv.castle === "k" ? "O-O" : "O-O-O") : `${sym}${sqName(mv.fr,mv.fc)}${captured ? "×" : "–"}${sqName(mv.tr,mv.tc)}${mv.promTo ? "=" + SYM[mv.promTo] : ""}`;
+  try{ if(window.BpRec) BpRec.move(G.board, mv, G.last); }catch(e){}
   G.board = applyMove(G.board, mv);
   try{ parent.sfx(captured ? 'capture' : 'move'); }catch(e){}
   if(captured){ (mover.col === "w" ? G.capW : G.capB).push(captured); }
@@ -465,6 +472,8 @@ function finish(res){
   $("endTitle").textContent = (res.result === "win" ? "🏆 " : res.result === "loss" ? "💀 " : "🤝 ") + title;
   $("endText").textContent = text + ladderNote; $("endText").style.whiteSpace = 'pre-line';
   if(CH) BpCh.endUi(res);
+  try{ if(window.BpRec) BpRec.end(res); }catch(e){}
+  $("endRec").style.display = (window.BpRec && BpRec.load() && BpRec.load().ts > Date.now() - 20000) ? "" : "none";
   $("endOv").classList.add("show");
 }
 
@@ -492,7 +501,8 @@ $("newBtn").onclick = () => { newGame(); };
 $("undoBtn").onclick = () => { if(G.busy || !G.history.length) return; restore(G.history.pop()); G.rec.pop(); render(); setStatus(); };
 $("resignBtn").onclick = () => { if(G.over || !confirm(T.confirmResign)) return; finish({ result:"loss", why:T.resigned }); };
 $("endNew").onclick = () => { $("endOv").classList.remove("show"); newGame(); };
-(function(){ const o = $("opts"), sc = $("optScrim"); const set = v => { o.classList.toggle("open", v); sc.classList.toggle("show", v); };
+(function(){ const rl = LANG === "de" ? "🎬 Letzte Partie" : "🎬 Last game"; $("recBtn").textContent = rl; $("endRec").textContent = LANG === "de" ? "🎬 Aufnahme" : "🎬 Recording"; $("recBtn").onclick = () => { $("opts").classList.remove("open"); $("optScrim").classList.remove("show"); BpRec.open(); }; $("endRec").onclick = () => { BpRec.open(0); };
+  const o = $("opts"), sc = $("optScrim"); const set = v => { o.classList.toggle("open", v); sc.classList.toggle("show", v); };
   $("optBtn").innerHTML = "⚙️<span>" + (LANG === "de" ? "Optionen" : "Options") + "</span>"; $("optT").textContent = LANG === "de" ? "Optionen" : "Options";
   $("optBtn").onclick = () => set(true); $("optX").onclick = () => set(false); sc.onclick = () => set(false);
   ["newBtn","rndBtn","frBtn","styleBtn2"].forEach(id => $(id).addEventListener("click", () => set(false))); })();

@@ -23,10 +23,10 @@
       clean();
       var sq = e.target.closest('.sq'); if(!sq) return;
       var r = +sq.dataset.r, c = +sq.dataset.c; if(!o.canPick(r, c)) return;
-      e.preventDefault(); o.pick(r, c);
+      e.preventDefault(); try{ board.setPointerCapture(e.pointerId); }catch(x){} o.pick(r, c);
       var now = board.querySelector('.sq[data-r="' + r + '"][data-c="' + c + '"]'), pc = now && now.querySelector('.pc'); if(!pc) return;
       var w = now.getBoundingClientRect().width, ghost = document.createElement('div');
-      ghost.className = 'bp-ghost'; ghost.innerHTML = pc.innerHTML; ghost.style.cssText = 'position:fixed;z-index:50;pointer-events:none;width:' + (w * 1.25) + 'px;height:' + (w * 1.25) + 'px;transform:translate(-50%,-62%);filter:drop-shadow(0 8px 6px rgba(0,0,0,.45));left:' + e.clientX + 'px;top:' + e.clientY + 'px';
+      ghost.className = 'bp-ghost'; ghost.innerHTML = pc.innerHTML; ghost.style.cssText = 'position:fixed;z-index:50;pointer-events:none;width:' + (w * 1.5) + 'px;height:' + (w * 1.5) + 'px;transform:translate(-50%,-62%);filter:drop-shadow(0 8px 6px rgba(0,0,0,.45));left:' + e.clientX + 'px;top:' + e.clientY + 'px';
       pc.style.opacity = '.25'; document.body.appendChild(ghost);
       d = { r: r, c: c, ghost: ghost, id: e.pointerId };
       window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cn);
