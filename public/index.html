@@ -5996,6 +5996,7 @@ const ARENA_BLOCKS_PER_MATCH_CLIENT = 4; // muss zu ARENA_BLOCKS_PER_MATCH im Se
 // Die Schach-Seiten laufen im Vollbild-Rahmen INNERHALB von Brain Pulse (gleiche
 // Adresse, gleiche Farben, Pfeil oben links fuehrt zurueck in den Chess-Bereich) -
 // so fuehlt es sich wie ein Mini Game an und nicht wie eine Weiterleitung.
+function startWordsFlow(){ renderChessFrame('/words.html'); }
 function renderChessFrame(src){
   renderApp(`<iframe id="chessFrame" src="${src}" title="Chess" style="position:fixed; inset:0; width:100%; height:100%; border:0; background:#0a0d16; z-index:50;"></iframe>`);
 }
@@ -6007,6 +6008,7 @@ if(typeof window !== "undefined" && typeof window.addEventListener === "function
     if(e.data.bpRealmBack === true){ try{ localStorage.removeItem('bp_realm_open'); }catch(e2){} renderMainMenu(); return; }
     if(e.data.bpGeoBack === true || e.data.bpSpaceBack === true || e.data.bpPolBack === true){ renderMainMenu(); return; }
     if(e.data.bpKartenBack === true){ startKartenWelt(); return; }
+    if(e.data.bpWordsBack === true){ renderMainMenu(); return; }
     if(e.data.bpFruitBack === true){ startBrainingHub(); return; }
     if(e.data.bpDefenseBack === true){ if(typeof brDuelHub==='function') brDuelHub(); else renderMainMenu(); return; }
     if(e.data.bpChessOnline === 'random' || e.data.bpChessOnline === 'friends'){ openChessOnline(null, e.data.bpChessOnline); return; }
@@ -6072,42 +6074,47 @@ async function chessHubCheckInvites(){
 }
 // Schach-Bereich bei den Mini Games: klassisches Schach (Original) oder das
 // Sammel-RPG mit Fähigkeiten (Fantasy = Chess World, nur Deutsch).
+function openChessLearn(){ renderChessFrame('/chess/index.html?challenges=1'); }
 function renderChessHub(){
   const fantasyComing = featureLocked('chess_fantasy');
   const fantasyLocked = fantasyComing || (currentLang !== 'de' && currentLang !== 'en' && !adminViewOn());
-  const o = chessOriginalSummary(), f = chessWorldSummary();
+  const onlineLocked = featureLocked('chess_online');
+  const row = (ic, title, sub, fn, locked) => `<div class="chx-row${locked ? ' off' : ''}" ${locked ? '' : `onclick="${fn}"`}><span class="ic">${ic}</span><span class="tx"><b>${title}</b><small>${sub}</small></span><span class="go">›</span></div>`;
+  const more = [];
+  more.push(dmAllowed() ? `<span class="chx-chip" onclick="dmIntro()" style="${admSty('dame')}">⛀ ${L('Dame','Checkers')}${admTag('dame')}</span>` : `<span class="chx-chip off" data-gid="dame">⛀ ${L('Dame','Checkers')}</span>`);
+  if(muAllowed()) more.push(`<span class="chx-chip" onclick="muIntro()" style="${admSty('muehle')}">⬡ ${L('Mühle','Morris')}${admTag('muehle')}</span>`);
+  more.push(`<span class="chx-chip${fantasyLocked ? ' off' : ''}" data-gid="chess_fantasy" ${fantasyLocked ? '' : 'onclick="openChessWorld()"'}>🐉 Chess Fantasy${fantasyComing ? ' · Coming soon' : fantasyLocked ? ' · ' + L('nur Deutsch','German only') : ''}</span>`);
   renderApp(`
-    <div class="panel">
-      <div class="picker-title">CHESS</div>
-      <div class="picker-sub">${L('Wähle deine Spielart.','Choose your style.')}</div>
-      <div class="menu-grid" style="margin-top:10px;">
-        <div class="mode-card" onclick="openChessOriginal()">
-          <div class="icon">♟</div>
-          <h3>Chess</h3>
-          <p>${L('Klassisches Schach: 30 Gegner mit Elo, Freunde oder zufälliger Gegner. Online gibt es Brainups.','Classic chess: 30 opponents with Elo, friends or a random opponent. Online games give Brainups.')}${(account && account.profile && account.profile.chessGames) ? ' · Elo ' + account.profile.chessElo : ''}</p>
-        </div>
-        <div data-gid="chess_fantasy" class="mode-card ${fantasyLocked ? 'locked' : ''}" onclick="${fantasyLocked ? '' : 'openChessWorld()'}" style="${fantasyLocked ? 'opacity:.45; cursor:default;' : ''}">
-          <div class="icon">🐉</div>
-          <h3>Chess Fantasy</h3>
-          <p>${fantasyComing ? 'Coming soon' : fantasyLocked ? L('Nur auf Deutsch verfügbar','Only available in German') : L('Schach-RPG mit Truhen, Fähigkeiten und Rängen.','Chess RPG with chests, abilities and ranks.')}${(!fantasyLocked && f) ? ' · ' + f.rank : ''}</p>
-        </div>
-        ${dmAllowed() ? `<div class="mode-card" onclick="dmIntro()" style="${admSty('dame')}">
-          <div class="icon">⛀</div>
-          <h3>${L('Dame','Checkers')}</h3>${admTag('dame')}
-          <p>${L('Klassisches Dame, Bot, Freunde, Zufallsgegner.','Classic checkers, bot, friends, random opponent.')}</p>
-        </div>` : `<div data-gid="dame" class="mode-card locked" style="opacity:.45; cursor:default;">
-          <div class="icon">⛀</div>
-          <h3>${L('Dame','Checkers')}</h3>
-          <p data-gate="dame">${gateText('dame')}</p>
-        </div>`}
-        ${muAllowed() ? `<div class="mode-card" onclick="muIntro()" style="${admSty('muehle')}">
-          <div class="icon"><svg viewBox="0 0 40 40" width="40" height="40"><g fill="none" stroke="#c6ff3d" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="32" height="32"/><rect x="11" y="11" width="18" height="18"/><path d="M20 4V11M20 29V36M4 20H11M29 20H36"/></g><circle cx="4" cy="4" r="3.2" fill="#fff"/><circle cx="20" cy="4" r="3.2" fill="#fff"/><circle cx="36" cy="4" r="3.2" fill="#fff"/><circle cx="4" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="20" cy="36" r="3.2" fill="#ff4d5a"/><circle cx="36" cy="36" r="3.2" fill="#ff4d5a"/></svg></div>
-          <h3>${L('Mühle','Morris')}</h3>${admTag('muehle')}
-          <p>${L('Klassische Mühle: 30 Gegner, Freunde oder zufälliger Gegner.','Classic morris: 30 opponents, friends or a random opponent.')}</p>
-        </div>` : ''}
-      </div>
+    <div class="panel chx">
+      <style>
+        .chx .chx-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+        .chx .chx-back{width:42px;height:42px;border-radius:12px;border:1.5px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:var(--accent,#c6ff3d);font-size:20px;font-weight:800;cursor:pointer}
+        .chx .chx-top .picker-title{margin:0}
+        .chx .mode-card.chx-big{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;min-height:0;padding:18px 20px;margin:0 0 14px;border-radius:18px;border:0;background:linear-gradient(180deg,#d8ff6b,#9ad81a);color:#1e3000;box-shadow:0 0 26px rgba(198,255,61,.35);text-align:left;cursor:pointer}
+        .chx .chx-big .t{font-size:24px;font-weight:900;letter-spacing:.3px}
+        .chx .chx-big .s{font-size:14px;font-weight:700;opacity:.8}
+        .chx .chx-row{display:flex;align-items:center;gap:14px;padding:14px 16px;margin-bottom:10px;border-radius:16px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);cursor:pointer;min-height:68px}
+        .chx .chx-row:active{transform:scale(.99)}
+        .chx .chx-row.off{opacity:.45;cursor:default}
+        .chx .chx-row .ic{font-size:30px;width:38px;text-align:center;flex:none}
+        .chx .chx-row .tx{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+        .chx .chx-row .tx b{font-size:17px}
+        .chx .chx-row .tx small{font-size:13px;color:var(--muted,#9aa3c0)}
+        .chx .chx-row .go{font-size:26px;color:var(--muted,#9aa3c0)}
+        .chx .chx-lbl{margin:16px 2px 8px;font-size:13px;font-weight:800;color:var(--muted,#9aa3c0);letter-spacing:.5px;text-transform:uppercase}
+        .chx .chx-more{display:flex;flex-wrap:wrap;gap:8px}
+        .chx .chx-chip{padding:11px 16px;border-radius:99px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);font-weight:800;font-size:14px;cursor:pointer}
+        .chx .chx-chip.off{opacity:.45;cursor:default}
+      </style>
+      <div class="chx-top"><button class="chx-back" onclick="renderMainMenu()" aria-label="${t('btn_back')}">←</button><div class="picker-title">${L('SCHACH','CHESS')}</div></div>
+      <div class="mode-card chx-big" onclick="openChessOriginal()"><span class="t">▶ ${L('Jetzt spielen','Play now')}</span><span class="s">${L('Gegen Bot, dein letzter Gegner wartet','Against a bot, your last opponent is waiting')}</span></div>
+      ${row('🏆', L('Gegner-Leiter','Opponent ladder'), L('30 Gegner mit Elo','30 opponents with Elo'), 'openChessLadder()')}
+      ${row('👥', L('Gegen Freunde','Against friends'), L('Einladen und spielen','Invite and play'), "openChessOnline(null,'friends')", onlineLocked)}
+      ${row('🌐', L('Zufälliger Gegner','Random opponent'), L('Online, mit Brainups','Online, earns Brainups'), "openChessOnline(null,'random')", onlineLocked)}
+      ${row('🎓', L('Lernen und Aufgaben','Learn and challenges'), L('Grundlagen, Eröffnungen, Fallen','Basics, openings, traps'), 'openChessLearn()')}
+      <div class="chx-lbl">${L('Mehr Spiele','More games')}</div>
+      <div class="chx-more">${more.join('')}</div>
       <div id="chessInviteBox"></div>
-      <button class="btn btn-ghost btn-block" style="margin-top:16px;" onclick="renderMainMenu()">${t('btn_back')}</button>
     </div>
   `);
   chessHubCheckInvites();
@@ -8143,6 +8150,11 @@ ${currentLang === 'de' ? `
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="7" y="5" width="34" height="38" rx="5" fill="#fff"/><rect x="7" y="5" width="34" height="11" rx="5" fill="#c6ff3d"/><path d="M14 24H34M14 30H34M14 36H34" stroke="#c0243a" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>Taboo</h3>
         <p>${currentLang==='de' ? 'Wörter erraten und erklären, allein oder mit Freunden.' : 'Only available in German'}</p>
+      </div>
+      <div class="mode-card ${currentLang==='de' ? '' : 'locked'}" onclick="${currentLang==='de' ? 'startWordsFlow()' : ''}" style="${currentLang==='de' ? '' : 'opacity:.45; cursor:default;'}">
+        <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="3" y="9" width="19" height="19" rx="4" fill="#f3d89a"/><rect x="26" y="9" width="19" height="19" rx="4" fill="#f3d89a"/><rect x="14" y="26" width="19" height="19" rx="4" fill="#c6ff3d"/><text x="12.5" y="23.5" font-size="15" font-weight="900" text-anchor="middle" fill="#2a1b05" font-family="Arial">W</text><text x="35.5" y="23.5" font-size="15" font-weight="900" text-anchor="middle" fill="#2a1b05" font-family="Arial">O</text><text x="23.5" y="41" font-size="15" font-weight="900" text-anchor="middle" fill="#1e3000" font-family="Arial">R</text></svg></div>
+        <h3>Brain Words</h3>
+        <p>${currentLang==='de' ? 'Buchstaben legen, Wörter bilden, Punkte sammeln.' : 'Only available in German'}</p>
       </div>
       <div class="mode-card" onclick="startFourupsFlow()">
         <div class="icon"><svg viewBox="0 0 48 48" width="44" height="44"><rect x="2" y="6" width="44" height="36" rx="6" fill="#2f6bff"/><circle cx="9" cy="14" r="4" fill="#0b1236"/><circle cx="9" cy="24" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#0b1236"/><circle cx="19" cy="14" r="4" fill="#0b1236"/><circle cx="19" cy="24" r="4" fill="#0b1236"/><circle cx="19" cy="34" r="4" fill="#0b1236"/><circle cx="29" cy="14" r="4" fill="#0b1236"/><circle cx="29" cy="24" r="4" fill="#0b1236"/><circle cx="29" cy="34" r="4" fill="#0b1236"/><circle cx="39" cy="14" r="4" fill="#0b1236"/><circle cx="39" cy="24" r="4" fill="#0b1236"/><circle cx="39" cy="34" r="4" fill="#0b1236"/><circle cx="9" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="7" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="34" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="29" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="27" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="39" cy="34" r="4" fill="#e8192c" stroke="#ff8a95" stroke-width="1.5"/><circle cx="37" cy="31.5" r="2" fill="#fff" opacity=".6"/><circle cx="19" cy="24" r="4" fill="#ffcf1f" stroke="#fff4a0" stroke-width="1.5"/><circle cx="17" cy="21.5" r="2" fill="#fff" opacity=".6"/></svg></div>

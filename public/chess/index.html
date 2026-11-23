@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Chess Original, Brain Pulse</title>
+<script>try{ if(window.parent!==window) document.documentElement.classList.add('inframe'); }catch(e){}</script>
 <style>
   :root{ --bg:#0a0d16; --bg-alt:#10141f; --panel:#151b2b; --panel-2:#1c2338; --line:#262e46;
     --text:#eef0fb; --text-dim:#9aa3c0; --accent:#c6ff3d; --accent-2:#3de0ff; --bad:#ff5d8f;
@@ -69,8 +70,8 @@
   /* Seitenleiste: huebscher */
   #oppBar{ display:flex; align-items:center; gap:12px; text-align:left !important; margin:8px 0 10px !important; padding:10px 12px; border:1.5px solid var(--line); border-radius:16px; background:linear-gradient(135deg,rgba(124,92,255,.16),rgba(61,224,255,.08)); }
   #oppBar:empty{ display:none; }
-  #speech{ display:none; align-items:flex-end; gap:10px; margin:0 0 10px; }
-  #speech.show{ display:flex; animation:spIn .3s ease; }
+  #speech{ display:flex; visibility:hidden; opacity:0; align-items:flex-end; gap:10px; margin:0 0 10px; height:64px; overflow:hidden; transition:opacity .25s ease; } /* Platz bleibt immer reserviert, sonst springt das Brett, wenn der Gegner etwas sagt */
+  #speech.show{ visibility:visible; opacity:1; }
   #speech img{ width:44px; height:44px; object-fit:cover; border-radius:12px; border:2px solid rgba(255,255,255,.3); flex:none; }
   #speech .bub{ position:relative; background:#fff; color:#10131f; padding:10px 14px; border-radius:16px 16px 16px 4px; font-weight:700; font-size:14px; line-height:1.3; box-shadow:0 6px 18px rgba(0,0,0,.4); max-width:100%; }
   @keyframes spIn{ from{ opacity:0; transform:translateY(8px) scale(.96); } to{ opacity:1; transform:none; } }
@@ -98,31 +99,77 @@
   html.bd-img .sq .coord, html.bd-img .sq .rk, html.bd-img .sq .fl{ color:var(--co) !important; text-shadow:var(--cs); font-weight:800; }
   html.bd-img #planSvg{ left:calc(var(--cellb) * 8 * var(--pl)); top:calc(var(--cellb) * 8 * var(--pt)); width:calc(var(--cellb) * 8); height:calc(var(--cellb) * 8); }
   @media (min-width:760px){ html.bd-img .boardwrap{ --cellb:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8 / var(--k)); } }
+
+  /* Titel unter der Musikleiste der App */
+  html.inframe .top{ margin-top:44px; }
+  html.inframe #chMenu, html.inframe #bpLadderOv{ padding-top:60px !important; }
+  #chClose{ flex:none; width:auto; }
+  #meBar{ display:contents; } #meBar .meav, #meBar .mi > b{ display:none; } .mi{ display:contents; }
+  #opts{ display:block; } #optHd, #optBtn, #optScrim{ display:none; }
+
+  /* Handy: Brett ueber die ganze Breite, Spielerleisten, grosse Leiste unten */
+  @media (max-width:759px){
+    .wrap{ max-width:none; padding:10px 0 104px; }
+    .top{ padding:0 12px; margin-bottom:8px; }
+    .cols{ display:flex; flex-direction:column; }
+    .sc1{ display:contents; }
+    #oppBar{ order:1; margin:0 !important; border-radius:0; border-width:1px 0; padding:8px 12px; }
+    #oppBar img{ width:52px; height:52px; }
+    #chHud{ order:1; margin:8px 12px !important; }
+    #speech{ order:2; margin:0; padding:4px 12px 0; height:54px; }
+    #botClock{ order:3; }
+    .bc{ order:4; }
+    #status{ order:6; display:block; width:fit-content; margin:4px auto 2px; min-height:30px; line-height:18px; padding:4px 16px; }
+    #status:empty{ display:block; visibility:hidden; }
+    .sc2{ order:7; padding:0 12px; background:none; border:0; box-shadow:none; margin:0; }
+    #board{ --cell:calc(100vw / 8); width:calc(var(--cell) * 8); margin:0; border-radius:0; border:0; box-shadow:none; }
+    html.bd-img .boardwrap{ --cellb:calc(100vw / 8 / var(--k)); border-radius:0; }
+    .cap{ margin:0; padding:2px 12px; min-height:30px; }
+    #meBar{ display:flex; align-items:center; gap:10px; padding:6px 12px; }
+    #meBar .meav{ display:flex; width:44px; height:44px; border-radius:10px; background:var(--panel-2); align-items:center; justify-content:center; font-size:26px; flex:none; }
+    #meBar .mi{ display:flex; flex-direction:column; min-width:0; flex:1; }
+    #meBar .mi > b{ display:block; font-size:15px; }
+    #meBar .cap{ padding:0; margin:2px 0 0; min-height:28px; }
+    #barRow{ position:fixed; left:0; right:0; bottom:0; z-index:15; display:flex; gap:6px; margin:0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); background:rgba(10,13,22,.97); border-top:1px solid var(--line); }
+    #barRow .btn, #optBtn{ display:flex; align-items:center; justify-content:center; text-align:center; padding:8px 2px; min-height:58px; font-size:12px; line-height:1.2; border-radius:12px; min-width:0; }
+    #optBtn{ flex-direction:column; }
+    #opts{ position:fixed; left:0; right:0; bottom:0; max-height:84vh; overflow:auto; z-index:30; background:var(--panel); border-radius:22px 22px 0 0; padding:14px 16px calc(18px + env(safe-area-inset-bottom)); transform:translateY(105%); visibility:hidden; transition:transform .28s cubic-bezier(.2,.9,.3,1), visibility 0s .28s; box-shadow:0 -12px 40px rgba(0,0,0,.6); }
+    #opts.open{ transform:none; visibility:visible; transition:transform .28s cubic-bezier(.2,.9,.3,1), visibility 0s; }
+    #optHd{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; font-size:18px; }
+    #optHd button{ width:38px; height:38px; border-radius:12px; border:1.5px solid var(--line); background:var(--bg-alt); color:var(--text); font-size:16px; cursor:pointer; }
+    #optScrim{ display:block; position:fixed; inset:0; background:rgba(5,7,12,.6); z-index:25; opacity:0; pointer-events:none; transition:opacity .2s; }
+    #optScrim.show{ opacity:1; pointer-events:auto; }
+  }
 </style>
 </head>
 <body>
+<div id="optScrim"></div>
 <div class="wrap">
   <div class="top"><a class="back" href="/" title="Brain Pulse" onclick="if(window.parent!==window){event.preventDefault();parent.postMessage({bpChessBack:true},location.origin);}">←</a><h1 id="title">Chess</h1></div>
   <div class="cols">
 <div class="sc1">
+  <div id="opts">
+  <div id="optHd"><b id="optT">Optionen</b><button id="optX" type="button" aria-label="Schließen">✕</button></div>
   <div id="eloBar"></div>
   <button class="btn stylebtn" id="styleBtn2"></button>
   <div class="sub" id="sub"></div>
   <div class="row" id="onlineRow" style="margin:0 0 10px"><button class="btn" id="rndBtn"></button><button class="btn" id="frBtn"></button></div>
   <div class="chips" id="ladderRow"></div>
+  <div class="chips" id="moveMode"></div>
+  </div>
   <div id="oppBar" style="text-align:center;font-size:14px;font-weight:700;margin:2px 0 6px"></div>
   <div id="speech"></div>
-  <div class="chips" id="moveMode"></div>
   <div id="botClock" style="display:none;text-align:center;font-weight:800;font-size:16px;margin:4px 0"></div>
   <div id="status"></div>
 </div>
 <div class="bc">
   <div class="cap" id="capBlack"></div>
   <div class="boardwrap"><div id="board"></div></div>
-  <div class="cap" id="capWhite"></div>
+  <div id="meBar"><div class="meav">🧑‍🚀</div><div class="mi"><b>Du</b><div class="cap" id="capWhite"></div></div></div>
 </div>
 <div class="sc2">
-  <div class="row">
+  <div class="row" id="barRow">
+    <button class="btn" id="optBtn" type="button">⚙️</button>
     <button class="btn primary" id="newBtn"></button>
     <button class="btn" id="undoBtn"></button>
     <button class="btn" id="resignBtn"></button>
@@ -445,12 +492,21 @@ $("newBtn").onclick = () => { newGame(); };
 $("undoBtn").onclick = () => { if(G.busy || !G.history.length) return; restore(G.history.pop()); G.rec.pop(); render(); setStatus(); };
 $("resignBtn").onclick = () => { if(G.over || !confirm(T.confirmResign)) return; finish({ result:"loss", why:T.resigned }); };
 $("endNew").onclick = () => { $("endOv").classList.remove("show"); newGame(); };
+(function(){ const o = $("opts"), sc = $("optScrim"); const set = v => { o.classList.toggle("open", v); sc.classList.toggle("show", v); };
+  $("optBtn").innerHTML = "⚙️<span>" + (LANG === "de" ? "Optionen" : "Options") + "</span>"; $("optT").textContent = LANG === "de" ? "Optionen" : "Options";
+  $("optBtn").onclick = () => set(true); $("optX").onclick = () => set(false); sc.onclick = () => set(false);
+  ["newBtn","rndBtn","frBtn","styleBtn2"].forEach(id => $(id).addEventListener("click", () => set(false))); })();
+(function(){ const mq = window.matchMedia("(max-width:759px)");
+  const place = () => { const ab = document.getElementById("arrowBar"); if(!ab) return; const w = document.querySelector(".boardwrap");
+    if(mq.matches) $("opts").appendChild(ab); else w.parentNode.insertBefore(ab, w.nextSibling); };
+  window.addEventListener("load", place); try{ mq.addEventListener("change", place); }catch(e){} place(); })();
 $("anaBtn").onclick = () => { bpAnalysis.show(G.over && G.rec.length ? G.rec : null); };
 $("endAna").onclick = () => { $("endOv").classList.remove("show"); bpAnalysis.show(G.rec); };
 $("endClose").onclick = () => { $("endOv").classList.remove("show"); };
 
 buildUi(); newGame();
 try{ BpElo.mount("eloBar", "chess", LANG); }catch(e){}
+try{ if(/[?&]challenges=1/.test(location.search) && window.BpCh) setTimeout(() => BpCh.open("learn"), 300); }catch(e){}
 try{ if(/[?&]ladder=1/.test(location.search)) BpLadder.open("chess", LANG, (i) => { OPP = i; try{ localStorage.setItem("bp_chess_opp", String(i)); }catch(e){} buildUi(); newGame(); }, OPP); }catch(e){}
 
 // Online spielen: Zufallsgegner (mit Elo-Punkten) oder Freunde. Die Hauptseite oeffnet die Online-Lobby.

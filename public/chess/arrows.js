@@ -11,7 +11,7 @@
     var items = [], cur = null, timer = null, startPt = null, touchMode = false, mode = false, lstart = null, drew = false;
     var en = /^en/i.test((document.documentElement.lang || navigator.language || ''));
     var bar = document.createElement('div');
-    bar.style.cssText = 'display:flex;gap:8px;justify-content:center;margin:10px 0';
+    bar.id = 'arrowBar'; bar.style.cssText = 'display:flex;gap:8px;justify-content:center;margin:10px 0';
     var btn = document.createElement('button'), clr = document.createElement('button');
     var css = 'padding:10px 16px;border-radius:12px;border:1px solid #3a4a6a;background:#14203a;color:#e8eefc;font:600 14px system-ui,sans-serif;cursor:pointer';
     btn.style.cssText = css; clr.style.cssText = css; btn.type = clr.type = 'button';
