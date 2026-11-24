@@ -48,6 +48,7 @@
   .log b{ color:var(--text); }
   .overlay{ position:fixed; inset:0; background:rgba(5,7,12,.82); display:none; align-items:center; justify-content:center; z-index:10; padding:20px; }
   .overlay.show{ display:flex; }
+  #endOv .row{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } #endOv .row .btn{ width:100%; min-width:0; padding:12px 8px; } #endOv .card{ max-width:min(92vw,420px); }
   .card{ background:var(--panel); border:1.5px solid var(--line); border-radius:20px; padding:22px 20px; width:100%; max-width:340px; text-align:center; }
   .card h2{ margin:0 0 6px; font-size:22px; }
   .card p{ color:var(--text-dim); margin:0 0 14px; font-size:14px; }

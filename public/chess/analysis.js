@@ -128,7 +128,12 @@
       + "#bpAnaCtl button{width:44px;height:38px;border-radius:10px;border:1px solid #262e46;background:#10141f;color:#eef0fb;font-size:16px;font-weight:800;cursor:pointer}"
       + "#bpAnaCtl button#bpAnaPlay{width:58px;background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#08110c;border:none}#bpAnaCtl button:disabled{opacity:.35}"
       + "#bpAnaCtl span{min-width:52px;text-align:center;font-size:11px;color:#9aa3c0}"
-      + ".bpAnaRow{cursor:pointer}.bpAnaRow.cur{border-color:#c6ff3d;background:#18210f}";
+      + ".bpAnaRow{cursor:pointer}.bpAnaRow.cur{border-color:#c6ff3d;background:#18210f}"
+      + "@media (min-width:900px) and (min-height:560px){#bpAnaCard{display:grid;max-width:1120px;width:96vw;height:92vh;max-height:92vh;grid-template-columns:minmax(380px,1.15fr) minmax(360px,1fr);grid-template-rows:auto auto auto auto minmax(0,1fr) auto auto}"
+      + "#bpAnaCard h2{grid-column:1/-1;grid-row:1}#bpAnaSum{grid-column:1/-1;grid-row:2}#bpAnaBoardWrap{grid-column:1;grid-row:3/span 5;justify-content:center;padding:6px 18px}"
+      + "#bpAnaBoard{max-width:min(620px,calc(92vh - 250px))}#bpAnaCap{font-size:15px}"
+      + "#bpAnaPts{grid-column:2;grid-row:3;margin:0 12px 8px !important}#bpAnaBar{grid-column:2;grid-row:4}#bpAnaBody{grid-column:2;grid-row:5;min-height:0}.bpAnaNote{grid-column:2;grid-row:6}#bpAnaClose{grid-column:2;grid-row:7}"
+      + ".bpAnaRow{padding:9px 10px}.bpAnaTx{font-size:15px}.bpAnaTx small{font-size:12px}}";
     document.head.appendChild(st);
     var ov = document.createElement("div"); ov.id = "bpAnaOv";
     ov.innerHTML = '<div id="bpAnaCard"><h2></h2><div id="bpAnaSum"></div><div id="bpAnaBar"><i></i></div><div id="bpAnaBoardWrap"><div id="bpAnaBoard"></div><div id="bpAnaCap"></div><div id="bpAnaCtl"><button id="bpAnaFirst">⏮</button><button id="bpAnaPrev">◀</button><button id="bpAnaPlay">▶</button><button id="bpAnaNext">⏩</button><button id="bpAnaLast">⏭</button><span id="bpAnaPos"></span></div></div><div id="bpAnaBody"></div><div class="bpAnaNote"></div><button id="bpAnaClose"></button></div>';
