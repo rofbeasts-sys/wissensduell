@@ -7,9 +7,9 @@
   "use strict";
   var LANG = (function(){ try{ return localStorage.getItem("wq_lang") === "en" ? "en" : "de"; }catch(e){ return "de"; } })();
   var T = {
-    de:{ title:"Analyse", working:"Analysiere …", acc:"Genauigkeit", best:"Bester Zug", good:"Gut", inacc:"Ungenau", mistake:"Fehler", blunder:"Patzer",
+    de:{ title:"Analyse", working:"Analysiere …", acc:"Genauigkeit", best:"Perfekter Zug", good:"Gut", inacc:"Ungenau", mistake:"Fehler", blunder:"Patzer",
       better:"Besser", opp:"Gegner", mine:"Dein Zug", start:"Startstellung", replay:"Partie ansehen", close:"Schließen", none:"Keine Züge zum Analysieren.", note:"Bewertung mit den normalen Schachregeln, ohne Fähigkeiten.", move:"Zug", btn:"Analyse" },
-    en:{ title:"Analysis", working:"Analyzing …", acc:"Accuracy", best:"Best move", good:"Good", inacc:"Inaccuracy", mistake:"Mistake", blunder:"Blunder",
+    en:{ title:"Analysis", working:"Analyzing …", acc:"Accuracy", best:"Perfect move", good:"Good", inacc:"Inaccuracy", mistake:"Mistake", blunder:"Blunder",
       better:"Better", opp:"Opponent", mine:"Your move", start:"Start position", replay:"Replay", close:"Close", none:"No moves to analyze.", note:"Rated with normal chess rules, ignoring abilities.", move:"Move", btn:"Analysis" }
   }[LANG];
   var SYMS = { K:"♚", Q:"♛", R:"♜", B:"♝", N:"♞", P:"♟" };
