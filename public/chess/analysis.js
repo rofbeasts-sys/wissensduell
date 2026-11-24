@@ -225,6 +225,7 @@
     var ov = document.getElementById("bpAnaOv"), body = ov.querySelector("#bpAnaBody"), sumEl = ov.querySelector("#bpAnaSum"), bar = ov.querySelector("#bpAnaBar i");
     ov.querySelector("h2").textContent = "🔎 " + T.title; ov.querySelector("#bpAnaClose").textContent = T.close; ov.querySelector(".bpAnaNote").textContent = T.note;
     body.innerHTML = ""; bar.style.width = "0"; ov.classList.add("show"); stopPlay();
+    try{ var pb0 = ov.querySelector("#bpAnaPts"); if(pb0) pb0.style.display = "none"; }catch(e){}
     var wrap = ov.querySelector("#bpAnaBoardWrap");
     if(!entries || !entries.length){ sumEl.textContent = T.none; wrap.style.display = "none"; return; }
     wrap.style.display = "flex"; wireControls();
@@ -248,8 +249,67 @@
       sumEl.innerHTML = "<b style='color:#c6ff3d;font-size:20px'>" + s.accuracy + "%</b> " + T.acc + " &nbsp;·&nbsp; "
         + CLS.map(function(c){ return "<span style='color:" + c.color + "'>" + c.icon + " " + s.counts[c.key] + "</span>"; }).join(" &nbsp;");
       ov.__result = { rows: rows, summary: s };
+      try{ award(entries, rows); }catch(err){}
     }
     setTimeout(step, 30);
+  }
+  /* ---- Punkte: perfekte Zuege, Tokens, Stufen, Bestenliste ---- */
+  var PL = function(){ try{ return localStorage.getItem("wq_lang") === "en" ? "en" : "de"; }catch(e){ return "de"; } };
+  var PT = {
+    de:{ lv:["Neuling","Bauer","Springer","Läufer","Turm","Dame","König"], perfect:"perfekte Züge", gain:"Für diese Partie", tokens:"Analyse-Tokens heute", level:"Stufe", none:"Keine Tokens mehr frei. Für diese Partie gibt es keine Punkte.", again:"Diese Partie ist schon gezählt.", login:"Melde dich an, um perfekte Züge zu sammeln.", buy:"Mit {c} Münzen Punkte holen", top:"Bestenliste", week:"Diese Woche", total:"Insgesamt", close:"Schließen", up:"Neue Stufe: ", err:"Das ging nicht. Versuch es später nochmal.", you:"Du", nocoins:"Nicht genug Münzen.", empty:"Noch keine Einträge.", next:"bis {n}" },
+    en:{ lv:["Rookie","Pawn","Knight","Bishop","Rook","Queen","King"], perfect:"perfect moves", gain:"This game", tokens:"Analysis tokens today", level:"Level", none:"No tokens left. No points for this game.", again:"This game is already counted.", login:"Log in to collect perfect moves.", buy:"Get points for {c} coins", top:"Leaderboard", week:"This week", total:"All time", close:"Close", up:"New level: ", err:"That didn't work. Try again later.", you:"You", nocoins:"Not enough coins.", empty:"No entries yet.", next:"to {n}" }
+  };
+  var GLY = ["♙","♟","♞","♝","♜","♛","♚"];
+  function ptok(){ try{ return localStorage.getItem("wq_account_token") || ""; }catch(e){ return ""; } }
+  function ppost(body){ body.token = ptok(); body.lang = PL(); return fetch("/api/chess-ana", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
+  function gameId(entries){ var h = 5381, str = entries.map(function(e){ var m = e.move; return m ? m.fr + "" + m.fc + m.tr + m.tc : "x"; }).join(","); for(var i = 0; i < str.length; i++){ h = ((h << 5) + h + str.charCodeAt(i)) | 0; } return "g" + (h >>> 0).toString(36) + "-" + entries.length; }
+  function countPerfect(entries, rows){
+    var n = 0;
+    rows.forEach(function(r, i){
+      if(i < 3 || !r || !r.cls || r.cls.key !== "best") return;
+      try{ if(getAllLegalMoves(entries[i].board, entries[i].col, entries[i].last).length < 2) return; }catch(e){ return; }
+      n++;
+    });
+    return n;
+  }
+  function lvName(l){ return PT[PL()].lv[Math.max(0, Math.min(6, l | 0))]; }
+  function pbox(){ var ov = document.getElementById("bpAnaOv"), el = ov.querySelector("#bpAnaPts"); if(!el){ el = document.createElement("div"); el.id = "bpAnaPts"; el.style.cssText = "margin:8px 0;padding:10px 12px;border-radius:12px;background:#151a45;color:#eef1ff;font-size:14px;line-height:1.45;text-align:left"; ov.querySelector("#bpAnaSum").insertAdjacentElement("afterend", el); } return el; }
+  function paint(el, st, extra){
+    var t = PT[PL()], pct = st.next ? Math.max(0, Math.min(100, Math.round((st.perfect - (st.level ? st.levels[st.level - 1] : 0)) / (st.next - (st.level ? st.levels[st.level - 1] : 0)) * 100))) : 100;
+    el.innerHTML = (extra || "") + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span style="font-size:22px;color:#c6ff3d">' + GLY[st.level] + '</span><span style="flex:1;min-width:0"><b>' + t.level + " " + st.level + " · " + lvName(st.level) + "</b><br><small style='color:#9fa8d8'>" + st.perfect + " " + t.perfect + (st.next ? " · " + t.next.replace("{n}", st.next) : "") + "</small></span><button type='button' id='bpAnaTopBtn' style='background:#1b2160;color:#eef1ff;border:1px solid #3a4390;border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer'>🏆 " + t.top + "</button></div>"
+      + '<div style="height:8px;border-radius:99px;background:#1b2160;overflow:hidden;margin-top:8px"><i style="display:block;height:100%;width:' + pct + '%;background:#c6ff3d"></i></div>'
+      + '<div style="margin-top:6px;font-size:12px;color:#9fa8d8">' + t.tokens + ": " + st.tokens + " / " + st.freePerDay + "</div>";
+    var b = el.querySelector("#bpAnaTopBtn"); if(b) b.onclick = openTop;
+  }
+  function openTop(){
+    var t = PT[PL()], ov = document.getElementById("bpAnaTopOv");
+    if(!ov){ ov = document.createElement("div"); ov.id = "bpAnaTopOv"; ov.style.cssText = "position:fixed;inset:0;z-index:100000;background:rgba(5,7,12,.86);display:flex;align-items:flex-start;justify-content:center;padding:64px 14px 20px;overflow-y:auto"; document.body.appendChild(ov); ov.addEventListener("click", function(e){ if(e.target === ov) ov.remove(); }); }
+    ov.innerHTML = "<div style='background:#10143a;color:#eef1ff;border-radius:16px;padding:16px;width:100%;max-width:420px'><h3 style='margin:0 0 10px;font-size:18px'>🏆 " + t.top + "</h3><div id='bpAnaTopBody' style='font-size:14px'>…</div><button type='button' id='bpAnaTopX' style='margin-top:12px;width:100%;padding:10px;border-radius:10px;border:1px solid #3a4390;background:#1b2160;color:#eef1ff;font-size:15px;cursor:pointer'>" + t.close + "</button></div>";
+    ov.querySelector("#bpAnaTopX").onclick = function(){ ov.remove(); };
+    if(!ptok()){ ov.querySelector("#bpAnaTopBody").textContent = t.login; return; }
+    ppost({ act:"top" }).then(function(r){
+      var body = ov.querySelector("#bpAnaTopBody"); if(!body) return; if(!r || !r.ok){ body.textContent = t.err; return; }
+      function list(rows, h){ return "<div style='color:#9fa8d8;margin:8px 0 4px'>" + h + "</div>" + (rows.length ? rows.map(function(x){ return "<div style='display:flex;justify-content:space-between;gap:8px;padding:7px 10px;margin-bottom:4px;border-radius:10px;background:" + (x.me ? "#1b2160;border:1px solid #c6ff3d" : "#151a45") + "'><span style='min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + x.pos + ". " + esc(x.name) + " <span style='color:#ffd45a'>" + GLY[x.level] + "</span></span><b style='color:#c6ff3d'>" + x.n + "</b></div>"; }).join("") : "<div style='opacity:.7'>" + t.empty + "</div>"); }
+      body.innerHTML = list(r.week, t.week) + list(r.total, t.total);
+    }).catch(function(){ var b2 = ov.querySelector("#bpAnaTopBody"); if(b2) b2.textContent = t.err; });
+  }
+  function award(entries, rows){
+    var t = PT[PL()], el = pbox(); el.style.display = "block";
+    if(!ptok()){ el.innerHTML = t.login; return; }
+    var perfect = countPerfect(entries, rows), id = gameId(entries);
+    el.textContent = "…";
+    function done(r, bought){
+      if(!r || !r.ok){ el.textContent = (r && r.error) || t.err; return; }
+      var extra = "";
+      if(r.counted) extra = "<div style='margin-bottom:8px'><b style='color:#c6ff3d;font-size:18px'>+" + r.gain + "</b> " + t.perfect + (r.newLevel ? "<br>🎉 " + t.up + lvName(r.newLevel) : "") + "</div>";
+      else if(r.again) extra = "<div style='margin-bottom:8px;color:#9fa8d8'>" + t.again + "</div>";
+      else if(r.noTokens){
+        extra = "<div style='margin-bottom:8px;color:#ffd45a'>" + t.none + "</div><button type='button' id='bpAnaBuy' style='margin-bottom:8px;width:100%;padding:9px;border-radius:10px;border:0;background:#c6ff3d;color:#1e3000;font-weight:700;font-size:14px;cursor:pointer'>" + t.buy.replace("{c}", r.cost) + "</button>";
+      }
+      paint(el, r, extra);
+      var bb = el.querySelector("#bpAnaBuy"); if(bb) bb.onclick = function(){ bb.disabled = true; ppost({ act:"buy", id:id, perfect:perfect }).then(function(r2){ done(r2, true); }).catch(function(){ el.textContent = t.err; }); };
+    }
+    ppost({ act:"open", id:id, perfect:perfect }).then(function(r){ done(r); }).catch(function(){ el.textContent = t.err; });
   }
   window.bpAnalysis = { save: saveLast, hasLast: function(){ return !!loadLast(); }, show: show, analyzeEntry: analyzeEntry, summarize: summarize, label: T.btn, T: T };
 })();

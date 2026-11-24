@@ -4963,6 +4963,57 @@ function ladderOwned(user, game) {
   const a = Array.isArray(l.bought) ? l.bought : [], b = l.by && Array.isArray(l.by[game]) ? l.by[game] : [];
   return LADDER_BUY_IDS.filter(id => a.includes(id) || b.includes(id));
 }
+/* ---- Schach-Analyse: Tokens, perfekte Zuege, Stufen, Bestenliste ---- */
+const ANA_FREE = 5, ANA_COIN_COST = 10, ANA_LEVELS = [10, 50, 150, 400, 1000, 2500], ANA_MAX_PER_GAME = 60, ANA_MAX_PER_DAY = 400;
+function anaDay() { return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); }
+function anaWeek() { const d = new Date(anaDay() + "T12:00:00Z"); const wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10); }
+function anaLevel(n) { let l = 0; ANA_LEVELS.forEach((v, i) => { if (n >= v) l = i + 1; }); return l; }
+function anaState(user) {
+  const a = user.chessAna && typeof user.chessAna === "object" ? user.chessAna : (user.chessAna = {});
+  const day = anaDay(), wk = anaWeek();
+  if (a.day !== day) { a.day = day; a.used = 0; a.dayPerfect = 0; }
+  if (a.wk !== wk) { a.wk = wk; a.wkPerfect = 0; }
+  a.used = a.used | 0; a.perfect = a.perfect | 0; a.wkPerfect = a.wkPerfect | 0; a.dayPerfect = a.dayPerfect | 0; a.bonus = a.bonus | 0;
+  if (!Array.isArray(a.ids)) a.ids = [];
+  return a;
+}
+function anaPublic(user) {
+  const a = anaState(user), lvl = anaLevel(a.perfect), left = Math.max(0, ANA_FREE - a.used) + a.bonus;
+  return { ok: true, tokens: left, freePerDay: ANA_FREE, cost: ANA_COIN_COST, coins: user.stats.coins || 0, perfect: a.perfect, week: a.wkPerfect, level: lvl, levels: ANA_LEVELS, next: lvl < ANA_LEVELS.length ? ANA_LEVELS[lvl] : null };
+}
+async function chessAna(payload, lang) {
+  if (!usersLoaded) return serviceDownMsg(lang);
+  const user = findUserByToken(payload.token); if (!user) return errObj("notLoggedIn", lang);
+  const act = payload.act;
+  if (act === "status") return anaPublic(user);
+  if (act === "top") {
+    const rows = users.map(u => { const a = u.chessAna; return a && typeof a === "object" ? { u, w: (a.wk === anaWeek() ? a.wkPerfect | 0 : 0), t: a.perfect | 0 } : null; }).filter(x => x && x.t > 0 && !isRestricted(x.u));
+    const mk = key => rows.filter(x => x[key] > 0).sort((p, q) => q[key] - p[key]).slice(0, 20).map((x, i) => ({ pos: i + 1, name: x.u.username, avatar: x.u.avatar || null, n: x[key], level: anaLevel(x.t), me: x.u === user }));
+    const mine = rows.find(x => x.u === user);
+    return { ok: true, week: mk("w"), total: mk("t"), me: mine ? { week: mine.w, total: mine.t, level: anaLevel(mine.t) } : { week: 0, total: 0, level: 0 } };
+  }
+  if (act !== "open" && act !== "buy") return { ok: false, error: lang === "en" ? "Unknown action." : "Unbekannte Aktion." };
+  const id = String(payload.id || "").slice(0, 40); if (!id) return { ok: false, error: lang === "en" ? "No game." : "Keine Partie." };
+  const a = anaState(user);
+  if (a.ids.includes(id)) return { ...anaPublic(user), counted: false, again: true, gain: 0 };
+  let perfect = Math.max(0, Math.min(ANA_MAX_PER_GAME, Math.floor(Number(payload.perfect) || 0)));
+  const free = Math.max(0, ANA_FREE - a.used);
+  let paid = 0;
+  if (free > 0) a.used++;
+  else if (a.bonus > 0) a.bonus--;
+  else if (act === "buy") {
+    if ((user.stats.coins || 0) < ANA_COIN_COST) return errObj("notEnoughCoins", lang);
+    user.stats.coins -= ANA_COIN_COST; paid = ANA_COIN_COST;
+  } else return { ...anaPublic(user), counted: false, noTokens: true, gain: 0 };
+  const before = anaLevel(a.perfect);
+  perfect = Math.max(0, Math.min(perfect, ANA_MAX_PER_DAY - a.dayPerfect));
+  a.perfect += perfect; a.wkPerfect += perfect; a.dayPerfect += perfect;
+  a.ids.push(id); if (a.ids.length > 300) a.ids = a.ids.slice(-300);
+  const after = anaLevel(a.perfect), newLevel = after > before ? after : 0;
+  if (newLevel) a.bonus += after - before;
+  if (!(await saveUsers())) return serviceDownMsg(lang);
+  return { ...anaPublic(user), counted: true, gain: perfect, paid, newLevel };
+}
 function ladderState(token, game) {
   const user = findUserByToken(token); if (!user) return { ok: false };
   const g = ladderGame(game), one = shopItem("ladder_" + g), all = shopItem("ladderAll_" + g);
@@ -9042,6 +9093,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/realm/buy-keys" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/realm/buy-keys") result = await realmBuyKeys(payload.token, payload.pack, payload.how, lang);
         else if (req.url === "/api/realm/claim-keys") result = await realmClaimKeys(payload.token);
+        else if (req.url === "/api/chess-ana") result = await chessAna(payload, lang);
         else if (req.url === "/api/ladder-state") result = ladderState(payload.token, payload.game);
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang, payload.game);
         else if (req.url === "/api/pieceset-status") result = pieceSetState(payload.token);

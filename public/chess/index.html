@@ -64,7 +64,7 @@
     .sc2{ grid-column:2; grid-row:2; background:var(--panel); border:1.5px solid var(--line); border-radius:18px; padding:2px 16px 14px; margin-top:14px; }
     .sc2:empty{ display:none; }
     .boardwrap{ width:auto; }
-    #board{ --cell:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8); border-radius:10px; }
+    #board{ --cell:calc(max(320px, min(100vh - 178px, 100vw - 470px, 1100px)) / 8); border-radius:10px; }
     .log{ max-height:260px; }
     #lobby{ max-width:480px; margin:0 auto; }
   }
@@ -100,7 +100,13 @@
   html.bd-img .sq.l, html.bd-img .sq.d{ background:none !important; }
   html.bd-img .sq .coord, html.bd-img .sq .rk, html.bd-img .sq .fl{ color:var(--co) !important; text-shadow:var(--cs); font-weight:800; }
   html.bd-img #planSvg{ left:calc(var(--cellb) * 8 * var(--pl)); top:calc(var(--cellb) * 8 * var(--pt)); width:calc(var(--cellb) * 8); height:calc(var(--cellb) * 8); }
-  @media (min-width:760px){ html.bd-img .boardwrap{ --cellb:calc(max(300px, min(100vh - 205px, 100vw - 500px, 880px)) / 8 / var(--k)); } }
+  @media (min-width:760px){
+    html.bd-img .boardwrap{ --cellb:calc(max(320px, min(100vh - 178px, 100vw - 470px, 1100px)) / 8); --W:calc(var(--cellb) * 8); padding:0; border-radius:10px; overflow:visible;
+      background-size:calc(var(--W) * (1 + var(--pl) + var(--pr))) calc(var(--W) * (1 + var(--pt) + var(--pb)));
+      background-position:calc(var(--W) * var(--pl) * -1) calc(var(--W) * var(--pt) * -1); }
+    html.bd-img #planSvg{ left:0; top:0; }
+    .wrap{ padding-top:8px; padding-bottom:4px; } .top{ margin-bottom:6px; } #arrowBar{ margin-top:6px !important; }
+  }
 
   /* Titel unter der Musikleiste der App */
   html.inframe .top{ margin-top:44px; }
