@@ -23,6 +23,7 @@
   button.p{background:linear-gradient(135deg,var(--lime),var(--cyan));color:#08110c;border:none}
   button.q{padding:6px 8px;font-size:12px}
   button.d{border-color:var(--bad);color:var(--bad)}
+  #plist .pr{display:flex;gap:4px;align-items:center;margin:3px 0}#plist .pr span.n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--txt);font-size:13px}#plist .pr select{width:92px;padding:3px;font-size:12px}#plist .sw{width:16px;height:16px;border-radius:50%;border:2px solid #fff;flex:none}#plist button{padding:2px 7px;font-size:12px}
   #btns{display:flex;flex-direction:column;gap:6px;margin:10px 0}
   #stat{margin-top:8px;padding:8px;border-radius:8px;background:#0e1330;color:var(--dim);font-size:13px;min-height:38px}
   #stagewrap{flex:1;display:flex;align-items:center;justify-content:center;min-width:0}
@@ -63,6 +64,9 @@
       <button id="bReset" class="d" hidden>Turnier zurücksetzen</button>
     </div>
     <div id="stat"></div>
+    <label>Spieler (<span id="pCnt">0</span>)</label>
+    <div id="plist" class="hint" style="margin:0"></div>
+    <div class="row" style="margin-top:6px"><input id="apName" type="text" placeholder="Name, z.B. Lisa55" maxlength="16" style="flex:1.2"><select id="apCol" style="flex:1"></select><button id="apAdd" class="q" style="flex:.7">Dazu</button></div>
     <label>Test Chat (Name und Text)</label>
     <div class="row"><input id="tcName" type="text" value="Du" maxlength="16" style="flex:.6"><input id="tcText" type="text" placeholder="dabei, A, herz" maxlength="40"><button id="tcSend" class="q" style="flex:.4">Senden</button></div>
     <div class="hint">Taste H blendet dieses Feld aus, dann füllt die Bühne das Fenster. Echte Chat Nachrichten kommen später über die Anbindung an TikTok LIVE in <code>TTFeed</code>.</div>
@@ -83,7 +87,12 @@ fetch('/api/tiktok-auth',{method:'POST',headers:{'Content-Type':'application/jso
 
 function boot(){
 var cv=$('st'),x=cv.getContext('2d'),W=540,H=960;
-var COLS=['#ff6b8b','#3de0ff','#c6ff3d','#ffc446','#b48cff','#ff9f5a','#5ad1a0','#f58ad0'];
+var PAL=[['rot','#e53935'],['gelb','#fdd835'],['grün','#43a047'],['blau','#1e88e5'],['schwarz','#111111'],['violett','#8e24aa'],['orange','#fb8c00'],['rosa','#ff80ab'],['weiß','#f5f5f5'],['braun','#8d6e63'],['türkis','#26c6da'],['grau','#9e9e9e'],['limette','#c6ff3d'],['dunkelblau','#283593'],['mint','#69f0ae'],['pink','#ff1493']];
+var ALIAS={'lila':'violett','gruen':'grün','weiss':'weiß','hellgrün':'limette','tuerkis':'türkis','cyan':'türkis','red':'rot','blue':'blau','green':'grün','yellow':'gelb','black':'schwarz','white':'weiß','purple':'violett'};
+function palIdx(n){n=String(n||'').toLowerCase();if(ALIAS[n])n=ALIAS[n];for(var i=0;i<PAL.length;i++)if(PAL[i][0]===n)return i;return -1}
+function colorIn(t){var ws=String(t).toLowerCase().split(/[^a-zäöüß]+/);for(var i=0;i<ws.length;i++){var k=palIdx(ws[i]);if(k>=0)return k}return -1}
+function lum(h){var n=parseInt(h.slice(1),16);return .3*(n>>16)+.59*(n>>8&255)+.11*(n&255)}
+function freeIdx(skip){for(var i=0;i<PAL.length;i++){if(!S.players.some(function(q){return q!==skip&&q.ci===i}))return i}return 0}
 var SIMN=['Lena','Tom','Mia','Jonas','Sara','Ben','Nele','Paul','Emma','Finn','Lara','Max','Anna','Luis','Lea','Noah','Ida','Elias','Mila','Leon','Hanna','Felix','Zoe','Theo','Clara','Jan','Lilly','Moritz','Ella','David','Pia','Karl','Rosa','Tim','Ava','Ole','Greta','Kai','Maja','Nico','Jule','Erik','Fine','Rick','Lotta','Sam','Nina','Veit','Mara','Dirk','Tina','Olli','Jette','Bo','Hugo','Ilka','Kira','Lars','Mona','Udo'];
 var GN={quiz:'Quiz Rennen',ring:'Ballrennen im Ring',kampf:'Kampf der Kugeln'};
 var S={phase:'idle',game:'quiz',players:[],signupEnd:0,len:5,max:20,round:1,rounds:10,tour:false,winners:[],won:{},final:false,G:null,msg:'',sim:true,simN:12,word:'dabei',plan:[],champ:null,res:null,lastOut:[]};
@@ -92,10 +101,11 @@ function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function clean(s){return String(s||'').replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,16)||'Gast'}
 
 /* ---------- Spieler und Chat ---------- */
-function addPlayer(u){
+function addPlayer(u,want){
   if(S.players.some(function(p){return p.id===u.id}))return false;
   if(S.players.length>=S.max)return false;
-  var p={id:u.id,name:clean(u.name),c:COLS[S.players.length%COLS.length],pts:0,img:null,av:u.avatar||null};
+  var ci=(want!=null&&want>=0&&!S.players.some(function(q){return q.ci===want}))?want:freeIdx(null);
+  var p={id:u.id,name:clean(u.name),ci:ci,c:PAL[ci][1],pts:0,img:null,av:u.avatar||null};
   if(p.av){try{var im=new Image();im.crossOrigin='anonymous';im.onload=function(){p.img=im};im.src=p.av}catch(e){}}
   S.players.push(p);return true;
 }
@@ -103,7 +113,7 @@ function hit(t){var w=S.word.toLowerCase(),l=String(t).toLowerCase();return l===
 window.TTFeed=function(u){
   if(!u||u.id==null)return;var t=String(u.text||'').trim();
   if(S.phase==='signup'){
-    if(hit(t)){ if(S.won[u.id]){S.msg=clean(u.name)+' hat schon gewonnen und ist gesperrt.';return} addPlayer(u); }
+    if(hit(t)){ if(S.won[u.id]){S.msg=clean(u.name)+' hat schon gewonnen und ist gesperrt.';return} var w=colorIn(t);var had=w>=0&&S.players.some(function(q){return q.ci===w});addPlayer(u,w);if(had)S.msg=PAL[w][0]+' war schon vergeben: '+clean(u.name)+' bekommt eine andere Farbe.'; }
   }else if(S.phase==='play'&&S.G&&S.G.chat){
     var p=S.players.filter(function(q){return q.id===u.id})[0]; if(p)S.G.chat(p,t);
   }
@@ -124,8 +134,8 @@ function ball(p,a,b,r,flash){
   if(p.img&&p.img.complete&&p.img.naturalWidth){x.clip();x.drawImage(p.img,a-r,b-r,r*2,r*2)}
   else{x.fillStyle=flash?'#fff':p.c;x.fill()}
   x.restore();
-  x.lineWidth=2;x.strokeStyle=flash?'#fff':p.c;x.beginPath();x.arc(a,b,r,0,6.2832);x.stroke();
-  if(!(p.img&&p.img.complete&&p.img.naturalWidth)&&r>=11)txt(p.name.slice(0,3),a,b+4,Math.max(9,r*.6),'#0e1330','center');
+  x.lineWidth=2;x.strokeStyle=flash?'#fff':(lum(p.c)<60?'#fff':p.c);x.beginPath();x.arc(a,b,r,0,6.2832);x.stroke();
+  if(!(p.img&&p.img.complete&&p.img.naturalWidth)&&r>=11)txt(p.name.slice(0,3),a,b+4,Math.max(9,r*.6),lum(p.c)>140?'#0e1330':'#fff','center');
 }
 function timeStr(ms){var s=Math.max(0,Math.ceil(ms/1000)),m=Math.floor(s/60);return (m<10?'0':'')+m+':'+(s%60<10?'0':'')+(s%60)}
 function roundLabel(){return S.tour?(S.final?'Finale':'Runde '+S.round+' von '+S.rounds):'Einzelrunde'}
@@ -161,7 +171,7 @@ function Quiz(players){
       var fs=26;x.font='700 '+fs+'px system-ui';while(x.measureText(q.a[i]).width>310&&fs>14){fs--;x.font='700 '+fs+'px system-ui'}
       txt(q.a[i],100,y+43,fs,tx,'left');txt(String(cnt[i]),490,y+43,22,ok?'#0b1a0a':'#9aa3d0','right')}
     for(var j=0;j<4;j++){var ly=700+j*26;x.fillStyle='#1a2150';x.fillRect(60,ly+10,400,3);var pr=g.ph==='ask'?0:Math.min(g.stop[j],Math.pow(g.race,.9)*(j===q.c?1:g.stop[j]/Math.max(.05,g.stop[j]))),px=64+pr*380;
-      x.globalAlpha=(g.ph!=='ask'&&j!==q.c&&pr>=g.stop[j]-.001&&pr>.2)?.35:1;x.fillStyle=COLS[j];x.beginPath();x.arc(px,ly+11,10,0,6.2832);x.fill();x.globalAlpha=1;txt('ABCD'[j],34,ly+16,16,'#fff','center')}
+      x.globalAlpha=(g.ph!=='ask'&&j!==q.c&&pr>=g.stop[j]-.001&&pr>.2)?.35:1;x.fillStyle=['#ff6b8b','#3de0ff','#c6ff3d','#ffc446'][j];x.beginPath();x.arc(px,ly+11,10,0,6.2832);x.fill();x.globalAlpha=1;txt('ABCD'[j],34,ly+16,16,'#fff','center')}
     x.fillStyle='#c6ff3d';x.fillRect(464,702,3,100);
     board(players,830);
   };
@@ -253,7 +263,7 @@ function nextRound(){
   if(S.final){resetTour();return}
   if(S.round<S.rounds){S.round++;openSignup()}
   else{
-    var ws=S.winners.map(function(w){var p=w.p;return {id:p.id,name:p.name,c:p.c,pts:0,img:p.img,av:p.av}});
+    var ws=S.winners.map(function(w){var p=w.p;return {id:p.id,name:p.name,ci:p.ci,c:p.c,pts:0,img:p.img,av:p.av}});
     if(ws.length<2){S.msg='Zu wenige Gewinner für ein Finale ('+ws.length+').';return}
     S.final=true;S.players=ws;S.phase='closed';S.signupEnd=0;S.G=null;S.msg='Finale mit '+ws.length+' Gewinnern. Drücke Start.';
   }
@@ -266,14 +276,43 @@ $('bReopen').onclick=function(){var left=S.players.slice();var keep=left;openSig
 $('bNext').onclick=nextRound;
 $('bCancel').onclick=function(){S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.'};
 $('bReset').onclick=resetTour;
+fillColSel($('apCol'),0);$('apAdd').onclick=manualAdd;$('apName').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd()});
 $('bHide').onclick=function(){document.body.classList.toggle('hide')};
 document.addEventListener('keydown',function(e){if(e.key==='h'||e.key==='H'){var t=(e.target&&e.target.tagName)||'';if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return;document.body.classList.toggle('hide')}});
 Array.prototype.forEach.call(document.querySelectorAll('[data-m]'),function(b){b.onclick=function(){$('minIn').value=b.dataset.m}});
 $('gameSel').onchange=function(){$('quizOpt').hidden=$('gameSel').value!=='quiz'};
 $('tcSend').onclick=function(){var n=($('tcName').value||'Du').trim()||'Du',t=$('tcText').value;window.TTFeed({id:'test:'+n.toLowerCase(),name:n,text:t});$('tcText').value=''};
-$('tcText').addEventListener('keydown',function(e){if(e.key==='Enter')$('tcSend').click()});
+$('tcText').placeholder='dabei rot';$('tcText').addEventListener('keydown',function(e){if(e.key==='Enter')$('tcSend').click()});
 
-function panel(){
+function fillColSel(sel,cur){sel.innerHTML='';PAL.forEach(function(c,i){var o=document.createElement('option');o.value=i;o.textContent=c[0];if(i===cur)o.selected=true;sel.appendChild(o)})}
+var lastSig='';
+function plist(){
+  var sig=S.players.map(function(p){return p.id+':'+p.ci+':'+p.name}).join('|')+S.phase;
+  $('pCnt').textContent=S.players.length;
+  if(sig===lastSig)return;lastSig=sig;
+  var el=$('plist');el.innerHTML='';
+  if(!S.players.length){el.textContent='Noch niemand. Die Namen erscheinen hier, sobald jemand im Chat „'+S.word+'“ schreibt, oder du fügst sie unten selbst hinzu.';return}
+  S.players.forEach(function(p){
+    var r=document.createElement('div');r.className='pr';
+    var sw=document.createElement('span');sw.className='sw';sw.style.background=p.c;
+    var n=document.createElement('span');n.className='n';n.textContent=p.name;
+    var sl=document.createElement('select');fillColSel(sl,p.ci);
+    sl.onchange=function(){var k=+sl.value,o=S.players.filter(function(q){return q!==p&&q.ci===k})[0];if(o){S.msg=PAL[k][0]+' ist schon an '+o.name+' vergeben. Wähle eine andere Farbe.';p.ci=p.ci;lastSig='';return}p.ci=k;p.c=PAL[k][1];lastSig=''};
+    var rm=document.createElement('button');rm.textContent='✕';rm.title='Entfernen';rm.onclick=function(){S.players=S.players.filter(function(q){return q!==p});lastSig=''};
+    r.appendChild(sw);r.appendChild(n);r.appendChild(sl);r.appendChild(rm);el.appendChild(r);
+  });
+}
+function manualAdd(){
+  var nm=($('apName').value||'').trim();if(!nm)return;
+  if(S.phase==='idle'&&!S.final)openSignup();
+  if(S.phase!=='signup'&&S.phase!=='closed'){S.msg='Hinzufügen geht nur vor dem Start.';return}
+  var k=+$('apCol').value,taken=S.players.filter(function(q){return q.ci===k})[0];
+  var ok=addPlayer({id:'man:'+nm.toLowerCase()+':'+S.players.length,name:nm},taken?-1:k);
+  if(!ok)S.msg='Konnte nicht hinzufügen (voll?).';else if(taken)S.msg=PAL[k][0]+' war vergeben: '+nm+' bekommt eine andere Farbe.';
+  $('apName').value='';$('apName').focus();lastSig='';
+  $('apCol').value=freeIdx(null);
+}
+function panel(){plist();
   var ph=S.phase,fin=S.final;
   $('bOpen').hidden=!(ph==='idle'&&!fin);
   $('bStart').hidden=!(ph==='signup'||ph==='closed');
