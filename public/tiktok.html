@@ -87,10 +87,20 @@
 "use strict";
 var $=function(id){return document.getElementById(id)};
 function adminKey(){try{return localStorage.getItem('bp_admin_key')||''}catch(e){return ''}}
-fetch('/api/tiktok-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:adminKey()})}).then(function(r){return r.json()}).then(function(j){
-  if(j&&j.ok){$('gate').hidden=true;$('app').hidden=false;boot()}
-  else $('gate').innerHTML='Kein Zugriff. Dieser Bereich ist nur für Admins.<br><br><a href="/">Zurück zu Brain Pulse</a>';
-}).catch(function(){$('gate').innerHTML='Server nicht erreichbar.<br><br><a href="/">Zurück</a>'});
+var booted=false;
+function check(){
+  return fetch('/api/tiktok-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:adminKey()})}).then(function(r){return r.json()}).then(function(j){
+    if(j&&j.ok&&!booted){booted=true;$('gate').hidden=true;$('app').hidden=false;boot();return true}
+    return !!(j&&j.ok);
+  });
+}
+function showLogin(msg){
+  $('gate').innerHTML='<div style="max-width:420px"><div style="font-size:20px;font-weight:800;margin-bottom:8px">TikTok Studio</div><div style="color:#9aa3d0;font-size:15px;margin-bottom:14px">'+msg+'</div><input id="gk" type="password" placeholder="Admin-Schlüssel" autocomplete="current-password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #262e66;background:#0e1330;color:#fff;font-size:16px"><button id="gb" class="p" style="width:100%;margin-top:8px">Anmelden</button><div id="ge" style="color:#ff6b8b;margin-top:8px;font-size:14px"></div><div style="margin-top:14px;font-size:14px"><a href="/">Zurück zu Brain Pulse</a></div><div style="margin-top:8px;color:#6d7699;font-size:12px">Mods melden sich im Spiel im Mod-Modus an und öffnen die Seite danach im selben Browser.</div></div>';
+  var go=function(){var k=$('gk').value.trim();if(!k)return;try{localStorage.setItem('bp_admin_key',k)}catch(e){}check().then(function(ok){if(!ok){try{localStorage.removeItem('bp_admin_key')}catch(e){}$('ge').textContent='Das hat nicht geklappt. Schlüssel falsch oder zu viele Versuche.'}}).catch(function(){$('ge').textContent='Server nicht erreichbar.'})};
+  $('gb').onclick=go;$('gk').addEventListener('keydown',function(e){if(e.key==='Enter')go()});
+}
+if(!adminKey())showLogin('Du bist in diesem Browser nicht als Admin oder Mod angemeldet. Gib deinen Admin-Schlüssel ein.');
+else check().then(function(ok){if(!ok)showLogin('Dein gespeicherter Zugang wird nicht akzeptiert. Gib den Admin-Schlüssel neu ein. (Falls das nicht hilft: Der Server auf Render muss mit der neuen server.js neu gestartet werden.)')}).catch(function(){showLogin('Server nicht erreichbar.')});
 
 function boot(){
 var cv=$('st'),x=cv.getContext('2d'),W=540,H=960;

@@ -9105,7 +9105,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/realm/buy-keys" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/realm/buy-keys") result = await realmBuyKeys(payload.token, payload.pack, payload.how, lang);
         else if (req.url === "/api/realm/claim-keys") result = await realmClaimKeys(payload.token);
-        else if (req.url === "/api/tiktok-auth") result = { ok: !!adminOk(payload.adminKey, ip) };
+        else if (req.url === "/api/tiktok-auth") { const tk = payload.adminKey; const isAdm = !!adminOk(tk, ip); const isMod = !isAdm && testerKeyOk(tk) === "mod"; result = { ok: isAdm || isMod, role: isAdm ? "admin" : isMod ? "mod" : "" }; }
         else if (req.url === "/api/chess-ana") result = await chessAna(payload, lang);
         else if (req.url === "/api/ladder-state") result = ladderState(payload.token, payload.game);
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang, payload.game);
