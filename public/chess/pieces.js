@@ -47,9 +47,15 @@ var SETS=[
  {id:'ritter', de:'Ritter', en:'Knights', elo:0, earn:1, te:1800, tn:'Gold', tne:'Gold', hd:'Gewinne 20 Partien gegen Gold-Bots (Stärke ab Elo 1800) oder 10 Online-Partien, wenn deine Elo mindestens Gold ist.', he:'Win 20 games against Gold bots (strength from Elo 1800) or 10 online games while your Elo is at least Gold.'},
  {id:'goblin', de:'Goblins', en:'Goblins', elo:0, price:10000, fprice:500, off:1}];
 var BOARDS=[
- {id:'holzgruen', de:'Holzrahmen', en:'Wood frame', img:'/chess/boards/holzgruen.jpg', pf:0.0470, co:'#000', cs:'none'},
- {id:'holzblau', de:'Holzrahmen blau', en:'Wood frame blue', img:'/chess/boards/holzblau.jpg', pf:0.0470, co:'#000', cs:'none'},
- {id:'f_koenig', de:'Königsbanner', en:'Royal banners', img:'/chess/boards/f_koenig.webp', pl:0.1595, pr:0.1584, pt:0.1879, pb:0.1846, tr:1, co:'#000', cs:'0 0 3px #fff'}];
+ {id:'gruen', de:'Grün', en:'Green', l:'#eeeed2', d:'#769656'},
+ {id:'blau', de:'Blau', en:'Blue', l:'#dfe6ee', d:'#5f86b5'},
+ {id:'rotblau', de:'Rot und Blau', en:'Red and blue', l:'#e9696d', d:'#4f7bd6'},
+ {id:'schwarzrot', de:'Schwarz und Rot', en:'Black and red', l:'#d9494f', d:'#5b5b66'},
+ {id:'rotweiss', de:'Rot und Weiß', en:'Red and white', l:'#f6eded', d:'#cf4a55'},
+ {id:'braun', de:'Braun', en:'Brown', l:'#f0d9b5', d:'#b58863'},
+ {id:'lila', de:'Lila', en:'Purple', l:'#ece4f4', d:'#8d70b8'},
+ {id:'tuerkis', de:'Türkis', en:'Teal', l:'#e3f1ee', d:'#3f9c92'},
+ {id:'grau', de:'Grau', en:'Grey', l:'#e6e6e6', d:'#8c8f96'}];
 function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lset(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 var BS=window.BpSets={ list:SETS, boards:BOARDS,
@@ -97,7 +103,7 @@ var BS=window.BpSets={ list:SETS, boards:BOARDS,
   unlocked:function(id){ var x=SETS.filter(function(q){return q.id===id;})[0]; if(!x) return false; if(x.price) return BS.owned().indexOf(id)>=0; if(x.earn) return BS.earned().indexOf(id)>=0; if(x.elo>0) return BS.maxElo()>=x.elo; return true; },
   get:function(){ var id=ls('bp_piece_set')||'normal'; return BS.unlocked(id)?id:'normal'; },
   set:function(id){ if(BS.unlocked(id)){ lset('bp_piece_set',id); BS.preload(); return true; } return false; },
-  board:function(){ var id=ls('bp_board_theme')||'holzgruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },
+  board:function(){ var id=ls('bp_board_theme')||'gruen'; return BOARDS.filter(function(q){return q.id===id;})[0]||BOARDS[0]; },
   setBoard:function(id){ lset('bp_board_theme',id); BS.applyBoard(); },
   applyBoard:function(){ var b=BS.board(), de=document.documentElement, st=de.style;
     if(b.img){ var pl=b.pl!=null?b.pl:b.pf, pr=b.pr!=null?b.pr:b.pf, pt=b.pt!=null?b.pt:b.pf, pb=b.pb!=null?b.pb:b.pf; de.classList.add('bd-img'); de.classList.toggle('bd-tr',!!b.tr); st.setProperty('--bd-url','url('+b.img+')'); st.setProperty('--pf',String(b.pf||0)); st.setProperty('--pl',String(pl)); st.setProperty('--pr',String(pr)); st.setProperty('--pt',String(pt)); st.setProperty('--pb',String(pb)); st.setProperty('--co',b.co||'#fff'); st.setProperty('--cs',b.cs||'0 0 3px #000'); st.setProperty('--k',String(1+pl+pr)); }
