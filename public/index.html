@@ -8050,7 +8050,7 @@ function renderMainMenu(){
     <div id="liveStrip" class="live-strip">${liveStripHtml()}</div>
     <div class="menu-grid">
       ${lastGameCardHtml()}
-      ${ttUserRole ? `<div class="mode-card" onclick="location.href='/tiktok.html'" style="border-color:var(--accent)"><div class="icon" style="font-size:34px">📺</div><h3>Live</h3><p>${L('Zuschau-Spiele für den Live.','Viewer games for the live.')}</p></div>` : ''}
+      ${ttUserRole ? `<div class="mode-card" onclick="location.href='/tiktok.html'" style="border-color:var(--accent)"><div class="icon" style="font-size:34px">📺</div><h3>Live</h3></div>` : ''}
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="24" cy="24" r="18" fill="none" stroke="#ff4d5a" stroke-width="4"/><circle cx="24" cy="24" r="11" fill="none" stroke="#fff" stroke-width="4"/><circle cx="24" cy="24" r="4" fill="#ff4d5a"/><path d="M24 24L40 8" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>${t('menu_solo_title')}</h3>

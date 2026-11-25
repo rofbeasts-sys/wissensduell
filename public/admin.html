@@ -200,20 +200,11 @@ button.mini{padding:4px 8px;font-size:12px}
   </div>
 
   <div id="tab_tt" class="hidden">
-    <div class="card"><h2>LIVE ÖFFNEN</h2>
-      <div class="dim" style="font-size:12px;margin-bottom:8px">Die Zuschau-Spiele für TikTok. Das Bedienfeld siehst nur du, auf der Bühne ist es nie zu sehen.</div>
-      <div class="row" style="gap:8px;flex-wrap:wrap">
-        <button onclick="location.href='/tiktok.html?m=remote'">Fernbedienung</button>
-        <button class="ghost" onclick="location.href='/tiktok.html'">Alles hier</button>
-        <button class="ghost" onclick="location.href='/tiktok.html?m=stage'">Nur Bühne</button>
-      </div>
-      <div class="dim" style="font-size:12px;margin-top:8px"><b>Fernbedienung</b>: du steuerst, die Bühne läuft bei der Person mit „Nur Bühne“. <b>Alles hier</b>: Bedienung und Bühne in einem Fenster. <b>Nur Bühne</b>: nur das Bild, zum Aufnehmen.</div>
-    </div>
-    <div class="card"><h2>WER DARF LIVE SEHEN</h2>
+    <div class="card"><h2>WER DARF LIVE</h2>
       <div id="ttList" class="dim">…</div>
-      <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input id="ttName" placeholder="Name im Spiel" maxlength="30" style="flex:1;min-width:120px"><select id="ttLvl"><option value="stage">Nur Bühne</option><option value="ctrl">Mit Einstellungen</option></select><button onclick="ttAdd()">Freigeben</button></div>
+      <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input id="ttName" placeholder="Name suchen, z. B. Pluto" maxlength="30" style="flex:1;min-width:140px" oninput="ttSearchSoon()"><button class="ghost" onclick="ttSearch(true)">Alle Spieler</button></div>
+      <div id="ttRes" style="margin-top:8px"></div>
       <div id="ttMsg" style="font-size:13px;margin-top:6px"></div>
-      <div class="dim" style="font-size:12px;margin-top:8px"><b>Nur Bühne</b>: sieht nur das Bild, du steuerst per Fernbedienung. <b>Mit Einstellungen</b>: bedient alles selbst. Die Person sieht dann im Spiel die Karte „Live“.</div>
     </div>
   </div>
 
@@ -382,18 +373,28 @@ async function delMsg(id){ await api('/api/admin-chat-delete', { id }); tick(); 
 async function clearChat(){ if(!await bpConfirm('Wirklich den ganzen öffentlichen Chat löschen?')) return; await api('/api/admin-chat-clear'); tick(); }
 async function say(){ const i = $('say'), t = i.value.trim(); if(!t) return; i.value = ''; await api('/api/admin-chat-send', { text: t }); tick(); }
 
+let TT_LIST = [], ttTimer = null;
 function ttRender(list){
-  const el = $('ttList');
-  el.innerHTML = list.length ? list.map(e => `<div class="pl"><span><b>${esc(e.name)}</b></span><span style="display:flex;gap:6px;align-items:center"><select data-n="${esc(e.name)}" onchange="ttCall('set', this.dataset.n, this.value)"><option value="stage"${e.level === 'stage' ? ' selected' : ''}>Nur Bühne</option><option value="ctrl"${e.level === 'ctrl' ? ' selected' : ''}>Mit Einstellungen</option></select><button class="ghost" data-n="${esc(e.name)}" onclick="ttCall('del', this.dataset.n)">✕</button></span></div>`).join('') : 'Noch niemand freigegeben.';
+  TT_LIST = list.map(e => e.name.toLowerCase());
+  $('ttList').innerHTML = list.length ? list.map(e => `<div class="pl"><span><b>${esc(e.name)}</b></span><button class="ghost" data-n="${esc(e.name)}" onclick="ttCall('del', this.dataset.n)">✕</button></div>`).join('') : 'Noch niemand freigegeben.';
 }
-async function ttCall(act, name, level){
+async function ttCall(act, name){
   $('ttMsg').textContent = '';
-  const r = await api('/api/tiktok-perms', { act, name, level }).catch(() => null);
-  if(r && r.ok) ttRender(r.list);
-  else $('ttMsg').textContent = (r && r.error) ? r.error + ' (Dafür musst du mit dem Admin-Schlüssel angemeldet sein, nicht als Mod. Falls der Server gerade neu gestartet wurde: Render braucht das Update.)' : 'Keine Verbindung.';
+  const r = await api('/api/tiktok-perms', { act, name, level: 'ctrl' }).catch(() => null);
+  if(r && r.ok){ ttRender(r.list); if(act === 'set'){ $('ttName').value = ''; $('ttRes').innerHTML = ''; } }
+  else $('ttMsg').textContent = (r && r.error) ? r.error + ' (Du musst mit dem Admin-Schlüssel angemeldet sein, nicht als Mod. Nach einem Update braucht Render einen Neustart.)' : 'Keine Verbindung.';
+}
+function ttSearchSoon(){ clearTimeout(ttTimer); ttTimer = setTimeout(() => ttSearch(false), 250); }
+async function ttSearch(all){
+  const q = all ? '' : $('ttName').value.trim();
+  if(!all && !q){ $('ttRes').innerHTML = ''; return; }
+  if(all) $('ttName').value = '';
+  const r = await api('/api/admin-users', { query: q, onlineOnly: false }).catch(() => null);
+  if(!r || !r.ok){ $('ttRes').innerHTML = '<span class="dim">' + esc((r && r.error) || 'Keine Verbindung.') + '</span>'; return; }
+  const us = r.users.slice().sort((a, b) => a.username.localeCompare(b.username, 'de'));
+  $('ttRes').innerHTML = us.length ? (all && r.total > us.length ? '<div class="dim" style="font-size:12px;margin-bottom:4px">Die ' + us.length + ' zuletzt aktiven von ' + r.total + '. Tippe den Namen, um gezielt zu suchen.</div>' : '') + us.map(u => { const has = TT_LIST.indexOf(u.username.toLowerCase()) >= 0; return `<div class="pl"><span style="display:flex;gap:8px;align-items:center"><span style="font-size:20px">${esc(u.avatar || '🙂')}</span><b>${esc(u.username)}</b></span>${has ? '<span class="dim">hat Zugang</span>' : `<button data-n="${esc(u.username)}" onclick="ttCall('set', this.dataset.n)">Freigeben</button>`}</div>`; }).join('') : '<span class="dim">Kein Spieler gefunden.</span>';
 }
 function ttLoad(){ ttCall('list'); }
-function ttAdd(){ const n = $('ttName').value.trim(); if(!n) return; ttCall('set', n, $('ttLvl').value); $('ttName').value = ''; }
 let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
