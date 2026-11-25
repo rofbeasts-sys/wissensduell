@@ -138,7 +138,11 @@
     var ov = document.createElement("div"); ov.id = "bpAnaOv";
     ov.innerHTML = '<div id="bpAnaCard"><h2></h2><div id="bpAnaSum"></div><div id="bpAnaBar"><i></i></div><div id="bpAnaBoardWrap"><div id="bpAnaBoard"></div><div id="bpAnaCap"></div><div id="bpAnaCtl"><button id="bpAnaFirst">⏮</button><button id="bpAnaPrev">◀</button><button id="bpAnaPlay">▶</button><button id="bpAnaNext">⏩</button><button id="bpAnaLast">⏭</button><span id="bpAnaPos"></span></div></div><div id="bpAnaBody"></div><div class="bpAnaNote"></div><button id="bpAnaClose"></button></div>';
     document.body.appendChild(ov);
-    ov.querySelector("#bpAnaClose").onclick = function(){ stopPlay(); ov.classList.remove("show"); };
+    ov.querySelector("#bpAnaClose").onclick = function(){
+      stopPlay(); var pb = ov.querySelector("#bpAnaPts");
+      if(pb && pb.style.display !== "none" && pb.querySelector("#bpAnaFill")){ var f = pb.querySelector("#bpAnaFill"); try{ pb.animate([{ transform: "scale(1)", opacity: 1 }, { transform: "scale(1.04)", opacity: 1, offset: .3 }, { transform: "scale(.9) translateY(-14px)", opacity: 0 }], { duration: 320, easing: "ease-in", fill: "forwards" }); }catch(e){} setTimeout(function(){ ov.classList.remove("show"); }, 300); }
+      else ov.classList.remove("show");
+    };
   }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]; }); }
   function summarize(rows){
@@ -268,23 +272,87 @@
   function ptok(){ try{ return localStorage.getItem("wq_account_token") || ""; }catch(e){ return ""; } }
   function ppost(body){ body.token = ptok(); body.lang = PL(); return fetch("/api/chess-ana", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
   function gameId(entries){ var h = 5381, str = entries.map(function(e){ var m = e.move; return m ? m.fr + "" + m.fc + m.tr + m.tc : "x"; }).join(","); for(var i = 0; i < str.length; i++){ h = ((h << 5) + h + str.charCodeAt(i)) | 0; } return "g" + (h >>> 0).toString(36) + "-" + entries.length; }
-  function countPerfect(entries, rows){
-    var n = 0;
+  function perfectIdx(entries, rows){
+    var out = [];
     rows.forEach(function(r, i){
       if(i < 3 || !r || !r.cls || r.cls.key !== "best") return;
       try{ if(getAllLegalMoves(entries[i].board, entries[i].col, entries[i].last).length < 2) return; }catch(e){ return; }
-      n++;
+      out.push(i);
     });
-    return n;
+    return out;
   }
+  function countPerfect(entries, rows){ return perfectIdx(entries, rows).length; }
   function lvName(l){ return PT[PL()].lv[Math.max(0, Math.min(6, l | 0))]; }
   function pbox(){ var ov = document.getElementById("bpAnaOv"), el = ov.querySelector("#bpAnaPts"); if(!el){ el = document.createElement("div"); el.id = "bpAnaPts"; el.style.cssText = "margin:8px 0;padding:10px 12px;border-radius:12px;background:#151a45;color:#eef1ff;font-size:14px;line-height:1.45;text-align:left"; ov.querySelector("#bpAnaSum").insertAdjacentElement("afterend", el); } return el; }
-  function paint(el, st, extra){
-    var t = PT[PL()], pct = st.next ? Math.max(0, Math.min(100, Math.round((st.perfect - (st.level ? st.levels[st.level - 1] : 0)) / (st.next - (st.level ? st.levels[st.level - 1] : 0)) * 100))) : 100;
-    el.innerHTML = (extra || "") + '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span style="font-size:22px;color:#c6ff3d">' + GLY[st.level] + '</span><span style="flex:1;min-width:0"><b>' + t.level + " " + st.level + " · " + lvName(st.level) + "</b><br><small style='color:#9fa8d8'>" + st.perfect + " " + t.perfect + (st.next ? " · " + t.next.replace("{n}", st.next) : "") + "</small></span><button type='button' id='bpAnaTopBtn' style='background:#1b2160;color:#eef1ff;border:1px solid #3a4390;border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer'>🏆 " + t.top + "</button></div>"
-      + '<div style="height:8px;border-radius:99px;background:#1b2160;overflow:hidden;margin-top:8px"><i style="display:block;height:100%;width:' + pct + '%;background:#c6ff3d"></i></div>'
+  function lvOf(n, L){ var l = 0; L.forEach(function(v, i){ if(n >= v) l = i + 1; }); return l; }
+  function view(el, st, n){
+    var L = st.levels, lv = lvOf(n, L), base = lv ? L[lv - 1] : 0, next = lv < L.length ? L[lv] : null, t = PT[PL()];
+    var pct = next ? Math.max(0, Math.min(100, Math.round((n - base) / (next - base) * 100))) : 100;
+    el.querySelector("#bpAnaEmb").textContent = GLY[lv];
+    el.querySelector("#bpAnaLvl").textContent = t.level + " " + lv + " · " + lvName(lv);
+    el.querySelector("#bpAnaCnt").textContent = n + " " + t.perfect + (next ? " · " + t.next.replace("{n}", next) : "");
+    var f = el.querySelector("#bpAnaFill");
+    if(el.__lv != null && lv > el.__lv){ f.style.transition = "none"; f.style.width = "0%"; void f.offsetWidth; f.style.transition = "width .35s"; }
+    f.style.width = pct + "%"; el.__lv = lv; return lv;
+  }
+  function paint(el, st, extra, startN){
+    var t = PT[PL()]; el.__lv = null;
+    el.innerHTML = (extra || "") + '<div style="display:flex;gap:10px;align-items:center"><span id="bpAnaEmb" style="font-size:28px;color:#c6ff3d;display:inline-block;min-width:32px;text-align:center"></span><span style="flex:1;min-width:0"><b id="bpAnaLvl"></b><br><small id="bpAnaCnt" style="color:#9fa8d8"></small></span><button type="button" id="bpAnaTopBtn" style="background:#1b2160;color:#eef1ff;border:1px solid #3a4390;border-radius:10px;padding:6px 10px;font-size:13px;cursor:pointer">🏆 ' + t.top + '</button></div>'
+      + '<div id="bpAnaBarBox" style="height:10px;border-radius:99px;background:#1b2160;overflow:hidden;margin-top:8px"><i id="bpAnaFill" style="display:block;height:100%;width:0;background:linear-gradient(90deg,#c6ff3d,#3de0ff);transition:width .35s"></i></div>'
       + '<div style="margin-top:6px;font-size:12px;color:#9fa8d8">' + t.tokens + ": " + st.tokens + " / " + st.freePerDay + "</div>";
+    view(el, st, startN == null ? st.perfect : startN);
     var b = el.querySelector("#bpAnaTopBtn"); if(b) b.onclick = openTop;
+  }
+  function reduced(){ try{ return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){ return false; } }
+  function flyStar(fromEl, el, onLand, big){
+    var bar = el.querySelector("#bpAnaFill"); if(!bar || !fromEl || reduced()){ if(onLand) onLand(); return; }
+    var a = fromEl.getBoundingClientRect(), bl = el.querySelector("#bpAnaBarBox").getBoundingClientRect(), fl = bar.getBoundingClientRect();
+    var body = document.getElementById("bpAnaBody"), br = body ? body.getBoundingClientRect() : null;
+    var sx = a.left + a.width / 2, sy = a.top + a.height / 2;
+    if(br){ sy = Math.max(br.top + 8, Math.min(br.bottom - 8, sy)); }
+    var ex = Math.max(bl.left + 8, Math.min(bl.right - 8, fl.right)), ey = bl.top + bl.height / 2;
+    var d = document.createElement("div"); d.textContent = "★";
+    d.style.cssText = "position:fixed;left:" + (sx - 12) + "px;top:" + (sy - 14) + "px;z-index:100001;pointer-events:none;font-size:26px;line-height:1;color:#c6ff3d;text-shadow:0 0 10px #c6ff3d,0 0 22px #3de0ff";
+    document.body.appendChild(d);
+    var dx = ex - sx, dy = ey - sy, lift = Math.min(90, Math.abs(dy) * .4 + 30);
+    var an = d.animate([{ transform: "translate(0,0) scale(.8)", opacity: 0 }, { transform: "translate(" + dx * .15 + "px," + (dy * .1 - lift) + "px) scale(1.8)", opacity: 1, offset: .25 }, { transform: "translate(" + dx * .7 + "px," + (dy * .7 - lift * .4) + "px) scale(1.2)", opacity: 1, offset: .75 }, { transform: "translate(" + dx + "px," + dy + "px) scale(.5)", opacity: .9 }], { duration: big ? 900 : 750, easing: "cubic-bezier(.4,0,.3,1)" });
+    an.onfinish = function(){ d.remove(); pulseBar(el); if(onLand) onLand(); };
+    an.oncancel = function(){ d.remove(); if(onLand) onLand(); };
+  }
+  function pulseBar(el){
+    var b = el.querySelector("#bpAnaBarBox"), f = el.querySelector("#bpAnaFill"); if(!b || reduced()) return;
+    b.animate([{ transform: "scaleY(1)", boxShadow: "0 0 0 0 rgba(198,255,61,0)" }, { transform: "scaleY(1.7)", boxShadow: "0 0 14px 2px rgba(198,255,61,.7)" }, { transform: "scaleY(1)", boxShadow: "0 0 0 0 rgba(198,255,61,0)" }], { duration: 320, easing: "ease-out" });
+  }
+  function burst(el, name){
+    if(reduced()) return;
+    var e = el.querySelector("#bpAnaEmb"); if(!e) return; var r = e.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    e.animate([{ transform: "scale(1) rotate(0)" }, { transform: "scale(2.2) rotate(-12deg)" }, { transform: "scale(1) rotate(0)" }], { duration: 700, easing: "cubic-bezier(.3,1.6,.5,1)" });
+    for(var i = 0; i < 16; i++){
+      var s = document.createElement("div"); s.textContent = i % 3 ? "★" : "✦"; var ang = Math.PI * 2 * i / 16, dist = 50 + Math.random() * 60;
+      s.style.cssText = "position:fixed;left:" + (cx - 8) + "px;top:" + (cy - 10) + "px;z-index:100001;pointer-events:none;font-size:" + (14 + Math.random() * 10) + "px;color:" + (i % 2 ? "#c6ff3d" : "#ffd45a");
+      document.body.appendChild(s);
+      (function(s, ang, dist){ var an = s.animate([{ transform: "translate(0,0) scale(.4)", opacity: 1 }, { transform: "translate(" + Math.cos(ang) * dist + "px," + (Math.sin(ang) * dist + 20) + "px) scale(1)", opacity: 0 }], { duration: 900 + Math.random() * 300, easing: "ease-out" }); an.onfinish = function(){ s.remove(); }; })(s, ang, dist);
+    }
+    var tag = document.createElement("div"); tag.textContent = PT[PL()].up + name;
+    tag.style.cssText = "position:fixed;left:" + Math.max(10, cx - 110) + "px;top:" + (cy - 52) + "px;z-index:100001;pointer-events:none;font-weight:800;font-size:16px;color:#c6ff3d;text-shadow:0 0 12px #000;background:#10143a;border:1px solid #c6ff3d;border-radius:99px;padding:5px 14px;white-space:nowrap";
+    document.body.appendChild(tag);
+    var a2 = tag.animate([{ transform: "translateY(10px) scale(.7)", opacity: 0 }, { transform: "translateY(0) scale(1)", opacity: 1, offset: .2 }, { transform: "translateY(0) scale(1)", opacity: 1, offset: .8 }, { transform: "translateY(-14px) scale(1)", opacity: 0 }], { duration: 2000 }); a2.onfinish = function(){ tag.remove(); };
+  }
+  function playAward(el, r, idx, rowsDom, entriesLen){
+    var n = r.perfect - r.gain, lv0 = lvOf(n, r.levels), shown = 0, gainEl = el.querySelector("#bpAnaGainN");
+    var list = idx.slice(0, r.gain); if(!list.length || reduced()){ view(el, r, r.perfect); if(gainEl) gainEl.textContent = "+" + r.gain; return; }
+    var gap = Math.max(60, Math.min(170, 2400 / list.length)), lvPrev = lv0;
+    list.forEach(function(ix, k){
+      setTimeout(function(){
+        var row = rowsDom[ix], ic = row ? row.querySelector(".bpAnaIc") : null;
+        if(row){ row.animate([{ background: "#10141f" }, { background: "#2a3a10" }, { background: "#10141f" }], { duration: 700 }); }
+        flyStar(ic, el, function(){
+          n++; shown++; if(gainEl) gainEl.textContent = "+" + shown;
+          var lv = view(el, r, n); if(lv > lvPrev){ lvPrev = lv; burst(el, lvName(lv)); }
+        });
+      }, 450 + k * gap);
+    });
+    setTimeout(function(){ if(n < r.perfect){ n = r.perfect; if(gainEl) gainEl.textContent = "+" + r.gain; view(el, r, n); } }, 450 + list.length * gap + 1600);
   }
   function openTop(){
     var t = PT[PL()], ov = document.getElementById("bpAnaTopOv");
@@ -299,20 +367,26 @@
     }).catch(function(){ var b2 = ov.querySelector("#bpAnaTopBody"); if(b2) b2.textContent = t.err; });
   }
   function award(entries, rows){
-    var t = PT[PL()], el = pbox(); el.style.display = "block";
+    var t = PT[PL()], el = pbox(); el.style.display = "block"; el.style.transform = ""; el.style.opacity = "";
     if(!ptok()){ el.innerHTML = t.login; return; }
-    var perfect = countPerfect(entries, rows), id = gameId(entries);
+    var idx = perfectIdx(entries, rows), perfect = idx.length, id = gameId(entries);
     el.textContent = "…";
-    function done(r, bought){
+    function done(r){
       if(!r || !r.ok){ el.textContent = (r && r.error) || t.err; return; }
-      var extra = "";
-      if(r.counted) extra = "<div style='margin-bottom:8px'><b style='color:#c6ff3d;font-size:18px'>+" + r.gain + "</b> " + t.perfect + (r.newLevel ? "<br>🎉 " + t.up + lvName(r.newLevel) : "") + "</div>";
+      var extra = "", rowsDom = document.querySelectorAll("#bpAnaBody .bpAnaRow");
+      if(r.counted) extra = "<div style='margin-bottom:8px'><b id='bpAnaGainN' style='color:#c6ff3d;font-size:20px'>+0</b> " + t.perfect + "</div>";
       else if(r.again) extra = "<div style='margin-bottom:8px;color:#9fa8d8'>" + t.again + "</div>";
       else if(r.noTokens){
         extra = "<div style='margin-bottom:8px;color:#ffd45a'>" + t.none + "</div><button type='button' id='bpAnaBuy' style='margin-bottom:8px;width:100%;padding:9px;border-radius:10px;border:0;background:#c6ff3d;color:#1e3000;font-weight:700;font-size:14px;cursor:pointer'>" + t.buy.replace("{c}", r.cost) + "</button>";
       }
-      paint(el, r, extra);
-      var bb = el.querySelector("#bpAnaBuy"); if(bb) bb.onclick = function(){ bb.disabled = true; ppost({ act:"buy", id:id, perfect:perfect }).then(function(r2){ done(r2, true); }).catch(function(){ el.textContent = t.err; }); };
+      var startN = r.counted ? r.perfect - r.gain : r.perfect;
+      paint(el, r, extra, startN);
+      if(r.counted) playAward(el, r, idx, rowsDom, entries.length);
+      Array.prototype.forEach.call(rowsDom, function(row, ix){
+        var rw = rows[ix]; if(!rw || !rw.cls || rw.cls.key !== "best" || row.__starBound) return; row.__starBound = true;
+        row.addEventListener("click", function(){ flyStar(row.querySelector(".bpAnaIc"), el, null); });
+      });
+      var bb = el.querySelector("#bpAnaBuy"); if(bb) bb.onclick = function(){ bb.disabled = true; ppost({ act:"buy", id:id, perfect:perfect }).then(function(r2){ done(r2); }).catch(function(){ el.textContent = t.err; }); };
     }
     ppost({ act:"open", id:id, perfect:perfect }).then(function(r){ done(r); }).catch(function(){ el.textContent = t.err; });
   }
