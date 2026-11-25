@@ -184,7 +184,6 @@
   <div class="row" id="barRow">
     <button class="btn" id="optBtn" type="button">⚙️</button>
     <button class="btn primary" id="newBtn"></button>
-    <button class="btn" id="undoBtn"></button>
     <button class="btn" id="resignBtn"></button>
     <button class="btn" id="anaBtn"></button>
   </div>
@@ -337,13 +336,19 @@ function render(){
     if(p) d.insertAdjacentHTML("beforeend", `<span class="pc ${p.col}">${chessPieceSVG(p.t,p.col,"classic")}</span>`);
     b.appendChild(d);
   }
+  if(G.anim){ const an = G.anim; G.anim = null;
+    try{ if(!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)){
+      const s1 = b.querySelector('.sq[data-r="'+an.fr+'"][data-c="'+an.fc+'"]'), s2 = b.querySelector('.sq[data-r="'+an.tr+'"][data-c="'+an.tc+'"]'), pc = s2 && s2.querySelector(".pc");
+      if(pc && s1){ const b1 = s1.getBoundingClientRect(), b2 = s2.getBoundingClientRect(); pc.style.position = "relative"; pc.style.zIndex = 30;
+        pc.animate([{ transform: "translate(" + (b1.left-b2.left) + "px," + (b1.top-b2.top) + "px) scale(1.22)" }, { transform: "scale(1.22)" }], { duration: 260, easing: "cubic-bezier(.25,.8,.3,1)" }); }
+    } }catch(e){} }
   $("capBlack").innerHTML = G.capB.map(t => `<span class="b">${chessPieceSVG(t,"b","classic")}</span>`).join("");
   $("capWhite").innerHTML = G.capW.map(t => `<span class="w">${chessPieceSVG(t,"w","classic")}</span>`).join("");
   const lg = $("log");
   const pairs = [];
   for(let i=0;i<G.log.length;i+=2) pairs.push(`<b>${i/2+1}.</b> ${G.log[i]}${G.log[i+1] ? "  " + G.log[i+1] : ""}`);
   lg.innerHTML = pairs.join(" &nbsp; "); lg.scrollTop = lg.scrollHeight;
-  $("undoBtn").disabled = G.history.length === 0 || G.busy || G.over;
+  
   $("resignBtn").disabled = G.over; if(G.over && G.rec.length && G.__sv !== G.rec.length){ G.__sv = G.rec.length; try{ bpAnalysis.save(G.rec); }catch(e){} }
   $("anaBtn").disabled = !((G.over && G.rec.length) || bpAnalysis.hasLast());
   $("stats").textContent = T.stats(loadStats());
@@ -376,7 +381,7 @@ bpMoveUI($("moveMode")); if(window.bpArrows) bpArrows($("board"));
 bpDragInit({ board: $("board"),
   canPick: (r, c) => !G.over && !G.busy && G.turn === ME && G.board[r][c] && G.board[r][c].col === ME,
   pick: (r, c) => { G.selected = { r, c }; G.moves = getLegalMoves(G.board, r, c, G.last); render(); },
-  drop: (r, c) => { const mv = G.moves.find(m => m.tr===r && m.tc===c); if(G.selected && mv){ tryMove(mv); return true; } return false; },
+  drop: (r, c) => { const mv = G.moves.find(m => m.tr===r && m.tc===c); if(G.selected && mv){ G.fromDrag = true; tryMove(mv); return true; } return false; },
   cancel: () => { G.selected = null; G.moves = []; render(); } });
 function tryMove(mv){
   const p = G.board[mv.fr][mv.fc];
@@ -398,6 +403,7 @@ function doMove(mv, byPlayer){
   if(byPlayer && window.BpCh && BpCh.active()){ const bl = BpCh.block(mv); if(bl){ BpCh.toast(bl); G.selected = null; G.moves = []; render(); return; } }
   if(byPlayer){ G.history.push(snapshot()); G.rec.push({ board:G.board, last:G.last, col:ME, move:Object.assign({}, mv) }); }
   const mover = G.board[mv.fr][mv.fc];
+  G.anim = (byPlayer && G.fromDrag) ? null : { fr:mv.fr, fc:mv.fc, tr:mv.tr, tc:mv.tc }; G.fromDrag = false;
   if(byPlayer && window.BpSets){ if(mv.castle) BpSets.earn('wald'); if(mv.promTo) BpSets.earn('zoo'); }
   const target = G.board[mv.tr][mv.tc];
   let captured = target ? target.t : null;
@@ -503,12 +509,12 @@ function buildUi(){
   const ob = $("oppBar");
   if(OPP != null){ const o = BpLadder.info("chess", OPP, LANG); ob.innerHTML = '<img src="' + o.img + '" alt=""><div class="oi"><b>' + o.name + '</b><small>' + o.title + '</small></div><span class="oelo">' + o.elo + '</span>'; } else ob.textContent = "";
   $("styleBtn2").textContent = "🎨 " + (LANG === "de" ? "Figuren und Brett wählen" : "Choose pieces and board"); $("styleBtn2").onclick = () => BpElo.stylePanel(LANG);
-  $("newBtn").textContent = T.newGame; $("undoBtn").textContent = T.undo; $("resignBtn").textContent = T.resign;
+  $("newBtn").textContent = T.newGame; $("resignBtn").textContent = T.resign;
   try{ window.BpCh && BpCh.paint(); }catch(e){}
   $("anaBtn").textContent = "🔎"; $("endAna").textContent = "🔎 " + bpAnalysis.label; $("endNew").textContent = T.again; $("endClose").textContent = T.close;
 }
 $("newBtn").onclick = () => { newGame(); };
-$("undoBtn").onclick = () => { if(G.busy || !G.history.length) return; restore(G.history.pop()); G.rec.pop(); render(); setStatus(); };
+
 $("resignBtn").onclick = () => { if(G.over || !confirm(T.confirmResign)) return; finish({ result:"loss", why:T.resigned }); };
 $("endNew").onclick = () => { $("endOv").classList.remove("show"); newGame(); };
 (function(){ const rl = LANG === "de" ? "🎬 Letzte Partie" : "🎬 Last game"; $("recBtn").textContent = rl; $("endRec").textContent = LANG === "de" ? "🎬 Aufnahme" : "🎬 Recording"; $("recBtn").onclick = () => { $("opts").classList.remove("open"); $("optScrim").classList.remove("show"); BpRec.open(); }; $("endRec").onclick = () => { BpRec.open(0); };

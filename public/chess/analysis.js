@@ -119,7 +119,7 @@
       + ".bpAnaNote{padding:0 18px 8px;font-size:11px;color:#6d7699}"
       + "#bpAnaBoardWrap{padding:6px 14px 4px;display:flex;flex-direction:column;align-items:center;gap:6px}"
       + "#bpAnaBoard{position:relative;width:100%;max-width:300px;aspect-ratio:1;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));border-radius:8px;overflow:hidden;box-shadow:0 0 0 2px #262e46}"
-      + "#bpAnaBoard .sq{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:hidden}#bpAnaBoard .sq.hl::after{content:'';position:absolute;inset:0;background:rgba(246,246,105,.6)}"
+      + "#bpAnaBoard .sq{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;overflow:visible}#bpAnaBoard .sq.hl::after{content:'';position:absolute;inset:0;background:rgba(246,246,105,.6)}"
       + "#bpAnaBoard .sq svg{position:relative;z-index:1;width:92%;height:92%;max-width:92%;max-height:92%;flex:none;transition:transform .15s}"
       + "#bpAnaBoard .co{position:absolute;font-size:8px;font-weight:700;opacity:.75;z-index:2;pointer-events:none}"
       + "#bpAnaArrow{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}"
@@ -175,7 +175,7 @@
     var ex = x2 - ux * 3.2, ey = y2 - uy * 3.2;
     return '<svg id="bpAnaArrow" viewBox="0 0 100 100"><line x1="' + x1 + '" y1="' + y1 + '" x2="' + ex + '" y2="' + ey + '" stroke="' + color + '" stroke-width="2.4" stroke-linecap="round" opacity=".85"/><polygon points="' + x2 + "," + y2 + " " + (ex - uy * 3 ) + "," + (ey + ux * 3) + " " + (ex + uy * 3) + "," + (ey - ux * 3) + '" fill="' + color + '" opacity=".9"/></svg>';
   }
-  function renderFrame(){
+  function renderFrame(anim){
     var fr = RP.frames[RP.cur]; if(!fr) return;
     var boardEl = document.getElementById("bpAnaBoard"), cap = document.getElementById("bpAnaCap");
     var html = "";
@@ -191,6 +191,13 @@
     var row = RP.rows[fr.i];
     if(fr.kind === "me" && row && !row.sameAsBest && row.best && row.cls.key !== "best" && row.cls.key !== "good") html += drawArrow(row.best, "#3de0ff");
     boardEl.innerHTML = html;
+    if(anim && fr.hl && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)){
+      try{
+        var ix = function(r, c){ return RP.flip ? (7 - r) * 8 + (7 - c) : r * 8 + c; }, kids = boardEl.children, s1 = kids[ix(fr.hl.fr, fr.hl.fc)], s2 = kids[ix(fr.hl.tr, fr.hl.tc)], pc = s2 && s2.querySelector("svg");
+        if(pc && s1){ var b1 = s1.getBoundingClientRect(), b2 = s2.getBoundingClientRect(); pc.style.zIndex = 9; pc.style.transition = "none";
+          pc.animate([{ transform: "translate(" + (b1.left - b2.left) + "px," + (b1.top - b2.top) + "px)" }, { transform: "translate(0,0)" }], { duration: 300, easing: "cubic-bezier(.25,.8,.3,1)" }).onfinish = function(){ pc.style.zIndex = ""; pc.style.transition = ""; }; }
+      }catch(er){}
+    }
     var t = "";
     if(fr.kind === "start") t = T.start;
     else if(fr.kind === "opp"){ var p0 = fr.board[fr.hl.tr][fr.hl.tc]; t = T.opp + ": " + (p0 ? SYMS[p0.t] : "") + sq(fr.hl.fr, fr.hl.fc) + "–" + sq(fr.hl.tr, fr.hl.tc); }
@@ -206,7 +213,7 @@
     for(var k = 0; k < rowsEl.length; k++) rowsEl[k].classList.toggle("cur", fr.kind === "me" && k === fr.i);
   }
   function stopPlay(){ if(RP.timer){ clearInterval(RP.timer); RP.timer = null; } var b = document.getElementById("bpAnaPlay"); if(b) b.textContent = "▶"; }
-  function gotoFrame(n){ RP.cur = Math.max(0, Math.min(RP.frames.length - 1, n)); renderFrame(); }
+  function gotoFrame(n){ var old = RP.cur; RP.cur = Math.max(0, Math.min(RP.frames.length - 1, n)); renderFrame(RP.cur === old + 1); }
   function togglePlay(){
     if(RP.timer){ stopPlay(); return; }
     if(RP.cur >= RP.frames.length - 1) RP.cur = 0;
@@ -411,7 +418,7 @@
       if(!r || !r.ok){ el.textContent = (r && r.error) || t.err; return; }
       var extra = "", rowsDom = document.querySelectorAll("#bpAnaBody .bpAnaRow");
       if(r.counted) extra = tiles(0, 0, "+0");
-      else if(r.again) extra = tiles(idx.length, bl.length, "+" + Math.max(0, idx.length - bl.length), t.again);
+      else if(r.again) extra = tiles(idx.length, bl.length, "+" + Math.max(0, idx.length - Math.floor(bl.length / 2)), t.again);
       else if(r.noTokens){
         extra = tiles(idx.length, bl.length, "0") + "<div style='margin-bottom:8px;color:#ffd45a'>" + t.none + "</div><button type='button' id='bpAnaBuy' style='margin-bottom:8px;width:100%;padding:9px;border-radius:10px;border:0;background:#c6ff3d;color:#1e3000;font-weight:700;font-size:14px;cursor:pointer'>" + t.buy.replace("{c}", r.cost) + "</button>";
       }

@@ -51,13 +51,17 @@
           g.appendChild(el('circle', { cx: a.x, cy: a.y, r: a.s * .43, fill: col[1].replace(/[\d.]+\)$/, '.14)'), stroke: col[1], 'stroke-width': Math.max(3, a.s * .075) }));
           svg.appendChild(g); return;
         }
-        var dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy), ux = dx / len, uy = dy / len, px = -uy, py = ux;
+        var drr = it.b[0] - it.a[0], dcc = it.b[1] - it.a[1], kn = (Math.abs(drr) === 1 && Math.abs(dcc) === 2) || (Math.abs(drr) === 2 && Math.abs(dcc) === 1);
+        var pts = [a];
+        if(kn){ var mid = Math.abs(drr) === 2 ? ctr(it.a[0] + drr, it.a[1]) : ctr(it.a[0], it.a[1] + dcc); if(mid) pts.push(mid); }
+        pts.push(b);
+        var p0 = pts[pts.length - 2], dx = b.x - p0.x, dy = b.y - p0.y, len = Math.sqrt(dx * dx + dy * dy), ux = dx / len, uy = dy / len, px = -uy, py = ux;
+        var fx = pts[1].x - a.x, fy = pts[1].y - a.y, fl = Math.sqrt(fx * fx + fy * fy), fux = fx / fl, fuy = fy / fl;
         var hw = Math.max(3.5, a.s * .085), hh = a.s * .27, hl = a.s * .36, off = a.s * .12;
-        var sx = a.x + ux * off, sy = a.y + uy * off, tx = b.x - ux * a.s * .1, ty = b.y - uy * a.s * .1, bx = tx - ux * hl, by = ty - uy * hl;
-        if((bx - sx) * ux + (by - sy) * uy < 0){ bx = sx; by = sy; }
-        var d = 'M' + (sx + px * hw) + ',' + (sy + py * hw) + ' L' + (bx + px * hw) + ',' + (by + py * hw) + ' L' + (bx + px * hh) + ',' + (by + py * hh) + ' L' + tx + ',' + ty
-          + ' L' + (bx - px * hh) + ',' + (by - py * hh) + ' L' + (bx - px * hw) + ',' + (by - py * hw) + ' L' + (sx - px * hw) + ',' + (sy - py * hw) + ' Z';
-        g.appendChild(el('path', { d: d, fill: col[1], stroke: col[1], 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+        var sx = a.x + fux * off, sy = a.y + fuy * off, tx = b.x - ux * a.s * .1, ty = b.y - uy * a.s * .1, bx = tx - ux * hl, by = ty - uy * hl;
+        var d = 'M' + sx + ',' + sy; for(var q = 1; q < pts.length - 1; q++) d += ' L' + pts[q].x + ',' + pts[q].y; d += ' L' + bx + ',' + by;
+        g.appendChild(el('path', { d: d, fill: 'none', stroke: col[1], 'stroke-width': hw * 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'butt' }));
+        g.appendChild(el('path', { d: 'M' + tx + ',' + ty + ' L' + (bx + px * hh) + ',' + (by + py * hh) + ' L' + (bx - px * hh) + ',' + (by - py * hh) + ' Z', fill: col[1], stroke: col[1], 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
         g.appendChild(el('circle', { cx: sx, cy: sy, r: hw, fill: col[1] }));
         svg.appendChild(g);
       });

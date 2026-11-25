@@ -5008,7 +5008,7 @@ async function chessAna(payload, lang) {
   if (a.ids.includes(id)) return { ...anaPublic(user), counted: false, again: true, gain: 0 };
   let perfect = Math.max(0, Math.min(ANA_MAX_PER_GAME, Math.floor(Number(payload.perfect) || 0)));
   const blunders = Math.max(0, Math.min(ANA_MAX_PER_GAME, Math.floor(Number(payload.blunders) || 0)));
-  perfect = Math.max(0, perfect - blunders);
+  perfect = Math.max(0, perfect - Math.floor(blunders / 2)); // Patzer zaehlen nur halb
   const free = Math.max(0, ANA_FREE - a.used);
   let paid = 0;
   if (free > 0) a.used++;
