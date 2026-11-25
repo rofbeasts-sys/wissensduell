@@ -54,7 +54,12 @@
       <label>Schwierigkeit</label>
       <select id="qD"><option value="all">Gemischt</option><option value="1">Leicht</option><option value="2">Mittel</option><option value="3">Schwer</option></select>
     </div>
-    <div class="chk"><input id="simChk" type="checkbox" checked><span>Testzuschauer</span><input id="simN" type="number" min="2" max="60" value="12" style="width:70px;margin-left:auto"></div>
+    <div id="kampfOpt" hidden>
+      <div class="row"><div><label>Spieldauer (Minuten)</label><input id="kD" type="number" min="0.5" max="20" step="0.5" value="3"></div><div><label>Leben pro Kugel</label><input id="kHP" type="number" min="1" max="30" value="5"></div></div>
+      <div class="row"><div><label>Heilen (herz im Chat)</label><select id="kHeal"><option value="1">An</option><option value="0">Aus</option></select></div><div><label>Heilen aus, letzte Sekunden</label><input id="kNH" type="number" min="0" max="600" value="60"></div></div>
+      <div class="hint">Nach der Spieldauer beginnt die Verlängerung: kein Heilen mehr, die Arena wird klein und die Kugeln werden schneller, bis einer übrig ist.</div>
+    </div>
+    <div class="chk"><input id="simChk" type="checkbox"><span>Testzuschauer (Computer-Spieler, keine echten Leute)</span><input id="simN" type="number" min="2" max="60" value="12" style="width:70px;margin-left:auto"></div>
     <div id="btns">
       <button id="bOpen" class="p">Anmeldung öffnen</button>
       <button id="bStart" class="p" hidden>Start</button>
@@ -70,6 +75,8 @@
     <label>Test Chat (Name und Text)</label>
     <div class="row"><input id="tcName" type="text" value="Du" maxlength="16" style="flex:.6"><input id="tcText" type="text" placeholder="dabei, A, herz" maxlength="40"><button id="tcSend" class="q" style="flex:.4">Senden</button></div>
     <div class="hint">Taste H blendet dieses Feld aus, dann füllt die Bühne das Fenster. Echte Chat Nachrichten kommen später über die Anbindung an TikTok LIVE in <code>TTFeed</code>.</div>
+    <button id="bRec" style="width:100%;margin-top:10px">● Aufnahme starten (nur die Bühne)</button>
+    <div class="hint" id="recInfo">Nimmt nur das Spielfeld auf, ohne dieses Bedienfeld. Beim Stoppen wird die Datei heruntergeladen. Mit H blendest du das Bedienfeld aus, die Aufnahme läuft weiter. Taste R startet und stoppt ebenfalls.</div>
     <button id="bHide" style="width:100%;margin-top:10px">Feld ausblenden</button>
   </div>
   <div id="stagewrap"><canvas id="st" width="1080" height="1920"></canvas></div>
@@ -140,6 +147,12 @@ function ball(p,a,b,r,flash){
 function timeStr(ms){var s=Math.max(0,Math.ceil(ms/1000)),m=Math.floor(s/60);return (m<10?'0':'')+m+':'+(s%60<10?'0':'')+(s%60)}
 function roundLabel(){return S.tour?(S.final?'Finale':'Runde '+S.round+' von '+S.rounds):'Einzelrunde'}
 
+function outList(y0){
+  var a=S.lastOut,k=a.length;if(!k)return;
+  var cols=k>32?3:2,rows=Math.ceil(k/cols),rh=Math.min(22,205/rows),fs=Math.max(10,Math.min(17,rh-5)),cw=480/cols;
+  a.forEach(function(nm,i){var c=i%cols,r=Math.floor(i/cols),last=i===k-1;
+    txt(nm.slice(0,cols===3?9:13)+' raus',30+c*cw,y0+r*rh+fs,fs,last?'#ff6b8b':'#8d96c4','left',last?'800':'600')});
+}
 /* ---------- Spiel 1: Quiz Rennen ---------- */
 function Quiz(players){
   var N=clamp(+$('qN').value||10,3,30),AT=clamp(+$('qT').value||12,5,60),df=$('qD').value,Q=window.TT_Q||[];
@@ -190,7 +203,7 @@ function Ring(players){
   S.lastOut=[];
   players.forEach(function(p){var a=Math.random()*6.2832,rr_=Math.random()*90;g.balls.push({p:p,x:CX+Math.cos(a)*rr_,y:CY+Math.sin(a)*rr_,vx:Math.cos(a+1.5)*T,vy:Math.sin(a+1.5)*T,r:r,on:true,f:0})});
   function wall(b){var dx=b.x-CX,dy=b.y-CY,d=Math.hypot(dx,dy);if(d>g.R-b.r){var an=Math.atan2(dy,dx),da=((an-g.ga)%6.2832+6.2832)%6.2832;
-    if(da<0.75){if(d>g.R+b.r*.5){b.on=false;b.f=0;S.lastOut.unshift(b.p.name);S.lastOut=S.lastOut.slice(0,3)}return}
+    if(da<0.75){if(d>g.R+b.r*.5){b.on=false;b.f=0;S.lastOut.push(b.p.name)}return}
     var nx=dx/d,ny=dy/d,dot=b.vx*nx+b.vy*ny;if(dot>0){b.vx-=2*dot*nx;b.vy-=2*dot*ny}b.x=CX+nx*(g.R-b.r);b.y=CY+ny*(g.R-b.r)}}
   function step(){
     g.t+=1/60;g.ga+=0.012+g.t*0.00025;g.R=Math.max(g.t>90?70:120,R0-g.t*4);
@@ -204,36 +217,46 @@ function Ring(players){
     x.strokeStyle='#fff';x.lineWidth=7;x.lineCap='round';x.beginPath();x.arc(CX,CY,g.R,g.ga+.75,g.ga+6.2832);x.stroke();
     x.fillStyle='#c6ff3d';[g.ga,g.ga+.75].forEach(function(a){x.beginPath();x.arc(CX+Math.cos(a)*g.R,CY+Math.sin(a)*g.R,5,0,6.2832);x.fill()});
     g.balls.forEach(function(b){if(!b.on&&b.f>45)return;x.globalAlpha=b.on?1:Math.max(0,1-b.f/45);ball(b.p,b.x,b.y,b.r);x.globalAlpha=1;if(b.on&&n<=10)txt(b.p.name,b.x,b.y-b.r-5,13,'#fff','center')});
-    S.lastOut.forEach(function(nm,i){txt('raus: '+nm,30,830+i*22,16,i?'#6d7699':'#ff6b8b','left')});
+    outList(745);
   };
   return g;
 }
 
 /* ---------- Spiel 3: Kampf der Kugeln ---------- */
 function Kampf(players){
-  var n=players.length,r=clamp(24-n*.4,10,20),HP=5,T=3.4,L=30,TP=230,SZ=480;
+  var n=players.length,r=clamp(24-n*.4,10,20),HP=clamp(Math.floor(+$('kHP').value||5),1,30),D=clamp(+$('kD').value||3,.5,20)*60,HEAL=$('kHeal').value==='1',NH=clamp(+$('kNH').value||0,0,D),T=3.4,L=30,TP=230,SZ=480;
   var g={t:0,inset:0,balls:[],done:false,winner:null,acc:0};S.lastOut=[];
   players.forEach(function(p){var a=Math.random()*6.2832;g.balls.push({p:p,x:L+40+Math.random()*(SZ-80),y:TP+40+Math.random()*(SZ-80),vx:Math.cos(a)*T,vy:Math.sin(a)*T,r:r,hp:HP,cd:0,f:0})});
-  g.chat=function(p,t){var l=String(t).toLowerCase();if(l.indexOf('herz')<0&&l.indexOf('❤')<0&&l.indexOf('♥')<0)return;var b=g.balls.filter(function(q){return q.p===p&&q.hp>0})[0];if(b&&b.hp<HP){b.hp++;b.f=12}};
+  function canHeal(){return HEAL&&g.t<D-NH&&g.t<D}
+  g.chat=function(p,t){if(!canHeal())return;var l=String(t).toLowerCase();if(l.indexOf('herz')<0&&l.indexOf('\u2764')<0&&l.indexOf('\u2665')<0)return;var b=g.balls.filter(function(q){return q.p===p&&q.hp>0})[0];if(b&&b.hp<HP){b.hp++;b.f=12}};
   function step(){
-    g.t+=1/60;g.inset=Math.min(150,Math.max(0,(g.t-16)*3));var lo=L+g.inset,hi=L+SZ-g.inset;
-    if(S.sim&&Math.random()<.01){var q=g.balls.filter(function(b){return b.hp>0&&String(b.p.id).indexOf('sim')===0});if(q.length)g.chat(q[Math.floor(Math.random()*q.length)].p,'herz')}
-    g.balls.forEach(function(b){if(b.hp<=0)return;b.x+=b.vx;b.y+=b.vy;var lt=TP+g.inset,bt=TP+SZ-g.inset;
+    g.t+=1/60;
+    var alive=g.balls.filter(function(b){return b.hp>0}),na=alive.length;
+    var pr=clamp((g.t-.25*D)/(.65*D),0,1),sd=g.t>D;
+    var minSide=clamp(70+Math.sqrt(na)*r*2.6,130,SZ),side=SZ-pr*(SZ-minSide);
+    if(sd)side=Math.min(side,minSide);
+    var tgt=(SZ-side)/2;if(tgt>g.inset)g.inset=Math.min(tgt,g.inset+.35);
+    var m=1+.9*pr+(sd?Math.min(.8,(g.t-D)/30*.8):0),lo=L+g.inset,hi=L+SZ-g.inset,lt=TP+g.inset,bt=TP+SZ-g.inset;
+    if(S.sim&&canHeal()&&Math.random()<.01){var q=alive.filter(function(b){return String(b.p.id).indexOf('sim')===0});if(q.length)g.chat(q[Math.floor(Math.random()*q.length)].p,'herz')}
+    if(na===2){var A=alive[0],B=alive[1],dx=B.x-A.x,dy=B.y-A.y,d=Math.hypot(dx,dy)||1;A.vx+=dx/d*.05;A.vy+=dy/d*.05;B.vx-=dx/d*.05;B.vy-=dy/d*.05}
+    g.balls.forEach(function(b){if(b.hp<=0)return;var sp=Math.hypot(b.vx,b.vy)||1;b.vx*=T*m/sp;b.vy*=T*m/sp;b.x+=b.vx;b.y+=b.vy;
       if(b.x<lo+b.r){b.x=lo+b.r;b.vx=Math.abs(b.vx)}if(b.x>hi-b.r){b.x=hi-b.r;b.vx=-Math.abs(b.vx)}if(b.y<lt+b.r){b.y=lt+b.r;b.vy=Math.abs(b.vy)}if(b.y>bt-b.r){b.y=bt-b.r;b.vy=-Math.abs(b.vy)}b.cd=Math.max(0,b.cd-1/60);if(b.f>0)b.f--});
-    for(var i=0;i<g.balls.length;i++)for(var j=i+1;j<g.balls.length;j++){var a=g.balls[i],c=g.balls[j];if(a.hp<=0||c.hp<=0)continue;var dx=c.x-a.x,dy=c.y-a.y,d=Math.hypot(dx,dy),mn=a.r+c.r;
-      if(d<mn&&d>0){var nx=dx/d,ny=dy/d,p=(a.vx-c.vx)*nx+(a.vy-c.vy)*ny;if(p>0){var sa=a.vx*nx+a.vy*ny,sc=-(c.vx*nx+c.vy*ny);a.vx-=p*nx;a.vy-=p*ny;c.vx+=p*nx;c.vy+=p*ny;
-        if(a.cd<=0&&c.cd<=0){var h=sa>=sc?c:a;h.hp--;h.f=10;a.cd=c.cd=.35;if(h.hp<=0){S.lastOut.unshift(h.p.name);S.lastOut=S.lastOut.slice(0,3)}}}
-        var ov=(mn-d)/2;a.x-=nx*ov;a.y-=ny*ov;c.x+=nx*ov;c.y+=ny*ov}}
+    for(var i=0;i<g.balls.length;i++)for(var j=i+1;j<g.balls.length;j++){var a=g.balls[i],c=g.balls[j];if(a.hp<=0||c.hp<=0)continue;var dx2=c.x-a.x,dy2=c.y-a.y,d2=Math.hypot(dx2,dy2),mn=a.r+c.r;
+      if(d2<mn&&d2>0){var nx=dx2/d2,ny=dy2/d2,p=(a.vx-c.vx)*nx+(a.vy-c.vy)*ny;if(p>0){var sa=a.vx*nx+a.vy*ny,sc=-(c.vx*nx+c.vy*ny);a.vx-=p*nx;a.vy-=p*ny;c.vx+=p*nx;c.vy+=p*ny;
+        if(a.cd<=0&&c.cd<=0){var h=sa>=sc?c:a;h.hp--;h.f=10;a.cd=c.cd=.35;if(h.hp<=0)S.lastOut.push(h.p.name)}}
+        var ov=(mn-d2)/2;a.x-=nx*ov;a.y-=ny*ov;c.x+=nx*ov;c.y+=ny*ov}}
     var al=g.balls.filter(function(b){return b.hp>0});if(al.length<=1){g.done=true;g.winner=al[0]?al[0].p:null}
   }
   g.update=function(dt){if(g.done)return;g.acc+=Math.min(dt,.1);while(g.acc>=1/60&&!g.done){step();g.acc-=1/60}};
   g.draw=function(){
-    var al=g.balls.filter(function(b){return b.hp>0}).length;txt(al+' von '+n+' dabei',30,150,18,'#9aa3d0');txt('Schreibe herz, um deine Kugel zu heilen',510,150,14,'#6d7699','right');
+    var al=g.balls.filter(function(b){return b.hp>0}).length;txt(al+' von '+n+' dabei',30,150,18,'#9aa3d0');
+    txt(g.t<D?timeStr((D-g.t)*1000):'Verlängerung',510,150,18,g.t<D?'#3de0ff':'#ff6b8b','right');
+    txt(!HEAL?'Heilen ist aus':(canHeal()?'Schreibe herz, um deine Kugel zu heilen':'Heilen jetzt aus'),270,196,15,canHeal()?'#c6ff3d':'#ff6b8b','center');
     var lo=L+g.inset,hi=L+SZ-g.inset,lt=TP+g.inset,bt=TP+SZ-g.inset;
     x.fillStyle='rgba(255,70,100,.14)';x.fillRect(L,TP,SZ,SZ);x.fillStyle='#0e1330';x.fillRect(lo,lt,hi-lo,bt-lt);x.strokeStyle='#fff';x.lineWidth=5;x.strokeRect(lo,lt,hi-lo,bt-lt);
-    g.balls.forEach(function(b){if(b.hp<=0)return;ball(b.p,b.x,b.y,b.r,b.f>0&&b.f%4<2);x.fillStyle='#2a3166';x.fillRect(b.x-14,b.y-b.r-10,28,5);x.fillStyle=b.hp>2?'#c6ff3d':'#ff6b8b';x.fillRect(b.x-14,b.y-b.r-10,28*b.hp/HP,5);if(n<=10)txt(b.p.name,b.x,b.y-b.r-14,13,'#fff','center')});
-    if(g.inset>0)txt('Arena wird kleiner',270,TP-12,15,'#ff6b8b','center');
-    S.lastOut.forEach(function(nm,i){txt('raus: '+nm,30,820+i*22,16,i?'#6d7699':'#ff6b8b','left')});
+    g.balls.forEach(function(b){if(b.hp<=0)return;ball(b.p,b.x,b.y,b.r,b.f>0&&b.f%4<2);x.fillStyle='#2a3166';x.fillRect(b.x-14,b.y-b.r-10,28,5);x.fillStyle=b.hp>HP*.4?'#c6ff3d':'#ff6b8b';x.fillRect(b.x-14,b.y-b.r-10,28*b.hp/HP,5);if(n<=10)txt(b.p.name,b.x,b.y-b.r-14,13,'#fff','center')});
+    if(g.inset>0)txt('Arena wird kleiner',270,TP-6,15,'#ff6b8b','center');
+    outList(745);
   };
   return g;
 }
@@ -277,10 +300,30 @@ $('bNext').onclick=nextRound;
 $('bCancel').onclick=function(){S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.'};
 $('bReset').onclick=resetTour;
 fillColSel($('apCol'),0);$('apAdd').onclick=manualAdd;$('apName').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd()});
+var rec=null,chunks=[],recT0=0;
+function recToggle(){
+  if(rec){rec.stop();return}
+  if(!window.MediaRecorder||!cv.captureStream){$('recInfo').textContent='Dieser Browser kann nicht aufnehmen. Nimm Chrome oder Edge am PC.';return}
+  var types=['video/mp4;codecs=avc1','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'],mt='';
+  for(var i=0;i<types.length;i++){if(MediaRecorder.isTypeSupported(types[i])){mt=types[i];break}}
+  chunks=[];
+  try{rec=new MediaRecorder(cv.captureStream(30),mt?{mimeType:mt,videoBitsPerSecond:8000000}:{videoBitsPerSecond:8000000})}catch(e){rec=null;$('recInfo').textContent='Aufnahme konnte nicht starten.';return}
+  rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+  rec.onstop=function(){
+    var ext=(rec.mimeType||mt||'').indexOf('mp4')>=0?'mp4':'webm',b=new Blob(chunks,{type:rec.mimeType||mt||'video/webm'}),a=document.createElement('a');
+    a.href=URL.createObjectURL(b);a.download='tiktok-studio-'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')+'.'+ext;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},4000);
+    rec=null;chunks=[];$('bRec').textContent='● Aufnahme starten (nur die Bühne)';$('bRec').classList.remove('d');$('recInfo').textContent='Gespeichert als '+ext+'. Prüfe deinen Downloads Ordner.';
+  };
+  rec.start(1000);recT0=now();$('bRec').textContent='■ Stoppen und speichern';$('bRec').classList.add('d');
+}
+$('bRec').onclick=recToggle;
+setInterval(function(){if(rec){var s=Math.floor((now()-recT0)/1000);$('bRec').textContent='■ Stoppen und speichern ('+Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60)+')'}},500);
 $('bHide').onclick=function(){document.body.classList.toggle('hide')};
-document.addEventListener('keydown',function(e){if(e.key==='h'||e.key==='H'){var t=(e.target&&e.target.tagName)||'';if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return;document.body.classList.toggle('hide')}});
+document.addEventListener('keydown',function(e){if(e.key==='r'||e.key==='R'){var t0=(e.target&&e.target.tagName)||'';if(t0!=='INPUT'&&t0!=='SELECT'&&t0!=='TEXTAREA')recToggle()}
+  if(e.key==='h'||e.key==='H'){var t=(e.target&&e.target.tagName)||'';if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return;document.body.classList.toggle('hide')}});
 Array.prototype.forEach.call(document.querySelectorAll('[data-m]'),function(b){b.onclick=function(){$('minIn').value=b.dataset.m}});
-$('gameSel').onchange=function(){$('quizOpt').hidden=$('gameSel').value!=='quiz'};
+$('gameSel').onchange=function(){$('quizOpt').hidden=$('gameSel').value!=='quiz';$('kampfOpt').hidden=$('gameSel').value!=='kampf'};
 $('tcSend').onclick=function(){var n=($('tcName').value||'Du').trim()||'Du',t=$('tcText').value;window.TTFeed({id:'test:'+n.toLowerCase(),name:n,text:t});$('tcText').value=''};
 $('tcText').placeholder='dabei rot';$('tcText').addEventListener('keydown',function(e){if(e.key==='Enter')$('tcSend').click()});
 
