@@ -91,7 +91,7 @@ button.mini{padding:4px 8px;font-size:12px}
     </div>
     <div class="dim" style="font-size:12px;margin-bottom:4px">Live</div>
     <div class="row" style="flex-wrap:wrap;margin-bottom:8px">
-      <button type="button" class="mt" onclick="location.href='/tiktok.html'">📺 Live</button>
+      <button class="mt" data-t="tt">📺 Live</button>
     </div>
     <div class="dim" style="font-size:12px;margin-bottom:4px">Inhalte</div>
     <div class="row" style="flex-wrap:wrap">
@@ -197,6 +197,24 @@ button.mini{padding:4px 8px;font-size:12px}
     <div class="row" style="gap:8px;flex-wrap:wrap;margin:10px 0"><button onclick="bpSave()">💾 Speichern</button></div>
     <div class="card"><b>Für den Battle Pass vorgemerkt (aus dem Shop)</b><div class="dim" style="font-size:12px;margin:4px 0 8px">Diese Figuren sind im Shop dem Battle Pass zugeordnet.</div>
       <div id="bpRes" class="row" style="gap:10px"></div></div>
+  </div>
+
+  <div id="tab_tt" class="hidden">
+    <div class="card"><h2>LIVE ÖFFNEN</h2>
+      <div class="dim" style="font-size:12px;margin-bottom:8px">Die Zuschau-Spiele für TikTok. Das Bedienfeld siehst nur du, auf der Bühne ist es nie zu sehen.</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button onclick="location.href='/tiktok.html?m=remote'">Fernbedienung</button>
+        <button class="ghost" onclick="location.href='/tiktok.html'">Alles hier</button>
+        <button class="ghost" onclick="location.href='/tiktok.html?m=stage'">Nur Bühne</button>
+      </div>
+      <div class="dim" style="font-size:12px;margin-top:8px"><b>Fernbedienung</b>: du steuerst, die Bühne läuft bei der Person mit „Nur Bühne“. <b>Alles hier</b>: Bedienung und Bühne in einem Fenster. <b>Nur Bühne</b>: nur das Bild, zum Aufnehmen.</div>
+    </div>
+    <div class="card"><h2>WER DARF LIVE SEHEN</h2>
+      <div id="ttList" class="dim">…</div>
+      <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap"><input id="ttName" placeholder="Name im Spiel" maxlength="30" style="flex:1;min-width:120px"><select id="ttLvl"><option value="stage">Nur Bühne</option><option value="ctrl">Mit Einstellungen</option></select><button onclick="ttAdd()">Freigeben</button></div>
+      <div id="ttMsg" style="font-size:13px;margin-top:6px"></div>
+      <div class="dim" style="font-size:12px;margin-top:8px"><b>Nur Bühne</b>: sieht nur das Bild, du steuerst per Fernbedienung. <b>Mit Einstellungen</b>: bedient alles selbst. Die Person sieht dann im Spiel die Karte „Live“.</div>
+    </div>
   </div>
 
   <div id="tab_zp" class="hidden">
@@ -364,13 +382,25 @@ async function delMsg(id){ await api('/api/admin-chat-delete', { id }); tick(); 
 async function clearChat(){ if(!await bpConfirm('Wirklich den ganzen öffentlichen Chat löschen?')) return; await api('/api/admin-chat-clear'); tick(); }
 async function say(){ const i = $('say'), t = i.value.trim(); if(!t) return; i.value = ''; await api('/api/admin-chat-send', { text: t }); tick(); }
 
+function ttRender(list){
+  const el = $('ttList');
+  el.innerHTML = list.length ? list.map(e => `<div class="pl"><span><b>${esc(e.name)}</b></span><span style="display:flex;gap:6px;align-items:center"><select data-n="${esc(e.name)}" onchange="ttCall('set', this.dataset.n, this.value)"><option value="stage"${e.level === 'stage' ? ' selected' : ''}>Nur Bühne</option><option value="ctrl"${e.level === 'ctrl' ? ' selected' : ''}>Mit Einstellungen</option></select><button class="ghost" data-n="${esc(e.name)}" onclick="ttCall('del', this.dataset.n)">✕</button></span></div>`).join('') : 'Noch niemand freigegeben.';
+}
+async function ttCall(act, name, level){
+  $('ttMsg').textContent = '';
+  const r = await api('/api/tiktok-perms', { act, name, level }).catch(() => null);
+  if(r && r.ok) ttRender(r.list);
+  else $('ttMsg').textContent = (r && r.error) ? r.error + ' (Dafür musst du mit dem Admin-Schlüssel angemeldet sein, nicht als Mod. Falls der Server gerade neu gestartet wurde: Render braucht das Update.)' : 'Keine Verbindung.';
+}
+function ttLoad(){ ttCall('list'); }
+function ttAdd(){ const n = $('ttName').value.trim(); if(!n) return; ttCall('set', n, $('ttLvl').value); $('ttName').value = ''; }
 let TAB = 'live', openU = null, coinlog = null;
 function setTab(t){
   TAB = t;
   document.querySelectorAll('#tabs button[data-t], #more button[data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  const mt = ['rep','fb','ev','shop','bp','zp','news','rnews'].indexOf(t) >= 0; $('moreBtn').classList.toggle('on', mt); if(!mt) $('more').classList.add('hidden');
-  ['live','players','games','req','rep','news','rnews','zp','ev','fb','shop','bp'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
-  if(t === 'shop' || t === 'bp') shopLoad(); if(t === 'bp') bpLoad(); if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'live') stLoad();
+  const mt = ['rep','fb','ev','shop','bp','zp','tt','news','rnews'].indexOf(t) >= 0; $('moreBtn').classList.toggle('on', mt); if(!mt) $('more').classList.add('hidden');
+  ['live','players','games','req','rep','news','rnews','zp','tt','ev','fb','shop','bp'].forEach(x => $('tab_' + x).classList.toggle('hidden', x !== t));
+  if(t === 'tt') ttLoad(); if(t === 'shop' || t === 'bp') shopLoad(); if(t === 'bp') bpLoad(); if(t === 'players'){ loadPlayers(); loadCheat(); loadBeta(); } if(t === 'games'){ loadGames(); maniaCfgLoad(); } if(t === 'req') loadReqs(); if(t === 'rep') loadReps(); if(t === 'news') loadNews(); if(t === 'rnews') rnLoad(); if(t === 'fb') fbLoad(); if(t === 'ev') evLoad(); if(t === 'zp') zpLoad(); if(t === 'live') stLoad();
 }
 document.querySelectorAll('#tabs button[data-t], #more button[data-t]').forEach(b => b.onclick = () => { setTab(b.dataset.t); $('more').classList.add('hidden'); });
 $('moreBtn').onclick = () => $('more').classList.toggle('hidden');

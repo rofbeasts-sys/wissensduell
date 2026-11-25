@@ -8097,6 +8097,7 @@ function ttRole(payload, ip) {
   const u = findUserByToken(payload && payload.token);
   if (u && (u.ttLive === "ctrl" || u.ttLive === "stage")) return u.ttLive;
   if (payload && payload.adminKey && adminOk(payload.adminKey, ip)) return "admin";
+  if (payload && testerKeyOk(payload.adminKey) === "mod") return "ctrl";
   return "";
 }
 async function ttHandle(url, payload, ip) {

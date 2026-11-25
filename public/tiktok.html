@@ -53,14 +53,6 @@
 <div id="app" hidden>
   <div id="panel">
     <h1>Live</h1>
-    <div id="modeRow" class="row" style="margin-bottom:6px"><button data-md="full" title="Bedienung und Bühne in diesem Fenster">Alles hier</button><button data-md="remote" title="Nur Bedienung. Die Bühne läuft bei der Person mit „Nur Bühne“">Fernbedienung</button><button data-md="stage" title="Nur die Bühne, ohne Bedienfeld">Nur Bühne</button></div>
-    <div id="permBox" hidden>
-      <label>Wer darf Live sehen</label>
-      <div id="permList" class="hint" style="margin:0"></div>
-      <div class="row" style="margin-top:6px"><input id="permName" type="text" placeholder="Name im Spiel" maxlength="30" style="flex:1.3"><select id="permLvl" style="flex:1"><option value="stage">Nur Bühne</option><option value="ctrl">Mit Einstellungen</option></select><button id="permAdd" class="q" style="flex:.6">Geben</button></div>
-      <div class="hint">Nur Bühne: die Person sieht nur das Bild (zum Aufnehmen), du steuerst per Fernbedienung. Mit Einstellungen: die Person bedient alles selbst.</div>
-      <hr style="border:0;border-top:1px solid var(--line);margin:10px 0">
-    </div>
     <label>Spiel</label>
     <select id="gameSel"><option value="quiz">Quiz Rennen</option><option value="ring">Ballrennen im Ring</option><option value="kampf">Kampf der Kugeln</option></select>
     <div class="row"><div><label>Anmeldezeit (Minuten)</label><input id="minIn" type="number" min="0.1" step="0.5" value="5"></div><div><label>Max. Spieler</label><input id="maxIn" type="number" min="2" max="60" value="20"></div></div>
@@ -116,6 +108,7 @@ function api(path,extra){
 }
 function noAccess(msg){$('gate').innerHTML='<div style="max-width:420px"><div style="font-size:22px;font-weight:800;margin-bottom:10px">Live</div><div style="color:#9aa3d0;font-size:16px;margin-bottom:16px;line-height:1.4">'+msg+'</div><a href="/admin.html" style="display:block;margin-bottom:8px">Zum Admin-Bereich</a><a href="/">Zurück zu Brain Pulse</a></div>'}
 api('/api/tiktok-auth',{}).then(function(j){
+  if(j&&!j.ok&&j.role===undefined)return noAccess('Der Server auf Render hat das Update noch nicht. Bitte mit der neuen server.js neu starten.');
   if(j&&j.ok&&!booted){
     booted=true;ROLE=j.role;var m=Q.get('m');
     MODE=ROLE==='stage'?'stage':(m==='stage'||m==='remote'?m:'full');
@@ -357,8 +350,6 @@ $('bReset').onclick=function(){act('reset')};
 $('ovBtn').onclick=function(){act($('ovBtn').dataset.a||'start')};
 $('tgl').onclick=function(){document.body.classList.toggle('hide');$('tgl').textContent=document.body.classList.contains('hide')?'▶':'◀'};
 $('recFloat').onclick=function(){recToggle()};
-Array.prototype.forEach.call(document.querySelectorAll('#modeRow button'),function(b){if(b.dataset.md===MODE)b.classList.add('on');b.onclick=function(){location.search='?m='+b.dataset.md}});
-if(ROLE==='stage')$('modeRow').hidden=true;
 fillColSel($('apCol'),0);$('apAdd').onclick=manualAdd;$('apName').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd()});
 var rec=null,chunks=[],recT0=0;
 function recToggle(){
@@ -455,11 +446,7 @@ function header(){
   txt('BRAIN PULSE',270,44,28,'#c6ff3d','center','900');
   txt(GN[S.game]+' · '+roundLabel(),270,76,18,'#3de0ff','center');
 }
-function drawIdle(){
-  txt('Bereit',270,420,52,'#fff','center');
-  txt('Schreibe „'+S.word+'“ in den Chat',270,480,26,'#c6ff3d','center');
-  txt('sobald die Anmeldung läuft',270,516,20,'#9aa3d0','center');
-}
+function drawIdle(){}
 function drawSignup(closed){
   var left=S.signupEnd-now();
   txt(closed?'Anmeldung geschlossen':'Anmeldung läuft',270,170,26,'#fff','center');
@@ -517,23 +504,6 @@ if(MODE==='remote'){
     S.signupEnd=now()+(st.left||0);S.winners=(st.winners||[]).map(function(n){return {p:{name:n}}});
     S.res=st.hasRes?{winner:st.resW?{name:st.resW}:null}:null;
   }).catch(function(){})},1000);
-}
-/* ---- Zugang verwalten (nur Admin) ---- */
-if(ROLE==='admin'){
-  $('permBox').hidden=false;
-  var renderPerms=function(list){
-    var el=$('permList');el.innerHTML='';
-    if(!list.length){el.textContent='Noch niemand freigegeben.';return}
-    list.forEach(function(e){var r=document.createElement('div');r.className='pr';
-      var n=document.createElement('span');n.className='n';n.textContent=e.name;
-      var sl=document.createElement('select');[['stage','Nur Bühne'],['ctrl','Mit Einstellungen']].forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];if(o[0]===e.level)op.selected=true;sl.appendChild(op)});
-      sl.style.width='130px';sl.onchange=function(){permCall('set',e.name,sl.value)};
-      var rm=document.createElement('button');rm.textContent='✕';rm.title='Entziehen';rm.onclick=function(){permCall('del',e.name)};
-      r.appendChild(n);r.appendChild(sl);r.appendChild(rm);el.appendChild(r)});
-  };
-  var permCall=function(a,name,level){api('/api/tiktok-perms',{act:a,name:name,level:level}).then(function(j){if(j&&j.ok)renderPerms(j.list);else $('permList').textContent=(j&&j.error)||'Das hat nicht geklappt.'})};
-  $('permAdd').onclick=function(){var nm=$('permName').value.trim();if(!nm)return;permCall('set',nm,$('permLvl').value);$('permName').value=''};
-  permCall('list');
 }
 panel();requestAnimationFrame(loop);
 }
