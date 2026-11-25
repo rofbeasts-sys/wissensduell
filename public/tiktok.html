@@ -34,11 +34,10 @@
   .hint{color:var(--dim);font-size:12px;margin-top:6px;line-height:1.4}
   [hidden]{display:none!important}
   #stagewrap{position:relative}
-  #ovBtn{position:absolute;bottom:12px;right:12px;z-index:4;padding:12px 26px;font-size:17px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
   #tgl{position:fixed;left:6px;top:6px;z-index:6;padding:4px 10px;opacity:.75}
-  body.m-stage #panel,body.m-stage #tgl,body.m-stage #ovBtn{display:none}
+  body.m-stage #panel,body.m-stage #tgl{display:none}
   body.m-stage #app{padding:0}body.m-stage #st{border-radius:0}
-  body.m-remote #stagewrap,body.m-remote #tgl,body.m-remote #ovBtn,body.m-remote #recBox,body.m-remote #bHide{display:none}
+  body.m-remote #stagewrap,body.m-remote #tgl,body.m-remote #recBox,body.m-remote #bHide{display:none}
   body.m-remote #panel{width:100%;max-width:520px;margin:0 auto}
   #modeRow button{flex:1;padding:5px 4px;font-size:12px}#modeRow button.on{background:var(--lime);color:#08110c;border:none}
   @media(max-width:820px){#app{flex-direction:column;overflow:auto;height:auto;min-height:100%}#panel{width:100%}#stagewrap{height:80vh;flex:none}}
@@ -56,6 +55,13 @@
     <div class="row" style="margin-top:6px"><button class="q" data-m="1">1</button><button class="q" data-m="2">2</button><button class="q" data-m="3">3</button><button class="q" data-m="4">4</button><button class="q" data-m="5">5</button></div>
     <label>Anmelde-Wort im Chat</label>
     <input id="wordIn" type="text" value="dabei" maxlength="20">
+    <div class="chk"><input id="hideWord" type="checkbox"><span>Anmelde-Text auf der Bühne ausblenden</span></div>
+    <label>Überschrift, wenn die Anmeldung zu ist</label>
+    <input id="tHead" type="text" value="Los geht’s gleich" maxlength="40">
+    <label>Zusatztext auf der Bühne (z. B. Schreibt in die Kommentare, wer gewinnt)</label>
+    <input id="tSub" type="text" maxlength="80">
+    <label>Wenn voll: noch Minuten, dann startet es von selbst (0 = aus)</label>
+    <input id="fullMin" type="number" min="0" max="10" step="0.5" value="1">
     <div class="chk"><input id="tourChk" type="checkbox"><span>Turnier (Gewinner sind danach gesperrt)</span></div>
     <div class="row"><div><label>Runden bis zum Finale</label><input id="roundsIn" type="number" min="1" max="50" value="10"></div><div></div></div>
     <div id="quizOpt">
@@ -74,6 +80,7 @@
     <div id="btns">
       <button id="bOpen" class="p">Anmeldung öffnen</button>
       <button id="bStart" class="p" hidden>Start</button>
+      <button id="bPlus" hidden>+1 Minute Anmeldung</button>
       <button id="bReopen" hidden>Anmeldung wieder öffnen</button>
       <button id="bQNext" class="p" hidden>Nächste Frage</button>
       <button id="bNext" class="p" hidden>Nächste Runde</button>
@@ -93,7 +100,7 @@
     <div class="hint">Das Format gilt für die nächste Runde. Es werden nur die letzten 5 Runden behalten, nur das Spielfeld.</div></div>
     <button id="bHide" style="width:100%;margin-top:10px">Feld ausblenden</button>
   </div>
-  <div id="stagewrap"><canvas id="st" width="1280" height="1920"></canvas><button id="ovBtn" class="p" hidden></button></div>
+  <div id="stagewrap"><canvas id="st" width="1280" height="1920"></canvas></div>
 </div>
 <script src="/tiktok-q.js"></script>
 <script>
@@ -318,14 +325,14 @@ var MK={quiz:Quiz,ring:Ring,kampf:Kampf};
 
 /* ---------- Ablauf ---------- */
 function readSettings(){
-  S.game=$('gameSel').value;S.len=Math.max(.1,+$('minIn').value||5);S.max=clamp(Math.floor(+$('maxIn').value||20),2,80);S.word=($('wordIn').value||'dabei').trim()||'dabei';
+  S.game=$('gameSel').value;S.len=Math.max(.1,+$('minIn').value||5);S.max=clamp(Math.floor(+$('maxIn').value||20),2,80);S.fullMin=Math.max(0,+$('fullMin').value||0);S.word=($('wordIn').value||'dabei').trim()||'dabei';
   S.tour=$('tourChk').checked;S.rounds=clamp(Math.floor(+$('roundsIn').value||10),1,50);S.sim=$('simChk').checked;S.simN=clamp(Math.floor(+$('simN').value||12),2,60);
 }
 function openSignup(){
-  readSettings();S.players=[];S.phase='signup';S.signupEnd=now()+S.len*60000;S.msg='';S.res=null;planSim();
+  readSettings();S.fullEnd=0;S.players=[];S.phase='signup';S.signupEnd=now()+S.len*60000;S.msg='';S.res=null;planSim();
 }
 function startGame(){
-  readSettings();
+  readSettings();S.fullEnd=0;
   if(S.sim&&S.players.length<2){var k=0;while(S.players.length<Math.min(4,S.max)&&k<60){var u=simUser(k++);if(!S.won[u.id])addPlayer(u)}}
   if(S.players.length<2){S.msg='Mindestens 2 Spieler nötig.';return}
   S.players.forEach(function(p){p.pts=0});S.G=MK[S.game](S.players);S.phase='play';S.msg='';
@@ -347,18 +354,24 @@ function nextRound(){
 }
 function resetTour(){S.round=1;S.winners=[];S.won={};S.final=false;S.champ=null;S.phase='idle';S.G=null;S.players=[];S.msg='Turnier zurückgesetzt.'}
 
-function cfgGet(){return {game:$('gameSel').value,min:$('minIn').value,max:$('maxIn').value,word:$('wordIn').value,tour:$('tourChk').checked,rounds:$('roundsIn').value,sim:$('simChk').checked,simN:$('simN').value,qN:$('qN').value,qT:$('qT').value,qMan:$('qMan').value,qD:$('qD').value,kD:$('kD').value,kHP:$('kHP').value,kHeal:$('kHeal').value,kNH:$('kNH').value}}
-function cfgSet(c){if(!c)return;var m={game:'gameSel',min:'minIn',max:'maxIn',word:'wordIn',rounds:'roundsIn',simN:'simN',qN:'qN',qT:'qT',qMan:'qMan',qD:'qD',kD:'kD',kHP:'kHP',kHeal:'kHeal',kNH:'kNH'};
-  for(var k in m)if(c[k]!=null)$(m[k]).value=c[k];if(c.tour!=null)$('tourChk').checked=!!c.tour;if(c.sim!=null)$('simChk').checked=!!c.sim;
+function cfgGet(){return {game:$('gameSel').value,min:$('minIn').value,max:$('maxIn').value,word:$('wordIn').value,tour:$('tourChk').checked,rounds:$('roundsIn').value,sim:$('simChk').checked,simN:$('simN').value,qN:$('qN').value,qT:$('qT').value,qMan:$('qMan').value,hideWord:$('hideWord').checked,tHead:$('tHead').value,tSub:$('tSub').value,fullMin:$('fullMin').value,qD:$('qD').value,kD:$('kD').value,kHP:$('kHP').value,kHeal:$('kHeal').value,kNH:$('kNH').value}}
+function cfgSet(c){if(!c)return;var m={game:'gameSel',min:'minIn',max:'maxIn',word:'wordIn',rounds:'roundsIn',simN:'simN',qN:'qN',qT:'qT',qMan:'qMan',tHead:'tHead',tSub:'tSub',fullMin:'fullMin',qD:'qD',kD:'kD',kHP:'kHP',kHeal:'kHeal',kNH:'kNH'};
+  for(var k in m)if(c[k]!=null)$(m[k]).value=c[k];if(c.tour!=null)$('tourChk').checked=!!c.tour;if(c.sim!=null)$('simChk').checked=!!c.sim;if(c.hideWord!=null)$('hideWord').checked=!!c.hideWord;
   $('quizOpt').hidden=$('gameSel').value!=='quiz';$('kampfOpt').hidden=$('gameSel').value!=='kampf'}
 function setCol(id,k){var p=S.players.filter(function(q){return q.id===id})[0];if(!p)return;var o=S.players.filter(function(q){return q!==p&&q.ci===k})[0];if(o){S.msg=PAL[k][0]+' ist schon an '+o.name+' vergeben. Wähle eine andere Farbe.';lastSig='';return}p.ci=k;p.c=PAL[k][1];lastSig=''}
 function rmPl(id){S.players=S.players.filter(function(q){return q.id!==id});lastSig=''}
+function plusMinute(){
+  if(S.phase==='signup'){if(S.fullEnd)S.fullEnd+=60000;else S.signupEnd+=60000}
+  else if(S.phase==='closed'&&!S.final){S.phase='signup';if(S.players.length>=S.max)S.fullEnd=now()+60000;else S.signupEnd=now()+60000;S.msg=''}
+}
 function run(n,a){
   switch(n){
     case 'open':openSignup();break;
     case 'start':startGame();break;
     case 'reopen':{var keep=S.players.slice();openSignup();S.players=keep;break}
     case 'next':nextRound();break;
+    case 'cfg':break;
+    case 'plus':plusMinute();break;
     case 'qnext':if(S.G&&S.G.next)S.G.next();break;
     case 'cancel':S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.';break;
     case 'reset':resetTour();break;
@@ -376,10 +389,11 @@ $('bOpen').onclick=function(){act('open')};
 $('bStart').onclick=function(){act('start')};
 $('bReopen').onclick=function(){act('reopen')};
 $('bNext').onclick=function(){act('next')};
+$('bPlus').onclick=function(){act('plus')};
+['maxIn','wordIn','tHead','tSub','fullMin','hideWord'].forEach(function(id){$(id).addEventListener('input',function(){if(MODE==='remote')act('cfg')});$(id).addEventListener('change',function(){if(MODE==='remote')act('cfg')})});
 $('bQNext').onclick=function(){act('qnext')};
 $('bCancel').onclick=function(){act('cancel')};
 $('bReset').onclick=function(){act('reset')};
-$('ovBtn').onclick=function(){act($('ovBtn').dataset.a||'start')};
 $('tgl').onclick=function(){document.body.classList.toggle('hide');$('tgl').textContent=document.body.classList.contains('hide')?'▶':'◀'};
 fillColSel($('apCol'),0);$('apAdd').onclick=manualAdd;$('apName').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd()});
 /* ---------- Runden-Aufnahme: nur das Spielfeld, die letzten 5 Runden ---------- */
@@ -491,7 +505,8 @@ function panel(){plist();
   var ph=S.phase,fin=S.final;
   $('bOpen').hidden=!(ph==='idle'&&!fin);
   $('bStart').hidden=!(ph==='signup'||ph==='closed');
-  $('bStart').textContent=ph==='signup'?'Jetzt starten (Anmeldung beenden)':fin?'Finale starten':'Start';
+  $('bStart').textContent=fin?'Finale starten':'Spiel starten';
+  $('bPlus').hidden=!(ph==='signup'||(ph==='closed'&&!fin));
   $('bReopen').hidden=!(ph==='closed'&&!fin);
   $('bNext').hidden=ph!=='result';
   $('bQNext').hidden=!(ph==='play'&&S.G&&S.G.waitNext);
@@ -499,7 +514,7 @@ function panel(){plist();
   $('bCancel').hidden=!(ph==='signup'||ph==='closed'||ph==='play');
   $('bReset').hidden=!(S.tour&&(S.winners.length||fin));
   var s='';
-  if(ph==='signup')s='Anmeldung läuft: '+timeStr(S.signupEnd-now())+' · '+S.players.length+' von '+S.max;
+  if(ph==='signup')s=(S.fullEnd?'Voll, Start von selbst in '+timeStr(S.fullEnd-now()):'Anmeldung läuft: '+timeStr(S.signupEnd-now()))+' · '+S.players.length+' von '+S.max;
   else if(ph==='closed')s=fin?'Finale bereit.':'Anmeldung geschlossen: '+S.players.length+' Spieler.';
   else if(ph==='play')s=GN[S.game]+' läuft · '+roundLabel();
   else if(ph==='result')s=(S.res&&S.res.winner?'Sieger: '+S.res.winner.name:'Kein Sieger');
@@ -509,12 +524,7 @@ function panel(){plist();
   if(MODE==='remote'&&!REMOTE_OK)s='Keine Bühne verbunden. Die Person mit „Nur Bühne“ muss Live geöffnet haben.\n'+s;
   $('stat').textContent=s;$('stat').style.whiteSpace='pre-line';
   if(MODE==='full'){
-    var ob=$('ovBtn');
-    if(ph==='signup'||ph==='closed'){ob.hidden=false;ob.dataset.a='start';ob.textContent=fin?'Finale starten':'Spiel starten'}
-    else if(ph==='result'){ob.hidden=false;ob.dataset.a='next';ob.textContent=$('bNext').textContent}
-    else if(ph==='play'&&S.G&&S.G.waitNext){ob.hidden=false;ob.dataset.a='qnext';ob.textContent='Nächste Frage'}
-    else ob.hidden=true;
-    if(ph!==prevPh){prevPh=ph;if(ph==='play'){document.body.classList.add('hide');$('tgl').textContent='▶'}else if(ph==='result'||ph==='idle'){document.body.classList.remove('hide');$('tgl').textContent='◀'}}
+    if(ph!==prevPh){prevPh=ph;if(ph==='play'&&S.game!=='quiz'){document.body.classList.add('hide');$('tgl').textContent='▶'}else if(ph==='result'||ph==='idle'){document.body.classList.remove('hide');$('tgl').textContent='◀'}}
   }
 }
 
@@ -525,12 +535,20 @@ function header(){
   txt(GN[S.game]+' · '+roundLabel(),270,76,18,'#3de0ff','center');
 }
 function drawIdle(){}
+function fitTxt(t,y,maxSz,col,wt,maxW){var sz=maxSz;x.font=wt+' '+sz+'px system-ui,sans-serif';while(x.measureText(t).width>maxW&&sz>20){sz-=2;x.font=wt+' '+sz+'px system-ui,sans-serif'}txt(t,270,y,sz,col,'center',wt)}
 function drawSignup(closed){
-  var left=S.signupEnd-now();
-  txt(closed?'Anmeldung geschlossen':'Anmeldung läuft',270,170,26,'#fff','center');
-  if(!closed){txt(timeStr(left),270,270,96,left<10000?'#ff6b8b':'#c6ff3d','center','900');txt('Schreibe „'+S.word+'“ in den Chat',270,312,24,'#3de0ff','center')}
-  else{txt(S.final?'Finale':'Los geht’s gleich',270,270,64,'#c6ff3d','center','900')}
-  txt(S.players.length+' / '+S.max+' Spieler',270,360,28,'#fff','center');
+  var left=S.signupEnd-now(),fl=S.fullEnd?S.fullEnd-now():0,sub=($('tSub').value||'').trim(),hide=$('hideWord').checked,head=($('tHead').value||'').trim()||'Los geht’s gleich',cy=360;
+  if(!closed){
+    txt(S.fullEnd?'Alle Plätze belegt':'Anmeldung läuft',270,170,26,'#fff','center');
+    var tl=S.fullEnd?fl:left;txt(timeStr(tl),270,270,96,tl<10000?'#ff6b8b':'#c6ff3d','center','900');
+    if(sub){var ls=wrap(sub,500,22).slice(0,2);ls.forEach(function(l,i){txt(l,270,312+i*28,22,'#3de0ff','center')});cy=360+(ls.length-1)*28}
+    else if(!hide)txt('Schreibe „'+S.word+'“ in den Chat',270,312,24,'#3de0ff','center');
+  }else{
+    txt('Anmeldung geschlossen',270,170,26,'#fff','center');
+    fitTxt(S.final?'Finale':head,270,64,'#c6ff3d','900',500);
+    if(sub){var l2=wrap(sub,500,22).slice(0,2);l2.forEach(function(l,i){txt(l,270,312+i*28,22,'#3de0ff','center')});cy=360+(l2.length-1)*28}
+  }
+  txt(S.players.length+' / '+S.max+' Spieler',270,cy,28,'#fff','center');
   var n=S.players.length,cols=n>36?(n>50?(n>64?12:10):9):6,sz=Math.min(64,480/cols),gx=(W-cols*sz)/2,rows=Math.ceil(n/cols),rh=Math.min(86,440/Math.max(1,rows)),rad=Math.min(22,sz/2-5),nf=n>36?11:12;
   S.players.slice(0,84).forEach(function(p,i){var cx=gx+(i%cols)*sz+sz/2,cy=420+Math.floor(i/cols)*rh+rad+4;ball(p,cx,cy,rad);txt(p.name.slice(0,n>36?6:9),cx,cy+rad+14,nf,'#fff','center','500')});
   if(S.tour&&S.winners.length&&!S.final){txt('Schon gewonnen und gesperrt:',30,870,15,'#9aa3d0','left');txt(S.winners.map(function(w){return w.p.name}).join(', ').slice(0,60),30,892,16,'#ffc446','left')}
@@ -558,7 +576,11 @@ function loop(t){
   if(S.phase==='signup'){
     var el=S.len*60-(S.signupEnd-now())/1000;
     S.plan.forEach(function(p){if(!p.d&&el>=p.at){p.d=true;window.TTFeed({id:p.u.id,name:p.u.name,text:S.word})}});
-    if(S.signupEnd-now()<=0||S.players.length>=S.max){S.phase='closed';S.msg=S.players.length>=S.max?'Maximal erreicht.':''}
+    S.max=clamp(Math.floor(+$('maxIn').value||20),2,80);S.fullMin=Math.max(0,+$('fullMin').value||0);
+    var full=S.players.length>=S.max;
+    if(full&&S.fullMin>0){if(!S.fullEnd)S.fullEnd=now()+S.fullMin*60000;if(now()>=S.fullEnd){startGame()}}
+    else if(full){S.fullEnd=0;S.phase='closed';S.msg='Maximal erreicht.'}
+    else{S.fullEnd=0;if(S.signupEnd-now()<=0){S.phase='closed';S.msg=''}}
   }
   if(S.phase==='play'&&S.G){S.G.update(dt);if(S.G.done)finishRound()}
   recPhase();draw();if(rec)compose();
@@ -571,7 +593,7 @@ $('quizOpt').hidden=false;
 if(MODE==='stage'){
   var since=-1;
   setInterval(function(){api('/api/tiktok-sync',{op:'poll',since:since}).then(function(j){if(!j||!j.ok)return;if(since<0||j.seq<since){since=j.seq;return}j.cmds.forEach(function(c){since=Math.max(since,c.id);cfgSet(c.cmd.cfg);try{run(c.cmd.n,c.cmd.a||{})}catch(e){}});since=Math.max(since,j.seq)}).catch(function(){})},800);
-  setInterval(function(){api('/api/tiktok-sync',{op:'status',status:{phase:S.phase,msg:S.msg,players:S.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}}),left:S.phase==='signup'?Math.max(0,S.signupEnd-now()):0,max:S.max,round:S.round,rounds:S.rounds,final:S.final,tour:S.tour,game:S.game,winners:S.winners.map(function(w){return w.p.name}),qwait:!!(S.G&&S.G.waitNext),hasRes:!!S.res,resW:S.res&&S.res.winner?S.res.winner.name:'',word:S.word}}).catch(function(){})},1000);
+  setInterval(function(){api('/api/tiktok-sync',{op:'status',status:{phase:S.phase,msg:S.msg,players:S.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}}),left:S.phase==='signup'?Math.max(0,S.signupEnd-now()):0,max:S.max,round:S.round,rounds:S.rounds,final:S.final,tour:S.tour,game:S.game,winners:S.winners.map(function(w){return w.p.name}),qwait:!!(S.G&&S.G.waitNext),fullLeft:S.fullEnd?Math.max(0,S.fullEnd-now()):0,hasRes:!!S.res,resW:S.res&&S.res.winner?S.res.winner.name:'',word:S.word}}).catch(function(){})},1000);
 }
 if(MODE==='remote'){
   setInterval(function(){api('/api/tiktok-sync',{op:'get'}).then(function(j){
@@ -580,7 +602,7 @@ if(MODE==='remote'){
     S.phase=st.phase;S.msg=st.msg||'';S.max=st.max;S.round=st.round;S.rounds=st.rounds;S.final=st.final;S.tour=st.tour;S.game=st.game;S.word=st.word;
     S.players=st.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}});
     S.signupEnd=now()+(st.left||0);S.winners=(st.winners||[]).map(function(n){return {p:{name:n}}});
-    S.G=st.qwait?{waitNext:true}:null;
+    S.G=st.qwait?{waitNext:true}:null;S.fullEnd=st.fullLeft>0?now()+st.fullLeft:0;
     S.res=st.hasRes?{winner:st.resW?{name:st.resW}:null}:null;
   }).catch(function(){})},1000);
 }
