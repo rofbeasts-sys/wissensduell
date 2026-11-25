@@ -76,6 +76,11 @@
       <div class="row"><div><label>Heilen (herz im Chat)</label><select id="kHeal"><option value="1">An</option><option value="0">Aus</option></select></div><div><label>Heilen aus, letzte Sekunden</label><input id="kNH" type="number" min="0" max="600" value="60"></div></div>
       <div class="hint">Nach der Spieldauer beginnt die Verlängerung: kein Heilen mehr, die Arena wird klein und die Kugeln werden schneller, bis einer übrig ist.</div>
     </div>
+    <div id="catBox"><label>Kategorie für die Testzuschauer (Namen statt Vornamen)</label>
+      <select id="catSel"></select>
+      <textarea id="catOwn" rows="5" placeholder="Eigene Liste, ein Name pro Zeile" hidden style="width:100%;margin-top:6px"></textarea>
+      <div class="hint" id="catInfo"></div>
+      <div class="row"><button id="catFill" class="q">Namen jetzt eintragen</button></div></div>
     <div class="chk"><input id="simChk" type="checkbox"><span>Testzuschauer (Computer-Spieler, keine echten Leute)</span><input id="simN" type="number" min="2" max="80" value="12" style="width:70px;margin-left:auto"></div>
     <div id="btns">
       <button id="bOpen" class="p">Anmeldung öffnen</button>
@@ -107,6 +112,7 @@
   <div id="stagewrap"><canvas id="st" width="1280" height="1920"></canvas></div>
 </div>
 <script src="/tiktok-q.js"></script>
+<script src="/tiktok-kat.js"></script>
 <script>
 (function(){
 "use strict";
@@ -175,14 +181,42 @@ window.TTFeed=function(u){
     var p=S.players.filter(function(q){return q.id===u.id||q.name.toLowerCase()===String(u.name||'').trim().toLowerCase()})[0]; if(p)S.G.chat(p,t);
   }
 };
-function simUser(i){return {id:'sim'+i,name:SIMN[i%SIMN.length]+(i>=SIMN.length?Math.floor(i/SIMN.length)+1:'')}}
-function planSim(){S.plan=[]}
+/* Kategorien: Namen fuer Testzuschauer */
+var KAT=window.TT_KAT||{};
+function catName(){var v=$('catSel').value;return v==='__own'?'Eigene Namen':v}
+function catList(){
+  if($('gameSel').value==='quiz')return null;
+  var v=$('catSel').value;if(!v)return null;
+  if(v==='__own'){var seen={},o=[];String($('catOwn').value||'').split(/\n+/).forEach(function(l){var n=clean(l);if(n&&n!=='Gast'&&!seen[n.toLowerCase()]){seen[n.toLowerCase()]=1;o.push(n)}});return o.length?o.slice(0,80):null}
+  return KAT[v]?KAT[v].slice():null;
+}
+function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
+function catOrder(){var L=catList();if(!L){S.catOrd=null;return null}var key=$('catSel').value+'|'+L.join('|');if(S.catKey!==key||!S.catOrd){S.catKey=key;S.catOrd=shuf(L)}return S.catOrd}
+function catInfo(){
+  var el=$('catInfo');if(!el)return;var v=$('catSel').value;$('catOwn').hidden=v!=='__own';
+  var L=catList();
+  if(!v){el.textContent='Keine Kategorie: die Testzuschauer heißen normale Vornamen.';return}
+  if(!L){el.textContent=v==='__own'?'Trage unten Namen ein, einen pro Zeile.':'';return}
+  var n=Math.floor(+$('simN').value||0);
+  el.textContent=catName()+': '+L.length+' Namen, z. B. '+L.slice(0,4).join(', ')+'. '+(n>L.length?'Du willst '+n+', es gibt aber nur '+L.length+'. ':'')+'Mit Haken bei Testzuschauer kommen die Namen langsam während der Anmeldung. Mit „Namen jetzt eintragen“ sind sie sofort da.';
+}
+function optVis(){var g=$('gameSel').value;$('quizOpt').hidden=g!=='quiz';$('kampfOpt').hidden=g!=='kampf';$('catBox').hidden=g==='quiz';catInfo()}
+function simUser(i){var o=catOrder();if(o){var nm=o[i%o.length];return {id:'sim:'+nm.toLowerCase(),name:nm}}return {id:'sim'+i,name:SIMN[i%SIMN.length]+(i>=SIMN.length?Math.floor(i/SIMN.length)+1:'')}}
+function planSim(){S.plan=[];S.catOrd=null}
 function simFill(dt){
   if(!S.sim||S.fullEnd)return;
-  var tgt=Math.min(clamp(Math.floor(+$('simN').value||0),0,80),S.max);
+  var o=catOrder(),tgt=Math.min(clamp(Math.floor(+$('simN').value||0),0,80),S.max,o?o.length:80);
   if(S.players.length>=tgt)return;
   var remain=Math.max(3,(S.signupEnd-now())/1000*.6);
-  if(Math.random()<dt*(tgt-S.players.length)/remain*1.5){for(var i=0;i<400;i++){var u=simUser(i);if(!S.players.some(function(p){return p.id===u.id})&&!S.won[u.id]){window.TTFeed({id:u.id,name:u.name,text:S.word});break}}}
+  if(Math.random()<dt*(tgt-S.players.length)/remain*1.5){for(var i=0;i<(o?o.length:400);i++){var u=simUser(i);if(!S.players.some(function(p){return p.id===u.id})&&!S.won[u.id]){window.TTFeed({id:u.id,name:u.name,text:S.word});break}}}
+}
+function catFill(){
+  var o=catOrder();if(!o){S.msg='Wähle zuerst eine Kategorie.';return}
+  if(S.phase==='idle'&&!S.final)openSignup();
+  if(S.phase!=='signup'&&S.phase!=='closed'){S.msg='Eintragen geht nur vor dem Start.';return}
+  var n=clamp(Math.floor(+$('simN').value||10),1,80),c=0;o=catOrder();
+  for(var i=0;i<o.length&&c<n;i++){var u=simUser(i);if(S.won[u.id])continue;if(addPlayer(u,-1))c++}
+  S.msg=c+' Namen aus „'+catName()+'“ eingetragen.';lastSig='';
 }
 
 /* ---------- Zeichenhilfen ---------- */
@@ -365,10 +399,10 @@ function nextRound(){
 }
 function resetTour(){S.round=1;S.winners=[];S.won={};S.final=false;S.champ=null;S.phase='idle';S.G=null;S.players=[];S.msg='Turnier zurückgesetzt.'}
 
-function cfgGet(){return {game:$('gameSel').value,min:$('minIn').value,max:$('maxIn').value,word:$('wordIn').value,tour:$('tourChk').checked,rounds:$('roundsIn').value,sim:$('simChk').checked,simN:$('simN').value,qN:$('qN').value,qT:$('qT').value,qMan:$('qMan').value,hideWord:$('hideWord').checked,tHead:$('tHead').value,tSub:$('tSub').value,fullMin:$('fullMin').value,qD:$('qD').value,kD:$('kD').value,kHP:$('kHP').value,kHeal:$('kHeal').value,kNH:$('kNH').value}}
-function cfgSet(c){if(!c)return;var m={game:'gameSel',min:'minIn',max:'maxIn',word:'wordIn',rounds:'roundsIn',simN:'simN',qN:'qN',qT:'qT',qMan:'qMan',tHead:'tHead',tSub:'tSub',fullMin:'fullMin',qD:'qD',kD:'kD',kHP:'kHP',kHeal:'kHeal',kNH:'kNH'};
+function cfgGet(){return {game:$('gameSel').value,min:$('minIn').value,max:$('maxIn').value,word:$('wordIn').value,tour:$('tourChk').checked,rounds:$('roundsIn').value,sim:$('simChk').checked,simN:$('simN').value,qN:$('qN').value,qT:$('qT').value,qMan:$('qMan').value,hideWord:$('hideWord').checked,tHead:$('tHead').value,tSub:$('tSub').value,fullMin:$('fullMin').value,qD:$('qD').value,kD:$('kD').value,kHP:$('kHP').value,kHeal:$('kHeal').value,kNH:$('kNH').value,cat:$('catSel').value,catOwn:$('catOwn').value}}
+function cfgSet(c){if(!c)return;var m={game:'gameSel',min:'minIn',max:'maxIn',word:'wordIn',rounds:'roundsIn',simN:'simN',qN:'qN',qT:'qT',qMan:'qMan',tHead:'tHead',tSub:'tSub',fullMin:'fullMin',qD:'qD',kD:'kD',kHP:'kHP',kHeal:'kHeal',kNH:'kNH',cat:'catSel',catOwn:'catOwn'};
   for(var k in m)if(c[k]!=null)$(m[k]).value=c[k];if(c.tour!=null)$('tourChk').checked=!!c.tour;if(c.sim!=null)$('simChk').checked=!!c.sim;if(c.hideWord!=null)$('hideWord').checked=!!c.hideWord;
-  $('quizOpt').hidden=$('gameSel').value!=='quiz';$('kampfOpt').hidden=$('gameSel').value!=='kampf'}
+  optVis();catInfo()}
 function setCol(id,k){var p=S.players.filter(function(q){return q.id===id})[0];if(!p)return;var o=S.players.filter(function(q){return q!==p&&q.ci===k})[0];if(o){S.msg=PAL[k][0]+' ist schon an '+o.name+' vergeben. Wähle eine andere Farbe.';lastSig='';return}p.ci=k;p.c=PAL[k][1];lastSig=''}
 function rmPl(id){S.players=S.players.filter(function(q){return q.id!==id});lastSig=''}
 function plusMinute(){
@@ -387,6 +421,7 @@ function run(n,a){
     case 'cancel':S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.';break;
     case 'reset':resetTour();break;
     case 'add':doAdd(a.nm,a.k);break;
+    case 'catfill':catFill();break;
     case 'rm':rmPl(a.id);break;
     case 'color':setCol(a.id,a.k);break;
     case 'chat':window.TTFeed({id:'test:'+String(a.n).toLowerCase(),name:a.n,text:a.t});break;
@@ -401,11 +436,15 @@ $('bStart').onclick=function(){act('start')};
 $('bReopen').onclick=function(){act('reopen')};
 $('bNext').onclick=function(){act('next')};
 $('bPlus').onclick=function(){act('plus')};
-['maxIn','wordIn','tHead','tSub','fullMin','hideWord'].forEach(function(id){$(id).addEventListener('input',function(){if(MODE==='remote')act('cfg')});$(id).addEventListener('change',function(){if(MODE==='remote')act('cfg')})});
+['maxIn','wordIn','tHead','tSub','fullMin','hideWord','catSel','catOwn','simN'].forEach(function(id){$(id).addEventListener('input',function(){if(MODE==='remote')act('cfg')});$(id).addEventListener('change',function(){if(MODE==='remote')act('cfg')})});
 $('bQNext').onclick=function(){act('qnext')};
 $('bCancel').onclick=function(){act('cancel')};
 $('bReset').onclick=function(){act('reset')};
 $('tgl').onclick=function(){document.body.classList.toggle('hide');$('tgl').textContent=document.body.classList.contains('hide')?'▶':'◀'};
+(function(){var sl=$('catSel'),o=document.createElement('option');o.value='';o.textContent='Keine (normale Vornamen)';sl.appendChild(o);Object.keys(KAT).forEach(function(k){var q=document.createElement('option');q.value=k;q.textContent=k+' ('+KAT[k].length+')';sl.appendChild(q)});var w=document.createElement('option');w.value='__own';w.textContent='Eigene Liste';sl.appendChild(w)})();
+$('catSel').addEventListener('change',function(){S.catOrd=null;catInfo()});$('catOwn').addEventListener('input',function(){S.catOrd=null;catInfo()});$('simN').addEventListener('input',catInfo);
+$('catFill').onclick=function(){act('catfill')};
+optVis();
 fillColSel($('apCol'),0);$('apAdd').onclick=manualAdd;$('apName').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd()});
 /* ---------- Musik (selbst erzeugt, keine Dateien) ---------- */
 var AC=null,mG=null,mDest=null,mNoise=null,mOn=false,mTimer=0,mStep=0,mNext=0,mPh='';
@@ -518,7 +557,7 @@ $('bHide').onclick=function(){document.body.classList.toggle('hide')};
 document.addEventListener('keydown',function(e){
   if(e.key==='h'||e.key==='H'){var t=(e.target&&e.target.tagName)||'';if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return;document.body.classList.toggle('hide')}});
 Array.prototype.forEach.call(document.querySelectorAll('[data-m]'),function(b){b.onclick=function(){$('minIn').value=b.dataset.m}});
-$('gameSel').onchange=function(){$('quizOpt').hidden=$('gameSel').value!=='quiz';$('kampfOpt').hidden=$('gameSel').value!=='kampf'};
+$('gameSel').onchange=function(){optVis()};
 $('tcSend').onclick=function(){var n=($('tcName').value||'Du').trim()||'Du',t=$('tcText').value;act('chat',{n:n,t:t});$('tcText').value=''};
 $('tcText').placeholder='dabei rot';$('tcText').addEventListener('keydown',function(e){if(e.key==='Enter')$('tcSend').click()});
 
@@ -602,7 +641,7 @@ function drawSignup(closed){
     fitTxt(S.final?'Finale':head,270,64,'#c6ff3d','900',500);
     if(sub){var l2=wrap(sub,500,22).slice(0,2);l2.forEach(function(l,i){txt(l,270,312+i*28,22,'#3de0ff','center')});cy=360+(l2.length-1)*28}
   }
-  txt(S.players.length+' / '+S.max+' Spieler',270,cy,28,'#fff','center');
+  txt(S.players.length+' / '+S.max+' '+(catList()?catName():'Spieler'),270,cy,28,'#fff','center');
   var n=S.players.length,cols=n>36?(n>50?(n>64?12:10):9):6,sz=Math.min(64,480/cols),gx=(W-cols*sz)/2,rows=Math.ceil(n/cols),rh=Math.min(86,440/Math.max(1,rows)),rad=Math.min(22,sz/2-5),nf=n>36?11:12;
   S.players.slice(0,84).forEach(function(p,i){var cx=gx+(i%cols)*sz+sz/2,cy=420+Math.floor(i/cols)*rh+rad+4;ball(p,cx,cy,rad);txt(p.name.slice(0,n>36?6:9),cx,cy+rad+14,nf,'#fff','center','500')});
   if(S.tour&&S.winners.length&&!S.final){txt('Schon gewonnen und gesperrt:',30,870,15,'#9aa3d0','left');txt(S.winners.map(function(w){return w.p.name}).join(', ').slice(0,60),30,892,16,'#ffc446','left')}
