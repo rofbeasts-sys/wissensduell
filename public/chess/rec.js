@@ -73,6 +73,14 @@
     r.moves.forEach(function(m){ var mv = { fr: m.fr, fc: m.fc, tr: m.tr, tc: m.tc, castle: m.castle, ep: m.ep, promTo: m.promTo }; var legal = getAllLegalMoves(bs[bs.length - 1], m.col, last).filter(function(x){ return x.fr === m.fr && x.fc === m.fc && x.tr === m.tr && x.tc === m.tc && (x.promTo || null) === (m.promTo || null); })[0] || mv; bs.push(applyMove(bs[bs.length - 1], legal)); last = legal; });
     return bs;
   }
+  function entriesOf(r){
+    var b = r.init ? JSON.parse(JSON.stringify(r.init)) : initBoard(), last = null, out = [];
+    r.moves.forEach(function(m){ var mv = { fr: m.fr, fc: m.fc, tr: m.tr, tc: m.tc, castle: m.castle, ep: m.ep, promTo: m.promTo }; var legal = getAllLegalMoves(b, m.col, last).filter(function(x){ return x.fr === m.fr && x.fc === m.fc && x.tr === m.tr && x.tc === m.tc && (x.promTo || null) === (m.promTo || null); })[0] || mv;
+      if(m.col === r.me) out.push({ board: b, last: last, col: m.col, move: Object.assign({}, legal) });
+      b = applyMove(b, legal); last = legal; });
+    return out;
+  }
+  function analyse(r){ try{ var e = entriesOf(r); if(!e.length || !window.bpAnalysis) return; var ov = document.getElementById('recOv'); if(ov) ov.classList.remove('show'); window.bpAnalysis.show(e); }catch(x){} }
   function rr(x, c, a, b, w, h, r){ c.beginPath(); c.moveTo(a + r, b); c.arcTo(a + w, b, a + w, b + h, r); c.arcTo(a + w, b + h, a, b + h, r); c.arcTo(a, b + h, a, b, r); c.arcTo(a, b, a + w, b, r); c.closePath(); }
   function piece(c, p, x, y, cell){
     c.font = Math.round(cell * 0.82) + 'px ' + FONT; c.textAlign = 'center'; c.textBaseline = 'middle';
@@ -203,7 +211,9 @@
     h += '</div><div class="row"><button class="btn" id="recC">' + (t ? 'Schließen' : 'Close') + '</button></div>';
     card.innerHTML = h; ov.classList.add('show');
     document.getElementById('recC').onclick = function(){ ov.classList.remove('show'); };
-    Array.prototype.forEach.call(card.querySelectorAll('button[data-i]'), function(b){ b.onclick = function(){ open(+b.dataset.i, true); }; });
+    Array.prototype.forEach.call(card.querySelectorAll('button[data-i]'), function(b){ b.onclick = function(){ open(+b.dataset.i, true); };
+      var w = document.createElement('div'); w.style.cssText = 'display:flex;gap:6px;align-items:stretch'; b.parentNode.insertBefore(w, b); w.appendChild(b); b.style.flex = '1'; b.style.minWidth = '0';
+      var ab = document.createElement('button'); ab.className = 'btn'; ab.type = 'button'; ab.textContent = '🔍'; ab.title = t ? 'Analysieren' : 'Analyse'; ab.style.cssText = 'flex:none;padding:8px 12px;font-size:20px'; ab.onclick = function(){ analyse(all[+b.dataset.i]); }; w.appendChild(ab); });
   }
   function open(idx, fromList){
     var all = list();
@@ -216,9 +226,10 @@
       + '<div style="display:flex;gap:12px;align-items:center;margin:10px 0;text-align:left"><img id="recTh" alt="" style="width:92px;height:92px;border-radius:8px;flex:none;background:#151a45" src="' + thumb(r) + '"><div style="min-width:0"><b>' + res + '</b><br><span style="opacity:.8;font-size:13px">' + Math.ceil(r.moves.length / 2) + (t ? ' Züge gegen ' : ' moves vs ') + ((r.opp && r.opp.name) || 'Bot') + '</span><br><span style="color:#ffd45a;font-size:12px">⏱ ' + left(r) + '</span></div></div>'
       + '<div id="recProg" style="display:none;height:10px;border-radius:99px;background:#1b2160;overflow:hidden;margin:6px 0"><div id="recBar" style="height:100%;width:0;background:#c6ff3d"></div></div>'
       + '<div id="recMsg" style="font-size:13px;opacity:.85;min-height:18px;margin:2px 0 6px"></div><div id="recVid"></div>'
-      + '<div class="row" style="flex-direction:column;gap:8px"><button class="btn primary" id="recV">' + (t ? '🎥 Video erstellen' : '🎥 Create video') + '</button><button class="btn" id="recP">' + (t ? '📄 Zugliste herunterladen' : '📄 Download move list') + '</button><button class="btn" id="recC">' + (fromList ? (t ? 'Zurück zur Liste' : 'Back to list') : (t ? 'Schließen' : 'Close')) + '</button></div>';
+      + '<div class="row" style="flex-direction:column;gap:8px"><button class="btn primary" id="recV">' + (t ? '🎥 Video erstellen' : '🎥 Create video') + '</button><button class="btn" id="recAn">' + (t ? '🔍 Partie analysieren' : '🔍 Analyse game') + '</button><button class="btn" id="recP">' + (t ? '📄 Zugliste herunterladen' : '📄 Download move list') + '</button><button class="btn" id="recC">' + (fromList ? (t ? 'Zurück zur Liste' : 'Back to list') : (t ? 'Schließen' : 'Close')) + '</button></div>';
     ov.classList.add('show');
     document.getElementById('recC').onclick = function(){ if(vidBusy) return; if(fromList) openList(list()); else ov.classList.remove('show'); };
+    document.getElementById('recAn').onclick = function(){ analyse(r); };
     document.getElementById('recP').onclick = function(){ save(fname(r, 'pgn'), new Blob([pgn(r)], { type: 'application/x-chess-pgn' })); };
     document.getElementById('recV').onclick = function(){
       if(vidBusy) return; var b = document.getElementById('recV');

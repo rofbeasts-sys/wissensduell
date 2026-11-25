@@ -25,7 +25,9 @@
     if(g === 'muehle') return { depth: 1 + Math.round(t * 5), ms: 100 + Math.round(t * 1000), rnd: Math.max(0, 0.45 * (1 - t * 2.2)) };
     if(g === 'ttt' || g === 'tttqm' || g === 'tttqu') return { d: Math.min(0.9, 0.04 + 0.9 * Math.pow(t, 0.85)) };
     if(g === 'dame') return { depth: 1 + Math.round(t * 6), budget: 60 + Math.round(t * 840), rnd: Math.max(0, 0.5 * (1 - t * 2.2)), noise: Math.round(40 * q) };
-    return { depth: t < 0.2 ? 1 : t < 0.6 ? 2 : 3, jitter: Math.round(150 * q) + 2, blunderChance: Math.max(0, 0.5 * (1 - t * 1.6)) };
+    // Schach: Stufe steigt gleichmaessig. Platz 0-7 Tiefe 1, 8-19 Tiefe 2, ab 20 Tiefe 3. Fehler = schwaecherer Zug aus den besten Zuegen, kein Zufallszug.
+    var d = i < 8 ? 1 : i < 20 ? 2 : 3, err = d === 1 ? 0.55 - 0.04 * i : d === 2 ? 0.40 - 0.029 * (i - 8) : Math.max(0, 0.12 - 0.0133 * (i - 20));
+    return { depth: d, jitter: Math.round(40 * q) + 2, blunderChance: 0, err: Math.max(0, err), topK: d === 1 ? 4 : 3 };
   }
   var START = 600, K = 32, boughtBy = {};
   function pg(g){ return g === 'tttqm' || g === 'tttqu' ? 'ttt' : (['chess','dame','fourups','muehle','ttt'].indexOf(g) >= 0 ? g : 'chess'); }

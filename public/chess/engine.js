@@ -287,11 +287,19 @@ function getAIMove(board,lastMove,frozenSquares,aiCol){
 
   const ordered=orderMoves(moves,board);
   let best=null,bestScore=-Infinity;
+  const lvl=getAIDifficulty(), scored=lvl.topK?[]:null;
   for(const m of ordered){
     const nb=applyMove(board,m);
     const v0=minimax(nb,depth,-Infinity,Infinity,ac==='w',m), v=ac==='w'?-v0:v0; // Weiss will die Bewertung (aus Sicht Schwarz) senken
     const j=(Math.random()-0.5)*jitter*2;
+    if(scored) scored.push({m,s:v+j});
     if(v+j>bestScore){bestScore=v+j;best=m;}
+  }
+  // Leiter-Gegner: mit Wahrscheinlichkeit err ein etwas schwaecherer Zug aus den besten topK (statt Zufallszug)
+  if(scored && lvl.err>0 && Math.random()<lvl.err && scored.length>1){
+    scored.sort((x,y)=>y.s-x.s);
+    const k=Math.min(lvl.topK,scored.length);
+    return scored[1+Math.floor(Math.random()*(k-1))].m;
   }
   return best;
 }
