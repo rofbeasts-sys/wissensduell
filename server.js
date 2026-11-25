@@ -4992,6 +4992,16 @@ async function chessAna(payload, lang) {
     const mine = rows.find(x => x.u === user);
     return { ok: true, week: mk("w"), total: mk("t"), me: mine ? { week: mine.w, total: mine.t, level: anaLevel(mine.t) } : { week: 0, total: 0, level: 0 } };
   }
+  if (act === "win") {
+    // Sieg gegen einen Gegner der Leiter: +1 Analyse-Token (je Partie einmal, max. 5 pro Tag)
+    const a = anaState(user), wid = "w" + String(payload.id || "").slice(0, 40);
+    if (wid.length < 3 || a.ids.includes(wid)) return { ...anaPublic(user), granted: false };
+    if (a.winDay !== a.day) { a.winDay = a.day; a.dayWins = 0; }
+    if ((a.dayWins | 0) >= 5) return { ...anaPublic(user), granted: false };
+    a.dayWins = (a.dayWins | 0) + 1; a.bonus += 1; a.ids.push(wid); if (a.ids.length > 300) a.ids = a.ids.slice(-300);
+    if (!(await saveUsers())) return serviceDownMsg(lang);
+    return { ...anaPublic(user), granted: true };
+  }
   if (act !== "open" && act !== "buy") return { ok: false, error: lang === "en" ? "Unknown action." : "Unbekannte Aktion." };
   const id = String(payload.id || "").slice(0, 40); if (!id) return { ok: false, error: lang === "en" ? "No game." : "Keine Partie." };
   const a = anaState(user);

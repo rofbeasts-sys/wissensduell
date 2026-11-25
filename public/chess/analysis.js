@@ -255,7 +255,7 @@
       setTimeout(step, 0);
     }
     function finish(){
-      var s = summarize(rows);
+      var s = summarize(rows); try{ s.counts.best = countPerfect(entries, rows); }catch(e){}
       sumEl.innerHTML = "<b style='color:#c6ff3d;font-size:20px'>" + s.accuracy + "%</b> " + T.acc + " &nbsp;·&nbsp; "
         + CLS.map(function(c){ return "<span style='color:" + c.color + "'>" + c.icon + " " + s.counts[c.key] + "</span>"; }).join(" &nbsp;");
       ov.__result = { rows: rows, summary: s };

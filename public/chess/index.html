@@ -478,7 +478,7 @@ function finish(res){
     try{ const q = JSON.parse(localStorage.getItem("wq_achv_q") || "[]"); q.push({ t:"chess", won: res.result === "win", level: OPP != null ? Math.min(4, 1 + Math.floor(OPP / 8)) : level, moves: G.rec.length, lost: (ME === "w" ? G.capB : G.capW).length }); localStorage.setItem("wq_achv_q", JSON.stringify(q.slice(-50))); }catch(e){}
   }
   let ladderNote = '';
-  if(OPP != null && G.ladderCounted !== true && G.rec.length >= 2){ G.ladderCounted = true; try{ ladderNote = '\n' + BpLadder.endNote('chess', OPP, BpLadder.result('chess', OPP, res.result), LANG); }catch(e){} buildUi(); }
+  if(OPP != null && G.ladderCounted !== true && G.rec.length >= 2){ G.ladderCounted = true; if(res.result === 'win'){ try{ const _t = localStorage.getItem('wq_account_token'); if(_t) fetch('/api/chess-ana', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ token:_t, act:'win', id: String(Date.now()) + G.rec.length }) }).catch(()=>{}); }catch(e){} } try{ ladderNote = '\n' + BpLadder.endNote('chess', OPP, BpLadder.result('chess', OPP, res.result), LANG); }catch(e){} buildUi(); }
   $("endTitle").textContent = (res.result === "win" ? "🏆 " : res.result === "loss" ? "💀 " : "🤝 ") + title;
   $("endText").textContent = text + ladderNote; $("endText").style.whiteSpace = 'pre-line';
   if(CH) BpCh.endUi(res);
