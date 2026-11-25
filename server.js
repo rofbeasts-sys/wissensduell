@@ -4964,10 +4964,10 @@ function ladderOwned(user, game) {
   return LADDER_BUY_IDS.filter(id => a.includes(id) || b.includes(id));
 }
 /* ---- Schach-Analyse: Tokens, perfekte Zuege, Stufen, Bestenliste ---- */
-const ANA_FREE = 5, ANA_COIN_COST = 10, ANA_LEVELS = [10, 50, 150, 400, 1000, 2500], ANA_MAX_PER_GAME = 60, ANA_MAX_PER_DAY = 400;
+const ANA_FREE = 5, ANA_COIN_COST = 10, ANA_LEVELS = [0, 50, 100, 200, 300, 400, 600, 850, 1200, 1600, 2100, 2800, 3600, 4600, 5800, 7200, 9000, 11000], ANA_MAX_PER_GAME = 60, ANA_MAX_PER_DAY = 400;
 function anaDay() { return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); }
 function anaWeek() { const d = new Date(anaDay() + "T12:00:00Z"); const wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10); }
-function anaLevel(n) { let l = 0; ANA_LEVELS.forEach((v, i) => { if (n >= v) l = i + 1; }); return l; }
+function anaLevel(n) { let l = 0; ANA_LEVELS.forEach((v, i) => { if (n >= v) l = i; }); return l; }
 function anaState(user) {
   const a = user.chessAna && typeof user.chessAna === "object" ? user.chessAna : (user.chessAna = {});
   const day = anaDay(), wk = anaWeek();
@@ -4979,7 +4979,7 @@ function anaState(user) {
 }
 function anaPublic(user) {
   const a = anaState(user), lvl = anaLevel(a.perfect), left = Math.max(0, ANA_FREE - a.used) + a.bonus;
-  return { ok: true, tokens: left, freePerDay: ANA_FREE, cost: ANA_COIN_COST, coins: user.stats.coins || 0, perfect: a.perfect, week: a.wkPerfect, level: lvl, levels: ANA_LEVELS, next: lvl < ANA_LEVELS.length ? ANA_LEVELS[lvl] : null };
+  return { ok: true, tokens: left, freePerDay: ANA_FREE, cost: ANA_COIN_COST, coins: user.stats.coins || 0, perfect: a.perfect, week: a.wkPerfect, level: lvl, levels: ANA_LEVELS, next: lvl + 1 < ANA_LEVELS.length ? ANA_LEVELS[lvl + 1] : null };
 }
 async function chessAna(payload, lang) {
   if (!usersLoaded) return serviceDownMsg(lang);
@@ -5012,7 +5012,7 @@ async function chessAna(payload, lang) {
   a.perfect += perfect; a.wkPerfect += perfect; a.dayPerfect += perfect;
   a.ids.push(id); if (a.ids.length > 300) a.ids = a.ids.slice(-300);
   const after = anaLevel(a.perfect), newLevel = after > before ? after : 0;
-  if (newLevel) a.bonus += after - before;
+  if (newLevel && Math.floor(after / 3) > Math.floor(before / 3)) a.bonus += 1;
   if (!(await saveUsers())) return serviceDownMsg(lang);
   return { ...anaPublic(user), counted: true, gain: perfect, paid, newLevel };
 }

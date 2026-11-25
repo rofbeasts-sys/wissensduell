@@ -4759,6 +4759,7 @@ function toggleProfileMenu(ev){
   const m=document.createElement("div"); m.id="profMenu"; m.className="prof-menu";
   m.innerHTML = `<div class="pm-head">${avatarHtml(account.profile.avatar||"🙂",40)}<div><b>${esc(account.profile.username)}</b>${betaLabelHtml(account.profile.betaPhase)}<div style="font-size:11px;color:var(--text-dim)">${L('Klasse','Class')} ${account.profile.klasse||0}</div></div></div>
     <button onclick="closeProfileMenu();renderAvatarPicker('account:'+account.profile.username, renderMainMenu)">${L('Profil ändern','Edit profile')}</button>
+    <button onclick="closeProfileMenu();zpOpen('total')">⚡ Brainups</button>
     <button onclick="closeProfileMenu();openNews()">📰 News${newsBadgeHtml(true)}</button>
     <button onclick="closeProfileMenu();startFriendsFlow()">${L('Freunde','Friends')}</button>
     <button onclick="closeProfileMenu();openAccountsModal()">${L('Konten','Accounts')}</button>
@@ -8039,7 +8040,7 @@ function renderMainMenu(){
     </div>
     <div id="liveStrip" class="live-strip">${liveStripHtml()}</div>
     <div class="menu-grid">
-      ${typeof zpCardHtml === 'function' ? zpCardHtml() : ''}
+      ${lastGameCardHtml()}
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="24" cy="24" r="18" fill="none" stroke="#ff4d5a" stroke-width="4"/><circle cx="24" cy="24" r="11" fill="none" stroke="#fff" stroke-width="4"/><circle cx="24" cy="24" r="4" fill="#ff4d5a"/><path d="M24 24L40 8" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>${t('menu_solo_title')}</h3>
@@ -8397,6 +8398,26 @@ function framesCollectionHtml(){
   return `<div class="stat-card" style="margin-top:12px"><div class="st-head"><div class="st-name" style="font-size:16px">🏅 ${L('MEINE RAHMEN','MY FRAMES')}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${owned.map(tile).join('')}</div></div>`;
 }
 
+/* ---- Letztes Spiel (Startseite) ---- */
+const LG_KEY = 'bp_last_game';
+function lgSave(card){
+  try{
+    if(!card || card.classList.contains('locked') || card.id === 'lastGameCard' || card.id === 'zpCard') return;
+    const o = card.getAttribute('onclick') || ''; if(!o || /renderMainMenu|zpOpen|lgPlay/.test(o)) return;
+    const h = card.querySelector('h3'), t = (h ? h.textContent : '').trim(); if(!t) return;
+    const ic = card.querySelector('.icon');
+    localStorage.setItem(LG_KEY, JSON.stringify({ t: t, i: ic ? ic.innerHTML : '', o: o, ts: Date.now() }));
+  }catch(e){}
+}
+document.addEventListener('click', e => { const c = e.target && e.target.closest ? e.target.closest('.mode-card') : null; if(c) lgSave(c); }, true);
+function lastGameCardHtml(){
+  try{
+    const d = JSON.parse(localStorage.getItem(LG_KEY) || 'null'); if(!d || !d.o) return '';
+    return `<div class="mode-card" id="lastGameCard" onclick="lgPlay()" style="border-color:var(--accent)"><div style="display:flex;align-items:center;gap:14px"><div class="icon" style="margin:0;flex:none">${d.i}</div><div style="min-width:0"><div class="d" style="font-size:12px;opacity:.75;letter-spacing:1px">${L('ZULETZT GESPIELT','LAST PLAYED')}</div><h3 style="margin:2px 0 0">${esc(d.t)}</h3><div style="font-size:13px;color:var(--accent);margin-top:2px">▶ ${L('Weiterspielen','Play again')}</div></div></div></div>`;
+  }catch(e){ return ''; }
+}
+function lgPlay(){ try{ const d = JSON.parse(localStorage.getItem(LG_KEY) || 'null'); if(d && d.o) new Function(d.o)(); }catch(e){} }
+
 function renderStatistik(){
   setAudioZone("menu");
   // Angemeldet -> NUR die Konto-Statistik zeigen, nicht zusaetzlich noch
@@ -8409,6 +8430,7 @@ function renderStatistik(){
     <div class="panel">
       <div class="picker-title">${L('STATISTIK','STATISTICS')}</div>
       <div class="picker-sub">${account ? L('Dein Konto-Profil gilt für alle Modi.','Your account profile applies to all modes.') : L('Detaillierte Werte je gespeichertem Profil.','Detailed values for each saved profile.')}</div>
+      ${account && typeof zpCardHtml === 'function' ? `<div class="menu-grid" style="margin:8px 0">${zpCardHtml()}</div>` : ``}
       ${account ? statCardHtml(accountAsProfile(), account.profile) : ``}
       ${showLocalHint ? `<p style="color:var(--text-dim)">${L('Noch keine Profile vorhanden.','No profiles yet.')}</p>` : ``}
       ${account ? `` : profiles.map(p => statCardHtml(p)).join("")}

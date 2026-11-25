@@ -129,6 +129,7 @@
       + "#bpAnaCtl button#bpAnaPlay{width:58px;background:linear-gradient(135deg,#c6ff3d,#3de0ff);color:#08110c;border:none}#bpAnaCtl button:disabled{opacity:.35}"
       + "#bpAnaCtl span{min-width:52px;text-align:center;font-size:11px;color:#9aa3c0}"
       + ".bpAnaRow{cursor:pointer}.bpAnaRow.cur{border-color:#c6ff3d;background:#18210f}"
+      + "@media (max-width:899px),(max-height:559px){#bpAnaCard{overflow-y:auto;-webkit-overflow-scrolling:touch}#bpAnaBody{overflow:visible;flex:none}#bpAnaClose{position:sticky;bottom:8px;flex:none;box-shadow:0 0 0 6px #151b2b}}"
       + "@media (min-width:900px) and (min-height:560px){#bpAnaCard{display:grid;max-width:1120px;width:96vw;height:92vh;max-height:92vh;grid-template-columns:minmax(380px,1.15fr) minmax(360px,1fr);grid-template-rows:auto auto auto auto minmax(0,1fr) auto auto}"
       + "#bpAnaCard h2{grid-column:1/-1;grid-row:1}#bpAnaSum{grid-column:1/-1;grid-row:2}#bpAnaBoardWrap{grid-column:1;grid-row:3/span 5;justify-content:center;padding:6px 18px}"
       + "#bpAnaBoard{max-width:min(620px,calc(92vh - 250px))}#bpAnaCap{font-size:15px}"
@@ -265,10 +266,12 @@
   /* ---- Punkte: perfekte Zuege, Tokens, Stufen, Bestenliste ---- */
   var PL = function(){ try{ return localStorage.getItem("wq_lang") === "en" ? "en" : "de"; }catch(e){ return "de"; } };
   var PT = {
-    de:{ lv:["Neuling","Bauer","Springer","Läufer","Turm","Dame","König"], perfect:"perfekte Züge", gain:"Für diese Partie", tokens:"Analyse-Tokens heute", level:"Stufe", none:"Keine Tokens mehr frei. Für diese Partie gibt es keine Punkte.", again:"Diese Partie ist schon gezählt.", login:"Melde dich an, um perfekte Züge zu sammeln.", buy:"Mit {c} Münzen Punkte holen", top:"Bestenliste", week:"Diese Woche", total:"Insgesamt", close:"Schließen", up:"Neue Stufe: ", err:"Das ging nicht. Versuch es später nochmal.", you:"Du", nocoins:"Nicht genug Münzen.", empty:"Noch keine Einträge.", next:"bis {n}" },
-    en:{ lv:["Rookie","Pawn","Knight","Bishop","Rook","Queen","King"], perfect:"perfect moves", gain:"This game", tokens:"Analysis tokens today", level:"Level", none:"No tokens left. No points for this game.", again:"This game is already counted.", login:"Log in to collect perfect moves.", buy:"Get points for {c} coins", top:"Leaderboard", week:"This week", total:"All time", close:"Close", up:"New level: ", err:"That didn't work. Try again later.", you:"You", nocoins:"Not enough coins.", empty:"No entries yet.", next:"to {n}" }
+    de:{ lv:["Bauer","Springer","Läufer","Turm","Dame","König"], pts:"Punkte", pat:"Patzer", pnt:"Punkte", noch:"noch {n} bis {r}", perfect:"perfekte Züge", gain:"Für diese Partie", tokens:"Analyse-Tokens heute", level:"Stufe", none:"Keine Tokens mehr frei. Für diese Partie gibt es keine Punkte.", again:"Diese Partie ist schon gezählt.", login:"Melde dich an, um perfekte Züge zu sammeln.", buy:"Mit {c} Münzen Punkte holen", top:"Bestenliste", week:"Diese Woche", total:"Insgesamt", close:"Schließen", up:"Neuer Rang: ", err:"Das ging nicht. Versuch es später nochmal.", you:"Du", nocoins:"Nicht genug Münzen.", empty:"Noch keine Einträge.", next:"bis {n}" },
+    en:{ lv:["Pawn","Knight","Bishop","Rook","Queen","King"], pts:"points", pat:"blunders", pnt:"points", noch:"{n} to {r}", perfect:"perfect moves", gain:"This game", tokens:"Analysis tokens today", level:"Level", none:"No tokens left. No points for this game.", again:"This game is already counted.", login:"Log in to collect perfect moves.", buy:"Get points for {c} coins", top:"Leaderboard", week:"This week", total:"All time", close:"Close", up:"New rank: ", err:"That didn't work. Try again later.", you:"You", nocoins:"Not enough coins.", empty:"No entries yet.", next:"to {n}" }
   };
-  var GLY = ["♙","♟","♞","♝","♜","♛","♚"];
+  var GLY = ["♟","♞","♝","♜","♛","♚"];
+  function tierOf(r){ return Math.max(0, Math.min(5, Math.floor((r | 0) / 3))); }
+  function glyOf(r){ return GLY[tierOf(r)]; }
   function ptok(){ try{ return localStorage.getItem("wq_account_token") || ""; }catch(e){ return ""; } }
   function ppost(body){ body.token = ptok(); body.lang = PL(); return fetch("/api/chess-ana", { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(body) }).then(function(r){ return r.json(); }); }
   function gameId(entries){ var h = 5381, str = entries.map(function(e){ var m = e.move; return m ? m.fr + "" + m.fc + m.tr + m.tc : "x"; }).join(","); for(var i = 0; i < str.length; i++){ h = ((h << 5) + h + str.charCodeAt(i)) | 0; } return "g" + (h >>> 0).toString(36) + "-" + entries.length; }
@@ -283,15 +286,15 @@
   }
   function blunderIdx(rows){ var o = []; rows.forEach(function(r, i){ if(r && r.cls && r.cls.key === "blunder") o.push(i); }); return o; }
   function countPerfect(entries, rows){ return perfectIdx(entries, rows).length; }
-  function lvName(l){ return PT[PL()].lv[Math.max(0, Math.min(6, l | 0))]; }
+  function lvName(l){ l = Math.max(0, Math.min(17, l | 0)); return PT[PL()].lv[tierOf(l)] + " " + (3 - l % 3); }
   function pbox(){ var ov = document.getElementById("bpAnaOv"), el = ov.querySelector("#bpAnaPts"); if(!el){ el = document.createElement("div"); el.id = "bpAnaPts"; el.style.cssText = "margin:8px 0;padding:10px 12px;border-radius:12px;background:#151a45;color:#eef1ff;font-size:14px;line-height:1.45;text-align:left"; ov.querySelector("#bpAnaSum").insertAdjacentElement("afterend", el); } return el; }
-  function lvOf(n, L){ var l = 0; L.forEach(function(v, i){ if(n >= v) l = i + 1; }); return l; }
+  function lvOf(n, L){ var l = 0; L.forEach(function(v, i){ if(n >= v) l = i; }); return l; }
   function view(el, st, n){
-    var L = st.levels, lv = lvOf(n, L), base = lv ? L[lv - 1] : 0, next = lv < L.length ? L[lv] : null, t = PT[PL()];
+    var L = st.levels, lv = lvOf(n, L), base = L[lv], next = lv + 1 < L.length ? L[lv + 1] : null, t = PT[PL()];
     var pct = next ? Math.max(0, Math.min(100, Math.round((n - base) / (next - base) * 100))) : 100;
-    el.querySelector("#bpAnaEmb").textContent = GLY[lv];
-    el.querySelector("#bpAnaLvl").textContent = t.level + " " + lv + " · " + lvName(lv);
-    el.querySelector("#bpAnaCnt").textContent = n + " " + t.perfect + (next ? " · " + t.next.replace("{n}", next) : "");
+    el.querySelector("#bpAnaEmb").textContent = glyOf(lv);
+    el.querySelector("#bpAnaLvl").textContent = lvName(lv);
+    el.querySelector("#bpAnaCnt").textContent = n + " " + t.pnt + (next ? " · " + t.noch.replace("{n}", next - n).replace("{r}", lvName(lv + 1)) : "");
     var f = el.querySelector("#bpAnaFill");
     if(el.__lv != null && lv > el.__lv){ f.style.transition = "none"; f.style.width = "0%"; void f.offsetWidth; f.style.transition = "width .35s"; }
     f.style.width = pct + "%"; el.__lv = lv; return lv;
@@ -354,9 +357,9 @@
     an.oncancel = function(){ d.remove(); if(onLand) onLand(); };
   }
   function playAward(el, r, idx, bl, rowsDom){
-    var start = r.perfect - r.gain, n = start, lvPrev = lvOf(start, r.levels), gainEl = el.querySelector("#bpAnaGainN");
+    var start = r.perfect - r.gain, n = start, lvPrev = lvOf(start, r.levels), gainEl = el.querySelector("#bpAnaGainN"), tp = el.querySelector("#bpAnaTP"), tb = el.querySelector("#bpAnaTB");
     var lost = Math.max(0, Math.min(bl.length, idx.length - r.gain)), stars = idx.length;
-    function final(){ n = r.perfect; if(gainEl) gainEl.textContent = (r.gain >= 0 ? "+" : "") + r.gain; view(el, r, n); }
+    function final(){ n = r.perfect; if(tp) tp.textContent = stars; if(tb) tb.textContent = bl.length; if(gainEl) gainEl.textContent = "+" + r.gain; view(el, r, n); }
     if((!stars && !lost) || reduced()){ final(); return; }
     var gap = Math.max(60, Math.min(170, 2400 / Math.max(1, stars + lost))), shown = 0, t0 = 450;
     idx.forEach(function(ix, k){
@@ -364,7 +367,7 @@
         var row = rowsDom[ix], ic = row ? row.querySelector(".bpAnaIc") : null;
         if(row){ row.animate([{ background: "#10141f" }, { background: "#2a3a10" }, { background: "#10141f" }], { duration: 700 }); }
         flyStar(ic, el, function(){
-          n++; shown++; if(gainEl) gainEl.textContent = "+" + shown;
+          n++; shown++; if(tp) tp.textContent = shown; if(gainEl) gainEl.textContent = "+" + shown;
           var lv = view(el, r, n); if(lv > lvPrev){ lvPrev = lv; burst(el, lvName(lv)); }
         });
       }, t0 + k * gap);
@@ -374,7 +377,7 @@
       setTimeout(function(){
         var row = rowsDom[ix], ic = row ? row.querySelector(".bpAnaIc") : null;
         if(row){ row.animate([{ background: "#10141f" }, { background: "#4a1226" }, { background: "#10141f" }], { duration: 700 }); }
-        flyX(ic, el, function(){ n--; shown--; if(gainEl) gainEl.textContent = (shown >= 0 ? "+" : "") + shown; view(el, r, n); });
+        flyX(ic, el, function(){ n--; shown--; if(tb) tb.textContent = k + 1; if(gainEl) gainEl.textContent = "+" + shown; view(el, r, n); });
       }, t1 + k * gap);
     });
     setTimeout(function(){ if(n !== r.perfect) final(); }, t1 + lost * gap + 1600);
@@ -387,9 +390,17 @@
     if(!ptok()){ ov.querySelector("#bpAnaTopBody").textContent = t.login; return; }
     ppost({ act:"top" }).then(function(r){
       var body = ov.querySelector("#bpAnaTopBody"); if(!body) return; if(!r || !r.ok){ body.textContent = t.err; return; }
-      function list(rows, h){ return "<div style='color:#9fa8d8;margin:8px 0 4px'>" + h + "</div>" + (rows.length ? rows.map(function(x){ return "<div style='display:flex;justify-content:space-between;gap:8px;padding:7px 10px;margin-bottom:4px;border-radius:10px;background:" + (x.me ? "#1b2160;border:1px solid #c6ff3d" : "#151a45") + "'><span style='min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + x.pos + ". " + esc(x.name) + " <span style='color:#ffd45a'>" + GLY[x.level] + "</span></span><b style='color:#c6ff3d'>" + x.n + "</b></div>"; }).join("") : "<div style='opacity:.7'>" + t.empty + "</div>"); }
+      function list(rows, h){ return "<div style='color:#9fa8d8;margin:8px 0 4px'>" + h + "</div>" + (rows.length ? rows.map(function(x){ return "<div style='display:flex;justify-content:space-between;gap:8px;padding:7px 10px;margin-bottom:4px;border-radius:10px;background:" + (x.me ? "#1b2160;border:1px solid #c6ff3d" : "#151a45") + "'><span style='min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>" + x.pos + ". " + esc(x.name) + " <span style='color:#ffd45a'>" + glyOf(x.level) + " " + (3 - x.level % 3) + "</span></span><b style='color:#c6ff3d'>" + x.n + "</b></div>"; }).join("") : "<div style='opacity:.7'>" + t.empty + "</div>"); }
       body.innerHTML = list(r.week, t.week) + list(r.total, t.total);
     }).catch(function(){ var b2 = ov.querySelector("#bpAnaTopBody"); if(b2) b2.textContent = t.err; });
+  }
+  function tiles(p, b, net, note){
+    var t = PT[PL()];
+    return "<div style='display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center;margin-bottom:10px'>"
+      + "<div style='background:#151a45;border-radius:10px;padding:8px 4px'><div id='bpAnaTP' style='font-size:22px;color:#c6ff3d;font-weight:700'>" + p + "</div><div style='font-size:11px;color:#9fa8d8'>" + t.perfect + " ★</div></div>"
+      + "<div style='background:#151a45;border-radius:10px;padding:8px 4px'><div id='bpAnaTB' style='font-size:22px;color:#ff5d8f;font-weight:700'>" + b + "</div><div style='font-size:11px;color:#9fa8d8'>" + t.pat + " ??</div></div>"
+      + "<div style='background:#1b2160;border:1px solid #c6ff3d;border-radius:10px;padding:8px 4px'><div id='bpAnaGainN' style='font-size:22px;color:#c6ff3d;font-weight:700'>" + net + "</div><div style='font-size:11px;color:#9fa8d8'>" + t.pnt + "</div></div></div>"
+      + (note ? "<div style='margin:-4px 0 8px;color:#9fa8d8;font-size:12px'>" + note + "</div>" : "");
   }
   function award(entries, rows){
     var t = PT[PL()], el = pbox(); el.style.display = "block"; el.style.transform = ""; el.style.opacity = ""; try{ el.getAnimations().forEach(function(x){ x.cancel(); }); }catch(e){}
@@ -399,10 +410,10 @@
     function done(r){
       if(!r || !r.ok){ el.textContent = (r && r.error) || t.err; return; }
       var extra = "", rowsDom = document.querySelectorAll("#bpAnaBody .bpAnaRow");
-      if(r.counted) extra = "<div style='margin-bottom:8px'><b id='bpAnaGainN' style='color:#c6ff3d;font-size:20px'>+0</b> " + t.perfect + "</div>";
-      else if(r.again) extra = "<div style='margin-bottom:8px;color:#9fa8d8'>" + t.again + "</div>";
+      if(r.counted) extra = tiles(0, 0, "+0");
+      else if(r.again) extra = tiles(idx.length, bl.length, "+" + Math.max(0, idx.length - bl.length), t.again);
       else if(r.noTokens){
-        extra = "<div style='margin-bottom:8px;color:#ffd45a'>" + t.none + "</div><button type='button' id='bpAnaBuy' style='margin-bottom:8px;width:100%;padding:9px;border-radius:10px;border:0;background:#c6ff3d;color:#1e3000;font-weight:700;font-size:14px;cursor:pointer'>" + t.buy.replace("{c}", r.cost) + "</button>";
+        extra = tiles(idx.length, bl.length, "0") + "<div style='margin-bottom:8px;color:#ffd45a'>" + t.none + "</div><button type='button' id='bpAnaBuy' style='margin-bottom:8px;width:100%;padding:9px;border-radius:10px;border:0;background:#c6ff3d;color:#1e3000;font-weight:700;font-size:14px;cursor:pointer'>" + t.buy.replace("{c}", r.cost) + "</button>";
       }
       var startN = r.counted ? r.perfect - r.gain : r.perfect;
       paint(el, r, extra, startN);
