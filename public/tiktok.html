@@ -34,7 +34,7 @@
   .hint{color:var(--dim);font-size:12px;margin-top:6px;line-height:1.4}
   [hidden]{display:none!important}
   #stagewrap{position:relative}
-  #ovBtn{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:4;padding:12px 26px;font-size:17px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+  #ovBtn{position:absolute;bottom:12px;right:12px;z-index:4;padding:12px 26px;font-size:17px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
   #tgl{position:fixed;left:6px;top:6px;z-index:6;padding:4px 10px;opacity:.75}
   body.m-stage #panel,body.m-stage #tgl,body.m-stage #ovBtn{display:none}
   body.m-stage #app{padding:0}body.m-stage #st{border-radius:0}
@@ -52,14 +52,16 @@
     <h1>Live</h1>
     <label>Spiel</label>
     <select id="gameSel"><option value="quiz">Quiz Rennen</option><option value="ring">Ballrennen im Ring</option><option value="kampf">Kampf der Kugeln</option></select>
-    <div class="row"><div><label>Anmeldezeit (Minuten)</label><input id="minIn" type="number" min="0.1" step="0.5" value="5"></div><div><label>Max. Spieler</label><input id="maxIn" type="number" min="2" max="60" value="20"></div></div>
+    <div class="row"><div><label>Anmeldezeit (Minuten)</label><input id="minIn" type="number" min="0.1" step="0.5" value="5"></div><div><label>Max. Spieler</label><input id="maxIn" type="number" min="2" max="80" value="20"></div></div>
     <div class="row" style="margin-top:6px"><button class="q" data-m="1">1</button><button class="q" data-m="2">2</button><button class="q" data-m="3">3</button><button class="q" data-m="4">4</button><button class="q" data-m="5">5</button></div>
     <label>Anmelde-Wort im Chat</label>
     <input id="wordIn" type="text" value="dabei" maxlength="20">
     <div class="chk"><input id="tourChk" type="checkbox"><span>Turnier (Gewinner sind danach gesperrt)</span></div>
     <div class="row"><div><label>Runden bis zum Finale</label><input id="roundsIn" type="number" min="1" max="50" value="10"></div><div></div></div>
     <div id="quizOpt">
-      <div class="row"><div><label>Fragen pro Runde</label><input id="qN" type="number" min="3" max="30" value="10"></div><div><label>Sekunden je Frage</label><input id="qT" type="number" min="5" max="60" value="12"></div></div>
+      <div class="row"><div><label>Fragen pro Runde</label><input id="qN" type="number" min="3" max="30" value="10"></div><div><label>Sekunden je Frage</label><input id="qT" type="number" min="5" max="180" value="30"></div></div>
+      <label>Nächste Frage</label>
+      <select id="qMan"><option value="1">Ich starte sie selbst</option><option value="0">Automatisch</option></select>
       <label>Schwierigkeit</label>
       <select id="qD"><option value="all">Gemischt</option><option value="1">Leicht</option><option value="2">Mittel</option><option value="3">Schwer</option></select>
     </div>
@@ -73,6 +75,7 @@
       <button id="bOpen" class="p">Anmeldung öffnen</button>
       <button id="bStart" class="p" hidden>Start</button>
       <button id="bReopen" hidden>Anmeldung wieder öffnen</button>
+      <button id="bQNext" class="p" hidden>Nächste Frage</button>
       <button id="bNext" class="p" hidden>Nächste Runde</button>
       <button id="bCancel" class="d" hidden>Abbrechen</button>
       <button id="bReset" class="d" hidden>Turnier zurücksetzen</button>
@@ -118,11 +121,20 @@ api('/api/tiktok-auth',{}).then(function(j){
 function boot(){
 var cv=$('st'),x=cv.getContext('2d'),W=540,H=960;
 var PAL=[['rot','#e53935'],['gelb','#fdd835'],['grün','#43a047'],['blau','#1e88e5'],['schwarz','#111111'],['violett','#8e24aa'],['orange','#fb8c00'],['rosa','#ff80ab'],['weiß','#f5f5f5'],['braun','#8d6e63'],['türkis','#26c6da'],['grau','#9e9e9e'],['limette','#c6ff3d'],['dunkelblau','#283593'],['mint','#69f0ae'],['pink','#ff1493']];
+(function(){
+  var ex=[['hellblau','#64b5f6'],['dunkelgrün','#1b5e20'],['gold','#ffb300'],['lachs','#ff8a65'],['bordeaux','#880e4f'],['oliv','#9e9d24'],['marine','#0d47a1'],['koralle','#ff5252'],['lavendel','#b39ddb'],['petrol','#00695c'],['ocker','#b8860b'],['flieder','#ce93d8'],['pfirsich','#ffcc80'],['smaragd','#00e676'],['rubin','#c2185b'],['indigo','#3949ab'],['zitrone','#eeff41'],['karamell','#a0522d'],['aqua','#18ffff'],['magenta','#d500f9'],['tannengrün','#2e7d32'],['rost','#d84315'],['silber','#cfd8dc'],['creme','#fff3c4']];
+  ex.forEach(function(e){PAL.push(e)});
+  var sat=[85,65,95],lig=[50,64,38,74];
+  for(var i=PAL.length;i<64;i++){var h=Math.round((i*137.508)%360);PAL.push(['farbe'+(i+1),'hsl('+h+','+sat[i%3]+'%,'+lig[i%4]+'%)'])}
+})();
 var ALIAS={'lila':'violett','gruen':'grün','weiss':'weiß','hellgrün':'limette','tuerkis':'türkis','cyan':'türkis','red':'rot','blue':'blau','green':'grün','yellow':'gelb','black':'schwarz','white':'weiß','purple':'violett'};
 function palIdx(n){n=String(n||'').toLowerCase();if(ALIAS[n])n=ALIAS[n];for(var i=0;i<PAL.length;i++)if(PAL[i][0]===n)return i;return -1}
 function colorIn(t){var ws=String(t).toLowerCase().split(/[^a-zäöüß]+/);for(var i=0;i<ws.length;i++){var k=palIdx(ws[i]);if(k>=0)return k}return -1}
-function lum(h){var n=parseInt(h.slice(1),16);return .3*(n>>16)+.59*(n>>8&255)+.11*(n&255)}
-function freeIdx(skip){for(var i=0;i<PAL.length;i++){if(!S.players.some(function(q){return q!==skip&&q.ci===i}))return i}return 0}
+var lumC={},lumCtx=document.createElement('canvas').getContext('2d');
+function lum(h){if(lumC[h]!=null)return lumC[h];lumCtx.fillStyle='#000';lumCtx.fillStyle=h;var v=lumCtx.fillStyle,n;
+  if(v.charAt(0)==='#')n=parseInt(v.slice(1),16);else{var m=/(\d+)[, ]+(\d+)[, ]+(\d+)/.exec(v)||[0,0,0,0];n=(+m[1]<<16)|(+m[2]<<8)|+m[3]}
+  return lumC[h]=.3*(n>>16)+.59*(n>>8&255)+.11*(n&255)}
+function freeIdx(skip){for(var i=0;i<PAL.length;i++){if(!S.players.some(function(q){return q!==skip&&q.ci===i}))return i}var h=Math.round((PAL.length*137.508)%360);PAL.push(['farbe'+(PAL.length+1),'hsl('+h+','+[85,65,95][PAL.length%3]+'%,'+[50,64,38,74][PAL.length%4]+'%)']);return PAL.length-1}
 var SIMN=['Lena','Tom','Mia','Jonas','Sara','Ben','Nele','Paul','Emma','Finn','Lara','Max','Anna','Luis','Lea','Noah','Ida','Elias','Mila','Leon','Hanna','Felix','Zoe','Theo','Clara','Jan','Lilly','Moritz','Ella','David','Pia','Karl','Rosa','Tim','Ava','Ole','Greta','Kai','Maja','Nico','Jule','Erik','Fine','Rick','Lotta','Sam','Nina','Veit','Mara','Dirk','Tina','Olli','Jette','Bo','Hugo','Ilka','Kira','Lars','Mona','Udo'];
 var GN={quiz:'Quiz Rennen',ring:'Ballrennen im Ring',kampf:'Kampf der Kugeln'};
 var S={phase:'idle',game:'quiz',players:[],signupEnd:0,len:5,max:20,round:1,rounds:10,tour:false,winners:[],won:{},final:false,G:null,msg:'',sim:true,simN:12,word:'dabei',plan:[],champ:null,res:null,lastOut:[]};
@@ -132,7 +144,7 @@ function clean(s){return String(s||'').replace(/[\u0000-\u001f<>]/g,'').trim().s
 
 /* ---------- Spieler und Chat ---------- */
 function addPlayer(u,want){
-  if(S.players.some(function(p){return p.id===u.id}))return false;
+  if(S.players.some(function(p){return p.id===u.id||p.name.toLowerCase()===clean(u.name).toLowerCase()}))return false;
   if(S.players.length>=S.max)return false;
   var ci=(want!=null&&want>=0&&!S.players.some(function(q){return q.ci===want}))?want:freeIdx(null);
   var p={id:u.id,name:clean(u.name),ci:ci,c:PAL[ci][1],pts:0,img:null,av:u.avatar||null};
@@ -145,7 +157,7 @@ window.TTFeed=function(u){
   if(S.phase==='signup'){
     if(hit(t)){ if(S.won[u.id]){S.msg=clean(u.name)+' hat schon gewonnen und ist gesperrt.';return} var w=colorIn(t);var had=w>=0&&S.players.some(function(q){return q.ci===w});addPlayer(u,w);if(had)S.msg=PAL[w][0]+' war schon vergeben: '+clean(u.name)+' bekommt eine andere Farbe.'; }
   }else if(S.phase==='play'&&S.G&&S.G.chat){
-    var p=S.players.filter(function(q){return q.id===u.id})[0]; if(p)S.G.chat(p,t);
+    var p=S.players.filter(function(q){return q.id===u.id||q.name.toLowerCase()===String(u.name||'').trim().toLowerCase()})[0]; if(p)S.G.chat(p,t);
   }
 };
 function simUser(i){return {id:'sim'+i,name:SIMN[i%SIMN.length]}}
@@ -189,7 +201,7 @@ function roster(isOut){
 }
 /* ---------- Spiel 1: Quiz Rennen ---------- */
 function Quiz(players){
-  var N=clamp(+$('qN').value||10,3,30),AT=clamp(+$('qT').value||12,5,60),df=$('qD').value,Q=window.TT_Q||[];
+  var N=clamp(+$('qN').value||10,3,30),AT=clamp(+$('qT').value||30,5,180),MAN=$('qMan').value==='1',df=$('qD').value,Q=window.TT_Q||[];
   var pool=Q.filter(function(q){return df==='all'||(df==='1'&&q.d<=2)||(df==='2'&&q.d===3)||(df==='3'&&q.d>=4)});
   if(pool.length<N)pool=Q;
   pool=pool.slice().sort(function(){return Math.random()-.5}).slice(0,N).map(function(q){var idx=[0,1,2,3].sort(function(){return Math.random()-.5});return {q:q.q,a:idx.map(function(i){return q.a[i]}),c:idx.indexOf(q.c)}});
@@ -198,12 +210,16 @@ function Quiz(players){
   function start(){g.ph='ask';g.t=AT;g.ans={};g.race=0;var c=pool[g.qi].c;g.stop=[0,1,2,3].map(function(i){return i===c?1:.25+Math.random()*.6});
     g.bots=S.sim?players.filter(function(p){return String(p.id).indexOf('sim')===0}).map(function(p){return {p:p,at:Math.random()*AT*.85,l:Math.random()<.6?'ABCD'[c]:'ABCD'[Math.floor(Math.random()*4)],d:false}}):[]}
   g.chat=function(p,t){if(g.ph!=='ask'||g.ans[p.id]!=null)return;var m=/^\s*([abcd])\s*[).!]?\s*$/i.exec(t);if(!m)return;g.ans[p.id]={a:'ABCD'.indexOf(m[1].toUpperCase()),at:AT-g.t}};
+  g.next=function(){
+    if(g.ph!=='show')return;g.waitNext=false;g.qi++;
+    if(g.qi>=N){var best=null;players.forEach(function(p){if(p.pts>0&&(!best||p.pts>best.pts||(p.pts===best.pts&&p.t<best.t)))best=p});g.winner=best;g.done=true}else start()
+  };
   g.update=function(dt){
     if(g.ph==='ask'){g.t-=dt;var el=AT-g.t;g.bots.forEach(function(b){if(!b.d&&el>=b.at){b.d=true;g.chat(b.p,b.l)}});
       var allIn=players.every(function(p){return g.ans[p.id]!=null});
       if(g.t<=0||allIn){var c=pool[g.qi].c;players.forEach(function(p){var v=g.ans[p.id];if(v&&v.a===c){p.pts+=100+Math.round((AT-v.at)/AT*50)}if(v)p.t+=v.at});g.ph='race';g.race=0}}
     else if(g.ph==='race'){g.race+=dt/4;if(g.race>=1){g.race=1;g.ph='show';g.t=3}}
-    else{g.t-=dt;if(g.t<=0){g.qi++;if(g.qi>=N){var best=null;players.forEach(function(p){if(p.pts>0&&(!best||p.pts>best.pts||(p.pts===best.pts&&p.t<best.t)))best=p});g.winner=best;g.done=true}else start()}}
+    else{if(MAN){g.waitNext=true;return}g.t-=dt;if(g.t<=0)g.next()}
   };
   g.draw=function(){
     var q=pool[Math.min(g.qi,N-1)],cnt=[0,0,0,0],tot=0;Object.keys(g.ans).forEach(function(k){cnt[g.ans[k].a]++;tot++});
@@ -302,7 +318,7 @@ var MK={quiz:Quiz,ring:Ring,kampf:Kampf};
 
 /* ---------- Ablauf ---------- */
 function readSettings(){
-  S.game=$('gameSel').value;S.len=Math.max(.1,+$('minIn').value||5);S.max=clamp(Math.floor(+$('maxIn').value||20),2,60);S.word=($('wordIn').value||'dabei').trim()||'dabei';
+  S.game=$('gameSel').value;S.len=Math.max(.1,+$('minIn').value||5);S.max=clamp(Math.floor(+$('maxIn').value||20),2,80);S.word=($('wordIn').value||'dabei').trim()||'dabei';
   S.tour=$('tourChk').checked;S.rounds=clamp(Math.floor(+$('roundsIn').value||10),1,50);S.sim=$('simChk').checked;S.simN=clamp(Math.floor(+$('simN').value||12),2,60);
 }
 function openSignup(){
@@ -331,8 +347,8 @@ function nextRound(){
 }
 function resetTour(){S.round=1;S.winners=[];S.won={};S.final=false;S.champ=null;S.phase='idle';S.G=null;S.players=[];S.msg='Turnier zurückgesetzt.'}
 
-function cfgGet(){return {game:$('gameSel').value,min:$('minIn').value,max:$('maxIn').value,word:$('wordIn').value,tour:$('tourChk').checked,rounds:$('roundsIn').value,sim:$('simChk').checked,simN:$('simN').value,qN:$('qN').value,qT:$('qT').value,qD:$('qD').value,kD:$('kD').value,kHP:$('kHP').value,kHeal:$('kHeal').value,kNH:$('kNH').value}}
-function cfgSet(c){if(!c)return;var m={game:'gameSel',min:'minIn',max:'maxIn',word:'wordIn',rounds:'roundsIn',simN:'simN',qN:'qN',qT:'qT',qD:'qD',kD:'kD',kHP:'kHP',kHeal:'kHeal',kNH:'kNH'};
+function cfgGet(){return {game:$('gameSel').value,min:$('minIn').value,max:$('maxIn').value,word:$('wordIn').value,tour:$('tourChk').checked,rounds:$('roundsIn').value,sim:$('simChk').checked,simN:$('simN').value,qN:$('qN').value,qT:$('qT').value,qMan:$('qMan').value,qD:$('qD').value,kD:$('kD').value,kHP:$('kHP').value,kHeal:$('kHeal').value,kNH:$('kNH').value}}
+function cfgSet(c){if(!c)return;var m={game:'gameSel',min:'minIn',max:'maxIn',word:'wordIn',rounds:'roundsIn',simN:'simN',qN:'qN',qT:'qT',qMan:'qMan',qD:'qD',kD:'kD',kHP:'kHP',kHeal:'kHeal',kNH:'kNH'};
   for(var k in m)if(c[k]!=null)$(m[k]).value=c[k];if(c.tour!=null)$('tourChk').checked=!!c.tour;if(c.sim!=null)$('simChk').checked=!!c.sim;
   $('quizOpt').hidden=$('gameSel').value!=='quiz';$('kampfOpt').hidden=$('gameSel').value!=='kampf'}
 function setCol(id,k){var p=S.players.filter(function(q){return q.id===id})[0];if(!p)return;var o=S.players.filter(function(q){return q!==p&&q.ci===k})[0];if(o){S.msg=PAL[k][0]+' ist schon an '+o.name+' vergeben. Wähle eine andere Farbe.';lastSig='';return}p.ci=k;p.c=PAL[k][1];lastSig=''}
@@ -343,6 +359,7 @@ function run(n,a){
     case 'start':startGame();break;
     case 'reopen':{var keep=S.players.slice();openSignup();S.players=keep;break}
     case 'next':nextRound();break;
+    case 'qnext':if(S.G&&S.G.next)S.G.next();break;
     case 'cancel':S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.';break;
     case 'reset':resetTour();break;
     case 'add':doAdd(a.nm,a.k);break;
@@ -359,6 +376,7 @@ $('bOpen').onclick=function(){act('open')};
 $('bStart').onclick=function(){act('start')};
 $('bReopen').onclick=function(){act('reopen')};
 $('bNext').onclick=function(){act('next')};
+$('bQNext').onclick=function(){act('qnext')};
 $('bCancel').onclick=function(){act('cancel')};
 $('bReset').onclick=function(){act('reset')};
 $('ovBtn').onclick=function(){act($('ovBtn').dataset.a||'start')};
@@ -476,6 +494,7 @@ function panel(){plist();
   $('bStart').textContent=ph==='signup'?'Jetzt starten (Anmeldung beenden)':fin?'Finale starten':'Start';
   $('bReopen').hidden=!(ph==='closed'&&!fin);
   $('bNext').hidden=ph!=='result';
+  $('bQNext').hidden=!(ph==='play'&&S.G&&S.G.waitNext);
   $('bNext').textContent=!S.tour?'Neue Runde':fin?'Turnier beenden':(S.round<S.rounds?'Nächste Runde ('+(S.round+1)+')':'Finale vorbereiten');
   $('bCancel').hidden=!(ph==='signup'||ph==='closed'||ph==='play');
   $('bReset').hidden=!(S.tour&&(S.winners.length||fin));
@@ -493,6 +512,7 @@ function panel(){plist();
     var ob=$('ovBtn');
     if(ph==='signup'||ph==='closed'){ob.hidden=false;ob.dataset.a='start';ob.textContent=fin?'Finale starten':'Spiel starten'}
     else if(ph==='result'){ob.hidden=false;ob.dataset.a='next';ob.textContent=$('bNext').textContent}
+    else if(ph==='play'&&S.G&&S.G.waitNext){ob.hidden=false;ob.dataset.a='qnext';ob.textContent='Nächste Frage'}
     else ob.hidden=true;
     if(ph!==prevPh){prevPh=ph;if(ph==='play'){document.body.classList.add('hide');$('tgl').textContent='▶'}else if(ph==='result'||ph==='idle'){document.body.classList.remove('hide');$('tgl').textContent='◀'}}
   }
@@ -511,8 +531,8 @@ function drawSignup(closed){
   if(!closed){txt(timeStr(left),270,270,96,left<10000?'#ff6b8b':'#c6ff3d','center','900');txt('Schreibe „'+S.word+'“ in den Chat',270,312,24,'#3de0ff','center')}
   else{txt(S.final?'Finale':'Los geht’s gleich',270,270,64,'#c6ff3d','center','900')}
   txt(S.players.length+' / '+S.max+' Spieler',270,360,28,'#fff','center');
-  var cols=6,sz=64,gx=(W-cols*sz)/2;
-  S.players.slice(0,36).forEach(function(p,i){var cx=gx+(i%cols)*sz+sz/2,cy=420+Math.floor(i/cols)*86+30;ball(p,cx,cy,22);txt(p.name.slice(0,9),cx,cy+40,12,'#fff','center','500')});
+  var n=S.players.length,cols=n>36?(n>50?(n>64?12:10):9):6,sz=Math.min(64,480/cols),gx=(W-cols*sz)/2,rows=Math.ceil(n/cols),rh=Math.min(86,440/Math.max(1,rows)),rad=Math.min(22,sz/2-5),nf=n>36?11:12;
+  S.players.slice(0,84).forEach(function(p,i){var cx=gx+(i%cols)*sz+sz/2,cy=420+Math.floor(i/cols)*rh+rad+4;ball(p,cx,cy,rad);txt(p.name.slice(0,n>36?6:9),cx,cy+rad+14,nf,'#fff','center','500')});
   if(S.tour&&S.winners.length&&!S.final){txt('Schon gewonnen und gesperrt:',30,870,15,'#9aa3d0','left');txt(S.winners.map(function(w){return w.p.name}).join(', ').slice(0,60),30,892,16,'#ffc446','left')}
 }
 function drawResult(){
@@ -551,7 +571,7 @@ $('quizOpt').hidden=false;
 if(MODE==='stage'){
   var since=-1;
   setInterval(function(){api('/api/tiktok-sync',{op:'poll',since:since}).then(function(j){if(!j||!j.ok)return;if(since<0||j.seq<since){since=j.seq;return}j.cmds.forEach(function(c){since=Math.max(since,c.id);cfgSet(c.cmd.cfg);try{run(c.cmd.n,c.cmd.a||{})}catch(e){}});since=Math.max(since,j.seq)}).catch(function(){})},800);
-  setInterval(function(){api('/api/tiktok-sync',{op:'status',status:{phase:S.phase,msg:S.msg,players:S.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}}),left:S.phase==='signup'?Math.max(0,S.signupEnd-now()):0,max:S.max,round:S.round,rounds:S.rounds,final:S.final,tour:S.tour,game:S.game,winners:S.winners.map(function(w){return w.p.name}),hasRes:!!S.res,resW:S.res&&S.res.winner?S.res.winner.name:'',word:S.word}}).catch(function(){})},1000);
+  setInterval(function(){api('/api/tiktok-sync',{op:'status',status:{phase:S.phase,msg:S.msg,players:S.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}}),left:S.phase==='signup'?Math.max(0,S.signupEnd-now()):0,max:S.max,round:S.round,rounds:S.rounds,final:S.final,tour:S.tour,game:S.game,winners:S.winners.map(function(w){return w.p.name}),qwait:!!(S.G&&S.G.waitNext),hasRes:!!S.res,resW:S.res&&S.res.winner?S.res.winner.name:'',word:S.word}}).catch(function(){})},1000);
 }
 if(MODE==='remote'){
   setInterval(function(){api('/api/tiktok-sync',{op:'get'}).then(function(j){
@@ -560,6 +580,7 @@ if(MODE==='remote'){
     S.phase=st.phase;S.msg=st.msg||'';S.max=st.max;S.round=st.round;S.rounds=st.rounds;S.final=st.final;S.tour=st.tour;S.game=st.game;S.word=st.word;
     S.players=st.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}});
     S.signupEnd=now()+(st.left||0);S.winners=(st.winners||[]).map(function(n){return {p:{name:n}}});
+    S.G=st.qwait?{waitNext:true}:null;
     S.res=st.hasRes?{winner:st.resW?{name:st.resW}:null}:null;
   }).catch(function(){})},1000);
 }
