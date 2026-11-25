@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bilder malen</title>
+<style>
+:root{--bg1:#1b1450;--bg2:#070a1f;--ink:#eef1ff;--mut:#9fa8d8;--lime:#c6ff3d;--cy:#46e0ff;--pk:#ff5da8;--gold:#ffd45a;--panel:#10153a;--line:#ffffff22}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:radial-gradient(120% 90% at 50% 0%,var(--bg1),var(--bg2));color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+#app{height:100%;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.top{display:flex;align-items:center;gap:10px;padding:10px 12px;flex:none}
+.top h1{margin:0;font-size:19px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{background:#ffffff14;border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:8px 13px;font-size:15px;font-weight:600;cursor:pointer}
+.btn:active{transform:scale(.96)}
+.btn.on{background:var(--lime);color:#1e3000;border-color:var(--lime)}
+.cnt{font-size:13px;color:var(--mut);white-space:nowrap}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 12px 10px;flex:none;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:7px 14px;border-radius:99px;background:#ffffff12;border:1px solid var(--line);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--cy);color:#00222b;border-color:var(--cy)}
+.grid{flex:1;overflow-y:auto;padding:4px 12px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;align-content:start;grid-auto-rows:max-content}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;position:relative}
+.card:active{transform:scale(.97)}
+.card .im{display:block;width:100%;aspect-ratio:1/1;object-fit:cover;image-rendering:pixelated;background:#222}
+.card .im.g{filter:grayscale(1) brightness(.75) contrast(.9)}
+.card .nm{padding:7px 9px 4px;font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .st{padding:0 9px 8px;font-size:12px;color:var(--gold);display:flex;justify-content:space-between;align-items:center}
+.card .bar{height:5px;background:#ffffff1c;margin:0 9px 9px;border-radius:9px;overflow:hidden}
+.card .bar i{display:block;height:100%;background:var(--lime)}
+.card .ok{position:absolute;top:7px;right:7px;background:var(--lime);color:#1e3000;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-weight:900}
+.msg{padding:2px 14px 6px;font-size:14px;min-height:24px;color:var(--mut);flex:none;text-align:center}
+.wrap{flex:1;overflow:auto;margin:0 8px;border-radius:14px;background:#0b0e2a;border:1px solid var(--line);position:relative;-webkit-overflow-scrolling:touch}
+canvas{display:block;margin:0 auto;background:#fff;touch-action:none;cursor:pointer}
+canvas.hand{touch-action:auto;cursor:grab}
+.tools{display:flex;gap:8px;justify-content:center;padding:8px 10px 2px;flex:none;flex-wrap:wrap}
+.pal{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;padding:8px 10px 12px;flex:none;max-height:34vh;overflow-y:auto}
+.pb{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;background:conic-gradient(var(--lime) calc(var(--p)*1%),#ffffff2a 0);border:none;padding:0;flex:none}
+.pb .in{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000}
+.pb.sel{outline:3px solid #fff;outline-offset:2px;transform:scale(1.1)}
+.pb.dn{opacity:.45}
+.done{position:absolute;inset:0;background:#070a1fcc;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:20px}
+.done h2{margin:0;font-size:28px;color:var(--lime)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="malen-core.js"></script>
+<script src="malen-bilder1.js"></script>
+<script src="malen-bilder2.js"></script>
+<script>
+(function(){
+var CATS = ['Alles','Tiere','Natur','Orte','Essen','Fahrzeuge','Fantasie'];
+var KEY = 'bp_malen_v1', SV = {}, cat = 'Alles';
+try{ SV = JSON.parse(localStorage.getItem(KEY)||'{}') || {}; cat = localStorage.getItem('bp_malen_cat') || 'Alles'; }catch(e){}
+if(CATS.indexOf(cat)<0) cat = 'Alles';
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(SV)); }catch(e){} }
+var app = document.getElementById('app');
+var thumbs = {};
+function thumb(p){ if(!thumbs[p.id]){ try{ thumbs[p.id] = MB.thumb(p,84).toDataURL(); }catch(e){ thumbs[p.id] = ''; } } return thumbs[p.id]; }
+function goBack(){ if(window.parent!==window) parent.postMessage({bpWordsBack:true},location.origin); else location.href = '/'; }
+function stars(n){ return '★'.repeat(n)+'<span style="opacity:.25">'+'★'.repeat(5-n)+'</span>'; }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+/* ---------- Liste ---------- */
+function showList(){
+  cur = null;
+  var list = MB.filter(function(p){ return cat==='Alles' || p.cat===cat; });
+  var done = MB.filter(function(p){ return SV[p.id] && SV[p.id].d; }).length;
+  app.innerHTML = '<div class="top"><button class="btn" id="bk">‹ Menü</button><h1>Bilder malen</h1><span class="cnt">'+done+' von '+MB.length+' fertig</span></div>'
+    + '<div class="chips">'+CATS.map(function(c){ return '<button class="chip'+(c===cat?' on':'')+'" data-c="'+c+'">'+c+'</button>'; }).join('')+'</div>'
+    + '<div class="grid" id="gr"></div>';
+  document.getElementById('bk').onclick = goBack;
+  Array.prototype.forEach.call(app.querySelectorAll('.chip'), function(b){ b.onclick = function(){ cat = b.getAttribute('data-c'); try{ localStorage.setItem('bp_malen_cat',cat); }catch(e){} showList(); }; });
+  var gr = document.getElementById('gr');
+  list.forEach(function(p){
+    var s = SV[p.id] || {}, pc = s.p||0, dn = !!s.d;
+    var c = document.createElement('div'); c.className = 'card';
+    c.innerHTML = '<img class="im'+(dn?'':' g')+'" src="'+thumb(p)+'" alt="">'+(dn?'<div class="ok">✓</div>':'')
+      + '<div class="nm">'+esc(p.name)+'</div><div class="st"><span>'+stars(p.lv)+'</span><span style="color:var(--mut)">'+(dn?'fertig':pc?pc+'%':p.cat)+'</span></div>'
+      + '<div class="bar"><i style="width:'+(dn?100:pc)+'%"></i></div>';
+    c.onclick = function(){ openPic(p); };
+    gr.appendChild(c);
+  });
+}
+
+/* ---------- Spiel ---------- */
+var cur, D, R, filled, sel, Wd, Hd, Z = 2, B, lab, pk, tintPk, tot, ctx, cv, wrap, zoom, hand = false, dn = false, saveT = 0, ended = false;
+var DARK = 0xff3c3c3c, GRAY = 0xffeeeeea;
+function pack(c){ return (255<<24)|(c[2]<<16)|(c[1]<<8)|c[0]; }
+function openPic(p){
+  cur = p; ended = false; hand = false; dn = false;
+  var S = p.S; D = MB.raster(p,S); R = MB.regions(D); lab = R.lab;
+  filled = new Uint8Array(R.n);
+  var sv = SV[p.id]; if(sv && sv.f) sv.f.forEach(function(l){ if(l>=0 && l<R.n) filled[l] = 1; });
+  var rgb = p.pal.map(MB.hexRGB); pk = rgb.map(pack);
+  tintPk = rgb.map(function(c){ return pack([Math.round(c[0]*.42+148),Math.round(c[1]*.42+148),Math.round(c[2]*.42+148)]); });
+  tot = new Array(p.pal.length).fill(0); for(var l=0;l<R.n;l++) tot[R.colOf[l]] += R.sizes[l];
+  Wd = R.W*Z; Hd = R.H*Z; B = new Uint8Array(Wd*Hd);
+  for(var y=0;y<Hd;y++){ var ry = (y>>1)*R.W; for(var x=0;x<Wd;x++){ var q = lab[ry+(x>>1)];
+    if((x<Wd-1 && lab[ry+((x+1)>>1)]!==q) || (y<Hd-1 && lab[((y+1)>>1)*R.W+(x>>1)]!==q)) B[y*Wd+x] = 1; } }
+  zoom = p.z || 1; sel = -1;
+  var used = {}; for(l=0;l<R.n;l++) used[R.colOf[l]] = 1;
+  var order = Object.keys(used).map(Number).sort(function(a,b){return a-b;});
+  app.innerHTML = '<div class="top"><button class="btn" id="bk">‹ Bilder</button><h1>'+esc(p.name)+'</h1><span class="cnt" id="pc"></span></div>'
+    + '<div class="msg" id="ms"></div><div class="wrap" id="wr"><canvas id="cv" width="'+Wd+'" height="'+Hd+'"></canvas></div>'
+    + '<div class="tools"><button class="btn" id="zm">−</button><button class="btn" id="zp">+</button><button class="btn" id="hd">✋ Verschieben</button><button class="btn" id="rs">Neu anfangen</button></div>'
+    + '<div class="pal" id="pal"></div>';
+  wrap = document.getElementById('wr'); cv = document.getElementById('cv'); ctx = cv.getContext('2d');
+  document.getElementById('bk').onclick = function(){ flush(); showList(); };
+  document.getElementById('zm').onclick = function(){ setZoom(zoom-.35); };
+  document.getElementById('zp').onclick = function(){ setZoom(zoom+.35); };
+  document.getElementById('hd').onclick = function(){ hand = !hand; this.classList.toggle('on',hand); cv.classList.toggle('hand',hand); say(hand?'Verschieben ist an: ziehe das Bild mit dem Finger.':'Malen ist an.'); };
+  var rb = document.getElementById('rs'), rt = 0;
+  rb.onclick = function(){ if(!rt){ rb.textContent = 'Wirklich löschen?'; rt = setTimeout(function(){ rt = 0; rb.textContent = 'Neu anfangen'; },2500); return; } clearTimeout(rt); rt = 0; rb.textContent = 'Neu anfangen'; filled = new Uint8Array(R.n); ended = false; delete SV[cur.id]; save(); sel = -1; render(); say('Neu gestartet. Wähle unten eine Zahl.'); };
+  var pal = document.getElementById('pal');
+  order.forEach(function(i){
+    var b = document.createElement('button'); b.className = 'pb'; b.id = 'pb'+i;
+    b.innerHTML = '<span class="in" style="background:'+p.pal[i]+'">'+(i+1)+'</span>';
+    b.onclick = function(){ sel = i; say('Nummer '+(i+1)+': alle Flächen mit Streifen gehören dazu. Tippe eine an oder ziehe darüber.'); render(); };
+    pal.appendChild(b);
+  });
+  cv.addEventListener('pointerdown', function(e){ if(hand||ended) return; dn = true; try{ cv.setPointerCapture(e.pointerId); }catch(x){} tryFill(at(e),false); });
+  cv.addEventListener('pointermove', function(e){ if(dn) tryFill(at(e),true); });
+  cv.addEventListener('pointerup', function(){ dn = false; });
+  cv.addEventListener('pointercancel', function(){ dn = false; });
+  setZoom(zoom);
+  var first = order.find(function(i){ return remaining(i)>0; });
+  if(first===undefined){ finish(true); } else { sel = first; say('Nummer '+(first+1)+': alle Flächen mit Streifen gehören dazu. Tippe eine an oder ziehe darüber.'); }
+  render();
+}
+function setZoom(z){ zoom = Math.max(1, Math.min(3.6, z)); var w = Math.max(240, wrap.clientWidth-2); cv.style.width = Math.round(w*zoom)+'px'; cv.style.height = Math.round(w*zoom*Hd/Wd)+'px'; }
+function say(t){ var m = document.getElementById('ms'); if(m) m.textContent = t; }
+function remaining(i){ var r = 0; for(var l=0;l<R.n;l++) if(R.colOf[l]===i && !filled[l]) r++; return r; }
+function at(e){ var r = cv.getBoundingClientRect(), px = Math.floor((e.clientX-r.left)*R.W/r.width), py = Math.floor((e.clientY-r.top)*R.H/r.height); if(px<0||py<0||px>=R.W||py>=R.H) return -1; return lab[py*R.W+px]; }
+function tryFill(l,quiet){
+  if(l<0||filled[l]) return;
+  if(sel<0){ say('Wähle zuerst unten eine Zahl.'); return; }
+  if(R.colOf[l]===sel){
+    filled[l] = 1; queueSave(); render();
+    if(remaining(sel)===0){
+      var used = {}; for(var k=0;k<R.n;k++) if(!filled[k]) used[R.colOf[k]] = 1;
+      var nx = Object.keys(used).map(Number).sort(function(a,b){return a-b;});
+      if(!nx.length){ finish(false); return; }
+      var nn = nx.find(function(i){ return i>sel; }); if(nn===undefined) nn = nx[0];
+      say('Nummer '+(sel+1)+' ist fertig! Weiter mit Nummer '+(nn+1)+'.'); sel = nn; render();
+    }
+  } else if(!quiet){
+    say('Diese Fläche hat die Nummer '+(R.colOf[l]+1)+', du hast die '+(sel+1)+' gewählt.');
+    try{ if(navigator.vibrate) navigator.vibrate(25); }catch(x){}
+  }
+}
+function pct(){ var f = 0, t = 0; for(var l=0;l<R.n;l++){ t += R.sizes[l]; if(filled[l]) f += R.sizes[l]; } return Math.round(100*f/t); }
+function render(){
+  var img = ctx.createImageData(Wd,Hd), u = new Uint32Array(img.data.buffer), W = R.W, colOf = R.colOf, hs = sel>=0 ? pk[sel] : 0, ht = sel>=0 ? tintPk[sel] : 0;
+  for(var y=0;y<Hd;y++){
+    var ry = (y>>1)*W, o = y*Wd;
+    for(var x=0;x<Wd;x++){
+      var l = lab[ry+(x>>1)], i = o+x;
+      if(B[i]) u[i] = DARK;
+      else if(filled[l]) u[i] = pk[colOf[l]];
+      else if(colOf[l]===sel) u[i] = ((x+y)%16<6) ? hs : ht;
+      else u[i] = GRAY;
+    }
+  }
+  ctx.putImageData(img,0,0); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for(var k=0;k<R.n;k++){
+    if(filled[k] || R.best[k]<2.6) continue;
+    var fs = Math.max(8,Math.min(26,R.best[k]*Z*1.25)), on = colOf[k]===sel;
+    ctx.font = '800 '+(on?fs*1.1:fs)+'px sans-serif';
+    ctx.lineWidth = 3; ctx.strokeStyle = on ? '#fff' : 'rgba(255,255,255,.0)'; if(on) ctx.strokeText(String(colOf[k]+1),R.ax[k]*Z+1,R.ay[k]*Z+1);
+    ctx.fillStyle = on ? '#000' : '#555'; ctx.fillText(String(colOf[k]+1),R.ax[k]*Z+1,R.ay[k]*Z+1);
+  }
+  var f = new Array(cur.pal.length).fill(0); for(var m=0;m<R.n;m++) if(filled[m]) f[colOf[m]] += R.sizes[m];
+  cur.pal.forEach(function(c,j){ var b = document.getElementById('pb'+j); if(!b) return; var p = Math.round(100*f[j]/tot[j]); b.style.setProperty('--p',p); b.classList.toggle('sel',j===sel); b.classList.toggle('dn',p>=100); });
+  var pc = document.getElementById('pc'); if(pc) pc.textContent = pct()+'%';
+}
+function queueSave(){ clearTimeout(saveT); saveT = setTimeout(flush,350); }
+function flush(){
+  if(!cur||!R) return; clearTimeout(saveT);
+  var f = []; for(var l=0;l<R.n;l++) if(filled[l]) f.push(l);
+  var p = pct(); if(!f.length){ delete SV[cur.id]; } else { SV[cur.id] = { f:f, p:p, d:(p>=100)?1:0 }; }
+  save();
+}
+function finish(already){
+  ended = true; flush(); render(); thumbs[cur.id] = null;
+  var next = MB.find(function(p){ return p.id>cur.id && !(SV[p.id]&&SV[p.id].d); });
+  var dv = document.createElement('div'); dv.className = 'done';
+  dv.innerHTML = '<h2>'+(already?'Schon fertig!':'Fertig! 🎉')+'</h2><div style="color:var(--mut)">'+esc(cur.name)+' ist ausgemalt.</div>';
+  var row = document.createElement('div'); row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;justify-content:center';
+  var b1 = document.createElement('button'); b1.className = 'btn'; b1.textContent = 'Alle Bilder'; b1.onclick = showList; row.appendChild(b1);
+  if(next){ var b2 = document.createElement('button'); b2.className = 'btn on'; b2.textContent = 'Nächstes: '+next.name; b2.onclick = function(){ openPic(next); }; row.appendChild(b2); }
+  var b3 = document.createElement('button'); b3.className = 'btn'; b3.textContent = 'Bild ansehen'; b3.onclick = function(){ dv.remove(); }; row.appendChild(b3);
+  dv.appendChild(row); wrap.appendChild(dv);
+}
+window.addEventListener('resize', function(){ if(cur && cv) setZoom(zoom); });
+window.addEventListener('pagehide', flush);
+document.addEventListener('visibilitychange', function(){ if(document.hidden) flush(); });
+window.__malen = { open:function(id){ var p = MB.find(function(x){ return x.id===id; }); if(p) openPic(p); }, state:function(){ return { n:R&&R.n, filled:filled&&Array.prototype.reduce.call(filled,function(a,b){return a+b;},0), sel:sel }; }, fillAll:function(){ for(var l=0;l<R.n;l++){ sel = R.colOf[l]; filled[l] = 1; } render(); finish(false); }, regionAt:function(i){ return { cx:R.ax[i]/R.W, cy:R.ay[i]/R.H, col:R.colOf[i], best:R.best[i] }; }, list:showList };
+showList();
+})();
+</script>
+</body>
+</html>

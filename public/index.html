@@ -6007,6 +6007,7 @@ const ARENA_BLOCKS_PER_MATCH_CLIENT = 4; // muss zu ARENA_BLOCKS_PER_MATCH im Se
 // Adresse, gleiche Farben, Pfeil oben links fuehrt zurueck in den Chess-Bereich) -
 // so fuehlt es sich wie ein Mini Game an und nicht wie eine Weiterleitung.
 function startWordsFlow(){ renderChessFrame('/words.html'); }
+function startMalenFlow(){ renderChessFrame('/malen.html'); }
 function renderChessFrame(src){
   renderApp(`<iframe id="chessFrame" src="${src}" title="Chess" style="position:fixed; inset:0; width:100%; height:100%; border:0; background:#0a0d16; z-index:50;"></iframe>`);
 }
@@ -8060,6 +8061,11 @@ function renderMainMenu(){
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="6" y="9" width="36" height="33" rx="6" fill="none" stroke="#3de0ff" stroke-width="3.5"/><path d="M6 19H42M15 5V12M33 5V12" stroke="#3de0ff" stroke-width="3.5" stroke-linecap="round"/><path d="M17 31L22 36L32 26" stroke="#c6ff3d" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h3>${L('Tagesrätsel','Daily puzzles')}</h3>
         <p>${L('Jeden Tag neue Rätsel. Löse sie und sammle Münzen.','New puzzles every day. Solve them and collect coins.')}</p>
+      </div>
+      <div class="mode-card" onclick="startMalenFlow()">
+        <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><rect x="5" y="6" width="38" height="36" rx="6" fill="#fff3d6"/><path d="M24 36C14 30 12 20 18 15C21 12 24 14 24 17C24 14 27 12 30 15C36 20 34 30 24 36Z" fill="#ff5d8f"/><circle cx="13" cy="13" r="4" fill="#ffd23f"/><circle cx="36" cy="35" r="4" fill="#3de0ff"/><text x="24" y="28" font-size="11" font-weight="900" text-anchor="middle" fill="#fff" font-family="Arial">7</text></svg></div>
+        <h3>${L('Bilder malen','Paint by numbers')}</h3>
+        <p>${L('50 Bilder nach Zahlen ausmalen. Tippen, ziehen, fertig.','Color 50 pictures by numbers. Tap, drag, done.')}</p>
       </div>
       <div class="mode-card" onclick="startBrainingHub()">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><path d="M24 4L42 14V34L24 44L6 34V14Z" fill="none" stroke="#3de0ff" stroke-width="3" stroke-linejoin="round"/><path d="M6 14L24 24L42 14M24 24V44" fill="none" stroke="#3de0ff" stroke-width="3"/><circle cx="33" cy="33" r="6" fill="#ff5d8f"/><path d="M33 27C33 24 35 23 37 23" stroke="#7cff8c" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg></div>
