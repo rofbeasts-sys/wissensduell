@@ -33,14 +33,34 @@
   body.hide #st{border-radius:0}
   .hint{color:var(--dim);font-size:12px;margin-top:6px;line-height:1.4}
   [hidden]{display:none!important}
+  #stagewrap{position:relative}
+  #ovBtn{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);z-index:4;padding:12px 26px;font-size:17px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+  #tgl{position:fixed;left:6px;top:6px;z-index:6;padding:4px 10px;opacity:.75}
+  #recFloat{position:fixed;right:8px;top:8px;z-index:6;padding:5px 10px;font-size:12px;opacity:.5}
+  #recFloat:hover{opacity:1}
+  body.m-stage #panel,body.m-stage #tgl,body.m-stage #ovBtn{display:none}
+  body.m-stage #app{padding:0}body.m-stage #st{border-radius:0}
+  body:not(.m-stage) #recFloat{display:none}
+  body.m-remote #stagewrap,body.m-remote #tgl,body.m-remote #ovBtn,body.m-remote #bRec,body.m-remote #recInfo,body.m-remote #bHide{display:none}
+  body.m-remote #panel{width:100%;max-width:520px;margin:0 auto}
+  #modeRow button{flex:1;padding:5px 4px;font-size:12px}#modeRow button.on{background:var(--lime);color:#08110c;border:none}
   @media(max-width:820px){#app{flex-direction:column;overflow:auto;height:auto;min-height:100%}#panel{width:100%}#stagewrap{height:80vh;flex:none}}
 </style>
 </head>
 <body>
 <div id="gate">Zugang wird geprüft …</div>
+<button id="tgl" title="Bedienfeld ein oder aus">◀</button><button id="recFloat">● Aufnahme</button>
 <div id="app" hidden>
   <div id="panel">
-    <h1>TikTok Studio</h1>
+    <h1>Live</h1>
+    <div id="modeRow" class="row" style="margin-bottom:6px"><button data-md="full" title="Bedienung und Bühne in diesem Fenster">Alles hier</button><button data-md="remote" title="Nur Bedienung. Die Bühne läuft bei der Person mit „Nur Bühne“">Fernbedienung</button><button data-md="stage" title="Nur die Bühne, ohne Bedienfeld">Nur Bühne</button></div>
+    <div id="permBox" hidden>
+      <label>Wer darf Live sehen</label>
+      <div id="permList" class="hint" style="margin:0"></div>
+      <div class="row" style="margin-top:6px"><input id="permName" type="text" placeholder="Name im Spiel" maxlength="30" style="flex:1.3"><select id="permLvl" style="flex:1"><option value="stage">Nur Bühne</option><option value="ctrl">Mit Einstellungen</option></select><button id="permAdd" class="q" style="flex:.6">Geben</button></div>
+      <div class="hint">Nur Bühne: die Person sieht nur das Bild (zum Aufnehmen), du steuerst per Fernbedienung. Mit Einstellungen: die Person bedient alles selbst.</div>
+      <hr style="border:0;border-top:1px solid var(--line);margin:10px 0">
+    </div>
     <label>Spiel</label>
     <select id="gameSel"><option value="quiz">Quiz Rennen</option><option value="ring">Ballrennen im Ring</option><option value="kampf">Kampf der Kugeln</option></select>
     <div class="row"><div><label>Anmeldezeit (Minuten)</label><input id="minIn" type="number" min="0.1" step="0.5" value="5"></div><div><label>Max. Spieler</label><input id="maxIn" type="number" min="2" max="60" value="20"></div></div>
@@ -79,28 +99,29 @@
     <div class="hint" id="recInfo">Nimmt nur das Spielfeld auf, ohne dieses Bedienfeld. Beim Stoppen wird die Datei heruntergeladen. Mit H blendest du das Bedienfeld aus, die Aufnahme läuft weiter. Taste R startet und stoppt ebenfalls.</div>
     <button id="bHide" style="width:100%;margin-top:10px">Feld ausblenden</button>
   </div>
-  <div id="stagewrap"><canvas id="st" width="1080" height="1920"></canvas></div>
+  <div id="stagewrap"><canvas id="st" width="1080" height="1920"></canvas><button id="ovBtn" class="p" hidden></button></div>
 </div>
 <script src="/tiktok-q.js"></script>
 <script>
 (function(){
 "use strict";
 var $=function(id){return document.getElementById(id)};
-function adminKey(){try{return localStorage.getItem('bp_admin_key')||''}catch(e){return ''}}
-var booted=false;
-function check(){
-  return fetch('/api/tiktok-auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({adminKey:adminKey()})}).then(function(r){return r.json()}).then(function(j){
-    if(j&&j.ok&&!booted){booted=true;$('gate').hidden=true;$('app').hidden=false;boot();return true}
-    return !!(j&&j.ok);
-  });
+var Q=new URLSearchParams(location.search),ROLE='',MODE='full',booted=false;
+function jget(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
+function api(path,extra){
+  var b={token:jget('wq_account_token')};
+  if(!ROLE||ROLE==='admin'){var k=jget('bp_admin_key');if(k)b.adminKey=k}
+  for(var k2 in extra)b[k2]=extra[k2];
+  return fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)}).then(function(r){return r.json()});
 }
-function showLogin(msg){
-  $('gate').innerHTML='<div style="max-width:420px"><div style="font-size:20px;font-weight:800;margin-bottom:8px">TikTok Studio</div><div style="color:#9aa3d0;font-size:15px;margin-bottom:14px">'+msg+'</div><input id="gk" type="password" placeholder="Admin-Schlüssel" autocomplete="current-password" style="width:100%;padding:10px;border-radius:8px;border:1px solid #262e66;background:#0e1330;color:#fff;font-size:16px"><button id="gb" class="p" style="width:100%;margin-top:8px">Anmelden</button><div id="ge" style="color:#ff6b8b;margin-top:8px;font-size:14px"></div><div style="margin-top:14px;font-size:14px"><a href="/">Zurück zu Brain Pulse</a></div><div style="margin-top:8px;color:#6d7699;font-size:12px">Mods melden sich im Spiel im Mod-Modus an und öffnen die Seite danach im selben Browser.</div></div>';
-  var go=function(){var k=$('gk').value.trim();if(!k)return;try{localStorage.setItem('bp_admin_key',k)}catch(e){}check().then(function(ok){if(!ok){try{localStorage.removeItem('bp_admin_key')}catch(e){}$('ge').textContent='Das hat nicht geklappt. Schlüssel falsch oder zu viele Versuche.'}}).catch(function(){$('ge').textContent='Server nicht erreichbar.'})};
-  $('gb').onclick=go;$('gk').addEventListener('keydown',function(e){if(e.key==='Enter')go()});
-}
-if(!adminKey())showLogin('Du bist in diesem Browser nicht als Admin oder Mod angemeldet. Gib deinen Admin-Schlüssel ein.');
-else check().then(function(ok){if(!ok)showLogin('Dein gespeicherter Zugang wird nicht akzeptiert. Gib den Admin-Schlüssel neu ein. (Falls das nicht hilft: Der Server auf Render muss mit der neuen server.js neu gestartet werden.)')}).catch(function(){showLogin('Server nicht erreichbar.')});
+function noAccess(msg){$('gate').innerHTML='<div style="max-width:420px"><div style="font-size:22px;font-weight:800;margin-bottom:10px">Live</div><div style="color:#9aa3d0;font-size:16px;margin-bottom:16px;line-height:1.4">'+msg+'</div><a href="/admin.html" style="display:block;margin-bottom:8px">Zum Admin-Bereich</a><a href="/">Zurück zu Brain Pulse</a></div>'}
+api('/api/tiktok-auth',{}).then(function(j){
+  if(j&&j.ok&&!booted){
+    booted=true;ROLE=j.role;var m=Q.get('m');
+    MODE=ROLE==='stage'?'stage':(m==='stage'||m==='remote'?m:'full');
+    document.body.classList.add('m-'+MODE);$('gate').hidden=true;$('app').hidden=false;boot();
+  }else if(!j||!j.ok)noAccess('Kein Zugriff. Dieser Bereich ist nur für den Admin und für Personen mit Freigabe. Melde dich im Admin-Bereich oder im Spiel an und öffne Live danach noch einmal.');
+}).catch(function(){noAccess('Server nicht erreichbar.')});
 
 function boot(){
 var cv=$('st'),x=cv.getContext('2d'),W=540,H=960;
@@ -303,12 +324,41 @@ function nextRound(){
 }
 function resetTour(){S.round=1;S.winners=[];S.won={};S.final=false;S.champ=null;S.phase='idle';S.G=null;S.players=[];S.msg='Turnier zurückgesetzt.'}
 
-$('bOpen').onclick=openSignup;
-$('bStart').onclick=startGame;
-$('bReopen').onclick=function(){var left=S.players.slice();var keep=left;openSignup();S.players=keep;};
-$('bNext').onclick=nextRound;
-$('bCancel').onclick=function(){S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.'};
-$('bReset').onclick=resetTour;
+function cfgGet(){return {game:$('gameSel').value,min:$('minIn').value,max:$('maxIn').value,word:$('wordIn').value,tour:$('tourChk').checked,rounds:$('roundsIn').value,sim:$('simChk').checked,simN:$('simN').value,qN:$('qN').value,qT:$('qT').value,qD:$('qD').value,kD:$('kD').value,kHP:$('kHP').value,kHeal:$('kHeal').value,kNH:$('kNH').value}}
+function cfgSet(c){if(!c)return;var m={game:'gameSel',min:'minIn',max:'maxIn',word:'wordIn',rounds:'roundsIn',simN:'simN',qN:'qN',qT:'qT',qD:'qD',kD:'kD',kHP:'kHP',kHeal:'kHeal',kNH:'kNH'};
+  for(var k in m)if(c[k]!=null)$(m[k]).value=c[k];if(c.tour!=null)$('tourChk').checked=!!c.tour;if(c.sim!=null)$('simChk').checked=!!c.sim;
+  $('quizOpt').hidden=$('gameSel').value!=='quiz';$('kampfOpt').hidden=$('gameSel').value!=='kampf'}
+function setCol(id,k){var p=S.players.filter(function(q){return q.id===id})[0];if(!p)return;var o=S.players.filter(function(q){return q!==p&&q.ci===k})[0];if(o){S.msg=PAL[k][0]+' ist schon an '+o.name+' vergeben. Wähle eine andere Farbe.';lastSig='';return}p.ci=k;p.c=PAL[k][1];lastSig=''}
+function rmPl(id){S.players=S.players.filter(function(q){return q.id!==id});lastSig=''}
+function run(n,a){
+  switch(n){
+    case 'open':openSignup();break;
+    case 'start':startGame();break;
+    case 'reopen':{var keep=S.players.slice();openSignup();S.players=keep;break}
+    case 'next':nextRound();break;
+    case 'cancel':S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.';break;
+    case 'reset':resetTour();break;
+    case 'add':doAdd(a.nm,a.k);break;
+    case 'rm':rmPl(a.id);break;
+    case 'color':setCol(a.id,a.k);break;
+    case 'chat':window.TTFeed({id:'test:'+String(a.n).toLowerCase(),name:a.n,text:a.t});break;
+  }
+}
+function act(n,a){
+  if(MODE==='remote'){api('/api/tiktok-sync',{op:'cmd',cmd:{n:n,a:a||{},cfg:cfgGet()}}).catch(function(){});return}
+  run(n,a||{});
+}
+$('bOpen').onclick=function(){act('open')};
+$('bStart').onclick=function(){act('start')};
+$('bReopen').onclick=function(){act('reopen')};
+$('bNext').onclick=function(){act('next')};
+$('bCancel').onclick=function(){act('cancel')};
+$('bReset').onclick=function(){act('reset')};
+$('ovBtn').onclick=function(){act($('ovBtn').dataset.a||'start')};
+$('tgl').onclick=function(){document.body.classList.toggle('hide');$('tgl').textContent=document.body.classList.contains('hide')?'▶':'◀'};
+$('recFloat').onclick=function(){recToggle()};
+Array.prototype.forEach.call(document.querySelectorAll('#modeRow button'),function(b){if(b.dataset.md===MODE)b.classList.add('on');b.onclick=function(){location.search='?m='+b.dataset.md}});
+if(ROLE==='stage')$('modeRow').hidden=true;
 fillColSel($('apCol'),0);$('apAdd').onclick=manualAdd;$('apName').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd()});
 var rec=null,chunks=[],recT0=0;
 function recToggle(){
@@ -328,13 +378,13 @@ function recToggle(){
   rec.start(1000);recT0=now();$('bRec').textContent='■ Stoppen und speichern';$('bRec').classList.add('d');
 }
 $('bRec').onclick=recToggle;
-setInterval(function(){if(rec){var s=Math.floor((now()-recT0)/1000);$('bRec').textContent='■ Stoppen und speichern ('+Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60)+')'}},500);
+setInterval(function(){if(rec){var s=Math.floor((now()-recT0)/1000),tt=Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);$('bRec').textContent='■ Stoppen und speichern ('+tt+')';$('recFloat').textContent='■ '+tt}else $('recFloat').textContent='● Aufnahme'},500);
 $('bHide').onclick=function(){document.body.classList.toggle('hide')};
 document.addEventListener('keydown',function(e){if(e.key==='r'||e.key==='R'){var t0=(e.target&&e.target.tagName)||'';if(t0!=='INPUT'&&t0!=='SELECT'&&t0!=='TEXTAREA')recToggle()}
   if(e.key==='h'||e.key==='H'){var t=(e.target&&e.target.tagName)||'';if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA')return;document.body.classList.toggle('hide')}});
 Array.prototype.forEach.call(document.querySelectorAll('[data-m]'),function(b){b.onclick=function(){$('minIn').value=b.dataset.m}});
 $('gameSel').onchange=function(){$('quizOpt').hidden=$('gameSel').value!=='quiz';$('kampfOpt').hidden=$('gameSel').value!=='kampf'};
-$('tcSend').onclick=function(){var n=($('tcName').value||'Du').trim()||'Du',t=$('tcText').value;window.TTFeed({id:'test:'+n.toLowerCase(),name:n,text:t});$('tcText').value=''};
+$('tcSend').onclick=function(){var n=($('tcName').value||'Du').trim()||'Du',t=$('tcText').value;act('chat',{n:n,t:t});$('tcText').value=''};
 $('tcText').placeholder='dabei rot';$('tcText').addEventListener('keydown',function(e){if(e.key==='Enter')$('tcSend').click()});
 
 function fillColSel(sel,cur){sel.innerHTML='';PAL.forEach(function(c,i){var o=document.createElement('option');o.value=i;o.textContent=c[0];if(i===cur)o.selected=true;sel.appendChild(o)})}
@@ -350,21 +400,26 @@ function plist(){
     var sw=document.createElement('span');sw.className='sw';sw.style.background=p.c;
     var n=document.createElement('span');n.className='n';n.textContent=p.name;
     var sl=document.createElement('select');fillColSel(sl,p.ci);
-    sl.onchange=function(){var k=+sl.value,o=S.players.filter(function(q){return q!==p&&q.ci===k})[0];if(o){S.msg=PAL[k][0]+' ist schon an '+o.name+' vergeben. Wähle eine andere Farbe.';p.ci=p.ci;lastSig='';return}p.ci=k;p.c=PAL[k][1];lastSig=''};
-    var rm=document.createElement('button');rm.textContent='✕';rm.title='Entfernen';rm.onclick=function(){S.players=S.players.filter(function(q){return q!==p});lastSig=''};
+    sl.onchange=function(){act('color',{id:p.id,k:+sl.value});if(MODE==='remote')lastSig=''};
+    var rm=document.createElement('button');rm.textContent='✕';rm.title='Entfernen';rm.onclick=function(){act('rm',{id:p.id})};
     r.appendChild(sw);r.appendChild(n);r.appendChild(sl);r.appendChild(rm);el.appendChild(r);
   });
 }
-function manualAdd(){
-  var nm=($('apName').value||'').trim();if(!nm)return;
+function doAdd(nm,k){
   if(S.phase==='idle'&&!S.final)openSignup();
   if(S.phase!=='signup'&&S.phase!=='closed'){S.msg='Hinzufügen geht nur vor dem Start.';return}
-  var k=+$('apCol').value,taken=S.players.filter(function(q){return q.ci===k})[0];
-  var ok=addPlayer({id:'man:'+nm.toLowerCase()+':'+S.players.length,name:nm},taken?-1:k);
+  var taken=S.players.filter(function(q){return q.ci===k})[0];
+  var ok=addPlayer({id:'man:'+String(nm).toLowerCase()+':'+S.players.length,name:nm},taken?-1:k);
   if(!ok)S.msg='Konnte nicht hinzufügen (voll?).';else if(taken)S.msg=PAL[k][0]+' war vergeben: '+nm+' bekommt eine andere Farbe.';
-  $('apName').value='';$('apName').focus();lastSig='';
+  lastSig='';
+}
+function manualAdd(){
+  var nm=($('apName').value||'').trim();if(!nm)return;
+  act('add',{nm:nm,k:+$('apCol').value});
+  $('apName').value='';$('apName').focus();
   $('apCol').value=freeIdx(null);
 }
+var prevPh='',REMOTE_OK=false;
 function panel(){plist();
   var ph=S.phase,fin=S.final;
   $('bOpen').hidden=!(ph==='idle'&&!fin);
@@ -383,7 +438,15 @@ function panel(){plist();
   else s='Bereit.';
   if(S.tour&&S.winners.length)s+='\nGewinner: '+S.winners.map(function(w){return w.p.name}).join(', ');
   if(S.msg)s+='\n'+S.msg;
+  if(MODE==='remote'&&!REMOTE_OK)s='Keine Bühne verbunden. Die Person mit „Nur Bühne“ muss Live geöffnet haben.\n'+s;
   $('stat').textContent=s;$('stat').style.whiteSpace='pre-line';
+  if(MODE==='full'){
+    var ob=$('ovBtn');
+    if(ph==='signup'||ph==='closed'){ob.hidden=false;ob.dataset.a='start';ob.textContent=fin?'Finale starten':'Spiel starten'}
+    else if(ph==='result'){ob.hidden=false;ob.dataset.a='next';ob.textContent=$('bNext').textContent}
+    else ob.hidden=true;
+    if(ph!==prevPh){prevPh=ph;if(ph==='play'){document.body.classList.add('hide');$('tgl').textContent='▶'}else if(ph==='result'||ph==='idle'){document.body.classList.remove('hide');$('tgl').textContent='◀'}}
+  }
 }
 
 /* ---------- Bühne ---------- */
@@ -426,6 +489,7 @@ function draw(){
 var last=now(),pt=0;
 function loop(t){
   var dt=Math.min(.1,(t-last)/1000);last=t;
+  if(MODE==='remote'){if(t-pt>200){pt=t;panel()}requestAnimationFrame(loop);return}
   if(S.phase==='signup'){
     var el=S.len*60-(S.signupEnd-now())/1000;
     S.plan.forEach(function(p){if(!p.d&&el>=p.at){p.d=true;window.TTFeed({id:p.u.id,name:p.u.name,text:S.word})}});
@@ -438,6 +502,39 @@ function loop(t){
 }
 window.__TT={S:S,startGame:startGame,openSignup:openSignup,nextRound:nextRound};
 $('quizOpt').hidden=false;
+/* ---- Synchronisierung: Bühne holt Befehle, Fernbedienung holt Status ---- */
+if(MODE==='stage'){
+  var since=-1;
+  setInterval(function(){api('/api/tiktok-sync',{op:'poll',since:since}).then(function(j){if(!j||!j.ok)return;if(since<0||j.seq<since){since=j.seq;return}j.cmds.forEach(function(c){since=Math.max(since,c.id);cfgSet(c.cmd.cfg);try{run(c.cmd.n,c.cmd.a||{})}catch(e){}});since=Math.max(since,j.seq)}).catch(function(){})},800);
+  setInterval(function(){api('/api/tiktok-sync',{op:'status',status:{phase:S.phase,msg:S.msg,players:S.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}}),left:S.phase==='signup'?Math.max(0,S.signupEnd-now()):0,max:S.max,round:S.round,rounds:S.rounds,final:S.final,tour:S.tour,game:S.game,winners:S.winners.map(function(w){return w.p.name}),hasRes:!!S.res,resW:S.res&&S.res.winner?S.res.winner.name:'',word:S.word}}).catch(function(){})},1000);
+}
+if(MODE==='remote'){
+  setInterval(function(){api('/api/tiktok-sync',{op:'get'}).then(function(j){
+    if(!j||!j.ok||!j.status||j.age<0||j.age>6000){REMOTE_OK=false;return}
+    REMOTE_OK=true;var st=j.status;
+    S.phase=st.phase;S.msg=st.msg||'';S.max=st.max;S.round=st.round;S.rounds=st.rounds;S.final=st.final;S.tour=st.tour;S.game=st.game;S.word=st.word;
+    S.players=st.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}});
+    S.signupEnd=now()+(st.left||0);S.winners=(st.winners||[]).map(function(n){return {p:{name:n}}});
+    S.res=st.hasRes?{winner:st.resW?{name:st.resW}:null}:null;
+  }).catch(function(){})},1000);
+}
+/* ---- Zugang verwalten (nur Admin) ---- */
+if(ROLE==='admin'){
+  $('permBox').hidden=false;
+  var renderPerms=function(list){
+    var el=$('permList');el.innerHTML='';
+    if(!list.length){el.textContent='Noch niemand freigegeben.';return}
+    list.forEach(function(e){var r=document.createElement('div');r.className='pr';
+      var n=document.createElement('span');n.className='n';n.textContent=e.name;
+      var sl=document.createElement('select');[['stage','Nur Bühne'],['ctrl','Mit Einstellungen']].forEach(function(o){var op=document.createElement('option');op.value=o[0];op.textContent=o[1];if(o[0]===e.level)op.selected=true;sl.appendChild(op)});
+      sl.style.width='130px';sl.onchange=function(){permCall('set',e.name,sl.value)};
+      var rm=document.createElement('button');rm.textContent='✕';rm.title='Entziehen';rm.onclick=function(){permCall('del',e.name)};
+      r.appendChild(n);r.appendChild(sl);r.appendChild(rm);el.appendChild(r)});
+  };
+  var permCall=function(a,name,level){api('/api/tiktok-perms',{act:a,name:name,level:level}).then(function(j){if(j&&j.ok)renderPerms(j.list);else $('permList').textContent=(j&&j.error)||'Das hat nicht geklappt.'})};
+  $('permAdd').onclick=function(){var nm=$('permName').value.trim();if(!nm)return;permCall('set',nm,$('permLvl').value);$('permName').value=''};
+  permCall('list');
+}
 panel();requestAnimationFrame(loop);
 }
 })();

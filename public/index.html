@@ -4320,7 +4320,14 @@ function toggleModPill(){ try{ localStorage.setItem('bp_modpill_hide', modPillHi
 function adminKeyStored(){ try{ return localStorage.getItem('bp_admin_key') || ''; }catch(e){ return ''; } }
 function adminViewOn(){ try{ return !!adminKeyStored() && localStorage.getItem('bp_admin_view') === '1'; }catch(e){ return false; } }
 let adminOkFlag = false;
+let ttUserRole = '', ttChecked = false;
+async function ttCheck(){
+  if(ttChecked) return; const tk = (()=>{ try{ return localStorage.getItem(ACCOUNT_TOKEN_KEY) || ''; }catch(e){ return ''; } })();
+  if(!tk) return; ttChecked = true;
+  try{ const r = await fetch('/api/tiktok-auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token:tk}) }); const j = await r.json(); if(j && j.ok && j.role && j.role !== 'admin'){ ttUserRole = j.role; if(document.querySelector('.menu-hero')) renderMainMenu(); } }catch(e){ ttChecked = false; }
+}
 async function loadFeatureFlags(){
+  ttCheck();
   try{
     const useKey = adminViewOn() ? adminKeyStored() : '';
     const r = await fetch('/api/features', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(useKey ? {adminKey:useKey} : {}) });
@@ -8041,7 +8048,7 @@ function renderMainMenu(){
     <div id="liveStrip" class="live-strip">${liveStripHtml()}</div>
     <div class="menu-grid">
       ${lastGameCardHtml()}
-      ${adminViewOn() ? `<div class="mode-card" onclick="location.href='/tiktok.html'" style="border-color:var(--accent)"><div class="icon" style="font-size:34px">📺</div><h3>TikTok Studio</h3><p>${L('Nur für Admins: Zuschau-Spiele für den Live.','Admins only: viewer games for your live.')}</p></div>` : ''}
+      ${(adminViewOn() || ttUserRole) ? `<div class="mode-card" onclick="location.href='/tiktok.html'" style="border-color:var(--accent)"><div class="icon" style="font-size:34px">📺</div><h3>Live</h3><p>${L('Zuschau-Spiele für den Live.','Viewer games for the live.')}</p></div>` : ''}
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="24" cy="24" r="18" fill="none" stroke="#ff4d5a" stroke-width="4"/><circle cx="24" cy="24" r="11" fill="none" stroke="#fff" stroke-width="4"/><circle cx="24" cy="24" r="4" fill="#ff4d5a"/><path d="M24 24L40 8" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>${t('menu_solo_title')}</h3>

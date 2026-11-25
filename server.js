@@ -8089,6 +8089,57 @@ function adminOk(key, ip) {
   if (!ok) rlHit(lk, 8, 10 * 60 * 1000, 15 * 60 * 1000); else rlReset(lk);
   return ok;
 }
+/* ===== LIVE STUDIO (TikTok Zuschau-Spiele) =====
+   Zugang: Admin-Schluessel oder Konto mit u.ttLive = "ctrl" (Bedienung + Buehne) bzw. "stage" (nur Buehne).
+   Die Buehne rechnet im Browser der Buehnen-Person; Befehle der Fernbedienung laufen ueber diese kleine Warteschlange. */
+const TT = { cmds: [], seq: 0, status: null, statusAt: 0 };
+function ttRole(payload, ip) {
+  const u = findUserByToken(payload && payload.token);
+  if (u && (u.ttLive === "ctrl" || u.ttLive === "stage")) return u.ttLive;
+  if (payload && payload.adminKey && adminOk(payload.adminKey, ip)) return "admin";
+  return "";
+}
+async function ttHandle(url, payload, ip) {
+  if (!(await ensureUsersLoaded())) return { ok: false, error: "Dienst gerade nicht erreichbar." };
+  const role = ttRole(payload, ip);
+  if (url === "/api/tiktok-auth") return { ok: !!role, role };
+  if (!role) return { ok: false, error: "Kein Zugriff." };
+  if (url === "/api/tiktok-perms") {
+    if (role !== "admin") return { ok: false, error: "Nur für den Admin." };
+    const act = String(payload.act || "list");
+    if (act === "set" || act === "del") {
+      const u = findUserByName(String(payload.name || ""));
+      if (!u) return { ok: false, error: "Konto nicht gefunden." };
+      if (act === "set") { if (payload.level !== "ctrl" && payload.level !== "stage") return { ok: false, error: "Unbekannte Stufe." }; u.ttLive = payload.level; }
+      else delete u.ttLive;
+      if (!(await saveUsers())) return { ok: false, error: "Speichern hat nicht geklappt." };
+    }
+    return { ok: true, list: users.filter(u => u.ttLive).map(u => ({ name: u.username, level: u.ttLive })) };
+  }
+  if (url === "/api/tiktok-sync") {
+    const op = String(payload.op || "");
+    if (op === "cmd") {
+      if (role === "stage") return { ok: false, error: "Nur Ansicht." };
+      const c = payload.cmd; if (!c || typeof c !== "object" || JSON.stringify(c).length > 4000) return { ok: false, error: "Befehl ungültig." };
+      TT.cmds.push({ id: ++TT.seq, cmd: c, at: Date.now() }); if (TT.cmds.length > 100) TT.cmds = TT.cmds.slice(-100);
+      return { ok: true, id: TT.seq };
+    }
+    if (op === "poll") {
+      const since = Number(payload.since); if (!isFinite(since) || since < 0 || since > TT.seq) return { ok: true, seq: TT.seq, cmds: [] };
+      return { ok: true, seq: TT.seq, cmds: TT.cmds.filter(c => c.id > since) };
+    }
+    if (op === "status") {
+      const st = payload.status; if (!st || typeof st !== "object" || JSON.stringify(st).length > 20000) return { ok: false };
+      TT.status = st; TT.statusAt = Date.now(); return { ok: true };
+    }
+    if (op === "get") {
+      if (role === "stage") return { ok: false, error: "Nur Ansicht." };
+      return { ok: true, status: TT.status, age: TT.statusAt ? Date.now() - TT.statusAt : -1 };
+    }
+    return { ok: false, error: "Unbekannte Aktion." };
+  }
+  return { ok: false };
+}
 // Konto sperren/entsperren (Schummler: keine Gratis-Muenzen/-Schluessel mehr) oder Zaehler loeschen.
 async function adminRestrict(key, ip, username, action) {
   if (!adminAuth(key, ip)) return { ok: false, error: "Nicht verfügbar." };
@@ -9010,7 +9061,7 @@ const server = http.createServer((req, res) => {
       let lang = "de"; // ausserhalb von try/catch deklariert, damit der Fehlerfall unten (Parsing-Fehler vor dem eigentlichen Setzen) ebenfalls die richtige Sprache kennt, falls schon ermittelt
       const ip = clientIp(req);
       try {
-        const isPoll = req.url === "/api/presence" || req.url === "/api/public-stats" || req.url === "/api/admin-online" || req.url === "/api/chess-online/state" || req.url === "/api/chess-online/inbox"; // Polling zaehlt nicht gegen die IP-Grenze (sonst sperrt eine Klasse hinter einer IP sich selbst), hat aber ein eigenes Limit je Konto
+        const isPoll = req.url === "/api/presence" || req.url === "/api/public-stats" || req.url === "/api/admin-online" || req.url === "/api/chess-online/state" || req.url === "/api/chess-online/inbox" || req.url === "/api/tiktok-sync"; // Polling zaehlt nicht gegen die IP-Grenze (sonst sperrt eine Klasse hinter einer IP sich selbst), hat aber ein eigenes Limit je Konto
         if (rlHit(isPoll ? "gp|" + ip : "g|" + ip, (isPoll ? API_MAX_PER_MIN_IP * 6 : API_MAX_PER_MIN_IP) + 1, 60000, 60000).lockedUntil > Date.now()) { // +1: genau API_MAX_PER_MIN_IP Aufrufe sind erlaubt
           res.writeHead(429, { "Content-Type": "application/json", "Retry-After": "60", ...SECURITY_HEADERS });
           return res.end(JSON.stringify(errObj("tooManyRequests", "de")));
@@ -9105,7 +9156,8 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/realm/buy-keys" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/realm/buy-keys") result = await realmBuyKeys(payload.token, payload.pack, payload.how, lang);
         else if (req.url === "/api/realm/claim-keys") result = await realmClaimKeys(payload.token);
-        else if (req.url === "/api/tiktok-auth") { const tk = payload.adminKey; const isAdm = !!adminOk(tk, ip); const isMod = !isAdm && testerKeyOk(tk) === "mod"; result = { ok: isAdm || isMod, role: isAdm ? "admin" : isMod ? "mod" : "" }; }
+        else if (req.url === "/api/tiktok-auth") result = await ttHandle(req.url, payload, ip);
+        else if (req.url === "/api/tiktok-perms" || req.url === "/api/tiktok-sync") result = await ttHandle(req.url, payload, ip);
         else if (req.url === "/api/chess-ana") result = await chessAna(payload, lang);
         else if (req.url === "/api/ladder-state") result = ladderState(payload.token, payload.game);
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang, payload.game);
