@@ -4964,7 +4964,7 @@ function ladderOwned(user, game) {
   return LADDER_BUY_IDS.filter(id => a.includes(id) || b.includes(id));
 }
 /* ---- Schach-Analyse: Tokens, perfekte Zuege, Stufen, Bestenliste ---- */
-const ANA_FREE = 5, ANA_COIN_COST = 10, ANA_LEVELS = [0, 50, 100, 200, 300, 400, 600, 850, 1200, 1600, 2100, 2800, 3600, 4600, 5800, 7200, 9000, 11000], ANA_MAX_PER_GAME = 60, ANA_MAX_PER_DAY = 400;
+const ANA_FREE = 5, ANA_COIN_COST = 2500, ANA_LEVELS = [0, 50, 100, 200, 300, 400, 600, 850, 1200, 1600, 2100, 2800, 3600, 4600, 5800, 7200, 9000, 11000], ANA_MAX_PER_GAME = 60, ANA_MAX_PER_DAY = 400;
 function anaDay() { return new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }); }
 function anaWeek() { const d = new Date(anaDay() + "T12:00:00Z"); const wd = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - wd); return d.toISOString().slice(0, 10); }
 function anaLevel(n) { let l = 0; ANA_LEVELS.forEach((v, i) => { if (n >= v) l = i; }); return l; }
@@ -9105,6 +9105,7 @@ const server = http.createServer((req, res) => {
         else if (req.url === "/api/realm/buy-keys" && !gateOk("braining_lane", payload.adminKey, ip)) result = FEATURE_LOCKED_RESULT;
         else if (req.url === "/api/realm/buy-keys") result = await realmBuyKeys(payload.token, payload.pack, payload.how, lang);
         else if (req.url === "/api/realm/claim-keys") result = await realmClaimKeys(payload.token);
+        else if (req.url === "/api/tiktok-auth") result = { ok: !!adminOk(payload.adminKey, ip) };
         else if (req.url === "/api/chess-ana") result = await chessAna(payload, lang);
         else if (req.url === "/api/ladder-state") result = ladderState(payload.token, payload.game);
         else if (req.url === "/api/ladder-buy") result = await ladderBuy(payload.token, payload.id, lang, payload.game);

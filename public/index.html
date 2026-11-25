@@ -8041,6 +8041,7 @@ function renderMainMenu(){
     <div id="liveStrip" class="live-strip">${liveStripHtml()}</div>
     <div class="menu-grid">
       ${lastGameCardHtml()}
+      ${adminKeyStored() ? `<div class="mode-card" onclick="location.href='/tiktok.html'" style="border-color:var(--accent)"><div class="icon" style="font-size:34px">📺</div><h3>TikTok Studio</h3><p>${L('Nur für Admins: Zuschau-Spiele für den Live.','Admins only: viewer games for your live.')}</p></div>` : ''}
       <div class="mode-card ${soloLangLocked?'locked':''}" onclick="${soloLangLocked?'':'startSoloFlow()'}" style="${soloLangLocked?'opacity:.45; cursor:default;':''}">
         <div class="icon"><svg viewBox="0 0 48 48" width="46" height="46"><circle cx="24" cy="24" r="18" fill="none" stroke="#ff4d5a" stroke-width="4"/><circle cx="24" cy="24" r="11" fill="none" stroke="#fff" stroke-width="4"/><circle cx="24" cy="24" r="4" fill="#ff4d5a"/><path d="M24 24L40 8" stroke="#ffc446" stroke-width="3" stroke-linecap="round"/></svg></div>
         <h3>${t('menu_solo_title')}</h3>
@@ -8403,7 +8404,7 @@ const LG_KEY = 'bp_last_game';
 function lgSave(card){
   try{
     if(!card || card.classList.contains('locked') || card.id === 'lastGameCard' || card.id === 'zpCard') return;
-    const o = card.getAttribute('onclick') || ''; if(!o || /renderMainMenu|zpOpen|lgPlay/.test(o)) return;
+    const o = card.getAttribute('onclick') || ''; if(!o || /renderMainMenu|zpOpen|lgPlay|tiktok/.test(o)) return;
     const h = card.querySelector('h3'), t = (h ? h.textContent : '').trim(); if(!t) return;
     const ic = card.querySelector('.icon');
     localStorage.setItem(LG_KEY, JSON.stringify({ t: t, i: ic ? ic.innerHTML : '', o: o, ts: Date.now() }));
