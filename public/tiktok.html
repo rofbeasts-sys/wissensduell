@@ -41,6 +41,7 @@
   body.m-remote #panel{width:100%;max-width:520px;margin:0 auto}
   #modeRow button{flex:1;padding:5px 4px;font-size:12px}#modeRow button.on{background:var(--lime);color:#08110c;border:none}
   @media(max-width:820px){#app{flex-direction:column;overflow:auto;height:auto;min-height:100%}#panel{width:100%}#stagewrap{height:80vh;flex:none}}
+.sec{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#3de0ff;margin:14px 0 4px;border-top:1px solid #2a3170;padding-top:10px}
 </style>
 </head>
 <body>
@@ -51,6 +52,8 @@
     <h1>Live</h1>
     <label>Spiel</label>
     <select id="gameSel"><option value="quiz">Quiz Rennen</option><option value="ring">Ballrennen im Ring</option><option value="kampf">Kampf der Kugeln</option></select>
+    <div class="chk" style="margin-top:10px"><input id="simChk" type="checkbox"><span><b>Testmodus</b> (Computer-Spieler, keine echten Leute)</span></div>
+    <div id="liveBox"><h2 class="sec">Live (echte Zuschauer im Chat)</h2>
     <div class="row"><div><label>Anmeldezeit (Minuten)</label><input id="minIn" type="number" min="0.1" step="0.5" value="5"></div><div><label>Max. Spieler</label><input id="maxIn" type="number" min="2" max="80" value="20"></div></div>
     <div class="row" style="margin-top:6px"><button class="q" data-m="1">1</button><button class="q" data-m="2">2</button><button class="q" data-m="3">3</button><button class="q" data-m="4">4</button><button class="q" data-m="5">5</button></div>
     <label>Anmelde-Wort im Chat</label>
@@ -62,6 +65,7 @@
     <input id="tSub" type="text" maxlength="80">
     <label>Wenn voll: noch Minuten, dann startet es von selbst (0 = aus)</label>
     <input id="fullMin" type="number" min="0" max="10" step="0.5" value="1">
+    </div>
     <div class="chk"><input id="tourChk" type="checkbox"><span>Turnier (Gewinner sind danach gesperrt)</span></div>
     <div class="row"><div><label>Runden bis zum Finale</label><input id="roundsIn" type="number" min="1" max="50" value="10"></div><div></div></div>
     <div id="quizOpt">
@@ -76,15 +80,15 @@
       <div class="row"><div><label>Heilen (herz im Chat)</label><select id="kHeal"><option value="1">An</option><option value="0">Aus</option></select></div><div><label>Heilen aus, letzte Sekunden</label><input id="kNH" type="number" min="0" max="600" value="60"></div></div>
       <div class="hint">Nach der Spieldauer beginnt die Verlängerung: kein Heilen mehr, die Arena wird klein und die Kugeln werden schneller, bis einer übrig ist.</div>
     </div>
-    <div id="catBox"><label>Kategorie für die Testzuschauer (Namen statt Vornamen)</label>
+    <div id="catBox"><h2 class="sec">Test (Offline)</h2>
+      <div class="row"><div><label>Anzahl Tester</label><input id="simN" type="number" min="2" max="80" value="12"></div><div><label>Sekunden, die die Frage auf der Bühne steht</label><input id="rkSec" type="number" min="3" max="120" value="30"></div></div>
+      <label>Kategorie (Namen statt Vornamen)</label>
       <select id="catSel"></select>
       <textarea id="catOwn" rows="5" placeholder="Eigene Liste, ein Name pro Zeile" hidden style="width:100%;margin-top:6px"></textarea>
       <label>Wertung (so scheiden die Kugeln aus: der Schlechteste zuerst)</label>
       <select id="rkSel"></select>
-      <div class="row"><div><label>Sekunden, die die Frage auf der Bühne steht</label><input id="rkSec" type="number" min="3" max="120" value="30"></div><div></div></div>
       <div class="hint" id="catInfo"></div>
-      <div class="row"><button id="catFill" class="q">Namen jetzt eintragen</button></div></div>
-    <div class="chk"><input id="simChk" type="checkbox"><span>Testzuschauer (Computer-Spieler, keine echten Leute)</span><input id="simN" type="number" min="2" max="80" value="12" style="width:70px;margin-left:auto"></div>
+    </div>
     <div id="btns">
       <button id="bOpen" class="p">Anmeldung öffnen</button>
       <button id="bStart" class="p" hidden>Start</button>
@@ -219,10 +223,10 @@ function catInfo(){
   if(!L){el.textContent=v==='__own'?'Trage unten Namen ein, einen pro Zeile.':'';return}
   var n=Math.floor(+$('simN').value||0);
   var rk=rkCur();
-  if(rk){el.textContent='Wertung: '+rk.name+'. Quelle: '+rk.src+'. '+L.length+' Namen. Der Schlechteste scheidet zuerst aus, der Beste gewinnt und bekommt seine Zahl angezeigt. Mit „Namen jetzt eintragen“ sind alle Namen sofort da.';return}
+  if(rk){el.textContent='Wertung: '+rk.name+'. Quelle: '+rk.src+'. '+L.length+' Namen. Der Schlechteste scheidet zuerst aus, der Beste gewinnt und bekommt seine Zahl angezeigt.';return}
   el.textContent=catName()+': '+L.length+' Namen, z. B. '+L.slice(0,4).join(', ')+'. '+(n>L.length?'Du willst '+n+', es gibt aber nur '+L.length+'. ':'')+'Mit Haken bei Testzuschauer kommen die Namen langsam während der Anmeldung. Mit „Namen jetzt eintragen“ sind sie sofort da.';
 }
-function optVis(){var g=$('gameSel').value;if($('rkSel'))rkBuild();$('quizOpt').hidden=g!=='quiz';$('kampfOpt').hidden=g!=='kampf';$('catBox').hidden=g==='quiz';catInfo()}
+function optVis(){var g=$('gameSel').value,t=$('simChk').checked;if($('rkSel'))rkBuild();$('quizOpt').hidden=g!=='quiz';$('kampfOpt').hidden=g!=='kampf';$('liveBox').hidden=t;$('catBox').hidden=!t;$('rkSel').previousElementSibling.hidden=$('rkSec').parentNode.hidden=g==='quiz';$('rkSel').hidden=g==='quiz';catInfo()}
 function simUser(i){var o=catOrder();if(o){var nm=o[i%o.length];return {id:'sim:'+nm.toLowerCase(),name:nm}}return {id:'sim'+i,name:SIMN[i%SIMN.length]+(i>=SIMN.length?Math.floor(i/SIMN.length)+1:'')}}
 function planSim(){S.plan=[];S.catOrd=null}
 function simFill(dt){
@@ -327,8 +331,9 @@ function Ring(players){
   S.lastOut=[];var RK=!!S.rank,TT=clamp(n*4,40,170);
   players.forEach(function(p){var a=Math.random()*6.2832,rr_=Math.random()*90;g.balls.push({rk:p.rk,p:p,x:CX+Math.cos(a)*rr_,y:CY+Math.sin(a)*rr_,vx:Math.cos(a+1.5)*T,vy:Math.sin(a+1.5)*T,r:r,on:true,f:0})});
   function victim(){var v=null;g.balls.forEach(function(b){if(b.on&&(!v||b.rk<v.rk))v=b});return v}
+  function allowed(b){var arr=g.balls.filter(function(q){return q.on}).sort(function(a,c){return a.rk-c.rk}),w=Math.max(1,Math.min(3,arr.length-1)),k=arr.indexOf(b);return k>=0&&k<w}
   function wall(b){var dx=b.x-CX,dy=b.y-CY,d=Math.hypot(dx,dy);if(d>g.R-b.r){var an=Math.atan2(dy,dx),da=((an-g.ga)%6.2832+6.2832)%6.2832;
-    if(da<0.75&&(!RK||(b===victim()&&g.t>=TT*S.lastOut.length/Math.max(1,n-1)))){if(d>g.R+b.r*.5){b.on=false;b.f=0;S.lastOut.push(RK?b.p.name+'\u0001'+(n-S.lastOut.length):b.p.name)}return}
+    if(da<0.75&&(!RK||(allowed(b)&&g.t>=TT*S.lastOut.length/Math.max(1,n-1)))){if(d>g.R+b.r*.5){b.on=false;b.f=0;S.lastOut.push(RK?b.p.name+'\u0001'+(n-b.rk):b.p.name);if(RK)S.toast={t:b.p.name+': Platz '+(n-b.rk),u:now()+2800}}return}
     var nx=dx/d,ny=dy/d,dot=b.vx*nx+b.vy*ny;if(dot>0){b.vx-=2*dot*nx;b.vy-=2*dot*ny}b.x=CX+nx*(g.R-b.r);b.y=CY+ny*(g.R-b.r)}}
   function step(){
     g.t+=1/60;g.ga+=0.012+g.t*0.00025;g.R=Math.max(g.t>90?70:120,R0-g.t*4);
@@ -355,7 +360,8 @@ function Kampf(players){
   var g={t:0,f:1,balls:[],done:false,winner:null,acc:0,dr:0};S.lastOut=[];var RK=!!S.rank,GAP=D*.9/Math.max(1,n-1);
   players.forEach(function(p){var a=Math.random()*6.2832;g.balls.push({p:p,x:CX-AW/2+40+Math.random()*(AW-80),y:CY-AH/2+40+Math.random()*(AH-80),vx:Math.cos(a)*T,vy:Math.sin(a)*T,r:r,hp:HP,cd:0,f:0,rk:p.rk})});
   function canHeal(){return HEAL&&g.t<D-NH&&g.t<D}
-  function out(b){S.lastOut.push(RK?b.p.name+'\u0001'+(n-S.lastOut.length):b.p.name)}
+  function out(b){S.lastOut.push(RK?b.p.name+'\u0001'+(n-b.rk):b.p.name);if(RK)S.toast={t:b.p.name+': Platz '+(n-b.rk),u:now()+2800}}
+  function allowedK(b){var arr=g.balls.filter(function(q){return q.hp>0}).sort(function(a,c){return a.rk-c.rk}),w=Math.max(1,Math.min(3,arr.length-1)),k=arr.indexOf(b);return k>=0&&k<w}
   function victim(){var v=null;g.balls.forEach(function(b){if(b.hp>0&&(!v||b.rk<v.rk))v=b});return v}
   function sched(k){return D*.06+GAP*(k+1)}
   g.chat=function(p,t){if(!canHeal())return;var l=String(t).toLowerCase();if(l.indexOf('herz')<0&&l.indexOf('\u2764')<0&&l.indexOf('\u2665')<0)return;var b=g.balls.filter(function(q){return q.p===p&&q.hp>0})[0];if(b&&b.hp<HP){b.hp++;b.f=12}};
@@ -376,7 +382,7 @@ function Kampf(players){
       if(b.x<B.lo+b.r){b.x=B.lo+b.r;b.vx=Math.abs(b.vx)}if(b.x>B.hi-b.r){b.x=B.hi-b.r;b.vx=-Math.abs(b.vx)}if(b.y<B.lt+b.r){b.y=B.lt+b.r;b.vy=Math.abs(b.vy)}if(b.y>B.bt-b.r){b.y=B.bt-b.r;b.vy=-Math.abs(b.vy)}b.cd=Math.max(0,b.cd-1/60);if(b.f>0)b.f--});
     for(var i=0;i<g.balls.length;i++)for(var j=i+1;j<g.balls.length;j++){var a=g.balls[i],c=g.balls[j];if(a.hp<=0||c.hp<=0)continue;var dx2=c.x-a.x,dy2=c.y-a.y,d2=Math.hypot(dx2,dy2),mn2=a.r+c.r;
       if(d2<mn2&&d2>0){var nx=dx2/d2,ny=dy2/d2,p=(a.vx-c.vx)*nx+(a.vy-c.vy)*ny;if(p>0){var sa=a.vx*nx+a.vy*ny,sc=-(c.vx*nx+c.vy*ny);a.vx-=p*nx;a.vy-=p*ny;c.vx+=p*nx;c.vy+=p*ny;
-        if(a.cd<=0&&c.cd<=0){var h=RK?(a.rk<=c.rk?a:c):(sa>=sc?c:a);if(RK){var vk=victim(),ek=sched(S.lastOut.length)-GAP*.8;if(h===vk?(h.hp>1||g.t>=ek):h.hp>1)h.hp--;h.f=10}else{h.hp--;h.f=10}a.cd=c.cd=.35;if(h.hp<=0)out(h)}}
+        if(a.cd<=0&&c.cd<=0){var h=RK?(a.rk<=c.rk?a:c):(sa>=sc?c:a);if(RK){var ek=sched(S.lastOut.length)-GAP*.8;if(allowedK(h)?(h.hp>1||g.t>=ek):h.hp>1)h.hp--;h.f=10}else{h.hp--;h.f=10}a.cd=c.cd=.35;if(h.hp<=0)out(h)}}
         var ov=(mn2-d2)/2;a.x-=nx*ov;a.y-=ny*ov;c.x+=nx*ov;c.y+=ny*ov}}
     var al=g.balls.filter(function(b){return b.hp>0});if(al.length<=1){g.done=true;g.winner=al[0]?al[0].p:null}
   }
@@ -398,10 +404,17 @@ var MK={quiz:Quiz,ring:Ring,kampf:Kampf};
 /* ---------- Ablauf ---------- */
 function readSettings(){
   S.game=$('gameSel').value;S.len=Math.max(.1,+$('minIn').value||5);S.max=clamp(Math.floor(+$('maxIn').value||20),2,80);S.fullMin=Math.max(0,+$('fullMin').value||0);S.word=($('wordIn').value||'dabei').trim()||'dabei';
-  S.tour=$('tourChk').checked;S.rounds=clamp(Math.floor(+$('roundsIn').value||10),1,50);S.sim=$('simChk').checked;S.simN=clamp(Math.floor(+$('simN').value||12),2,60);
+  S.tour=$('tourChk').checked;S.rounds=clamp(Math.floor(+$('roundsIn').value||10),1,50);S.sim=$('simChk').checked;S.simN=clamp(Math.floor(+$('simN').value||12),2,80);
+}
+function testFill(){
+  var o=catOrder(),c=0,n=S.max;
+  for(var i=0;i<(o?o.length:400)&&c<n;i++){var u=simUser(i);if(S.won[u.id])continue;if(addPlayer(u,-1))c++}
+  S.msg=c+' Tester eingetragen'+(catList()?' ('+catName()+')':'')+'.';lastSig='';
 }
 function openSignup(){
-  readSettings();S.fullEnd=0;S.players=[];S.phase='signup';S.signupEnd=now()+S.len*60000;S.msg='';S.res=null;planSim();
+  readSettings();S.fullEnd=0;S.players=[];S.msg='';S.res=null;planSim();
+  if(S.sim){S.max=clamp(S.simN,2,80);S.phase='closed';S.signupEnd=now();testFill();return}
+  S.phase='signup';S.signupEnd=now()+S.len*60000;
 }
 function startGame(){
   readSettings();S.fullEnd=0;
@@ -442,7 +455,7 @@ function run(n,a){
   switch(n){
     case 'open':openSignup();break;
     case 'start':startGame();break;
-    case 'reopen':{var keep=S.players.slice();openSignup();S.players=keep;break}
+    case 'reopen':{if($('simChk').checked){openSignup();break}var keep=S.players.slice();openSignup();S.players=keep;break}
     case 'next':nextRound();break;
     case 'cfg':break;
     case 'plus':plusMinute();break;
@@ -450,7 +463,7 @@ function run(n,a){
     case 'cancel':S.qUntil=0;S.phase='idle';S.G=null;S.players=[];S.msg='Abgebrochen.';break;
     case 'reset':resetTour();break;
     case 'add':doAdd(a.nm,a.k);break;
-    case 'catfill':catFill();break;
+    case 'catfill':if(S.phase==='idle'||S.phase==='closed'){openSignup()}break;
     case 'qskip':S.qUntil=0;break;
     case 'rm':rmPl(a.id);break;
     case 'color':setCol(a.id,a.k);break;
@@ -473,8 +486,7 @@ $('bCancel').onclick=function(){act('cancel')};
 $('bReset').onclick=function(){act('reset')};
 $('tgl').onclick=function(){document.body.classList.toggle('hide');$('tgl').textContent=document.body.classList.contains('hide')?'▶':'◀'};
 (function(){var sl=$('catSel'),o=document.createElement('option');o.value='';o.textContent='Keine (normale Vornamen)';sl.appendChild(o);Object.keys(KAT).forEach(function(k){var q=document.createElement('option');q.value=k;q.textContent=k+' ('+KAT[k].length+')';sl.appendChild(q)});var w=document.createElement('option');w.value='__own';w.textContent='Eigene Liste';sl.appendChild(w)})();
-$('catSel').addEventListener('change',function(){S.catOrd=null;rkBuild();catInfo()});$('rkSel').addEventListener('change',function(){S.catOrd=null;catInfo()});$('catOwn').addEventListener('input',function(){S.catOrd=null;catInfo()});$('simN').addEventListener('input',catInfo);
-$('catFill').onclick=function(){act('catfill')};
+$('simChk').addEventListener('change',function(){optVis();if(MODE==='remote')act('cfg')});$('catSel').addEventListener('change',function(){S.catOrd=null;rkBuild();catInfo()});$('rkSel').addEventListener('change',function(){S.catOrd=null;catInfo()});$('catOwn').addEventListener('input',function(){S.catOrd=null;catInfo()});$('simN').addEventListener('input',catInfo);
 optVis();
 fillColSel($('apCol'),0);$('apAdd').onclick=manualAdd;$('apName').addEventListener('keydown',function(e){if(e.key==='Enter')manualAdd()});
 /* ---------- Musik (selbst erzeugt, keine Dateien) ---------- */
@@ -630,8 +642,8 @@ function panel(){plist();
   $('bOpen').hidden=!(ph==='idle'&&!fin);
   $('bStart').hidden=!(ph==='signup'||ph==='closed');
   $('bStart').textContent=fin?'Finale starten':'Spiel starten';
-  $('bPlus').hidden=!(ph==='signup'||(ph==='closed'&&!fin));
-  $('bReopen').hidden=!(ph==='closed'&&!fin);
+  $('bPlus').hidden=$('simChk').checked||!(ph==='signup'||(ph==='closed'&&!fin));
+  $('bReopen').hidden=!(ph==='closed'&&!fin);$('bReopen').textContent=$('simChk').checked?'Tester neu mischen':'Anmeldung wieder öffnen';$('bOpen').textContent=$('simChk').checked?'Tester eintragen':'Anmeldung öffnen';
   $('bNext').hidden=ph!=='result';
   $('bQNext').hidden=!(ph==='play'&&S.G&&S.G.waitNext);
   $('bNext').textContent=!S.tour?'Neue Runde':fin?'Turnier beenden':(S.round<S.rounds?'Nächste Runde ('+(S.round+1)+')':'Finale vorbereiten');
@@ -640,7 +652,7 @@ function panel(){plist();
   $('bReset').hidden=!(S.tour&&(S.winners.length||fin));
   var s='';
   if(ph==='signup')s=(S.fullEnd?'Voll, Start von selbst in '+timeStr(S.fullEnd-now()):'Anmeldung läuft: '+timeStr(S.signupEnd-now()))+' · '+S.players.length+' von '+S.max;
-  else if(ph==='closed')s=fin?'Finale bereit.':'Anmeldung geschlossen: '+S.players.length+' Spieler.';
+  else if(ph==='closed')s=fin?'Finale bereit.':($('simChk').checked?S.players.length+' Tester bereit.':'Anmeldung geschlossen: '+S.players.length+' Spieler.');
   else if(ph==='play')s=GN[S.game]+' läuft · '+roundLabel();
   else if(ph==='result')s=(S.res&&S.res.winner?'Sieger: '+S.res.winner.name:'Kein Sieger');
   else s='Bereit.';
@@ -662,18 +674,18 @@ function header(){
 function drawIdle(){}
 function fitTxt(t,y,maxSz,col,wt,maxW){var sz=maxSz;x.font=wt+' '+sz+'px system-ui,sans-serif';while(x.measureText(t).width>maxW&&sz>20){sz-=2;x.font=wt+' '+sz+'px system-ui,sans-serif'}txt(t,270,y,sz,col,'center',wt)}
 function drawSignup(closed){
-  var left=S.signupEnd-now(),fl=S.fullEnd?S.fullEnd-now():0,sub=($('tSub').value||'').trim(),hide=$('hideWord').checked,head=($('tHead').value||'').trim()||'Los geht’s gleich',cy=360;
+  var left=S.signupEnd-now(),fl=S.fullEnd?S.fullEnd-now():0,sub=S.sim?(rkCur()&&rkCur().q||''):($('tSub').value||'').trim(),hide=$('hideWord').checked,head=($('tHead').value||'').trim()||'Los geht’s gleich',cy=360;
   if(!closed){
     txt(S.fullEnd?'Alle Plätze belegt':'Anmeldung läuft',270,170,26,'#fff','center');
     var tl=S.fullEnd?fl:left;txt(timeStr(tl),270,270,96,tl<10000?'#ff6b8b':'#c6ff3d','center','900');
     if(sub){var ls=wrap(sub,500,22).slice(0,2);ls.forEach(function(l,i){txt(l,270,312+i*28,22,'#3de0ff','center')});cy=360+(ls.length-1)*28}
     else if(!hide)txt('Schreibe „'+S.word+'“ in den Chat',270,312,24,'#3de0ff','center');
   }else{
-    txt('Anmeldung geschlossen',270,170,26,'#fff','center');
+    txt(S.sim?'Testrunde':'Anmeldung geschlossen',270,170,26,'#fff','center');
     fitTxt(S.final?'Finale':head,270,64,'#c6ff3d','900',500);
     if(sub){var l2=wrap(sub,500,22).slice(0,2);l2.forEach(function(l,i){txt(l,270,312+i*28,22,'#3de0ff','center')});cy=360+(l2.length-1)*28}
   }
-  txt(S.players.length+' / '+S.max+' '+(catList()?catName():'Spieler'),270,cy,28,'#fff','center');
+  txt(S.sim?S.players.length+' Tester'+(catList()?' · '+catName():''):S.players.length+' / '+S.max+' '+(catList()?catName():'Spieler'),270,cy,28,'#fff','center');
   var n=S.players.length,cols=n>36?(n>50?(n>64?12:10):9):6,sz=Math.min(64,480/cols),gx=(W-cols*sz)/2,rows=Math.ceil(n/cols),rh=Math.min(86,440/Math.max(1,rows)),rad=Math.min(22,sz/2-5),nf=n>36?11:12;
   S.players.slice(0,84).forEach(function(p,i){var cx=gx+(i%cols)*sz+sz/2,cy=420+Math.floor(i/cols)*rh+rad+4;ball(p,cx,cy,rad);txt(p.name.slice(0,n>36?6:9),cx,cy+rad+14,nf,'#fff','center','500')});
   if(S.tour&&S.winners.length&&!S.final){txt('Schon gewonnen und gesperrt:',30,870,15,'#9aa3d0','left');txt(S.winners.map(function(w){return w.p.name}).join(', ').slice(0,60),30,892,16,'#ffc446','left')}
@@ -683,9 +695,7 @@ function drawRankQ(){
   txt('Wertung',270,150,22,'#9aa3d0','center');
   wrap(r.q,480,38).slice(0,4).forEach(function(l,i){txt(l,270,230+i*46,38,'#fff','center','800')});
   txt(timeStr(left),270,500,110,left<8000?'#ff6b8b':'#c6ff3d','center','900');
-  txt('Schreibt eure Tipps in den Chat',270,570,24,'#3de0ff','center');
-  txt(S.players.length+' dabei',270,640,26,'#fff','center');
-  txt(r.name,270,676,18,'#9aa3d0','center');
+  txt(S.sim?'Schreib deinen Tipp in die Kommentare':'Schreibt eure Tipps in den Chat',270,590,24,'#3de0ff','center');
 }
 function drawResult(){
   x.fillStyle='rgba(11,16,48,.82)';x.fillRect(-60,0,W+120,H);
@@ -703,7 +713,13 @@ function draw(){
   if(S.phase==='idle')drawIdle();
   else if(S.phase==='signup')drawSignup(false);
   else if(S.phase==='closed')drawSignup(true);
-  else if(S.G){if(S.phase==='play'&&S.qUntil&&now()<S.qUntil&&S.rank)drawRankQ();else{S.G.draw();if(S.phase==='result')drawResult()}}
+  else if(S.G){if(S.phase==='play'&&S.qUntil&&now()<S.qUntil&&S.rank)drawRankQ();else{S.G.draw();if(S.phase==='play'&&S.toast&&now()<S.toast.u)drawToast();if(S.phase==='result')drawResult()}}
+}
+function drawToast(){
+  var t=S.toast.t,a=Math.min(1,(S.toast.u-now())/400);x.save();x.globalAlpha=a;
+  x.font='900 34px system-ui,sans-serif';var w=Math.min(500,x.measureText(t).width+44);
+  x.fillStyle='rgba(11,16,48,.88)';rr(270-w/2,172,w,58,16);x.fill();x.strokeStyle='#c6ff3d';x.lineWidth=2;x.stroke();
+  fitTxt(t,214,34,'#c6ff3d','900',w-30);x.restore();
 }
 var last=now(),pt=0;
 function loop(t){
