@@ -212,7 +212,7 @@ function rankSetup(){
   var arr=S.players.map(function(p){var k=p.name.toLowerCase();return {p:p,v:val[k]==null?-1e18:val[k],i:ix[k]==null?1e9:ix[k]}});
   arr.sort(function(a,b){return a.v-b.v||b.i-a.i});
   arr.forEach(function(o,k){o.p.rk=k});
-  S.rank={r:r,val:val};S.qUntil=now()+clamp(Math.floor(+$('rkSec').value||30),3,120)*1000;
+  S.qDur=clamp(Math.floor(+$('rkSec').value||30),3,120)*1000;S.rank={r:r,val:val};S.qUntil=now()+S.qDur;S.board=null;S.toast=null;
 }
 function shuf(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=a[i];a[i]=a[j];a[j]=t}return a}
 function catOrder(){var L=catList();if(!L){S.catOrd=null;return null}var key=$('catSel').value+'|'+L.join('|');if(S.catKey!==key||!S.catOrd){S.catKey=key;S.catOrd=shuf(L)}return S.catOrd}
@@ -267,6 +267,7 @@ function outList(y0){
     var pr=String(nm).split('\u0001');txt(pr[0].slice(0,cols===3?9:13)+' raus'+(pr[1]?' ('+pr[1]+'.)':''),30+c*cw,y0+r*rh+fs,fs,last?'#ff6b8b':'#8d96c4','left',last?'800':'600')});
 }
 function roster(isOut){
+  if(S.rank){rankBoard(isOut);return}
   var ps=S.players,n=ps.length;if(!n)return;
   var rh=Math.min(24,690/n),fs=Math.max(9,Math.min(15,rh-6)),y0=236;
   ps.forEach(function(p,i){
@@ -691,11 +692,32 @@ function drawSignup(closed){
   if(S.tour&&S.winners.length&&!S.final){txt('Schon gewonnen und gesperrt:',30,870,15,'#9aa3d0','left');txt(S.winners.map(function(w){return w.p.name}).join(', ').slice(0,60),30,892,16,'#ffc446','left')}
 }
 function drawRankQ(){
-  var r=S.rank.r,left=S.qUntil-now();
-  txt('Wertung',270,150,22,'#9aa3d0','center');
-  wrap(r.q,480,38).slice(0,4).forEach(function(l,i){txt(l,270,230+i*46,38,'#fff','center','800')});
-  txt(timeStr(left),270,500,110,left<8000?'#ff6b8b':'#c6ff3d','center','900');
-  txt(S.sim?'Schreib deinen Tipp in die Kommentare':'Schreibt eure Tipps in den Chat',270,590,24,'#3de0ff','center');
+  var r=S.rank.r,left=S.qUntil-now(),dur=S.qDur||30000,el=dur-left;
+  txt(timeStr(left),270,250,110,left<8000?'#ff6b8b':'#c6ff3d','center','900');
+  var ls=wrap(r.q,480,34).slice(0,3);ls.forEach(function(l,i){txt(l,270,318+i*42,34,'#fff','center','800')});
+  var ty=318+ls.length*42;
+  txt(S.sim?'Schreib deinen Tipp in die Kommentare':'Schreibt eure Tipps in den Chat',270,ty+4,22,'#3de0ff','center');
+  var ps=S.players,n=ps.length,cols=n>36?(n>50?(n>64?12:10):9):6,sz=Math.min(64,480/cols),gx=(W-cols*sz)/2,rows=Math.ceil(n/cols),y0=ty+50,rh=Math.min(86,(900-y0)/Math.max(1,rows)),rad=Math.min(22,sz/2-5),nf=n>36?11:12,popT=Math.min(8000,dur*.35);
+  ps.slice(0,84).forEach(function(p,i){
+    var t0=i*popT/Math.max(1,n),k=clamp((el-t0)/380,0,1);if(k<=0)return;
+    var sc=1+2.70158*Math.pow(k-1,3)+1.70158*Math.pow(k-1,2),cx=gx+(i%cols)*sz+sz/2,cy=y0+Math.floor(i/cols)*rh+rad+4;
+    x.save();x.translate(cx,cy);x.scale(sc,sc);ball(p,0,0,rad);txt(p.name.slice(0,n>36?6:9),0,rad+14,nf,'#fff','center','500');x.restore();
+  });
+}
+function rankBoard(isOut){
+  var ps=S.players,n=ps.length;if(!n)return;
+  if(!S.board||S.board.n!==n){var o=ps.slice();for(var i=o.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=o[i];o[i]=o[j];o[j]=t}S.board={n:n,order:o,fix:{},y:{}}}
+  var B=S.board;
+  function fixIt(p){var pl=n-p.rk,i=B.order.indexOf(p),j=pl-1,t=B.order[j];B.order[j]=p;B.order[i]=t;B.fix[p.id]=pl}
+  ps.forEach(function(p){if(isOut(p)&&!B.fix[p.id])fixIt(p)});
+  var un=ps.filter(function(q){return !B.fix[q.id]});if(un.length===1)fixIt(un[0]);
+  var rh=Math.min(26,690/n),fs=Math.max(9,Math.min(15,rh-6)),y0=236,rad=Math.max(3,Math.min(6,rh/2-1));
+  B.order.forEach(function(p,idx){
+    var ty=y0+idx*rh+rh/2,cy=B.y[p.id]==null?ty:B.y[p.id];cy+=(ty-cy)*.14;B.y[p.id]=cy;var f=B.fix[p.id];
+    x.fillStyle=p.c;x.beginPath();x.arc(40,cy,rad,0,6.2832);x.fill();if(lum(p.c)<60){x.strokeStyle='#fff';x.lineWidth=1.5;x.stroke()}
+    txt(f?String(f):'?',30,cy+fs*.35,fs,f===1?'#c6ff3d':(f?'#ffc446':'#5b6499'),'right','800');
+    txt(p.name.slice(0,12),52,cy+fs*.35,fs,f===1?'#c6ff3d':'#fff','left',f?'600':'700');
+  });
 }
 function drawResult(){
   x.fillStyle='rgba(11,16,48,.82)';x.fillRect(-60,0,W+120,H);
@@ -745,7 +767,7 @@ $('quizOpt').hidden=false;
 if(MODE==='stage'){
   var since=-1;
   setInterval(function(){api('/api/tiktok-sync',{op:'poll',since:since}).then(function(j){if(!j||!j.ok)return;if(since<0||j.seq<since){since=j.seq;return}j.cmds.forEach(function(c){since=Math.max(since,c.id);cfgSet(c.cmd.cfg);try{run(c.cmd.n,c.cmd.a||{})}catch(e){}});since=Math.max(since,j.seq)}).catch(function(){})},800);
-  setInterval(function(){api('/api/tiktok-sync',{op:'status',status:{phase:S.phase,msg:S.msg,players:S.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}}),left:S.phase==='signup'?Math.max(0,S.signupEnd-now()):0,max:S.max,round:S.round,rounds:S.rounds,final:S.final,tour:S.tour,game:S.game,winners:S.winners.map(function(w){return w.p.name}),qwait:!!(S.G&&S.G.waitNext),qleft:S.qUntil?Math.max(0,S.qUntil-now()):0,fullLeft:S.fullEnd?Math.max(0,S.fullEnd-now()):0,hasRes:!!S.res,resW:S.res&&S.res.winner?S.res.winner.name:'',word:S.word}}).catch(function(){})},1000);
+  setInterval(function(){api('/api/tiktok-sync',{op:'status',status:{phase:S.phase,msg:S.msg,players:S.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}}),left:S.phase==='signup'?Math.max(0,S.signupEnd-now()):0,max:S.max,round:S.round,rounds:S.rounds,final:S.final,tour:S.tour,game:S.game,winners:S.winners.map(function(w){return w.p.name}),qwait:!!(S.G&&S.G.waitNext),qleft:S.qUntil?Math.max(0,S.qUntil-now()):0,qdur:S.qDur||0,fullLeft:S.fullEnd?Math.max(0,S.fullEnd-now()):0,hasRes:!!S.res,resW:S.res&&S.res.winner?S.res.winner.name:'',word:S.word}}).catch(function(){})},1000);
 }
 if(MODE==='remote'){
   setInterval(function(){api('/api/tiktok-sync',{op:'get'}).then(function(j){
@@ -754,7 +776,7 @@ if(MODE==='remote'){
     S.phase=st.phase;S.msg=st.msg||'';S.max=st.max;S.round=st.round;S.rounds=st.rounds;S.final=st.final;S.tour=st.tour;S.game=st.game;S.word=st.word;
     S.players=st.players.map(function(p){return {id:p.id,name:p.name,ci:p.ci,c:p.c}});
     S.signupEnd=now()+(st.left||0);S.winners=(st.winners||[]).map(function(n){return {p:{name:n}}});
-    S.G=st.qwait?{waitNext:true}:null;S.qUntil=st.qleft>0?now()+st.qleft:0;S.fullEnd=st.fullLeft>0?now()+st.fullLeft:0;
+    S.G=st.qwait?{waitNext:true}:null;S.qUntil=st.qleft>0?now()+st.qleft:0;S.qDur=st.qdur||0;S.fullEnd=st.fullLeft>0?now()+st.fullLeft:0;
     S.res=st.hasRes?{winner:st.resW?{name:st.resW}:null}:null;
   }).catch(function(){})},1000);
 }
