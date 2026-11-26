@@ -108,7 +108,7 @@
         }catch(e){ ac = null; }
         var rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 3500000 }), chunks = [];
         rec.ondataavailable = function(e){ if(e.data && e.data.size) chunks.push(e.data); };
-        rec.onstop = function(){ try{ ac && ac.close(); }catch(e){} resolve(new Blob(chunks, { type: mime.split(';')[0] })); };
+        rec.onstop = function(){ try{ ac && ac.close(); }catch(e){} var raw = new Blob(chunks, { type: mime.split(';')[0] }); if(window.MP4Fix && /mp4/.test(mime)) window.MP4Fix.fix(raw).then(resolve, function(){ resolve(raw); }); else resolve(raw); };
         rec.onerror = function(e){ reject(e.error || new Error('rec')); };
         var t0 = performance.now(); rec.start(500);
         var iv = setInterval(function(){
